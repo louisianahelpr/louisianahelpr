@@ -1,0 +1,171 @@
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
+import { hasIdBadge } from "@/lib/awardGate";
+import { openIdentityCheck } from "@/lib/identityCheck";
+import { getCachedUserLocation } from "@/hooks/useUserLocation";
+import { JobPrice } from "@/components/dashboard/JobPrice";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
+import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
+import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
+import { formatShortDate } from "@/lib/format";
+import type { Profile } from "@/components/profile/profileLanding/types";
+
+/** Jobs near you shows this many; the count beside the heading is the real total up to NEAR_CAP. */
+const NEAR_SHOWN = 3;
+const NEAR_CAP = 20;
+
+interface FirstJobState {
+  /** The member has never applied to a job: the "first job" Home shows. */
+  isNew: boolean;
+  /** The job-match alerts are off on both channels (the alerts card shows only then). */
+  alertsOff: boolean;
+}
+
+/**
+ * Board 189 (spec v2 §9.35, "New Helpr Home"): is this member still before
+ * their first job (never applied)? Every account can do jobs (never
+ * role-based), so this is about history, not a role. Unknown while loading or
+ * on a failed read: the Home then shows its normal cards (null).
+ */
+export function useFirstJobState(userId: string | undefined): FirstJobState | null {
+  const { data } = useQuery({
+    queryKey: ["home", "first-job-state", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const apps = await supabase.from("applications").select("id", { count: "exact", head: true }).eq("helper_id", userId!);
+      if (apps.error) throw apps.error;
+      const prefs = unwrap(await supabase.from("notification_preferences").select("job_matches, email_job_matches").eq("user_id", userId!).maybeSingle());
+      return {
+        isNew: (apps.count ?? 0) === 0,
+        alertsOff: !!prefs && prefs.job_matches === false && prefs.email_job_matches === false,
+      };
+    },
+  });
+  return data ?? null;
+}
+
+interface NearJob {
+  id: string;
+  title: string;
+  budget: number;
+  urgent_fee: number | null;
+  helpers_needed: number | null;
+  is_group_job: boolean | null;
+  date_needed: string | null;
+  location: string | null;
+  parish: string | null;
+  distance_band: string | null;
+  pricing_mode: string | null;
+  helper_fee_flat_cents: number | null;
+}
+
+/**
+ * The first-job Home (board 189): a five-step checklist from the member's real
+ * profile, the open jobs nearest them (the Browse ranking, priced by the ONE
+ * money component), an alerts card only while job alerts are off, and a plain
+ * "How you get paid" from the shared payout constants.
+ */
+export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; alertsOff: boolean }) {
+  const navigate = useNavigate();
+  const loc = getCachedUserLocation();
+  const near = useQuery({
+    queryKey: ["home", "jobs-near-you", loc?.lat ?? null, loc?.lng ?? null],
+    queryFn: async () =>
+      unwrap(await supabase.rpc("get_ranked_open_jobs", {
+        p_limit: NEAR_CAP,
+        p_offset: 0,
+        ...(loc ? { p_lat: loc.lat, p_lng: loc.lng } : {}),
+      })) as unknown as NearJob[],
+  });
+
+  const skills = (profile?.skills ?? "").trim();
+  const steps = [
+    { key: "id", label: "Verify your ID", done: hasIdBadge(profile?.idv_status), go: () => openIdentityCheck("general") },
+    { key: "skills", label: skills ? `Pick what you do: ${skills}` : "Pick what you do", done: !!skills, go: () => navigate("/profile?tab=profile") },
+    { key: "about", label: "Add a photo and a line about you", done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
+    { key: "payouts", label: "Add your payout bank", done: profile?.stripe_payouts_enabled === true, go: () => navigate("/profile?tab=payment") },
+    { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
+  ];
+  const jobs = near.data ?? [];
+
+  return (
+    <div className="flex flex-col gap-section" data-testid="first-job-home">
+      <section aria-label="Get your first job" className="liquid-glass p-card flex flex-col gap-1">
+        <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Get your first job</h2>
+        <ul className="flex flex-col">
+          {steps.map((s) => (
+            <li key={s.key}>
+              <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
+                <span
+                  className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
+                  aria-hidden
+                >
+                  {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+                </span>
+                <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
+                  {s.label}
+                  <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {jobs.length > 0 && (
+        <section aria-label="Jobs near you" className="flex flex-col gap-2">
+          <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            Jobs near you · {jobs.length >= NEAR_CAP ? `${NEAR_CAP}+` : jobs.length}
+          </h2>
+          <div className="liquid-glass flex flex-col divide-y divide-border/60">
+            {jobs.slice(0, NEAR_SHOWN).map((j) => (
+              <button key={j.id} type="button" onClick={() => navigate(`/jobs/${j.id}`)} className="min-h-11 flex items-center gap-3 px-card py-3 text-left">
+                <span className="flex-1 min-w-0">
+                  <span className="block text-ds-15 font-semibold text-foreground truncate">{j.title}</span>
+                  <span className="block text-ds-13 text-muted-foreground truncate">
+                    {[j.location || j.parish, j.distance_band, j.date_needed ? formatShortDate(j.date_needed) : null].filter(Boolean).join(" · ")}
+                  </span>
+                </span>
+                {j.pricing_mode === "quotes" ? (
+                  <span className="shrink-0 text-ds-13 font-semibold text-foreground">Quotes</span>
+                ) : (
+                  <JobPrice
+                    budget={j.budget}
+                    effectiveFee={TIER_PERKS.free.platformFeePercent}
+                    urgentFee={j.urgent_fee ?? 0}
+                    helpersNeeded={j.is_group_job && j.helpers_needed ? j.helpers_needed : 1}
+                    feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {alertsOff && (
+        <section aria-label="New jobs nearby" className="liquid-glass p-card flex items-center gap-3">
+          <span className="flex-1 min-w-0">
+            <span className="block text-ds-15 font-semibold text-foreground">Get told about new jobs nearby</span>
+            <span className="block text-ds-13 text-muted-foreground">Your job alerts are off. Be first to apply.</span>
+          </span>
+          <button type="button" onClick={() => navigate("/profile?tab=notifications")} className="btn-grad-primary btn-press shrink-0 rounded-full min-h-11 px-5 text-ds-15 font-semibold">
+            Turn on
+          </button>
+        </section>
+      )}
+
+      <section aria-label="How you get paid" className="liquid-glass p-card flex flex-col gap-1">
+        <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
+        <p className="text-ds-13 text-muted-foreground">
+          The person who posts the job pays when they hire you. It's held, then released when they confirm the job is done:
+          it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Helpr keeps {HELPR_FLAT_FEE_PHRASE} of a job.
+        </p>
+      </section>
+    </div>
+  );
+}

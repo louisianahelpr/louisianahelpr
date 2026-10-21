@@ -21,6 +21,7 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
 import { needsIdentityCheck } from "@/lib/identityCheck";
+import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -59,6 +60,7 @@ function HomeDashboardScreen() {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
+  const firstJob = useFirstJobState(user?.id);
   const money = useHomeMoney(user);
   const queryClient = useQueryClient();
   const { visible } = useSectionPrefs();
@@ -104,8 +106,11 @@ function HomeDashboardScreen() {
             {/* Board 143: a failed bank payout, first under the greeting; renders nothing unless one is open. */}
             <PayoutFailedCard />
 
+            {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
+            {firstJob?.isNew && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+
             {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
-            {needsIdentityCheck(profile) && (summary.counts.posted > 0 || summary.counts.working > 0) && (
+            {needsIdentityCheck(profile) && !firstJob?.isNew && (summary.counts.posted > 0 || summary.counts.working > 0) && (
               <IdentityPromptCard idvStatus={profile?.idv_status} />
             )}
 

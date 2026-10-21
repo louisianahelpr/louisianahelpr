@@ -475,12 +475,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               </button>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-3">
-              <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} />
+              <EarningsBreakdownCharts earningsJobs={earningsJobs} feeFallbackPercent={helperFeeFallbackPct} firstPayoutFee={firstPayoutFee} ledger={payoutLedger} />
               {/* The ONE entry point to /analytics (Advanced Analytics). A
                   link, not a locked teaser: the page it opens decides
                   server-side whether this helper gets the dashboard or the
                   upgrade offer. */}
-              {membershipsOn && (<button
+              {membershipsOn && profileHasPerk(profile?.subscription_tier, profile?.subscription_expires_at, "advancedAnalytics") && (<button
                 type="button"
                 onClick={() => navigate("/profile?tab=analytics")}
                 className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"

@@ -37,6 +37,8 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
+// The paid-tier badge reads the memberships switch (usePaidTierBadge); not what this test is about.
+vi.mock("@/hooks/usePaidTierBadge", () => ({ usePaidTierBadge: () => () => null }));
 vi.mock("@/integrations/supabase/client", () => {
   const chain: Record<string, unknown> = {};
   for (const m of ["select", "eq", "in", "or", "order", "limit", "maybeSingle", "single"]) chain[m] = () => chain;

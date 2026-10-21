@@ -33,7 +33,11 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   } as const;
 
   const jobThreads = useMemo(() => conversations.filter((c) => threadSection(c) === "jobs").length, [conversations]);
-  const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads);
+  // Owner 2026-10-21: no chip for a section that isn't open yet (Declutter / Shops / Homes while their switch is
+  // off), unless the member already has threads there, so no thread is ever unreachable by its chip.
+  const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads).filter(
+    (k) => live[k] || conversations.some((c) => threadSection(c) === k),
+  );
   const section = coerceInboxFilter(params.get("section"), tabs);
 
   const setSection = useCallback(
@@ -84,9 +88,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   if (section !== "all" && section !== "unread" && section !== "jobs") {
     const def = sectionByKey(section);
     const copy = SECTION_INBOX_EMPTY[section];
-    empty = live[section]
-      ? { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } }
-      : { icon: def.icon, title: `${copy.noun} is coming soon`, body: `Your ${copy.noun} chats will show up here once it opens.` };
+    // A closed section only has a chip while it holds threads, so its chip never shows an empty list.
+    empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
   }
 
   return { section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty };

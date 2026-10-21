@@ -193,7 +193,7 @@ export function SettingsTab({
         })}
       </Group>
 
-      <Group title="Alerts">
+      <Group title="Updates">
         <Row testId="notifications" label={TAB_TITLES.notifications} sub="What we tell you, and how" onClick={() => onSelectTab("notifications")} />
         <Row testId="saved-searches" label={TAB_TITLES.saved_searches} sub="Get told when something new matches" onClick={() => onSelectTab("saved_searches")} />
       </Group>

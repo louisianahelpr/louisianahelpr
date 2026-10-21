@@ -23,7 +23,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
  * CPU): the landing's skeleton was bones only, on screen at 4.16 s, and FCP
  * waited for the profile card at 4.96 s. Since board 18 (2026-10-20) the
  * landing is the "You" top bar, the profile card, the activity tiles and FOUR
- * rows (Money · Alerts · Settings · Talk to a real person). The title and the
+ * rows (Money · Notifications · Settings · Talk to a real person). The title and the
  * rows' words are known before any data, so the skeleton draws them for real
  * (YouMenuList itself, inert); the card and tiles (data) stay as bones.
  */

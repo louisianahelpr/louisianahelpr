@@ -11,7 +11,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { tierBadgeStyle } from "@/lib/tierBadgeStyle";
+import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
 import { TIER_PERKS, tierDisplayName, toSubscriptionTier } from "@/lib/subscriptionTiers";
 
 /**
@@ -199,7 +199,7 @@ export function ProfileBadge({
  * tier chip in the app; only the box is this page's.
  */
 export function SubscriptionTierBadge({ tier }: { tier: string | null | undefined }) {
-  const tierStyle = tierBadgeStyle(tier);
+  const tierStyle = usePaidTierBadge()(tier);
   if (!tierStyle) return null;
   const Icon = tierStyle.icon;
   const name = tierDisplayName(tier);

@@ -7,7 +7,7 @@ import { SectionScreen } from "@/components/sections/SectionScreen";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { useSectionTabs, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
@@ -62,6 +62,8 @@ function HomeDashboardScreen() {
   const queryClient = useQueryClient();
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
+  const isLive = (s: (typeof visible)[number]) => s.feature === null || !!live.find((t) => t.path === s.path)?.on;
+  const soonLine = openingSoonLine(visible.filter((s) => !isLive(s)).map((s) => s.label));
   const isWebDesktop = useIsWebDesktop();
   // Plain state, never stored: a remount (load, coming back) starts collapsed.
   const [todoOpen, setTodoOpen] = useState(false);
@@ -295,9 +297,10 @@ function HomeDashboardScreen() {
                 Customize
               </button>
             </div>
+            {/* Only OPEN sections get a box; the rest share ONE compact line (owner, 2026-10-21: no full
+                "Opening soon" cards). */}
             <div className="grid grid-cols-2 gap-3">
-              {visible.map((s) => {
-                const on = s.feature === null || live.find((t) => t.path === s.path)?.on;
+              {visible.filter(isLive).map((s) => {
                 // One real line, or the both-sides invitation: never a "0" (spec v2 §1.5, §5.5; board 19).
                 const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];
                 const Icon = s.icon;
@@ -306,21 +309,18 @@ function HomeDashboardScreen() {
                     key={s.key}
                     type="button"
                     data-section-tile={s.key}
-                    aria-label={on ? `${s.label}: ${line}` : `${s.label}, opening soon`}
-                    aria-disabled={on ? undefined : true}
-                    onClick={() => (on ? navigate(s.path) : sayComingSoon(s.label))}
+                    aria-label={`${s.label}: ${line}`}
+                    onClick={() => navigate(s.path)}
                     className="btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-1 lg:gap-0.5 min-w-0"
                   >
                     <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" strokeWidth={1.75} aria-hidden />
                     <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
                     <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug">{line}</span>
-                    {!on && (
-                      <span className="self-start mt-1.5 lg:mt-1 rounded-full border border-border px-2.5 py-0.5 text-ds-12 font-semibold text-muted-foreground">Opening soon</span>
-                    )}
                   </button>
                 );
               })}
             </div>
+            {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
           </section>
         </div>
 

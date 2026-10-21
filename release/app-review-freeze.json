@@ -4,8 +4,8 @@
   "build": 7119,
   "buildSha": "c16b0f0dc62854d8b9068888ecff49a9242c8666",
   "since": "2026-10-13",
-  "liveClientCompatFloor": 1,
+  "liveClientCompatFloor": 2,
   "liveMinSupportedBuild": 7117,
   "scanFrom": "20261001000000",
-  "why": "Build 7119 (1.0.4) is no longer in Apple review: the owner cancelled the submission in App Store Connect on 2026-10-21 (release-status run 39556175686: version 1.0.4 DEVELOPER_REJECTED, review submission af75253d COMPLETE with its item REMOVED; no version is live on the App Store). Unfrozen so held server changes (Q1805 phone save, Declutter privacy) can land BEFORE the replacement build is cut from main. When the new build is submitted, set frozen true again with its version, build and buildSha. While frozen: raising client_compat_floor() or min_supported_build shows the reviewer 'Update Helpr', and narrowing a privilege the client uses breaks it; src/test/appReviewFreeze.test.ts enforces it."
+  "why": "Build 7119 (1.0.4) is no longer in Apple review: the owner cancelled the submission in App Store Connect on 2026-10-21 (release-status run 39556175686: version 1.0.4 DEVELOPER_REJECTED, review submission af75253d COMPLETE with its item REMOVED; no version is live on the App Store). Unfrozen so held server changes (Q1805 phone save, Declutter privacy) can land BEFORE the replacement build is cut from main. When the new build is submitted, set frozen true again with its version, build and buildSha. While frozen: raising client_compat_floor() or min_supported_build shows the reviewer 'Update Helpr', and narrowing a privilege the client uses breaks it; src/test/appReviewFreeze.test.ts enforces it. liveClientCompatFloor 2 since 2026-10-21 (owner: the iOS app is not published; Declutter narrow reads 20261021124810 raise client_compat_floor() to 2, and the replacement build is cut from main, which ships clientCompat 2)."
 }

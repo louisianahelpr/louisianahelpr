@@ -31,6 +31,7 @@ import { quoteErrorMessage } from "@/lib/quotes/errors";
 import { QuotesGate, QuotesNotice, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { QUOTE_HOMES } from "@/lib/quotes/homes";
 import { parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";
+import { QuotePriceStepper } from "@/components/quotes/QuotePriceStepper";
 
 const TITLE = "Send a quote";
 const NOTE_MAX = 500;
@@ -127,16 +128,9 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
         }}
       >
         <div className="space-y-1.5">
-          <Label htmlFor="quote-price">Total price (whole dollars)</Label>
-          <Input
-            id="quote-price"
-            inputMode="numeric"
-            autoComplete="off"
-            placeholder="150"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            aria-describedby="quote-price-help"
-          />
+          <Label htmlFor="quote-price">Your price for the whole job</Label>
+          {/* Board 43: a big rust price with − / + and what you take home at it. */}
+          <QuotePriceStepper value={price} onChange={setPrice} min={MIN_QUOTE_DOLLARS} max={MAX_QUOTE_DOLLARS} />
           <p id="quote-price-help" className="text-xs text-muted-foreground">
             The whole job, from ${MIN_QUOTE_DOLLARS} to ${MAX_QUOTE_DOLLARS.toLocaleString("en-US")}. If your quote is accepted, this is the job price.
           </p>

@@ -44,7 +44,7 @@ describe("AiJobBuilder", () => {
 
   it("toasts an error when prompt is empty", () => {
     render(<AiJobBuilder onGenerated={vi.fn()} />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
     fireEvent.click(screen.getByRole("button", { name: /Fill in my job/ }));
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("Describe what you need"));
     expect(invokeMock).not.toHaveBeenCalled();

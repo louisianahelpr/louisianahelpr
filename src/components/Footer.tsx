@@ -139,7 +139,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <div className="col-span-2 order-1 min-[360px]:col-span-1 min-[360px]:order-none min-[620px]:col-span-3">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--accent-ink))" }}
+            style={{ color: "hsl(var(--muted-foreground))" }}
           >
             Explore
           </h2>
@@ -208,7 +208,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <div className="order-3 min-[360px]:order-none min-[620px]:col-span-2">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--accent-ink))" }}
+            style={{ color: "hsl(var(--muted-foreground))" }}
           >
             Legal
           </h2>
@@ -236,7 +236,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
         <div className="order-2 min-[360px]:order-none min-[620px]:col-span-3">
           <h2
             className="text-ds-11 font-semibold mb-3 uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--accent-ink))" }}
+            style={{ color: "hsl(var(--muted-foreground))" }}
           >
             Follow
           </h2>
@@ -314,8 +314,9 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
           <Heart
             className="w-3 h-3"
             style={{
-              color: "hsl(var(--burnt-sienna))",
-              fill: "hsl(var(--burnt-sienna))",
+              // Olive, not rust: rust is for money only (audit #14).
+              color: "hsl(var(--bark))",
+              fill: "hsl(var(--bark))",
             }}
           />{" "}
           for Louisiana communities

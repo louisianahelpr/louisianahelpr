@@ -36,6 +36,8 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("./giftCardPaidJobIds", () => ({
   loadGiftCardPaidJobIds: async () => ({ ids: new Set<string>(), error: null }),
 }));
+// Board 191's funnel card has its own read and its own "Try again"; this file is about the jobs load.
+vi.mock("./adminAnalytics/SectionFunnel", () => ({ SectionFunnel: () => null }));
 
 function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

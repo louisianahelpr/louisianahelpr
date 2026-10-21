@@ -8,7 +8,7 @@ import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
 import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
-import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, Sparkles, Star } from "lucide-react";
+import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -29,6 +29,9 @@ import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applica
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
+import { ApplicantPrivateNote } from "./applicantsPanel/ApplicantPrivateNote";
+import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/ApplicantsDesktopTable";
+import { formatJobDate } from "@/lib/dateUtils";
 
 interface ApplicantsPanelProps {
   /** No longer read here — the bid-mode sort default was its only consumer,
@@ -131,6 +134,7 @@ export function ApplicantsPanel({
   const compare = useApplicantCompare();
   const [shown, setShown] = useState(10);
   const categoryCounts = useApplicantCategoryCounts(selectedJob?.id);
+  const wide = useApplicantsTable(); // board 170: a table from 1280px, the cards below it
   const {
     applicantSort,
     setApplicantSort,
@@ -243,17 +247,11 @@ export function ApplicantsPanel({
             ) : undefined
           }
         >
-          {/* NO JOB-NAME SUBTITLE under the "Applicants" title (owner,
-              2026-09-11: "delete").
-
-              This line survived the 2026-08-13 retirement of PageHeader's
-              `meta` slot by being re-hand-rolled as the panel's own first
-              child with a negative top margin — which kept the exact look the
-              standing rule was written to remove ("a title sitting next to a
-              back button must not carry a small line beneath it"). Keeping the
-              rule but reproducing its output one element lower is not keeping
-              the rule. The job is already identified by the card the reader
-              tapped to get here. */}
+          {/* The job this list belongs to, under "Applicants" (owner, 2026-10-22, board 170: "YES, put the
+              job name + date line back"; it was removed 2026-09-11). Guard: applicantsDesktopTableBoard170. */}
+          <p className="-mt-2 mb-3 truncate text-ds-13 text-muted-foreground" data-applicants-job-line="">
+            {[selectedJob.title, selectedJob.date_needed ? formatJobDate(selectedJob.date_needed) : null].filter(Boolean).join(" · ")}
+          </p>
           {/* Fills AppPage's column (owner, 2026-10-01: "this content still
               needs to be wider to fill the space"). It was capped at
               max-w-2xl, a 672px strip at desktop width.
@@ -301,8 +299,16 @@ export function ApplicantsPanel({
                   </p>
                 )}
 
-                {/* Applicant cards */}
-                {sortedApplications.slice(0, shown).map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
+                {wide && (
+                  <ApplicantsDesktopTable rows={sortedApplications.slice(0, shown)} applications={applications} jobId={selectedJob.id} category={selectedJob.category}
+                    topHelperId={applicantSort === "recommended" && applications.length > 1 ? topHelperIdByScore : null}
+                    completedCountsMap={completedCountsMap} categoryCounts={categoryCounts} compare={compare}
+                    notes={{ applicantNotes, noteEditing, setNoteEditing, noteDraft, setNoteDraft, saveNote }}
+                    onAcceptApplication={onAcceptApplication} onReport={setReportApp} onBlock={setBlockApp}
+                    onDecline={(a) => { setDeclineTarget(a); setDeclineNote(""); setDeclineReason(null); }} />
+                )}
+                {/* Applicant cards (below 1280px) */}
+                {!wide && sortedApplications.slice(0, shown).map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   // Derived from the shared badge table, so Plus gets the same
                   // halo as Pro instead of none at all (CC-019).
@@ -623,49 +629,10 @@ export function ApplicantsPanel({
                           </div>
                         )}
 
-                        {/* Row 4: private poster note — localStorage only, never sent to server.
-                            Shown once one exists or is being written; the corner
-                            icon starts it. */}
-                        {(noteEditing === app.id || applicantNotes[app.id]) && (
-                        <div className="pt-1.5 flex items-start justify-between gap-3">
-                          <div className="min-w-0 flex-1">
-                          {noteEditing === app.id ? (
-                            <div className="flex gap-2 items-start">
-                              <textarea
-                                autoFocus
-                                aria-label="Private note"
-                                value={noteDraft}
-                                onChange={(e) => setNoteDraft(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveNote(app.id); }
-                                  if (e.key === "Escape") setNoteEditing(null);
-                                }}
-                                className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none"
-                                rows={2}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => saveNote(app.id)}
-                                className="text-ds-12 font-medium px-2 py-1 rounded"
-                                style={{ color: "hsl(var(--sage))" }}
-                              >
-                                Save
-                              </button>
-                            </div>
-                          ) : applicantNotes[app.id] ? (
-                            <button
-                              type="button"
-                              onClick={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }}
-                              className="text-left w-full text-ds-12 flex items-start gap-1.5"
-                              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                            >
-                              <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
-                              {applicantNotes[app.id]}
-                            </button>
-                          ) : null}
-                          </div>
-                        </div>
-                        )}
+                        {/* Row 4: private poster note — localStorage only, never sent to server. */}
+                        <ApplicantPrivateNote editing={noteEditing === app.id} note={applicantNotes[app.id]} draft={noteDraft} setDraft={setNoteDraft}
+                          onSave={() => saveNote(app.id)} onCancel={() => setNoteEditing(null)}
+                          onEdit={() => { setNoteEditing(app.id); setNoteDraft(applicantNotes[app.id]); }} />
                       </div>
                     </div>
                   );
@@ -674,7 +641,7 @@ export function ApplicantsPanel({
                 {/* Board 173: a long list loads 10 at a time, best match first; no infinite scroll on the poster side. */}
                 <ShowMoreApplicants total={sortedApplications.length} shown={shown} onMore={() => setShown((n) => n + 10)} />
                 {/* Boards 22/170: pick 2-3 and compare side by side, hire from there (ApplicantCompare). */}
-                <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication}
+                <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication} barClassName={wide ? "min-[1400px]:hidden" : undefined}
                   distanceOf={(a) => sortedApplications.find((x) => x.app.id === a.id)?.distanceBand?.label ?? null} />
               </div>
             )}

@@ -64,6 +64,11 @@ const NOT_ACTION_ROWS = new Set([
   // own compact controls, rendered above the step card, never in its row.
   "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
   "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx",
+  // Board 170, the same applicants list on a wide screen: the private note (moved
+  // verbatim out of ApplicantsPanel), the table, and its compare card.
+  "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx",
+  "src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx",
+  "src/pages/posts/postedJobs/applicantsPanel/ApplicantsCompareCard.tsx",
   // Controls for the whole LIST, drawn above or below the cards, never in a
   // card's row: the group headers' "See all" (Jobs > Posted / Working, which
   // replaced each tab's own header, PostsHeader / JobsHeader, on 2026-10-19,

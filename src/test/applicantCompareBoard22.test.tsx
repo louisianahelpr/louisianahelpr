@@ -1,7 +1,7 @@
 // Boards 22/170: pick 2-3 applicants, compare side by side from real row facts, hire through the card's own handler.
 // @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |   if (picked.length < 2) return null; |   if (picked.length < 1) return null;
 // @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx | : cur.length >= COMPARE_MAX ? cur : [...cur, id])); | : [...cur, id]));
-// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {sortedApplications.slice(0, shown).map( | {sortedApplications.map(
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {!wide && sortedApplications.slice(0, shown).map( | {!wide && sortedApplications.map(
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication} | <CompareBar apps={applications} ids={[]} clear={compare.clear} onHire={onAcceptApplication}
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

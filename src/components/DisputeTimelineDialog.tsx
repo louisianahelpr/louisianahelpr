@@ -44,6 +44,7 @@ import { Link } from "react-router-dom";
 import { MoneyNote } from "@/components/money/MoneyNote";
 import { DisputeDecisionCard, DisputeTrack, cardCls, cardStyle, outcomeHeadline } from "@/components/disputeTimeline/DisputeDecisionCard";
 import { userFacingError } from "@/lib/userFacingError";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 interface DisputeRow {
   id: string;
@@ -410,6 +411,7 @@ export const DisputeTimelineDialog = ({
           <DialogBody><p>Loading…</p></DialogBody>
         ) : loadError ? (
           <DialogBody>
+            <ReportErrorScreen source="DisputeTimelineDialog" title="Couldn't load this dispute." />
             <p role="alert" className="text-ds-14 text-foreground">Couldn't load this dispute.</p>
             <button
               type="button"

@@ -71,6 +71,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
 export const NOT_STORAGE_COLUMNS = {
   "shipments.label_path": "Shipping S1 (20261020024605): no rows and no writer until the S3 label worker, which picks the private label bucket and moves this column to STORAGE_REFERENCE_COLUMNS (docs/specs/shipping-draft.md 9.3, Q2259)",
   "rental_photo_purge_queue.storage_path": "a queued object the listing-photo-purge cron DELETES (server-only queue, 20261019071203): a path waiting to stop existing, never one the app serves",
+  "profiles.share_job_photos": "the member's boolean opt-out from showing their job photos (20261021001940, Terms 'Photos from jobs'); a switch, not a file reference",
   "analytics_events.url": "the page URL an event fired on",
   "error_logs.url": "the page URL an error happened on",
   "marketing_content.external_url": "the published post's URL on Instagram/Facebook",

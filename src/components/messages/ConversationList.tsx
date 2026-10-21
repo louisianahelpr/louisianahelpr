@@ -1109,7 +1109,7 @@ export function ConversationList({
 
   const headerEl = phoneTopBar && !selectMode ? (
     <>
-      <div className="shrink-0 -mt-1"><AppTopBar title="Messages" /></div>
+      <div className="shrink-0 -mt-1"><AppTopBar title="Messages" desktopGap={false} /></div>
       {phoneSearchRow}
       {sectionTabs && (
         <div className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs">

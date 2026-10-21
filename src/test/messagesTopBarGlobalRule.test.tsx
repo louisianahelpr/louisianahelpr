@@ -5,7 +5,7 @@
  * Active/All filter live in ONE slim search row under the section tabs, with
  * a single "more" menu, never as icons in the top bar.
  *
- * @mutate src/components/messages/ConversationList.tsx | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" /></div> | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" add={{ label: "New message", path: "/messages" }} /></div>
+ * @mutate src/components/messages/ConversationList.tsx | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" desktopGap={false} /></div> | <div className="shrink-0 -mt-1"><AppTopBar title="Messages" desktopGap={false} add={{ label: "New message", path: "/messages" }} /></div>
  * @mutate src/components/messages/ConversationList.tsx |   const headerEl = phoneTopBar && !selectMode ? ( |   const headerEl = false ? (
  */
 import { describe, it, expect } from "vitest";
@@ -23,7 +23,8 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
     expect(list).toMatch(/const phoneTopBar = embedded \|\| !isWebDesktop;/);
     expect(list).toMatch(/const headerEl = phoneTopBar && !selectMode \? \(/);
     const bars = list.match(/<AppTopBar[^>]*\/>/g) ?? [];
-    expect(bars).toEqual(['<AppTopBar title="Messages" />']);
+    // desktopGap={false}: the list pane pads itself (one header row, 2026-10-21).
+    expect(bars).toEqual(['<AppTopBar title="Messages" desktopGap={false} />']);
   });
   it("search, Active/All and the options live in the slim search row's one more menu", () => {
     const row = list.slice(list.indexOf("const phoneSearchRow"), list.indexOf("const headerEl ="));

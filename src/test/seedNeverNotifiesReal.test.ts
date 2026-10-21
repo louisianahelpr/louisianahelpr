@@ -231,6 +231,7 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/stripe-webhook/handlers/accountUpdated.ts#2": "own payout account needs attention",
   "ts:supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts#2": "own background check started",
   "ts:supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts#1": "own duplicate fee refunded",
+  "ts:supabase/functions/stripe-webhook/handlers/payoutFailed.ts#1": "own bank payout failed (board 143): the member's own connected account, no job or other person in it",
   "ts:supabase/functions/weekly-helper-report/index.ts#1": "own weekly stats",
   "ts:src/components/admin/adminusers/useAdminUserActions.ts#1": "own ban lifted (admin actor, never seed)",
   "sql:review_credential#1": "own credential reviewed",

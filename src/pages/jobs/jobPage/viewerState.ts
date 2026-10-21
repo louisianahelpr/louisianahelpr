@@ -21,10 +21,10 @@ export function jobPageViewerState(o: {
   posterFirst: string | null;
 }): { action: ViewerAction; status: string | null } {
   if (o.isPoster) return { action: { kind: "manage" }, status: null };
-  const them = o.posterFirst || "the poster";
+  const them = o.posterFirst || "the person who posted it";
   const mineAssigned = !!o.userId && o.job.helper_id === o.userId;
   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") {
-    return { action: { kind: "see_offer" }, status: `${o.posterFirst || "The poster"} offered you this job` };
+    return { action: { kind: "see_offer" }, status: `${o.posterFirst || "The person who posted it"} offered you this job` };
   }
   if (mineAssigned) return { action: { kind: "open_working" }, status: null };
   const app = o.myApplication;

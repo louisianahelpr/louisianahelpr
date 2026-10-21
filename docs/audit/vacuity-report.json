@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T04:41:08.101Z",
-  "guards": 2199,
-  "registered": 2194,
+  "generated": "2026-10-21T05:29:32.934Z",
+  "guards": 2206,
+  "registered": 2201,
   "unregistered": [
     "src/lib/declutter/sellForMe.test.ts",
     "src/lib/rentals/savedHomes.test.ts",
@@ -126,6 +126,15 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/MovingSaleBanner.tsx",
+      "tests": [
+        "src/components/declutter/movingSaleBanner.test.tsx"
+      ],
+      "parents": [
+        "src/pages/user/UserProfile.tsx"
       ]
     },
     {

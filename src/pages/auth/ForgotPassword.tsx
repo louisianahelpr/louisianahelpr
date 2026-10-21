@@ -8,6 +8,7 @@ import { getPublicResetPasswordUrl } from "@/lib/authRedirects";
 import { toast } from "sonner";
 import { Mail, Loader2, Check, X } from "lucide-react";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
 import { isCaptchaError } from "@/lib/turnstile";
 import { recognizedAuthError } from "@/lib/authErrors";
@@ -141,64 +142,37 @@ const ForgotPassword = () => {
     await performSend();
   };
 
-  // ONE auth shell (owner, V4). This screen used to carry the marketing
-  // Navbar + Footer and a desktopBrandPanel while /login and /signup were
-  // chrome-less focused flows — two different shells across four screens of
-  // one funnel. It now takes Login's exact prop set: `noWebChrome` (no nav,
-  // no footer), `centerColumn` (centred column + the ambient brand wash that
-  // used to be coupled to the brand pane), and the shell's canonical
-  // `[back] [title]` row.
+  // ONE auth shell (owner, V4): Login's exact prop set — `noWebChrome` (no
+  // nav, no footer) and `centerColumn` (centred column + ambient wash), no
+  // desktopBrandPanel (it drew a second, pinned chevron at lg+).
   //
-  // Dropping `desktopBrandPanel` is also what kills the DOUBLE BACK ARROW:
-  // that prop rendered a second, pinned top-left chevron at lg+ ALONGSIDE the
-  // title row's chevron — the stacked-arrow defect AuthShell's own comments
-  // warn against. AuthShell now guards that branch with `!title` too, so the
-  // row is the single owner of the control no matter what a caller passes.
-  //
-  // maxWidth="2xl" — same shell rung as Login/Signup (owner, 2026-08-30:
-  // "should share same shell as log in and create account" / "reset should
-  // fill width"). Was "sm" to avoid stretching the single email field on a
-  // wide desktop; the owner confirmed matching the siblings' full width is
-  // the actual intent here, superseding that earlier fix.
-  //
-  // Back chevron stays on the FORM step (owner: "yes the back button belongs
-  // here" — it correctly returns to /login). The step AFTER this one (email
-  // sent) drops the title row entirely and puts its own X, inside the card's
-  // top-right corner rather than the page's (owner: "delete title here and
-  // put the x in the box").
+  // The way back to /login (owner: "yes the back button belongs here") is now
+  // the "Back to log in" link at the card's foot, and the email-sent step
+  // keeps its X inside the card's top-right corner (owner: "delete title
+  // here and put the x in the box").
   return (
-    <AuthShell hideHeader hideBack={sent} backTo={sent ? undefined : "/login"} centerColumn maxWidth="2xl" title={sent ? undefined : "Reset Password"} noWebChrome>
-      <div className="relative liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+    // Spec v2 rebuild (audit 2026-10-21): the same centered card as /login —
+    // H mark, one sentence-case heading, the field, then "Back to log in" as a
+    // text link at the foot (/login's own card has no back arrow either).
+    <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
+      <div className="relative liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
         {sent && (
           <Link
             to="/"
             aria-label="Close"
-            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)]"
+            className="absolute top-3 right-3 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)]"
             style={{ color: "hsl(var(--olivewood))" }}
           >
             <X className="w-4 h-4" strokeWidth={2.25} />
           </Link>
         )}
+        <AuthCardHead
+          testId="forgot-card-head"
+          title={sent ? "Check your inbox" : "Reset your password"}
+          sub={sent ? undefined : "We'll email you a link to set a new one."}
+        />
         {sent ? (
           <div className="text-center space-y-4">
-            <div
-              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-              style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
-            >
-              <Mail className="w-7 h-7" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.5} />
-            </div>
-            {/* h2, not h1. The shell's `title` row renders "Reset Password"
-                as the page h1 in BOTH states, so this confirmation heading is
-                a section heading under it. It was an h1 back when the title
-                row lived inside the `!sent` branch and disappeared here —
-                lifting the row into AuthShell made the page briefly carry two. */}
-            {/* `text-balance`, not `truncate` — this string is short enough to
-                fit today, but it is the same centred-card headline pattern that
-                clipped on AccountBanned/AccountDenied at 320/375, so it carries
-                the same latent defect. Wrapping is always correct here. */}
-            <h2 className="text-page-title leading-tight text-balance">
-              Check your inbox.
-            </h2>
             {/* Neutral confirmation copy — leaks no signal about whether
                 the address is registered (see performSend comment). */}
             <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -215,7 +189,7 @@ const ForgotPassword = () => {
               <Button
                 variant="primary"
                 type="button"
-                className="flex-1 rounded-ds-md"
+                className="flex-1 rounded-full"
                 onClick={handleResend}
                 disabled={loading || resendCooldown > 0}
                 style={{ opacity: resendCooldown > 0 ? 0.6 : 1 }}
@@ -224,14 +198,14 @@ const ForgotPassword = () => {
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
                   : resendCooldown > 0
                     ? `Resend in ${resendCooldown}s`
-                    : "Resend Email"}
+                    : "Resend email"}
               </Button>
               <Button
                 variant="outline"
-                className="flex-1 rounded-ds-md"
+                className="flex-1 rounded-full"
                 onClick={() => setSent(false)}
               >
-                Use a Different Email
+                Use another email
               </Button>
             </div>
           </div>
@@ -302,7 +276,7 @@ const ForgotPassword = () => {
               <Button
                 variant="primary"
                 type="submit"
-                className="w-full rounded-ds-md"
+                className="w-full rounded-full"
                 size="lg"
                 // Loading-only disable (owner, V5). It used to also disable on
                 // `!emailValid`, which made the inline error above unreachable
@@ -314,13 +288,19 @@ const ForgotPassword = () => {
                 // only on a real attempt).
                 disabled={loading}
               >
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send Reset Link"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
               </Button>
             </form>
         )}
         {/* Turnstile for resetPasswordForEmail (Q1314), mounted in BOTH states
             so the "sent" screen's resend carries a token too. */}
         <TurnstileField ref={turnstileRef} action="password_reset" />
+        <p className="text-center text-ds-13 text-muted-foreground">
+          Remembered it?{" "}
+          <Link to="/login" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
+            Back to log in
+          </Link>
+        </p>
       </div>
     </AuthShell>
   );

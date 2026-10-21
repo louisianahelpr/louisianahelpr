@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AuthShell from "@/components/auth/AuthShell";
+import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
 import { isCaptchaError } from "@/lib/turnstile";
 import { recognizedAuthError } from "@/lib/authErrors";
@@ -213,34 +214,21 @@ const SignupPending = () => {
   );
 
   return (
-    /* Same shell as Login and Signup: heading INSIDE the card on a
-       [back] [title] row, wide centred column, no wordmark/eyebrow block
-       above it. This screen used to be the odd one out — a 448px card
-       under a big Helpr·LA lockup, in a flow whose other two screens are
-       1024px cards with their own headings. */
-    <AuthShell
-      hideHeader
-      centerColumn
-      maxWidth="2xl"
-      // Home, not /signup. The account already EXISTS by the time this screen
-      // renders — sending the arrow back to the signup form invites a
-      // duplicate attempt on an address that is already registered. The
-      // wrong-address case has its own explicit "Start over" link inside the
-      // resend panel.
-      backTo="/"
-      title="Check Your Email"
-      // Login, Signup, Forgot and Reset all pass this; this screen was the
-      // one auth sibling still wrapped in the marketing Navbar + Footer on
-      // web, so someone mid-signup was shown a "Get Started" button above a
-      // card telling them their account already exists.
-      noWebChrome
-    >
-      <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
+    /* Spec v2 rebuild (audit 2026-10-21): /login's centered card (maxWidth
+       sm, H mark + one sentence-case heading inside the card), not a Title
+       Case [back] [title] row over a full-width box. No back arrow: the
+       account already EXISTS here, so "back" to the signup form invites a
+       duplicate attempt; the card's own "Start over" and "Log in" links are
+       the ways out. noWebChrome like every auth sibling (a "Get Started"
+       button above "your account exists" contradicted the card). */
+    <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
+      <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+        <AuthCardHead testId="signup-pending-card-head" title="Check your email" />
         {/* Name the ADDRESS. It's the one fact this screen exists to
             convey — how someone catches "jane@gmial.com" without opening
             the resend panel to look. Falls back to the generic sentence on
             a cold load, where router state carries no email. */}
-        <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+        <p className="text-ds-14 font-sans text-center text-balance" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           We've sent a verification link to{" "}
           {prefillEmail
             ? <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{prefillEmail}</span>
@@ -248,7 +236,7 @@ const SignupPending = () => {
           . Click it to confirm your account.
         </p>
 
-        <div className="border-t pt-6 grid gap-4 sm:grid-cols-3 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+        <div className="border-t pt-6 grid gap-4 text-left" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
           <div className="flex items-start gap-3">
             {stepIcon(1)}
             <div>
@@ -308,15 +296,10 @@ const SignupPending = () => {
           </div>
         </div>
 
-        {/* Resend on the left, "already verified" on the right — one row of
-            escape hatches instead of two stacked lines, which also stops the
-            sign-in link reading as a footer detached from the card. */}
-        {/* Collapsed, the two links pair on one row. EXPANDED, the resend
-            form needs the full width — pairing then left the form in half
-            the card with the sign-in link stranded in the empty half. */}
-        {/* One row at sm+, stacked on a phone — three sentences don't share
-            327px, and side by side they ran off the edge. */}
-        <div className="border-t pt-4 space-y-2 text-center sm:space-y-0 sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-3" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
+        {/* The escape hatches (resend, start over, log in), stacked and
+            centred: the card is /login's 384px column now, too narrow to
+            pair three sentences on one row. */}
+        <div className="border-t pt-4 space-y-2 text-center" style={{ borderColor: "hsl(var(--olivewood) / 0.12)" }}>
           {prefillEmail && (
             <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Didn't get it?{" "}
@@ -348,7 +331,7 @@ const SignupPending = () => {
           <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Verified?{" "}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-              Log In
+              Log in
             </Link>
           </p>
         </div>

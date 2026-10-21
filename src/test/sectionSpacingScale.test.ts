@@ -98,7 +98,6 @@ const ALLOWED: Record<string, { n: number; why: string }> = {
   "src/pages/auth/AccountBanned.tsx": { n: 1, why: "AuthShell card rhythm" },
   "src/pages/auth/CompleteProfile.tsx": { n: 1, why: "the profile-completion card's own field rhythm" },
   // Centred compositions with no title row (NOT_A_TITLE_ROW in shell-spacing.spec).
-  "src/pages/info/NotFound.tsx": { n: 1, why: "centred 404 composition" },
   "src/pages/post-job/PaymentSuccess.tsx": { n: 1, why: "centred payment-return composition" },
   "src/pages/posts/EditJobDialog.tsx": { n: 1, why: "space-y-5 between a dialog's own form fields, not a page section" },
   // Field rhythm INSIDE one padded card, not gaps between a page's sections.

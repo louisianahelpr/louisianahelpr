@@ -17,7 +17,7 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { fetchPublicShop, isShopId, shareShop, shopLink, type PublicShop } from "@/lib/shops/publicShop";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { ShopsNotice } from "./shopsUi";
+import { ShopsNotice, ShopUnavailable } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
@@ -109,14 +109,6 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       {shop.offers_selling && <ShopPolicies shopId={shop.id} />}
       <ShopFaqs shopId={shop.id} />
     </div>
-  );
-}
-
-function ShopUnavailable() {
-  return (
-    <ShopsNotice title="This shop isn't available." tone="warn">
-      <p>It may be paused or closed. Check the link with whoever sent it.</p>
-    </ShopsNotice>
   );
 }
 

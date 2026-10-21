@@ -7,8 +7,8 @@
  * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
- * @mutate src/components/declutter/DeclutterItemView.tsx |                 <Button type="submit" size="sm" disabled={ask.isPending \|\| question.trim().length < 2}> |                 <Button type="submit" size="sm" className="btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| question.trim().length < 2}>
- * @mutate src/components/declutter/DeclutterItemView.tsx | <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: | <p className="text-sm font-medium">Q:
+ * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
  * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
@@ -350,7 +350,10 @@ describe("Declutter controls are the shared ones", () => {
     state.item = { ...ITEM, status: "live", description: word };
     state.questions = [{ id: "q1", item_id: "i1", question: word, answer: word, created_at: "2026-10-15", answered_at: "2026-10-15" }];
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
-    const texts = [await screen.findByText(`Q: ${word}`), screen.getByText(`A: ${word}`), screen.getByText(word)];
+    const answer = await screen.findByText((_, el) => el?.hasAttribute("data-answer") === true);
+    // The question and the description are the word alone; the answer also carries " — Dana".
+    const texts = [...screen.getAllByText(word), answer];
+    expect(texts.length).toBeGreaterThan(2);
     for (const t of texts) expect(t.className).toMatch(/\[overflow-wrap:anywhere\]|break-all|break-words/);
   });
 });

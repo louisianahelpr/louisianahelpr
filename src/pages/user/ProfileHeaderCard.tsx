@@ -309,7 +309,7 @@ export const ProfileHeaderCard = ({
                     className="inline-flex items-center gap-1.5 min-w-0"
                     style={{
                       color: lastActiveLabel.isLive
-                        ? "hsl(var(--live-ink))"
+                        ? "hsl(var(--bark))"
                         : "hsl(var(--olivewood) / 0.8)",
                     }}
                   >
@@ -319,11 +319,12 @@ export const ProfileHeaderCard = ({
                       style={{
                         width: 7,
                         height: 7,
+                        // Olive presence, the same as the inbox (audit #53).
                         background: lastActiveLabel.isLive
-                          ? "hsl(var(--live))"
+                          ? "hsl(var(--bark))"
                           : "hsl(var(--olivewood) / 0.7)",
                         boxShadow: lastActiveLabel.isLive
-                          ? "0 0 0 3px hsl(var(--live) / 0.18)"
+                          ? "0 0 0 3px hsl(var(--bark) / 0.18)"
                           : "none",
                       }}
                     />

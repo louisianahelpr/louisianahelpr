@@ -391,8 +391,9 @@ const ConversationRowBase = ({
                 // so the chip doesn't need to intercept taps to explain it.)
                 <span
                   data-testid="row-status-chip"
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0"
-                  style={{ color: statusChip.color, backgroundColor: statusChip.bg, letterSpacing: "0.08em" }}
+                  // Sentence case, readable size (audit #53): no tiny uppercase.
+                  className="text-ds-11 font-sans font-semibold px-1.5 py-0.5 rounded-full shrink-0"
+                  style={{ color: statusChip.color, backgroundColor: statusChip.bg }}
                 >
                   {statusChip.label}
                 </span>
@@ -471,8 +472,8 @@ const ConversationRowBase = ({
                       aria-hidden="true"
                       className="w-1.5 h-1.5 rounded-full"
                       style={{
-                        background: "hsl(var(--live))",
-                        boxShadow: "0 0 4px hsl(var(--live) / 0.55)",
+                        // Spec palette, not a bright green (audit #53): olive presence dot.
+                        background: "hsl(var(--bark))",
                       }}
                     />
                   )}
@@ -480,7 +481,7 @@ const ConversationRowBase = ({
                     className="text-ds-10 font-sans"
                     style={{
                       color: lastActiveLabel.isLive
-                        ? "hsl(var(--live-ink))"
+                        ? "hsl(var(--bark))"
                         : "hsl(var(--olivewood) / 0.8)",
                       letterSpacing: "0.02em",
                     }}

@@ -464,7 +464,7 @@ function PostedJobCardInner({
                         className="text-ds-11 font-medium tabular-nums"
                         style={{
                           color: isCharged
-                            ? "hsl(var(--destructive))"
+                            ? "hsl(var(--destructive-ink))"
                             : "hsl(var(--olivewood) / 0.85)",
                         }}
                       >

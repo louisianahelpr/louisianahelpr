@@ -187,7 +187,7 @@ export const FunnelCard = ({
                 <span className="font-mono tabular-nums text-foreground">
                   {s.count}
                   {convPct !== null && (
-                    <span className={`ml-2 ${convPct >= 50 ? "text-primary" : convPct >= 20 ? toneTextClasses.warning : "text-destructive"}`}>
+                    <span className={`ml-2 ${convPct >= 50 ? "text-primary" : convPct >= 20 ? toneTextClasses.warning : "text-destructive-ink"}`}>
                       {convPct}%
                     </span>
                   )}

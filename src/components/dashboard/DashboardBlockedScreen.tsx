@@ -16,7 +16,7 @@ export const DashboardBannedScreen = ({ banStatus }: BannedScreenProps) => (
     <div className="flex-1 flex items-center justify-center px-4">
       <div className="max-w-md text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto">
-          <XCircle className="w-8 h-8 text-destructive" />
+          <XCircle className="w-8 h-8 text-destructive-ink" />
         </div>
         <h1 className="text-page-title text-foreground">
           Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}

@@ -122,13 +122,13 @@ export function MarketingSettingsCard({
           <div className="flex items-start gap-3">
             <ShieldQuestion
               className="mt-0.5 h-6 w-6 shrink-0"
-              style={{ color: "hsl(var(--destructive))" }}
+              style={{ color: "hsl(var(--destructive-ink))" }}
               aria-hidden="true"
             />
             <div className="min-w-0 space-y-2">
               <p
                 className="font-display text-ds-16 font-semibold"
-                style={{ color: "hsl(var(--destructive))" }}
+                style={{ color: "hsl(var(--destructive-ink))" }}
               >
                 Auto-publish state unknown
               </p>
@@ -226,13 +226,13 @@ export function MarketingSettingsCard({
             <div className="flex min-w-0 items-start gap-3">
               <RadioTower
                 className="mt-0.5 h-6 w-6 shrink-0"
-                style={{ color: on ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground))" }}
+                style={{ color: on ? "hsl(var(--destructive-ink))" : "hsl(var(--muted-foreground))" }}
                 aria-hidden="true"
               />
               <div className="min-w-0 space-y-1">
                 <p
                   className="font-display text-ds-16 font-semibold"
-                  style={{ color: on ? "hsl(var(--destructive))" : "hsl(var(--foreground))" }}
+                  style={{ color: on ? "hsl(var(--destructive-ink))" : "hsl(var(--foreground))" }}
                 >
                   {on ? "Auto-publish is ON" : "Auto-publish is OFF"}
                 </p>

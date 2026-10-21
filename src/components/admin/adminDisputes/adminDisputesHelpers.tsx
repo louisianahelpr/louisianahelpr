@@ -10,7 +10,7 @@ export const slaBadge = (disputedAt: string | null) => {
   const hours = (Date.now() - new Date(disputedAt).getTime()) / 3600_000;
   if (hours > 120) {
     return (
-      /* Solid destructive fill, not a 15% tint. `text-destructive` on
+      /* Solid destructive fill, not a 15% tint. `text-destructive-ink` on
          `bg-destructive/15` measured 4.34:1 (axe, /admin?view=disputes, all
          four breakpoints) — under the 4.5:1 AA floor, and 10px bold is NOT
          "large text", so no exemption applies. Inverting to the solid pair

@@ -66,7 +66,7 @@ export const BatchRow = ({
             {batch.job_count} job{batch.job_count !== 1 ? "s" : ""}
           </Badge>
           {!batch.stripe_account_id && (
-            <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-ds-10">
+            <Badge className="bg-destructive/10 text-destructive-ink border-destructive/20 text-ds-10">
               <AlertTriangle className="w-3 h-3 mr-0.5" /> No Stripe
             </Badge>
           )}
@@ -125,7 +125,7 @@ export const BatchRow = ({
             <Button
               size="sm"
               variant="outline"
-              className="text-destructive border-destructive/40 hover:bg-destructive/10 gap-1"
+              className="text-destructive-ink border-destructive/40 hover:bg-destructive/10 gap-1"
               onClick={() => onDeny(batch)}
             >
               Deny

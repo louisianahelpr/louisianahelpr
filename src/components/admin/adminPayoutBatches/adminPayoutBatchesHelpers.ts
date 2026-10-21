@@ -3,7 +3,7 @@ import { toneBadgeClasses } from "@/components/admin/tones";
 export const LEDGER_TONE: Record<string, string> = {
   paid: toneBadgeClasses.success,
   pending: toneBadgeClasses.warning,
-  failed: "bg-destructive/10 text-destructive",
+  failed: "bg-destructive/10 text-destructive-ink",
   reversed: toneBadgeClasses.neutral,
 };
 

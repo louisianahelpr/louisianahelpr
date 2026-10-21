@@ -99,6 +99,10 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          // TEXT in the destructive voice: `text-destructive-ink`. --destructive
+          // is a FILL (= --alert, 2.3:1 as text on the dark card); the ink is
+          // --alert-ink. Guard: src/test/destructiveTokensAreAlert.test.ts.
+          ink: "hsl(var(--destructive-ink))",
         },
         // Spec v2 §2: an empty or loading photo (Declutter cards, gallery, sell tiles, skeletons).
         "photo-empty": "hsl(var(--photo-empty))",

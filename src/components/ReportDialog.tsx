@@ -164,9 +164,15 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
   const handleClose = () => {
     if (submitting) return;
     onClose();
-    // "Also block" was on and the report went in: open the caller's Block
-    // dialog now, which states what blocking closes and asks again.
-    if (step === "confirmation" && blockAfter && alsoBlock) alsoBlock.onBlock();
+  };
+
+  // "Also block" was on and the report went in: ONLY the receipt's explicit
+  // button hands over to the caller's Block dialog (which states what blocking
+  // closes and asks again). Escape, the overlay and the X just close.
+  const finishReceipt = () => {
+    const block = step === "confirmation" && blockAfter && alsoBlock;
+    handleClose();
+    if (block) alsoBlock.onBlock();
   };
 
   const copyCaseNumber = async () => {
@@ -206,7 +212,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               label={REASON_PROMPT[reportedType]}
               options={reasons.map(({ label }) => ({ value: label, label }))}
               value={reason}
-              onChange={(v) => { hapticMedium(); setReason(v); }}
+              onChange={(v, via) => { if (via === "click") hapticMedium(); setReason(v); }}
             />
 
             <div className="space-y-1.5">
@@ -257,10 +263,13 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               </div>
             )}
 
-            {/* What actually happens on insert (see the confirmation note):
-                the trust & safety queue, never the other person. */}
+            {/* Verified live 2026-10-21 (pg_policies, pg_trigger on prod):
+                only admins may read others' reports or change a report's
+                status (no trigger or job resolves one), and the reported
+                person cannot read the row; the insert triggers only rate-limit,
+                notify ADMINS at 3+ reporters, and write the ops ledger. */}
             <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
-              A real person on the Helpr team reviews it. We never tell the other person who reported them.
+              The Helpr team reviews every report. We never tell the other person who reported them.
             </p>
 
             <DialogFooter>
@@ -373,8 +382,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
               </DialogBody>
             </div>
             <DialogFooter>
-              <DialogPrimaryAction type="button" onClick={handleClose}>
-                Done
+              <DialogPrimaryAction type="button" onClick={finishReceipt}>
+                {blockAfter && alsoBlock ? `Block ${alsoBlock.name}` : "Done"}
               </DialogPrimaryAction>
             </DialogFooter>
           </div>

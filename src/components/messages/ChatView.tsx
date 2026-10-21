@@ -588,7 +588,7 @@ export function ChatView({
         {editDraft.length > MESSAGE_MAX_LENGTH * 0.9 && (
           <p
             className="text-ds-10 text-right mt-1"
-            style={{ color: editDraft.length > MESSAGE_MAX_LENGTH ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.6)" }}
+            style={{ color: editDraft.length > MESSAGE_MAX_LENGTH ? "hsl(var(--destructive-ink))" : "hsl(var(--olivewood) / 0.6)" }}
           >
             {editDraft.length.toLocaleString()} / {MESSAGE_MAX_LENGTH.toLocaleString()}
           </p>

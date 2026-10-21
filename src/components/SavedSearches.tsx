@@ -552,7 +552,7 @@ export function SavedSearches({
                   {removingId === s.id ? (
                     <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden="true" />
                   ) : (
-                    <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive" />
+                    <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive-ink" />
                   )}
                 </button>
               </div>

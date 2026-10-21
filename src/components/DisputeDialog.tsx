@@ -52,6 +52,9 @@ interface DisputeDialogProps {
 export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle }: DisputeDialogProps) => {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
+  // Set once the member left the box too short or pressed Send without
+  // enough words: only then does the hint turn --alert.
+  const [detailsFlagged, setDetailsFlagged] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const queryClient = useQueryClient();
@@ -118,6 +121,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
     // means the state changed under the click. Kept because the consequence of
     // filing short is not cosmetic — see DISPUTE_DETAILS_MIN.
     if (!detailsOk) {
+      setDetailsFlagged(true);
       hapticError();
       toast.error("Tell us what happened — an admin decides this from your words.");
       return;
@@ -288,7 +292,9 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    // Escape, the overlay and Cancel do nothing while the filing is in
+    // flight: closing mid-upload hid whether the dispute was filed.
+    <Dialog open={open} onOpenChange={(o) => { if (!o && !submitting) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero title="Something's not right" />
         <div className="space-y-3.5">
@@ -320,6 +326,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
               id="dispute-details"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
+              onBlur={() => { if (details.trim().length > 0) setDetailsFlagged(true); }}
               placeholder="The more specific you are, the faster we can help…"
               rows={3}
               maxLength={1000}
@@ -333,11 +340,16 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
             <p
               id="dispute-details-requirement"
               className="font-sans text-ds-11"
-              style={{ color: detailsOk ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--alert-ink))" }}
+              style={{ color: !detailsOk && detailsFlagged ? "hsl(var(--alert-ink))" : "hsl(var(--olivewood) / 0.8)" }}
             >
+              {/* Neutral until the member has tried and come up short (lead,
+                  2026-10-21): red before anyone typed read as an error they
+                  had not made. */}
               {detailsOk
                 ? "An admin reads this to decide."
-                : "Required — an admin decides this from your words, so a reason on its own isn't enough."}
+                : detailsFlagged
+                ? "Add a sentence or two. An admin decides from your words, so a reason on its own isn't enough."
+                : "An admin decides from your words, so add a sentence or two."}
             </p>
           </div>
 
@@ -420,7 +432,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
           </div>
         </div>
         <DialogFooter>
-          <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
+          <DialogSecondaryAction onClick={onClose} disabled={submitting}>Cancel</DialogSecondaryAction>
           {/* Board 54: "Send to Helpr" is the olive commit, not the red
               destructive one. Filing deletes nothing; what it does to the
               money (held, frozen, the deadline) is stated in the box above.

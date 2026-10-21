@@ -673,7 +673,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
             style={{
               background: "hsl(var(--destructive) / 0.12)",
-              color: "hsl(var(--destructive))",
+              color: "hsl(var(--destructive-ink))",
             }}
           >
             <RefreshCcw className="w-4 h-4" />
@@ -787,7 +787,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <p
             id="business-name-help"
             className="font-sans leading-snug text-ds-11"
-            style={{ color: nameTooLong ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}
+            style={{ color: nameTooLong ? "hsl(var(--destructive-ink))" : "hsl(var(--olivewood) / 0.8)" }}
           >
             {nameTooLong
               ? `That's a bit long — please keep it under ${MAX_BUSINESS_NAME} characters.`

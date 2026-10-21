@@ -103,7 +103,7 @@ export function SignInMethodsCard() {
           <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             Sign-in methods
           </h2>
-          <p className="text-ds-11 font-sans mt-0.5" style={{ color: isError ? "hsl(var(--destructive))" : "hsl(var(--olivewood) / 0.8)" }}>
+          <p className="text-ds-11 font-sans mt-0.5" style={{ color: isError ? "hsl(var(--destructive-ink))" : "hsl(var(--olivewood) / 0.8)" }}>
             {isError ? "We couldn't load your sign-in methods." : "Each one opens this same account."}
           </p>
           {isError && <ReportErrorScreen source="SignInMethodsCard.identities" title="We couldn't load your sign-in methods." />}

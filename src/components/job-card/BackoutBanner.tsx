@@ -27,8 +27,8 @@ function BackoutBannerBody({ notice }: { notice: BackoutNotice }) {
       className="mx-3 mt-3 flex items-center gap-2 rounded-ds-md px-3 py-2"
       style={{ background: "hsl(var(--destructive) / 0.12)", border: "1px solid hsl(var(--destructive) / 0.45)" }}
     >
-      <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--destructive))" }} aria-hidden />
-      <p className="flex-1 min-w-0 text-ds-12 font-semibold" style={{ color: "hsl(var(--destructive))" }}>
+      <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--destructive-ink))" }} aria-hidden />
+      <p className="flex-1 min-w-0 text-ds-12 font-semibold" style={{ color: "hsl(var(--destructive-ink))" }}>
         {backoutBannerText(notice)}
       </p>
       <Button

@@ -207,7 +207,7 @@ export function ActionsTab({
             <Button
               variant="outline"
               size="sm"
-              className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1"
+              className="h-9 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
               disabled={isSelf}
               title={isSelf ? "You can't suspend or ban your own account — ask another admin." : undefined}
               onClick={() => setBanProfile(viewProfile)}
@@ -219,7 +219,7 @@ export function ActionsTab({
               <CheckCircle2 className="w-4 h-4 mr-1.5 text-primary" /> Lift Ban
             </Button>
           )}
-          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive border-destructive/30 hover:bg-destructive/10 col-span-1"
+          <Button variant="outline" size="sm" className="h-9 justify-center text-destructive-ink border-destructive/30 hover:bg-destructive/10 col-span-1"
             disabled={isSelf}
             title={isSelf ? "You can't delete your own account from here — ask another admin." : undefined}
             onClick={() => setDeleteProfile(viewProfile)}

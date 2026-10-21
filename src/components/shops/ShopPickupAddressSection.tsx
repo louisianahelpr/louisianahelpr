@@ -105,7 +105,7 @@ export default function ShopPickupAddressSection() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">State: Louisiana</p>
-          {problem && <p className="text-sm text-destructive" role="alert">{problem}</p>}
+          {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
           <Button type="submit" className="w-full" variant="outline" disabled={save.isPending}>
             {save.isPending ? "Saving…" : current.data ? "Save pickup address" : "Add pickup address"}
           </Button>

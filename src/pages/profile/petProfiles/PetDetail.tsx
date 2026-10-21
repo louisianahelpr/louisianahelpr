@@ -190,7 +190,7 @@ export function PetDetail({
           <Button
             size="sm"
             variant="outline"
-            className="text-destructive border-destructive/30 hover:bg-destructive/5"
+            className="text-destructive-ink border-destructive/30 hover:bg-destructive/5"
             disabled={deletePending}
             onClick={() => onRequestDelete(pet)}
           >

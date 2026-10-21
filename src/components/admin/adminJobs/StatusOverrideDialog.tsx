@@ -58,7 +58,7 @@ export const StatusOverrideDialog = ({
               {([
                 { id: "open", label: "Re-open", tone: "border-primary/40 bg-primary/10 text-primary" },
                 { id: "completed", label: "Mark complete", tone: "border-primary/40 bg-primary/10 text-primary" },
-                { id: "cancelled", label: "Cancel", tone: "border-destructive/40 bg-destructive/10 text-destructive" },
+                { id: "cancelled", label: "Cancel", tone: "border-destructive/40 bg-destructive/10 text-destructive-ink" },
               ] as const).map((opt) => {
                 const active = overrideStatus === opt.id;
                 return (

@@ -60,6 +60,11 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Boards 66/172 slice 2 (20261021130723): poster_cancel_job raises quote_changed only for a non-NULL
+  // p_expected_fee_cents; rentals_cancel_request_job calls it with two arguments, so the check never runs there.
+  rentals_cancel_request_job: {
+    quote_changed: { reason: "unreachable: rentals_cancel_request_job calls poster_cancel_job(v_job, '...') with no p_expected_fee_cents, so the quote check is skipped (NULL)" },
+  },
   // Board 191 (shell 1j): the admin funnel. The admin console is behind
   // AdminRoute, and the client only ever sends jobs/declutter and 7/30/90; any
   // error shows the card's own "Couldn't load the funnel" with Try again.

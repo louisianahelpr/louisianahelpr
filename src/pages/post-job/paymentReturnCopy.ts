@@ -17,7 +17,7 @@ export type UnknownReason = "no-reference" | "unreachable" | "not-found" | "pend
  * Helpr (lh-money-escrow review 2026-10-21). A held payment on a job past
  * that point says only what is true about the money.
  */
-export function paymentPageTitle(state: ConfirmState, live = true): string {
+export function paymentPageTitle(state: ConfirmState, live: boolean): string {
   return state === "held"
     ? live ? "Your job is live — Helpr" : "Payment confirmed — Helpr"
     : state === "not_held"
@@ -29,7 +29,7 @@ export function paymentPageTitle(state: ConfirmState, live = true): string {
           : "Payment Status Unconfirmed — Helpr";
 }
 
-export function paymentHeading(state: ConfirmState, live = true): string {
+export function paymentHeading(state: ConfirmState, live: boolean): string {
   return state === "held"
     ? live ? "Your job is live" : "Payment confirmed."
     : state === "checking"

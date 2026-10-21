@@ -47,7 +47,7 @@ describe("board 66: change this job", () => {
   it("Cancel the job hands over to the cancellation dialog (fee shown there)", () => {
     const onCancelJob = show();
     fireEvent.click(screen.getByRole("radio", { name: /Cancel the job/ }));
-    fireEvent.click(screen.getByRole("button", { name: "See the cancellation and confirm" }));
+    fireEvent.click(screen.getByRole("button", { name: "Review cancellation" }));
     expect(onCancelJob).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).not.toMatch(/\bhe\b|\bshe\b/i);
   });

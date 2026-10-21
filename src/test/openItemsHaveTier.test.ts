@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | **Q185 LOW OWNER launch-store tasks | **Q185 OWNER launch-store tasks
+// @mutate docs/OPEN.md | **Q1961 LOW OWNER QUESTION: a held shop owner | **Q1961 OWNER QUESTION: a held shop owner
 // @mutate scripts/lib/openFeeds.mjs | POLISH: "LOW" }) | POLISH: "POLISH" })
 // @mutate src/test/openItemsHaveTier.test.ts | const ID = String.raw`Q(?:\d+\|\?[a-z0-9][a-z0-9-]*)`; | const ID = String.raw`Q\d+`;
 /*

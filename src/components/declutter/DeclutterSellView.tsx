@@ -555,7 +555,7 @@ export default function SellFlow() {
         </section>
       )}
 
-      {stepProblem && step < 5 && triedStep === step && <p role="alert" className="text-ds-13 font-semibold text-[hsl(var(--alert))]" data-testid="sell-form-problem">{stepProblem}</p>}
+      {stepProblem && step < 5 && triedStep === step && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink" data-testid="sell-form-problem">{stepProblem}</p>}
       {step === 3 && priceCents && (
         <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
           You get if it sells today

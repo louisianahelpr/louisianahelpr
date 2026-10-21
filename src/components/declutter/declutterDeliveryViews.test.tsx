@@ -6,6 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const canConfirm = side === "buyer" && (v.status === "picked_up" \|\| v.status === "delivered"); |   const canConfirm = v.status === "picked_up" \|\| v.status === "delivered";
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | disabled={deliver.isPending \|\| !dropPhoto} | disabled={deliver.isPending}
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where); |       await reportPickupNoShow(t.task_id, "", { lat: 0, lng: 0 });
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
@@ -102,6 +103,9 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     state.view = { ...VIEW, status: "delivered", delivered_at: "2026-10-17T21:00:00Z", dropoff_photo_path: "h/task/t1/d.jpg", pickup_photo_path: "h/task/t1/p.jpg" };
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/left it at your drop-off address/)).toBeInTheDocument();
+    // Board 76: the one tracker on its last step, and each real step as a note.
+    expect(screen.getByRole("list", { name: /^Step 3 of 3: Delivered$/ })).toBeInTheDocument();
+    expect(screen.getByText(/left it at the drop-off ·/)).toBeInTheDocument();
     expect(await screen.findByAltText("At the drop-off")).toHaveAttribute("src", "https://signed.test/h/task/t1/d.jpg");
     expect(screen.getByAltText("At the pickup")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "I got it" }));
@@ -134,9 +138,14 @@ describe("DeliverView (the Helpr's screen)", () => {
       dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2026-10-18T15:00:00Z",
       latest_pickup_at: "2026-10-23T15:00:00Z" }];
     show(<DeliverView />);
-    expect(await screen.findByText("Mid-City to Baker, LA · about 9 miles")).toBeInTheDocument();
-    expect(screen.getByText(/You get \$26\.20/)).toBeInTheDocument();
-    const take = screen.getByRole("button", { name: "Take it" });
+    // Board 50: the route as areas only, the take-home after the fee, addresses only after accepting.
+    expect(await screen.findByText("Pick up in Mid-City")).toBeInTheDocument();
+    expect(screen.getByText("From the seller · about 3 miles from you")).toBeInTheDocument();
+    expect(screen.getByText("Drop off near Baker, LA")).toBeInTheDocument();
+    expect(screen.getByText("To the buyer · about 9 miles")).toBeInTheDocument();
+    expect(screen.getByText("$26.20")).toBeInTheDocument();
+    expect(screen.getByText("Exact addresses unlock when you accept.")).toBeInTheDocument();
+    const take = screen.getByRole("button", { name: "Accept delivery" });
     expect(take).toBeDisabled();
     fireEvent.change(screen.getByLabelText(/Pickup time/), { target: { value: "2026-10-20T10:00" } });
     fireEvent.click(take);

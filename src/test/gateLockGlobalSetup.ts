@@ -5,7 +5,6 @@
  * lane). Scoped runs (file filters), watch mode, CI and runs already under
  * `npm run test:unit` (LH_GATE_LOCK_HELD) skip it.
  */
-// @ts-expect-error — plain .mjs helper without type declarations
 import { acquireGateLock, releaseGateLock } from "../../scripts/gateLock.mjs";
 
 export function isWholeRepoRun(argv: string[]): boolean {

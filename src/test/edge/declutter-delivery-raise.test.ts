@@ -94,7 +94,7 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     raise_id: RAISE2, reason: "no_helpr", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER, payment_intent_id: "pi_raise2",
     refund_cents: 1061, attempts: 0, livemode: true, checkout_session_id: "cs_live_r2", ...over,
   });
-  async function run(opts: { helprPayouts?: unknown[]; raiseRefunds?: unknown[] } = {}) {
+  async function run(opts: { helprPayouts?: unknown[]; raiseRefunds?: unknown[]; profiles?: unknown[] } = {}) {
     env();
     scenario.rpc.declutter_payouts_due = [];
     scenario.rpc.declutter_refunds_due = [];
@@ -104,7 +104,8 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     scenario.rpc.helpr_task_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
     scenario.rpc.declutter_delivery_raise_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "refunded" : "refunding");
     scenario.rpc.declutter_delivery_raise_payout_sent = "recorded";
-    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }] };
+    // A test may name the parties' profiles (is_seed decides test vs real mode); run() never overwrites them.
+    scenario.reads.profiles = { rows: opts.profiles ?? [{ user_id: BUYER, email: "buyer@example.test" }] };
     stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => ({
       id, status: "succeeded", latest_charge: { id: id === "pi_raise1" ? "ch_raise1" : "ch_order1", amount_refunded: 0, disputed: false },
     }));
@@ -204,8 +205,10 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
 
   it("a raise refund that cannot run (mixed test and real parties) waits AND pages a person once a day", async () => {
     scenario.reads.test_accounts = { rows: [{ user_id: SELLER }] };
-    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }, { user_id: SELLER, is_seed: true }] };
-    const { body } = await run({ raiseRefunds: [raiseRefund({ livemode: null, checkout_session_id: null })] });
+    const { body } = await run({
+      raiseRefunds: [raiseRefund({ livemode: null, checkout_session_id: null })],
+      profiles: [{ user_id: BUYER, email: "buyer@example.test" }, { user_id: SELLER, is_seed: true }],
+    });
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(rpcs("declutter_delivery_raise_refund_defer")[0]?.args).toMatchObject({ p_raise_id: RAISE2, p_minutes: 1440 });
     expect(slackAlerts.some((a) => /delivery-raise refund is waiting on a person/.test(String(a.title)))).toBe(true);

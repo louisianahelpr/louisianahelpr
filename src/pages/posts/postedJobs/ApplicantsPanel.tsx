@@ -5,6 +5,7 @@ import { formatName } from "@/lib/utils";
 import { applicantIdNote } from "@/lib/awardGate";
 import UserAvatar from "@/components/UserAvatar";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
+import { CompareBar, CompareCheck, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
@@ -125,6 +126,7 @@ export function ApplicantsPanel({
     setDeclineSending(false);
   }, [declineTarget, declineNote, declineReason, selectedJob, onDeclineApplication]);
 
+  const compare = useApplicantCompare();
   const {
     applicantSort,
     setApplicantSort,
@@ -358,12 +360,9 @@ export function ApplicantsPanel({
                           where it composites over an opaque surface rather
                           than the page. This card is one of the few that sits
                           directly ON the page, which is why it is the one that
-                          disappears. So the token is left alone and only this
-                          surface changes — the alternative, repainting a
-                          shared token, is the `.squircle` mistake.
+                          disappears. So only this surface changes (not the shared token).
 
-                          `backdrop-filter` goes with it: there is nothing to
-                          blur behind an opaque fill, and it is not free. */}
+                          No `backdrop-filter`: nothing to blur behind an opaque fill. */}
                       <div
                         className="rounded-ds-md p-3.5 space-y-2.5"
                         style={{
@@ -604,6 +603,7 @@ export function ApplicantsPanel({
                               onDecline={() => { setDeclineTarget(app); setDeclineNote(""); setDeclineReason(null); }}
                             />
                           )}
+                          {app.status === "pending" && applications.length > 1 && <CompareCheck id={app.id} name={helperName} ids={compare.ids} toggle={compare.toggle} />}
                           {/* A hired (accepted) applicant has no Hire row: Message stands on its own (owner, 2026-10-11). */}
                           {app.status !== "pending" && canMessageApplicant(app.status) && (
                             <MessageApplicantButton jobId={selectedJob.id} helperId={app.helper_id} helperName={helperName} className="mr-1" />
@@ -678,9 +678,9 @@ export function ApplicantsPanel({
                   );
                 })}
 
-                {/* "Message all N Helprs" bulk-broadcast button REMOVED
-                    (owner, 2026-08-30: redundant — each applicant already
-                    has their own Message action right above). */}
+                {/* Boards 22/170: pick 2-3 and compare side by side, hire from there (ApplicantCompare). */}
+                <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication}
+                  distanceOf={(a) => sortedApplications.find((x) => x.app.id === a.id)?.distanceBand?.label ?? null} />
               </div>
             )}
           </div>

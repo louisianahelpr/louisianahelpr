@@ -110,34 +110,6 @@ export const TOPICS: { label: string; desc: string }[] = [
   { label: "Membership & Billing", desc: "Plans, upgrades, and cancelling." },
 ];
 
-// Per-section accent tint so the FAQ topic labels read as a varied palette
-// (bark / sienna / olivewood / gold / sage) rather than one flat color.
-export const SECTION_ACCENTS: Record<string, string> = {
-  "Getting Started": "hsl(var(--burnt-sienna))",
-  "Posting a Job": "hsl(var(--bark))",
-  "Finding Work": "hsl(var(--success-ink))",
-  "Payments & Escrow": "hsl(var(--gold-ink))",
-  "Trust & Safety": "hsl(var(--olivewood))",
-  "Account & Settings": "hsl(var(--burnt-sienna))",
-  // FAQ_SECTIONS has SEVEN topics and this map had six keys, so "Membership &
-  // Billing" fell through HelpCenter.tsx's `?? burnt-sienna` default — giving
-  // THREE of seven sections the identical accent and defeating the varied
-  // palette this map exists to produce. Same byte-identical-key drift the
-  // TOPICS comment above was written about; it just failed quietly here
-  // because the fallback looked like a real colour.
-  //
-  // The seventh accent was --sage, and --sage IS NOT A TEXT COLOUR. Every
-  // accent in this map is rendered as the topic's 12px/600 label, and --sage
-  // (78 9% 53%) measured 2.75:1 on the light topic card — the worst contrast
-  // on the whole public surface, and the fix for the missing-key bug is what
-  // introduced it. --sage-ink exists for "sage as a label", but it is
-  // byte-identical to --bark, which "Posting a Job" already uses, so it would
-  // have re-created the duplicate-accent problem this entry was added to
-  // solve. --stormy-sky is a distinct hue from all six others, is documented
-  // AA in both themes, and measures 5.55:1 light / 6.71:1 dark here.
-  "Membership & Billing": "hsl(var(--stormy-sky))",
-};
-
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
 
 interface FaqItem {

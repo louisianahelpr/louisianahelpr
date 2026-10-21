@@ -104,12 +104,11 @@ describe("/help open and closed sections do not look identical", () => {
   it("changes the section's own surface, not just the chevron", async () => {
     const { container } = renderHelp();
     const section = container.querySelector("#faq-getting-started") as HTMLElement;
-    const closed = { bg: section.style.background, border: section.style.border, shadow: section.style.boxShadow };
+    // Spec v2: one card style; open turns the border olive (a class change).
+    const closed = section.className;
     fireEvent.click(section.querySelector("button")!);
     await waitFor(() => expect(section.querySelector("button")!.getAttribute("aria-expanded")).toBe("true"));
-    expect(section.style.background).not.toBe(closed.bg);
-    expect(section.style.border).not.toBe(closed.border);
-    expect(section.style.boxShadow).not.toBe(closed.shadow);
+    expect(section.className).not.toBe(closed);
   });
 
   it("wires the header to the panel it controls", async () => {

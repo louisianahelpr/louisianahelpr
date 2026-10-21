@@ -75,6 +75,9 @@ import { sameRegion } from "./helpers/sameRegion";
 // @mutate supabase/functions/execute-dispute-split/index.ts | "claim_dispute_settlement", | "claim_dispute_settlement_x",
 // Transitive (Q728): a money helper reached through another helper, called once outside the guarded loop.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts |     const crewSettled = new Set<string>(); |     const crewSettled = new Set<string>();\n    const early = () => crewReadyToRelease(null as never);
+// Nested helper (Q1915): Part D's returnShareToPoster sits inside payCrewCancellationFees; one call of the
+// outer helper before Part A's gate puts its refund outside the guard:
+// @mutate supabase/functions/void-cancelled-payments/index.ts | const settlement = await checkUnsettledDispute(supabaseAdmin, job.id); | await payCrewCancellationFees(job, [], null, stripe);\n      const settlement = await checkUnsettledDispute(supabaseAdmin, job.id);
 // Shared module (Q1390): an importer's call outside its guard, or an importer that is not a guarded path.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | if (feeSettlement.blocked) { | if (feeSettlement.readError) {
 // @mutate supabase/functions/money-reconciliation/index.ts | import { boundedFetch } from "../_shared/boundedFetch.ts"; | import { boundedFetch } from "../_shared/boundedFetch.ts";\nimport { payCrewBlockFees } from "../_shared/crewBlockFees.ts";\nvoid payCrewBlockFees;
@@ -506,13 +509,19 @@ function unguardedInFile(code: string): { error?: string; miss: string[]; sites:
     // one of the helper's call sites (lh-money-escrow review of a2dd38334:
     // otherwise a gate whose region is the whole handler would cover every
     // later loop's money).
-    const regionsOf = (at: number): Array<[number, number]> => {
+    // TRANSITIVE, as `covered` is (Q1915): a helper nested in a helper
+    // (void-cancelled-payments' returnShareToPoster, inside
+    // payCrewCancellationFees, called only after Part A's gate) is judged by
+    // its outer helper's call sites. The gate must still cover EVERY call up
+    // the chain (unguardedSites below), so this only finds the region to
+    // judge in; it never covers a site by itself. Depth-capped.
+    const regionsOf = (at: number, depth = 0): Array<[number, number]> => {
       const owner = fns.filter((f) => f.at < at && at < f.end).sort((a, b) => b.at - a.at)[0];
-      if (!owner) return [region(bare, at)];
+      if (!owner || depth > 4) return [region(bare, at)];
       const calls = [...code.matchAll(new RegExp(String.raw`\b${owner.name}\s*\(`, "g"))]
         .map((c) => c.index ?? 0)
         .filter((i) => i < owner.at || i >= owner.end);
-      return [region(bare, at), ...calls.map((i) => region(bare, i))];
+      return [region(bare, at), ...calls.flatMap((i) => regionsOf(i, depth + 1))];
     };
     const own = regionsOf(site.at);
     const ok = gates.some(

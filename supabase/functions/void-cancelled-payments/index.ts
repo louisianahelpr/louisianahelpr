@@ -7,11 +7,11 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { computeCancellationFee } from "../_shared/cancellationFee.ts";
-import { crewCancellationFee } from "../_shared/crewShares.ts";
+import { crewCancellationFee, returnsToPoster } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { chargeTaxCentsFor, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -912,15 +912,90 @@ serve(async (req) => {
       status: string;
       stripe_transfer_id: string | null;
     };
+    /** Q1915: a live cancellation_fee transfer Stripe shows for this exact share (its metadata.share_id). */
+    const shareTransferInStripe = (transfers: Stripe.Transfer[], shareId: string): Stripe.Transfer | undefined =>
+      transfers.find((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.share_id === shareId);
+    /**
+     * Q1915 (owner 2026-10-21): BEFORE a cancelled crew is priced, every unpaid
+     * share whose member deleted their account (helper_id NULL) is voided, so
+     * it is left out of the fee (returnsToPoster) and goes back to the poster
+     * with the card refund, or with the gift on a gift-funded crew. The row is
+     * marked in place.
+     *
+     * Only while no money has gone back for this cancellation: once a cancel
+     * refund is on the ledger, the share was withheld from it, so it is left
+     * pending and Part D returns it after the job settles (lh-money-escrow
+     * review #1). Never over a transfer Stripe already shows for the share
+     * (review #2: the helper_id dedupe cannot see a deleted member). False when
+     * a read or a flip did not land: the caller moves no money for the job
+     * this run (the next run retries).
+     */
+    const voidDeletedMemberShares = async (job: { id: string; title: string }, rows: CrewShare[], stripe: Stripe): Promise<boolean> => {
+      const gone = rows.filter((r) => !r.helper_id && (r.status === "pending" || r.status === "failed"));
+      if (gone.length === 0) return true;
+      const { data: refunded, error: refundedErr } = await supabaseAdmin
+        .from("payment_refunds")
+        .select("stripe_refund_id")
+        .eq("job_id", job.id)
+        .eq("source", "void_cancelled_payments")
+        .limit(1);
+      if (refundedErr) {
+        defects.record(`crew fee share void ${job.id}: prior-refund read failed: ${refundedErr.message} — not settled`);
+        return false;
+      }
+      if ((refunded ?? []).length > 0) return true;
+      let transfers: Stripe.Transfer[];
+      try {
+        transfers = (await stripe.transfers.list({ transfer_group: `job_${job.id}`, limit: 100 })).data ?? [];
+      } catch (listErr) {
+        defects.record(`crew fee share void ${job.id}: transfer list failed: ${caughtMessage(listErr)} — not settled`);
+        return false;
+      }
+      let ok = true;
+      for (const row of gone) {
+        // Paid in Stripe already: payCrewCancellationFees repairs the ledger.
+        if (shareTransferInStripe(transfers, row.id)) continue;
+        const { data, error } = await supabaseAdmin
+          .from("crew_cancellation_fee_shares")
+          .update({ status: "void" })
+          .eq("id", row.id)
+          .is("helper_id", null)
+          .in("status", ["failed", "pending"])
+          .select("id");
+        if (error || !data || data.length === 0) {
+          console.error(`[void-cancelled-payments] crew fee share ${row.id} (job ${job.id}): could not void a deleted member's share: ${error?.message ?? "zero rows"}; not settling this run.`);
+          defects.record(`crew fee share void ${row.id} (job ${job.id}): ${error?.message ?? "zero rows"} — not settled`);
+          ok = false;
+          continue;
+        }
+        row.status = "void";
+        console.log(`[void-cancelled-payments] crew fee share ${row.id} (job ${job.id}): member account deleted; $${Number(row.share_amount ?? 0).toFixed(2)} goes back to the poster.`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "info",
+          title: "Crew cancellation-fee share of a deleted member goes back to the poster",
+          message: "A cancelled crew's fee share belonged to a member whose account was deleted. It was voided, so the poster is not charged it (owner, 2026-10-21).",
+          fields: { job_id: job.id, share_id: row.id, amount: Number(row.share_amount ?? 0) },
+          oncePerDayKey: `crew-fee-share-deleted-member:${row.id}`,
+        });
+      }
+      return ok;
+    };
     const payCrewCancellationFees = async (
-      job: { id: string; title: string; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
+      job: {
+        id: string; title: string; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null;
+        /** Part D: the job already settled, with every unpaid share withheld from the poster. */
+        crew_share_retry?: boolean;
+        /** The poster, told when a share goes back (Part D). */
+        customer_id?: string | null;
+      },
       shares: CrewShare[],
       /** Q1806: null for a fully gift-funded crew (paid from the platform balance the gift paid into). */
       pi: Stripe.PaymentIntent | null,
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe,
     ) => {
-      const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid");
+      const owed = shares.filter((s) => Number(s.share_amount ?? 0) > 0 && s.status !== "paid" && s.status !== "void");
       if (owed.length === 0) return;
       const feeGroup = `job_${job.id}`;
       let priorByHelper: Map<string, string>;
@@ -955,7 +1030,8 @@ serve(async (req) => {
           .eq("id", share.id)
           .neq("status", "paid")
           .select("id");
-        if (error || !data || data.length === 0) {
+        if (!error && data && data.length > 0) return true;
+        {
           console.error(
             `CRITICAL: [void-cancelled-payments] crew fee share ${share.id} (job ${job.id}) ${stage} but the ledger flip ${error ? `failed: ${error.message}` : "matched zero rows"}.`,
           );
@@ -968,20 +1044,181 @@ serve(async (req) => {
             fields: { job_id: job.id, share_id: share.id, stage, db_error: (error?.message ?? "zero rows").slice(0, 200) },
           });
         }
+        return false;
+      };
+
+      /**
+       * Q1915 (owner 2026-10-21): a share whose member deleted their account
+       * goes back to the poster. Part A voids it before pricing when no money
+       * has moved yet; a share reaching here on a SETTLED job (Part D) was
+       * withheld from the poster's refund. A card job: the share and the sales
+       * tax kept on it (Q2082 (a)) are refunded to the poster (once: a refund
+       * Stripe shows for the share is never repeated, and a failed one is
+       * retried under a new key), recorded on payment_refunds, the share is
+       * voided, the job's stamped fee is restated from the ledger, and the
+       * poster is told. A gift-funded crew has no card to refund and no
+       * automatic gift credit, so admins are told once a day to give it back
+       * by hand. Returns nothing: every failure is paged and retried hourly.
+       */
+      const returnShareToPoster = async (share: CrewShare, shareAmount: number) => {
+        const cents = Math.round(shareAmount * 100);
+        if (!pi) {
+          console.warn(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}): member account deleted, $${shareAmount.toFixed(2)} to give back to the poster by hand`);
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Crew cancellation-fee share has no recipient",
+            message: `A cancelled crew's fee share belongs to a member whose account was deleted, so it goes back to the poster (owner, 2026-10-21). This crew was paid by gift card and has settled, so the $${shareAmount.toFixed(2)} was kept from the poster's gift: give it back to the poster by hand, then set the share's status to 'void' and restate jobs.cancellation_fee without it.`,
+            fields: { job_id: job.id, share_id: share.id, amount: shareAmount },
+            oncePerDayKey: `crew-fee-share-deleted-member:${share.id}`,
+          });
+          return;
+        }
+        const pageRefundProblem = async (why: string) => {
+          console.error(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}): its deleted member's $${shareAmount.toFixed(2)} was not refunded to the poster: ${why}`);
+          defects.record(`crew fee share ${share.id} (job ${job.id}): deleted member's share not refunded: ${why}`);
+          await postSlackOpsAlert({
+            kind: "payout_failed",
+            severity: "warning",
+            title: "Crew cancellation-fee share of a deleted member not refunded",
+            message: "A cancelled crew's fee share belongs to a member whose account was deleted. It goes back to the poster (owner, 2026-10-21), but the refund did not go through; the hourly run retries it.",
+            fields: { job_id: job.id, share_id: share.id, amount: shareAmount, reason: why.slice(0, 200) },
+            oncePerDayKey: `crew-fee-share-deleted-member:${share.id}`,
+          });
+        };
+        let refund: Stripe.Refund;
+        try {
+          const listed = (await stripe.refunds.list({ payment_intent: pi.id, limit: 100 })).data ?? [];
+          const mine = listed.filter((r) => r.metadata?.crew_share_id === share.id);
+          const live = mine.find((r) => r.status === "succeeded" || r.status === "pending" || r.status === "requires_action");
+          if (live) {
+            refund = live;
+          } else {
+            // The share plus the sales tax kept on it, never more than the
+            // charge still holds (what was CAPTURED: a hold captures part).
+            const charge = pi.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge as Stripe.Charge : null;
+            const capturedCents = Math.round(Number(charge?.amount_captured ?? charge?.amount ?? pi.amount_received ?? 0));
+            // Tax only when the settlement KEPT it (re-review #1): the captured
+            // path's cancel refund keeps the tax on the fee (Q2082 (a)), so its
+            // payment_refunds row says so; a hold capture took the fee with no
+            // tax, and refunding tax it never kept would be the platform's own
+            // money. (A captured job whose cancel refund was $0 writes no row and
+            // gets the share back without its tax: a few cents, logged below.)
+            const { data: cancelRefund, error: cancelRefundErr } = await supabaseAdmin
+              .from("payment_refunds")
+              .select("stripe_refund_id")
+              .eq("job_id", job.id)
+              .eq("source", "void_cancelled_payments")
+              .limit(1);
+            if (cancelRefundErr) {
+              await pageRefundProblem(`its cancel refund could not be read (${cancelRefundErr.message})`);
+              return;
+            }
+            let keptTaxCents = 0;
+            if ((cancelRefund ?? []).length > 0) {
+              // A failed tax read waits for the next run: it would under-refund.
+              const chargeTax = await checkoutChargeTaxCents(stripe, pi);
+              if (chargeTax === null) {
+                await pageRefundProblem("its sales tax could not be read");
+                return;
+              }
+              keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents });
+            } else {
+              console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}): no cancel refund on the ledger, so no sales tax was kept on the share; refunding the share alone.`);
+            }
+            const shareRefundCents = withheldFeeReturnCents({
+              withheldCents: cents, keptTaxCents, capturedCents, refundedCents: Math.round(Number(charge?.amount_refunded ?? 0)),
+            });
+            if (!(shareRefundCents > 0)) {
+              await pageRefundProblem("the charge has nothing left to refund");
+              return;
+            }
+            // A failed attempt is retried under a NEW key: the old one would
+            // replay the failure for 24 hours (review #6).
+            const lastFailed = mine.find((r) => r.status === "failed" || r.status === "canceled");
+            refund = await stripe.refunds.create(
+              { payment_intent: pi.id, amount: shareRefundCents, metadata: { job_id: job.id, crew_share_id: share.id, type: "crew_fee_share_returned" } },
+              { idempotencyKey: `crew-share-returned-${share.id}${lastFailed ? `-after-${lastFailed.id}` : ""}` },
+            );
+          }
+        } catch (refundErr) {
+          await pageRefundProblem(caughtMessage(refundErr));
+          return;
+        }
+        if (refund.status !== "succeeded" && refund.status !== "pending") {
+          await pageRefundProblem(`refund ${refund.id} is ${refund.status}`);
+          return;
+        }
+        const refundedCents = Math.round(Number(refund.amount ?? 0));
+        // Ledger row (F-MONEY-04), under its own source so stripe-webhook
+        // leaves the notice to this path and Part A's cancel-refund dedupe never
+        // reads it. Best-effort: the refund is out.
+        const { error: ledgerErr } = await supabaseAdmin.from("payment_refunds").upsert({
+          job_id: job.id,
+          customer_id: job.customer_id ?? null,
+          stripe_refund_id: refund.id,
+          stripe_payment_intent_id: pi.id,
+          amount_cents: refundedCents,
+          currency: refund.currency ?? "usd",
+          is_partial: true,
+          reason: "a crew member's share of the cancellation fee: their account was deleted, so it goes back to the person who posted it",
+          source: "void_cancelled_payments_crew_share",
+          initiated_by_user_id: null,
+        }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });
+        if (ledgerErr) defects.record(`crew fee share ${share.id} (job ${job.id}): refund ${refund.id} ledger write failed: ${ledgerErr.message}`);
+        if (!(await markShare(share, { status: "void" }, `was refunded to the person who posted it (${refund.id}); the next run finds the refund and does not repeat it`))) return;
+        // The job's fee, restated from the ledger (review #3: several shares
+        // in one run, or overlapping runs, each see the latest rows).
+        const { data: nowShares, error: nowErr } = await supabaseAdmin
+          .from("crew_cancellation_fee_shares")
+          .select("status, share_amount")
+          .eq("job_id", job.id);
+        if (nowErr) {
+          defects.record(`crew fee share ${share.id} (job ${job.id}): refunded, but the fee could not be restated: ${nowErr.message}`);
+        } else {
+          const feeCents = ((nowShares ?? []) as Array<{ share_amount: number | string | null; status: string }>)
+            .filter((r) => r.status !== "void")
+            .reduce((sum, r) => sum + Math.round(Number(r.share_amount ?? 0) * 100), 0);
+          const { data: stampRows, error: stampErr } = await supabaseAdmin
+            .from("jobs")
+            .update({ cancellation_fee: feeCents / 100, cancellation_fee_status: feeCents > 0 ? "charged" : null })
+            .eq("id", job.id)
+            .select("id");
+          if (stampErr || !stampRows || stampRows.length === 0) {
+            // The money is back and the share is void; only the stamp is
+            // stale, which money-reconciliation's fee check flags.
+            defects.record(`crew fee share ${share.id} (job ${job.id}): refunded, but the job's fee was not restated: ${stampErr?.message ?? "zero rows"}`);
+          }
+        }
+        await tellPosterMoneyBack({ id: job.id, customer_id: job.customer_id ?? null }, pi, {
+          key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents, keptCents: 0,
+          keptReason: null,
+        });
+        console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}): its deleted member's share went back to the poster (${refund.id}, ${refundedCents}c).`);
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "info",
+          title: "Crew cancellation-fee share of a deleted member refunded to the poster",
+          message: "A cancelled crew's fee share belonged to a member whose account was deleted. It was refunded to the poster with the sales tax on it (owner, 2026-10-21).",
+          fields: { job_id: job.id, share_id: share.id, amount_cents: refundedCents, refund_id: refund.id },
+          oncePerDayKey: `crew-fee-share-deleted-member:${share.id}`,
+        });
       };
 
       for (const share of owed) {
         const shareAmount = Number(share.share_amount);
         if (!share.helper_id) {
-          // Anonymised by account deletion: nobody left to route it to.
-          defects.record(`crew fee share ${share.id} (job ${job.id}): member account deleted, $${shareAmount.toFixed(2)} unpaid`);
-          await postSlackOpsAlert({
-            kind: "payout_failed",
-            severity: "warning",
-            title: "Crew cancellation-fee share has no recipient",
-            message: "A cancelled crew's fee share belongs to a member whose account was deleted. The poster's fee is captured; decide where it goes.",
-            fields: { job_id: job.id, share_id: share.id, amount: shareAmount },
-          });
+          // Anonymised by account deletion (Q1915). A transfer Stripe already
+          // shows for this share went out before the deletion: repair the
+          // ledger, never refund it as well (review #2).
+          const sent = shareTransferInStripe(groupTransfers, share.id);
+          if (sent) {
+            await markShare(share, { status: "paid", stripe_transfer_id: sent.id, paid_at: new Date().toISOString() }, "was already paid in Stripe");
+            continue;
+          }
+          // Before the job settles it stays withheld (Part A voids it while no
+          // money has moved; otherwise Part D returns it after the settle).
+          if (job.crew_share_retry === true) await returnShareToPoster(share, shareAmount);
           continue;
         }
         const existing = priorByHelper.get(share.helper_id);
@@ -1481,7 +1718,7 @@ serve(async (req) => {
       if (crewRetryShares.size > 0) {
         const { data: settledJobs, error: settledErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id, customer_id")
           .in("id", [...crewRetryShares.keys()])
           // Only a job whose fee Part A captured: one still in escrow is Part A's own.
           // Q1806: 'cancelled' is a fully gift-funded crew whose fee Part A kept
@@ -1790,6 +2027,8 @@ serve(async (req) => {
       // cannot be read, moves NO money for this job (it stays in escrow and the
       // next run retries).
       let crewShares: CrewShare[] | null = null;
+      /** Q1915: a share went back to the poster, so the stamped fee is restated at settlement. */
+      let crewShareReturned = false;
       let jobCancellationFee: number;
       /** Q1390: this crew's block fees (closed spots), paid before the refund. */
       let blockFeeRows: CrewBlockFeeRow[] = [];
@@ -1812,6 +2051,11 @@ serve(async (req) => {
           results.push({ job_id: job.id, title: job.title, status: "crew_shares_read_failed" });
           continue;
         }
+        // Q1915: a deleted member's unpaid share goes back to the poster.
+        if (!(await voidDeletedMemberShares(job, (shareRows ?? []) as CrewShare[], stripe))) {
+          results.push({ job_id: job.id, title: job.title, status: "crew_share_void_failed" });
+          continue;
+        }
         const priced = crewCancellationFee(job, (shareRows ?? []) as CrewShare[]);
         if (priced.mismatch) {
           console.error(`CRITICAL: [void-cancelled-payments] crew fee share for ${priced.mismatch.helper_id} on job ${job.id} is $${priced.mismatch.stored}, recomputed $${priced.mismatch.expected}; not settling.`);
@@ -1828,6 +2072,7 @@ serve(async (req) => {
         }
         crewShares = (shareRows ?? []) as CrewShare[];
         jobCancellationFee = priced.total;
+        crewShareReturned = crewShares.some((r) => returnsToPoster(r));
         // Q1390: a spot a block closed earlier owes its member a fee from this
         // escrow; it is paid before the poster's refund and withheld from it.
         const blockRead = await readCrewBlockFees(supabaseAdmin, job.id);
@@ -2234,7 +2479,8 @@ serve(async (req) => {
           giftFeeCents > 0
             // Q1345's stamp, as on the card paths: the fee the gift paid.
             ? { payment_status: "cancelled", cancellation_fee_status: "charged", cancellation_fee: jobCancellationFee }
-            : { payment_status: "cancelled" },
+            // Q1915 review #4: every crew share went back, so no fee was charged.
+            : crewShareReturned ? { payment_status: "cancelled", cancellation_fee_status: null, cancellation_fee: 0 } : { payment_status: "cancelled" },
           "no payment found",
           giftFeeCents + giftBlockCents,
           giftKeptFor,
@@ -2334,7 +2580,10 @@ serve(async (req) => {
             // No fee owed — cancel the uncaptured hold in full; funds release to
             // the poster.
             await stripe.paymentIntents.cancel(paymentIntentId);
-            const settledVoid = await settleCancelledJob(job, { payment_status: "cancelled" }, "PI cancel");
+            // Q1915 review #4: a crew whose every share went back charged no fee.
+            const settledVoid = await settleCancelledJob(job, crewShareReturned
+              ? { payment_status: "cancelled", cancellation_fee_status: null, cancellation_fee: 0 }
+              : { payment_status: "cancelled" }, "PI cancel");
             // Q1714: the whole hold went back; tell the poster.
             await tellPosterMoneyBack(job, pi, { key: `release:${pi.id}`, kind: "release", amountCents: Number(pi.amount ?? 0), keptCents: 0, keptReason: null });
             if (settledVoid) voided++;
@@ -2674,8 +2923,10 @@ serve(async (req) => {
             payment_status: "refunded",
             cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
             // Q2000: the job says the fee that was actually paid (Q1345's stamp;
-            // money-reconciliation accepts it only for this case).
-            ...(cardGiftGone ? { cancellation_fee: cancellationFee } : {}),
+            // money-reconciliation accepts it only for this case). Q1915: so
+            // does a crew whose deleted member's share went back to the poster
+            // (money-reconciliation prices it without that share).
+            ...(cardGiftGone || crewShareReturned ? { cancellation_fee: cancellationFee } : {}),
           }, "refund", cardGiftKeptCents, giftKeptReason(feeOwedCents > 0, blockFeeCents > 0));
           if (settledRefund) refunded++;
           results.push({

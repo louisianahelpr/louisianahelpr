@@ -252,6 +252,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:stripe-webhook/handlers/accountUpdated": { uncovered: STRIPE_EVENT("account.updated with a requirements change") },
   "edge:stripe-webhook/handlers/chargeDisputeClosed": { uncovered: STRIPE_EVENT("charge.dispute.closed") },
   "edge:stripe-webhook/handlers/chargeDisputeCreated": { uncovered: STRIPE_EVENT("charge.dispute.created") },
+  "edge:stripe-webhook/handlers/payoutFailed": { uncovered: STRIPE_EVENT("payout.failed on a member's connected account (board 143); a bank must return a real payout, never forced on prod") },
   "edge:stripe-webhook/handlers/chargeRefunded": {
     uncovered: GAP("any cancel_escrow / admin refund (charge.refunded arrives in test mode); its row is not asserted"),
   },

@@ -11,13 +11,15 @@
  * @mutate scripts/land.sh | --add-label land-queue >/dev/null 2>&1 \|\| | --add-label other >/dev/null 2>&1 \|\|
  * @mutate scripts/land.sh |       if ADV=$(node scripts/land-queue.mjs 2>/dev/null); then |       if false; then
  * @mutate scripts/land-queue.mjs |     if (/no (?:required )?checks reported on the '[^']*' branch/.test(err)) return []; |     if (false) return [];
+ * @mutate scripts/land-queue.mjs |   if (pushRunCount > 0 \|\| ageSec < MISSED_PUSH_GRACE_SEC) return [];\n  return | \n  return [];\n  return
+ * @mutate scripts/land-queue.mjs |     checkMainPushRuns(dry); |     void dry;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { readdirSync } from "./helpers/trackedFiles";
 // @ts-expect-error — plain .mjs script, no declaration file
-import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh, mergeOrWait, readUntilHead } from "../../scripts/land-queue.mjs";
+import { planQueue, QUEUE_LABEL, queuedChecks, GATE_CHECKS, checksFromGh, mergeOrWait, readUntilHead, missedPushDispatches, MISSED_PUSH_WORKFLOWS } from "../../scripts/land-queue.mjs";
 import { REQUIRED_CHECKS } from "./helpers/requiredChecks";
 
 const ROOT = join(__dirname, "..", "..");
@@ -236,5 +238,25 @@ describe("the queue reads only up to the head (the shared 5000/h token, 2026-10-
   });
   it("readQueue goes through readUntilHead", () => {
     expect(read("scripts/land-queue.mjs")).toMatch(/return readUntilHead\(list\.filter/);
+  });
+});
+
+// TRAIN I (#3504, 2026-10-21): main ad801ccc3d landed with no push-triggered run
+// at all, so db-deploy, functions-deploy and main CI never ran until the lander
+// dispatched them. The queue now dispatches them for a HEAD with zero push runs.
+describe("main push watchdog", () => {
+  const none = Object.fromEntries(MISSED_PUSH_WORKFLOWS.map((w: string) => [w, 0]));
+  it("dispatches the deploys and main CI when main's HEAD has no push runs past the grace period", () => {
+    expect(missedPushDispatches({ pushRunCount: 0, ageSec: 600, runsByWorkflow: none })).toEqual(["db-deploy.yml", "functions-deploy.yml", "vitest.yml", "test.yml"]);
+  });
+  it("does nothing while push runs exist, inside the grace period, or for a workflow that already ran on HEAD", () => {
+    expect(missedPushDispatches({ pushRunCount: 3, ageSec: 600, runsByWorkflow: none })).toEqual([]);
+    expect(missedPushDispatches({ pushRunCount: 0, ageSec: 30, runsByWorkflow: none })).toEqual([]);
+    expect(missedPushDispatches({ pushRunCount: 0, ageSec: 600, runsByWorkflow: { ...none, "db-deploy.yml": 1 } })).toEqual(["functions-deploy.yml", "vitest.yml", "test.yml"]);
+  });
+  it("the queue runs the watchdog after its own step, and the workflow may dispatch (actions: write)", () => {
+    expect(read("scripts/land-queue.mjs")).toMatch(/if \(!dry\) for \(const s of steps\) act\(s\);\n {2}try \{\n {4}checkMainPushRuns\(dry\);/);
+    expect(read(".github/workflows/land-queue.yml")).toMatch(/actions: write/);
+    for (const wf of MISSED_PUSH_WORKFLOWS) expect(read(`.github/workflows/${wf}`)).toMatch(/workflow_dispatch:/);
   });
 });

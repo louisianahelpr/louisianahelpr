@@ -232,6 +232,38 @@ function act(step) {
   }
 }
 
+/**
+ * MAIN PUSH WATCHDOG (2026-10-21, TRAIN I #3504 / ad801ccc3d): a merge to main
+ * can land with NO push-triggered workflow at all (GitHub does not start
+ * workflows for a push made with the built-in token), so db-deploy,
+ * functions-deploy and main's Vitest never ran: prod kept the old migrations
+ * until the lander dispatched them by hand. This queue runs on almost every
+ * check completion, so it is the one place that notices. When main's HEAD has
+ * zero push-event runs of ANY workflow once it is older than the grace period,
+ * the triggers were skipped: dispatch the deploys and main CI. A HEAD that
+ * already has a run of a workflow (pushed or dispatched) is never dispatched
+ * again, so this fires once per missed merge. Pure; guard: src/test/landQueue.test.ts.
+ */
+export const MISSED_PUSH_WORKFLOWS = ["db-deploy.yml", "functions-deploy.yml", "vitest.yml", "test.yml"];
+export const MISSED_PUSH_GRACE_SEC = 180;
+export function missedPushDispatches({ pushRunCount, ageSec, runsByWorkflow }) {
+  if (pushRunCount > 0 || ageSec < MISSED_PUSH_GRACE_SEC) return [];
+  return MISSED_PUSH_WORKFLOWS.filter((wf) => (runsByWorkflow[wf] ?? 0) === 0);
+}
+
+function checkMainPushRuns(dry) {
+  const head = JSON.parse(gh(["api", "repos/{owner}/{repo}/commits/main", "--jq", "{sha: .sha, date: .commit.committer.date}"]));
+  const count = (q) => Number(gh(["api", `repos/{owner}/{repo}/actions/${q}`, "--jq", ".total_count"]).trim()) || 0;
+  const pushRunCount = count(`runs?head_sha=${head.sha}&event=push&per_page=1`);
+  const ageSec = (Date.now() - Date.parse(head.date)) / 1000;
+  if (pushRunCount > 0 || ageSec < MISSED_PUSH_GRACE_SEC) return;
+  const runsByWorkflow = Object.fromEntries(MISSED_PUSH_WORKFLOWS.map((wf) => [wf, count(`workflows/${wf}/runs?head_sha=${head.sha}&per_page=1`)]));
+  for (const wf of missedPushDispatches({ pushRunCount, ageSec, runsByWorkflow })) {
+    console.log(`::warning::land-queue: main ${head.sha.slice(0, 10)} has no push-triggered runs; dispatching ${wf}${dry ? " (dry run)" : ""}`);
+    if (!dry) gh(["workflow", "run", wf, "--ref", "main"]);
+  }
+}
+
 function describe(step) {
   const why = step.checks ? `: ${step.checks.join(", ")}` : step.reason ? ` (${step.reason})` : step.runIds ? `: runs ${step.runIds.join(", ")}` : "";
   return step.action === "idle" ? "queue empty" : `#${step.number} ${step.action}${why}`;
@@ -262,4 +294,10 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   console.log(lines.join("\n"));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
   if (!dry) for (const s of steps) act(s);
+  try {
+    checkMainPushRuns(dry);
+  } catch (e) {
+    // Loud but not fatal: the queue's own step above already ran.
+    console.log(`::warning::land-queue: main push watchdog failed: ${String(e?.message ?? e).split("\n")[0]}`);
+  }
 }

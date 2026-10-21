@@ -135,11 +135,11 @@ describe("Q142: credentials are added with buttons, not switches", () => {
 });
 
 describe("Q111: withdrawing a sent document leaves the way to add a new one", () => {
-  it("after Take It Back, the Add license button is back and opens the picker", async () => {
+  it("after Take it back, the Add license button is back and opens the picker", async () => {
     db.row = { ...EMPTY_ROW, license_url: "u-1/credentials/license-1727000000000.pdf", is_licensed: true, license_status: "pending" };
     renderTab();
     fireEvent.click(await screen.findByRole("button", { name: "Take your license out of the review queue" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Take It Back" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
 
     const add = await screen.findByRole("button", { name: "Add license" });
     await waitFor(() => expect(db.updates).toEqual([{ license_url: null }]));

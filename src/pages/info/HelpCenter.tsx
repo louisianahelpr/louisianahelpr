@@ -11,7 +11,6 @@ import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
-  SECTION_ACCENTS,
   FAQ_SECTIONS,
 } from "./helpCenter/helpCenterContent";
 
@@ -37,8 +36,8 @@ import {
  *      screen-reader-only h2 that names the section without painting a
  *      second visible title.
  *
- * Preserves the existing helpCenterContent data source (TOPICS, FAQ_SECTIONS,
- * SECTION_ACCENTS) verbatim.
+ * Preserves the existing helpCenterContent data source (TOPICS, FAQ_SECTIONS)
+ * verbatim. Topics paint in one style (spec v2: no per-section colours).
  */
 
 // ─── Topic anchor slugs ───────────────────────────────────────────────────────
@@ -78,13 +77,14 @@ const topicDesc = (topic: string): string | undefined =>
   TOPICS.find((t) => t.label.toLowerCase() === topic.toLowerCase())?.desc;
 
 // ─── TopicSection — collapsible topic wrapper ────────────────────────────────
+/** "Payments & Escrow" -> "Payments & escrow" (spec v2: sentence case). */
+const sentenceCase = (t: string): string => t.charAt(0) + t.slice(1).toLowerCase();
+
 const TopicSection = ({
   section,
-  accent,
   targeted,
 }: {
   section: { topic: string; items: Array<{ q: string; a: string }> };
-  accent: string;
   /** True when `location.hash` addresses THIS section. */
   targeted: boolean;
 }) => {
@@ -125,19 +125,11 @@ const TopicSection = ({
     <div
       ref={ref}
       id={`faq-${topicSlug(section.topic)}`}
-      className="scroll-mt-24 rounded-2xl transition-colors duration-200"
-      style={{
-        // OPEN AND CLOSED HAVE TO LOOK DIFFERENT. Both states used to paint the
-        // identical 0.04 wash and 0.15 hairline, so the only signal that a
-        // section had opened was the chevron's rotation and whatever content
-        // happened to be below the fold — on a seven-row list where every row
-        // is the same height, that is not a state, it is a guess. Open leans on
-        // the section's own accent (each topic already owns one) rather than a
-        // new colour, so the page gains a state without gaining a palette.
-        background: open ? "hsl(var(--burnt-sienna) / 0.09)" : "hsl(var(--burnt-sienna) / 0.04)",
-        border: `1.5px solid hsl(var(--burnt-sienna) / ${open ? "0.34" : "0.15"})`,
-        boxShadow: open ? "var(--elev-rest)" : "var(--elev-inset-hairline)",
-      }}
+      // Spec v2 rebuild (audit 2026-10-21): the ONE card (white, 20px radius,
+      // 1px --line border) for every topic. No per-topic colours, no rust
+      // wash, no uppercase tracked label. Open vs closed still differ: an open
+      // topic's border turns olive, so the state is never only the chevron.
+      className={`scroll-mt-24 rounded-[20px] border bg-card transition-colors duration-200 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
     >
       <button
         type="button"
@@ -149,48 +141,18 @@ const TopicSection = ({
         }}
         className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80"
       >
-        <span
-          className="font-sans font-semibold uppercase text-ds-12 sm:text-ds-12 tracking-[0.18em] inline-flex items-center gap-3"
-          style={{ color: accent }}
-        >
-          <span
-            aria-hidden
-            className="inline-block w-6 h-px"
-            style={{ background: accent }}
-          />
-          <span className="inline-flex flex-col gap-0.5 min-w-0">
-            <span className="inline-flex items-center gap-2">
-              {section.topic}
-              {/* 0.7 alpha, not 0.6. At 0.6 this composited to 3.64:1 over
-                  the topic card in light mode and this is 11px text, so AA
-                  wants 4.5; 0.7 measures 4.80:1. Dark mode was already fine
-                  (4.59:1 at 0.6, 5.72:1 now) because --olivewood inverts to a
-                  near-white there — which is exactly why a light-mode-only
-                  eyeball never caught it, and why the gate has to measure
-                  both. `aria-hidden` hides the count from a screen reader
-                  because the topic name already carries the meaning; it does
-                  nothing at all for a sighted reader, so it is not a reason to
-                  paint this below AA. */}
-              <span
-                aria-hidden
-                className="font-sans font-medium normal-case tracking-normal text-ds-11"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-              >
-                {section.items.length}
-              </span>
+        <span className="inline-flex flex-col gap-0.5 min-w-0">
+          <span className="font-sans font-bold text-ds-15 text-foreground leading-snug">
+            {sentenceCase(section.topic)}
+            {/* The count is real (this topic's question list), muted, and
+                hidden from a screen reader, which already hears the name. */}
+            <span aria-hidden className="ml-2 font-medium text-ds-13 text-muted-foreground">
+              {section.items.length}
             </span>
-            {/* Blurb from the deleted "Browse by topic" grid. That grid only
-                scrolled to and opened THIS accordion — the same list twice —
-                so folding its copy in here keeps the value and drops the dupe. */}
-            {topicDesc(section.topic) && (
-              <span
-                className="font-sans normal-case tracking-normal text-ds-11"
-                style={{ color: "hsl(var(--olivewood) / 0.75)" }}
-              >
-                {topicDesc(section.topic)}
-              </span>
-            )}
           </span>
+          {topicDesc(section.topic) && (
+            <span className="font-sans text-ds-13 text-muted-foreground">{topicDesc(section.topic)}</span>
+          )}
         </span>
         <ChevronDown
           className="w-5 h-5 shrink-0 transition-transform duration-200"
@@ -259,10 +221,6 @@ const HelpCenter = () => {
                 key={section.topic}
                 section={section}
                 targeted={hash === `faq-${topicSlug(section.topic)}`}
-                accent={
-                  SECTION_ACCENTS[section.topic] ??
-                  "hsl(var(--burnt-sienna))"
-                }
               />
             ))}
           </div>

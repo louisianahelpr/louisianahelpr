@@ -32,7 +32,8 @@ const highlight = (text: string, query: string): React.ReactNode => {
         key={i}
         className="rounded px-0.5"
         style={{
-          background: "hsl(var(--burnt-sienna) / 0.18)",
+          // Olive tint, not rust: rust is money only (spec v2 §1.1).
+          background: "hsl(var(--bark) / 0.18)",
           color: "hsl(var(--ink-deep))",
         }}
       >
@@ -129,17 +130,10 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
         className="group w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-ds-md text-left transition-colors btn-press hover:bg-primary/5"
       >
         <span className="flex items-center gap-2.5 min-w-0">
-          {/* Caution is conveyed purely by the icon tint — a warm
-              burnt-sienna pill instead of the plain sage primary one.
-              No full-row wash: every row reads as one consistent set. */}
-          <span
-            className={`shrink-0 w-7 h-7 rounded-ds-sm flex items-center justify-center ${warning ? "" : "bg-primary/10 text-primary"}`}
-            style={
-              warning
-                ? { background: "hsl(var(--burnt-sienna) / 0.14)", color: "hsl(var(--burnt-sienna))" }
-                : undefined
-            }
-          >
+          {/* One olive line icon for every row (spec v2: single-colour olive
+              icons, rust is money only). A caution row is told apart by its
+              own words ("final warning", "restriction"), not a rust tile. */}
+          <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-primary/10 text-primary" data-warning={warning ? "" : undefined}>
             <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
           </span>
           {/* No clamp: an item title is policy copy and is read in full. The
@@ -234,24 +228,15 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
 
   return (
     <Collapsible open={effectiveOpen} onOpenChange={setOpen}>
-      {/* Every section card is the same clean white-on-border surface —
-          no muddy destructive wash. A `warning` section is marked only
-          by a crisp burnt-sienna left accent edge + a small "Caution"
-          chip in the header, so all cards on the page read as one set. */}
+      {/* Spec v2 rebuild (audit 2026-10-21): every section is the ONE card —
+          20px radius, 1px --line border, no shadow on top of it, no coloured
+          left edge. A `warning` section is marked by a sentence-case
+          "Read carefully" chip in olive outline; nothing on this page is rust,
+          because nothing here is a price. */}
       <div
         data-policy-section
         id={anchorId}
-        className="rounded-2xl border border-border bg-card squircle overflow-hidden transition-colors scroll-mt-24"
-        style={{
-          // Soft lift matching the TLDR summary card so every surface on the
-          // page reads as one lifted material rather than flat-white rows
-          // floating below a shadowed summary.
-          boxShadow:
-            "0 1px 2px hsl(var(--olivewood) / 0.05), 0 6px 14px -8px hsl(var(--olivewood) / 0.12)",
-          borderLeft: warning
-            ? "3px solid hsl(var(--burnt-sienna) / 0.55)"
-            : "3px solid hsl(var(--bark) / 0.35)",
-        }}
+        className="rounded-[20px] border border-border bg-card overflow-hidden transition-colors scroll-mt-24"
       >
         {/* WAI-ARIA accordion pattern: the heading WRAPS the trigger button.
             Radix Collapsible (unlike Radix Accordion) does not supply a heading,
@@ -263,19 +248,12 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
         <h2 className="m-0">
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
-            <span
-              className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${warning ? "" : "bg-primary/12 text-primary"}`}
-              style={
-                warning
-                  ? { background: "hsl(var(--burnt-sienna) / 0.14)", color: "hsl(var(--burnt-sienna))" }
-                  : undefined
-              }
-            >
+            <span className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary">
               <Icon className="w-4 h-4" strokeWidth={2.25} />
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2 flex-wrap">
-                <span className="block font-display font-bold text-foreground leading-tight text-ds-15">
+                <span className="block font-sans font-bold text-foreground leading-tight text-ds-15">
                   {isSearching ? highlight(title, query) : title}
                 </span>
                 {/* During a cross-tab search, mark which policy this section
@@ -283,27 +261,18 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
                     legible. Only shown when a tab origin is supplied. */}
                 {isSearching && tabLabel && (
                   <span
-                    className="shrink-0 rounded-full px-1.5 py-0.5 text-ds-10 font-sans font-semibold uppercase tracking-wider"
-                    style={{
-                      background: "hsl(var(--bark) / 0.10)",
-                      color: "hsl(var(--bark))",
-                    }}
+                    className="shrink-0 rounded-full border px-2 py-0.5 text-ds-11 font-sans font-semibold"
+                    style={{ borderColor: "hsl(var(--bark) / 0.45)", color: "hsl(var(--sage-ink))" }}
                   >
                     {tabLabel}
                   </span>
                 )}
                 {warning && (
                   <span
-                    className="shrink-0 rounded-full px-1.5 py-0.5 text-ds-10 font-sans font-semibold uppercase tracking-wider"
-                    style={{
-                      background: "hsl(var(--burnt-sienna) / 0.06)",
-                      // --accent-ink, not --burnt-sienna: 10px uppercase text
-                      // needs the full 4.5:1 and the raw accent measured
-                      // 4.22:1 on this fill in dark mode. Same value in light.
-                      color: "hsl(var(--accent-ink))",
-                    }}
+                    className="shrink-0 rounded-full border px-2 py-0.5 text-ds-11 font-sans font-semibold"
+                    style={{ borderColor: "hsl(var(--bark) / 0.45)", color: "hsl(var(--sage-ink))" }}
                   >
-                    Caution
+                    Read carefully
                   </span>
                 )}
               </span>

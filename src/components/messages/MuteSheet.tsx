@@ -120,19 +120,19 @@ export function MuteSheet({
               }}
               className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md text-left transition-colors hover:bg-secondary/40 min-h-[48px] mt-1"
               style={{
-                background: "hsl(var(--burnt-sienna) / 0.06)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                background: "hsl(var(--bark) / 0.06)",
+                border: "0.5px solid hsl(var(--bark) / 0.22)",
               }}
             >
               <span
                 className="font-sans font-medium text-ds-15"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
+                style={{ color: "hsl(var(--bark))" }}
               >
-                Turn Notifications Back On
+                Turn notifications back on
               </span>
               <Bell
                 className="w-4 h-4 shrink-0"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
+                style={{ color: "hsl(var(--bark))" }}
               />
             </button>
           )}

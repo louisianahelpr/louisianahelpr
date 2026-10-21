@@ -42,7 +42,7 @@ export function HiddenUnreadBar({
       >
         <span
           className="shrink-0 w-2 h-2 rounded-full"
-          style={{ background: "hsl(var(--burnt-sienna))" }}
+          style={{ background: "hsl(var(--alert))" }}
           aria-hidden="true"
         />
         <span

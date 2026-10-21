@@ -800,7 +800,7 @@ export function ConversationList({
         type="button"
         onClick={() => setInboxFilter("all")}
         className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
+        style={{ color: "hsl(var(--bark))" }}
       >
         {inboxTab === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
         {inboxTab === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
@@ -1682,7 +1682,7 @@ export function ConversationList({
                     aria-label={`Hide ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
                     className="h-9 px-3 rounded-ds-md inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
                     style={{
-                      background: "hsl(var(--burnt-sienna))",
+                      background: "hsl(var(--bark))",
                       color: "hsl(var(--parchment))",
                     }}
                   >

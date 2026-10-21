@@ -60,7 +60,8 @@ const CAREER_MILESTONES: CareerMilestone[] = [
     label: "Neighborhood Pro",
     description: "25 jobs completed",
     icon: "Award",
-    color: "hsl(var(--burnt-sienna))",
+    // Olive, not rust: rust is money only (spec v2 §1.1).
+    color: "hsl(var(--bark))",
     requirement: { completedJobs: 25 },
   },
   {

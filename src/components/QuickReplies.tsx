@@ -157,7 +157,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
     >
       {/* Status-aware smart-reply chips — sent on tap, no composer
           round-trip. Visually distinguished from the generic suggestions
-          by the warm-gold pill so the user reads them as "send-now"
+          by the olive-tinted pill so the user reads them as "send-now"
           actions, not "draft this". A small Send glyph reinforces the
           one-tap-fires-immediately semantics. */}
       {smartReplies.map((qr) => (
@@ -167,8 +167,9 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           size="sm"
           className="shrink-0 text-ds-11 min-h-[44px] px-2.5 gap-1 rounded-full"
           style={{
-            background: "hsl(var(--burnt-sienna) / 0.22)",
-            border: "1px solid hsl(var(--burnt-sienna) / 0.55)",
+            // Olive, not rust: rust is money only (spec v2 §1.1).
+            background: "hsl(var(--bark) / 0.14)",
+            border: "1px solid hsl(var(--bark) / 0.45)",
             color: "hsl(var(--ink-deep))",
           }}
           onClick={() => handlePick(qr)}
@@ -192,7 +193,7 @@ export const QuickReplies = ({ onSelect, onSend, audience = "helper", jobStatus,
           onClick={() => setShowEta(true)}
         >
           <Navigation className="w-3 h-3" />
-          I'm En Route
+          I'm en route
         </Button>
       )}
       {replies.map((qr) => (

@@ -1011,6 +1011,8 @@ export const EXPLORE_CREDITED: readonly string[] = [
   "src/components/reviewPanel/ReviewForm.tsx",
   "src/components/reviewPanel/ReviewQuestionCard.tsx",
   "src/components/postjob/AddressAutocomplete.tsx",
+  // Split out of LogisticsSection (Builder 2f s8, friction 4): the same screen-4 address box, reached by the same explore pass.
+  "src/components/postjob/AddressBlock.tsx",
   "src/components/postjob/BudgetSection.tsx",
   "src/components/postjob/LogisticsSection.tsx",
   "src/components/profile/SecurityTab.tsx",

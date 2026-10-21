@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF o.handover <> 'pickup_home' THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
- * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
+ * @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
  * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
@@ -151,10 +151,11 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(body("declutter_delivery_on_task_event"))).not.toMatch(/4-digit|drop-off code/);
     expect(flat(NO_QR)).toContain("CREATE TRIGGER trg_declutter_handovers_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.declutter_handovers");
     expect(flat(body("declutter_no_new_code_confirmation"))).toContain("IF NEW.confirmed_by = 'code' AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM 'code') THEN");
-    for (const fn of ["helpr_task_delivered", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe(NO_DROPOFF_CODE_FILE);
-    // helpr_task_view was restated verbatim from that file by 20261021131322 (only its Helpr-name line changed);
-    // the body check below still reads the newest definition.
-    expect(DEFS.get("helpr_task_view")?.file).toBe("20261021131322_member_names_first_and_initial.sql");
+    expect(DEFS.get("helpr_task_delivered")?.file).toBe(NO_DROPOFF_CODE_FILE);
+    // helpr_task_view was restated verbatim from that file by 20261021131322 (only its Helpr-name line changed),
+    // then it and helpr_task_confirm by 20261021181118 (only the take-home / payout amount rounded down to the
+    // whole dollar, owner 2026-10-21); the body checks below still read the newest definition.
+    for (const fn of ["helpr_task_view", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe("20261021181118_helpr_delivery_payout_round_down.sql");
     expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
     expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
     expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);

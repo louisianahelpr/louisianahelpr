@@ -9,17 +9,36 @@
  *   node src/test/pglite/declutterDelivery.pglite.mjs                     # all PASS
  *   NEW_MIGRATION=skip node src/test/pglite/declutterDelivery.pglite.mjs  # RED: the migration absent
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterDelivery.pglite.mjs
+ *   ROUND=skip node src/test/pglite/declutterDelivery.pglite.mjs          # RED: delivery payouts not rounded down
+ *   ROUND_PATH=<planted copy> node src/test/pglite/declutterDelivery.pglite.mjs
+ *
+ * Owner 2026-10-21 (20261021181118): a Helpr's delivery payout is whole dollars,
+ * rounded DOWN (the platform keeps the cents). public.helpr_payout_round_down_cents
+ * is executed here against the edge rule roundPayoutDownCents for every cent
+ * 0..100000 (TS == SQL), and the payout row, take-home and notice are checked.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite. Storage is
  * not Supabase's here: the bucket policy logic is proven, not the Storage API.
  */
 import os from "node:os";
+import { readFileSync } from "node:fs";
+import { roundPayoutDownCents } from "../../../supabase/functions/_shared/money.ts";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const NEW_FILE = "20261017055505_declutter_helpr_delivery.sql";
 // No drop-off code, porch auto-pay needs the set-out photo (owner 2026-10-18): applied after NEW_FILE,
 // 3x each. NO_CODE=skip runs the state before them, to show the checks below red on it.
 const NO_CODE_FILES = ["20261018183715_declutter_handover_no_qr_no_code.sql", "20261018184535_declutter_delivery_no_dropoff_code.sql"];
+// Whole-dollar delivery payouts (owner 2026-10-21), applied 3x after NO_CODE_FILES. ROUND=skip runs the state before it.
+const ROUND_FILE = "20261021181118_helpr_delivery_payout_round_down.sql";
+const round = process.env.ROUND !== "skip";
+// member_display_name (20261021131322), which ROUND_FILE's helpr_task_view calls; self-contained, applied as written.
+const NAMES_SQL = (() => {
+  const src = readFileSync(new URL("../../../supabase/migrations/20261021131322_member_names_first_and_initial.sql", import.meta.url), "utf8");
+  const m = /CREATE OR REPLACE FUNCTION public\.member_display_name\([\s\S]*?\$fn\$;/.exec(src);
+  if (!m) throw new Error("member_display_name not found in 20261021131322");
+  return m[0];
+})();
 const BEFORE = [
   "20261017055500_declutter_refund_hand_settle.sql",
   "20261017055502_declutter_handover_private_bucket.sql",
@@ -41,11 +60,13 @@ await db.exec(`CREATE SCHEMA IF NOT EXISTS storage;
 const extra = [{ file: FEE_F1_FILE, times: 1 }, { file: SLICE4_FILE, times: 1 }, ...BEFORE.map((file) => ({ file, times: 1 }))];
 if (!skip) extra.push(process.env.MIGRATION_PATH ? { path: process.env.MIGRATION_PATH, times: 3 } : { file: NEW_FILE, times: 3 });
 if (!skip && process.env.NO_CODE !== "skip") for (const file of NO_CODE_FILES) extra.push({ file, times: 3 });
+if (!skip && process.env.NO_CODE !== "skip" && round) extra.push(process.env.ROUND_PATH ? { path: process.env.ROUND_PATH, times: 3 } : { file: ROUND_FILE, times: 3 });
 const stmts = setupStatements({ times: 1, times3b: 1, extra });
 // Stubs for the jobs strike ladder and the cron defect log (their real bodies
 // need half the jobs schema); they record what they were asked.
 stmts.splice(1, 0, `
   ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS full_name text;
+  ${NAMES_SQL}
   CREATE TABLE public.user_violations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
     violation_type text NOT NULL, description text, job_id uuid, action_taken text, created_at timestamptz DEFAULT now());
   CREATE TABLE public.cron_defects_seen (fn text, ref text, msg text);
@@ -249,8 +270,16 @@ ok(refused(await me(HELPR, `SELECT public.helpr_set_vehicle(NULL, false, NULL)`)
 const tr = await truck(HELPR);
 ok(Array.isArray(tr), "with a truck photo the vehicle is saved");
 const near = await me(HELPR, `SELECT * FROM public.helpr_tasks_open_near(${PICK.lat}, ${PICK.lng}, 50) WHERE task_id = '${t1}'`);
-ok(Array.isArray(near) && near.length === 1 && near[0].take_home_cents === T1.pay_cents - T1.fee_cents && !("pickup_address" in near[0]),
-  "now they see it: area words, miles and take-home pay, no address");
+ok(Array.isArray(near) && near.length === 1 && near[0].take_home_cents === roundPayoutDownCents(T1.pay_cents - T1.fee_cents) && !("pickup_address" in near[0]),
+  "now they see it: area words, miles and take-home pay (whole dollars, rounded down), no address");
+// Owner 2026-10-21: the take-home this delivery shows is not already a whole dollar, so rounding is visible here.
+ok((T1.pay_cents - T1.fee_cents) % 100 !== 0 && near[0].take_home_cents % 100 === 0,
+  `the delivery take-home is rounded DOWN to the whole dollar (${T1.pay_cents - T1.fee_cents} -> ${near?.[0]?.take_home_cents})`);
+{
+  const view = one(await me(HELPR, `SELECT public.helpr_task_view('${t1}')`));
+  ok(view?.take_home_cents === roundPayoutDownCents(T1.pay_cents - T1.fee_cents) && view?.fee_cents === T1.fee_cents,
+    `helpr_task_view shows the rounded take-home and the flat fee unchanged (${view?.take_home_cents} / fee ${view?.fee_cents})`);
+}
 // lh-authz-rls #1: miles to the pickup are measured from the ROUNDED pickup point (~1 km), never the exact one.
 {
   // A search point due north where the exact and the rounded distance fall on different whole miles.
@@ -351,8 +380,18 @@ ok(c1?.result === "handed_over" && r1d.status === "handed_over" && T1d.status ==
 const sp = (await svc(`SELECT * FROM public.declutter_payouts WHERE order_id = '${o1c.order_id}'`))[0];
 const hp = (await svc(`SELECT * FROM public.helpr_task_payouts WHERE task_id = '${t1}'`))[0];
 ok(sp?.amount_cents === 5000 && sp.status === "pending", "the seller is owed exactly the item price");
-ok(hp?.amount_cents === T1.pay_cents - T1.fee_cents && hp.helpr_id === HELPR && hp.status === "pending",
-  `the Helpr is owed the delivery fee minus 5% + 70c (${hp?.amount_cents})`);
+ok(hp?.amount_cents === roundPayoutDownCents(T1.pay_cents - T1.fee_cents) && hp.amount_cents % 100 === 0 && hp.helpr_id === HELPR && hp.status === "pending"
+  && hp.fee_cents === T1.fee_cents,
+  `the Helpr is owed the delivery fee minus 5% + 70c, rounded DOWN to the dollar; the platform keeps the cents (${hp?.amount_cents})`);
+{
+  const note = (await svc(`SELECT message FROM public.notifications WHERE user_id = '${HELPR}' AND title = 'Delivery done' ORDER BY created_at DESC LIMIT 1`))[0]?.message;
+  const dollars = String(roundPayoutDownCents(T1.pay_cents - T1.fee_cents) / 100);
+  ok(typeof note === "string" && note.includes(`$${dollars} `) && !/\$\d+\.\d\d/.test(note),
+    `the "Delivery done" notice names the whole-dollar amount that is sent (${note})`);
+  const planted = await svc(`UPDATE public.helpr_task_payouts SET amount_cents = pay_cents - fee_cents WHERE task_id = '${t1}' RETURNING amount_cents`);
+  ok(refused(planted, /helpr_task_payouts_amount/),
+    `the payout row's CHECK refuses the exact-cents amount pay - fee (${JSON.stringify(planted).slice(0, 160)})`);
+}
 const due = (await svc(`SELECT * FROM public.helpr_task_payouts_due(10) WHERE task_id = '${t1}'`))[0];
 ok(due?.payment_intent_id === "pi_dl_1c" && due.transfer_group === `declutter_order_${o1c.order_id}` && due.refunds_recorded_cents === 0
   && due.stripe_account_id === "acct_2",
@@ -661,6 +700,16 @@ for (const fn of ["helpr_task_sweep()", "helpr_task_payouts_due(1)", "declutter_
   ok(refused(await me(HELPR, `SELECT public.${fn.includes("(1)") || fn.includes("sweep") ? "" : ""}${fn}`), /permission denied/), `a member cannot call ${fn.split("(")[0]}`);
 }
 ok(one(await me(HELPR, `SELECT count(*)::int FROM public.helpr_my_tasks()`)) >= 4, "the Helpr lists their own deliveries");
+
+// TS == SQL (owner 2026-10-21): the SQL twin agrees with the edge rule for every cent 0..100000, NULL and negatives.
+{
+  const rows = await svc(`SELECT c, public.helpr_payout_round_down_cents(c) AS r FROM generate_series(-300, 100000) c`);
+  const bad = Array.isArray(rows) ? rows.filter((x) => x.r !== roundPayoutDownCents(x.c)) : [{ c: "error", r: rows?.error }];
+  ok(Array.isArray(rows) && rows.length === 100301 && bad.length === 0,
+    `helpr_payout_round_down_cents == roundPayoutDownCents for all ${Array.isArray(rows) ? rows.length : 0} cents (${bad.length} differ${bad[0] ? `, first ${JSON.stringify(bad[0])}` : ""})`);
+  ok(one(await svc(`SELECT public.helpr_payout_round_down_cents(NULL)`)) === roundPayoutDownCents(Number.NaN), "NULL -> 0, as the edge rule's non-finite input");
+  ok(refused(await anon(`SELECT public.helpr_payout_round_down_cents(100)`), /permission denied/), "anon cannot call helpr_payout_round_down_cents");
+}
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

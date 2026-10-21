@@ -10,7 +10,8 @@
  *
  * @mutate src/lib/declutter/delivery.ts | export const DELIVERY_PER_MILE_CENTS = 200; | export const DELIVERY_PER_MILE_CENTS = 150;
  * @mutate src/lib/declutter/delivery.ts |   const miles = Math.max(1, Math.ceil(Number.isFinite(roadMiles) ? roadMiles : 1)); |   const miles = Math.max(0, Math.floor(Number.isFinite(roadMiles) ? roadMiles : 0));
- * @mutate src/lib/declutter/delivery.ts |   return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70); |   return pay - Math.round((pay * 5) / 100);
+ * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return roundPayoutDownCents(pay - Math.round((pay * 5) / 100));
+ * @mutate src/lib/declutter/delivery.ts |   return roundPayoutDownCents(pay - Math.min(pay, Math.round((pay * 5) / 100) + 70)); |   return pay - Math.min(pay, Math.round((pay * 5) / 100) + 70);
  * @mutate src/lib/helprTasks/api.ts |   if (!result.error) return result.data as T; |   return result.data as T;
  * @mutate src/lib/helprTasks/api.ts |     if (msg && Object.isExtensible(e)) e.userMessage = msg; |     void msg;
  * @mutate src/lib/helprTasks/api.ts | `${userId}/task/${taskId}/${nonce()}.jpg` | `${userId}/${taskId}/${nonce()}.jpg`
@@ -134,15 +135,18 @@ describe("delivery price mirror (row 29) agrees with the SQL", () => {
     expect(deliveryPriceCents(Number.NaN, [])).toBe(1200);
   });
 
-  it("the Helpr keeps the fee minus jobs' flat 5% + 70c (same as helpr_task_fee_cents)", () => {
+  it("the Helpr keeps the fee minus jobs' flat 5% + 70c (same as helpr_task_fee_cents), rounded down to the dollar", () => {
     expect(FEE_SQL.length).toBeGreaterThan(50);
     expect(FEE_SQL).toContain("ELSE least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70) END;");
-    expect(helprTakeHomeCents(1200)).toBe(1200 - 60 - 70);
-    expect(helprTakeHomeCents(4000)).toBe(4000 - 200 - 70);
+    // Owner 2026-10-21: the payout is whole dollars, rounded DOWN (the platform keeps the cents).
+    expect(helprTakeHomeCents(1200)).toBe(1000); // 1200 - 60 - 70 = 1070
+    expect(helprTakeHomeCents(4000)).toBe(3700); // 4000 - 200 - 70 = 3730
+    expect(helprTakeHomeCents(4400)).toBe(4100); // 4400 - 220 - 70 = 4110
     expect(helprTakeHomeCents(50)).toBe(0);
     expect(helprTakeHomeCents(0)).toBe(0);
-    // A half cent rounds UP in both (SQL round(numeric) and Math.round agree for positive cents): 1010 -> 50.5 -> 51 + 70.
-    expect(helprTakeHomeCents(1010)).toBe(1010 - 121);
+    // A half cent rounds UP in the fee in both (SQL round(numeric) and Math.round agree for positive cents):
+    // 1010 -> 50.5 -> 51 + 70 = 121, take-home 889 -> 800.
+    expect(helprTakeHomeCents(1010)).toBe(800);
     expect(FEE_SQL).toContain("least(p_pay_cents, round(p_pay_cents * 5 / 100.0)::integer + 70)");
   });
 });

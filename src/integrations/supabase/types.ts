@@ -13470,6 +13470,7 @@ export type Database = {
           trip_miles: number
         }[]
       }
+      helpr_payout_round_down_cents: { Args: { p_cents: number }; Returns: number }
       helpr_set_vehicle: { Args: { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
       helpr_task_accept: { Args: { p_pickup_slot_start: string; p_task_id: string }; Returns: Json }
       helpr_task_assert_helpr: { Args: never; Returns: string }

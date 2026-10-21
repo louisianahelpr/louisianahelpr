@@ -31,7 +31,6 @@ const OLIVE = /\btext-primary\b|--bark\b|--sage\b|\btext-sage\b|\btext-bark\b|--
 /** Not yet restyled (2026-10-20). Each one leaves this list when it turns rust. */
 // @two-way src/test/pricesAreNeverOlive.test.ts:stale baseline entry — remove it (lower the baseline)
 const KNOWN_OLIVE_PRICES = [
-  "src/components/CancellationDialog.tsx",
   "src/components/admin/AdminPayoutBatches.tsx",
   "src/components/postjob/RecurringSchedulePicker.tsx",
   "src/components/profile/MonthlyGoalCard.tsx",

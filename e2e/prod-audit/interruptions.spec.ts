@@ -546,7 +546,7 @@ test.describe("post a job", () => {
    * Purpose-built driver: the J2 post-job leg of e2e/journeys/02-marketplace.spec.ts
    * step for step (category, title, description, address, city, ZIP 99999 so no
    * parish resolves and no real helper is notified, a date slot, a budget,
-   * Review & pay, the confirm checkbox), stopping ON the final submit and
+   * Review, then pay, the confirm checkbox), stopping ON the final submit and
    * returning it. It replaces a generic Continue/Next stepper that never
    * reliably got here and skipped with a stated GAP.
    */
@@ -575,8 +575,8 @@ test.describe("post a job", () => {
     await pickStartTime(page, slot);
     await shoot(page, info, "post-step-logistics");
 
-    const review = page.getByRole("button", { name: /Review & pay/ });
-    await expect(review, "the submit button never became Review & pay").toBeEnabled({ timeout: 20_000 });
+    const review = page.getByRole("button", { name: /Review, then pay/ });
+    await expect(review, "the submit button never became Review, then pay").toBeEnabled({ timeout: 20_000 });
     await review.click();
     await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("checkbox", { name: /reviewed all details/i }).click();

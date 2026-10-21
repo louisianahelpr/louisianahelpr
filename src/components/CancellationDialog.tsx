@@ -372,13 +372,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             <div className="flex justify-center"><ArrowRight className="w-3.5 h-3.5 text-muted-foreground/40 rotate-90" /></div>
 
             {/* Step 2: After helpr selected */}
-            <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-accent/10 border-accent/30 ring-1 ring-accent/20" : "bg-muted/20 border-border opacity-50"}`}>
+            <div className={`p-3 rounded-ds-sm border space-y-2 transition-all ${hasHelper ? "bg-card border-border ring-1 ring-border" : "bg-muted/20 border-border opacity-50"}`}>
               <div className="flex items-start gap-2.5">
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-accent text-accent-foreground" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 text-ds-10 font-bold ${hasHelper ? "bg-foreground text-background" : "bg-muted-foreground/20 text-muted-foreground"}`}>2</div>
                 <div className="flex-1">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-ds-11 font-semibold text-foreground">After a Helpr is selected</p>
-                    {hasHelper && <span className="text-ds-10 font-bold bg-accent text-accent-foreground px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
+                    {hasHelper && <span className="text-ds-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
                     Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the Helpr for their committed time:
@@ -391,8 +391,8 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
-                      <DollarSign className="w-3 h-3 text-accent shrink-0" />
-                      <span className="text-ds-11 text-[hsl(var(--sienna-ink))] font-medium">
+                      <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span className="text-ds-11 text-foreground font-medium">
                         {feeTier} → {cancellationFeePercent}% fee · Strike recorded
                       </span>
                     </div>
@@ -420,7 +420,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   )}
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{crewQuote ? "Each hired Helpr receives" : `${helperName || "Helpr"} receives`}</span>
-                    <span className="font-semibold text-primary">at least ${formatPrice(helperPayout)}</span>
+                    <span className="font-semibold tabular-nums text-[hsl(var(--sienna-ink))]">at least ${formatPrice(helperPayout)}</span>
                   </div>
                 </div>
               )}
@@ -490,7 +490,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                   className="font-sans font-bold text-ds-13"
                   style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
                 >
-                  A cancellation fee of ${formatPrice(cancellationFee)} applies
+                  A cancellation fee of <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(cancellationFee)}</span> applies
                 </p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
                   {crewQuote

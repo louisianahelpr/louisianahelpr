@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { payNextLine } from "@/lib/walletsLive";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
@@ -804,13 +805,10 @@ export function CheckoutStep({
             it no longer echoes a fuller panel above, because there isn't one. */}
         <p className="flex items-center justify-center gap-1.5 text-ds-11 text-muted-foreground">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-          Held safely until the job's done.
+          {giftCoversEverything ? "Held safely until the job's done." : `${payNextLine()} Held safely until the job's done.`}
         </p>
-        {/* A second "Back to edit" ghost button used to sit under the CTA.
-            Removed on owner instruction — the page-header arrow already goes
-            back, and a back affordance directly beneath the pay button competes with the one action this screen
-            exists for. It was the only consumer of the edit callback, so that
-            prop went with it. */}
+        {/* A second "Back to edit" ghost button used to sit under the CTA. Removed on owner instruction: the
+            page-header arrow already goes back, and a back control under the pay button competes with it. */}
       </div>
     </>
   );

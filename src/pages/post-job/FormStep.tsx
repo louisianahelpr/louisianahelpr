@@ -74,7 +74,8 @@ export function FormStep({ form }: FormStepProps) {
   const detailsBlock = detailsBlocker(form);
   // Contextual label — names the first unfinished *field* (not just the
   // section) so the poster knows exactly what's blocking the button.
-  let submitLabel = "Review & pay";
+  // Owner 2026-10-21 (friction 2): say what happens next; the charge happens on a secure page after review.
+  let submitLabel = "Review, then pay";
   if (!form.detailsComplete) {
     submitLabel = detailsBlock ?? submitLabel;
   } else if (!form.logisticsComplete) {
@@ -254,7 +255,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* SCREEN 3: PRICE (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader step={3} question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : "Set a fair price. You pay when you post, and we hold it until the job is done."} />
+          <PostJobStepHeader step={3} question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
@@ -340,7 +341,7 @@ export function FormStep({ form }: FormStepProps) {
             the last thing they reach. Bottom padding clears the floating
             MobileNav dock so the button is never tucked under it. The label
             is contextual: it names the next unfinished chapter until every
-            required field is in, then becomes "Review & pay". */}
+            required field is in, then becomes "Review, then pay". */}
         {/* Sticky action bar (boards 23/44/3/45): rides above the floating
             bottom nav while the screen scrolls, and settles at the end of
             the form. AppPage's own pb-safe-nav gives the last field room;

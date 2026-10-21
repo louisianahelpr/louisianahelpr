@@ -5,7 +5,7 @@
  * (both reviewed, or 14 days: declutter_visible_reviews), never the board's 7.
  * No quick chips: the server stores only stars and a comment.
  *
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | export const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days."; | export const REVIEW_SHOWS = "Reviews show once you both leave one, or after 7 days.";
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days."; | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 7 days.";
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | How was {side === "buyer" ? "buying from" : "selling to"} {who}? | How was {side === "buyer" ? "buying from" : "selling to"} them?
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | ${n <= stars ? "fill-primary text-primary" : "text-muted-foreground"} | ${n <= stars ? "fill-accent text-accent" : "text-muted-foreground"}
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | leaveReview(orderId, args.stars, args.comment) | leaveReview(orderId, 5, args.comment)

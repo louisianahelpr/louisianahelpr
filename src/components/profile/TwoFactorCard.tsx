@@ -278,7 +278,7 @@ function EnrollDialog({
         ) : error || !data ? (
           <p
             className="font-sans text-ds-11 py-4 text-center"
-            style={{ color: "hsl(var(--alert))" }}
+            style={{ color: "hsl(var(--alert-ink))" }}
           >
             Couldn't start setup. Please close and try again.
           </p>

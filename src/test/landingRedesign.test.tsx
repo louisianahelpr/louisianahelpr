@@ -60,7 +60,9 @@ describe("landing redesign: the honesty fixes hold", () => {
     // The hero submits through it, with the session check, under the owner's words.
     const hero = read("src/components/landing/HeroSection.tsx");
     expect(hero).toMatch(/const t = heroSearchTargets\(query\);\s*void goSignedInOr\(navigate, t\.signedIn, t\.signedOut\);/);
-    expect(hero).toMatch(/placeholder="Search jobs, items, shops and homes"/);
+    // Signed out it searches Jobs only, so it promises nothing else (owner 2026-10-21).
+    expect(hero).toMatch(/placeholder="Search local jobs"/);
+    expect(hero).not.toMatch(/items, shops and homes/);
   });
 
   it("the chips are task names only: no price anywhere in the hero", () => {

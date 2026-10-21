@@ -64,7 +64,7 @@ export function PutItOutSheet({
         <SheetHero title="Put it out" />
         <p className="text-ds-14">Take one photo of it where {who} will find it. That photo is the handover.</p>
         {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
-        {url?.startsWith("blob:") && (
+        {url && url.startsWith("blob:") && (
           <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
             <img src={url} alt="Your porch photo" className="h-full w-full object-cover" />
           </div>

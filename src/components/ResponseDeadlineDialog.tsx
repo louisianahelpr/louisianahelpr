@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { formatPriceExact } from "@/lib/format";
 import { STAR_ON_CLS } from "@/lib/starColor";
-import { BadgeCheck, Star } from "lucide-react";
+import { Star } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -161,7 +162,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                   <p className="font-sans text-ds-15 font-semibold text-foreground">{helperName}</p>
                   <p className="flex flex-wrap items-center gap-x-2 font-sans text-ds-12 text-muted-foreground">
                     {helper?.idVerified && (
-                      <span className="inline-flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5 text-primary" aria-hidden />ID verified</span>
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={ID_VERIFIED_PILL_STYLE}><IdVerifiedShield className="h-3.5 w-3.5" />{ID_VERIFIED_LABEL}</span>
                     )}
                     {Number(helper?.reviewCount) > 0 && Number(helper?.avgRating) > 0 && (
                       <span className="inline-flex items-center gap-1 tabular-nums">

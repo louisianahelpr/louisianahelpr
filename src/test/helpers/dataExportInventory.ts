@@ -99,6 +99,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helper_w9_records: { by: ["helper_id"] },
   instant_payouts: { by: ["helper_id"] },
   payout_transfers: { by: ["helper_id"] },
+  payout_failures: { by: ["user_id"] },
   crew_cancellation_fee_shares: { by: ["helper_id"] },
   // Q1390: the member's block fee (owed when a poster blocked them close to the start).
   crew_block_fees: { by: ["helper_id"] },

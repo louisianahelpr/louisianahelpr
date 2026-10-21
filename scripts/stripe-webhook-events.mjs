@@ -114,7 +114,29 @@ export function handlerEventTypes(source = readFileSync(WEBHOOK_INDEX, "utf8")) 
       `Duplicate keys in EVENT_HANDLERS: ${[...new Set(dupes)].join(", ")} — the later entry silently shadows the earlier handler.`,
     );
   }
-  return unique;
+  // Board 143a: the CONNECT-only types (payout.failed / payout.paid) arrive on
+  // the Connect endpoint, never the account endpoint, so the account
+  // endpoint's expected subscription leaves them out (connectEventTypes()).
+  const connect = new Set(connectEventTypes(source));
+  return unique.filter((e) => !connect.has(e));
+}
+
+/**
+ * The event types only the CONNECT endpoint delivers: the members of
+ * `const CONNECT_EVENT_TYPES ... = new Set([...])` in the webhook index. Each
+ * must also be an EVENT_HANDLERS key (a Connect type with no handler is a typo).
+ */
+export function connectEventTypes(source = readFileSync(WEBHOOK_INDEX, "utf8")) {
+  const m = /const CONNECT_EVENT_TYPES[^=]*=\s*new Set\(\[([^\]]*)\]\)/.exec(source);
+  if (!m) return [];
+  const types = [...m[1].matchAll(/["']([a-z0-9_.]+)["']/g)].map((x) => x[1]).sort();
+  const map = source.slice(source.indexOf("const EVENT_HANDLERS"));
+  for (const t of types) {
+    if (!map.includes(`"${t}":`)) {
+      throw new Error(`CONNECT_EVENT_TYPES names ${t}, which EVENT_HANDLERS does not handle.`);
+    }
+  }
+  return types;
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

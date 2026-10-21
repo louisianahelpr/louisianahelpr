@@ -58,6 +58,7 @@ import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import {
   handlerEventTypes,
+  connectEventTypes,
   testModeEventTypes,
   WEBHOOK_URL,
   WEBHOOK_INDEX,
@@ -215,7 +216,7 @@ async function liveHalf() {
   if (FIXTURE) {
     notes.push(`FIXTURE MODE: grading ${FIXTURE} instead of the live Stripe account.`);
     // A fixture is a recorded /v1/webhook_endpoints list ({data: [...]}).
-    record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL));
+    record(gradeLiveEndpoints(JSON.parse(readFileSync(FIXTURE, "utf8")), handlers, WEBHOOK_URL, connectEventTypes()));
     return;
   }
   if (TEST_FIXTURE) {
@@ -252,7 +253,7 @@ async function liveHalf() {
     fail(`Could not read Stripe live-mode webhook endpoints and undelivered events: ${e.message}`);
     return;
   }
-  record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers)));
+  record(gradeConfigCheckResponse(body, handlers, WEBHOOK_URL, testModeEventTypes(handlers), connectEventTypes()));
 }
 
 if (!STATIC_ONLY) await liveHalf();

@@ -12,6 +12,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
@@ -20,6 +21,12 @@ export type Handover = "pickup_home" | "porch" | "delivery";
 
 const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
+/** A Declutter refusal that is the ID check (identity_required_to_buy / _to_list) opens the one ID sheet. */
+function openIdentitySheetFor(err: unknown): void {
+  const kind = identityRefusal(err);
+  if (kind === "buy" || kind === "list") openIdentityCheck(kind);
+}
+
 /**
  * A Declutter RPC's data, or a throw carrying the plain words for its refusal
  * (RPC_ERROR_COPY via rpcErrorMessage at each call site, the rpcErrorCopyCoverage
@@ -27,6 +34,9 @@ const DECLUTTER_PHOTO_BUCKET = "job-photos";
  */
 export function rpcData<T>(result: { data: T; error: { message: string } | null; status?: number }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
+  // Stripe Identity once, at the first Declutter purchase or listing (20261021202226): open the one ID sheet
+  // instead of a dead-end message. A trigger raises it under any buy/list RPC, so it is read here, for all.
+  openIdentitySheetFor(result.error);
   try {
     unwrap(result);
   } catch (thrown) {
@@ -615,7 +625,9 @@ async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout", body
           return null;
         })
       : null;
-    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+    const code = typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable";
+    openIdentitySheetFor(code);
+    throw new Error(code);
   }
   return (data ?? {}) as Record<string, unknown>;
 }

@@ -1,7 +1,8 @@
 /**
  * Stripe Identity, the one ID check (owner, 2026-10-21): a photo ID and a
- * selfie, required before a member's first accepted job, first posted job, and
- * before a Helpr heads out. Payout setup (Stripe Connect) is a separate step and
+ * selfie, required before a member's first accepted job, first posted job,
+ * before a Helpr heads out, and before a member's first Declutter purchase or
+ * listing (owner 2026-10-22; once across Jobs and Declutter). Payout setup (Stripe Connect) is a separate step and
  * is never an ID check.
  *
  * THE ENFORCEMENT IS NOT HERE. It is the server: identity_is_verified (the one
@@ -16,7 +17,7 @@ import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
-export type IdentityCheckReason = "start" | "post" | "accept" | "general";
+export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "general";
 
 interface SheetState {
   open: boolean;
@@ -88,11 +89,14 @@ export function identityView(idvStatus: string | null | undefined): IdentityView
  * The server's refusal, recognised by its raised code (migration
  * 20261021081258), so a caller can open the sheet instead of a dead-end toast.
  */
-export function identityRefusal(err: unknown): "post" | "start" | null {
+export function identityRefusal(err: unknown): "post" | "start" | "buy" | "list" | null {
   const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
   const m = typeof raw === "string" ? raw : "";
   if (/(^|[^a-z_])identity_required_to_post($|[^a-z_])/.test(m)) return "post";
   if (/(^|[^a-z_])identity_required_to_start($|[^a-z_])/.test(m)) return "start";
+  // Declutter (owner 2026-10-22): the first purchase or the first listing (20261021202226).
+  if (/(^|[^a-z_])identity_required_to_buy($|[^a-z_])/.test(m)) return "buy";
+  if (/(^|[^a-z_])identity_required_to_list($|[^a-z_])/.test(m)) return "list";
   return null;
 }
 

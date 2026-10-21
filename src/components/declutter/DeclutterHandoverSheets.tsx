@@ -26,6 +26,7 @@ import {
   SheetSecondaryAction,
 } from "@/components/ui/sheet";
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
+import { safeBlobUrl } from "@/lib/safeBlobUrl";
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -58,15 +59,18 @@ export function PutItOutSheet({
   const [note, setNote] = useState("");
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  // The preview may only ever be the blob: URL made for the File just picked (safeBlobUrl says why, unit-tested).
+  const preview = safeBlobUrl(url);
   return (
     <Sheet open={!!file} onOpenChange={(o) => { if (!o && !pending) onClose(); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} className="max-h-[90dvh] overflow-y-auto" data-put-it-out="">
         <SheetHero title="Put it out" />
         <p className="text-ds-14">Take one photo of it where {who} will find it. That photo is the handover.</p>
-        {/* Only a local blob: preview is drawn (CodeQL js/xss-through-dom; the PhotoProof pattern). */}
-        {url && url.startsWith("blob:") && (
+        {/* Only a local blob: preview is drawn. safeBlobUrl holds the reasoning; the inline startsWith stays on the
+            <img> because that is the barrier CodeQL js/xss-through-dom recognises (the PhotoProof pattern). */}
+        {preview && preview.startsWith("blob:") && (
           <div className="mt-3 aspect-[4/3] w-full overflow-hidden rounded-2xl bg-photo-empty">
-            <img src={url} alt="Your porch photo" className="h-full w-full object-cover" />
+            <img src={preview} alt="Your porch photo" className="h-full w-full object-cover" />
           </div>
         )}
         <label htmlFor="porch-note" className="mt-3 block text-ds-15 font-semibold">

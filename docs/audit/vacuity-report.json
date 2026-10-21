@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T00:18:05.807Z",
-  "guards": 2158,
-  "registered": 2153,
+  "generated": "2026-10-21T01:55:07.233Z",
+  "guards": 2174,
+  "registered": 2169,
   "unregistered": [
     "src/lib/declutter/sellForMe.test.ts",
     "src/lib/rentals/savedHomes.test.ts",
@@ -12,7 +12,11 @@
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/test/browseEndCard.test.tsx",
-    "src/test/centerCreateNav.test.tsx"
+    "src/test/categoryChipsAreNotRust.test.ts",
+    "src/test/centerCreateNav.test.tsx",
+    "src/test/pricesAreNeverOlive.test.ts",
+    "src/test/starsAreNeverRust.test.ts",
+    "src/test/youSettingsBoard52.test.tsx"
   ],
   "classD_selfReferential": [
     {

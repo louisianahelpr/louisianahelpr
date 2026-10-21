@@ -129,11 +129,11 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
               className="font-sans text-ds-14"
               style={{ color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Based on{" "}
+              {/* What it counts: reviews (audit #60), not "completed jobs". */}
               <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                 {reviewCount}
               </span>{" "}
-              completed job{reviewCount !== 1 ? "s" : ""}
+              review{reviewCount !== 1 ? "s" : ""}
             </p>
           </div>
         </div>

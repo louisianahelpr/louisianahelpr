@@ -297,7 +297,7 @@ test(stepTitle("browse", "3g"), async ({ browser, journey }) => {
   const ctx = await newUserContext(browser, null);
   const page = journey.track("guest", await ctx.newPage());
   await throttle3g(ctx, page);
-  const heading = page.getByRole("heading", { name: "Browse Jobs", level: 1 });
+  const heading = page.getByRole("heading", { name: "Browse jobs", level: 1 });
   await waitShowsProgress(page, "cold load /browse", () => page.goto("/browse", { waitUntil: "commit" }), visible(heading), { coldLoad: true });
   await waitShowsProgress(page, "job cards", async () => {}, visible(page.getByRole("heading", { level: 2 })));
   await assertHealthy(page, "browse on 3G", { settleMs: 60_000 });
@@ -332,7 +332,7 @@ test(stepTitle("browse", "drop"), async ({ browser, journey }) => {
     });
     const p = journey.track("guest", await cold.newPage());
     await p.goto("/browse", { waitUntil: "domcontentloaded" });
-    await expect(p.getByRole("heading", { name: "Browse Jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
+    await expect(p.getByRole("heading", { name: "Browse jobs", level: 1 })).toBeVisible({ timeout: 45_000 });
     await cold.setOffline(true);
     await expect(p.getByText(/Open jobs will load here as soon as you're back online/), "cold offline /browse: no offline state").toBeVisible({ timeout: 10_000 });
     await p.waitForTimeout(5_000);

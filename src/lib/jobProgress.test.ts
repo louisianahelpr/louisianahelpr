@@ -1,5 +1,6 @@
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
+// @mutate src/lib/jobProgress.ts | (job.poster_confirmed_working_at ? `${other} is working` : `${other} is at the job`) | `${other} is working`
 // @mutate src/lib/jobProgress.ts | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at) | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at \|\| job.helper_arrived_at)
 // @mutate src/lib/jobProgress.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
 // @mutate src/lib/jobProgress.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {
@@ -79,7 +80,9 @@ describe("jobProgress (the one tracker)", () => {
 
   it("board 63: Working needs arrival evidence beyond the Helpr's own claim", () => {
     expect(poster({ status: "in_progress", helper_id: JO, helper_arrived_at: "t", poster_confirmed_arrival_at: "t", payment_status: "escrow" }))
-      .toMatchObject({ step: 3, word: "Working", next: "Jolie is working", held: true });
+      .toMatchObject({ step: 3, word: "Working", next: "Jolie is at the job", held: true });
+    // "is working" only once the poster vouched for it (the line never claims more than the stamps say).
+    expect(poster({ status: "in_progress", helper_id: JO, helper_arrived_at: "t", poster_confirmed_arrival_at: "t", poster_confirmed_working_at: "t" }).next).toBe("Jolie is working");
     expect(helpr({ status: "in_progress", helper_id: ME, helper_arrival_verified_at: "t" })).toMatchObject({ step: 3, word: "Working" });
   });
 

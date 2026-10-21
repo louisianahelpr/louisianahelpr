@@ -10,6 +10,8 @@
  * (enforce_poster_working_confirm_order, 20261008203441).
  *
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |       enabled: helperWorking, |       enabled: true,
+ * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |       waiting: true,\n |
+ * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |       waiting: !helperWorking, |       waiting: false,
  * @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts |     if (step !== "in_progress" \|\| !job.helper_on_the_way_at \|\| job.helper_completed_at \|\| isPastDue(job.date_needed)) return null; |     return null;
  */
 import { describe, expect, it } from "vitest";
@@ -21,24 +23,27 @@ const job = (over: Record<string, unknown>) =>
   ({ id: "j", status: "in_progress", helper_id: "h", helper_confirmed_at: T, is_group_job: false, ...over }) as unknown as Job;
 
 describe("the poster's confirms follow the Helpr's steps", () => {
-  it("on the way: Confirm they've arrived is drawn greyed, saying when it turns on", () => {
+  // Owner rule 2026-10-21 (lead ruling): never a greyed future step. While the Helpr has not acted, the rung is
+  // a WAITING line (no box); the step's "Message Hallie" holds the slot.
+  it("on the way: a waiting line, no greyed Confirm they've arrived", () => {
     const r = posterConfirmationRung(job({ helper_on_the_way_at: T }), "in_progress")!;
-    expect(r.label).toBe("Confirm they've arrived");
     expect(r.enabled).toBe(false);
-    expect(r.reason).toMatch(/turns on once your Helpr says they've arrived/);
+    expect(r.waiting).toBe(true);
+    expect(r.reason).toMatch(/You'll confirm once they say they've arrived/);
   });
   it("arrived: it turns on", () => {
     expect(posterConfirmationRung(job({ helper_on_the_way_at: T, helper_arrived_at: T }), "in_progress")!.enabled).toBe(true);
   });
-  it("arrival confirmed, Helpr not working yet: Confirm they're working is greyed", () => {
+  it("arrival confirmed, Helpr not working yet: a waiting line, no greyed Confirm they're working", () => {
     const r = posterConfirmationRung(job({ helper_arrived_at: T, poster_confirmed_arrival_at: T }), "in_progress", new Date(), false)!;
-    expect(r.label).toBe("Confirm they're working");
     expect(r.enabled).toBe(false);
-    expect(r.reason).toMatch(/turns on once your Helpr taps Start working/);
+    expect(r.waiting).toBe(true);
+    expect(r.reason).toMatch(/taps Start working when they begin/);
   });
   it("the Helpr tapped Start working: it turns on", () => {
     const r = posterConfirmationRung(job({ helper_arrived_at: T, poster_confirmed_arrival_at: T }), "in_progress", new Date(), true)!;
     expect(r.enabled).toBe(true);
+    expect(r.waiting).toBe(false);
     expect(r.reason).toBeNull();
   });
 });

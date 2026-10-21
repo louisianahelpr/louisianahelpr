@@ -425,10 +425,11 @@ export const CASES: Case[] = [
     minControls: 3,
   },
   {
-    name: "Posts · In Progress — SOS · Message + Confirm they're working",
+    // Owner rule 2026-10-21: before the Helpr taps Start working, "Message Hallie" is the primary (no greyed box).
+    name: "Posts · In Progress — SOS + Message <Helpr> (waiting on Start working)",
     side: "poster",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), poster_confirmed_working_at: null }))} />),
-    minControls: 3,
+    minControls: 2,
   },
   {
     name: "Posts · In Progress, both vouches in — disabled Working confirmed",

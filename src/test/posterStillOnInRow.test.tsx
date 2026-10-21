@@ -12,6 +12,7 @@
  *     toast, and toastPolicy.ts suppresses those app-wide.
  *   - "change you're booked to you're scheduled".
  *
+ * @mutate src/pages/posts/postedJobCard/steps/PosterConfirmationPrimary.tsx |       {!rung.waiting && <JobStepRowSlot slot="primary"> |       {<JobStepRowSlot slot="primary">
  * @mutate src/pages/posts/PostedJobCard.tsx | import { GroupJobHelpers } | import { JobConfirmation } from "@/components/JobConfirmation";\nimport { GroupJobHelpers }
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         {job.status === "accepted" && job.helper_confirmed_at && ( |         {false && (
  * @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
@@ -138,18 +139,18 @@ describe("Posts, booked job: I'm still on is the row's primary beside More", () 
   });
 });
 
-describe("on the way: ONE greyed arrival button, nothing above the profile", () => {
-  // Owner, 2026-10-08: "Should only be the greyed out button at the bottom remove the other one".
-  it("exactly one 'Confirm They…Arrived' control, in the row, greyed", () => {
+describe("on the way: no greyed arrival button, nothing above the profile", () => {
+  // Owner, 2026-10-08: "Should only be the greyed out button at the bottom remove the other one"; then the
+  // owner rule of 2026-10-21 (never a greyed future step): the row's primary is Message, and one line says
+  // the confirm comes once the Helpr says they've arrived.
+  it("no 'Confirm they've arrived' control yet: Message is the primary and ONE waiting line", () => {
     // On My Way moves the job to in_progress, so the card is InProgressStep;
     // the "Still on for this one?" panel PostedJobCard drew above it is gone.
     wrap(<InProgressStep {...ctx(makeJob({ status: "in_progress", poster_confirmed_at: ago(0.2), helper_on_the_way_at: ago(0.05) }))} />);
-    const boxes = screen.getAllByRole("button", { name: /Confirm they('ve)? arrived/i });
-    expect(boxes).toHaveLength(1);
-    expect(row().contains(boxes[0])).toBe(true);
-    expect((boxes[0] as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryAllByRole("button", { name: /Confirm they('ve)? arrived/i })).toHaveLength(0);
+    expect(row().contains(screen.getByRole("button", { name: /^Message / }))).toBe(true);
     expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
-    expect(screen.getAllByText(/turns on once/)).toHaveLength(1);
+    expect(screen.getAllByText(/You'll confirm once they say they've arrived/)).toHaveLength(1);
   });
 
   // The row a poster sees between the Helpr's On My Way tap and the status

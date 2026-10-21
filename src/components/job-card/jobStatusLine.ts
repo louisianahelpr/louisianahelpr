@@ -955,7 +955,8 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
     `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,
   on_the_way: (n) => `${firstName(n)} is on the way`,
   confirm_arrival: (n) => `${firstName(n)} arrived — confirm it`,
-  working: (n) => `${firstName(n)} is working`,
+  // The same truth as the tracker (jobProgress): "is working" only once the poster vouched for it.
+  working: (n, job) => `${firstName(n)} ${job.poster_confirmed_working_at ? "is working" : "is at the job"}`,
   revision_out: (n) => `${firstName(n)} is making the fix`,
   revision_fixed: (n) => `${firstName(n)} sent the fix — check it`,
   stalled: (n) => `${firstName(n)} hasn't marked it done`,

@@ -93,19 +93,22 @@ describe("Q1191: why a decided dispute closed outside its split", () => {
 
   it("the timeline renders the sentence for every close reason", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "src/components/DisputeTimelineDialog.tsx"), "utf8"));
+    const card = blankComments(readFileSync(join(process.cwd(), "src/components/disputeTimeline/DisputeDecisionCard.tsx"), "utf8"));
     expect(src).toContain("const closeReason = disputeCloseReason(dispute);");
-    expect(src).toMatch(/\{closeReason && \(\s*<p[^>]*>\s*\{DISPUTE_CLOSE_COPY\[closeReason\]\}/);
+    expect(src).toContain("closeReason={closeReason}");
+    expect(card).toMatch(/\{closeReason && \(\s*<p[^>]*>\s*\{DISPUTE_CLOSE_COPY\[closeReason\]\}/);
     // The amounts line is hidden for a close that moved nothing.
     expect(src).toContain("const movedNothing = closeMovedNothing(closeReason);");
-    expect(src).toContain(`{dispute?.execution_status === "executed" && !movedNothing &&`);
+    expect(src).toContain(`const executed = dispute?.execution_status === "executed" && !movedNothing;`);
+    expect(card).toMatch(/\{executed && \(/);
   });
 });
 
 // @mutate src/components/disputeCloseReason.ts |   if (note.startsWith(OUTSIDE_REFUND_CLOSE_PREFIX)) return "outside_refund"; |
 // @mutate src/components/disputeCloseReason.ts |   if (note.startsWith(NO_PAYMENT_CLOSE_PREFIX)) return "no_payment"; |
 // @mutate src/components/disputeCloseReason.ts |   return reason === "chargeback" \|\| reason === "no_payment"; |   return reason === "chargeback";
-// @mutate src/components/DisputeTimelineDialog.tsx |                 {closeReason && ( |                 {false && (
-// @mutate src/components/DisputeTimelineDialog.tsx |                 {dispute?.execution_status === "executed" && !movedNothing && |                 {dispute?.execution_status === "executed" &&
+// @mutate src/components/disputeTimeline/DisputeDecisionCard.tsx |           {closeReason && ( |           {false && (
+// @mutate src/components/DisputeTimelineDialog.tsx |   const executed = dispute?.execution_status === "executed" && !movedNothing; |   const executed = dispute?.execution_status === "executed";
 // @mutate src/components/disputeCloseReason.ts | export const OUTSIDE_REFUND_CLOSE_PREFIX = "closed by a full refund made outside the split"; | export const OUTSIDE_REFUND_CLOSE_PREFIX = "closed by a full refund outside the split";
 // @mutate src/components/disputeCloseReason.ts |   if (note.startsWith(TEST_MODE_CLOSE_PREFIX)) return "test_mode"; |
 // @mutate src/components/disputeCloseReason.ts |   if (reason === "test_mode") return true; |

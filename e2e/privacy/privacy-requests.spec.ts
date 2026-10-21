@@ -43,7 +43,7 @@ import { srFetch } from "../serviceRoleFetch";
  *           browser saves, and check every section, the profile and both jobs
  *           (the account has no applications or reviews to find), and that the
  *           seeded tables left out are exactly KNOWN_NOT_EXPORTED.
- *   delete  press Delete Account -> Continue -> type DELETE -> Delete Forever,
+ *   delete  press Delete Account -> Continue -> type DELETE -> Delete my account,
  *           exactly as a person does, and read the function's own step report.
  *   verify  each purge step BY NAME (EXPECTED_PURGE_STEPS), then the rows and
  *           objects themselves: auth user and profile gone, every identity
@@ -322,7 +322,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     expect(missing, "tables this account has rows in that the export omits (KNOWN_NOT_EXPORTED is exact)").toEqual([...KNOWN_NOT_EXPORTED].sort());
   });
 
-  await test.step("delete: Delete Account -> Continue -> DELETE -> Delete Forever", async () => {
+  await test.step("delete: Delete Account -> Continue -> DELETE -> Delete my account", async () => {
     await page.goto("/profile");
     await assertHealthy(page, "profile landing");
     await page.getByRole("button", { name: "Delete Account" }).click();
@@ -332,7 +332,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     await requireDisposable(request, userId);
     const [res] = await Promise.all([
       page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),
-      page.getByRole("button", { name: "Delete Forever" }).click(),
+      page.getByRole("button", { name: "Delete my account" }).click(),
     ]);
     const body = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string; steps?: { step: string; ok: boolean; detail: string }[] };
     expect(res.status(), `delete-own-account: ${JSON.stringify(body).slice(0, 600)}`).toBe(200);
@@ -461,14 +461,14 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
           await page.setViewportSize({ width: 375, height: 812 });
           await page.screenshot({ path: "test-results/q292-complete-profile-375.png", fullPage: true });
         });
-        await test.step("delete from /complete-profile: Delete Account -> Continue -> DELETE -> Delete Forever", async () => {
+        await test.step("delete from /complete-profile: Delete Account -> Continue -> DELETE -> Delete my account", async () => {
           await page.getByRole("button", { name: "Delete Account" }).click();
           await page.getByRole("button", { name: "Continue" }).click();
           await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
           await disposable();
           const [res] = await Promise.all([
             page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),
-            page.getByRole("button", { name: "Delete Forever" }).click(),
+            page.getByRole("button", { name: "Delete my account" }).click(),
           ]);
           const body = (await res.json().catch(() => ({}))) as { success?: boolean };
           expect(res.status(), `delete-own-account: ${JSON.stringify(body).slice(0, 600)}`).toBe(200);

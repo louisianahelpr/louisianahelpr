@@ -28,7 +28,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Upload, X, Clock, CheckCircle2, FileImage } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { toast } from "sonner";
@@ -36,11 +36,15 @@ import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { disputeEvidenceChannel, isAdminReopened } from "@/components/disputeEvidenceChannel";
-import { disputeCloseReason, closeMovedNothing, DISPUTE_CLOSE_COPY } from "@/components/disputeCloseReason";
+import { disputeCloseReason, closeMovedNothing } from "@/components/disputeCloseReason";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
+import { Link } from "react-router-dom";
+import { MoneyNote } from "@/components/money/MoneyNote";
+import { DisputeDecisionCard, DisputeTrack, cardCls, cardStyle, outcomeHeadline } from "@/components/disputeTimeline/DisputeDecisionCard";
 import { userFacingError } from "@/lib/userFacingError";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 interface DisputeRow {
   id: string;
@@ -92,6 +96,18 @@ export const DisputeTimelineDialog = ({
 }: DisputeTimelineDialogProps) => {
   const [loading, setLoading] = useState(true);
   const [dispute, setDispute] = useState<DisputeRow | null>(null);
+  // Which side of the job the viewer is on, so the decision reads "back to
+  // you" or "you take home" (board 142). null = unknown or a crew member: both
+  // amounts are shown, labelled, exactly as before.
+  const [side, setSide] = useState<"poster" | "helpr" | null>(null);
+  // The job's payment state, so "the payment stays held" shows only while it
+  // really is (escrow). A dispute can be filed on an unfunded job, or sit on a
+  // chargeback (lh-money-escrow review, 2026-10-21).
+  const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  // A failed dispute read shows an error, never an "under review" view built
+  // from nothing (lh-silent-failure review, 2026-10-21).
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -104,6 +120,7 @@ export const DisputeTimelineDialog = ({
     let cancelled = false;
     (async () => {
       setLoading(true);
+      setLoadError(false);
       const { data, error } = await supabase.from("disputes")
         .select("id, job_id, opener_id, reason, evidence_urls, status, created_at, decided_at, decided_by, decision_text, payout_split, execution_status, execution_helper_cents, execution_refund_cents, execution_error")
         .eq("job_id", jobId)
@@ -117,15 +134,30 @@ export const DisputeTimelineDialog = ({
         // PGRST116 = no row, PGRST205 = relation missing, 42P01 same.
         // Any other shape we want to know about.
         report(error, { tags: { source: "DisputeTimelineDialog.load" } });
+        setLoadError(true);
+        setLoading(false);
+        return;
       }
 
       setDispute((data as DisputeRow | null) ?? null);
+
+      // The viewer's side. A failed read falls back to the neutral two-line
+      // view (reported, never silent), so a miss costs wording, not money.
+      const { data: job, error: jobErr } = await supabase
+        .from("jobs")
+        .select("customer_id, helper_id, payment_status")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (cancelled) return;
+      if (jobErr) report(jobErr, { tags: { source: "DisputeTimelineDialog.side" } });
+      setSide(job?.customer_id === userId ? "poster" : job?.helper_id === userId ? "helpr" : null);
+      setPaymentStatus((job?.payment_status as string | null | undefined) ?? null);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [open, jobId]);
+  }, [open, jobId, userId, reloadKey]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -314,7 +346,12 @@ export const DisputeTimelineDialog = ({
   // length and order as `evidenceUrls`, so the two zip; a legacy full URL
   // still resolves through extractProofPhotoPath.
   const evidenceSrcs = useProofPhotoUrls(evidenceUrls);
-  const decidedAt = dispute?.decided_at ?? legacy?.dispute_resolved_at ?? null;
+  // "Decided" means an outcome: a WITHDRAWN dispute also stamps decided_at
+  // (rpc_withdraw_dispute), so it gets its own state, never "Decision".
+  const withdrawn = dispute?.status === "withdrawn";
+  const decidedAt = dispute
+    ? (dispute.status === "decided" || dispute.status === "superseded" ? dispute.decided_at : null)
+    : (legacy?.dispute_resolved_at ?? null);
   const decisionText = dispute?.decision_text ?? null;
   const payoutSplit = dispute?.payout_split ?? null;
   // Written by settle_dispute_by_chargeback (20260926034237) or
@@ -343,69 +380,110 @@ export const DisputeTimelineDialog = ({
   // just going quiet on them.
   const blockedFromEvidence = evidenceChannel === "blocked";
 
-  const usd = (cents: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
+  const executed = dispute?.execution_status === "executed" && !movedNothing;
+  // A close outside the split (chargeback, outside refund, no payment, test
+  // mode) leaves payout_split as decided but moves other amounts: its own
+  // sentence (DISPUTE_CLOSE_COPY) explains it, so no split headline.
+  // Settled FOR THIS VIEWER = their amount was stamped. The 72-hour
+  // auto-resolve stamps 'executed' with null amounts while the payout still
+  // waits on its hold, so 'executed' alone is not "paid".
+  const refundStamped = dispute?.execution_refund_cents != null;
+  const helperStamped = dispute?.execution_helper_cents != null;
+  const settledForViewer = executed && (side === "poster" ? refundStamped : side === "helpr" ? helperStamped : refundStamped || helperStamped);
+  const decisionHeadline = decidedAt && !closeReason ? outcomeHeadline(side, payoutSplit, settledForViewer) : null;
+  const heldNow = paymentStatus === "escrow" && !decidedAt && !withdrawn;
 
   const eyebrowCls = "text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground";
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHero
-          title="Timeline"
-        />
+        {/* Board 142 (spec v2 §9.28). Real data only: the filed date, the
+            reason and photos on file, the decision text and the amounts
+            execute-dispute-split stamped. Left out (truth rule): a "decide
+            by" date (the 72-hour clock is an auto-settle time, not a promise
+            to decide), card digits and bank timing (not stored for jobs), a
+            named staff member (lead 10-21: members see "Helpr Support"),
+            and "ask for a second look" (only an admin can reopen). */}
+        <DialogHero title={loadError ? "Dispute" : decidedAt ? "Decision" : withdrawn ? "Withdrawn" : "Under review"} />
 
         {loading ? (
           <DialogBody><p>Loading…</p></DialogBody>
+        ) : loadError ? (
+          <DialogBody>
+            <ReportErrorScreen source="DisputeTimelineDialog" title="Couldn't load this dispute." />
+            <p role="alert" className="text-ds-14 text-foreground">Couldn't load this dispute.</p>
+            <button
+              type="button"
+              onClick={() => setReloadKey((k) => k + 1)}
+              className="mt-2 text-ds-13 font-semibold"
+              style={{ color: "hsl(var(--bark))" }}
+            >
+              Try again
+            </button>
+          </DialogBody>
         ) : (
           <div className="space-y-3">
-            {/* Created */}
-            <div className="rounded-ds-md p-3" style={{ background: "hsl(var(--burnt-sienna) / 0.06)", border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)" }}>
-              <p className={`${eyebrowCls} inline-flex items-center gap-1.5`}>
-                <Clock className="w-3 h-3" /> Filed
-                {createdAt && (
-                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    · {formatDistanceToNow(new Date(createdAt), { addSuffix: true })}
-                  </span>
-                )}
+            {/* Status card + the one tracker */}
+            <div className={cardCls} style={cardStyle}>
+              <p className="font-sans font-bold text-ds-16 leading-snug text-foreground">
+                {decidedAt ? "Decided" : withdrawn ? "Withdrawn by the person who filed it" : isOpener ? "You reported a problem" : "A problem was reported"}
               </p>
+              <p className="font-sans text-ds-12 mt-0.5 text-muted-foreground">
+                {createdAt ? `Opened ${format(new Date(createdAt), "MMM d")}` : "Opened"}
+                {decidedAt ? ` · decided ${format(new Date(decidedAt), "MMM d")}` : ""}
+                {" · "}
+                {isAdminReopened(dispute)
+                  ? "re-opened by Helpr Support for a new decision"
+                  : dispute && dispute.opener_id === null
+                    // No opener and not a re-open: the filer's account is gone.
+                    ? "filed on this job"
+                    : isOpener ? "filed by you" : "filed by the other person"}
+              </p>
+              {!withdrawn && <DisputeTrack step={decidedAt ? 2 : 1} />}
               {reason && (
-                <p className="font-sans mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
+                <p className="font-sans mt-3 leading-snug text-ds-14 text-foreground">
                   "{reason}"
                 </p>
               )}
-              <p className="font-sans text-ds-10 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                {isAdminReopened(dispute)
-                  ? "Re-opened by an admin for a new decision."
-                  : dispute && dispute.opener_id === null
-                    // No opener and not an admin re-open: the filer's account is
-                    // gone. Neutral, rather than claiming who filed it.
-                    ? "Filed on this job."
-                    : isOpener ? "Filed by you." : "Filed by the other party."}
-              </p>
             </div>
 
+            {heldNow && (
+              <MoneyNote>
+                The payment stays held while this is open. Nobody is paid meanwhile.
+              </MoneyNote>
+            )}
+
+            {/* Decision (only when decided) */}
+            {decidedAt && (
+              <DisputeDecisionCard
+                dispute={dispute}
+                side={side}
+                headline={decisionHeadline}
+                executed={executed}
+                closeReason={closeReason}
+                decisionText={decisionText}
+              />
+            )}
+
             {/* Evidence */}
-            <div>
-              <p className={`${eyebrowCls} inline-flex items-center gap-1.5`}>
-                <FileImage className="w-3 h-3" /> Evidence on file
-                <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  · {evidenceUrls.length}
-                </span>
+            <div className={cardCls} style={cardStyle}>
+              <p className={eyebrowCls}>
+                Photos on file · {evidenceUrls.length}
               </p>
               {withheldEvidence > 0 && (
-                <p className="font-sans mt-1.5 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                <p className="font-sans mt-1.5 text-ds-12 text-muted-foreground">
                   {withheldEvidence} attachment{withheldEvidence === 1 ? "" : "s"} not shown (not an uploaded photo).
                 </p>
               )}
               {evidenceUrls.length === 0 ? (
                 withheldEvidence === 0 && (
-                  <p className="font-sans mt-1.5 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    No evidence uploaded yet.
+                  <p className="font-sans mt-1.5 text-ds-13 text-muted-foreground">
+                    No photos yet.
                   </p>
                 )
               ) : (
-                <div className="flex gap-2 flex-wrap mt-1.5">
+                <div className="flex gap-2 flex-wrap mt-2">
                   {evidenceUrls.map((_, i) => {
                     const src = evidenceSrcs[i];
                     return (
@@ -423,70 +501,6 @@ export const DisputeTimelineDialog = ({
                 </div>
               )}
             </div>
-
-            {/* Decision (only when decided) */}
-            {decidedAt && (
-              <div className="rounded-ds-md p-3" style={{ background: "hsl(var(--primary) / 0.08)", border: "0.5px solid hsl(var(--primary) / 0.25)" }}>
-                <p className={`${eyebrowCls} inline-flex items-center gap-1.5`} style={{ color: "hsl(var(--primary))" }}>
-                  <CheckCircle2 className="w-3 h-3" /> Decided
-                  <span className="font-sans normal-case tracking-normal" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    · {formatDistanceToNow(new Date(decidedAt), { addSuffix: true })}
-                  </span>
-                </p>
-                {decisionText && (
-                  <p className="font-sans mt-1.5 leading-snug text-ds-14" style={{ color: "hsl(var(--ink-deep) / 0.88)" }}>
-                    "{decisionText}"
-                  </p>
-                )}
-                {payoutSplit && (
-                  <p className="font-sans text-ds-11 mt-1.5" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                    Payout: who posted it <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.poster ?? 0) * 100)}%</span>
-                    {" · "}
-                    Helpr <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{Math.round((payoutSplit.helper ?? 0) * 100)}%</span>
-                  </p>
-                )}
-                {/* THE AMOUNTS, not just the percentages. This is the screen
-                    where each party finds out what a dispute over their money
-                    actually cost them, and it was quoting a ratio and nothing
-                    else — "poster 50% · Helpr 50%" of an escrow neither side
-                    is shown anywhere on this dialog. These are the settled
-                    figures execute-dispute-split stamped, so they are what
-                    moved, not a recomputation. */}
-                {/* Q344: decided is not settled. Until execute-dispute-split
-                    stamps 'executed', nothing has moved yet; say so rather than
-                    let "Decided" read as paid. */}
-                {dispute?.status === "decided" && dispute.execution_status !== "executed" && (
-                  <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                    Payment processing — the job shows as settled once the money has moved.
-                  </p>
-                )}
-                {/* Q342 (review M2): the card holder's bank took the whole
-                    charge back before the split ran, so the record reads $0
-                    each. Say what happened instead of "Settled: $0 · $0". */}
-                {/* Q1191: a full refund made outside the split closes it the
-                    same way; its amounts below are true, this says why they
-                    are not the decision's split. */}
-                {closeReason && (
-                  <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                    {DISPUTE_CLOSE_COPY[closeReason]}
-                  </p>
-                )}
-                {dispute?.execution_status === "executed" && !movedNothing &&
-                  (dispute.execution_helper_cents != null || dispute.execution_refund_cents != null) && (
-                    <p className="font-sans text-ds-11 mt-1" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-                      Settled: who posted it{" "}
-                      <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {usd(dispute.execution_refund_cents ?? 0)}
-                      </span>
-                      {" · "}
-                      Helpr{" "}
-                      <span className="tabular-nums font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                        {usd(dispute.execution_helper_cents ?? 0)}
-                      </span>
-                    </p>
-                  )}
-              </div>
-            )}
 
             {/* The other party can't attach here — say so, and point at the
                 channel that does work, instead of silently rendering nothing
@@ -506,7 +520,7 @@ export const DisputeTimelineDialog = ({
             {canAddEvidence && (
               <div className="space-y-1.5 pt-1">
                 <Label className={eyebrowCls}>
-                  Add follow-up evidence
+                  Add more photos
                 </Label>
                 <div className="flex flex-wrap gap-1.5">
                   {evidenceFiles.map((file, i) => (
@@ -542,6 +556,12 @@ export const DisputeTimelineDialog = ({
                 )}
               </div>
             )}
+            <p className="font-sans text-ds-12 text-muted-foreground">
+              Questions?{" "}
+              <Link to="/support?topic=message" onClick={onClose} className="font-semibold" style={{ color: "hsl(var(--bark))" }}>
+                Talk to a real person
+              </Link>
+            </p>
           </div>
         )}
 

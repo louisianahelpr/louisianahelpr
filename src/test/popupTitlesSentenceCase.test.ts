@@ -116,8 +116,12 @@ describe("every pop-up title is sentence case", () => {
     // ChoiceSheet and ProUpgradeSheet (58 when only DialogHero was read). A new
     // title raises it, a deleted one lowers it, in the same commit. 169 on the
     // combined tree: +7 titles from the trains merged after builder1g's base
-    // (measured by this test on the rebased TRAIN34).
-    expect(all.length).toBe(169);
+    // (measured by this test on the rebased TRAIN34). 173 with Builder 5's
+    // boards 156/120/142 (2026-10-21): the dispute timeline's one "Timeline"
+    // title became four states (Under review, Decision, Withdrawn, Dispute on
+    // a failed load), and the delete dialog's and SOS sheet's titles changed
+    // in place.
+    expect(all.length).toBe(173);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -175,12 +175,12 @@ describe("/home-history can leave the app", () => {
 
   it("offers an export at all — the page shipped with none", async () => {
     renderPage();
-    expect(await screen.findByRole("button", { name: /Share Record \(PDF\)/i })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: /Share record \(PDF\)/i })).toBeTruthy();
   });
 
   it("hands a real .pdf FILE to the share path, not a blob link or window.print", async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: /Share Record \(PDF\)/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Share record \(PDF\)/i }));
     await waitFor(() => expect(shareFileMock).toHaveBeenCalled());
     const payload = shareFileMock.mock.calls[0][0] as { fileName: string; base64: string; source: string };
     expect(payload.fileName.endsWith(".pdf")).toBe(true);
@@ -193,7 +193,7 @@ describe("/home-history can leave the app", () => {
 
   it("confirms the web download, which changes nothing on screen by itself", async () => {
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: /Share Record \(PDF\)/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Share record \(PDF\)/i }));
     await waitFor(() => expect(toastMock).toHaveBeenCalled());
     expect(String(toastMock.mock.calls[0][0])).toMatch(/Home record saved/);
   });
@@ -202,7 +202,7 @@ describe("/home-history can leave the app", () => {
     let release: (v: string) => void = () => {};
     shareFileMock.mockImplementation(() => new Promise<string>((r) => { release = r; }));
     renderPage();
-    fireEvent.click(await screen.findByRole("button", { name: /Share Record \(PDF\)/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Share record \(PDF\)/i }));
     const busy = await screen.findByRole("button", { name: /Preparing record/i });
     fireEvent.click(busy);
     expect(shareFileMock).toHaveBeenCalledTimes(1);
@@ -213,7 +213,7 @@ describe("/home-history can leave the app", () => {
     jobs = [];
     renderPage();
     await screen.findByText("No finished jobs yet");
-    expect(screen.queryByRole("button", { name: /Share Record/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Share record/i })).toBeNull();
   });
 });
 

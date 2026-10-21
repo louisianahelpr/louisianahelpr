@@ -173,7 +173,7 @@ describe("the earnings source query", () => {
     // This one clause was the entire reason every figure on the QA helper's
     // screen was zero: their only non-cancelled job carried `is_seed = true`
     // while their profile did not, so Earnings hid a job My Jobs, the profile
-    // stats and the Work Record all showed. `is_seed` marks a fixture row, not
+    // stats and the Work record all showed. `is_seed` marks a fixture row, not
     // money that failed to move — the honest axis is `payment_status`, which
     // now lives in `isEarnedJob`. Admin aggregates still exclude it (see
     // src/config/showSeedJobs.ts); one person's own ledger is not a

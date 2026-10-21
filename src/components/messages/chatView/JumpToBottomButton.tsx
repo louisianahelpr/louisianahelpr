@@ -66,12 +66,12 @@ export function JumpToBottomButton({
         {/* The unread anchor is only ever "offscreen" ABOVE the viewport
             (useChatScroll: nodeRect.bottom < containerRect.top), so the chip
             that jumps to it must point up. It pointed down — the same glyph
-            as "Jump to Latest" — while scrolling the other way; seen with
+            as "Jump to latest" — while scrolling the other way; seen with
             one unread sitting above a screenful of newer messages. */}
         {firstUnreadOffscreen ? <ChevronsUp className="w-3 h-3" /> : <ChevronsDown className="w-3 h-3" />}
         {firstUnreadOffscreen
           ? `${initialUnreadCountRef.current} New Message${initialUnreadCountRef.current === 1 ? "" : "s"}`
-          : "Jump to Latest"}
+          : "Jump to latest"}
       </button>
     </div>
   );

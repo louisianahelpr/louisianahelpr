@@ -101,7 +101,7 @@ describe("a take-home never reads above the transfer", () => {
   it("floors the Schedule row the way every other take-home surface does", () => {
     // $120 job at the 12% free-tier rate pays $105.60. The Schedule tab was the
     // one helper-facing surface still rounding: it announced "$106" while My
-    // Jobs, Work Record and the apply sheet all said "$105" for the same job.
+    // Jobs, Work record and the apply sheet all said "$105" for the same job.
     const job = {
       budget: 120,
       helper_fee_percent: 12,

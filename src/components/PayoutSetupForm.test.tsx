@@ -171,7 +171,7 @@ beforeEach(() => {
 describe("PayoutSetupForm — the gate on starting/continuing Stripe onboarding", () => {
   it("a passed confirmation opens the onboarding link once", async () => {
     renderForm();
-    const btn = await screen.findByRole("button", { name: /Complete Stripe Verification/ });
+    const btn = await screen.findByRole("button", { name: /Complete Stripe verification/ });
     fireEvent.click(btn);
 
     await waitFor(() => expect(writeCalls("update_onboarding")).toHaveLength(1));
@@ -182,7 +182,7 @@ describe("PayoutSetupForm — the gate on starting/continuing Stripe onboarding"
   it("a refused prompt hands out NO onboarding link — no invoke, no funnel event", async () => {
     requireBiometricMock.mockResolvedValue(false);
     renderForm();
-    const btn = await screen.findByRole("button", { name: /Complete Stripe Verification/ });
+    const btn = await screen.findByRole("button", { name: /Complete Stripe verification/ });
     fireEvent.click(btn);
 
     // Wait for the GATE to have resolved, then drain. Asserting the absence
@@ -200,7 +200,7 @@ describe("PayoutSetupForm — the gate on starting/continuing Stripe onboarding"
     expect(toastSuccess).not.toHaveBeenCalled();
     // …and the button is still offering the action, not stuck on its
     // in-flight label. A refusal must leave the screen usable.
-    expect(screen.getByRole("button", { name: /Complete Stripe Verification/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Complete Stripe verification/ })).toBeEnabled();
     expect(screen.queryByText(/Redirecting to Stripe/)).not.toBeInTheDocument();
   });
 
@@ -208,7 +208,7 @@ describe("PayoutSetupForm — the gate on starting/continuing Stripe onboarding"
     // A vague reason string on the sheet is how people learn to approve every
     // prompt without reading it.
     renderForm();
-    fireEvent.click(await screen.findByRole("button", { name: /Complete Stripe Verification/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Complete Stripe verification/ }));
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalled());
     expect(String(requireBiometricMock.mock.calls[0][0])).toMatch(/payout account/i);
   });
@@ -222,7 +222,7 @@ describe("PayoutSetupForm — the gate on the Stripe dashboard login link", () =
 
   it("a passed confirmation opens the dashboard once", async () => {
     renderForm();
-    fireEvent.click(await screen.findByRole("button", { name: /Manage Payouts on Stripe/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Manage payouts on Stripe/ }));
     await waitFor(() => expect(writeCalls("dashboard")).toHaveLength(1));
     await waitFor(() => expect(openExternalUrlMock).toHaveBeenCalledTimes(1));
   });
@@ -230,7 +230,7 @@ describe("PayoutSetupForm — the gate on the Stripe dashboard login link", () =
   it("a refused prompt issues NO Express login link", async () => {
     requireBiometricMock.mockResolvedValue(false);
     renderForm();
-    const btn = await screen.findByRole("button", { name: /Manage Payouts on Stripe/ });
+    const btn = await screen.findByRole("button", { name: /Manage payouts on Stripe/ });
     fireEvent.click(btn);
 
     await waitFor(() => expect(requireBiometricMock).toHaveBeenCalledTimes(1));
@@ -241,7 +241,7 @@ describe("PayoutSetupForm — the gate on the Stripe dashboard login link", () =
     expect(writeCalls()).toHaveLength(0);
     expect(openExternalUrlMock).not.toHaveBeenCalled();
     expect(toastSuccess).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: /Manage Payouts on Stripe/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Manage payouts on Stripe/ })).toBeEnabled();
   });
 });
 
@@ -310,7 +310,7 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
   /** Click through the existing confirm dialog to reach the gated handler. */
   async function confirmReset() {
     renderForm();
-    fireEvent.click(await screen.findByRole("button", { name: /Having Issues\? Reset & Start Fresh/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Having issues\? Reset & start fresh/ }));
     const primary = await screen.findByRole("button", { name: "Reset & Start Fresh" });
     fireEvent.click(primary);
   }
@@ -334,7 +334,7 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
     expect(openExternalUrlMock).not.toHaveBeenCalled();
     expect(toastSuccess).not.toHaveBeenCalled();
     // The entry point is still there and not stuck on "Resetting…".
-    expect(await screen.findByRole("button", { name: /Having Issues\? Reset & Start Fresh/ })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: /Having issues\? Reset & start fresh/ })).toBeEnabled();
     expect(screen.queryByText(/Resetting…/)).not.toBeInTheDocument();
   });
 });

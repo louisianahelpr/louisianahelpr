@@ -146,7 +146,7 @@ export function TwoFactorCard() {
             aria-label="Turn off two-step verification"
             onClick={() => setDisableOpen(true)}
           >
-            Turn Off
+            Turn off
           </Button>
         ) : (
           <Button
@@ -437,7 +437,7 @@ function DisableDialog({
             onClick={handleDisable}
             disabled={working || code.length !== 6}
           >
-            {working ? "Turning Off…" : "Turn Off"}
+            {working ? "Turning Off…" : "Turn off"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

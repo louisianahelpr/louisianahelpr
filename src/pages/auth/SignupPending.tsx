@@ -348,7 +348,7 @@ const SignupPending = () => {
           <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Verified?{" "}
             <Link to="/login" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>
-              Log In
+              Log in
             </Link>
           </p>
         </div>

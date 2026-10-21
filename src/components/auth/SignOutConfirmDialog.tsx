@@ -23,7 +23,7 @@ interface SignOutConfirmDialogProps {
  * Owner, 2026-10-09: "I pressed Log Out and nothing happened." The dialog used
  * to close on the press (BrandConfirmDialog's primary is a Dialog Close) while
  * sign-out ran unseen. Here the press keeps it open, the primary reads
- * "Logging Out…" and is disabled until sign-out finishes, and Cancel / Escape /
+ * "Logging out…" and is disabled until sign-out finishes, and Cancel / Escape /
  * the overlay cannot close it mid-sign-out. `after` decides what happens next.
  */
 export function SignOutConfirmDialog({
@@ -44,7 +44,7 @@ export function SignOutConfirmDialog({
       onOpenChange={(next) => { if (!signingOut) onOpenChange(next); }}
       title={title}
       description={description}
-      primaryLabel={signingOut ? "Logging Out…" : label}
+      primaryLabel={signingOut ? "Logging out…" : label}
       primaryDisabled={signingOut}
       primaryTone={primaryTone}
       primaryHaptic={primaryHaptic}

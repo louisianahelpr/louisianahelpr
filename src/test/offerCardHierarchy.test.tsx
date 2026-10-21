@@ -21,7 +21,7 @@
  *   5. the Helpr's offer card draws the step rail when expanded;
  *   6. before the tap, the offer card's primary is "Accept Job" whatever the
  *      accept gate says (owner, 2026-10-06: anyone can accept, payout setup
- *      comes after; this reverses the 2026-10-05 "Set Up Payouts" primary);
+ *      comes after; this reverses the 2026-10-05 "Set up payouts" primary);
  *      only an accept already waiting on Stripe makes the setup step the
  *      primary, full width, with one line why. The wiring through to
  *      accept_job_offer: src/test/offerAcceptForEveryone.test.tsx.
@@ -330,7 +330,7 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     renderOffer();
     expect(screen.getByRole("button", { name: /Accept Job/ })).toBeEnabled();
     expect(screen.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe Setup/ })).toBeNull();
     expect(document.querySelector("[data-offer-gate-line]")).toBeNull();
   });
 
@@ -358,7 +358,7 @@ describe("6. the offer card's primary is Accept before the tap, for every Helpr"
     const row = accept.parentElement!;
     const labels = [...row.querySelectorAll(":scope > button")].map((b) => b.textContent?.trim());
     expect(labels).toEqual(["Decline", "Finish Accepting"]);
-    expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup|Decline this job/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe Setup|Decline this job/ })).toBeNull();
     expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(line);
   });
 });
@@ -384,7 +384,7 @@ describe("7. the poster's EXPANDED offer card agrees on one state (owner, 2026-1
     expect(document.body.textContent).not.toMatch(/Offered to/);
     expect(rows()).toEqual(["confirm-opens", "start"]);
     // The card draws no confirmation panel of its own since 2026-10-08: the
-    // Scheduled step puts I'm Still On in its row (src/test/posterStillOnInRow.test.tsx).
+    // Scheduled step puts I'm still on in its row (src/test/posterStillOnInRow.test.tsx).
     expect(screen.queryByTestId("job-confirmation")).toBeNull();
   });
 });

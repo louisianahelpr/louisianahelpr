@@ -280,7 +280,7 @@ describe("Q782: every jobs writer fits jobs_title_length / jobs_description_leng
     const files = writerFiles();
     // Floor, not a count: 2026-09-27 found 20. Fewer means a shape stopped matching.
     expect(files.length).toBeGreaterThan(15);
-    // str-ical-sync wrote job titles until Q768 (it imports checkouts now; Post a Job builds the title, turnoverPrefill.ts).
+    // str-ical-sync wrote job titles until Q768 (it imports checkouts now; Post a job builds the title, turnoverPrefill.ts).
     expect(files).toContain("supabase/functions/charge-recurring-visits/index.ts");
     expect(files).toContain("scripts/probes/completion-race.prod.mjs");
     expect(files).toContain("e2e/prod-lifecycle.spec.ts");

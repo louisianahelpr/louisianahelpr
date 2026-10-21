@@ -224,7 +224,7 @@ const HAND_ROLLED_BY_DESIGN: Record<string, string> = {
   // The hand-rolled surface it kept instead was a `fixed inset-0` overlay, and
   // `fixed` resolves against the nearest transformed ancestor — which AppPage
   // supplies via `animate-ds-page-in`'s forwards-filled `translateY(0)`. So
-  // "Add a Pet" opened at the size of the page's CONTENT COLUMN (measured
+  // "Add a pet" opened at the size of the page's CONTENT COLUMN (measured
   // 329x433 in a 393x852 viewport, half the screen, sliced mid-field) rather
   // than the screen. The shared shell portals to document.body and could never
   // have had that failure. Nothing about the two-shell requirement forced a

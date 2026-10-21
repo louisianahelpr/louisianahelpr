@@ -1,11 +1,11 @@
 /**
- * Q1521 mount: /str-settings itself draws the "Ready to Post" list.
+ * Q1521 mount: /str-settings itself draws the "Ready to post" list.
  *
  * ReadyTurnovers.test.tsx renders the list alone, so a page that stopped
  * mounting it (or mounted it behind the wrong condition) stayed green; main's
  * Vacuity (run 38317156550, 2026-10-12) flagged it as a mount-wiring gap.
  * This renders the real StrSettings page with one active calendar and one
- * pending checkout, and asserts the checkout's Post a Job link appears; with
+ * pending checkout, and asserts the checkout's Post a job link appears; with
  * no calendar connected the list is not drawn.
  *
  * @mutate src/pages/profile/StrSettings.tsx |                 {connections.length > 0 && <ReadyTurnovers />}\n | \n
@@ -75,7 +75,7 @@ function renderPage() {
   );
 }
 
-describe("/str-settings mounts Ready to Post (Q1521)", () => {
+describe("/str-settings mounts Ready to post (Q1521)", () => {
   beforeEach(() => {
     state.connections = [];
     state.events = [];

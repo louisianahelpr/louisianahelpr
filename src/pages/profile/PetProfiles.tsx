@@ -122,7 +122,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
 
   // Desktop only: the inline create form is appended BELOW the pets list in
   // the single stacked column, so on a tall list — or on the empty state,
-  // whose card is nearly a full viewport on its own — tapping "Add a Pet"
+  // whose card is nearly a full viewport on its own — tapping "Add a pet"
   // rendered the form entirely off screen and read as a dead button.
   // Measured at 1440x900 with no pets: the form's header landed at y=1140,
   // 240px past the fold. The mobile path has never had this problem (its form
@@ -166,14 +166,14 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
     // is added — once pets are in the list, desktop had NO way to add
     // another (the aside deliberately dropped its own header, and neither
     // the rail rows nor the detail pane carry an add action). `hidden lg:*`
-    // because mobile already has its own "Add a Pet" affordances below the
+    // because mobile already has its own "Add a pet" affordances below the
     // list and inside the empty state.
     <ProfileTabBody>
       <ProfileTabHeader
         title="My Pets"
         onBack={onBack}
         rightSlot={
-          // Not while the empty state is up (Q247): its own "Add a Pet" CTA
+          // Not while the empty state is up (Q247): its own "Add a pet" CTA
           // is the one action, so a second identical title-row button sat
           // right above it at lg.
           pets?.length === 0 ? undefined : (
@@ -183,7 +183,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
               className="hidden lg:inline-flex"
               onClick={openAddDesktop}
             >
-              <Plus className="w-4 h-4 mr-1" /> Add a Pet
+              <Plus className="w-4 h-4 mr-1" /> Add a pet
             </Button>
           )
         }
@@ -222,7 +222,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
               body="Add your pets' profiles so Helprs know their needs."
               action={
                 <Button variant="primary" onClick={openAddMobile}>
-                  <Plus className="w-4 h-4 mr-1" /> Add a Pet
+                  <Plus className="w-4 h-4 mr-1" /> Add a pet
                 </Button>
               }
             />
@@ -253,7 +253,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
               onClick={openAddMobile}
             >
               <Plus className="w-4 h-4 mr-2" />
-              Add a Pet
+              Add a pet
             </Button>
           )}
 
@@ -312,7 +312,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
                     body="Add your first pet to get started."
                     action={
                       <Button variant="primary" size="sm" onClick={openAddDesktop}>
-                        <Plus className="w-4 h-4 mr-1" /> Add a Pet
+                        <Plus className="w-4 h-4 mr-1" /> Add a pet
                       </Button>
                     }
                   />

@@ -252,7 +252,7 @@ export function ChatHeader({
       <div className="flex items-center gap-0.5 shrink-0">
       {safetyJob && <SafetyShieldButton job={safetyJob} />}
       {/* The standalone Flag "report user" shortcut was removed — it
-          duplicated "Report User" in the ⋮ menu below, one and the same
+          duplicated "Report user" in the ⋮ menu below, one and the same
           handler behind two icons in the same header. One entry point now. */}
       {/* Q262: mute, report and block all name a person who no longer has an
           account, so a deleted-account thread has no options menu. */}
@@ -273,19 +273,19 @@ export function ChatHeader({
               already muted, this collapses to a fast unmute. */}
           {activeConvo.isMuted ? (
             <DropdownMenuItem onClick={() => onToggleMute(activeConvo)}>
-              <Bell className="w-4 h-4 mr-2" /> Unmute Notifications
+              <Bell className="w-4 h-4 mr-2" /> Unmute notifications
             </DropdownMenuItem>
           ) : (
             <DropdownMenuItem onClick={onOpenMuteSheet}>
-              <BellOff className="w-4 h-4 mr-2" /> Mute Notifications…
+              <BellOff className="w-4 h-4 mr-2" /> Mute notifications…
             </DropdownMenuItem>
           )}
           <div role="separator" className="my-1 h-px bg-border" />
           <DropdownMenuItem onClick={onReportUser}>
-            <Flag className="w-4 h-4 mr-2" /> Report User
+            <Flag className="w-4 h-4 mr-2" /> Report user
           </DropdownMenuItem>
           <DropdownMenuItem onClick={onBlockUser}>
-            <Ban className="w-4 h-4 mr-2" /> Block User
+            <Ban className="w-4 h-4 mr-2" /> Block user
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

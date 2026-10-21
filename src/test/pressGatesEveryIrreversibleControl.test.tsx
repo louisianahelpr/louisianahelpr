@@ -64,7 +64,7 @@ function mutating(label: string, meta: Meta = {}, persona = "customer"): boolean
 const NO_WRITE_COMMITS: Record<string, string> = {
   "src/components/auth/AccountChoiceDialog.tsx: I'm new here": "starts a new account from a social sign-in; never reachable as a signed-in sweep persona",
   "src/components/profile/DeleteAccountDialog.tsx: Continue": "moves to step 2, whose commit is the delete",
-  "src/pages/messages/Messages.tsx: Hide": "hides a thread from this inbox only; Recently Deleted restores it",
+  "src/pages/messages/Messages.tsx: Hide": "hides a thread from this inbox only; Recently deleted restores it",
   "src/pages/profile/petProfiles/PetForm.tsx: Discard": "throws away an unsaved form; writes nothing",
 };
 

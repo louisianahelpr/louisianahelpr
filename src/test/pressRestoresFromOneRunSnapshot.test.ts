@@ -133,7 +133,7 @@ describe("Q272: one run-level snapshot, one restore", () => {
     const f = fakePostgrest(store);
     globalThis.fetch = f.fn;
     const runSnapshot = await safety.snapshotAccounts({ helper: session });
-    // Shard 4 presses Senior Mode; shard 2 then ends, while it is still flipped.
+    // Shard 4 presses Senior mode; shard 2 then ends, while it is still flipped.
     store.profiles[0].senior_mode = true;
     const shard2 = safety.restoreSource(safety.restorePlan({ shard: "2/4", snapshotIn: "snap.json" }), runSnapshot, null);
     await safety.cleanup({ sessions: { helper: session }, since: Date.now(), profilesBefore: shard2?.profiles ?? {}, weeklyAvailabilityBefore: shard2?.weeklyAvailability });

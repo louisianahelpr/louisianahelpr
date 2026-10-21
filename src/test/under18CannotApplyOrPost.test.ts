@@ -9,7 +9,7 @@
  * profiles.date_of_birth outside sign-up, so every part below was RED.
  *
  *   1. CLIENT INVENTORY, built from src/ itself: every non-test file whose CODE
- *      (comments blanked) names the /post-job route, renders "Apply Now", or
+ *      (comments blanked) names the /post-job route, renders "Apply now", or
  *      calls apply_to_job / respond_to_direct_offer / claim_series_dates must
  *      read the gate: useAgeGate() for an entry point, isUnder18Refusal /
  *      the under_18 copy for a call site. The exceptions are an EXACT list with
@@ -63,9 +63,9 @@ const MIG = join(ROOT, "supabase", "migrations");
 
 const isTest = (rel: string) => /\.(test|spec)\.tsx?$/.test(rel) || rel.startsWith("src/test/") || rel.endsWith(".d.ts");
 
-/** Code that names the Post a Job route as a destination (a string, template or href). */
+/** Code that names the Post a job route as a destination (a string, template or href). */
 const POST_ROUTE = /["'`]\/post-job(?=[?"'`$/])/;
-/** The Apply entry: the visible "Apply Now" / "Apply now" / "Apply at $X" label (board 58), or the RPCs that take on work. */
+/** The Apply entry: the visible "Apply now" / "Apply now" / "Apply at $X" label (board 58), or the RPCs that take on work. */
 const APPLY_ENTRY = />\s*Apply [Nn]ow\s*<|"Apply [Nn]ow"|`Apply at \$/;
 const WORK_RPC = /\.rpc\(\s*["'](apply_to_job|respond_to_direct_offer|claim_series_dates)["']/;
 
@@ -74,13 +74,13 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/App.tsx": "the route table; the page's own form is gated (FormStep)",
   "src/boot/routePreload.ts": "chunk preloading, not a control",
   "src/lib/routePrefetch.ts": "chunk prefetching, not a control",
-  "src/lib/declutter/haulAwayLink.ts": "builds the Declutter haul-away link; its only callers are the seller's Declutter screens (selling needs 18+, row 53) and Post a Job's own form is gated (FormStep)",
+  "src/lib/declutter/haulAwayLink.ts": "builds the Declutter haul-away link; its only callers are the seller's Declutter screens (selling needs 18+, row 53) and Post a job's own form is gated (FormStep)",
   "src/lib/desktopNavRoutes.ts": "which routes show the desktop rail",
   "src/components/mobileNav/mobileNavHelpers.ts": "which routes are signed-in pages",
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
   "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock has no + since 2026-10-19; the entry is AppTopBar's +, which is gated",
-  "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a Job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
+  "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's + path; the entry a member taps is AppTopBar, which reads useAgeGate and greys it",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",
@@ -89,11 +89,11 @@ const NOT_AN_ENTRY: Record<string, string> = {
   // opens the /post-job form, whose top line and greyed button say why. The
   // nav's Post button, the empty states and the job sheet's Apply are greyed.
   "src/components/NotificationPanel.tsx": "the Repost pill on an expired/cancelled job's notification; opens the gated form",
-  "src/components/profile/ScheduleTab.tsx": "Post a Job beside Browse on an empty calendar; opens the gated form",
-  "src/pages/posts/PostedJobCard.tsx": "Re-Post This Job on an expired card; opens the gated form",
+  "src/components/profile/ScheduleTab.tsx": "Post a job beside Browse on an empty calendar; opens the gated form",
+  "src/pages/posts/PostedJobCard.tsx": "Re-Post this job on an expired card; opens the gated form",
   "src/pages/posts/postedJobCard/posterFaceAction.ts": "Post again on a cancelled card's face (board 14); opens the gated form",
   "src/pages/profile/GiftCard.tsx": "Use a received gift on a new job; opens the gated form",
-  "src/pages/user/UserProfile.tsx": "Offer a Job Directly in a profile's menu; opens the gated form",
+  "src/pages/user/UserProfile.tsx": "Offer a job directly in a profile's menu; opens the gated form",
 };
 
 /** Call sites that only need the server's refusal in words (no button of their own). */
@@ -107,7 +107,7 @@ const sources = walkSource([join(ROOT, "src")])
   .map((abs) => ({ rel: relative(ROOT, abs), code: blankComments(readFileSync(abs, "utf8")) }))
   .filter((f) => !isTest(f.rel));
 
-describe("Q1586(c) every Apply / Post a Job entry reads the under-18 gate", () => {
+describe("Q1586(c) every Apply / Post a job entry reads the under-18 gate", () => {
   const postEntries = sources.filter((f) => POST_ROUTE.test(f.code));
   const applyEntries = sources.filter((f) => APPLY_ENTRY.test(f.code));
   const workCalls = sources.filter((f) => WORK_RPC.test(f.code));
@@ -131,7 +131,7 @@ describe("Q1586(c) every Apply / Post a Job entry reads the under-18 gate", () =
     expect(stale).toEqual([]);
   });
 
-  it("every Apply Now greys out under 18", () => {
+  it("every Apply now greys out under 18", () => {
     const ungated = applyEntries.filter((f) => !/\buseAgeGate\(\)/.test(f.code)).map((f) => f.rel);
     expect(ungated).toEqual([]);
   });

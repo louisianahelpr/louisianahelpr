@@ -8,7 +8,7 @@
  *      The journeys' direct offer had expired and the job's start had passed,
  *      so the helper truly could not open it: isForeignFixtureGoneRefusal.
  *   2. /posts (customer) "Job address: 100 Audit Way …" not found after the
- *      same row's "Got It" acknowledged the card's backout notice (written by
+ *      same row's "Got it" acknowledged the card's backout notice (written by
  *      ack_backout_notice at 04:29:06Z): the press consumed its own row, but
  *      only LABEL-gated presses fed ROW_CONSUMED_SKIP. isWriteRequest.
  *   3. The whole-run request budget: the HTTP cache Playwright disables while
@@ -82,9 +82,9 @@ describe("a stale notification for another sweep's fixture, answered truthfully"
 });
 
 describe("a press that wrote consumed its own record (the request is the fact)", () => {
-  const card = "Cleaning Your offer expired without an answer. It's open to everyone again. Got It [E2E DO NOT ACCEPT] J 7… $25 100 Audit Way, Baton Rouge, LA 99999 Tue, Oct 13 8:05 PM";
+  const card = "Cleaning Your offer expired without an answer. It's open to everyone again. Got it [E2E DO NOT ACCEPT] J 7… $25 100 Audit Way, Baton Rouge, LA 99999 Tue, Oct 13 8:05 PM";
 
-  it("Got It's ack_backout_notice is a write, and the card's later control is ROW_CONSUMED_SKIP", () => {
+  it("Got it's ack_backout_notice is a write, and the card's later control is ROW_CONSUMED_SKIP", () => {
     expect(harness.isWriteRequest({ method: "POST", url: `${SB}/rest/v1/rpc/ack_backout_notice`, status: 200 })).toBe(true);
     const mutatedRows = new Set([card]);
     const gone = harness.rowGoneAfterOwnWrite({ rowText: card, mutatedRows, now: [{ rowText: "SEED Regrout a shower" }] });

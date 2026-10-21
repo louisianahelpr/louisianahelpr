@@ -355,7 +355,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
 
         {/* SHARE THE RECORD — the export this page shipped without.
             /work-record, the helper-side twin on the same `.doc-card` surface,
-            has had "Share Record (PDF)" since 2026-08-31; this page promised "a
+            has had "Share record (PDF)" since 2026-08-31; this page promised "a
             permanent service history" a homeowner could hand to a buyer, an
             insurer or an appraiser and gave them no way to hand it to anybody.
 
@@ -391,7 +391,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
               ) : (
                 <Share2 className="w-4 h-4" />
               )}
-              {isSharing ? "Preparing record\u2026" : "Share Record (PDF)"}
+              {isSharing ? "Preparing record\u2026" : "Share record (PDF)"}
             </button>
           </div>
         )}

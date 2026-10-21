@@ -4,7 +4,7 @@
  *
  * WHAT WAS WRONG: create-payment bills the one-time account setup fee as a line
  * item on the poster's first escrow checkout, but nothing on the job recorded
- * it, so Spent (src/lib/posterSpend.ts) and the Home History "what it cost"
+ * it, so Spent (src/lib/posterSpend.ts) and the Home history "what it cost"
  * record (src/lib/posterJobCost.ts) were $2 short on that job.
  *
  * Now: stripe-webhook stamps jobs.onboarding_fee_amount on the job whose
@@ -13,7 +13,7 @@
  * src/test/edge/create-payment.test.ts), the column is server-owned
  * (migration 20261012171259; PGlite proof
  * src/test/pglite/jobSetupFeeStamped.pglite.mjs), and posterPaidDollars adds
- * it, so every surface built on it (Spent rows and total, Home History) counts
+ * it, so every surface built on it (Spent rows and total, Home history) counts
  * it once.
  */
 import { describe, it, expect } from "vitest";
@@ -71,7 +71,7 @@ describe("Q1346: the $2 setup fee counts in Spent and the receipts", () => {
     expect(admin.match(/readJobsAheadOfDb\(\s*"[^"]*sales_tax_amount, onboarding_fee_amount, is_seed/g)?.length).toBe(3);
   });
 
-  it("the Money tab and Home History read the column, deploy-safe (a read before db-deploy retries without it)", () => {
+  it("the Money tab and Home history read the column, deploy-safe (a read before db-deploy retries without it)", () => {
     // NOT in the shared readable list: a column there that the web app selects
     // before db-deploy adds it 42703s every jobs read in the app (jobColumns.ts).
     expect(JOB_READABLE_COLUMN_LIST).not.toContain("onboarding_fee_amount");

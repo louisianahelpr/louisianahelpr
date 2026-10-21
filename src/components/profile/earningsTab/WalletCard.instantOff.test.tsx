@@ -1,5 +1,5 @@
 // Roadmap F4a (owner 2026-10-15): while memberships are off, instant cash-out
-// is off for EVERYONE and nothing offers an upgrade. Cash Out is the standard
+// is off for EVERYONE and nothing offers an upgrade. Cash out is the standard
 // payout only: the wallet shows no instant tile, no plan chip, no upgrade tap.
 // The instant-payout edge function refuses on the same switch
 // (src/test/edge/instant-payout-fee-alerts.test.ts, F4a describe).
@@ -39,7 +39,7 @@ function renderCard(instantOffered: boolean, canUseInstantPayout: boolean) {
 }
 
 describe("WalletCard: no instant cash-out and no upgrade while memberships are off (F4a)", () => {
-  it("memberships off: no instant tile, no Cash Out button, no subscribe copy", () => {
+  it("memberships off: no instant tile, no Cash out button, no subscribe copy", () => {
     renderCard(false, false);
     expect(screen.queryByText(/instant cash out/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /cash out/i })).toBeNull();

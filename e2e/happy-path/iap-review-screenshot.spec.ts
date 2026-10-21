@@ -19,7 +19,7 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks } from "./fixtures";
 // mocking, viewport and bundle-freshness guarantees the rest of the suite has.
 // Run it on demand: `npx playwright test iap-review-screenshot`.
 // `helperPage` — not `page`. The bare page fixture has no session, so
-// /profile bounces to Log In; that is what the first run screenshotted.
+// /profile bounces to Log in; that is what the first run screenshotted.
 // Apple rejects anything that is not a REAL device resolution:
 // IMAGE_INCORRECT_DIMENSIONS, which is what a 720x1520 capture earned. 414x736
 // CSS at deviceScaleFactor 3 is 1242x2208 — the iPhone 5.5" size, on Apple's

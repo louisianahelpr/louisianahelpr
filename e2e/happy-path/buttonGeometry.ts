@@ -5,7 +5,7 @@
  * found by the owner on /complete-profile on 2026-09-12:
  *
  *   1. SIBLING MISMATCH. "Enter App" rendered 49.5px directly above a 60px
- *      "Sign Out". Neither overflowed, neither clipped, both passed axe.
+ *      "Sign out". Neither overflowed, neither clipped, both passed axe.
  *   2. REQUESTED ≠ RENDERED. The primary carried `min-h-[60px]`, but index.css's
  *      unlayered `button { min-height: 44px }` beats every Tailwind utility, so
  *      the class was on the element and did nothing. A code read sees 60px.
@@ -74,7 +74,7 @@ export function detectButtonGeometry(scopeSelector?: string): ButtonGeometryRepo
     );
   };
   // PAINTED for <button> too. /payment-success stacks a 60px filled "Open My
-  // Posts" over 56px bare-text "Contact Support" / "Back to Dashboard": a
+  // Posts" over 56px bare-text "Contact support" / "Back to Dashboard": a
   // primary with text links under it, not two buttons of unequal height.
   const isButtonish = (el: Element) =>
     (el.matches("button, [role='button'], a[href]") && painted(el)) &&

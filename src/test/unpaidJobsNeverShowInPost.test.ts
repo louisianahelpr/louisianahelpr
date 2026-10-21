@@ -1,5 +1,5 @@
 /**
- * CLASS CHECK: a job nobody paid for never shows in Posts or Post a Job
+ * CLASS CHECK: a job nobody paid for never shows in Posts or Post a job
  * (2026-09-27).
  *
  * Owner, 2026-09-27: "Finish paying should not even be a thing." ... "Unpaid
@@ -10,7 +10,7 @@
  * ("Load Draft"), never to a half-made job.
  *
  * FOUND 2026-09-27: Posts showed never-paid rows behind a "Finish Paying"
- * notice, Post a Job listed them under "Finish Paying" and in the Repost
+ * notice, Post a job listed them under "Finish Paying" and in the Repost
  * list, a declined card's notification linked to /posts?job=<the hidden
  * job>, and enforce_open_job_limit counted 'failed' jobs toward the 5-job cap
  * the poster could not see.
@@ -20,7 +20,7 @@
  *   - Posts' filter (jobIsUnfundedDraft) hides every never-paid status;
  *   - the Repost query and both open-cap mirrors filter by the same list;
  *   - the newest migration defining enforce_open_job_limit excludes all of it;
- *   - the failed-payment notification sends the poster to Post a Job.
+ *   - the failed-payment notification sends the poster to Post a job.
  * Shown red on the pre-change tree for each part.
  *
  * @mutate src/lib/neverPaidStatuses.ts | "unpaid", "abandoned", "failed" | "unpaid", "abandoned"
@@ -50,7 +50,7 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe("a job nobody paid for never shows in Posts or Post a Job", () => {
+describe("a job nobody paid for never shows in Posts or Post a job", () => {
   it("the list is the three statuses a job has before or instead of payment", () => {
     expect([...NEVER_PAID_STATUSES].sort()).toEqual(["abandoned", "failed", "unpaid"]);
   });
@@ -102,7 +102,7 @@ describe("a job nobody paid for never shows in Posts or Post a Job", () => {
 
   // Q769: the notice moved from payment_intent.payment_failed (a decline is
   // retryable inside the open session) to checkout.session.expired.
-  it("a declined card sends the poster to Post a Job, not to a hidden post", () => {
+  it("a declined card sends the poster to Post a job, not to a hidden post", () => {
     const src = read("supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts");
     expect(src).toMatch(/link:\s*"\/post-job"/);
     expect(src).not.toMatch(/link:\s*`\/posts\?job=/);

@@ -11,7 +11,7 @@
  * NEW STATE: the same world sends 0 and the notice is closed; a poster_cancelled
  * notice (the cancel itself, "Don't go.") still reminds the Helpr; a live job's
  * notice still reminds; cancelling or completing a job closes its moot notices
- * at once (trigger); the data step closes ones already moot; Got It history is
+ * at once (trigger); the data step closes ones already moot; Got it history is
  * untouched; grants as before; applied 3x.
  */
 import { PGlite, readMigration, newestFunctionSql, as, checker, USERS } from "./seriesWorld.mjs";
@@ -96,7 +96,7 @@ for (let i = 0; i < 3; i++) await db.exec(FIX);
 check("applies 3x (replay-safe)", true);
 check("data step: the notice already moot on a cancelled job is closed", (await openNotice(db, stale, "offer_expired")) === 0);
 const earlier = (await db.query(`select acknowledged_at = '2026-10-10T00:00:00Z' ok, acknowledged_at::text t from public.backout_notices where job_id = '${ackedEarlier}'`)).rows[0];
-check("data step: an earlier Got It keeps its own time", earlier?.ok === true, earlier?.t);
+check("data step: an earlier Got it keeps its own time", earlier?.ok === true, earlier?.t);
 
 // The sweep itself closes a moot notice (one the trigger did not see: written
 // with triggers off, as a row from any other path would be).
@@ -134,7 +134,7 @@ await as(db, "service_role", null, `update public.jobs set status = 'cancelled',
 const bothRows = (await db.query(`select count(*)::int c from public.backout_notices where job_id = '${both}'`)).rows[0].c;
 check("cancel + decline in one statement: the notice it writes is closed at once", bothRows === 1 && (await openNotice(db, both, "offer_declined")) === 0, `rows ${bothRows}`);
 
-// The cancel itself still warns the Helpr until Got It.
+// The cancel itself still warns the Helpr until Got it.
 const posterCancel = await newJob(db);
 await as(db, "authenticated", P, `update public.jobs set status = 'cancelled', cancelled_by = '${P}' where id = '${posterCancel}'`);
 check("a poster_cancelled notice survives its own cancel", (await openNotice(db, posterCancel, "poster_cancelled")) === 1);

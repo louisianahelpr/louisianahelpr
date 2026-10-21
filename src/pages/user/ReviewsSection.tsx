@@ -317,7 +317,7 @@ export const ReviewsSection = ({
                     onStartResponding(r.id, "");
                   }}
                 >
-                  Add Response
+                  Add response
                 </button>
               )}
               {isOwnProfile && r.response_text && (
@@ -329,7 +329,7 @@ export const ReviewsSection = ({
                     onStartResponding(r.id, r.response_text ?? "");
                   }}
                 >
-                  Edit Response
+                  Edit response
                 </button>
               )}
               {/* Inline response editor */}
@@ -385,7 +385,7 @@ export const ReviewsSection = ({
               ) : (
                 <>
                   <ChevronDown className="w-4 h-4" />
-                  Show {nextRevealCount} More
+                  Show {nextRevealCount} more
                   <span className="text-muted-foreground">({visible.length} of {knownTotal})</span>
                 </>
               )}

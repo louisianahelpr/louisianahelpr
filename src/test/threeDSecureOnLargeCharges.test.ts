@@ -22,7 +22,7 @@
  *      and a poster who walked away from a challenge (session still open, PI
  *      `requires_action`) is never told the payment is "still being processed"
  *      for 24h (the "Finish paying" retry it had was removed 2026-09-27; a
- *      cancelled checkout now returns to the Post a Job draft).
+ *      cancelled checkout now returns to the Post a job draft).
  *
  * @mutate supabase/functions/_shared/threeDSecure.ts | export const THREE_D_SECURE_MIN_CENTS = 30000; | export const THREE_D_SECURE_MIN_CENTS = 3000000;
  * @mutate supabase/functions/create-payment/index.ts | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options: threeDSecureOptions( | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options_unused: threeDSecureOptions(

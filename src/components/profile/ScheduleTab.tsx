@@ -827,7 +827,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       className="rounded-ds-md"
                       onClick={() => navigate("/home")}
                     >
-                      <Search className="w-3.5 h-3.5 mr-1.5" /> Browse Open Jobs
+                      <Search className="w-3.5 h-3.5 mr-1.5" /> Browse open Jobs
                     </Button>
                     <Button
                       variant="primary"
@@ -835,7 +835,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                       className="rounded-ds-md"
                       onClick={() => navigate("/post-job")}
                     >
-                      <Plus className="w-3.5 h-3.5 mr-1.5" /> Post a Job
+                      <Plus className="w-3.5 h-3.5 mr-1.5" /> Post a job
                     </Button>
                   </div>
                 </div>

@@ -383,7 +383,7 @@ const PaymentSuccess = () => {
       style={{ color: "hsl(var(--bark))" }}
     >
       <LifeBuoy className="w-4 h-4 mr-2" />
-      Contact Support
+      Contact support
     </Button>
   );
 
@@ -552,7 +552,7 @@ const PaymentSuccess = () => {
                 className="w-full rounded-ds-md"
               >
                 <UsersIcon className="w-4 h-4 mr-2" />
-                Open My Posts
+                Open my posts
               </Button>
               {resolvedJobId && (
                 <Button
@@ -563,7 +563,7 @@ const PaymentSuccess = () => {
                   className="w-full rounded-ds-md"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
-                  {confirmState === "checking" ? "Checking…" : "Try Again"}
+                  {confirmState === "checking" ? "Checking…" : "Try again"}
                 </Button>
               )}
               {confirmState !== "checking" && supportAction}

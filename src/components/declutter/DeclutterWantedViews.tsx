@@ -105,7 +105,7 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
       {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
       <div className="space-y-2">
         <p className="text-ds-13 text-muted-foreground">Your Wanted stays up 30 days. You can close it anytime.</p>
-        <Button type="submit" className="w-full sm:w-auto" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post Wanted"}</Button>
+        <Button type="submit" className="w-full sm:w-auto" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post wanted"}</Button>
       </div>
     </form>
   );

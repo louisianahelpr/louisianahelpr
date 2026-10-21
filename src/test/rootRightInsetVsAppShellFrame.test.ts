@@ -11,7 +11,7 @@
  * Legal routes, which stay document-scroll (no `app-shell` on <html>). The
  * frame inset rule required `.app-shell`, and #root's padding cannot reach a
  * `position: fixed` frame, so the frame ran to x=1440 under the rail (from
- * x=1192): Help's accordion chevrons and its "Contact Support" button were
+ * x=1192): Help's accordion chevrons and its "Contact support" button were
  * covered. Twin of rootPaddingVsAppShellFrame.test.ts (VN-24, the top offset).
  *
  * Inventory comes from src/index.css itself (postcss).

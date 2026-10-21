@@ -415,7 +415,7 @@ describe("Memberships switch (F4a) — every edge function that reads a tier ask
     expect(asks(readers.find((r) => r.d === "instant-job-match")!.code)).toBe(true);
   });
 
-  it("the Advanced Analytics gate asks the switch in its newest definition", () => {
+  it("the Advanced analytics gate asks the switch in its newest definition", () => {
     const { body } = newestFunctionBody("helper_has_advanced_analytics");
     expect(body).toMatch(/public\.feature_enabled_for_user\(\s*'memberships'\s*,\s*p_user_id\s*\)/);
   });

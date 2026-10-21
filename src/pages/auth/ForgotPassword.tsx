@@ -224,14 +224,14 @@ const ForgotPassword = () => {
                   ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</>
                   : resendCooldown > 0
                     ? `Resend in ${resendCooldown}s`
-                    : "Resend Email"}
+                    : "Resend email"}
               </Button>
               <Button
                 variant="outline"
                 className="flex-1 rounded-ds-md"
                 onClick={() => setSent(false)}
               >
-                Use a Different Email
+                Use a different email
               </Button>
             </div>
           </div>
@@ -314,7 +314,7 @@ const ForgotPassword = () => {
                 // only on a real attempt).
                 disabled={loading}
               >
-                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send Reset Link"}
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending…</> : "Send reset link"}
               </Button>
             </form>
         )}

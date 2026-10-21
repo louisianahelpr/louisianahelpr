@@ -60,7 +60,7 @@ const NOT_APP_ADDRESSES: Record<string, string> = {
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale OWNER_REDIRECT_ROUTES entry
 const OWNER_REDIRECT_ROUTES: Record<string, string> = {
   "/quotes":
-    "owner 2026-10-19: the quotes hub is retired into Post a Job / Jobs / My Jobs / Posts and old hub links (stored quote notices, Q2177) send the person to the new home (QuotesHubRedirect)",
+    "owner 2026-10-19: the quotes hub is retired into Post a job / Jobs / My Jobs / Posts and old hub links (stored quote notices, Q2177) send the person to the new home (QuotesHubRedirect)",
 };
 
 /** App.tsx routes: path pattern → element source. */

@@ -14,8 +14,8 @@ import { readdirSync } from "./helpers/trackedFiles";
  * `--shell-gap`. Below the title every page still typed its own gap between
  * its sections, so equivalent screens sat 16, 20 or 24px apart on a 375 phone
  * (measured on the built app against prod, ~/.lh-shots/q191/before.json):
- * Profile tabs 16 (ProfileTabBody's `space-y-4`), Work Record / Home History /
- * After a Job / Payment 20 (`space-y-5`), Gift Card / Help / Post a Job 24
+ * Profile tabs 16 (ProfileTabBody's `space-y-4`), Work record / Home history /
+ * After a Job / Payment 20 (`space-y-5`), Gift card / Help / Post a job 24
  * (`space-y-6`), a public profile 24 (`gap-6`).
  *
  * The fix is ONE token, `--section-gap` (12px on a phone, 16px from `sm`), read

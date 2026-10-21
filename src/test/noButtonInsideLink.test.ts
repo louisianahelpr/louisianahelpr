@@ -2,7 +2,7 @@
  * CLASS GUARD: no <Button>/<button> is rendered INSIDE a <Link>/<NavLink>/<a>.
  *
  * Q179 (2026-09-23 visual walk, /reset-password on prod at 375 and 1440): the
- * "Request a Reset Link" button sat flush against the paragraph above it —
+ * "Request a reset link" button sat flush against the paragraph above it —
  * 0px, measured — inside a `space-y-4` stack. The wrapper was an inline <a>
  * (react-router <Link>) around a <Button>, so the stack's margin landed on an
  * inline box and did nothing. It is also invalid HTML (interactive content

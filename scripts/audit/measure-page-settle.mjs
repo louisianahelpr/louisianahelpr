@@ -204,7 +204,7 @@ async function measureOne(browser, { url, persona, session, width }) {
       try {
         localStorage.setItem(k, v);
         // RETURNING=1: a device that has seen this account before (the
-        // account's Senior Mode flag is cached, as it is after any visit).
+        // account's Senior mode flag is cached, as it is after any visit).
         if (returning) localStorage.setItem("helpr_profile_senior_mode", "1");
         localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
       } catch { /* reported as signed-out, never a fake pass */ }

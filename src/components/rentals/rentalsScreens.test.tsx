@@ -187,7 +187,7 @@ function renderAt(path: string) {
         <Routes>
           <Route path="/rentals" element={<RentalsPage />} />
           <Route path="/rentals/requests/:id" element={<MaintenanceRequestPage />} />
-          <Route path="/post-job" element={<p>Post a Job form</p>} />
+          <Route path="/post-job" element={<p>Post a job form</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -632,7 +632,7 @@ describe("Rentals screens", () => {
       state.job = { jobId: "j1", booking: "none", jobStatus: "open" };
       renderAt(`/rentals/requests/${RID}`);
       fireEvent.click(await screen.findByRole("button", { name: "Post the repair job" }));
-      expect(await screen.findByText("Post a Job form")).toBeTruthy();
+      expect(await screen.findByText("Post a job form")).toBeTruthy();
     });
     it("landlord under 18: Post the repair job is greyed out and goes nowhere (Q1586(c))", async () => {
       state.underAge = true;
@@ -642,7 +642,7 @@ describe("Rentals screens", () => {
       const btn = await screen.findByRole("button", { name: "Post the repair job" });
       expect(btn.getAttribute("aria-disabled")).toBe("true");
       fireEvent.click(btn);
-      expect(screen.queryByText("Post a Job form")).toBeNull();
+      expect(screen.queryByText("Post a job form")).toBeNull();
     });
     it("landlord, checkout in flight: says so, and no second post", async () => {
       state.request = approved;

@@ -7,7 +7,7 @@
  * filing by the same person on the same job within 10 minutes of a dispute
  * they withdrew there. This pins the NEWEST definition (effectiveDefs replays
  * every migration) and that the code has a sentence in the app on both paths
- * that reach it (DisputeDialog's rpc_open_dispute and Cancel Job's
+ * that reach it (DisputeDialog's rpc_open_dispute and Cancel job's
  * helper_abort_job). Behaviour: src/test/pglite/disputeRefileCooldown.pglite.mjs
  * (3 FAILED on the live body, ALL PASS applied 3x).
  *

@@ -23,7 +23,7 @@
 //       scripts/) that names helper_fee_percent names helper_fee_flat_cents,
 //       and the shared whole-row list JOB_READABLE_COLUMN_LIST carries the
 //       stamp, so every `.select(JOB_READABLE_COLUMNS)` read (Schedule,
-//       admin analytics, Activity, Work Record) has it. Five narrow selects
+//       admin analytics, Activity, Work record) has it. Five narrow selects
 //       (Earnings forecast, Wrapped, admin export, admin Jobs tab, admin user
 //       summaries) priced a flat job on the viewer's tier without it.
 //   (G) the poster's cancel dialog is handed the stamp, so its "Helpr

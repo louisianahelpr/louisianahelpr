@@ -295,12 +295,12 @@ export async function urlOwnership(session, url, owners) {
 // "[PRESS DO NOT ACCEPT]" drafts beside them were gated only by luck: their
 // title contains "accept".)
 // `set up payouts` / `stripe` / `(finish|complete|start) verification`: run
-// 36784893957 (2026-09-30, Stripe LIVE) pressed "Set Up Payouts with Stripe" on
+// 36784893957 (2026-09-30, Stripe LIVE) pressed "Set up payouts with Stripe" on
 // /profile?tab=earnings for BOTH shared accounts with NO gate — `\bpayout\b`
 // stops at "Payouts" and nothing in it is DESTRUCTIVE_RX — and stripe-connect
 // `onboard` created live Connect accounts acct_1ULXMy3ISOxM8qBC (poster) and
 // acct_1ULXMw40YhFTkeRO (helper). Bare "payouts" stays OUT on purpose: the
-// "Payouts" tab and "Export Payouts CSV" are reads. The network backstop
+// "Payouts" tab and "Export payouts CSV" are reads. The network backstop
 // (isStripeWriteRequest) catches any Stripe-writing label this still misses.
 // `reset & start fresh` (Q896): PayoutSetupForm's reset button and its confirm
 // run stripe-connect `reset` (stripe.accounts.del); the label matched only
@@ -323,7 +323,7 @@ export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my 
  * the whole account, and all four kept pressing with dead JWTs: 183
  * `session_not_found`, 274 "failed presses" that were one auth failure.
  *
- * The only global sign-out in the app is SecurityTab.tsx's "Sign Out
+ * The only global sign-out in the app is SecurityTab.tsx's "Sign out
  * Everywhere"; a plain Log Out is scope:"local" (authSignOut.ts) and would
  * only have killed the pressing shard. Both are refused here: a sweep cannot
  * measure a screen it has just logged itself out of, local or global.
@@ -398,8 +398,8 @@ export function isAdminStateToggle({ persona, meta = {}, label = "" }) {
  * a SELF route) — but it is SHARED by every sweep and journey, so a flipped
  * setting changes what every other run renders.
  *
- * Proven from edge_logs 2026-09-23: the Accessibility tab's Senior Mode switch
- * (role="switch", label "Senior Mode") was pressed by shard 4 of
+ * Proven from edge_logs 2026-09-23: the Accessibility tab's Senior mode switch
+ * (role="switch", label "Senior mode") was pressed by shard 4 of
  * press-every-control as the customer AND the helper — bare
  * `PATCH /rest/v1/profiles?user_id=eq.<id>` (the toggle's own write, no
  * select) at 05:55:47Z/05:56:52Z (run 35822080143, later cancelled) and

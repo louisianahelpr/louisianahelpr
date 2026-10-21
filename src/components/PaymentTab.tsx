@@ -96,7 +96,7 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
           <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
             {connectReturn === "success"
               ? "Welcome back from Stripe — your payout status below is up to date."
-              : "Stripe needs one more pass — tap Set Up Payouts to finish."}
+              : "Stripe needs one more pass — tap Set up payouts to finish."}
           </p>
         </div>
       )}

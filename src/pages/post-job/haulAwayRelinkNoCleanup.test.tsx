@@ -1,4 +1,4 @@
-// Declutter haul-away, re-review 2026-10-17 finding 1: Post a Job re-links a
+// Declutter haul-away, re-review 2026-10-17 finding 1: Post a job re-links a
 // haul-away before it retries a payment hand-off whose answer was lost. By
 // then the job may be FUNDED (a gift card settles inside create-payment), and
 // the old code answered a re-link refusal with cleanupOrphanJob: the job's

@@ -27,7 +27,7 @@ import { CHUNK_RELOAD_MAX_ATTEMPTS } from "../../src/lib/chunkReload";
 
 const DIST = path.resolve("dist");
 const ERROR_SCREEN = /Helpr couldn't load\.|This page hit a problem\./;
-const SUPPORT_PAGE = /Contact Support[\s\S]*What's this about\?/;
+const SUPPORT_PAGE = /Contact support[\s\S]*What's this about\?/;
 const LEGAL_PAGE = /Legal[\s\S]*Terms[\s\S]*Privacy[\s\S]*The short version/;
 
 let dirB = "";
@@ -151,7 +151,7 @@ test.describe("Q199 stale chunks during a deploy", () => {
     expect(reloadsAtError, "exactly the capped number of reloads").toBe(CHUNK_RELOAD_MAX_ATTEMPTS);
     expect(w.docs.length - 1, "no reload after giving up").toBe(CHUNK_RELOAD_MAX_ATTEMPTS);
     expect(await bodyText(page)).toMatch(/Helpr couldn't load\./);
-    await expect(page.getByRole("button", { name: /Try Again/i })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
     await page.screenshot({ path: test.info().outputPath("broken-build.png") });
   });
 });

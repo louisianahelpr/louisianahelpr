@@ -494,7 +494,7 @@ const CompleteProfile = () => {
             disabled={signingOut}
             className="mt-5 w-full rounded-ds-md"
           >
-            <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging Out…" : "Sign Out"}
+            <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
           </Button>
         </div>
         {deleteDialog}
@@ -796,7 +796,7 @@ const CompleteProfile = () => {
             {/* WHAT IS STILL MISSING — the whole point of this screen.
                 The `checklist` above has existed since the gate shipped and was
                 never rendered: the only signal a blocked user got was a
-                DISABLED button reading "Complete Required Fields", with every
+                DISABLED button reading "Complete required fields", with every
                 field on the form wearing an identical red asterisk whether it
                 was satisfied or not. Because the button is disabled whenever
                 `allComplete` is false, the per-field `fail()` toasts in
@@ -867,7 +867,7 @@ const CompleteProfile = () => {
               disabled={submitting || !allComplete}
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
-              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete Required Fields"}
+              {submitting ? "Saving…" : allComplete ? "Enter App" : "Complete required fields"}
             </Button>
 
             <Button
@@ -878,7 +878,7 @@ const CompleteProfile = () => {
               disabled={signingOut}
               className="w-full rounded-ds-md"
             >
-              <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging Out…" : "Sign Out"}
+              <X className="w-4 h-4 mr-2" /> {signingOut ? "Logging out…" : "Sign out"}
             </Button>
 
             {/* Same treatment as AccountBanned's, the other account-state
@@ -890,7 +890,7 @@ const CompleteProfile = () => {
               onClick={deleteAccount.requestDelete}
               className="w-full text-destructive-ink hover:text-destructive-ink"
             >
-              <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+              <Trash2 className="w-4 h-4 mr-1" /> Delete account
             </Button>
 
             {/* The only route to a human from inside the gate. ProtectedRoute's
@@ -899,7 +899,7 @@ const CompleteProfile = () => {
                 until now this screen linked to four of those five and never to
                 support, so the escape hatch existed and was invisible. Someone
                 stuck on a field they cannot satisfy (a phone number the format
-                rejects, a city not in the list) had "Sign Out" as their only
+                rejects, a city not in the list) had "Sign out" as their only
                 other affordance. /help is NOT on the allowed list, so link
                 /support, which is. */}
             <p className="text-center text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

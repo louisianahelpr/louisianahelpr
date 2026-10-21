@@ -1,5 +1,5 @@
 /**
- * A signed-in screen whose device has lost its session goes to Log In instead
+ * A signed-in screen whose device has lost its session goes to Log in instead
  * of sitting on failed loads (2026-10-09: Kaci L. and Destiny O. sat on "We
  * couldn't load this" for minutes after their email-confirm landing; every
  * read came back "permission denied" with no JWT on the request).
@@ -7,7 +7,7 @@
  * And it goes there ONLY when the session is really gone (2026-10-09 21:45Z,
  * the owner's Mac): a token refresh that failed on the network made
  * getSession() null for about a second while the session was alive, and this
- * net sent the owner to Log In. It now asks refreshSession() first and never
+ * net sent the owner to Log in. It now asks refreshSession() first and never
  * redirects on a network failure (src/lib/sessionLoss.ts).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -61,7 +61,7 @@ const deny = () => act(() => { window.dispatchEvent(new CustomEvent(PERMISSION_D
 const settle = () => new Promise((r) => setTimeout(r, 20));
 
 describe("ProtectedRoute: session lost on a signed-in screen", () => {
-  it("goes to Log In with a note when a refresh confirms no session is left", async () => {
+  it("goes to Log in with a note when a refresh confirms no session is left", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
     refreshSessionMock.mockResolvedValue({
       data: { session: null, user: null },
@@ -72,7 +72,7 @@ describe("ProtectedRoute: session lost on a signed-in screen", () => {
     await waitFor(() => expect(replace).toHaveBeenCalledWith("/login?redirect=%2Fprofile%3Ftab%3Dpayment&signed_out=session-lost"));
   });
 
-  it("goes to Log In when the auth server refuses the refresh token (a definite 4xx)", async () => {
+  it("goes to Log in when the auth server refuses the refresh token (a definite 4xx)", async () => {
     getSessionMock.mockResolvedValue({ data: { session: null }, error: null });
     refreshSessionMock.mockResolvedValue({
       data: { session: null, user: null },

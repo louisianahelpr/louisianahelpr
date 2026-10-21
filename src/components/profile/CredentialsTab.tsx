@@ -159,7 +159,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
   // switching on saves nothing, and after a reload the switch shows what the
   // row holds, never a value the database refused.
   const [intent, setIntent] = useState<Partial<Record<Kind, boolean>>>({});
-  // The hidden file inputs behind the "Add License" / "Add Insurance" buttons.
+  // The hidden file inputs behind the "Add license" / "Add insurance" buttons.
   const addInputRefs = useRef<Partial<Record<Kind, HTMLInputElement | null>>>({});
   const licensedOn = (data.is_licensed ?? false) || !!intent.license;
   const insuredOn = (data.is_insured ?? false) || !!intent.insurance;
@@ -464,7 +464,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             className="font-display font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
-            {kind === "license" ? "Professional License" : "Insurance"}
+            {kind === "license" ? "Professional license" : "Insurance"}
           </h3>
           <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {!on
@@ -500,7 +500,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               onClick={() => addInputRefs.current[kind]?.click()}
             >
               <Upload className="w-4 h-4" />
-              {kind === "license" ? "Add License" : "Add Insurance"}
+              {kind === "license" ? "Add license" : "Add insurance"}
             </Button>
             <Input
               ref={(el) => { addInputRefs.current[kind] = el; }}
@@ -566,7 +566,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   onClick={() => openDoc(url)}
                   className="flex-1 min-w-0 text-left text-ds-13 text-primary underline break-words"
                 >
-                  View the {KIND_NOUN_TITLE[kind]} You Sent
+                  View the {KIND_NOUN_TITLE[kind].toLowerCase()} you sent
                 </button>
                 <Button
                   variant="ghost"
@@ -719,7 +719,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 at a glance, only the icon tint above (bark vs burnt-sienna)
                 hints at it. */}
             <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
-              Professional Credentials
+              Professional credentials
             </h2>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Proof of license and insurance earns verified badges on your profile.
@@ -810,7 +810,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 void saveBusinessName();
               }}
             >
-              {savingName ? "Saving…" : trimmedName === "" ? "Remove Business Name" : "Save Business Name"}
+              {savingName ? "Saving…" : trimmedName === "" ? "Remove business name" : "Save business name"}
             </Button>
           )}
         </div>
@@ -889,8 +889,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             {submitting
               ? "Sending…"
               : draftKinds.length > 1
-                ? "Send Both for Review"
-                : `Send ${KIND_NOUN_TITLE[draftKinds[0]]} for Review`}
+                ? "Send both for review"
+                : `Send ${KIND_NOUN_TITLE[draftKinds[0]].toLowerCase()} for review`}
           </Button>
         </div>
       )}

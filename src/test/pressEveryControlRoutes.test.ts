@@ -94,7 +94,7 @@ describe("press-every-control route derivation", () => {
 });
 
 describe("press-every-control: Vercel-only scripts on a local preview", () => {
-  // Runs 34744828202 and 34865377511 failed "Go Back" on 404 GET
+  // Runs 34744828202 and 34865377511 failed "Go back" on 404 GET
   // /_vercel/speed-insights/script.js — a file only Vercel's edge serves.
   const ignore = harness.ignoreHostOnlyAsset as ((url: string, base: string) => boolean) | undefined;
   it("ignores /_vercel/(speed-)insights 404s against a local preview", () => {

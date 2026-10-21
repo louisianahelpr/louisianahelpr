@@ -163,7 +163,7 @@ export function AnalyticsUpgradePanel({
           className="flex-1 h-11 rounded-full"
           onClick={() => navigate("/profile?tab=earnings")}
         >
-          Go to Earnings
+          Go to earnings
         </Button>
       </div>
     </AnalyticsPanel>

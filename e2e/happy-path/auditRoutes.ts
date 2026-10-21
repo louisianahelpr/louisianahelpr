@@ -176,7 +176,7 @@ export const ANON_SCREENS: ScreenSpec[] = [
   { name: "support", url: "/support" },
   // REMOVED 2026-08-24: /accessibility. The standalone page was orphaned —
   // no link anywhere reached it — and its one real control (Simple Mode)
-  // duplicated the Profile Accessibility tab's Senior Mode. Accessibility
+  // duplicated the Profile Accessibility tab's Senior mode. Accessibility
   // settings live in Profile → Accessibility on every surface.
   // REMOVED 2026-08-22: /how-it-works, /become-a-partner, /community,
   // /enterprise, /evacuation, /impact, /local-guide, /parishes,
@@ -267,7 +267,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "complete-profile", url: "/complete-profile" },
   // The seeded account's profile is COMPLETE, so "complete-profile" above
   // redirects to /home and the sweep never saw the gate itself. Both
-  // owner-found bugs of 2026-09-12 (missing ZIP check, Enter App vs Sign Out
+  // owner-found bugs of 2026-09-12 (missing ZIP check, Enter App vs Sign out
   // heights) lived on that unswept screen. This one serves the signed-in
   // user's own profile with no photo and no legacy bypass, so the gate renders.
   { name: "complete-profile-incomplete", url: "/complete-profile", rules: [incompleteOwnProfile()] },
@@ -334,7 +334,7 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // RESTORED 2026-09-01. It was removed on 2026-08-23 because /analytics had
   // become a <Navigate> to /profile?tab=earnings, so the row would have audited
   // the Earnings tab under the wrong name and counted it twice. /analytics is a
-  // real screen again — Advanced Analytics, the Pro/Elite perk — and it is a
+  // real screen again — Advanced analytics, the Pro/Elite perk — and it is a
   // DIFFERENT screen from the Earnings tab, not the same body retitled. Note
   // that what it renders depends on the account's tier: an entitled helper gets
   // the dashboard, everyone else gets the upgrade offer. Both are real states

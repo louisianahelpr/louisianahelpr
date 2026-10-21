@@ -1,6 +1,6 @@
 /**
  * A category chip's label never breaks inside a word (owner, 2026-10-19, on
- * Post a Job at 320: the Handyman chip read "Handyma" / "n"). The Post a Job
+ * Post a job at 320: the Handyman chip read "Handyma" / "n"). The Post a job
  * category picker is now board 23's groups + chips (JobCategoryGroups.tsx,
  * builder2-jobs 2026-10-20); its group tiles and its chips both wrap only
  * between words. The chip class is the shared one (src/components/ui/chipClasses.ts,

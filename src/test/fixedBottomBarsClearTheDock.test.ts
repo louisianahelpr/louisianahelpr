@@ -4,7 +4,7 @@
  * The bug: Edit Profile's SaveBar was `fixed bottom-0 z-40`, flush on the
  * screen edge, exactly where MobileNav's dock (`fixed bottom-0 z-50`) sits.
  * e2e-journeys 38157785191 (2026-10-11, chromium and webkit at tablet-768):
- * "Save Changes" could not be clicked for 20s because the dock's Profile tab
+ * "Save changes" could not be clicked for 20s because the dock's Profile tab
  * took the pointer. A z-index on the bar cannot fix it: the bar renders inside
  * <PageTransition>, whose `will-change: transform` makes the page its own
  * stacking context, so the whole page paints under the dock's z-50.
@@ -24,7 +24,7 @@
  *       collide with the dock. That list is exact and two-way.
  *
  * The live counterpart is e2e/journeys/03-account.spec.ts "edit a profile
- * field": before pressing Save Changes it asserts the point at the button's
+ * field": before pressing Save changes it asserts the point at the button's
  * centre hits the button, on the real backend, at the rotation's viewport.
  */
 // @mutate src/components/profile/profileEditForm/SaveBar.tsx | useDockYield(shown); | void shown;
@@ -143,7 +143,7 @@ function cssHidesDockOnYield(css: string): boolean {
  * WebKit half of Q1646 (looked at 2026-10-12, e2e-journeys 38181872855 webkit
  * milestone `edit-profile-dirty`): with `html.dock-yield` set, the dock's pill
  * and Post FAB were hidden but the five tab glyphs were still painted over
- * Save Changes. `visibility` is animatable and inherited: an element whose
+ * Save changes. `visibility` is animatable and inherited: an element whose
  * transition list covers it (`transition-all`, an arbitrary
  * `transition-[...visibility...]`, an inline `transition: all ...`) runs the
  * inherited visible -> hidden change as a transition that stays `visible` for
@@ -196,7 +196,7 @@ describe("no fixed bottom bar can render under the dock (Q1646)", () => {
     expect(cssHidesDockOnYield(CSS), `src/index.css has no \`html.${DOCK_YIELD_CLASS} .mobile-nav-frame { visibility: hidden }\``).toBe(true);
   });
 
-  it("no transition inside the dock can delay its hide (WebKit glyphs over Save Changes)", () => {
+  it("no transition inside the dock can delay its hide (WebKit glyphs over Save changes)", () => {
     expect(DOCK_FILES.length).toBeGreaterThan(5);
     const hits = DOCK_FILES.flatMap((f) =>
       transitionsCoveringVisibility(readFileSync(resolve(ROOT, f), "utf8")).map((h) => `${f}: ${h}`),

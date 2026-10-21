@@ -208,7 +208,7 @@ describe("job page, the hired Helpr", () => {
     expect(screen.getByLabelText("Step 3 of 4: Working")).toBeTruthy();
     expect(screen.getByText("Next: mark the job done.")).toBeTruthy();
     expect(screen.queryByText("The street address is shared after you're hired.")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Open in Working" }));
+    fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     expect(screen.getByTestId("where").textContent).toBe("/jobs?tab=working");
   });
 });

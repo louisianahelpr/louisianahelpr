@@ -86,7 +86,7 @@ export const AttachSourceSheet = ({
         >
           {([
             { key: "camera", label: "Camera", Icon: Camera, onPick: onPickCamera, tint: "bark" },
-            { key: "library", label: "Photo Library", Icon: ImageIcon, onPick: onPickLibrary, tint: "sienna" },
+            { key: "library", label: "Photo library", Icon: ImageIcon, onPick: onPickLibrary, tint: "sienna" },
             { key: "files", label: "Files", Icon: FilePlus2, onPick: onPickFiles, tint: "sienna" },
             { key: "location", label: "Location", Icon: MapPin, onPick: onShareLocation, tint: "bark" },
             { key: "voice", label: "Voice note", Icon: AudioLines, onPick: onRecordVoiceNote, tint: "bark", disabled: voiceNoteDisabled },

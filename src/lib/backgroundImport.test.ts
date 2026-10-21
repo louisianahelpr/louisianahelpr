@@ -3,7 +3,7 @@
  * recovery reload.
  *
  * Measured on prod 2026-09-23 (e2e/prod-audit/interruptions.spec.ts "offline
- * mid-apply"): after a helper came back online and pressed Apply Now,
+ * mid-apply"): after a helper came back online and pressed Apply now,
  * `apply_to_job` answered 200 and the row landed, then onSuccess's `track()`
  * asked for the posthog chunk. That chunk had failed to load while the device
  * was offline, and the browser keeps a failed module fetch for the life of the

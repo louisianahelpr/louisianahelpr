@@ -17,7 +17,7 @@ export interface SignOutActionOptions {
  * dialog closed on the press, then sign-out awaited the network with nothing
  * on screen. `signOutWithPushCleanup` now caps every network step; this hook is
  * the other half: `signingOut` is true from the press until sign-out finishes,
- * so the button reads "Logging Out…" and is disabled, and a second press while
+ * so the button reads "Logging out…" and is disabled, and a second press while
  * the first is running is ignored (the ref, not the state, guards it: two taps
  * in one frame both see the stale `false` state).
  *

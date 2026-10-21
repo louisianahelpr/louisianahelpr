@@ -298,7 +298,7 @@ export interface Case {
 
 export const CASES: Case[] = [
   {
-    name: "Jobs · Confirmed — Directions · Message · Cancel Job + I'm On My Way",
+    name: "Jobs · Confirmed — Directions · Message · Cancel job + I'm On My Way",
     side: "helper",
     render: () =>
       wrap(
@@ -318,8 +318,8 @@ export const CASES: Case[] = [
   {
     // TWO CONTROLS IN THE ONE PRIMARY SLOT, arriving through two SEPARATE
     // `JobStepRowSlot`s: JobTracking's next-step CTA and JobConfirmation's
-    // "I'm Still On".
-    name: "Jobs · Confirmed, day-of confirmation owed — I'm On My Way + I'm Still On",
+    // "I'm still on".
+    name: "Jobs · Confirmed, day-of confirmation owed — I'm On My Way + I'm still on",
     side: "helper",
     render: () =>
       wrap(
@@ -338,7 +338,7 @@ export const CASES: Case[] = [
     minControls: 4,
   },
   {
-    name: "Jobs · On the Way — Directions · Message · Report a Problem + I've Arrived",
+    name: "Jobs · On the way — Directions · Message · Report a Problem + I've Arrived",
     side: "helper",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
@@ -381,7 +381,7 @@ export const CASES: Case[] = [
     minControls: 3,
   },
   {
-    name: "Jobs · Revision — I'll Fix It + Message",
+    name: "Jobs · Revision — I'll fix it + Message",
     side: "helper",
     render: active(
       makeJob({

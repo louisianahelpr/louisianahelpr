@@ -103,7 +103,7 @@ const ACCEPTED = new Map<string, number>([
   // that reads as legible as an enabled one is a new defect — and it carries
   // `opacity-50` beside the tint saying the same thing twice on purpose.
   ["src/components/ui/calendar.tsx --olivewood/0.35", 1], //              1.99:1 — react-day-picker's `disabled` day button
-  // The same exemption: "Get quotes / Coming soon" on Post a Job is an option that cannot be chosen (tapping it only
+  // The same exemption: "Get quotes / Coming soon" on Post a job is an option that cannot be chosen (tapping it only
   // shows the coming-soon note; aria-label "Get quotes, coming soon"). Greyed on purpose (owner, 10-19; lead approved the shots).
   ["src/components/quotes/PostJobQuoteChoice.tsx --muted-foreground/0.6", 1], // 2.54:1 — the inactive "Get quotes / Coming soon" option
 ]);

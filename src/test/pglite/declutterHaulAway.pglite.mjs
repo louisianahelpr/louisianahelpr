@@ -254,10 +254,10 @@ ok(one(await cancel(SELLER, I(2))) === "live", "undo item 2 (its job was deleted
 ok(await itemStatus(I(2)) === "live", "item 2 is live again");
 ok(refused(await cancel(SELLER2, I(8)), /item_not_found/), "a stranger is told item_not_found");
 ok(one(await link(SELLER, [I(5)], J(4))) === 1, "an off-sale (ended) item links");
-ok(one(await cancel(SELLER, I(5), J(3))) === "ended", "Post a Job's undo for ANOTHER job leaves this link alone");
+ok(one(await cancel(SELLER, I(5), J(3))) === "ended", "Post a job's undo for ANOTHER job leaves this link alone");
 ok(one(await svc(`SELECT count(*)::int FROM public.declutter_haul_aways WHERE item_id = '${I(5)}'`)) === 1, "the link to job 4 is still there");
 await svc(`DELETE FROM public.jobs WHERE id = '${J(4)}'`);
-ok(one(await cancel(SELLER, I(5), J(4))) === "ended", "Post a Job's own undo after deleting its job: restores 'ended', the prior status");
+ok(one(await cancel(SELLER, I(5), J(4))) === "ended", "Post a job's own undo after deleting its job: restores 'ended', the prior status");
 // P4: link, take down (photos removed), undo -> stays off sale.
 await db.exec(liveItemSql({ id: I(21), title: "Haul item 21", liveHoursAgo: 20 * DAY }));
 await svc(`INSERT INTO public.declutter_item_photos (item_id, seller_id, storage_path, position)
@@ -278,7 +278,7 @@ ok(refused(await cancel(SELLER, I(1)), /haul_away_not_found/), "nothing left to 
 ok(one(await svc(`SELECT has_function_privilege('authenticated', 'public.declutter_haul_job_hold(uuid)', 'EXECUTE')`)) === false,
   "the hold helper is service-only");
 
-// F. The re-link before a retry (re-review 2026-10-17, finding 1): Post a Job
+// F. The re-link before a retry (re-review 2026-10-17, finding 1): Post a job
 //    re-links before paying again for a job whose hand-off answer was lost. A
 //    gift card may have funded it meanwhile; re-linking the same items to it
 //    is success, not haul_away_job_not_found (which the app used to answer by

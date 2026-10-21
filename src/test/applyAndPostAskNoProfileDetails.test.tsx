@@ -12,7 +12,7 @@
  *
  * Two halves:
  *  1. Behaviour. A signed-in member with NO photo, NO phone and NO birthday
- *     taps Apply Now / Continue to Payment: the action runs at once, and no
+ *     taps Apply now / Continue to payment: the action runs at once, and no
  *     prompt, phone field or birthday field appears.
  *  2. The class. Every source file the Apply flow (ApplyConfirmDialog) and the
  *     Post flow (PostJob) can reach by import, inventoried from the source, is
@@ -139,7 +139,7 @@ beforeEach(() => {
 });
 
 describe("Apply and Post ask for no photo, phone or birthday (owner, 2026-10-14)", () => {
-  it("Apply Now applies at once for a member with no photo, phone or birthday", async () => {
+  it("Apply now applies at once for a member with no photo, phone or birthday", async () => {
     cacheBareProfile();
     const props = applyProps();
     render(<ApplyConfirmDialog {...props} />);
@@ -149,11 +149,11 @@ describe("Apply and Post ask for no photo, phone or birthday (owner, 2026-10-14)
     expectNoProfilePrompt();
   });
 
-  it("Continue to Payment posts at once for a member with no photo, phone or birthday", async () => {
+  it("Continue to payment posts at once for a member with no photo, phone or birthday", async () => {
     cacheBareProfile();
     const form = postForm();
     render(<CheckoutStepView form={form} />);
-    fireEvent.click(screen.getByRole("button", { name: "Continue to Payment" }));
+    fireEvent.click(screen.getByRole("button", { name: "Continue to payment" }));
     await act(async () => {});
     expect(form.handleSubmit).toHaveBeenCalledTimes(1);
     expectNoProfilePrompt();

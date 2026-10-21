@@ -17,7 +17,7 @@ import { JOB_TIMEZONE } from "../../../supabase/functions/_shared/cancellationFe
  *     job is not stalled — no disabled box, no "Why?" chip.
  *   - `helper_cancel_booking`'s gate and `hasJobStarted` resolve through
  *     `jobLocalStartMs`, also Central. A "start already passed" fixture dated
- *     UTC-tomorrow has a start that is still in the future, so Cancel Job is
+ *     UTC-tomorrow has a start that is still in the future, so Cancel job is
  *     correctly still offered.
  *   - Activity bucketing compares `jobDateMs` against `todayMs()`
  *     (src/lib/jobDate.ts), which is America/Chicago midnight, so "today is

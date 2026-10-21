@@ -19,7 +19,7 @@ export const DashboardBannedScreen = ({ banStatus }: BannedScreenProps) => (
           <XCircle className="w-8 h-8 text-destructive-ink" />
         </div>
         <h1 className="text-page-title text-foreground">
-          Account {banStatus === "permanently_banned" ? "Permanently Banned" : "Temporarily Suspended"}
+          Account {banStatus === "permanently_banned" ? "Permanently banned" : "Temporarily suspended"}
         </h1>
         <p className="text-muted-foreground">
           {banStatus === "permanently_banned"

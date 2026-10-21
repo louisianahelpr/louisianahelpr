@@ -496,14 +496,14 @@ const UserProfile = () => {
                       end for the poster and noise for the recipient. */}
                   {workedJobs.length > 0 && (
                     <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                      <Briefcase className="w-4 h-4 mr-2" /> Offer a Job Directly
+                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
-                    <Flag className="w-4 h-4 mr-2" /> Report User
+                    <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                    <Ban className="w-4 h-4 mr-2" /> Block User
+                    <Ban className="w-4 h-4 mr-2" /> Block user
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

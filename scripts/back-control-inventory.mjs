@@ -155,7 +155,7 @@ const GO_BACK_CALL = /navigate\(\s*-1\s*\)|history\.back\(\)|router\.back\(\)|\b
  * The distinction decides which rule applies, and it is not cosmetic. An
  * icon-only exit is CHROME: a bare glyph with a painted hit area around it,
  * and that painted area is the thing the owner is looking at when they say
- * "square … circle". A LABELLED exit ("Go Back", "Cancel selection") is an
+ * "square … circle". A LABELLED exit ("Go back", "Cancel selection") is an
  * ordinary button wearing `buttonVariants`, whose radius belongs to the button
  * family and must NOT be forced round — a rounded-full text button is a pill,
  * which is a different component entirely.

@@ -74,7 +74,7 @@ export function SaveBar({ dirty, saving, justSaved, onBack, onSave }: SaveBarPro
           cursor: saving ? "not-allowed" : "pointer",
         }}
       >
-        {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : "Save Changes"}
+        {saving ? (<><Loader2 className="w-4 h-4 animate-spin" /> Saving…</>) : justSaved ? (<><Check className="w-4 h-4" strokeWidth={3} /> Saved</>) : "Save changes"}
       </button>
     </div>
   );

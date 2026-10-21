@@ -561,7 +561,7 @@ test("2a · route-level render crash is caught by RouteErrorBoundary", async ({ 
   const heading = page.getByText("This page hit a problem.", { exact: false });
   await expect(heading).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("We've logged it. Try again or head back home.")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Try Again/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
   await expect(page.getByRole("button", { name: /Go Home/i })).toBeVisible();
   // Not a white screen: the boundary's card is real, painted content.
   const bodyText = (await page.locator("body").innerText()).trim();
@@ -642,7 +642,7 @@ test("2b · lazy-chunk fetch failure never white-screens; records what the user 
 
   // The floor this test defends: something honest is painted, not a blank page.
   expect(body.length).toBeGreaterThan(20);
-  await expect(page.getByRole("button", { name: /Try Again|Reload/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Try again|Reload/i })).toBeVisible();
 });
 
 test("an unrecovered chunk 404 shows the honest error card, never 'Update ready'", async ({
@@ -658,7 +658,7 @@ test("an unrecovered chunk 404 shows the honest error card, never 'Update ready'
   // matches (src/lib/chunkReload.ts:15-32). Consequences whenever
   // recoverFromChunkError() declines to reload (the 10s guard, or offline):
   //   • the user gets "This page hit a problem." for a routine stale deploy
-  //   • "Try Again" re-renders the same dead module reference and re-throws
+  //   • "Try again" re-renders the same dead module reference and re-throws
   //   • report() fires, so every stale deploy becomes Sentry route-error noise
   // Was test.fail() while src/main.tsx swallowed the chunk error via an
   // unconditional preventDefault(). Fixed in cea0055f, so this is now a
@@ -731,7 +731,7 @@ test("2c · section-level crash is contained by SectionBoundary", async ({
   await expect(
     page.getByText("The rest of the page is still fine.", { exact: false }),
   ).toBeVisible();
-  await expect(page.getByRole("button", { name: /Try Again/i })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
   await shot(page, "2c-section-crash");
 
   // Containment: the route did NOT fall through to the route-level boundary.

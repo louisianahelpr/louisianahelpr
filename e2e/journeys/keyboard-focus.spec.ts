@@ -15,7 +15,7 @@ import { defaultInboxTab } from "../../src/lib/inboxDefault";
  * inventory of that control kind on the real screen, against prod, so a new
  * offender of the same shape goes red without anyone writing a new test:
  *
- *   a. EVERY focusable on Complete Profile, and inside Post a Job's date
+ *   a. EVERY focusable on Complete Profile, and inside Post a job's date
  *      calendar, paints a focus indicator (original: the DOB wheel's
  *      Month/Day/Year listboxes, `focus-visible:outline-none`; the wheel left
  *      the app with the birthday question, 8d44b5aab, 2026-10-14).
@@ -87,7 +87,7 @@ const guestTitle = scenarioTitle({ journey: "keyboard", persona: "new", state: "
 // keyboard user meets now: `focus-visible:outline-none` with NOTHING in its
 // place (the DOB wheel, audit 2026-09-12). Stripping the Input's replacement
 // ring leaves every Complete Profile text field focused with nothing painted,
-// and stripping the calendar day's leaves every day of Post a Job's calendar
+// and stripping the calendar day's leaves every day of Post a job's calendar
 // the same way; "focused with nothing painted" is what catches each.
 // @mutate src/components/ui/input.tsx | "focus-visible:ring-2 focus-visible:ring-[hsl(var(--olivewood)/0.25)] focus-visible:ring-offset-0", | "focus-visible:ring-0",
 // @mutate src/components/ui/calendar.tsx | "h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full" | "focus-visible:ring-0 h-11 w-11 p-0 font-sans font-medium text-[hsl(var(--ink-deep))] aria-selected:opacity-100 rounded-full"
@@ -316,7 +316,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     expect(unpainted, "file picker focused with nothing painted").toEqual([]);
   });
 
-  await test.step("f. Post a Job's date calendar: every stop paints focus, and Tab never changes the day", async () => {
+  await test.step("f. Post a job's date calendar: every stop paints focus, and Tab never changes the day", async () => {
     // The date picker a keyboard user meets now (the DOB wheel went with the
     // birthday question, 8d44b5aab). Same two originals as the wheel's: a stop
     // with nothing painted, and Tab moving the chosen value (2026-09-12: two

@@ -292,7 +292,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       window.print();
     } catch {
       toast.error("Couldn't open the print dialog", {
-        description: "Use Share Record (PDF) to send this record instead.",
+        description: "Use Share record (PDF) to send this record instead.",
       });
     }
   }
@@ -652,7 +652,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 ) : (
                   <Share2 className="w-4 h-4" />
                 )}
-                {isSharing ? "Preparing record\u2026" : "Share Record (PDF)"}
+                {isSharing ? "Preparing record\u2026" : "Share record (PDF)"}
               </button>
               {canPrintDocument && (
                 <button

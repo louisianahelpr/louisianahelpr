@@ -82,7 +82,7 @@ describe("signOutWithPushCleanup", () => {
     expect(removePersistedClient).toHaveBeenCalledTimes(1);
   });
 
-  it("a plain Log Out ends THIS device's session only; Sign Out Everywhere stays global", async () => {
+  it("a plain Log Out ends THIS device's session only; Sign out Everywhere stays global", async () => {
     // supabase-js defaults to scope "global": a phone Log Out used to sign the
     // web out too (verified live, 2026-09-12).
     const { signOutWithPushCleanup } = await import("./authSignOut");
@@ -226,7 +226,7 @@ describe("signOutWithPushCleanup", () => {
     }
   });
 
-  it("Sign Out Everywhere past its cap is an ERROR, never success (the other devices were not confirmed)", async () => {
+  it("Sign out Everywhere past its cap is an ERROR, never success (the other devices were not confirmed)", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     vi.useFakeTimers();
     try {
@@ -243,7 +243,7 @@ describe("signOutWithPushCleanup", () => {
     }
   });
 
-  it("Sign Out Everywhere with no session on this device is an error and sends nothing (auth-js would answer success)", async () => {
+  it("Sign out Everywhere with no session on this device is an error and sends nothing (auth-js would answer success)", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     getSession.mockResolvedValueOnce({ data: { session: null } } as never);
     const { signOutWithPushCleanup } = await import("./authSignOut");

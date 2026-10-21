@@ -1215,7 +1215,7 @@ describe("stripe-webhook edge function", () => {
     });
 
     // Q1346 (owner, 2026-10-12): the job whose checkout KEPT the setup fee
-    // carries it, so the poster's Spent total and Home History count it.
+    // carries it, so the poster's Spent total and Home history count it.
     // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |       await stampJobSetupFee(session, posterId, { supabase, logStep }); |
     // @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |     .update({ onboarding_fee_amount: feeCents / 100 }) |     .update({ onboarding_fee_amount: 2 })
     it("the winning checkout stamps the setup fee it kept on its job (Q1346)", async () => {

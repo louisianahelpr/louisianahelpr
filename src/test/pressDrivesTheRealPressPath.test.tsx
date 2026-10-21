@@ -9,7 +9,7 @@
  *    body's `let target`: a TDZ ReferenceError on every gate-approved write,
  *    which the row's catch turns into "HARNESS ERROR: Cannot access 'target'
  *    before initialization". Every unit test of -9's helpers was green. Here a
- *    test-owned job card's backout "Got It" (a write: ack_backout_notice) must
+ *    test-owned job card's backout "Got it" (a write: ack_backout_notice) must
  *    be pressed as a gated write and PASS, and no row may end in a harness
  *    error.
  *
@@ -23,7 +23,7 @@
  *    handler, so it can do nothing the dialog's own × does not; it carries
  *    `data-popup-dismiss`, and the harness exempts such a control from
  *    DESTRUCTIVE_RX inside an open popup. A "Got it" that is a plain
- *    DialogPrimaryAction (which may run any onClick), or a backout "Got It" on
+ *    DialogPrimaryAction (which may run any onClick), or a backout "Got it" on
  *    a card no test entity owns, is still gated.
  *
  * @mutate scripts/audit/press-every-control.mjs | if (entry.mutating) { | if (entry.mutating && false) {
@@ -106,7 +106,7 @@ function BackoutCard({ title }: { title: string }) {
 }
 
 /**
- * /posts as run 39014836855 met it: identical "Got It"s on sibling cards, and
+ * /posts as run 39014836855 met it: identical "Got it"s on sibling cards, and
  * an acknowledged card LEAVES the list (server state: `acked.ids` outlives a
  * reload). After A is acked and the page reloaded, the path the sweep queued
  * for B's button holds C's.
@@ -214,17 +214,17 @@ describe("press-every-control main(): the real press loop", () => {
     for (const r of rows) expect(`${r.route}: ${r.status} ${r.notes.join(" | ")}`).toBe(`${r.route}: ok ${r.notes.join(" | ")}`);
   });
 
-  it("presses each test-owned card's backout Got It as a gated write, ON THAT CARD, and passes", () => {
+  it("presses each test-owned card's backout Got it as a gated write, ON THAT CARD, and passes", () => {
     const row = rows.find((r) => r.route === "/fixture/owned-cards")!;
-    const gots = row.controls.filter((c) => c.label === "Got It");
+    const gots = row.controls.filter((c) => c.label === "Got it");
     expect(gots.map((g) => `${g.mutating} ${g.result} ${g.why}`)).toEqual(["true PASS ", "true PASS ", "true PASS "]);
     // B's queued path pointed at C's button once A left the list; the press
     // must still ack B, then C. Without the press-time record check: A, C, B.
     expect(acked.ids).toEqual(OWNED.map((t) => `notice-${t}`));
   });
 
-  it("never presses the same Got It on a card no test entity owns", () => {
-    const got = control("/fixture/foreign-card", "Got It");
+  it("never presses the same Got it on a card no test entity owns", () => {
+    const got = control("/fixture/foreign-card", "Got it");
     expect(got.result).toBe("SKIP");
     expect(got.why).toMatch(/^not test-owned/);
   });

@@ -148,7 +148,7 @@ export const SCENARIOS = {
   "/post-job": {
     session: "poster",
     from: "/home",
-    arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a Job'):visible",
+    arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a job'):visible",
     steps: [
       { tap: "button:has-text('Start from scratch')" },
       // Five screens (boards 23/44/3/45): category, details, price, when and where.
@@ -250,8 +250,8 @@ export async function runScenario(page, steps) {
 }
 
 /**
- * The tap that brings a person to the screen (the landing's Log In, the dock's
- * Post a Job). Speed Insights bills a visit's INP to the route on screen when
+ * The tap that brings a person to the screen (the landing's Log in, the dock's
+ * Post a job). Speed Insights bills a visit's INP to the route on screen when
  * the tab is hidden, so the tap that RENDERS a screen counts against it.
  */
 export async function arrive(page, selector, route) {

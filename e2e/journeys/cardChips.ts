@@ -13,7 +13,7 @@
  * /^Reviewed\b/ })` counted 0 while the page had it.
  *
  * Again 2026-10-17 (e2e-journeys 39020810698, chromium): the poster's booked
- * card at 390px is More + "I'm Still On" (one row = More + the primary), so
+ * card at 390px is More + "I'm still on" (one row = More + the primary), so
  * "Message Helpr" sat in the More panel and `pp.getByRole("button", { name:
  * "Message Helpr" })` timed out. Moved here from 02-marketplace.spec.ts so
  * every journey file looks a chip up the same way.

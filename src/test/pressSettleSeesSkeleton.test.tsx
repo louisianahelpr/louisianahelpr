@@ -4,7 +4,7 @@
 // `[aria-busy]` and no `animate-pulse` remained. The shared <Skeleton> shimmers
 // with `animate-[shimmer_2s_infinite]` instead, so settle never saw it: on run
 // 36986080914 /profile?tab=earnings was pressed while EarningsPageSkeleton was
-// still waiting on Stripe, and "More Insights" was reported "not found on a
+// still waiting on Stripe, and "More insights" was reported "not found on a
 // freshly loaded page". The selector settle() uses is LOADING_SEL; this pins
 // that every loading primitive the app renders matches it.
 //

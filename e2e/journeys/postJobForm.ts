@@ -93,7 +93,11 @@ export async function fillJobDetails(page: Page, title: string, photoPath?: stri
  */
 export async function fillLogistics(page: Page, slot: Slot, allowReport: (message: RegExp, why: string) => void) {
   await expect(page.getByRole("heading", { name: "When and where?" })).toBeVisible({ timeout: 20_000 });
-  await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
+  // Friction 4 (2026-10-21): one address search box; "Enter it yourself" opens the four fields, the
+  // path this journey needs for the parish-less ZIP 99999. Absent when MapKit is not ready (fields show).
+  const manual = page.getByRole("button", { name: "Enter it yourself" });
+  if (await manual.isVisible().catch(() => false)) await manual.click();
+  await page.getByRole("combobox", { name: "Street Address" }).or(page.getByRole("textbox", { name: "Street Address" })).fill("100 Audit Way");
   await page.keyboard.press("Escape");
   await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
   await page.keyboard.press("Escape");

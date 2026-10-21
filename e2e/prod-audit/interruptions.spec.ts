@@ -565,7 +565,9 @@ test.describe("post a job", () => {
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await page.getByRole("button", { name: "Continue", exact: true }).click();
 
-    await page.getByRole("combobox", { name: "Street Address" }).fill("100 Audit Way");
+    const manual = page.getByRole("button", { name: "Enter it yourself" });
+    if (await manual.isVisible().catch(() => false)) await manual.click();
+    await page.getByRole("combobox", { name: "Street Address" }).or(page.getByRole("textbox", { name: "Street Address" })).fill("100 Audit Way");
     await page.keyboard.press("Escape");
     await page.getByRole("combobox", { name: "City" }).fill("Baton Rouge");
     await page.keyboard.press("Escape");

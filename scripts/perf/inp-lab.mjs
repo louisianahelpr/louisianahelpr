@@ -166,6 +166,8 @@ export const SCENARIOS = {
       { tap: "button:text-is('Continue')" },
       { tap: "button[role=radio]:has-text('Repeats')", now: true },
       { tap: "button[role=radio]:has-text('One-Time')", now: true },
+      // One address box since 2026-10-21; the lab measures the four fields, so open them.
+      { tap: "button:text-is('Enter it yourself')" },
       { type: "#streetAddress", text: "222 Saint Louis St" },
       { tap: "[role=option] >> nth=0" },
       { type: "#zipCode", text: "70802", clear: true },

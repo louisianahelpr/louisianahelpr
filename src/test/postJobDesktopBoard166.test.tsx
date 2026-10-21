@@ -33,6 +33,6 @@ describe("board 166: group cards", () => {
     expect(home.getAttribute("aria-pressed")).toBe("true");
     expect(home.className).toContain("border-2");
     expect(home.className).not.toContain("btn-grad-primary");
-    expect(home.textContent).toMatch(/^HomeCleaning, handyman/);
+    expect(home.textContent).toMatch(/^🏠HomeCleaning, handyman/u);
   });
 });

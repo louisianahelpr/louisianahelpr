@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { PenLine, FileText, LayoutTemplate, ChevronRight, ChevronDown, RotateCcw, Sparkles, UserCheck } from "lucide-react";
+import { FileText, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import { START_EMOJI } from "@/lib/categoryEmoji";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { sampleJobs } from "@/data/sampleJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
@@ -313,16 +314,16 @@ export function EntryChoice({ form }: EntryChoiceProps) {
 
 
       {/* 1 — START FRESH */}
-      {startCard("fresh", <PenLine className="h-5 w-5" />, "Start from scratch", "Pick a category and fill it in.", form.startFresh)}
+      {startCard("fresh", <span className="text-ds-20 leading-none">{START_EMOJI.fresh}</span>, "Start from scratch", "Pick a category and fill it in.", form.startFresh)}
       {/* 2 — USE A TEMPLATE */}
-      {startCard("templates", <LayoutTemplate className="h-5 w-5" />, "Use a template", "Start from a common job, then edit anything.", () => {
+      {startCard("templates", <span className="text-ds-20 leading-none">{START_EMOJI.templates}</span>, "Use a template", "Start from a common job, then edit anything.", () => {
         track("post_job_entry_choice", { choice: "use_template_open" });
         form.setEntryPanel("templates");
       })}
       {/* 3 — OFFER TO A SAVED HELPR */}
-      {startCard("offer", <UserCheck className="h-5 w-5" />, "Offer to a saved Helpr", "Send it to someone you've saved before it opens to everyone.", () => form.setEntryPanel("offer"))}
+      {startCard("offer", <span className="text-ds-20 leading-none">{START_EMOJI.offer}</span>, "Offer to a saved Helpr", "Send it to someone you've saved before it opens to everyone.", () => form.setEntryPanel("offer"))}
       {/* 4 — AI JOB BUILDER */}
-      {startCard("ai", <Sparkles className="h-5 w-5" />, "Get help from AI", "Describe it in your own words, and AI fills in the form.", () => form.setEntryPanel("ai"))}
+      {startCard("ai", <span className="text-ds-20 leading-none">{START_EMOJI.ai}</span>, "Get help from AI", "Describe it in your own words, and AI fills in the form.", () => form.setEntryPanel("ai"))}
 
       {/* 5 — LOAD DRAFT: only when a saved draft exists, and never for a draft whose job is already paid;
           Q769 warns while its checkout is live. */}

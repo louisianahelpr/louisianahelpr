@@ -11,7 +11,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * `aria-label` MUST NOT REPLACE A VISIBLE LABEL — WCAG 2.5.3 Label in Name.
  *
  * `aria-label` does not annotate the visible text; it OVERWRITES it. So a
- * button that reads "Hire Again" and carries
+ * button that reads "Hire again" and carries
  * `aria-label="Hire this Helpr again"` has an accessible name that does not
  * contain the words on its own face. A voice-control user says "click Hire
  * Again" and nothing happens — the only words that work are ones they cannot
@@ -47,7 +47,7 @@ describe("a component taking BOTH a visible label and an ariaLabel", () => {
     render(
       <JobActionChip
         icon={Wrench}
-        label="Hire Again"
+        label="Hire again"
         tone="neutral"
         onClick={() => {}}
         ariaLabel="Hire this Helpr again"
@@ -57,7 +57,7 @@ describe("a component taking BOTH a visible label and an ariaLabel", () => {
     expect(
       name.toLowerCase().includes("hire again"),
       `the chip's accessible name is "${name}", which does not contain its visible text ` +
-        `"Hire Again". A voice-control user can only say words that are IN the accessible ` +
+        `"Hire again". A voice-control user can only say words that are IN the accessible ` +
         `name (WCAG 2.5.3), and the only words they can SEE are the visible ones. ` +
         `Compose — do not substitute. See composeAccessibleName in ` +
         `src/components/job-card/JobActionRow.tsx.`,
@@ -72,10 +72,10 @@ describe("a component taking BOTH a visible label and an ariaLabel", () => {
     render(
       <JobActionChip
         icon={Wrench}
-        label="Hire Again"
+        label="Hire again"
         tone="neutral"
         onClick={() => {}}
-        ariaLabel="Hire Again — this Helpr, on a new job"
+        ariaLabel="Hire again — this Helpr, on a new job"
       />,
     );
     const name = screen.getByRole("button").getAttribute("aria-label")!;
@@ -157,7 +157,7 @@ describe("no element's aria-label overwrites its own visible text", () => {
     /**
      * The pattern being hunted:
      *
-     *     <button aria-label="Hire this Helpr again">Hire Again</button>
+     *     <button aria-label="Hire this Helpr again">Hire again</button>
      *
      * i.e. a LITERAL aria-label and a LITERAL text child on the same element.
      * Interpolated names (`aria-label={`${label} — …`}`) are out of scope for a
@@ -232,7 +232,7 @@ describe("no element's aria-label overwrites its own visible text", () => {
 // Substitute at the CALL SITE, leaving `composeAccessibleName` defined and
 // every source-text pin in this file satisfied — the "satisfied by a DEFINITION
 // rather than a call" shape. `JobActionChip` then renders
-// `aria-label={ariaLabel}`, so the chip that READS "Hire Again" ANSWERS only to
+// `aria-label={ariaLabel}`, so the chip that READS "Hire again" ANSWERS only to
 // "Hire this Helpr again": a voice-control user can say none of the words they
 // can see (WCAG 2.5.3). Killed by the RUNTIME accessible-name assertion at the
 // top of this file, not by any class-name or source pin.

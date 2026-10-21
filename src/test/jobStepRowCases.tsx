@@ -102,7 +102,7 @@ export const TAP_TARGET_PX = 44;
  * jsdom resolves no font, so the shell's real probe (`longestWordPx`) measures
  * 0 here. This is a deliberately coarse stand-in for `text-ds-11` in the app's
  * sans stack, calibrated against the one hard data point the prod pass gave
- * us: "Withdraw Dispute" wrapped to "Withdraw", and its label needed ~55px in
+ * us: "Withdraw dispute" wrapped to "Withdraw", and its label needed ~55px in
  * the 12px box it was given (12 + 43px of overflow). The model puts "Withdraw"
  * at 45px plus the control's 12px of padding and hairline = 57px.
  *
@@ -298,7 +298,7 @@ export interface Case {
 
 export const CASES: Case[] = [
   {
-    name: "Jobs · Confirmed — Directions · Message · Cancel Job + I'm On My Way",
+    name: "Jobs · Confirmed — Directions · Message · Cancel job + I'm on my way",
     side: "helper",
     render: () =>
       wrap(
@@ -318,8 +318,8 @@ export const CASES: Case[] = [
   {
     // TWO CONTROLS IN THE ONE PRIMARY SLOT, arriving through two SEPARATE
     // `JobStepRowSlot`s: JobTracking's next-step CTA and JobConfirmation's
-    // "I'm Still On".
-    name: "Jobs · Confirmed, day-of confirmation owed — I'm On My Way + I'm Still On",
+    // "I'm still on".
+    name: "Jobs · Confirmed, day-of confirmation owed — I'm on my way + I'm still on",
     side: "helper",
     render: () =>
       wrap(
@@ -338,7 +338,7 @@ export const CASES: Case[] = [
     minControls: 4,
   },
   {
-    name: "Jobs · On the Way — Directions · Message · Report a Problem + I've Arrived",
+    name: "Jobs · On the way — Directions · Message · Report a Problem + I've arrived",
     side: "helper",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
@@ -357,7 +357,7 @@ export const CASES: Case[] = [
        labels still have to fit their controls, and `primaryNeeds` still takes
        an array because the day-of confirmation can put a second control in
        this slot through its own `JobStepRowSlot`. Only the count moved. */
-    name: "Jobs · Arrived, unverified — Start Working (retry chip removed)",
+    name: "Jobs · Arrived, unverified — Start working (retry chip removed)",
     side: "helper",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
     minControls: 3,
@@ -375,7 +375,7 @@ export const CASES: Case[] = [
     minControls: 3,
   },
   {
-    name: "Jobs · Working — Mark Job Complete + Message · Report a Problem",
+    name: "Jobs · Working — Mark job complete + Message · Report a Problem",
     side: "helper",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,
@@ -393,7 +393,7 @@ export const CASES: Case[] = [
     minControls: 3,
   },
   {
-    name: "Jobs · Disputed by the Helpr — Withdraw Dispute + Timeline · Message · Contact Admin",
+    name: "Jobs · Disputed by the Helpr — Withdraw dispute + Timeline · Message · Contact admin",
     side: "helper",
     render: disputedHelper(makeJob({ status: "disputed", dispute_status: "open", disputed_by: HELPER, dispute_reason: "x" })),
     minControls: 4,
@@ -419,32 +419,32 @@ export const CASES: Case[] = [
     minControls: 4,
   },
   {
-    name: "Posts · Scheduled — Message · Cancel + Confirm Arrival",
+    name: "Posts · Scheduled — Message · Cancel + Confirm they've arrived",
     side: "poster",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", poster_confirmed_arrival_at: null }))} />),
     minControls: 3,
   },
   {
-    name: "Posts · In Progress — SOS · Message + Confirm They're Working",
+    name: "Posts · In Progress — SOS · Message + Confirm they're working",
     side: "poster",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), poster_confirmed_working_at: null }))} />),
     minControls: 3,
   },
   {
-    name: "Posts · In Progress, both vouches in — disabled Working Confirmed",
+    name: "Posts · In Progress, both vouches in — disabled Working confirmed",
     side: "poster",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ date_needed: TODAY, poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
     minControls: 3,
   },
   {
-    name: "Posts · Completed — Tip · Review · Hire Again · Re-Post",
+    name: "Posts · Completed — Tip · Review · Hire again · Re-Post",
     side: "poster",
     render: () => wrap(<CompletedStep {...posterCtx(makeJob({ status: "completed", poster_completed_at: ago(1), helper_completed_at: ago(2), payment_status: "released" }))} />),
     minControls: 3,
   },
   {
     // THE 12px SCREENSHOT, POSTER SIDE — and the widest row in the app:
-    // Escalate · Photos · Timeline · Message · Contact Admin + Resolve & Pay.
+    // Escalate · Photos · Timeline · Message · Contact admin + Resolve & Pay.
     // Its primary RELEASES ESCROW. This is the case a one-sided guard misses.
     name: "Posts · Disputed — FIVE chips + Resolve & Pay",
     side: "poster",

@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 
 /**
  * Owner, 2026-10-08 (Q1566, "there is no place for me to confirm the job is
- * still on"): the poster's "I'm Still On" closed at NOON on the job day, so a
+ * still on"): the poster's "I'm still on" closed at NOON on the job day, so a
  * same-day 2 PM job had no control after 12:00.
  *
  * The class: the poster may confirm right up to the job's start (no start
@@ -43,19 +43,19 @@ const at = (iso: string) => { vi.useFakeTimers(); vi.setSystemTime(new Date(iso)
 afterEach(() => vi.useRealTimers());
 
 describe("the poster can say the job is still on until it starts", () => {
-  it("1:00 PM on the day of a 2:00 PM job: I'm Still On is there (it closed at noon)", () => {
+  it("1:00 PM on the day of a 2:00 PM job: I'm still on is there (it closed at noon)", () => {
     at("2032-10-14T18:00:00Z");
     render(poster("14:00:00"));
-    expect(screen.getByRole("button", { name: /I'm Still On/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /I'm still on/ })).toBeTruthy();
   });
   it("after the start it is gone", () => {
     at("2032-10-14T19:05:00Z");
     render(poster("14:00:00"));
-    expect(screen.queryByRole("button", { name: /I'm Still On/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /I'm still on/ })).toBeNull();
   });
   it("no start time: open all day", () => {
     at("2032-10-14T22:00:00Z");
     render(poster(null));
-    expect(screen.getByRole("button", { name: /I'm Still On/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /I'm still on/ })).toBeTruthy();
   });
 });

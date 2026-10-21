@@ -159,7 +159,7 @@ export function DeclineApplicantSheet({
                   Cancel
                 </SheetSecondaryAction>
                 <SheetPrimaryAction disabled={declineSending} onClick={onConfirm}>
-                  {declineSending ? "Declining…" : "Confirm Decline"}
+                  {declineSending ? "Declining…" : "Confirm decline"}
                 </SheetPrimaryAction>
               </SheetFooter>
             </div>

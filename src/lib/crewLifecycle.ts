@@ -57,7 +57,7 @@ type StepStamps = Pick<
  *                    'open' and on-the-way / arrival refuse `job_not_active`
  *   set_out          confirmed, crew booked, not on the way yet
  *   arrive           on the way, not arrived
- *   awaiting_poster  arrived; the poster's per-member "Confirm They Arrived" is
+ *   awaiting_poster  arrived; the poster's per-member "Confirm they've arrived" is
  *                    the gate the server enforces before Done
  *   finish           arrival confirmed: photos, the 30-minute floor, then Done
  *   done             this member's part is marked done
@@ -212,7 +212,7 @@ export interface CrewDoneResult {
 const CREW_DONE_GATE_COPY: Record<string, string> = {
   job_not_completable: "This job isn't active any more, so your part can't be marked done. Pull to refresh.",
   completion_requires_confirmed_arrival:
-    'The person who posted this job has to tap "Confirm They Arrived" for you before you can mark your part done.',
+    `The person who posted this job has to tap "Confirm they've arrived" for you before you can mark your part done.`,
   completion_requires_proof_photos: "Add before and after photos of your part before marking it done.",
   completion_min_work_time: "A part can't be marked done within 30 minutes of starting.",
 };

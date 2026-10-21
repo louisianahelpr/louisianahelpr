@@ -671,7 +671,7 @@ test.describe("device pass — measured", () => {
     // on it would be indistinguishable in both the record and the diff.
     // Boards 14/21 (2026-10-20): each card is a face whose fallback button
     // "Manage job" opens it in place (helperFaceAction), and its own Close
-    // (MineOpenMeta) shuts it; the sr-only "Expand Job Details" toggle is gone.
+    // (MineOpenMeta) shuts it; the sr-only "Expand job details" toggle is gone.
     const offered: { card: number; withdraw: number; edit: number }[] = [];
     for (let i = 0; i < 2; i++) {
       await page.locator(CARD).nth(i).getByRole("button", { name: "Manage job" }).click();

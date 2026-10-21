@@ -169,7 +169,7 @@ function buttonTags(): Tag[] {
   return tags;
 }
 
-/** A LINK, not a button tier: an underlined text escape ("Cancel Job" under the
+/** A LINK, not a button tier: an underlined text escape ("Cancel job" under the
  *  confirm dialog). It is a `<button>` because its activation is not navigation
  *  — the right call — and it wears the link's own size, not a button tier's. */
 const isLinkStyled = (t: Tag) => /\bunderline\b|\blink-standard\b/.test(t.text);

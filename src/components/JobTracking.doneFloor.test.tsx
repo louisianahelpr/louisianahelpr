@@ -1,4 +1,4 @@
-// JobTracking "Mark Job Complete" — synchronous in-flight guard + the
+// JobTracking "Mark job complete" — synchronous in-flight guard + the
 // server-owned completion RPC.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary
@@ -110,7 +110,7 @@ function renderWorkingAt(arrivedMinAgo: number, workingMinAgo: number | null = n
   );
 }
 
-describe("Mark Job Complete is greyed for the first 30 minutes", () => {
+describe("Mark job complete is greyed for the first 30 minutes", () => {
   it("10 minutes after arrival: disabled", async () => {
     renderWorkingAt(10);
     const btn = await screen.findByRole("button", { name: /mark job complete/i });

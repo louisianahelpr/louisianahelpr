@@ -63,7 +63,7 @@ describe("the collapsed posted card's confirmation signal", () => {
   });
 
   it("does NOT flag the working vouch from the collapsed card (Q1571)", () => {
-    // It waits for the Helpr's Start Working, which lives on their tracker, not
+    // It waits for the Helpr's Start working, which lives on their tracker, not
     // on the job row the collapsed card reads; and it is optional (answer 3).
     const { container } = renderFor(
       job({ helper_arrived_at: T(2), poster_confirmed_arrival_at: T(1) }),

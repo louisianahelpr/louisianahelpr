@@ -54,7 +54,7 @@ export function computeJobExpiresAt(
 
 /** A new job must start at least this far out (owner, 2026-10-08: "at least 2
  *  hours"). Mirrors trg_jobs_short_notice (20261008190546). Two hours is when
- *  "I'm On My Way" unlocks, so a job posted any later cannot run its own day. */
+ *  "I'm on my way" unlocks, so a job posted any later cannot run its own day. */
 const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000;
 
 /**

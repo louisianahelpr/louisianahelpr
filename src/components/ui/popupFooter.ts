@@ -144,7 +144,7 @@
  * could not wrap, shrink or truncate. It spilled out of the pill on both
  * sides — the left spill landing ON TOP of the Cancel button, the right spill
  * clipped by DialogContent's `overflow-y-auto`. Seven labels at 393 ("Send
- * Re-Upload Request", "Boost — Free This Month", "Send Revision Request",
+ * Re-Upload Request", "Boost — Free This Month", "Send revision request",
  * "Confirm Withdrawal", "Delete Permanently", "Confirm No-Show", "Issue (No
  * Escalation)"), fifteen at 375, forty-five at 320 — including "Save Changes"
  * and "Submit Review". Not admin-only: the boost sheet, withdraw, revision

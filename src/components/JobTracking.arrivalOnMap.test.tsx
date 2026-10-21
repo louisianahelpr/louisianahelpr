@@ -130,7 +130,7 @@ describe("VN-20 — arrival labels", () => {
     });
   });
 
-  it("the map stays from On the Way through Arrived and Working, and hides once done", () => {
+  it("the map stays from On the way through Arrived and Working, and hides once done", () => {
     const ping = { latitude: 30.2, longitude: -92.0 };
     for (const status of ["on_the_way", "arrived", "working"]) {
       expect(shouldShowTrackingMap({ ...ping, status }, JOB_LAT, JOB_LNG)).toBe(true);
@@ -348,7 +348,7 @@ describe("the map survives a dispute or a revision (owner, 2026-09-16)", () => {
     jobLongitude: JOB_LNG,
     initialTracking: {
       id: "t-1",
-      // What the row really holds once "Mark Job Complete" was tapped.
+      // What the row really holds once "Mark job complete" was tapped.
       status: "done",
       latitude: JOB_LAT,
       longitude: JOB_LNG,
@@ -419,7 +419,7 @@ describe("the tracker draws NO person tile of its own", () => {
  * ITEM 8 — the green primary is the RIGHT-MOST control in the step row.
  *
  * The row's primary slot is `display:flex`, so source order is left-to-right.
- * The tracker put its glossy CTA first and the OUTLINE "Try My Location Again"
+ * The tracker put its glossy CTA first and the OUTLINE "Try my location again"
  * second, which placed the outline to the RIGHT of the primary on the one
  * state that shows both (helper, arrived-but-unverified).
  */
@@ -467,7 +467,7 @@ describe("the step row's primary slot puts the glossy primary last", () => {
 
   /* WHAT THIS CASE USED TO PIN. The tracker portalled TWO controls into the
      row's single primary slot in this state — its glossy next-step CTA and an
-     outline "Try My Location Again" — and source order decides left-to-right
+     outline "Try my location again" — and source order decides left-to-right
      in a flex row, so the outline had to come first for the green one to stay
      right-most (owner, 2026-09-16, V2/V3).
 
@@ -486,7 +486,7 @@ describe("the step row's primary slot puts the glossy primary last", () => {
         buttons.map((b) => JSON.stringify(b.textContent)).join(", "),
     ).toBe(1);
     expect(
-      buttons.some((b) => /Try My Location Again/.test(b.textContent ?? "")),
+      buttons.some((b) => /Try my location again/.test(b.textContent ?? "")),
       "the retry chip is back in the primary slot",
     ).toBe(false);
     expect(buttons[0].classList.contains("btn-grad-primary"), "the one control is not the glossy primary").toBe(true);

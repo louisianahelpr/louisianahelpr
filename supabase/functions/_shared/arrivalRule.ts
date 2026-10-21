@@ -17,7 +17,7 @@
 //
 // So arrival is established by ONE stamp:
 //
-//   poster_confirmed_arrival_at — the poster's "Confirm They Arrived" tap. The
+//   poster_confirmed_arrival_at — the poster's "Confirm they've arrived" tap. The
 //                                 half that cannot be faked, and the owner
 //                                 requires it in EVERY case.
 //
@@ -26,7 +26,7 @@
 //   helper_arrived_at           — the Helpr's claim. `mark_helper_arrival` now
 //                                 stamps it on every call (20260919155016), GPS
 //                                 or no GPS, near or far. It is what makes the
-//                                 poster's Confirm They Arrived control appear.
+//                                 poster's Confirm they've arrived control appear.
 //   helper_arrival_verified_at  — the server measured the coordinates the phone
 //                                 sent within 500 ft of the job. Shown to both
 //                                 parties as corroboration; unlocks nothing on
@@ -38,7 +38,7 @@
 // VN-33 (owner, 2026-09-14) had made it "verified AND confirmed. No fallback",
 // and `mark_helper_arrival` enforced the GPS half by REFUSING a far or fix-less
 // arrival and writing nothing at all. That is what deadlocked the job: with
-// helper_arrived_at NULL the poster's Confirm They Arrived never rendered,
+// helper_arrived_at NULL the poster's Confirm they've arrived never rendered,
 // while the Helpr's blocked CTA told them to ask the poster for exactly that
 // tap. VN-33(b) (20260915074058) patched only the within-a-mile case by letting
 // a near miss stand in for the GPS half.
@@ -136,7 +136,7 @@ export function arrivalGateMessage(
   // at the job to go and mark themselves arrived, on a row where one column
   // went missing. `controlReachability.test.ts` also needs this function to
   // read the near-miss column: it pairs copy with the control that offers the
-  // way out, and the poster's "Confirm They Arrived" is enabled off a near miss
+  // way out, and the poster's "Confirm they've arrived" is enabled off a near miss
   // on the in-progress step (`recentArrivalNearMiss`, posterStepContract.ts).
   // Drop the read and the pair's state space loses that path, which is how the
   // guard found this edit's first draft.
@@ -148,7 +148,7 @@ export function arrivalGateMessage(
     // The poster's tap is still named, because the Helpr has to know it is
     // coming before they are anywhere near it (owner: "they shoud be aware of
     // this so they dont try to cheat the system").
-    return `Mark yourself arrived at the job site first. The person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
+    return `Mark yourself arrived at the job site first. The person who posted this job has to tap "Confirm they've arrived" ${unlocks}.`;
   }
-  return `The person who posted this job has to tap "Confirm They Arrived" ${unlocks}.`;
+  return `The person who posted this job has to tap "Confirm they've arrived" ${unlocks}.`;
 }

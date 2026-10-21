@@ -324,15 +324,15 @@ export function JobActionRow({
  *
  * `aria-label` REPLACES the visible text rather than adding to it, so passing
  * the descriptive string alone left a voice-control user unable to say the word
- * they can see: "Hire Again" spoke as "Hire this Helpr again", "Contact Admin"
+ * they can see: "Hire again" spoke as "Hire this Helpr again", "Contact admin"
  * as "Contact an admin about this dispute". Deleting the descriptive text is
  * not the fix either — a screen-reader user out of the row's visual context
  * needs it. So compose: visible label first (what a voice user says), context
  * after (what a screen-reader user needs).
  *
  * The prefix is skipped when the caller's string already opens with the visible
- * label, so a call site that writes its own "Hire Again — …" does not come out
- * as "Hire Again — Hire Again — …".
+ * label, so a call site that writes its own "Hire again — …" does not come out
+ * as "Hire again — Hire again — …".
  */
 function composeAccessibleName(label: string, ariaLabel?: string): string | undefined {
   if (!ariaLabel) return undefined; // no aria-label: the visible text IS the name

@@ -13,7 +13,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
  *
  * Nothing is being asked and nothing is primary: the job is over and every
  * remaining control is optional. So this state is a review surface plus one
- * row — Tip · Review · Hire Again.
+ * row — Tip · Review · Hire again.
  *
  * No Dispute and no Report Job here (owner rule, 2026-09-14, VN-28: "they
  * can't report a job once it's done"). This reverses the earlier 7-day
@@ -34,7 +34,7 @@ export function CompletedStep({
   onReview,
 }: PosterStepCtx) {
   const [photosOpen, setPhotosOpen] = useState(false);
-  // Q1586(c): Hire Again / Re-Post start a post; greyed out under 18, a tap says why.
+  // Q1586(c): Hire again / Re-Post start a post; greyed out under 18, a tap says why.
   const { gate: ageGate, gatedProps: ageGatedProps } = useAgeGate();
   const meta = completedJobMeta[job.id];
   const hasTipped = meta?.tipped;
@@ -121,7 +121,7 @@ export function CompletedStep({
       actions={[
         /* The before & after pictures, first in the row: the quietest control
            here and the only one that isn't a fresh decision — Tip, Review and
-           Hire Again all are, and the owner's primary-right rule (V2/V3) keeps
+           Hire again all are, and the owner's primary-right rule (V2/V3) keeps
            the loudest of them on the right. */
         hasProof ? (
           <JobActionChip
@@ -173,8 +173,8 @@ export function CompletedStep({
           <JobActionChip
             key="again"
             icon={RotateCcw}
-            label="Hire Again"
-            ariaLabel={`Hire Again — hire ${helperName} for a new job`}
+            label="Hire again"
+            ariaLabel={`Hire again — hire ${helperName} for a new job`}
             tone="primary"
             onClick={ageGate("post", () => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`))}
             ageGated={ageGatedProps("post")}

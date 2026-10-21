@@ -35,7 +35,7 @@ const T = "2026-09-14T10:00:00Z";
  *
  * WHY. VN-33 was enforced by `mark_helper_arrival` REFUSING a far or fix-less
  * arrival and writing nothing at all. `helper_arrived_at` therefore stayed
- * NULL — and the poster's "Confirm They Arrived" control renders only once that
+ * NULL — and the poster's "Confirm they've arrived" control renders only once that
  * stamp exists. So the poster was never offered the tap, while the Helpr's
  * blocked CTA told them to go ask the poster for exactly that tap. The job
  * could not move and neither party had a control that would move it.
@@ -109,7 +109,7 @@ describe("arrivalGate — the poster confirms an arrival GPS did not verify (202
     const none = arrivalGateMessage({});
 
     for (const m of [nearMiss, claimed, none]) {
-      expect(m).toContain("Confirm They Arrived");
+      expect(m).toContain("Confirm they've arrived");
       // The superseded copy. "both are needed" is now false: only one is.
       expect(m).not.toMatch(/both are needed/i);
       // And the reversal must not be mis-shipped as "GPS is enough".
@@ -144,10 +144,10 @@ describe("arrivalGate — the poster confirms an arrival GPS did not verify (202
     ];
     for (const m of blocked) {
       // The blocker, always.
-      expect(m).toContain("Confirm They Arrived");
+      expect(m).toContain("Confirm they've arrived");
       // The GPS ask and its control belong to the muted line, not to this one.
       expect(m, `amber must not carry the GPS ask: ${m}`).not.toMatch(/location on|turn location/i);
-      expect(m, `amber must not name the retry control: ${m}`).not.toContain("Try My Location Again");
+      expect(m, `amber must not name the retry control: ${m}`).not.toContain("Try my location again");
       // Evidence is not a blocker: the proof caption and the map pin already
       // say what the location did or did not show.
       expect(m, `amber must not recite location evidence: ${m}`).not.toMatch(
@@ -286,7 +286,7 @@ describe("the arrival verdict from mark_helper_arrival", () => {
       expect(copy, basis).not.toMatch(/couldn't (mark|check) you|too far from the job — get closer|get within 500/i);
       // Verified (or nothing to measure against): GPS skips the tap (2026-10-08).
       if (!["already_confirmed", "gps_verified", "no_job_coordinates", "already_verified"].includes(basis)) {
-        expect(copy, basis).toContain("Confirm They Arrived");
+        expect(copy, basis).toContain("Confirm they've arrived");
       }
     }
   });
@@ -294,7 +294,7 @@ describe("the arrival verdict from mark_helper_arrival", () => {
   it("encourages Location without ever making it the gate", () => {
     const noGps = arrivalVerdictMessage(verdict({ basis: "no_location" })!);
     expect(noGps).toMatch(/Location on/i);
-    expect(noGps).toContain("Confirm They Arrived");
+    expect(noGps).toContain("Confirm they've arrived");
     expect(noGps).toMatch(/checked in/i);
   });
 });
@@ -332,7 +332,7 @@ describe("legacy refusal parsing (pre-20260919155016 servers and queued errors)"
     //
     // Browser verification on 2026-09-19 caught the copy promising the opposite
     // ("You're still checked in", "the person who posted this job has to tap
-    // Confirm They Arrived") while helper_arrived_at stayed NULL — so the
+    // Confirm they've arrived") while helper_arrived_at stayed NULL — so the
     // poster's control rendered DISABLED and each side was told to wait for the
     // other. That is the deadlock this batch removed, rebuilt out of reassuring
     // words. The assertions below are inverted from the pre-fix version ON
@@ -348,17 +348,17 @@ describe("legacy refusal parsing (pre-20260919155016 servers and queued errors)"
       // Never claim the check-in landed.
       expect(copy).not.toMatch(/still checked in|you're checked in|checked in either way/i);
       // Never send them to a poster control that cannot exist in this state.
-      expect(copy).not.toContain("Confirm They Arrived");
+      expect(copy).not.toContain("Confirm they've arrived");
       // Say plainly that it did not happen, and give the one way forward.
       expect(copy).toMatch(/couldn't check you in/i);
-      // Was `toContain("Try My Location Again")` until 2026-09-19, when the
+      // Was `toContain("Try my location again")` until 2026-09-19, when the
       // owner removed that button and the pull-to-refresh gesture was wired to
       // genuinely re-request a fix (src/lib/arrivalRefresh.ts). The assertion
       // still exists for the same reason it always did — a refusal must name a
       // way forward — it just names the one that exists now. Do NOT relax this
       // to "mentions refresh"; the point is that the named thing is real.
       expect(copy).toMatch(/pull down to refresh/i);
-      expect(copy).not.toContain("Try My Location Again");
+      expect(copy).not.toContain("Try my location again");
       // And never re-introduce VN-33's dead end.
       expect(copy).not.toMatch(/has to show you at the job to mark arrived|can't mark arrived/i);
     }
@@ -375,7 +375,7 @@ describe("server refusal copy (lifecycleErrors) — one stamp, named plainly", (
     for (const code of ["completion_requires_confirmed_arrival", "tracker_requires_arrival"]) {
       const copy = lifecycleErrorMessage({ message: code });
       expect(copy, code).toBeTruthy();
-      expect(copy!, code).toContain("Confirm They Arrived");
+      expect(copy!, code).toContain("Confirm they've arrived");
       // The superseded rule, in the copy the server's HINT mirrors.
       expect(copy!, code).not.toMatch(/both are needed/i);
     }

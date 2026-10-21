@@ -10,7 +10,7 @@
  * highest-stakes check in this repo. It waited 30 seconds for a panel titled
  * "Add an after photo" with an "Add Photo" button. That panel is
  * `PhotoProofStep`, which has ZERO call sites in `src/` — the card renders
- * `PhotoProofCaptureChip`, labelled "After Photo". The failure read "the card
+ * `PhotoProofCaptureChip`, labelled "After photo". The failure read "the card
  * never asked for the after photo", which sounds exactly like a broken
  * completion flow on a funded, hired job.
  *
@@ -120,4 +120,4 @@ describe("every exact-match e2e locator names copy the app actually renders", ()
 // The exact stale pair this guard was built from, restored in the one spec that
 // still carried it. Without the check, a locator waiting on a panel that has no
 // call sites is indistinguishable from a broken completion flow.
-// @mutate e2e/journeys/02-marketplace.spec.ts | const after = c.getByText("After Photo", { exact: true }); | const after = c.getByText("Add an after photo", { exact: true });
+// @mutate e2e/journeys/02-marketplace.spec.ts | const after = c.getByText("After photo", { exact: true }); | const after = c.getByText("Add an after photo", { exact: true });

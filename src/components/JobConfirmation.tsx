@@ -11,7 +11,7 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { CheckCircle2, CalendarClock, MapPin } from "lucide-react";
+import { CheckCircle2, CalendarClock } from "lucide-react";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
@@ -33,7 +33,7 @@ import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
  * happened inside the 24h window IS a day-of answer, so it counts.
  *
  * Exported because the merged tracker panel on the helper's card
- * (appliedJobCard/HelperTrackerPanel) gates "I'm On My Way" on exactly this
+ * (appliedJobCard/HelperTrackerPanel) gates "I'm on my way" on exactly this
  * value, and a second hand-rolled copy of the rule is how the card and the card
  * it sits inside end up disagreeing about whether the helper has confirmed.
  *
@@ -41,7 +41,7 @@ import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
  */
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
-const HELPER_CONFIRM_LABEL = "Confirm You'll Be at the Job";
+const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
 
 export function helperDayOfConfirmation({
   helperDayofConfirmedAt,
@@ -78,6 +78,7 @@ export function JobConfirmation({
   variant = "card",
   embedded = false,
   hideNotYetOpen = false,
+  otherFirstName = null,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -93,7 +94,7 @@ export function JobConfirmation({
   startTime?: string | null;
   jobStatus?: string;
   helperOnTheWayAt?: string | null;
-  /** The Helpr's "I've Arrived" stamp (hands the poster's row to the arrival confirm). */
+  /** The Helpr's "I've arrived" stamp (hands the poster's row to the arrival confirm). */
   helperArrivedAt?: string | null;
   onConfirm?: () => void;
   /**
@@ -130,6 +131,8 @@ export function JobConfirmation({
    *  confirmationOpensClock in
    *  src/components/job-card/confirmationOpensClock.ts. */
   hideNotYetOpen?: boolean;
+  /** The other side's first name, for the poster's status line ("Yusef confirms the day before"). */
+  otherFirstName?: string | null;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -161,7 +164,7 @@ export function JobConfirmation({
      (`poster_confirmed_at`) that the Helpr setting off does not answer — so
      this line deleted the poster's ONLY confirm-offer control, and its
      "You: Confirmed / Pending" read-back with it, the instant the Helpr tapped
-     "I'm On My Way", whether or not the poster had ever confirmed. A poster who
+     "I'm on my way", whether or not the poster had ever confirmed. A poster who
      had not confirmed lost the box before they could; one who had lost any
      trace that they did.
 
@@ -176,7 +179,7 @@ export function JobConfirmation({
      `hoursUntilJob` is measured from MIDNIGHT of the job date, so the old -12
      floor closed this card at NOON on the day of the job. For an evening
      booking that is hours before the helper sets off, and it left a hole in the
-     gate the tracker now depends on: HelperTrackerPanel holds "I'm On My Way"
+     gate the tracker now depends on: HelperTrackerPanel holds "I'm on my way"
      until the day-of confirmation lands, and it can only do that while there is
      a control here to land it with. Past -12 the card vanished, the gate had to
      stand down rather than dead-end the helper, and an unconfirmed helper on an
@@ -185,7 +188,7 @@ export function JobConfirmation({
      described in words.
      THE POSTER'S runs to the job's START (owner, 2026-10-08, Q1566: "there is
      no place for me to confirm the job is still on"): the old -12 closed it at
-     NOON on the job day, so a same-day 2 PM job had no "I'm Still On" after
+     NOON on the job day, so a same-day 2 PM job had no "I'm still on" after
      12:00. No start time: the end of the job day. */
   const posterWindowEnd = ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDate.getTime() + 24 * 3_600_000)).getTime();
   const showConfirmation =
@@ -211,6 +214,19 @@ export function JobConfirmation({
        way, so that button should be confirm you will be at the job, not on my
        way"). */
     const opensAtForNote = new Date(opensMs);
+    /* THE POSTER'S CARD NEVER SHOWS A DISABLED FUTURE STEP (owner, 2026-10-21: "the primary button must be
+       the action that stage actually needs"). Before the window it says when it opens; the step's own
+       primary ("Message Yusef") takes the slot. */
+    if (variant === "inline" && isOwner) {
+      return (
+        <JobStepRowSlot slot="note">
+          <p className="font-sans text-ds-10" data-poster-confirm-wait-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            You and {otherFirstName || "your Helpr"} confirm the day before. Opens{" "}
+            {opensAtForNote.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit", timeZone: "America/Chicago" })}.
+          </p>
+        </JobStepRowSlot>
+      );
+    }
     const waitingPrimary = variant === "inline" && (isHelper || isOwner) ? (
       <>
         <JobStepRowSlot slot="note">
@@ -221,7 +237,7 @@ export function JobConfirmation({
           </p>
         </JobStepRowSlot>
         <JobStepRowSlot slot="primary">
-          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"} disabled onClick={() => {}} />
+          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} disabled onClick={() => {}} />
         </JobStepRowSlot>
       </>
     ) : null;
@@ -344,7 +360,7 @@ export function JobConfirmation({
   };
 
   // Only the Helpr's own tap counts (Q1570). One shared rule (see helperDayOfConfirmation above), so this card and
-  // the tracker panel that gates "I'm On My Way" on it cannot disagree.
+  // the tracker panel that gates "I'm on my way" on it cannot disagree.
   const helperDayOf = helperDayOfConfirmation({ helperConfirmedAt, helperDayofConfirmedAt, dateNeeded, startTime });
   const myConfirmed = localConfirmedAt || (isOwner ? posterConfirmedAt : helperDayOf);
 
@@ -408,7 +424,7 @@ export function JobConfirmation({
             onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
             className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
           >
-            Cancel Job
+            Cancel job
           </button>
         )}
       </DialogContent>
@@ -462,42 +478,24 @@ export function JobConfirmation({
         className={confirmCtaClass}
       >
         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        I'm Still On
-      </Button>
-    ) : isOwner ? (
-      /* THE BOX STAYS, DISABLED (owner, 2026-09-19: "if it was clicked already
-         it should still show but with the box disabled"). Before this the CTA
-         simply evaporated on confirm, so the poster's own answer was carried
-         only by a status pill — and the card read as though it had never asked.
-         The `done` tone, not a greyed-out green: a disabled primary at half
-         opacity is how "you already did this" ends up looking broken.
-
-         POSTER ONLY. The Helpr's branch of this shared component is untouched:
-         their control portals into their step card's single action row, where a
-         permanent inert box would occupy the primary slot the tracker's own
-         next-step CTA needs. */
-      /* After confirming: the poster's NEXT step, greyed until its time (owner,
-         2026-10-08); the tracker's arrival step is the live control. */
-      <Button
-        variant="outline"
-        size="sm"
-        disabled
-        data-poster-next-step="arrival"
-        className={confirmCtaClass}
-      >
-        <MapPin className="w-3.5 h-3.5 mr-1" />
-        Confirm They've Arrived
+        I'm still on
       </Button>
     ) : null
+    /* Poster confirmed: no greyed "Confirm they've arrived" here either (owner, 2026-10-21); the
+       note under it says what happens next. */
   );
   // NUDGE (answer 1): while the other side still owes its confirm.
   const otherUnconfirmed = isOwner ? !helperDayOf : isHelper ? !posterConfirmedAt : false;
+  const waitingWords = `Waiting on ${otherFirstName || "your Helpr"} to confirm by ${new Date(deadlineMs).toLocaleString("en-US", { timeZone: JOB_TIMEZONE, weekday: "short", hour: "numeric", minute: "2-digit" })}`;
   const nudgeLine = showConfirmation && otherUnconfirmed && jobStatus === "accepted" ? (
-    <NudgeConfirmLink jobId={jobId} otherLabel={isOwner ? "Your Helpr" : "The person who posted it"} />
+    // The poster's one status line carries the Nudge (owner, 2026-10-21): "Waiting on Yusef to confirm, by Sat 7 AM · Nudge".
+    <NudgeConfirmLink jobId={jobId} otherLabel={isOwner ? otherFirstName || "Your Helpr" : "The person who posted it"} lead={isOwner && myConfirmed ? waitingWords : undefined} />
   ) : null;
-  const posterNextNote = isOwner && myConfirmed ? (
+  // The poster has answered: say what happens next, never a greyed future button (owner, 2026-10-21).
+  // While the Helpr still owes theirs, the Nudge line above IS the status line ("Waiting on Yusef … · Nudge").
+  const posterNextNote = isOwner && myConfirmed && !nudgeLine ? (
     <p className="font-sans text-center text-ds-10" data-poster-next-step-note="" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-      This button turns on once your Helpr says they've arrived.
+      {helperDayOf ? `You're both confirmed. ${otherFirstName || "Your Helpr"} taps On my way when they leave.` : `${waitingWords}.`}
     </p>
   ) : null;
 
@@ -514,7 +512,7 @@ export function JobConfirmation({
        everything they shouldnt have all different stuff").
 
        This used to portal `confirmCta` — `confirmCtaClass`, an inline 14px
-       button — straight into a row of stacked 11px chips, so "I'm Still On"
+       button — straight into a row of stacked 11px chips, so "I'm still on"
        was a different object from the Message and Directions beside it. It is
        the easiest drift in the app to miss, because nothing under
        src/components/job-card draws it. It goes through
@@ -529,18 +527,13 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"}
+          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
           onClick={() => setShowConfirmDialog(true)}
         />
-      ) : isOwner ? (
-        /* Poster confirmed: their NEXT step, greyed (docs/JOB-LIFECYCLE.md step 6). */
-        <JobStepPrimaryButton
-          icon={MapPin}
-          label="Confirm They've Arrived"
-          disabled
-          onClick={() => {}}
-        />
       ) : null
+      /* Poster confirmed: NO greyed "Confirm they've arrived" (owner, 2026-10-21, supersedes the
+         2026-10-08 greyed next step). The step's own primary ("Message Yusef") takes the slot and
+         the note says what happens next. The arrival box appears from On the way. */
     );
     return (
       <>

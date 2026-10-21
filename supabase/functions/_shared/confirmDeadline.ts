@@ -1,7 +1,7 @@
 import { jobLocalMidnightMs, jobLocalStartMs } from "./cancellationFee.ts";
 
 /**
- * ONE rule for the Helpr's day-before "Confirm You'll Be at the Job", enforced
+ * ONE rule for the Helpr's day-before "Confirm you'll be at the job", enforced
  * and displayed (docs/JOB-LIFECYCLE.md, approved by the owner 2026-10-08).
  *
  * THE RULE.

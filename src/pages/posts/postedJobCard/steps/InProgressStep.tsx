@@ -31,8 +31,8 @@ import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
  *              other action buttons, so the gallery is now the `Photos` chip
  *              and its dialog. It still appears at the moment the poster is
  *              asked to release money against it, and is still read-only.
- *   primary  — the ONE vouch this step wants: Confirm They Arrived, then
- *              Confirm They're Working. They are mutually exclusive by their
+ *   primary  — the ONE vouch this step wants: Confirm they've arrived, then
+ *              Confirm they're working. They are mutually exclusive by their
  *              own gates, so the card never draws two. It leads the card's
  *              ONE action row (owner, 2026-09-14, VN-21).
  *   actions  — SOS · No-Show · Dispute · Message · Approve, beside it on that
@@ -188,7 +188,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
           />
           {/* The "Is the Helpr working?" prompt was REMOVED here (owner,
               2026-09-11: "not needed. these are also on the tracker"). It
-              labelled the "Confirm They're Working" button that sits directly
+              labelled the "Confirm they're working" button that sits directly
               under it, so it asked the question the button already answers,
               while the tracker beside it already shows which step is current. */}
           {/* The deadline reads the shared constant — 24h, TIGHTENED from 48 on

@@ -1,7 +1,7 @@
 /**
  * THE REFRESH GESTURE IS A REAL REPLACEMENT FOR THE RETRY CHIP.
  *
- * Owner, 2026-09-19: remove "Try My Location Again" from the job card's action
+ * Owner, 2026-09-19: remove "Try my location again" from the job card's action
  * row, and make pull-to-refresh do it instead.
  *
  * ── THE DEFECT CLASS THIS GUARDS ──────────────────────────────────────────
@@ -9,7 +9,7 @@
  * path in the product. It is worth being precise about why, because the reason
  * is not obvious from the screen: when an arrival is recorded but unverified
  * the rail has already advanced past Arrived, so the row's primary reads
- * "Start Working", not "Mark Arrived" — there is no other control whose tap
+ * "Start working", not "Mark Arrived" — there is no other control whose tap
  * re-runs the location fix. The Helpr would have been permanently unable to
  * earn GPS proof of an arrival they had already made.
  *

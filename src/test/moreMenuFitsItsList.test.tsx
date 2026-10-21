@@ -35,7 +35,7 @@ async function openMore() {
       // Deliberately out of order: the shell, not the step, decides the order.
       actions={[
         chip("sos", "SOS", Siren),
-        chip("cancel", "Cancel Job", CalendarX2),
+        chip("cancel", "Cancel job", CalendarX2),
         chip("report", "Report a Problem", AlertTriangle),
         chip("reschedule", "Ask for a new date or time", CalendarClock),
         chip("directions", "Directions", Navigation),
@@ -76,7 +76,7 @@ describe("Q1569 — More is a fitted list, most important first, SOS last", () =
       "Directions",
       "Ask for a new date or time",
       "Report a Problem",
-      "Cancel Job",
+      "Cancel job",
       "SOS",
     ]);
   });

@@ -7,13 +7,13 @@
  * never showed the Reviewed badge after the review was submitted". Measured on
  * prod the same hour (probe runs 36212737517 / 36213134702 on
  * wip/vac1797-probe-journeys): the review row existed, and the Done card's
- * row read Photos · More · Hire Again — "Tip" and "Reviewed" were in the More
+ * row read Photos · More · Hire again — "Tip" and "Reviewed" were in the More
  * panel, a Radix popover portaled to <body>, so the card-scoped
  * `getByRole("button", { name: /^Reviewed\b/ })` counted 0 on every reload.
  *
  * SECOND OCCURRENCE (e2e-journeys 39020810698, 2026-10-17): this guard read
  * only CompletedStep's labels, so the BOOKED card's "Message Helpr" — parked in
- * More at 390px, where the row is More + "I'm Still On" — was looked up on the
+ * More at 390px, where the row is More + "I'm still on" — was looked up on the
  * page alone in hire-and-message and timed out. 04-admin-safety's no-show
  * journey asserted "No-Show not offered" with `toHaveCount(0)` on the page:
  * vacuous whenever the chip sits in the overflow.

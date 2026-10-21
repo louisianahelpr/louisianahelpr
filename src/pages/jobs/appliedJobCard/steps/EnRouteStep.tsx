@@ -11,7 +11,7 @@ import type { HelperStepProps } from "./stepContract";
  * what makes the next step a 2-up rather than a 3-up with a hole in it.
  *
  * The third control depends on the rail (owner, 2026-09-14, VN-18): before
- * "I'm On My Way" it is Cancel Job; once they are on the way the back-out is
+ * "I'm on my way" it is Cancel job; once they are on the way the back-out is
  * gone and Report a Problem takes the slot. The container passes at most one.
  *
  * ONE ROW (owner, 2026-09-14, VN-21): the tracker's own next step ("I've
@@ -30,7 +30,7 @@ export function EnRouteStep({ job, tracker, messageChip, exitChip, reportChip, a
          problem always all the way on the left" (superseded 2026-09-27: Report a Problem now lives inside More — MORE_ONLY_CHIP_KEYS in JobStepCard), and "before and after photos
          should be to the left of the primary buttons". The primary is already
          far right (V2/V3), so the row reads:
-           Report a Problem · …middle… · Before/After Photo · [green primary]
+           Report a Problem · …middle… · Before/After photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
       actions={[

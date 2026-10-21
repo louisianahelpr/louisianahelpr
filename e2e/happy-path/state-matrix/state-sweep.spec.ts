@@ -327,7 +327,7 @@ async function expandFirstCard(page: Page): Promise<boolean> {
   //  1. A bare `button[aria-expanded]` matched the page header's filter chevron
   //     first, so every "expanded" cell collapsed the page header instead of
   //     opening the card — and still recorded `driven: true`. Caught by seeing
-  //     "Expand Job Details" in the `copy` of a cell that was meant to be open.
+  //     "Expand job details" in the `copy` of a cell that was meant to be open.
   //  2. The obvious fix — `getByRole("button", { name, includeHidden: true })`
   //     — forces Playwright to compute the whole accessibility tree on every
   //     poll. On these pages that is tens of seconds per call, and with three
@@ -336,7 +336,7 @@ async function expandFirstCard(page: Page): Promise<boolean> {
   //
   // `hasText` sees the sr-only label because it matches textContent, not
   // visible text.
-  const toggle = page.locator("button[aria-expanded]").filter({ hasText: "Expand Job Details" }).first();
+  const toggle = page.locator("button[aria-expanded]").filter({ hasText: "Expand job details" }).first();
   await page
     .locator("button[aria-expanded]")
     .filter({ hasText: /(Expand|Collapse) Job Details/ })
@@ -346,9 +346,9 @@ async function expandFirstCard(page: Page): Promise<boolean> {
   if ((await toggle.count()) === 0) {
     // Already open is a driven frame, not a miss: a completed post with a tip
     // or review outstanding opens EXPANDED by default (owner, 2026-09-14,
-    // VN-29), so its toggle already reads "Collapse Job Details".
+    // VN-29), so its toggle already reads "Collapse job details".
     return (
-      (await page.locator("button[aria-expanded]").filter({ hasText: "Collapse Job Details" }).count()) > 0
+      (await page.locator("button[aria-expanded]").filter({ hasText: "Collapse job details" }).count()) > 0
     );
   }
   // dispatchEvent, not click(): the toggle is `sr-only`, so Playwright treats it
@@ -360,7 +360,7 @@ async function expandFirstCard(page: Page): Promise<boolean> {
   // "could not reach", never as a driven frame.
   const opened = await page
     .locator("button[aria-expanded]")
-    .filter({ hasText: "Collapse Job Details" })
+    .filter({ hasText: "Collapse job details" })
     .count();
   return opened > 0;
 }
@@ -372,7 +372,7 @@ async function expandFirstCard(page: Page): Promise<boolean> {
  * its collapsed frame is the one the user reaches by tapping it shut.
  */
 async function collapseOpenCards(page: Page): Promise<void> {
-  const open = page.locator("button[aria-expanded]").filter({ hasText: "Collapse Job Details" });
+  const open = page.locator("button[aria-expanded]").filter({ hasText: "Collapse job details" });
   const n = await open.count().catch(() => 0);
   for (let i = 0; i < n; i++) {
     await open.first().dispatchEvent("click").catch(() => undefined);

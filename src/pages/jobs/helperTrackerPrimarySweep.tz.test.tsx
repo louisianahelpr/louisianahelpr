@@ -13,14 +13,14 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  *
  * WHAT IT CATCHES (nightly-red, main: Vitest, 2026-09-23 04:18Z = 23:18
  * Central). jobStepOneRow's "day-of confirmation still owed" case rendered
- * ["I'm On My Way", "I'm Still On"] in the row's primary slot on the UTC CI
+ * ["I'm on my way", "I'm still on"] in the row's primary slot on the UTC CI
  * runner and passed on a Central laptop. HelperTrackerPanel measured its
  * "Confirmed step still open" gate from `parseLocalDate(date_needed)` — the
- * VIEWER's midnight — while JobConfirmation, which renders "I'm Still On",
+ * VIEWER's midnight — while JobConfirmation, which renders "I'm still on",
  * measures the same window from the JOB's (America/Chicago) midnight. On a
  * device east of Central the gate dropped early (UTC: 19:00 Central on the job
- * day), the tracker went live with "I'm On My Way" once the start was inside
- * its 2h unlock, and "I'm Still On" was still on screen beside it. West of
+ * day), the tracker went live with "I'm on my way" once the start was inside
+ * its 2h unlock, and "I'm still on" was still on screen beside it. West of
  * Central the gate outlived the control that releases it: no primary at all.
  * A real product bug for any helper whose phone is not set to Central, not a
  * fixture clock bug — the same instant renders differently by zone.
@@ -159,9 +159,9 @@ describe("Helpr Confirmed card — one primary at every instant, the same in eve
           byZone[tz] = await primaryAt(at, start);
         }
         const central = byZone["America/Chicago"];
-        // The Helpr's day-before step reads "Confirm You'll Be at the Job" since 2026-10-08.
-        if (central.includes("Confirm You'll Be at the Job")) sawStillOn++;
-        if (central.includes("I'm On My Way")) sawOnMyWay++;
+        // The Helpr's day-before step reads "Confirm you'll be at the job" since 2026-10-08.
+        if (central.includes("Confirm you'll be at the job")) sawStillOn++;
+        if (central.includes("I'm on my way")) sawOnMyWay++;
         for (const tz of ZONES) {
           const got = byZone[tz];
           if (got.length > 1 || JSON.stringify(got) !== JSON.stringify(central)) {

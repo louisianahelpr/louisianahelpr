@@ -185,19 +185,19 @@ export function posterConfirmationRung(
   job: Job,
   step: PosterStepId,
   now: Date = new Date(),
-  /** The Helpr tapped Start Working (their tracker row); see PosterStepCtx. */
+  /** The Helpr tapped Start working (their tracker row); see PosterStepCtx. */
   helperWorking = false,
 ): PosterConfirmRung | null {
   if (step !== "scheduled" && step !== "in_progress") return null;
   // A CREW (Q1382): arrivals are confirmed PER MEMBER, on the roster's own
   // "Confirm Arrived" chips (GroupJobHelpers, rpc_poster_confirm_member_arrival).
   // This ladder reads the job's scalar stamps, which belong to nobody on a crew
-  // (Q407), so it could only ever draw a disabled "Confirm They Arrived" beside
+  // (Q407), so it could only ever draw a disabled "Confirm they've arrived" beside
   // the roster's live ones. (Its stalled notice needs a confirmed job-level
   // working stamp, which a crew never has, so nothing is lost.)
   if (job.is_group_job === true) return null;
 
-  // AN OFFER IS NOT A BOOKING (owner, 2026-10-05: "Confirm Arrival must NOT
+  // AN OFFER IS NOT A BOOKING (owner, 2026-10-05: "Confirm they've arrived must NOT
   // show at all until the Helpr has accepted"). While the Helpr has not
   // accepted, nobody is coming, so there is no arrival to confirm and no box at
   // all: no disabled primary-looking control for an action that cannot exist
@@ -213,7 +213,7 @@ export function posterConfirmationRung(
   // ACCEPTED BUT NOT ARRIVED (owner decision Q1400, 2026-10-07): the box stays
   // HIDDEN from the moment the Helpr accepts until they mark themselves
   // arrived. Until then there is nothing the poster can confirm, and a
-  // disabled primary-looking "Confirm Arrival" with a waiting line under it is
+  // disabled primary-looking "Confirm they've arrived" with a waiting line under it is
   // exactly the dead control the owner ruled out on 2026-10-05 ("no disabled
   // primary-looking button"). The card's status line already says where the
   // Helpr is ("On the way", "Confirmed"), and No-Show stays on the row.
@@ -230,7 +230,7 @@ export function posterConfirmationRung(
     if (step !== "in_progress" || !job.helper_on_the_way_at || job.helper_completed_at || isPastDue(job.date_needed)) return null;
     return {
       action: "arrival",
-      label: "Confirm They Arrived",
+      label: "Confirm they've arrived",
       enabled: false,
       done: false,
       reason: "This button turns on once your Helpr says they've arrived.",
@@ -248,8 +248,9 @@ export function posterConfirmationRung(
     rung = {
       action: "arrival",
       // The two labels differ by step and always have. Reported, not silently
-      // unified: "Confirm Arrival" is the scheduled card's wording.
-      label: step === "scheduled" ? "Confirm Arrival" : "Confirm They Arrived",
+      // unified: "Confirm they've arrived" is the scheduled card's wording.
+      // One label on both steps (owner, 2026-10-21: sentence case, the same words everywhere).
+      label: "Confirm they've arrived",
       enabled,
       done: false,
       reason: null,
@@ -257,19 +258,19 @@ export function posterConfirmationRung(
     };
   } else if (step === "in_progress" && !job.poster_confirmed_working_at) {
     // ONLY AFTER THE HELPR'S OWN STEP (owner, 2026-10-08, Q1571): greyed, and
-    // saying when it turns on, until they tap Start Working.
+    // saying when it turns on, until they tap Start working.
     rung = {
       action: "working",
-      label: "Confirm They're Working",
+      label: "Confirm they're working",
       enabled: helperWorking,
       done: false,
-      reason: helperWorking ? null : "This button turns on once your Helpr taps Start Working.",
+      reason: helperWorking ? null : "This button turns on once your Helpr taps Start working.",
       gate: false,
     };
   } else {
     rung = {
       action: null,
-      label: step === "scheduled" ? "Arrival Confirmed" : "Working Confirmed",
+      label: step === "scheduled" ? "Arrival confirmed" : "Working confirmed",
       enabled: false,
       done: true,
       reason: null,

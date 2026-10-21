@@ -295,7 +295,7 @@ const disputedHelper = (job: J) => () =>
 const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minControls: number }> = [
   // ── /jobs, Helpr — THE SCREENSHOT'S OWN ROW IS THE FIRST TWO ──────────
   {
-    name: "Jobs · Confirmed — Directions · Message · Cancel Job + I'm On My Way",
+    name: "Jobs · Confirmed — Directions · Message · Cancel job + I'm on my way",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -313,9 +313,9 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
   },
   {
     // THE PRIMARY THAT COMES FROM A FOURTH FILE: JobConfirmation portals its
-    // "I'm Still On" into this row. It is the easiest one to miss and the
+    // "I'm still on" into this row. It is the easiest one to miss and the
     // easiest to let drift, because nothing in the job-card, posts or jobs folders draws it.
-    name: "Jobs · Confirmed, day-of confirmation owed — I'm Still On (portalled from JobConfirmation)",
+    name: "Jobs · Confirmed, day-of confirmation owed — I'm still on (portalled from JobConfirmation)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -333,13 +333,13 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 4,
   },
   {
-    name: "Jobs · On the Way — Directions · Message · Report a Problem + I've Arrived",
+    name: "Jobs · On the way — Directions · Message · Report a Problem + I've arrived",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
   },
   {
-    /* THE OTHER HALF OF THE SCREENSHOT WAS an outline "Try My Location Again"
-       sharing the primary slot with the glossy "Start Working" — two different
+    /* THE OTHER HALF OF THE SCREENSHOT WAS an outline "Try my location again"
+       sharing the primary slot with the glossy "Start working" — two different
        SHAPES in one slot, which is what this file exists to catch. Owner,
        2026-09-19: that chip is gone and the pull-to-refresh gesture on My Jobs
        does the re-check (src/lib/arrivalRefresh.ts).
@@ -347,7 +347,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
        The state is kept because it is still a real state a Helpr reaches; what
        it proves now is that every control on it is the one shape, with the row
        one control shorter. */
-    name: "Jobs · Arrived, unverified — Start Working (retry chip removed)",
+    name: "Jobs · Arrived, unverified — Start working (retry chip removed)",
     render: active(makeJob({ poster_confirmed_working_at: null }), "arrived"),
     minControls: 3,
   },
@@ -364,7 +364,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 3,
   },
   {
-    name: "Jobs · Working — Mark Job Complete + Message · Report a Problem",
+    name: "Jobs · Working — Mark job complete + Message · Report a Problem",
     render: active(makeJob({ ...VERIFIED }), "working"),
     minControls: 3,
   },
@@ -380,7 +380,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 3,
   },
   {
-    name: "Jobs · Disputed by the Helpr — Withdraw + Timeline · Message · Contact Admin",
+    name: "Jobs · Disputed by the Helpr — Withdraw + Timeline · Message · Contact admin",
     render: disputedHelper(makeJob({ status: "disputed", dispute_status: "open", disputed_by: HELPER, dispute_reason: "x" })),
     minControls: 4,
   },
@@ -391,30 +391,30 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 4,
   },
   {
-    name: "Posts · Scheduled — Message · Cancel + Confirm Arrival",
+    name: "Posts · Scheduled — Message · Cancel + Confirm they've arrived",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", poster_confirmed_arrival_at: null }))} />),
     minControls: 3,
   },
   {
-    name: "Posts · In Progress — SOS · Message + Confirm They're Working",
+    name: "Posts · In Progress — SOS · Message + Confirm they're working",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), poster_confirmed_working_at: null }))} />),
     minControls: 3,
   },
   {
     // The FINISHED box — a done-toned primary. Same object, different tone.
-    name: "Posts · In Progress, both vouches in — disabled Working Confirmed",
+    name: "Posts · In Progress, both vouches in — disabled Working confirmed",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ date_needed: TODAY, poster_confirmed_arrival_at: ago(6), poster_confirmed_working_at: ago(5) }))} />),
     minControls: 3,
   },
   {
-    name: "Posts · Completed — Tip · Review · Hire Again · Re-Post",
+    name: "Posts · Completed — Tip · Review · Hire again · Re-Post",
     render: () => wrap(<CompletedStep {...posterCtx(makeJob({ status: "completed", poster_completed_at: ago(1), helper_completed_at: ago(2), payment_status: "released" }))} />),
     minControls: 3,
   },
   {
     // FIVE CONTROLS — the widest row the app can reach, and the one a shape
     // that only works at 3-up falls over on.
-    name: "Posts · Disputed — Escalate · Timeline · Message · Contact Admin + Resolve & Pay",
+    name: "Posts · Disputed — Escalate · Timeline · Message · Contact admin + Resolve & Pay",
     render: () =>
       wrap(
         <DisputedStep

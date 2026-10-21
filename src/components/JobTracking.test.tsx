@@ -46,7 +46,7 @@ describe("deriveCurrentStatusIdx", () => {
      * helper_dayof_confirmed_at all NULL. This function used to floor any
      * `in_progress`/`revision_requested` job at `job_confirmed` on the reasoning
      * that a job cannot be underway without having been confirmed — so the rail
-     * painted Confirmed complete, the next-step CTA became "I'm On My Way", and
+     * painted Confirmed complete, the next-step CTA became "I'm on my way", and
      * `helper_mark_on_the_way` refused the tap with `helper_not_confirmed`
      * (its one predicate is `v_job.helper_confirmed_at IS NULL` — read live off
      * prod 2026-09-19). A control offered for an action that will be refused:
@@ -69,7 +69,7 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.job_confirmed);
   });
 
-  it("advances to On the Way from the jobs-row stamp alone", () => {
+  it("advances to On the way from the jobs-row stamp alone", () => {
     expect(
       deriveCurrentStatusIdx({ jobStatus: "in_progress", helperOnTheWayAt: AT }),
     ).toBe(STATUS_IDX.on_the_way);
@@ -86,7 +86,7 @@ describe("deriveCurrentStatusIdx", () => {
   });
 
   it("treats an ESTABLISHED arrival + in_progress as Working — there is no separate start stamp", () => {
-    // Established = the poster tapped "Confirm They Arrived" (owner,
+    // Established = the poster tapped "Confirm they've arrived" (owner,
     // 2026-09-19). GPS alongside it is corroboration, not a second gate.
     expect(
       deriveCurrentStatusIdx({
@@ -99,7 +99,7 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.working);
   });
 
-  it("stops at Arrived on GPS ALONE — GPS unlocks Start Working (2026-10-08) but proves nobody started", () => {
+  it("stops at Arrived on GPS ALONE — GPS unlocks Start working (2026-10-08) but proves nobody started", () => {
     /* ── THE HISTORY, KEPT ON PURPOSE ─────────────────────────────────────
      * This case was "stops at Arrived on HALF an arrival — GPS alone, or the
      * poster alone (VN-33)": owner, 2026-09-14, had made it "verified AND
@@ -115,7 +115,7 @@ describe("deriveCurrentStatusIdx", () => {
      * That REVERSES one half and one half only. The GPS requirement is gone —
      * it deadlocked jobs (`mark_helper_arrival` refused a fix-less arrival and
      * wrote nothing, so `helper_arrived_at` stayed NULL and the poster's
-     * "Confirm They Arrived" control never rendered, while the Helpr's blocked
+     * "Confirm they've arrived" control never rendered, while the Helpr's blocked
      * CTA told them to go ask for exactly that tap). The POSTER's requirement
      * is not just kept but widened: it now applies even to a GPS-verified
      * arrival. So the second half of the old assertion (poster alone → Arrived)
@@ -272,7 +272,7 @@ describe("a revision or a dispute undoes Done", () => {
 
   it("caps a DISPUTED job at Working even with a completion stamp", () => {
     // The reported bug. Owner: "Can't be marked done if it's in revision is
-    // dispute." Their screenshot: Confirmed / On the Way / Arrived all green,
+    // dispute." Their screenshot: Confirmed / On the way / Arrived all green,
     // Working red, DONE GREEN — directly above "Escalated to Admin … nothing
     // is charged or released until then". Done on this rail is the completion
     // that releases the money; while an admin is still deciding whether that
@@ -425,7 +425,7 @@ describe("trackingProofCaption", () => {
 // job at Confirmed on the STATUS alone — turns "never paints Confirmed off
 // jobs.status" red. That floor is the load-bearing line: it both mislabelled
 // the rail and SKIPPED the helper's-confirmation gate on the next-step CTA, so
-// the app offered "I'm On My Way" for a tap `helper_mark_on_the_way` refuses.
+// the app offered "I'm on my way" for a tap `helper_mark_on_the_way` refuses.
 // BLIND TO: everything rendered. This file only exercises the pure derivation;
 // the mount, the CTA wiring and the gate itself live in
 // JobTracking.onTheWayGate.test.tsx.

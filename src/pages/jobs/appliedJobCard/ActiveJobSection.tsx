@@ -57,7 +57,7 @@ interface ActiveJobSectionProps {
  * What lives here now is only what OUTLIVES a step — the abort dialog and its
  * RPC, the payout-unlock timer, the poster's instant-release flag, and the
  * derivation of which step we are on. The shared controls (tracker, Message,
- * the Cancel Job chip, the Report a Problem chip) are built ONCE here and handed down, so a
+ * the Cancel job chip, the Report a Problem chip) are built ONCE here and handed down, so a
  * step cannot restyle them. Everything visible is a step component rendering
  * through the shared {@link JobStepCard} shell.
  */
@@ -75,7 +75,7 @@ export function ActiveJobSection({
 }: ActiveJobSectionProps) {
   const [resolving, setResolving] = useState(false);
   /** Reported up by HelperRevisionCard from the `job_revisions` row it reads.
-   *  "Mark Fixed" may not exist before it is true — owner, 2026-09-11. */
+   *  "Mark fixed" may not exist before it is true — owner, 2026-09-11. */
   const [revisionAccepted, setRevisionAccepted] = useState(false);
 
   // ── THE 30-MINUTE WINDOW HAS TO ELAPSE ON SCREEN ──
@@ -108,9 +108,9 @@ export function ActiveJobSection({
   //
   // Owner, 2026-08-30: "can't finish should not be an option." Taken literally
   // that strands the state machine, so the exit is not deleted, it is BOUNDED.
-  // Owner, 2026-09-14 (VN-18) narrowed the bound and renamed it "Cancel Job":
+  // Owner, 2026-09-14 (VN-18) narrowed the bound and renamed it "Cancel job":
   //
-  //   accepted / confirmed (before "I'm On My Way") → Cancel Job is offered
+  //   accepted / confirmed (before "I'm on my way") → Cancel job is offered
   //   on the way / arrived / working / after        → no back-out at all
   //
   // `deriveCurrentStatusIdx` is the same derivation the step rail is drawn
@@ -227,7 +227,7 @@ export function ActiveJobSection({
 
   // ── The controls every step shares, built exactly once ──
   const showExit = !aborted && hasConfirmed && !onTheWay;
-  // Report a Problem: from On the Way onward — exactly where Cancel Job is gone
+  // Report a Problem: from On the way onward — exactly where Cancel job is gone
   // — so removing that control never removes the PATH. Never on a job already
   // in dispute (no double-file) and never once the job is done (owner,
   // 2026-09-14, VN-28: no report once done).
@@ -263,7 +263,7 @@ export function ActiveJobSection({
       <JobActionChip
         key="exit"
         icon={CalendarX2}
-        label="Cancel Job"
+        label="Cancel job"
         ariaLabel="Cancel this job? See what happens if you cancel now"
         tone="danger"
         onClick={() => setAbortOpen(true)}
@@ -271,7 +271,7 @@ export function ActiveJobSection({
     ) : null,
     // ── REPORT A PROBLEM, BESIDE MESSAGE ──
     // Owner, 2026-09-11: "report a problem add it only where necessary." It
-    // appears at exactly the complement of the Cancel Job chip — removing a
+    // appears at exactly the complement of the Cancel job chip — removing a
     // CONTROL must not remove the PATH. Owner, 2026-09-14 (VN-19) reversed the
     // earlier "quiet link below the row" ruling: it is a danger-tone chip IN
     // the action row, beside Message. Same destination (the dispute dialog).
@@ -356,7 +356,7 @@ export function ActiveJobSection({
           icon: CalendarX2,
           text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}. Telling us costs exactly the same as going quiet, and going quiet costs the person who posted it their whole day.`,
         }}
-        primaryLabel={aborting ? "Sending…" : "Cancel Job"}
+        primaryLabel={aborting ? "Sending…" : "Cancel job"}
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={aborting || abortReason.trim().length < 5}

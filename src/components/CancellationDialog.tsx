@@ -583,7 +583,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             Keep the Job
           </DialogSecondaryAction>
           <DialogDestructiveAction onClick={handleCancel} disabled={cancelling}>
-            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : "Cancel Job"}
+            {cancelling ? "Cancelling…" : cancellationFee > 0 ? `Cancel · pay $${formatPrice(cancellationFee)}` : "Cancel job"}
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

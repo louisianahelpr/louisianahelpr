@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { posterPaidDollars } from "@/lib/posterJobCost";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,7 +26,6 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
   const calcEarning = (j: AdminProfileJob) => {
     const isHelper = j.helper_id === viewProfile.user_id;
     const isCustomer = j.customer_id === viewProfile.user_id;
-    const budget = Number(j.budget) || 0;
     if (isHelper) {
       // The helper's own Earnings screen and this tab share ONE formula
       // (helperEarnings.ts): roster split, the stamped fee on a released row,
@@ -35,8 +35,10 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
       return helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent));
     }
     if (isCustomer) {
-      // total paid by poster
-      return budget + (Number(j.customer_fee_amount) || 0) + (Number(j.sales_tax_amount) || 0);
+      // What the poster was charged: the ONE function (posterJobCost) the
+      // Users list's "charged" chip reads too, so the two never disagree
+      // (it counts the urgent bonus and the setup fee this sum left out).
+      return posterPaidDollars(j);
     }
     return 0;
   };
@@ -54,7 +56,10 @@ export function JobsTab({ viewProfile, profileJobs }: JobsTabProps) {
   });
 
   const workedCompleted = profileJobs.filter((j) => j.helper_id === viewProfile.user_id && j.status === "completed");
-  const postedCompleted = profileJobs.filter((j) => j.customer_id === viewProfile.user_id && j.status === "completed");
+  // Spent counts only charges that stand on a card (the Users list's "charged" rule): completed,
+  // card-captured (a PaymentIntent), not refunded; a job without a PaymentIntent charged no card.
+  const postedCompleted = profileJobs.filter((j) => j.customer_id === viewProfile.user_id && j.status === "completed"
+    && !!j.stripe_payment_intent_id && ["released", "payout_pending"].includes(j.payment_status ?? ""));
   const totalEarned = workedCompleted.reduce((s, j) => s + calcEarning(j), 0);
   const totalSpent = postedCompleted.reduce((s, j) => s + calcEarning(j), 0);
 

@@ -13,6 +13,7 @@ import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
 import type { JobPageRow } from "./useJobPage";
+import { StepTracker } from "@/components/tracker/StepTracker";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
@@ -54,16 +55,7 @@ export function JobTracker({ status, side }: { status: string | null; side: "pos
   const next = NEXT[side][s];
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">
-      <ol className="grid grid-cols-4 gap-1.5" aria-label={`Step ${at + 1} of 4: ${STEPS[at].label}`}>
-        {STEPS.map((step, i) => (
-          <li key={step.status} className="min-w-0">
-            <span aria-hidden className={`block h-1 rounded-full ${i <= at ? "bg-primary" : "bg-muted"}`} />
-            <span className={`mt-1.5 block truncate text-ds-12 ${i === at ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
-              {step.label}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <StepTracker steps={STEPS.map((x) => x.label)} at={at} />
       {next && <p className="mt-2 text-ds-14 text-muted-foreground">{next}</p>}
     </div>
   );

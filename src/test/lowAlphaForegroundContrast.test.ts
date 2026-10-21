@@ -70,7 +70,6 @@ import { collectLowAlphaForegrounds } from "../../scripts/a11y/low-alpha-text-in
 const ACCEPTED = new Map<string, number>([
   // (a) non-text icons — 1.4.11's 3:1 floor, or decorative and exempt outright
   ["src/components/BrowseMap.tsx --bark/0.6", 2], //                     2.47:1 — two Loader2 spinners
-  ["src/components/analytics/AnalyticsUpgradePanel.tsx --bark/0.6", 1], // 2.47:1 — TrendingUp, beside its own heading
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
   ["src/pages/auth/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
   ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance

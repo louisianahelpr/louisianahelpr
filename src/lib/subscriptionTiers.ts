@@ -381,3 +381,13 @@ export function tierFeePercent(
   const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
   return TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent;
 }
+
+/**
+ * Does this member HOLD a paid plan right now (a paid tier, not expired)? The
+ * one test for the Membership row and the Advanced analytics entry (owner,
+ * 2026-10-21, #23: "gated on holds a plan"; no upsell to anyone else).
+ */
+export function holdsPaidPlan(rawTier: string | null | undefined, expiresAt?: string | null): boolean {
+  const lapsed = !!expiresAt && new Date(expiresAt).getTime() < Date.now();
+  return !lapsed && toSubscriptionTier((rawTier ?? "").toLowerCase()) !== "free";
+}

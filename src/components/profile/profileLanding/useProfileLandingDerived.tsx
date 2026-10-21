@@ -1,10 +1,11 @@
 import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
+import { holdsPaidPlan } from "@/lib/subscriptionTiers";
 import {
   ShieldAlert, UserPlus, TrendingUp, Crown, Gavel, HelpCircle,
   AlertTriangle, Bug, Gift,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useMembershipsOn, MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
+import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import type { MenuItem, Profile } from "./types";
 import { ACCOUNT_MENU_GROUP, SECTION_TINT } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
@@ -20,10 +21,8 @@ export function useProfileLandingDerived({
   profile,
 }: UseProfileLandingDerivedArgs) {
   const { isAdmin } = useCurrentUser();
-  // Roadmap F4: memberships are off. The Membership row shows only while the
-  // hidden "memberships" switch is on for this viewer, or for a member who
-  // still holds a plan (so they can still see and manage it).
-  const membershipsOn = useMembershipsOn();
+  // Owner 2026-10-21 (#23): the Membership row shows only to a member who holds
+  // a plan (so they can see and manage it); nobody is offered one.
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
   // app bar. Home no longer has an app bar, and /admin is an account-level
 
@@ -123,9 +122,9 @@ export function useProfileLandingDerived({
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,
         },
-        // A plan holder still sees the row on the web to manage it; the store app
-        // never shows memberships (useMembershipsOn).
-        ...((membershipsOn || (tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP))
+        // Owner 2026-10-21 (#23): only a member who HOLDS a plan sees the row
+        // (to manage it); nobody else is offered one. The store app never shows memberships.
+        ...((holdsPaidPlan(profile?.subscription_tier, profile?.subscription_expires_at) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP)
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },

@@ -1,5 +1,5 @@
 import type { PayoutLedgerRow, StripePayout } from "./types";
-import { sumHelperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
+import { helperTakeHomeDollars, sumHelperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
 
 export const formatCents = (cents: number, currency = "usd") =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency.toUpperCase() }).format(cents / 100);
@@ -217,8 +217,40 @@ export function earnedDollarsWithLedger(
   jobs: readonly (HelperEarningsJob & MoneyJob & { id: string })[],
   feeFallbackPercent: number,
   firstPayoutFeeDollars: number,
-  ledger: readonly (Pick<PayoutLedgerRow, "job_id" | "amount_cents" | "status"> & { metadata?: unknown })[] | null | undefined,
+  ledger: LedgerRows,
 ): number {
+  const { transferred } = transferredByJob(ledger);
+  const rest = jobs.filter((j) => !transferred.has(j.id));
+  const paidOut = jobs.reduce((s, j) => s + (transferred.get(j.id) ?? 0), 0) / 100;
+  return paidOut + sumHelperTakeHomeDollars(rest, feeFallbackPercent, firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars));
+}
+
+type LedgerRows = readonly (Pick<PayoutLedgerRow, "job_id" | "amount_cents" | "status"> & { metadata?: unknown })[] | null | undefined;
+
+/**
+ * The SAME per-job figures earnedDollarsWithLedger sums, for a breakdown that
+ * must add up to it (Money > More insights, owner 2026-10-21: the category bars
+ * summed to $804 while Earned said $802). Each job is what was transferred, or
+ * its computed take-home; `feeOwed` is the one-time setup fee still coming off
+ * (once), so sum(byJob) - feeOwed === earnedDollarsWithLedger.
+ */
+export function earnedByJob(
+  jobs: readonly (HelperEarningsJob & MoneyJob & { id: string })[],
+  feeFallbackPercent: number,
+  firstPayoutFeeDollars: number,
+  ledger: LedgerRows,
+): { byJob: Map<string, number>; feeOwed: number } {
+  const { transferred } = transferredByJob(ledger);
+  const byJob = new Map<string, number>();
+  for (const j of jobs) byJob.set(j.id, transferred.has(j.id) ? (transferred.get(j.id) ?? 0) / 100 : helperTakeHomeDollars(j, feeFallbackPercent));
+  const rest = jobs.filter((j) => !transferred.has(j.id));
+  const restSum = rest.reduce((s, j) => s + (byJob.get(j.id) ?? 0), 0);
+  const due = firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars);
+  // The fee comes off at most what is still owed (netAfterFirstPayoutFee floors at 0).
+  return { byJob, feeOwed: Math.min(due, Math.max(0, restSum)) };
+}
+
+function transferredByJob(ledger: LedgerRows): { transferred: Map<string, number> } {
   const transferred = new Map<string, number>();
   for (const t of ledger ?? []) {
     if (!t.job_id || t.status === "failed") continue;
@@ -233,9 +265,7 @@ export function earnedDollarsWithLedger(
     const kept = Math.max(0, Number(t.amount_cents ?? 0) - reversed);
     transferred.set(t.job_id, (transferred.get(t.job_id) ?? 0) + kept);
   }
-  const rest = jobs.filter((j) => !transferred.has(j.id));
-  const paidOut = jobs.reduce((s, j) => s + (transferred.get(j.id) ?? 0), 0) / 100;
-  return paidOut + sumHelperTakeHomeDollars(rest, feeFallbackPercent, firstPayoutFeeDueFrom(rest, firstPayoutFeeDollars));
+  return { transferred };
 }
 
 /**

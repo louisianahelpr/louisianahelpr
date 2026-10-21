@@ -18,7 +18,7 @@
 
 import { useMemo } from "react";
 import { formatCategory, formatPriceExact } from "@/lib/format";
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
+import { earnedByJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import {
   Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
@@ -35,6 +35,10 @@ interface EarningsBreakdownChartsProps {
   // column. Tier-derived by the caller so every earnings surface agrees
   // (analytics/work-record already resolve from the tier).
   feeFallbackPercent: number;
+  /** The one-time setup fee owed from the first payout (dollars) and the payout ledger:
+   *  the same inputs as the Earned card, so the categories add up to it. */
+  firstPayoutFee: number;
+  ledger: Parameters<typeof earnedByJob>[3];
 }
 
 /** A design token resolved to a colour string. Recharts writes `stroke` as an
@@ -61,7 +65,7 @@ const completionTime = (job: Job): number => {
   return new Date(job.created_at).getTime();
 };
 
-export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: EarningsBreakdownChartsProps) {
+export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firstPayoutFee, ledger }: EarningsBreakdownChartsProps) {
   // Same definition as the Earned card these charts sit under — `isEarnedJob`,
   // not `status === "completed"`. Two money figures on one screen totalling
   // different sets of jobs is the defect this screen keeps producing; a
@@ -72,19 +76,33 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
   const ytdYear = now.getFullYear();
   const priorYtdYear = ytdYear - 1;
 
-  // ── Pie data — bucket completed-job take-home by job category ──
-  const pieData = useMemo(() => {
+  // Each job's figure is the Earned card's own (what was transferred, else the
+  // computed take-home), and the setup fee still owed comes off once below, so
+  // the list adds up to Earned exactly (owner 2026-10-21: $804 vs $802).
+  const { byJob, feeOwed } = useMemo(
+    () => earnedByJob(completed, feeFallbackPercent, firstPayoutFee, ledger),
+    [completed, feeFallbackPercent, firstPayoutFee, ledger],
+  );
+  const jobDollars = (j: Job) => byJob.get(j.id) ?? 0;
+
+  // ── Category data: every earned dollar, top five and the rest as "Everything else" ──
+  const { pieData, categoriesTotal } = useMemo(() => {
     const totals = new Map<string, number>();
     completed.forEach((j) => {
       const key = bucketFor(j.category);
-      totals.set(key, (totals.get(key) ?? 0) + helperTakeHomeDollars(j, feeFallbackPercent));
+      totals.set(key, (totals.get(key) ?? 0) + jobDollars(j));
     });
-    return Array.from(totals.entries())
+    const sorted = Array.from(totals.entries())
       .map(([name, value]) => ({ name, value: Math.round(value * 100) / 100 }))
       .filter((d) => d.value > 0)
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 6);
-  }, [completed, feeFallbackPercent]);
+      .sort((a, b) => b.value - a.value);
+    const shown = sorted.length > 6 ? sorted.slice(0, 5) : sorted;
+    const restValue = sorted.slice(shown.length).reduce((s, d) => s + d.value, 0);
+    return {
+      pieData: restValue > 0 ? [...shown, { name: "Everything else", value: Math.round(restValue * 100) / 100 }] : shown,
+      categoriesTotal: sorted.reduce((s, d) => s + d.value, 0),
+    };
+  }, [completed, byJob]);
 
   // ── YTD vs prior YTD — cumulative dollars by month index ────────
   // 12-element arrays; entry [i] is the cumulative running total
@@ -97,7 +115,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
         const t = completionTime(j);
         const d = new Date(t);
         if (d.getFullYear() !== year) return;
-        monthly[d.getMonth()] += helperTakeHomeDollars(j, feeFallbackPercent);
+        monthly[d.getMonth()] += jobDollars(j);
       });
       const result: number[] = [];
       let running = 0;
@@ -120,7 +138,7 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
       ytd: i <= currentMonth ? ytd[i] : null,
       prior: prior[i],
     }));
-  }, [completed, ytdYear, priorYtdYear, now, feeFallbackPercent]);
+  }, [completed, ytdYear, priorYtdYear, now, byJob]);
 
   const ytdTotal = trendData[now.getMonth()]?.ytd ?? 0;
   const priorAtSameMonth = trendData[now.getMonth()]?.prior ?? 0;
@@ -168,6 +186,20 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
               </li>
             ))}
           </ul>
+          {/* The reconciliation, only when there is something to reconcile: the
+              setup fee still to come off the next payout, then the Earned figure. */}
+          {feeOwed > 0 && (
+            <dl className="mt-3 pt-3 border-t border-border/60 space-y-1 text-ds-13" data-testid="insights-reconcile">
+              <div className="flex justify-between gap-3">
+                <dt className="text-muted-foreground">One-time setup fee, from your next payout</dt>
+                <dd className="tabular-nums font-semibold whitespace-nowrap" style={{ color: "hsl(var(--accent-ink))" }}>−${formatPriceExact(feeOwed)}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="font-semibold text-foreground">Earned, all time</dt>
+                <dd className="tabular-nums font-bold" style={{ color: "hsl(var(--accent-ink))" }}>${formatPriceExact(categoriesTotal - feeOwed)}</dd>
+              </div>
+            </dl>
+          )}
         </div>
       )}
 

@@ -714,7 +714,7 @@ test.describe.serial("marketplace chain", () => {
     expect(found, `${TITLE} is on no ${path} tab`).not.toBe("");
     if (found !== tab) test.info().annotations.push({ type: "bucket", description: `${path}: expected ${tab}, found ${found}` });
     const c = page.locator("div.liquid-glass").filter({ has: heading }).last();
-    if (!(await c.getByRole("group", { name: /Job progress/ }).isVisible().catch(() => false))) await heading.click();
+    if (!(await c.locator("[data-job-progress]").isVisible().catch(() => false))) await heading.click();
     return c;
   }
 

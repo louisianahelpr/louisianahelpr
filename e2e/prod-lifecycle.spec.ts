@@ -315,7 +315,7 @@ async function readJob(api: APIRequestContext, session: Session, jobId: string) 
  * photo ask (which deliberately does not re-navigate) is free.
  */
 async function openCard(card: Locator) {
-  const progress = card.getByRole("group", { name: /Job progress/ });
+  const progress = card.locator("[data-job-progress]");
   if (await progress.isVisible().catch(() => false)) return;
   await card.getByRole("heading", { level: 2 }).first().click();
   await expect(

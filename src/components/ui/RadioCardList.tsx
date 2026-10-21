@@ -64,7 +64,7 @@ export function RadioCardList({
               if (e.key === "Home") { e.preventDefault(); move(0, 0); }
               if (e.key === "End") { e.preventDefault(); move(options.length - 1, 0); }
             }}
-            className="w-full flex items-center gap-3 min-h-[52px] px-4 py-3 rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            className="w-full flex items-center gap-3 min-h-[52px] px-4 py-3 rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
             // Inline, not `bg-card`: the T2 card rule makes every .bg-card
             // border transparent (!important), which would hide the olive ring.
             style={{

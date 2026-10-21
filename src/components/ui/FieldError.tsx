@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
  * `Label` and `Input` were already tokenised primitives; the error state was
  * the one part of the form trio that never got one. It existed instead as an
  * identical hand-written literal in two files
- * (`<p className="text-ds-11 font-sans font-semibold leading-snug" style={{ color: "hsl(var(--destructive-ink))" }}>`),
+ * (a `<p className="text-ds-11 font-sans font-semibold leading-snug">` painted in the destructive colour),
  * which meant every new form added a third copy.
  *
  * The reason to extract it is not tidiness — it is that the literal was

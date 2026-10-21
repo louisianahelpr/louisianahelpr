@@ -18,9 +18,9 @@
  * has its own machine. LH_GATE_LOCK=0 bypasses.
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { constants as osConstants, homedir } from "node:os";
 import { join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 // LH_GATE_LOCK_PATH: tests use a temp dir so they never touch the real lock.
 const lockPath = () => process.env.LH_GATE_LOCK_PATH || join(homedir(), ".lh-gate.lock");
@@ -123,13 +123,47 @@ async function main() {
     console.log("[gate-lock] acquired.");
   }
   const [cmd, ...rest] = cmdArgs;
-  const result = spawnSync(cmd, rest, {
+  const child = spawn(cmd, rest, {
     stdio: "inherit",
     shell: process.platform === "win32",
     env: { ...process.env, LH_GATE_LOCK_HELD: "1" },
   });
+  // A gate killed by a timeout or Ctrl-C takes its child with it: an orphaned
+  // tsc keeps the RAM (and its result) after the lock is gone.
+  const forward = (sig) => () => child.kill(sig);
+  for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, forward(sig));
+  const result = await new Promise((done) => {
+    child.on("error", (error) => done({ status: null, signal: null, error }));
+    child.on("exit", (status, signal) => done({ status, signal }));
+  });
   releaseGateLock();
-  process.exit(result.status ?? 1);
+  const { code, message } = gateExit(result);
+  if (message) console.error(message);
+  process.exit(code);
+}
+
+/**
+ * The gate's exit code for its child's result. Never 0 unless the child itself
+ * exited 0: a child killed by a signal (the macOS memory killer, a V8 heap OOM
+ * abort, a timeout) did NOT finish, so its silence is not a green run. Killed:
+ * 128 + the signal number, the shell's own convention; a spawn failure: 127.
+ */
+export function gateExit({ status, signal, error }) {
+  if (error) return { code: 127, message: `[gate-lock] could not start the command: ${error.message}. NOT a green run.` };
+  if (signal) {
+    const n = osConstants.signals[signal] ?? 0;
+    return {
+      code: 128 + n,
+      message: `[gate-lock] the command was killed by ${signal} (out of memory, or stopped) and did NOT finish. NOT a green run.`,
+    };
+  }
+  if (status === 0) return { code: 0, message: null };
+  if (status === null || status === undefined) return { code: 1, message: "[gate-lock] the command ended with no exit status. NOT a green run." };
+  // 134 SIGABRT / 137 SIGKILL from a shell between us and the killed process.
+  if (status === 134 || status === 137) {
+    return { code: status, message: `[gate-lock] the command exited ${status} (killed: out of memory, or stopped) and did NOT finish. NOT a green run.` };
+  }
+  return { code: status, message: null };
 }
 
 // Only run the CLI when invoked directly, not when imported (e.g. by tests).

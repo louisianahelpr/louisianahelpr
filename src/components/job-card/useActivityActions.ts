@@ -113,11 +113,6 @@ export function useActivityActions({
   const respondingInFlight = useRef(new Set<string>());
   const completeInFlight = useRef(new Set<string>());
 
-  // W-9 e-sign — surfaces when the accepted job has `requires_w9 = true`
-  // (set by business posters at post time). We open the dialog after the
-  // optimistic acceptance lands.
-  const [w9DialogOpen, setW9DialogOpen] = useState(false);
-  const [w9Context, setW9Context] = useState<{ jobId: string; businessId: string | null } | null>(null);
   // Q997: the "payment is held" pop-up after an offer is sent or an accept completes.
   const [paymentHeldSide, setPaymentHeldSide] = useState<PaymentHeldSide | null>(null);
   // Board 78: who was offered the job and when, for the poster's what-next sheet.
@@ -150,8 +145,6 @@ export function useActivityActions({
     setPendingAcceptApp,
     setAcceptPendingMissing,
     setAwardBlockReason,
-    setW9Context,
-    setW9DialogOpen,
     setPaymentHeldSide,
     setPaymentHeldWho,
     setRespondingHelperAppId,
@@ -218,8 +211,6 @@ export function useActivityActions({
     acceptPendingMissing, setAcceptPendingMissing,
     // The award/accept pop-up closes as one: its reason, its app, the missing steps.
     closeAwardGate: () => { setAwardBlockReason(null); setPendingAcceptApp(null); setAcceptPendingMissing(null); },
-    w9DialogOpen, setW9DialogOpen,
-    w9Context,
     paymentHeldSide, setPaymentHeldSide,
     // Board 60: a Helpr's accept names only the job; the poster's name and date come from the Working list.
     paymentHeldWho: paymentHeldWho?.jobId

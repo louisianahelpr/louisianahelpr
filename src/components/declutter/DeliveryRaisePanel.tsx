@@ -59,7 +59,15 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
   const fee = valid ? raiseCardFeeCents(cents) : 0;
   const busy = raise.isPending || opening;
   return (
-    <section className="space-y-3 rounded-2xl border border-border bg-card p-4" aria-label="Raise the pay">
+    <section className="space-y-3 border-t border-border pt-3" aria-label="Raise the pay">
+      <div className="space-y-1">
+        <h3 className="text-ds-15 font-semibold">{s.can_raise ? "Raise the pay" : "Delivery pay"}</h3>
+        {s.can_raise && (
+          <p className="text-ds-13 text-muted-foreground">
+            No Helpr has taken this yet. Offering more can help: Helprs see the new pay as soon as you pay.
+          </p>
+        )}
+      </div>
       {s.raises.length > 0 && (
         <ul className="space-y-1 text-ds-13">
           {s.raises.map((r, i) => <li key={`${r.paid_at ?? ""}-${i}`}>{raiseLine(r)}</li>)}
@@ -73,12 +81,6 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
             if (valid && !busy) raise.mutate(cents);
           }}
         >
-          <div className="space-y-1">
-            <h3 className="text-ds-15 font-semibold">Raise the pay</h3>
-            <p className="text-ds-13 text-muted-foreground">
-              No Helpr has taken this yet. Offering more can help: Helprs see the new pay as soon as you pay.
-            </p>
-          </div>
           <div className="space-y-1.5">
             <label htmlFor={`raise-${orderId}`} className="block text-sm font-semibold">Add to the pay</label>
             <div className="flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">

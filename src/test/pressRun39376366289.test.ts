@@ -18,8 +18,16 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { isNotificationOpen, pressWriteKind } from "../../scripts/audit/pressProdSafety.mjs";
-import { DESTRUCTIVE_RX } from "../../scripts/audit/press-every-control.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
+import * as safety from "../../scripts/audit/pressProdSafety.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
+import * as harness from "../../scripts/audit/press-every-control.mjs";
+
+const { isNotificationOpen, pressWriteKind } = safety as {
+  isNotificationOpen: (a: { label: string }) => boolean;
+  pressWriteKind: (a: { method: string; url: string }) => string;
+};
+const { DESTRUCTIVE_RX } = harness as { DESTRUCTIVE_RX: RegExp };
 import { blankComments } from "./helpers/blankNonCode";
 
 const BASE = "https://fncmgoasalhdgfwzhsqa.supabase.co";

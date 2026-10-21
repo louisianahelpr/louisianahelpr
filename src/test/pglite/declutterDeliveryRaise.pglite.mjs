@@ -23,7 +23,7 @@
  */
 import os from "node:os";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
-import { raiseCardFeeCents, RAISE_MAX_TOTAL_CENTS, RAISE_MIN_CENTS } from "../../lib/declutter/raiseFee.ts";
+import { raiseCardFeeCents, RAISE_MIN_CENTS } from "../../lib/declutter/raiseFee.ts";
 
 const NEW_FILE = "20261021130506_declutter_delivery_raise_pay.sql";
 const BEFORE = [
@@ -125,7 +125,10 @@ ok(one(await svc(`SELECT count(*)::int FROM pg_constraint WHERE conname = 'helpr
   "applied 3 times: one stamp CHECK, one close trigger (replay-safe)");
 
 // 1. The card fee: SQL and the client mirror agree on every allowed raise, and it covers Stripe's cut of the charge.
-const sqlFees = await svc(`SELECT g AS r, public.declutter_delivery_raise_card_fee_cents(g) AS f FROM generate_series(${RAISE_MIN_CENTS}, ${RAISE_MAX_TOTAL_CENTS}, 100) g`);
+const rules = one(await svc(`SELECT public.declutter_delivery_raise_rules()`));
+ok(rules?.min_cents === RAISE_MIN_CENTS && rules.max_total_cents === 15000 && rules.step_cents === 100,
+  "the client's minimum raise is the server's ($5), whole dollars, $150 in all");
+const sqlFees = await svc(`SELECT g AS r, public.declutter_delivery_raise_card_fee_cents(g) AS f FROM generate_series(${RAISE_MIN_CENTS}, ${rules?.max_total_cents ?? 0}, 100) g`);
 const mismatched = Array.isArray(sqlFees) ? sqlFees.filter((x) => x.f !== raiseCardFeeCents(x.r)) : [{ r: "error" }];
 ok(Array.isArray(sqlFees) && sqlFees.length === 146 && mismatched.length === 0,
   `the SQL card fee equals src/lib/declutter/raiseFee.ts for all ${Array.isArray(sqlFees) ? sqlFees.length : 0} allowed raises`);

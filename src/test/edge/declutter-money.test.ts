@@ -25,8 +25,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |       const existing = mine.find((x) => tookIt(x.status)); |       const existing = mine[0];
  * @mutate supabase/functions/declutter-money/index.ts |   if (pi.status !== "succeeded" \|\| !ch \|\| ch.amount_refunded > known \|\| ch.disputed) { |   if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |   const known = Math.max(0, Number(refundsRecordedCents ?? 0)); |   const known = Number.MAX_SAFE_INTEGER;
- * @mutate supabase/functions/declutter-money/index.ts |           { idempotencyKey: `helpr-task-payout-${h.payout_id}` }, |           {},
- * @mutate supabase/functions/declutter-money/index.ts |         return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed; |         return false;
+ * @mutate supabase/functions/declutter-money/index.ts |             { idempotencyKey: part.raiseId ? `helpr-task-payout-${h.payout_id}-raise-${part.raiseId}` : `helpr-task-payout-${h.payout_id}` }, |             {},
+ * @mutate supabase/functions/declutter-money/index.ts |        return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed |        return false
  * @mutate supabase/functions/declutter-money/index.ts |     const hold = await checkPayoutHold(admin, h.helpr_id); |     const hold = { kind: "ok" } as Awaited<ReturnType<typeof checkPayoutHold>>;
  * @mutate supabase/functions/declutter-money/index.ts |       const adopted = mine.find((x) => tookIt(x.status)); |       const adopted = undefined;
  * @mutate supabase/functions/declutter-money/index.ts |       return { stripe: modes.clientFor(mode) }; |       return await modes.clientForParties([r.buyer_id, r.seller_id]);

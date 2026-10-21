@@ -46,6 +46,8 @@ const DECLUTTER_FILES = [
   "20261021023530_declutter_review_tags.sql",
   "20261021030654_declutter_moving_sale_name.sql",
   "20261021031757_declutter_wanted_public_replies.sql",
+  // Q1929: the buyer raises a delivery's pay (invalid_raise, delivery_not_waiting, raise_too_late, raise_limit, ...).
+  "20261021130506_declutter_delivery_raise_pay.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -70,7 +72,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(16);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(17);
     expect(codes.size).toBeGreaterThan(25);
   });
 

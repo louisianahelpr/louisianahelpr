@@ -33,6 +33,12 @@
  *                the cart with that seller is returned from
  *                declutter_delivery_quote AS THE BUYER. Nothing is charged.
  *   pay with handover 'delivery' adds the frozen delivery fee as its own line.
+ *   raise_pay  { order_id, raise_cents }  Q1929 (row 40): the BUYER raises the
+ *                pay of a delivery no Helpr has taken. declutter_delivery_raise_start
+ *                AS THE BUYER (every rule in SQL), then a second Stripe page for
+ *                the raise + its card fee only, tied to the order (metadata
+ *                kind declutter_raise, the order's transfer group). The webhook
+ *                applies it only once it is paid.
  *
  * Row 62: no switch check for pay/cancel_sale. Both only finish a sale that was
  * already agreed; starting anything new (offer, Buy, a card, a delivery) needs
@@ -330,6 +336,129 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
   return json({ quote });
 }
 
+type RaiseRow = { raise_id: string; raise_cents: number; card_fee_cents: number; total_cents: number; superseded_session_id: string | null };
+
+/**
+ * Q1929 (spec row 40): the BUYER raises the pay of a delivery no Helpr has
+ * taken yet. A second Stripe page tied to the order, for the raise and its
+ * card fee only (the buyer pays the card cost of this charge). Nothing changes
+ * until Stripe says PAID: the webhook (declutterCheckout.ts, kind
+ * declutter_raise) applies it, or refunds it if the delivery stopped waiting.
+ * The buyer's open raise page, if any, is closed first; a page that already
+ * went through is reported as paid and replaces nothing.
+ */
+async function raisePay(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  const raiseCents = typeof body.raise_cents === "number" && Number.isInteger(body.raise_cents) ? body.raise_cents : NaN;
+  if (!UUID_RE.test(orderId)) return json({ error: "item_not_found" }, 404);
+  if (!Number.isFinite(raiseCents)) return json({ error: "invalid_raise" }, 400);
+  // New money toward a Helpr: the switch, from the verified user, never the body.
+  const switchOff = await requireFeature(admin, "declutter", user, corsHeaders);
+  if (switchOff) return switchOff;
+  const { data: orderRow, error: orderErr } = await admin.from("declutter_orders")
+    .select("buyer_id, seller_id").eq("id", orderId).maybeSingle();
+  if (orderErr) {
+    console.error(`[declutter-checkout] raise order read failed: ${orderErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const parties = orderRow as { buyer_id: string | null; seller_id: string | null } | null;
+  // Anyone but the buyer: the same answer as an unknown order (the RPC says so too).
+  if (!parties || parties.buyer_id !== user.id) return json({ error: "item_not_found" }, 404);
+  const mode = await stripeModeForParties(admin, [user.id, parties.seller_id]);
+  const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
+
+  // The open raise page first: paid -> say so (the webhook applies it); open -> close it.
+  const { data: openRaise, error: openErr } = await admin.from("declutter_delivery_raises")
+    .select("id, stripe_checkout_session_id").eq("order_id", orderId).eq("status", "awaiting_payment").maybeSingle();
+  if (openErr) {
+    console.error(`[declutter-checkout] open raise read failed: ${openErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const openPage = (openRaise as { stripe_checkout_session_id: string | null } | null)?.stripe_checkout_session_id ?? null;
+  if (openPage) {
+    const m = sessionIdMode(openPage);
+    const pageStripe = m && m !== mode ? new Stripe(stripeSecretKeyFor(m), { apiVersion: "2025-08-27.basil" }) : stripe;
+    const page = await pageStripe.checkout.sessions.retrieve(openPage);
+    if (page.status === "complete") return json({ paid: true, order_id: orderId });
+    if (page.status === "open") {
+      try {
+        await pageStripe.checkout.sessions.expire(openPage);
+      } catch (e) {
+        // Paid in the meantime (Stripe refuses to expire a complete page).
+        console.log(JSON.stringify({ event: "declutter_raise_page_expire_refused", session: openPage, detail: String(e).slice(0, 200) }));
+        return json({ paid: true, order_id: orderId });
+      }
+    }
+  }
+
+  const { data, error } = await asBuyer.rpc("declutter_delivery_raise_start", { p_order_id: orderId, p_raise_cents: raiseCents });
+  // This function can deploy before its migration (20261021130506): say it is not available yet, never "try again".
+  if (error?.code === "PGRST202") return json({ error: "raise_unavailable" }, 503);
+  if (error) return rpcRefusal(error);
+  const raise = (Array.isArray(data) ? data[0] : data) as RaiseRow | undefined;
+  if (!raise?.raise_id || raise.raise_cents !== raiseCents || raise.raise_cents + raise.card_fee_cents !== raise.total_cents) {
+    console.error(`[declutter-checkout] raise for order ${orderId} came back without its amounts`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  if (raise.superseded_session_id && raise.superseded_session_id !== openPage) {
+    // A page another tap opened meanwhile: closed too (a payment on it is refunded by the webhook).
+    const m = sessionIdMode(raise.superseded_session_id);
+    if (m) await expirePage(new Stripe(stripeSecretKeyFor(m), { apiVersion: "2025-08-27.basil" }), raise.superseded_session_id);
+  }
+
+  let payerCustomer: string | undefined;
+  try {
+    payerCustomer = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
+  } catch (e) {
+    console.error(`[declutter-checkout] ${caughtMessage(e)}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const meta = {
+    kind: "declutter_raise",
+    raise_id: raise.raise_id,
+    order_id: orderId,
+    buyer_id: user.id,
+    // The banned-card check (Q1324) reads the payer from payer_id.
+    payer_id: parties.buyer_id,
+    seller_id: parties.seller_id ?? "",
+  };
+  const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [
+        { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents,
+          product_data: { name: "Higher Helpr delivery pay", tax_code: NONTAXABLE_TAX_CODE } } },
+        { quantity: 1, price_data: { currency: "usd", unit_amount: raise.card_fee_cents,
+          product_data: { name: "Card fee", tax_code: NONTAXABLE_TAX_CODE } } },
+      ],
+      ...(payerCustomer ? { customer: payerCustomer } : { customer_email: user.email ?? undefined }),
+      client_reference_id: orderId,
+      metadata: meta,
+      // The order's own transfer group: the Helpr's payout draws the raise from this charge.
+      payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${orderId}` },
+      payment_method_options: threeDSecureOptions(raise.total_cents),
+      expires_at: expiresAt,
+      success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)),
+      cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
+    },
+    { idempotencyKey: `declutter-raise-${raise.raise_id}` },
+  );
+  if (session.amount_total !== raise.total_cents) {
+    await expirePage(stripe, session.id);
+    console.error(`[declutter-checkout] Stripe total ${session.amount_total} != raise total ${raise.total_cents}`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const { error: attachErr } = await admin.rpc("declutter_delivery_raise_attach", { p_raise_id: raise.raise_id, p_session_id: session.id });
+  if (attachErr) {
+    // Another tap replaced this raise first: its page is the buyer's, ours is closed.
+    await expirePage(stripe, session.id);
+    return json({ error: TRY_AGAIN }, 409);
+  }
+  return json({ url: session.url, order_id: orderId, raise_id: raise.raise_id });
+}
+
 async function cancelSale(body: Record<string, unknown>, user: { id: string }, asSeller: Db, admin: Db) {
   const itemId = typeof body.item_id === "string" ? body.item_id : "";
   if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
@@ -376,6 +505,7 @@ serve(async (req) => {
     if (body.action === "pay") return await pay(body, user, asMember, admin);
     if (body.action === "cancel_sale") return await cancelSale(body, user, asMember, admin);
     if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);
+    if (body.action === "raise_pay") return await raisePay(body, user, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

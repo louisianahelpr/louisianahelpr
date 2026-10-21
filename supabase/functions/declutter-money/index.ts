@@ -36,6 +36,15 @@
  *      declutter_delivery_refund_executed. metadata.kind stays
  *      "declutter_refund" so the webhook's charge.refunded path leaves it to
  *      this function.
+ *   4b. DELIVERY-PAY RAISES (Q1929, row 40; 20261021130506)
+ *      declutter_delivery_raise_refunds_due(): a paid raise the delivery did
+ *      not use (nobody took it, the sale was cancelled, a page paid after the
+ *      delivery stopped waiting) goes back in full on the raise's OWN charge,
+ *      once: reconciled by metadata.raise_id, key
+ *      `declutter-raise-refund-<raise id>`, recorded with
+ *      declutter_delivery_raise_refund_executed. A raise the Helpr earned is
+ *      paid in step 3: the payout's raise part is a transfer from the raise's
+ *      own charge (_shared/helprPayoutParts.ts), the rest from the order's.
  *
  *   5. SHOPS (M1, migration 20261018164442) the order clock (shop_order_sweep),
  *      then every card hold to cancel (shop_holds_to_release) and every
@@ -96,6 +105,7 @@ import { getAppUrl } from "../_shared/appUrl.ts";
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -143,6 +153,9 @@ type HelprPayoutDue = {
   transfer_group: string | null;
   refunds_recorded_cents: number | null;
   attempts: number;
+  /** Q1929: how much of the pay came from paid raises, and each raise's own charge (20261021130506). */
+  raised_cents?: number | null;
+  raise_parts?: unknown;
 };
 type ShopPayoutDue = {
   payout_id: string;
@@ -166,6 +179,20 @@ type DeliveryRefundDue = {
   payment_intent_id: string;
   refund_cents: number;
   attempts: number;
+  checkout_session_id: string | null;
+};
+
+/** Q1929: a paid raise of a delivery's pay to give back in full, on its OWN charge. */
+type RaiseRefundDue = {
+  raise_id: string;
+  reason: string;
+  order_id: string;
+  buyer_id: string | null;
+  seller_id: string | null;
+  payment_intent_id: string;
+  refund_cents: number;
+  attempts: number;
+  livemode: boolean | null;
   checkout_session_id: string | null;
 };
 
@@ -264,6 +291,7 @@ serve(async (req) => {
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
     helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
+    raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0,
     held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
     payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
@@ -823,19 +851,27 @@ serve(async (req) => {
   const payouts = (payoutsRes.data ?? []) as PayoutDue[];
   const helprPayouts = (helprRes.data ?? []) as HelprPayoutDue[];
   const deliveryRefunds = (deliveryRes.data ?? []) as DeliveryRefundDue[];
+  // Q1929: raises of a delivery's pay to give back (20261021130506). A function not deployed yet
+  // (PGRST202: this edge shipped before its migration) is one defect, never a stop for the rest.
+  const raiseRes = await admin.rpc("declutter_delivery_raise_refunds_due", { p_limit: BATCH });
+  if (raiseRes.error && (raiseRes.error as { code?: string }).code !== "PGRST202") {
+    return cronError(FN, `declutter_delivery_raise_refunds_due failed: ${raiseRes.error.message}`);
+  }
+  if (raiseRes.error) defects.record("declutter_delivery_raise_refunds_due: not deployed yet (PGRST202)");
+  const raiseRefunds = (raiseRes.error ? [] : raiseRes.data ?? []) as RaiseRefundDue[];
   // Refunds that gave up (12 tries; the queue no longer offers them): the SQL raises one ops-ledger
   // alert per row per day and tells the buyer once that the refund is being sent by hand
   // (lh-money-escrow should-fix (a)). A failed check is a defect, never a reason to hold money.
   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {});
   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
   else out.refunds_gave_up = Number(gaveUp.data ?? 0);
-  if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0) {
+  if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0) {
     return cronResult(FN, out, defects.defects);
   }
 
   // Q1415(c): no refund or payout moves for an account under ban review. Fail closed.
   const people = [...new Set([
-    ...[...refunds, ...payouts, ...deliveryRefunds].flatMap((r) => [r.buyer_id, r.seller_id]),
+    ...[...refunds, ...payouts, ...deliveryRefunds, ...raiseRefunds].flatMap((r) => [r.buyer_id, r.seller_id]),
     ...helprPayouts.flatMap((h) => [h.helpr_id, h.customer_id, h.pickup_contact_id]),
   ].filter((x): x is string => !!x))];
   const review = await loadBanReviewUsers(admin, people);
@@ -1062,38 +1098,60 @@ serve(async (req) => {
       await unpayableNow("helpr_task", h.payout_id, h.helpr_id, null, h.amount_cents, null);
       continue;
     }
+    // Q1929: a raised delivery's payout is funded part from the order's charge and part from each
+    // raise's own charge (a transfer may not exceed its source charge). No raise = one part, as before.
+    let parts: PayoutPart[];
+    try {
+      parts = helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts);
+    } catch (e) {
+      defects.record(`helpr payout ${h.payout_id}: ${caughtMessage(e, "raise parts unreadable")}`.slice(0, 200));
+      await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", caughtMessage(e, "raise parts unreadable"));
+      continue;
+    }
     let beforeSend = true;
     try {
       const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id]);
       // Already found not payable this run, and no try used (no transfer can exist): defer now.
       if (!maybeSent_helpr_task(h) && (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode))) continue;
-      // Reconcile: the one Helpr payout transfer for this row, never sent twice.
+      // Reconcile: each part's one transfer for this row (the order part carries no raise_id), never sent twice.
       const listed = await stripe.transfers.list({ transfer_group: h.transfer_group, limit: 100 });
-      const existing = listed.data.find((t) => {
+      const sent = parts.map((part) => listed.data.find((t) => {
         const meta = (t.metadata ?? {}) as Record<string, string>;
-        return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed;
-      });
-      let hTransfer = existing;
-      if (!hTransfer) {
-        // The charge first (a refunded or disputed order fails loudly), then the payee's readiness.
+        return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed
+          && (meta.raise_id ?? "") === (part.raiseId ?? "");
+      }));
+      const existing = sent.every((t) => !!t);
+      if (!existing) {
+        // The charges first (a refunded or disputed one fails loudly), then the payee's readiness.
         if (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode)) continue;
-        const charge = await wholeCharge(stripe, h.payment_intent_id, h.refunds_recorded_cents);
+        const charges: (string | null)[] = [];
+        for (const [i, part] of parts.entries()) {
+          charges[i] = sent[i] ? null : await wholeCharge(stripe, part.paymentIntentId, part.raiseId ? 0 : h.refunds_recorded_cents);
+        }
         if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue;
         if (!(await stillPayableNow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         beforeSend = false;
-        hTransfer = await stripe.transfers.create(
-          {
-            amount: h.amount_cents,
-            currency: "usd",
-            destination: h.stripe_account_id as string,
-            transfer_group: h.transfer_group,
-            source_transaction: charge,
-            metadata: { kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id },
-          },
-          { idempotencyKey: `helpr-task-payout-${h.payout_id}` },
-        );
+        for (const [i, part] of parts.entries()) {
+          if (sent[i]) continue;
+          sent[i] = await stripe.transfers.create(
+            {
+              amount: part.amountCents,
+              currency: "usd",
+              destination: h.stripe_account_id as string,
+              transfer_group: h.transfer_group,
+              source_transaction: charges[i] as string,
+              metadata: {
+                kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id,
+                ...(part.raiseId ? { raise_id: part.raiseId } : {}),
+              },
+            },
+            { idempotencyKey: part.raiseId ? `helpr-task-payout-${h.payout_id}-raise-${part.raiseId}` : `helpr-task-payout-${h.payout_id}` },
+          );
+        }
       }
+      // The row records its first part's transfer (the order's, when it funds any); the others are in its group.
+      const hTransfer = sent[0] as Stripe.Transfer;
       const { error } = await admin.rpc("helpr_task_payout_executed", {
         p_payout_id: h.payout_id, p_transfer_id: hTransfer.id, p_succeeded: true, p_error: null,
       });
@@ -1214,6 +1272,81 @@ serve(async (req) => {
       if (error) defects.record(`delivery refund ${d.delivery_refund_id}: failure not recorded: ${error.message}`);
       out.delivery_refunds_failed++;
       defects.record(`delivery refund ${d.delivery_refund_id}${d.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
+    }
+  }
+
+  // 4b. Delivery-pay raises (Q1929): each paid raise the task did not use goes back in full, on the
+  // raise's OWN charge (never the order's), once: reconciled by metadata.raise_id, key
+  // `declutter-raise-refund-<raise id>`, recorded with declutter_delivery_raise_refund_executed.
+  const deferRaise = (id: string, minutes: number) =>
+    waitRpc("declutter_delivery_raise_refund_defer", { p_raise_id: id, p_minutes: minutes });
+  for (const x of raiseRefunds) {
+    if ((x.buyer_id && review.users.has(x.buyer_id)) || (x.seller_id && review.users.has(x.seller_id))) {
+      out.ban_review++;
+      await deferRaise(x.raise_id, 60);
+      continue;
+    }
+    try {
+      const client = await refundClient({
+        refund_id: x.raise_id, reason: x.reason, order_id: x.order_id, buyer_id: x.buyer_id, seller_id: x.seller_id,
+        payment_intent_id: x.payment_intent_id, refund_cents: x.refund_cents, attempts: x.attempts, livemode: x.livemode,
+        checkout_session_id: x.checkout_session_id,
+      });
+      if (!client) {
+        defects.record(`raise refund ${x.raise_id}: no Stripe mode; refund it by hand`);
+        await deferRaise(x.raise_id, 1440);
+        continue;
+      }
+      const { stripe } = client;
+      const listed = await stripe.refunds.list({ payment_intent: x.payment_intent_id, limit: 100 });
+      const mine = listed.data.filter((r) => (r.metadata as Record<string, string> | null)?.raise_id === x.raise_id);
+      const adopted = mine.find((r) => tookIt(r.status));
+      // own-mistake full refund (owner, 2026-10-14): the raise bought a Helpr the delivery never got,
+      // so everything the buyer paid for it (card fee included) goes back; the order's charge is untouched.
+      const xRefund = adopted ?? await stripe.refunds.create(
+        {
+          payment_intent: x.payment_intent_id,
+          amount: x.refund_cents,
+          metadata: { kind: "declutter_refund", raise_id: x.raise_id, reason: x.reason, order_id: x.order_id },
+        },
+        { idempotencyKey: mine.length === 0 ? `declutter-raise-refund-${x.raise_id}` : `declutter-raise-refund-${x.raise_id}-r${mine.length}` },
+      );
+      const ok = tookIt(xRefund.status);
+      const { error } = await admin.rpc("declutter_delivery_raise_refund_executed", {
+        p_raise_id: x.raise_id, p_stripe_refund_id: xRefund.id, p_succeeded: ok, p_error: ok ? null : `Stripe answered ${xRefund.status}`,
+      });
+      if (error) {
+        defects.record(`raise refund ${x.raise_id}: Stripe ${xRefund.id} not recorded: ${error.message}`);
+        await deferRaise(x.raise_id, 15);
+        continue;
+      }
+      if (!ok) {
+        out.raise_refunds_failed++;
+        await postSlackOpsAlert({
+          kind: "money_at_risk", severity: "critical",
+          title: x.attempts + 1 >= 12 ? "Declutter delivery-raise refund gave up" : "Declutter delivery-raise refund did not go through",
+          message: `Stripe answered ${xRefund.status} for raise refund ${x.raise_id} (${dollars(x.refund_cents)}, order ${x.order_id}). ${x.attempts + 1 >= 12 ? "That was the last try: refund it by hand." : "It will be retried with back-off."}`,
+          fields: { Refund: xRefund.id },
+        });
+        continue;
+      }
+      if (adopted) out.raise_refunds_reconciled++;
+      else out.raise_refunds_sent++;
+      await tellBuyerRefunded(admin, x.buyer_id, x.refund_cents);
+    } catch (e) {
+      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+        out.mixed_parties++;
+        defects.record(`raise refund ${x.raise_id}: the order mixes a test account and a real one; settle it by hand`);
+        await deferRaise(x.raise_id, 1440);
+        continue;
+      }
+      const msg = caughtMessage(e, "refund failed");
+      const { error } = await admin.rpc("declutter_delivery_raise_refund_executed", {
+        p_raise_id: x.raise_id, p_stripe_refund_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
+      });
+      if (error) defects.record(`raise refund ${x.raise_id}: failure not recorded: ${error.message}`);
+      out.raise_refunds_failed++;
+      defects.record(`raise refund ${x.raise_id}${x.attempts + 1 >= 12 ? " (LAST TRY: refund it by hand)" : ""}: ${msg}`.slice(0, 200));
     }
   }
 

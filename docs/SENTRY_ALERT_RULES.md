@@ -5,6 +5,18 @@ needs an API token I don't hold. Below are the rules to create
 manually in the dashboard. Once these are in place, you'll get paged
 on the failure modes that have actually bitten production.
 
+## Created by a workflow (Q185, 2026-10-21)
+
+These rules are no longer pasted by hand. `.github/workflows/sentry-alert-rules.yml`
+creates them from `scripts/sentry/alertRules.mjs` (one entry per rule below, same
+name; `src/test/sentryAlertRules.test.ts` fails if the two disagree), then reads
+every one back. Owner decision 2026-10-21: every rule notifies by EMAIL only
+(Suggested Assignees, falling back to Active Members); the Slack targets in the
+severity ladder below are not used. Sentry retired the per-project issue-alert
+API, so the rules are Sentry "Alerts" attached to the project's issue stream.
+Change a rule here AND in `scripts/sentry/alertRules.mjs`, then run the workflow.
+It needs the GitHub secret `SENTRY_ALERTS_TOKEN` (Alerts: Read & Write, Project: Read).
+
 ## Where to create
 
 https://helpr-4m.sentry.io/projects/javascript/alerts/new/issue/

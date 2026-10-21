@@ -84,7 +84,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   // service-role bearer (the `auth.admin.signOut` API). The closest
   // safe-to-ship action from the client is a global sign-out, which
   // revokes every refresh token for the user (incl. this device).
-  // The dialog stays open on "Logging Out…" until it has finished
+  // The dialog stays open on "Logging out…" until it has finished
   // (2026-10-09: a closed dialog over a pending sign-out read as "nothing
   // happened"). On an error THIS device is signed out all the same (the
   // helper's floor clears it), so there is no session left to retry with: a

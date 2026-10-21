@@ -39,7 +39,7 @@ describe("board 116: Post a Wanted", () => {
     fireEvent.change(screen.getByLabelText("I'm looking for"), { target: { value: "Kids bike, 16 inch" } });
     fireEvent.change(price, { target: { value: "30" } });
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "baby_kids" } });
-    fireEvent.click(screen.getByRole("button", { name: "Post Wanted" }));
+    fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(posted).toHaveLength(1));
     expect(posted[0]).toEqual([expect.objectContaining({ what: "Kids bike, 16 inch", maxPrice: "30", category: "baby_kids" }), { lat: 30, lng: -92 }]);
   });

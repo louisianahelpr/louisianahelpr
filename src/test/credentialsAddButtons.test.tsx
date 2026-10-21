@@ -4,7 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
- * CREDENTIALS: "Add License" / "Add Insurance" BUTTONS, NOT SWITCHES (Q142),
+ * CREDENTIALS: "Add license" / "Add insurance" BUTTONS, NOT SWITCHES (Q142),
  * AND THE WAY BACK IN AFTER A WITHDRAWAL (Q111).
  *
  * Owner decision 2026-09-23 (docs/OPEN.md MORNING QUESTIONS 6, option b): the
@@ -21,10 +21,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  *
  * What is pinned, against the real component (supabase mocked at the client):
  *   1. there is no switch on the tab, and one Add button per credential;
- *   2. pressing "Add License" opens the file picker (the hidden input's
+ *   2. pressing "Add license" opens the file picker (the hidden input's
  *      click), and a picked file lands in the existing attach -> "Send License
  *      for Review" flow, with nothing written to the server;
- *   3. after withdrawing a sent license, the Add License button is back and
+ *   3. after withdrawing a sent license, the Add license button is back and
  *      still opens the picker.
  */
 
@@ -34,7 +34,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // a withdrawal that leaves the card "on" with no row behind it and no way to add (3 fails);
 // @mutate src/components/profile/CredentialsTab.tsx | {!on && ( | {!on && !removing && Object.keys(intent).length === 0 && (
 // the switch comes back in place of the button (1 fails).
-// @mutate src/components/profile/CredentialsTab.tsx | {kind === "license" ? "Add License" : "Add Insurance"} | {kind === "license" ? "I Am Licensed" : "I Am Insured"}
+// @mutate src/components/profile/CredentialsTab.tsx | {kind === "license" ? "Add license" : "Add insurance"} | {kind === "license" ? "I Am Licensed" : "I Am Insured"}
 
 type Row = Record<string, unknown>;
 const EMPTY_ROW: Row = {
@@ -111,14 +111,14 @@ beforeEach(() => {
 describe("Q142: credentials are added with buttons, not switches", () => {
   it("renders no switch and one Add button per credential", async () => {
     renderTab();
-    expect(await screen.findByRole("button", { name: "Add License" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Add Insurance" })).toBeTruthy();
+    expect(await screen.findByRole("button", { name: "Add license" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add insurance" })).toBeTruthy();
     expect(screen.queryAllByRole("switch")).toHaveLength(0);
   });
 
   it("Add License opens the picker, and the picked file goes to Send for Review", async () => {
     renderTab();
-    const button = await screen.findByRole("button", { name: "Add License" });
+    const button = await screen.findByRole("button", { name: "Add license" });
     const input = pickerFor("license");
     const clicked = vi.spyOn(input, "click");
     fireEvent.click(button);
@@ -128,20 +128,20 @@ describe("Q142: credentials are added with buttons, not switches", () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(await screen.findByText("license.pdf")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Send License for Review" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send license for review" })).toBeTruthy();
     // Picking is local only: nothing reached profiles.
     expect(db.updates).toEqual([]);
   });
 });
 
 describe("Q111: withdrawing a sent document leaves the way to add a new one", () => {
-  it("after Take It Back, the Add License button is back and opens the picker", async () => {
+  it("after Take It Back, the Add license button is back and opens the picker", async () => {
     db.row = { ...EMPTY_ROW, license_url: "u-1/credentials/license-1727000000000.pdf", is_licensed: true, license_status: "pending" };
     renderTab();
     fireEvent.click(await screen.findByRole("button", { name: "Take your license out of the review queue" }));
     fireEvent.click(await screen.findByRole("button", { name: "Take It Back" }));
 
-    const add = await screen.findByRole("button", { name: "Add License" });
+    const add = await screen.findByRole("button", { name: "Add license" });
     await waitFor(() => expect(db.updates).toEqual([{ license_url: null }]));
     const input = pickerFor("license");
     const clicked = vi.spyOn(input, "click");

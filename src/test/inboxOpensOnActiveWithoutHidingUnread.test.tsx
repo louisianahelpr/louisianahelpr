@@ -36,7 +36,7 @@
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | false && (
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | hiddenUnreadCount > 0 && (
  * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
- * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show All | setInboxFilter("active"); }}>\n                  Show All
+ * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show all | setInboxFilter("active"); }}>\n                  Show all
  * @mutate src/components/messages/InboxMenus.tsx | aria-checked={inboxTab === key} | aria-checked={key === "all"}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -340,7 +340,7 @@ describe("Messages opens on All, and Active (when chosen) says what it is hiding
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
   });
 
-  it("a user whose jobs are all finished, on Active, sees 'nothing running' and Show All widens", () => {
+  it("a user whose jobs are all finished, on Active, sees 'nothing running' and Show all widens", () => {
     setWebDesktop(false);
     renderInbox(ALL_FINISHED);
     // Arrival is All, so the finished threads are on screen at once.
@@ -353,7 +353,7 @@ describe("Messages opens on All, and Active (when chosen) says what it is hiding
     ).toBeTruthy();
 
     // The button must WIDEN the view.
-    const showAll = screen.getByRole("button", { name: /Show All \(2\)/ });
+    const showAll = screen.getByRole("button", { name: /Show all \(2\)/ });
     fireEvent.click(showAll);
     expect(screen.queryByText("Nothing here right now")).toBeNull();
     openPhoneDisclosure();

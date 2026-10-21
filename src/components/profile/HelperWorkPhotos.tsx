@@ -34,7 +34,7 @@ export function HelperWorkPhotos({ urls }: { urls: string[] }) {
   return (
     <div className="space-y-3">
       <h2 className="text-ds-17 font-display font-semibold text-foreground flex items-center gap-2">
-        <ImageIcon className="w-5 h-5 text-primary" /> Recent Work
+        <ImageIcon className="w-5 h-5 text-primary" /> Recent work
       </h2>
       <div className="grid grid-cols-3 gap-2">
         {shown.map((url, i) => (

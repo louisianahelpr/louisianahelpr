@@ -1,7 +1,7 @@
 /**
  * Q1554 — THE HELPR'S SCHEDULED CARD LEADS WITH "CONFIRM YOU'LL BE AT THE JOB"
  * (owner, 2026-10-08): until the Helpr's day-before confirmation the primary is
- * "Confirm You'll Be at the Job", never "I'm On My Way"; Cancel Job, Directions
+ * "Confirm You'll Be at the Job", never "I'm On My Way"; Cancel job, Directions
  * and Ask for a new date or time sit under More, not on the row.
  *
  * Renders the real ConfirmedSection (the Helpr's accepted card) at two points
@@ -11,7 +11,7 @@
  * three moves the owner named.
  *
  * @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (_c: ReactNode) => false;
- * @mutate src/components/JobConfirmation.tsx | Confirm You'll Be at the Job | I'm Still On
+ * @mutate src/components/JobConfirmation.tsx | Confirm You'll Be at the Job | I'm still on
  * @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | <DirectionsButton key="directions" location={job.location} />, | null,
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";

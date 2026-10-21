@@ -1,7 +1,7 @@
 /**
- * Pinned and Recently Deleted always say something, even for an account with
+ * Pinned and Recently deleted always say something, even for an account with
  * no conversations at all. Seen on prod 2026-10-12 at 375 (poster-e2e, whose
- * inbox is empty; menu > Recently Deleted): the panel under "Showing recently
+ * inbox is empty; menu > Recently deleted): the panel under "Showing recently
  * deleted" was blank white, with no sentence and no rows. The default-inbox
  * empty state is (rightly) skipped in those views, and the views' own empty
  * state was gated on `conversations.length > 0`, so with zero conversations
@@ -66,7 +66,7 @@ function openOptions() {
 }
 
 const VIEWS: Array<[string, RegExp]> = [
-  ["Recently Deleted", /Nothing hidden\./],
+  ["Recently deleted", /Nothing hidden\./],
   ["Pinned", /No conversations are pinned\./],
 ];
 

@@ -418,7 +418,7 @@ test("shots", async ({ context, page, baseURL }) => {
  * The non-negotiable, measured directly: for every clamped/truncated text node,
  * count the characters actually VISIBLE inside its content box with the class
  * off, then again with it on, on the SAME page load and the SAME elements.
- * Senior Mode must never show fewer.
+ * Senior mode must never show fewer.
  */
 const VISCOUNT = () => {
   const els = [

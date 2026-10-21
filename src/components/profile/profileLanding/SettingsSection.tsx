@@ -64,7 +64,7 @@ export function SettingsGroup({
                        used the SAME raw brand hue for the fill and the
                        label, and neither --destructive nor
                        --burnt-sienna has a dark sibling — so on the
-                       dark canvas "Action Needed" measured 3.64:1 and
+                       dark canvas "Action needed" measured 3.64:1 and
                        "Set up" 3.84:1 at 10px, both under AA, on the
                        chips whose whole job is to be noticed.
                        --danger-ink is the theme-adaptive red the app
@@ -82,7 +82,7 @@ export function SettingsGroup({
                         }}
                       >
                         <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
-                        {blocking ? "Action Needed" : item.incompleteLabel}
+                        {blocking ? "Action needed" : item.incompleteLabel}
                       </span>
                     );
                   })()}

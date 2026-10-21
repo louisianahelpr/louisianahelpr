@@ -166,7 +166,7 @@ describe("the reported prod row: in_progress with NO confirmation stamp", () => 
 describe("the gate keys on the STEP, not on where the rail happens to sit", () => {
   it("still withholds the button when the rail is dragged forward some other way", () => {
     // A stale `job_tracking` row parked on `job_confirmed` puts the rail one
-    // step short of On the Way by a completely different route than the status
+    // step short of On the way by a completely different route than the status
     // floor did. The old positional check would have been skipped here too.
     renderHelperTracker({
       initialTracking: {

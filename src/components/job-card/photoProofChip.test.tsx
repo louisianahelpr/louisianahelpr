@@ -3,7 +3,7 @@
  * SAME ROW as the other action buttons.
  *
  * It used to be `PhotoProofGroup` — a titled two-column panel with six
- * thumbnails and a "View All" text link — sitting in the `ask` slot ABOVE the
+ * thumbnails and a "View all" text link — sitting in the `ask` slot ABOVE the
  * action row on five different cards. So the one row the owner asked for
  * (VN-21) had a second, taller block of chrome stacked on top of it, on every
  * state where the proof exists.
@@ -284,8 +284,8 @@ describe("item 10 — the before & after pictures are a button on the action row
       // The PANEL is gone. Checked BEFORE the dialog opens, because the
       // dialog's own hero carries the same words.
       expect(screen.queryByText("Photo proof")).toBeNull();
-      // …and so is its "View All" escape hatch, which only that panel had.
-      expect(screen.queryByText("View All")).toBeNull();
+      // …and so is its "View all" escape hatch, which only that panel had.
+      expect(screen.queryByText("View all")).toBeNull();
 
       if (site.inStepRow) {
         const row = container.querySelector("[data-job-step-row]");

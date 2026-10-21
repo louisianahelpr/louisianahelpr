@@ -249,7 +249,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
  * footer) and src/components/ui/skeletons/JobCardSkeleton (the real one, built
  * by importing JobCard's own exported geometry). Which one a screen got
  * depended on which import line it happened to carry, and the two callers of
- * the hand-drawn copy — Home History and Work Record — render a service-record
+ * the hand-drawn copy — Home history and Work record — render a service-record
  * card and a letterhead document, neither of which is a job card.
  *
  * A duplicate placeholder name is not a style problem; it is how a screen ends

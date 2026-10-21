@@ -27,7 +27,7 @@ export const JobDetailFooter = ({
   job, guest, onApply, navigate,
   viewerUserId, viewerAppPosition, viewerTier, onAskQuestion,
 }: JobDetailFooterProps) => {
-  // Q1586(c): a saved birthday under 18 greys Apply Now out; the tap says why.
+  // Q1586(c): a saved birthday under 18 greys Apply now out; the tap says why.
   const { gate, gatedProps } = useAgeGate();
   if (guest) {
     // Instant Book was dropped (20260904034410, dead-feature cut) — the CTA
@@ -214,7 +214,7 @@ export const JobDetailFooter = ({
             className="font-sans font-semibold text-ds-14 truncate"
             style={{ color: "hsl(var(--ink-deep))" }}
           >
-            {(job.credential_tier ?? 0) === 2 ? "Licensed Pros Only" : "Licensed & Insured Only"}
+            {(job.credential_tier ?? 0) === 2 ? "Licensed pros only" : "Licensed & Insured Only"}
           </span>
           <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
         </button>
@@ -257,15 +257,15 @@ export const JobDetailFooter = ({
                 so the label sits at the button's true optical center instead of
                 being pushed left by the chevron. */}
             <span aria-hidden className="w-4 h-4 shrink-0" />
-            {/* "Apply Now" again (owner, 2026-09-09). It read "Continue" from
+            {/* "Apply now" again (owner, 2026-09-09). It read "Continue" from
                 2026-08-30 while applying was a SECOND STEP of this sheet and
                 this button only revealed it. The two steps are collapsed —
-                the note field and the real "Apply Now" render on the detail
+                the note field and the real "Apply now" render on the detail
                 sheet itself now — so this branch is what is left when the
                 inline form is withheld: the transient frame before the
                 viewer's own id resolves on a job they posted. Naming it
                 "Continue" pointed at a step that no longer exists. */}
-            <span className="truncate">Apply Now</span>
+            <span className="truncate">Apply now</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
               strokeWidth={2.5}

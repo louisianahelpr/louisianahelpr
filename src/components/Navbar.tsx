@@ -33,7 +33,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
   // page (/legal, /) should see an "Open app" CTA instead of
-  // the logged-out "Log in / Get Started" pair.
+  // the logged-out "Log in / Get started" pair.
   const { user } = useAuthReady();
   // On the wide desktop *website*, a signed-in visitor already has the
   // persistent RIGHT rail (DesktopSidebarNav) on app/marketing routes the rail
@@ -69,7 +69,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         // on landing, opaque on interior via is-scrolled).
         // Blur only — NO saturate(). `saturate()` on a backdrop filter
         // amplifies the colour of whatever passes beneath the bar, so the
-        // olive "Get Started" button and the dark emblem bled a green cast up
+        // olive "Get started" button and the dark emblem bled a green cast up
         // into the strip, and it shifted as the page scrolled under it. That is
         // the "green jumping shadow" and the "jumping colours": not a shadow at
         // all, but the nav re-saturating live content behind itself.
@@ -112,7 +112,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
 
         {/* ONE nav at every width — text links, a subtle divider, then the auth
             actions. There is no hamburger below lg any more (owner). It opened a
-            sheet whose contents were Jobs, Log In, Get Started and a list of
+            sheet whose contents were Jobs, Log In, Get started and a list of
             links the footer already carries in full — a second copy of the site
             index behind an extra tap. The three things that matter fit the bar
             on a phone, so they sit in it. */}
@@ -127,7 +127,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
           {/* "Jobs" removed from the nav (owner). It's still reachable — the
               footer's Company column links to it, and "Browse Jobs" is a
               primary hero CTA — so this is one fewer top-level item competing
-              with the two actions the bar actually exists to drive: Log In /
+              with the two actions the bar actually exists to drive: Log in /
               Get Started. */}
           {/* Subtle vertical rule between text nav and auth actions —
               two logical groups rather than one long list. Rendered only when
@@ -164,10 +164,10 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                     onMouseEnter={() => prefetchRoute("/login")}
                     onFocus={() => prefetchRoute("/login")}
                   >
-                    {landing ? "Log in" : "Log In"}
+                    {landing ? "Log in" : "Log in"}
                   </Link>
                 </Button>
-                {/* "Get Started" — explicit light-cream text. The `default`
+                {/* "Get started" — explicit light-cream text. The `default`
                     variant nominally resolves text-primary-foreground →
                     --parchment, but that two-hop token chain has repeatedly
                     rendered dark-on-olive in the WebView. Pin the color
@@ -180,7 +180,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                   className={cn("rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]", landing && "rounded-full px-5")}
                   style={{ color: "hsl(var(--parchment))" }}
                 >
-                  {/* Browse first (owner, 2026-10-09): Get Started opens the
+                  {/* Browse first (owner, 2026-10-09): Get started opens the
                       job list, no account needed; sign-up is asked for at
                       Apply or Post. ON the job list it is the sign-up, so it
                       never links to the page already open. */}
@@ -189,7 +189,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                     onMouseEnter={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
                     onFocus={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
                   >
-                    {landing ? "Join free" : "Get Started"}
+                    {landing ? "Join free" : "Get started"}
                   </Link>
                 </Button>
               </>

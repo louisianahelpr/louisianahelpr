@@ -4,7 +4,7 @@
  * .github/workflows/privacy-journey.yml).
  *
  * The journey creates ONE disposable account, exports its data through the
- * real "Download My Data" button, deletes it through the real "Delete Account"
+ * real "Download My Data" button, deletes it through the real "Delete account"
  * dialog and then checks, row by row and object by object, what the purge
  * did. Deleting an account on the only database there is (prod) must never
  * be able to reach a real person, so everything destructive goes through

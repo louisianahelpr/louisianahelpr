@@ -10948,7 +10948,7 @@
       },
       "description": {
         "form": "literal",
-        "text": "Use Share Record (PDF) to send this record instead."
+        "text": "Use Share record (PDF) to send this record instead."
       },
       "renders": true
     },

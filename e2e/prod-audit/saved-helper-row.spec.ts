@@ -3,12 +3,12 @@
  *
  * Owner, 2026-10-01, desktop 1440, /profile?tab=saved_helpers: "move offer a
  * job to the right along the same line as the name and the heart and note up
- * too". The card drew the avatar + name on one row and Offer a Job / note /
+ * too". The card drew the avatar + name on one row and Offer a job / note /
  * heart on a second row under it. SavedHelperCard.tsx is now a grid: from md
  * the action row is column 2 of the name's row; under md (a 277px card at 375
  * cannot fit name + ~230px of actions) it stays stacked under the name.
  *
- * Measured, not read: the rendered boxes of the name, Offer a Job, note and
+ * Measured, not read: the rendered boxes of the name, Offer a job, note and
  * heart, at 1440 and 375, against the real backend as the shared poster (who
  * has Hallie saved). Read-only: no writes. Fails if the poster has no saved
  * Helpr, rather than passing on nothing.
@@ -45,7 +45,7 @@ for (const width of [1440, 375] as const) {
     );
     const page = await ctx.newPage();
     await page.goto("/profile?tab=saved_helpers", { waitUntil: "domcontentloaded" });
-    const offer = page.getByRole("button", { name: "Offer a Job" }).first();
+    const offer = page.getByRole("button", { name: "Offer a job" }).first();
     await expect(offer, "the poster has no saved Helpr to measure").toBeVisible({ timeout: 45_000 });
     await page.waitForTimeout(500);
 
@@ -74,8 +74,8 @@ for (const width of [1440, 375] as const) {
     expect(Math.abs(mid(note) - mid(o))).toBeLessThanOrEqual(2);
     expect(Math.abs(mid(heart) - mid(o))).toBeLessThanOrEqual(2);
     if (width >= 768) {
-      expect(Math.abs(mid(o) - mid(name)), "Offer a Job is not on the name's line").toBeLessThanOrEqual(8);
-      expect(o.x, "Offer a Job is not to the right of the name").toBeGreaterThan(name.x + name.width);
+      expect(Math.abs(mid(o) - mid(name)), "Offer a job is not on the name's line").toBeLessThanOrEqual(8);
+      expect(o.x, "Offer a job is not to the right of the name").toBeGreaterThan(name.x + name.width);
     } else {
       expect(o.y, "at phone width the actions stay under the name").toBeGreaterThan(name.y + name.height);
     }

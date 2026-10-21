@@ -10,8 +10,8 @@ import { todayYmd } from "@/lib/jobDate";
 /**
  * Q1521 (lh-authz-rls review of Q768, finding f2e3e3797#4): an imported STR
  * checkout could only be found through its notice. /str-settings now lists
- * every checkout from today on that is not yet posted, each opening Post a Job
- * pre-filled; "posted" is the same funded rule Post a Job reads
+ * every checkout from today on that is not yet posted, each opening Post a job
+ * pre-filled; "posted" is the same funded rule Post a job reads
  * (isTurnoverPosted), so the two can never disagree.
  *
  * @mutate src/pages/post-job/turnoverPrefill.ts |     .filter((r) => r.str_calendar_connections?.is_active !== false && !isTurnoverPosted(r)) |     .filter((r) => r.str_calendar_connections?.is_active !== false)
@@ -75,7 +75,7 @@ describe("Ready to post on /str-settings (Q1521)", () => {
     state.limited = false;
   });
 
-  it("lists checkouts not yet posted, each opening Post a Job pre-filled; a funded one is left out", async () => {
+  it("lists checkouts not yet posted, each opening Post a job pre-filled; a funded one is left out", async () => {
     state.rows = [
       { id: "ev-1", checkout_date: "2030-05-02", job_id: null, jobs: null, str_calendar_connections: conn("Bayou Cottage") },
       { id: "ev-2", checkout_date: "2030-05-03", job_id: "j-2", jobs: { status: "open", payment_status: "escrow" }, str_calendar_connections: conn("Funded Place") },
@@ -111,7 +111,7 @@ describe("Ready to post on /str-settings (Q1521)", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("Post a Job and the list read the one funded rule, and the page mounts the list", () => {
+  it("Post a job and the list read the one funded rule, and the page mounts the list", () => {
     const prefill = blankComments(readFileSync("src/pages/post-job/turnoverPrefill.ts", "utf8"));
     expect(prefill).toMatch(/alreadyPosted: isTurnoverPosted\(row\),/);
     expect(prefill).toMatch(/!isTurnoverPosted\(r\)/);

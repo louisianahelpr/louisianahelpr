@@ -194,7 +194,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPop
                     the same flat-primary rule break as the other six, in the
                     one dialog nobody opens twice. */}
                 <Button variant="primary" onClick={dismiss} className="mt-4">
-                  Thank You
+                  Thank you
                 </Button>
               </motion.div>
             </DialogPrimitive.Content>

@@ -58,7 +58,7 @@ export function CreditCard({
   const isMine = !!currentUserId && credit.recipient_id === currentUserId;
   // Funded, live, addressed to me — but never bound to my account. That is not
   // a dead gift, it is an unclaimed one, and it is one tap from working. Before
-  // this, the card offered "Use This Gift", sent the user through the whole
+  // this, the card offered "Use this gift", sent the user through the whole
   // post-a-job form, and only at checkout said the gift "may already be used,
   // expired, or sent to a different account" — none of which was true.
   // Scoped to the RECEIVED perspective. On the donor's "Gift cards you've sent"
@@ -144,7 +144,7 @@ export function CreditCard({
             border: "none",
           }}
         >
-          Use This Gift
+          Use this gift
         </Button>
       )}
 
@@ -160,7 +160,7 @@ export function CreditCard({
             border: "none",
           }}
         >
-          {claiming ? "Claiming…" : "Claim This Gift"}
+          {claiming ? "Claiming…" : "Claim this gift"}
         </Button>
       )}
     </div>

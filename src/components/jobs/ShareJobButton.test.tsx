@@ -335,7 +335,7 @@ describe("ShareJobButton", () => {
     expect(screen.queryByText("Copied")).toBeNull();
   });
 
-  it("never hands the OS a bare url with no text (the Work Record failure mode)", async () => {
+  it("never hands the OS a bare url with no text (the Work record failure mode)", async () => {
     // iOS prefers a URL over text and renders its link preview. A payload
     // that is url-only gives the recipient a naked link with no context —
     // which is what PaymentSuccess used to send. Every rung here must carry

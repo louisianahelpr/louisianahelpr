@@ -141,7 +141,7 @@ test(guestTitle, async ({ browser, request, journey }) => {
     await journey.milestone(page, "guest-signup-prompt");
   });
 
-  await test.step("guest switches to Log In and the job intent survives", async () => {
+  await test.step("guest switches to Log in and the job intent survives", async () => {
     await page.getByRole("link", { name: /^log in$/i }).or(page.getByRole("button", { name: /^log in$/i })).last().click();
     await expect(page).toHaveURL(/\/login/, { timeout: 20_000 });
     await expect(page.getByRole("textbox", { name: /email/i }).first()).toBeVisible({ timeout: 20_000 });

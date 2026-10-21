@@ -960,7 +960,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
             </div>
             {filtersActive && onClearFilters && (
               <Button variant="outline" onClick={onClearFilters} className="rounded-ds-md mt-1">
-                Clear Filters
+                Clear filters
               </Button>
             )}
             {/* Optional CTA — passed by the guest dashboard so the empty

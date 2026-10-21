@@ -292,7 +292,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
         <DialogTrigger asChild>
           <Button size="sm" variant="outline" className="h-8 text-ds-11 gap-1.5">
             <Receipt className="w-3.5 h-3.5" />
-            Tax Export
+            Tax export
           </Button>
         </DialogTrigger>
       )}

@@ -361,7 +361,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
         >
           <Grid3x3 className="w-4 h-4" strokeWidth={2.25} />
           <span className="text-ds-11 font-sans font-semibold tracking-[0.04em] uppercase">
-            {mode === "grid" ? "Photo" : "View All"}
+            {mode === "grid" ? "Photo" : "View all"}
           </span>
         </button>
       )}

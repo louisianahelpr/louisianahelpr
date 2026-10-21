@@ -33,7 +33,7 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
           <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onExportCsv}>
-          <FileSpreadsheet className="w-4 h-4 mr-2" /> Export Payouts CSV
+          <FileSpreadsheet className="w-4 h-4 mr-2" /> Export payouts CSV
         </DropdownMenuItem>
         {/* Lightweight "save as PDF" path — opens the browser print dialog.
             ONLY WHERE A PRINT DIALOG EXISTS. The comment that used to sit here
@@ -49,7 +49,7 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
             lost by hiding this. See `canPrintDocument` in src/lib/fileExport.ts. */}
         {canPrintDocument && (
           <DropdownMenuItem onSelect={() => { window.print(); }}>
-            <Printer className="w-4 h-4 mr-2" /> Print / Save as PDF
+            <Printer className="w-4 h-4 mr-2" /> Print / save as PDF
           </DropdownMenuItem>
         )}
         <DropdownMenuSeparator />
@@ -58,7 +58,7 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
             promised leaving the app (the ↗ affordance is reserved for
             actions that actually do). */}
         <DropdownMenuItem onSelect={onNavigatePayment}>
-          <ChevronRight className="w-4 h-4 mr-2" /> Payout Settings
+          <ChevronRight className="w-4 h-4 mr-2" /> Payout settings
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

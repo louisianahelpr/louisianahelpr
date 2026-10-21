@@ -14,7 +14,7 @@ import { detailsBlocker } from "@/pages/post-job/detailsBlocker";
  * it. str-ical-sync inserted one per guest checkout, payment_status 'unpaid':
  * invisible to every Helpr (browse lists only funded jobs) and, since Q767
  * removed Fund & Publish, unfundable by the host. A job is created by its
- * poster in Post a Job, who then pays; the only server insert left is a series
+ * poster in Post a job, who then pays; the only server insert left is a series
  * visit charge-recurring-visits books AFTER its charge succeeded.
  *
  * The inventory is EXACT and two-way: every edge function that inserts into
@@ -53,7 +53,7 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     expect(inserting).toEqual(Object.keys(SERVER_JOB_INSERTS).sort());
   });
 
-  it("str-ical-sync imports a checkout and tells the host, linking Post a Job to it", () => {
+  it("str-ical-sync imports a checkout and tells the host, linking Post a job to it", () => {
     const sync = read("supabase/functions/str-ical-sync/index.ts");
     expect(sync).toMatch(/\.from\('str_processed_events'\)\s*\.insert\(\{[\s\S]*?job_id:\s*null,/);
     expect(sync).toContain("link:    `/post-job?turnover=${claim.id}`,");
@@ -61,7 +61,7 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     expect(sync).not.toMatch(/jobs_created/);
   });
 
-  it("Post a Job opens a turnover pre-filled, skips the entry screen, and links the posted job", () => {
+  it("Post a job opens a turnover pre-filled, skips the entry screen, and links the posted job", () => {
     expect(read("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("turnover"\)[\s\S]*?fetchTurnoverPrefill\(turnoverId\)/);
     expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("turnover") || searchParams.get("haulAway"));');
     expect(read("src/pages/post-job/usePostJobForm.ts")).toContain('turnoverId: searchParams.get("turnover"),');
@@ -91,7 +91,7 @@ describe("Q768: no server path creates a jobs row before payment", () => {
     expect(title("2026-01-02", null)).toBe("Turnover clean · Jan 2");
     expect(title("2026-12-31", "  Lot   9 ")).toBe("Turnover clean · Dec 31 · Lot 9");
     // The class, over every name length from 0 to 40: never over the cap, never
-    // an ISO date, the name whole or absent, and Post a Job's own blocker passes it.
+    // an ISO date, the name whole or absent, and Post a job's own blocker passes it.
     const pad = "Bayou Cottage Number Seven On The Water Front";
     for (let n = 0; n <= 40; n++) {
       const name = pad.slice(0, n).trim();

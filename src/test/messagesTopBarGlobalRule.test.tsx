@@ -35,6 +35,6 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
     expect(more).toContain("INBOX_TAB_ORDER.map");
     expect(more).toContain("<InboxViewItems {...items} />");
     const views = menus.slice(menus.indexOf("function InboxViewItems"), menus.indexOf("export function InboxOptionsMenu"));
-    for (const item of ["Select messages", "Pinned", "Recently Deleted"]) expect(views).toContain(item);
+    for (const item of ["Select messages", "Pinned", "Recently deleted"]) expect(views).toContain(item);
   });
 });

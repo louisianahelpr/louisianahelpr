@@ -200,7 +200,7 @@ test.describe("apply", () => {
     }
   });
 
-  test("a human double-tap on Apply Now fires ONE write", async ({ browser, request }, info) => {
+  test("a human double-tap on Apply now fires ONE write", async ({ browser, request }, info) => {
     const { ctx, page } = await helperContext(browser);
     const { apply } = await openApply(page, jobId);
     const writes = watchWrites(page, APPLY_WRITE);
@@ -211,7 +211,7 @@ test.describe("apply", () => {
     await apply.click();
     await page.waitForTimeout(150);
     const secondLanded = await apply.click({ timeout: 2_000, noWaitAfter: true }).then(() => true).catch(() => false);
-    expect(secondLanded, "the second tap was accepted: Apply Now is not disabled while the application is in flight").toBe(false);
+    expect(secondLanded, "the second tap was accepted: Apply now is not disabled while the application is in flight").toBe(false);
     // The success toast is short-lived, so it is caught while it is on screen
     // rather than asserted after the fact.
     await page
@@ -285,8 +285,8 @@ test.describe("apply", () => {
     const writes = watchWrites(page, APPLY_WRITE);
     await ctx.setOffline(true);
     await page.waitForTimeout(500);
-    // Offline, the button relabels itself to "Try Again" BEFORE it is pressed
-    // (ApplyBody.tsx: `!online ? "Try Again" : …`), so the Apply-Now locator no
+    // Offline, the button relabels itself to "Try again" BEFORE it is pressed
+    // (ApplyBody.tsx: `!online ? "Try again" : …`), so the Apply-Now locator no
     // longer matches it — match the button by what it is, not by its label.
     const submit = page.getByRole("button", { name: /^(apply now|book now|try again)$/i }).filter({ visible: true }).last();
     await submit.click({ force: true });
@@ -580,7 +580,7 @@ test.describe("post a job", () => {
     await review.click();
     await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
     await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
-    const submit = page.getByRole("button", { name: /Continue to Payment|Post Job/i });
+    const submit = page.getByRole("button", { name: /Continue to payment|Post job/i });
     await expect(submit, "the final Post never became enabled after confirming the details").toBeEnabled({ timeout: 20_000 });
     await shoot(page, info, "post-step-checkout");
     return submit;

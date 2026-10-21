@@ -15,7 +15,7 @@ export interface FormSpec {
   url: string;
   /** null = signed out */
   as: Account | null;
-  /** Get from the URL to the form itself (e.g. press "Start Fresh"). */
+  /** Get from the URL to the form itself (e.g. press "Start fresh"). */
   prepare?: (page: Page) => Promise<void>;
   /** Inventory files this form exercises. */
   covers: string[];
@@ -159,7 +159,7 @@ const openActivityCard = async (page: Page, tab: "/jobs" | "/posts", job: { id: 
 //
 // A step whose action row is full parks the rest behind its "More" overflow
 // (JobActionRow.tsx `data-job-step-overflow`) — measured on prod 2026-09-23:
-// the confirmed card shows Directions · More · I'm On My Way, with Cancel Job
+// the confirmed card shows Directions · More · I'm On My Way, with Cancel job
 // inside More. So: the chip if it is on the row, else open the overflow first.
 const pressChipForField = async (page: Page, name: RegExp, opts: { field?: boolean } = {}) => {
   const chip = page.getByRole("button", { name }).filter({ visible: true }).first();
@@ -200,7 +200,7 @@ const openSavedSearches = async (page: Page) => {
 };
 
 /**
- * /user/:id's "More options" menu holds Report User (UserProfile.tsx). The
+ * /user/:id's "More options" menu holds Report user (UserProfile.tsx). The
  * dialog OPENS ON A REASON PICKER, not a text box (ReportDialog.tsx `step`:
  * reason → details → confirmation) — the description field only exists once
  * a reason is chosen, which is why the sweep found "no text-like field" on a
@@ -236,7 +236,7 @@ const openDisputeDialog = async (page: Page) => {
 };
 
 /**
- * The helper's expanded Active-Job card offers exactly one of "Cancel Job"
+ * The helper's expanded Active-Job card offers exactly one of "Cancel job"
  * (reveals ActiveJobSection's own abort-reason textarea) or "Report a
  * Problem" (opens the same DisputeDialog as above) — never both, they are the
  * complement of each other over the job's tracker sub-status
@@ -245,7 +245,7 @@ const openDisputeDialog = async (page: Page) => {
  */
 //
 // The field this FormSpec covers is ActiveJobSection's OWN abort-reason box,
-// which only the Cancel Job confirm holds — so it opens on a job the helper
+// which only the Cancel job confirm holds — so it opens on a job the helper
 // has confirmed and not yet left for (`helperConfirmedJob`), never on the
 // Report-a-problem side, whose field belongs to DisputeDialog (the
 // activity-dispute-dialog spec). The old version pressed "whichever is
@@ -256,7 +256,7 @@ const openActiveJobSection = async (page: Page) => {
   const job = fixtureOrThrow("helperConfirmedJob", "job the helper confirmed but has not left for");
   await openActivityCard(page, "/jobs", job);
   // Unanchored: inside the overflow sheet the same control is named
-  // "Cancel Job — Cancel this job? …" (label + ariaLabel).
+  // "Cancel job — Cancel this job? …" (label + ariaLabel).
   await pressChipForField(page, /cancel this job\?/i);
 };
 
@@ -640,7 +640,7 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/BlockUserDialog.tsx"],
   },
   {
-    // Own profile only: "Add Response" renders for the profile's owner on a
+    // Own profile only: "Add response" renders for the profile's owner on a
     // review with no response yet (ReviewsSection.tsx `isOwnProfile`). The
     // helper held 25 such reviews on prod, 2026-09-23. The list is collapsed
     // behind the reviews tile until `?tab=reviews` (UserProfile.tsx `showReviews`).
@@ -666,7 +666,7 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/profile/savedHelpersTab/SavedHelperCard.tsx"],
   },
   {
-    // The goal card renders only on the "This Month" range (EarningsTab.tsx
+    // The goal card renders only on the "This month" range (EarningsTab.tsx
     // `range === "month"`); the tab opens on Lifetime.
     name: "monthly-goal", url: "/profile?tab=earnings", as: "helper",
     prepare: async (page) => {
@@ -682,7 +682,7 @@ export const FORMS: FormSpec[] = [
   },
   {
     // The field renders only once a license or COI is on the card. Since Q142
-    // the switches are "Add License" / "Add Insurance" buttons that open a
+    // the switches are "Add license" / "Add insurance" buttons that open a
     // file picker, so the prepare picks a file into the license input the way
     // the helper does. A picked file is a LOCAL draft: nothing is uploaded or
     // written until "Send for Review", which this never presses, so there is
@@ -705,7 +705,7 @@ export const FORMS: FormSpec[] = [
   },
   {
     // The AI builder is a collapsed card on the post-job ENTRY step
-    // (EntryChoice.tsx), so this does not press "Start Fresh".
+    // (EntryChoice.tsx), so this does not press "Start fresh".
     name: "ai-job-builder", url: "/post-job", as: "poster",
     prepare: async (page) => {
       const toggle = page.locator("button[aria-expanded]").filter({ hasText: /let ai fill/i }).first();
@@ -995,7 +995,7 @@ export const GAPS: Record<string, string> = {
   "src/components/admin/AdminIDVReview.tsx": "empty queue on prod — /admin?view=idvreview renders \"Nobody is waiting on a human\"; a row lands here only after Stripe CHARGED for an identity attempt and failed it, which cannot be seeded without paying Stripe for a real verification",
   // Read-only by decision, not by reachability.
   "src/components/admin/EditEmailDialog.tsx": "reachable (user detail → Edit email) but deliberately NOT swept: it rewrites an account's login address, and every shared test account is a sign-in dependency for this whole suite. One stray submit slipping the write firewall would lock every lane out of that account",
-  "src/components/admin/DeleteUserDialog.tsx": "reachable (user detail → Actions → Delete Account) but deliberately NOT swept: NEVER_PRESS (harness.ts) refuses \"Delete Account\", because the account it would delete is a real member or one of the shared test accounts every lane signs in as. Its one field is the typed DELETE confirm",
+  "src/components/admin/DeleteUserDialog.tsx": "reachable (user detail → Actions → Delete account) but deliberately NOT swept: NEVER_PRESS (harness.ts) refuses \"Delete account\", because the account it would delete is a real member or one of the shared test accounts every lane signs in as. Its one field is the typed DELETE confirm",
 };
 
 /**

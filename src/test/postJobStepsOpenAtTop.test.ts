@@ -1,6 +1,6 @@
 /**
  * Owner, 2026-10-08: "order summary page needs to open at the top of the
- * page, rn it opens at the bottom." Post a Job's steps share one route, so
+ * page, rn it opens at the bottom." Post a job's steps share one route, so
  * ScrollToTop never runs between them and the page's scroller kept the form's
  * offset. PostJob resets every scroller when the step changes.
  *
@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 const SRC = read("src/pages/post-job/PostJob.tsx");
 
-describe("Post a Job: every step opens at its top", () => {
+describe("Post a job: every step opens at its top", () => {
   it("a step change resets the shell's scroller AND AppPage's own column (keyed on form.step and form.formPage)", () => {
     // Keyed on the step AND the form's screen (formPage, boards 23/44/3/45):
     // the four form screens share the "form" step, so each must reset too.

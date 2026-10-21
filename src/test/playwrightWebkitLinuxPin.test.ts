@@ -10,7 +10,7 @@
  * 2 s after the Filters tap and none in the 29 s after that. WebKit stopped
  * painting, so Playwright's stability check never completed.
  * (The first red run, 38434750617 on 10-13, was a different failure, an
- * Apply Now button at 43.8 px, and ran on Playwright 1.63.0.)
+ * Apply now button at 43.8 px, and ran on Playwright 1.63.0.)
  *
  * WHY IT IS PLAYWRIGHT. 1.64.0 (#2933) moved Linux WebKit from build 2359 to
  * 2370 (playwright-core browsers.json). Bisected on ubuntu-latest:

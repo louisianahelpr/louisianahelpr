@@ -8,7 +8,7 @@
 //
 // The database is set-like about that now (open_dispute_as, 20260915034822)
 // and that is the guarantee. This is the other half: a synchronous ref so the
-// second call is never made, matching the guard Apply Now, hire, review, tip
+// second call is never made, matching the guard Apply now, hire, review, tip
 // and the admin dispute actions already carry.
 //
 // RED with `submittingRef` removed from DisputeDialog: 2 rpc calls. GREEN: 1.

@@ -11,7 +11,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
  * opens talked about money. Now "Mark this job complete?" / "Mark Complete".
  *
  * The confirm-booking popup's hand-off link read "Can't make it? See what
- * happens". It opens the real cancel flow, so it now says "Cancel Job", the
+ * happens". It opens the real cancel flow, so it now says "Cancel job", the
  * label ConfirmedSection's chip already uses (VN-18).
  *
  * Read from source because the strings live in JSX props deep inside
@@ -56,10 +56,10 @@ describe("Mark Job Complete confirm popup", () => {
 describe("confirm-booking popup cancel link", () => {
   const confirmation = src("JobConfirmation.tsx");
 
-  it("reads Cancel Job", () => {
+  it("reads Cancel job", () => {
     const link = confirmation.match(/onCantMakeIt\(\); \}\}[\s\S]*?>\s*([^<{]+?)\s*<\/button>/);
     expect(link, "could not find the onCantMakeIt link in JobConfirmation.tsx; re-read it").toBeTruthy();
-    expect(link![1]).toBe("Cancel Job");
+    expect(link![1]).toBe("Cancel job");
     expect(confirmation).not.toMatch(/See what happens/);
   });
 });
@@ -68,5 +68,5 @@ describe("confirm-booking popup cancel link", () => {
 // talked about money. This is that popup reverting.
 // @mutate src/components/JobTracking.tsx | title="Mark this job complete?" | title="Request Your Payout?"
 // The confirm-booking hand-off link reverting to euphemism: it opens the real
-// cancel flow, so it has to say Cancel Job (VN-18).
-// @mutate src/components/JobConfirmation.tsx | Cancel Job | See what happens
+// cancel flow, so it has to say Cancel job (VN-18).
+// @mutate src/components/JobConfirmation.tsx | Cancel job | See what happens

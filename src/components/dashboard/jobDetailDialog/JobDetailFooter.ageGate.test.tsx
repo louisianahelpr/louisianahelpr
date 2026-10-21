@@ -9,7 +9,7 @@ import { UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 // @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx |           onClick={gate("apply", () => onApply(job.id))} |           onClick={() => onApply(job.id)}
 
 // Q1586(c) (owner, 2026-10-12: "Grey out the button until the age is 18 or
-// over"): the job sheet's Apply Now, rendered for a member whose saved birthday
+// over"): the job sheet's Apply now, rendered for a member whose saved birthday
 // makes them under 18, is greyed out (aria-disabled + data-age-gated, which
 // index.css paints at the shared disabled opacity) and a tap says why instead
 // of opening the apply step. An adult and a member with no birthday saved are
@@ -42,10 +42,10 @@ function renderFooter(onApply = vi.fn()) {
       onAskQuestion={vi.fn()}
     />,
   );
-  return { onApply, button: screen.getByRole("button", { name: /Apply Now/ }) };
+  return { onApply, button: screen.getByRole("button", { name: /Apply now/ }) };
 }
 
-describe("JobDetailFooter Apply Now under 18 (Q1586(c))", () => {
+describe("JobDetailFooter Apply now under 18 (Q1586(c))", () => {
   beforeEach(() => toastError.mockReset());
   afterEach(() => {
     cleanup();

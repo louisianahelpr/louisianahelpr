@@ -71,7 +71,7 @@ const useBtn = () => screen.queryByRole("button", { name: /use this gift/i });
 const claimBtn = () => screen.queryByRole("button", { name: /claim this gift/i });
 
 describe("CreditCard only offers what redeem_gift_card will accept", () => {
-  it("offers Use This Gift on a funded, claimed, live gift", () => {
+  it("offers Use this gift on a funded, claimed, live gift", () => {
     renderCard();
     expect(useBtn()).not.toBeNull();
   });
@@ -170,7 +170,7 @@ describe("the donor total is the grossed-up charge, not the hand-typed formula",
 // Each directive must kill this guard on its own.
 //
 // 1: drop the funding condition from the spend gate — the pre-fix code, which
-//    offered "Use This Gift" on a charged-back donation.
+//    offered "Use this gift" on a charged-back donation.
 // 2: drop the ownership condition — the pre-fix code, which walked an unclaimed
 //    recipient into a checkout-time refusal with the wrong reason.
 // 3: restore StatusPill's fail-open, which rendered any unknown status as the

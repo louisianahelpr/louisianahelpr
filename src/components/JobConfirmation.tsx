@@ -185,7 +185,7 @@ export function JobConfirmation({
      described in words.
      THE POSTER'S runs to the job's START (owner, 2026-10-08, Q1566: "there is
      no place for me to confirm the job is still on"): the old -12 closed it at
-     NOON on the job day, so a same-day 2 PM job had no "I'm Still On" after
+     NOON on the job day, so a same-day 2 PM job had no "I'm still on" after
      12:00. No start time: the end of the job day. */
   const posterWindowEnd = ((startTime ? jobStartDateTime(dateNeeded, startTime) : null) ?? new Date(jobDate.getTime() + 24 * 3_600_000)).getTime();
   const showConfirmation =
@@ -221,7 +221,7 @@ export function JobConfirmation({
           </p>
         </JobStepRowSlot>
         <JobStepRowSlot slot="primary">
-          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"} disabled onClick={() => {}} />
+          <JobStepPrimaryButton icon={CheckCircle2} label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} disabled onClick={() => {}} />
         </JobStepRowSlot>
       </>
     ) : null;
@@ -408,7 +408,7 @@ export function JobConfirmation({
             onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
             className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
           >
-            Cancel Job
+            Cancel job
           </button>
         )}
       </DialogContent>
@@ -462,7 +462,7 @@ export function JobConfirmation({
         className={confirmCtaClass}
       >
         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        I'm Still On
+        I'm still on
       </Button>
     ) : isOwner ? (
       /* THE BOX STAYS, DISABLED (owner, 2026-09-19: "if it was clicked already
@@ -486,7 +486,7 @@ export function JobConfirmation({
         className={confirmCtaClass}
       >
         <MapPin className="w-3.5 h-3.5 mr-1" />
-        Confirm They've Arrived
+        Confirm they've arrived
       </Button>
     ) : null
   );
@@ -514,7 +514,7 @@ export function JobConfirmation({
        everything they shouldnt have all different stuff").
 
        This used to portal `confirmCta` — `confirmCtaClass`, an inline 14px
-       button — straight into a row of stacked 11px chips, so "I'm Still On"
+       button — straight into a row of stacked 11px chips, so "I'm still on"
        was a different object from the Message and Directions beside it. It is
        the easiest drift in the app to miss, because nothing under
        src/components/job-card draws it. It goes through
@@ -529,14 +529,14 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm Still On"}
+          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : isOwner ? (
         /* Poster confirmed: their NEXT step, greyed (docs/JOB-LIFECYCLE.md step 6). */
         <JobStepPrimaryButton
           icon={MapPin}
-          label="Confirm They've Arrived"
+          label="Confirm they've arrived"
           disabled
           onClick={() => {}}
         />

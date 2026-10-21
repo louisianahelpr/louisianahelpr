@@ -30,7 +30,7 @@ import { useDraftCheckout } from "./useDraftCheckoutState";
  * DATA-AWARE (owner, 2026-10-03, Q722): the skeleton draws the column the
  * KNOWN data says will land, not the populated one. Four cards always render
  * (Start Fresh, Use a Template, Offer It to a Saved Helpr, the AI Job
- * Builder); "Pick Up Your Draft" and "Repost" are each drawn only once their
+ * Builder); "Pick up your draft" and "Repost" are each drawn only once their
  * read has landed and says the card will show. While a read is in flight it
  * counts as absent: a cold visit (nothing cached) is mostly a new account,
  * which has neither, so its column holds 4 cards from first paint to last.
@@ -261,7 +261,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
             className="block font-display font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
-            Start Fresh
+            Start fresh
           </span>
           <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Build your request from a blank form.
@@ -291,7 +291,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               className="block font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
-              Pick Up Your Draft
+              Pick up your draft
             </span>
             <span
               className="block font-sans mt-0.5 text-ds-11"
@@ -299,7 +299,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               data-testid="draft-checkout-note"
             >
               {draftCheckout === "open"
-                ? "You started paying for this one. If you finished, it will show in Posts shortly, so check there before paying again."
+                ? "You started paying for this one. If you finished, it will show in posts shortly, so check there before paying again."
                 : "Continue the request you saved earlier."}
             </span>
           </span>
@@ -350,7 +350,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 className="block font-display font-bold text-ds-17"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
               >
-                Repost a Recent Job
+                Repost a recent job
               </span>
               <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                 Quickest way to ask for the same help again.
@@ -441,7 +441,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               className="block font-display font-bold text-ds-17"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
             >
-              Use a Template
+              Use a template
             </span>
             <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Start from a common job and tweak the details.
@@ -509,7 +509,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 style={{ color: "hsl(var(--bark))" }}
               >
                 {showAllTemplates
-                  ? "Show Fewer"
+                  ? "Show fewer"
                   : `Show All ${sampleJobs.length} Templates`}
               </button>
             )}

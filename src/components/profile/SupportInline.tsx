@@ -261,7 +261,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
           </p>
         </div>
         <Button variant="outline" onClick={reset}>
-          Send Another
+          Send another
         </Button>
       </div>
     );
@@ -432,7 +432,7 @@ export function SupportInline({ userId, onBack }: { userId?: string; onBack: () 
                 className="w-full justify-center"
               >
                 <ImagePlus className="w-4 h-4 mr-2" />
-                Upload Screenshot
+                Upload screenshot
               </Button>
             )}
           </div>

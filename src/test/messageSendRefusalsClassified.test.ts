@@ -4,8 +4,8 @@
  * THE DEFECT. public.enforce_message_rate refuses a sender's 31st message in a
  * rolling hour with "You are sending messages too quickly. Please slow down."
  * The composer dropped that text: the send fell into the generic branch of
- * sendHandlers ("Message didn't go through — tap it to try again", a "Not Sent
- * — Tap to Retry" bubble), and an immediate retry hit the same limit. The block,
+ * sendHandlers ("Message didn't go through — tap it to try again", a "Not sent
+ * — tap to retry" bubble), and an immediate retry hit the same limit. The block,
  * ban and unconfirmed-email triggers had the same shape, worse: a retry there
  * can never work.
  *
@@ -19,7 +19,7 @@
  */
 // @mutate src/lib/messageSendRefusal.ts |   { kind: "rate_limited", match: (m) => RATE_LIMIT_RAISE.test(m), retryable: true, toast: RATE_LIMITED_TOAST }, |
 // @mutate src/pages/messages/messagesData/sendHandlers.ts |       if (refusal) { |       if (false) {
-// @mutate src/components/messages/MessageBubble.tsx | {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Tap to Retry"} | Not Sent — Tap to Retry
+// @mutate src/components/messages/MessageBubble.tsx | {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"} | Not sent — tap to retry
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

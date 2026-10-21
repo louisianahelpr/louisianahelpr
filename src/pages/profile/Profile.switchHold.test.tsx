@@ -138,7 +138,7 @@ const NOT_RENDERED: Record<string, string> = {
   // You › Settings (SettingsTab), and SettingsGroup by /jobs/settings; neither paints on the landing.
   "useProfileLandingDerived.tsx": "read by You › Settings (board 52), not the landing",
   "SettingsSection.tsx": "SettingsGroup is /jobs/settings' list; the landing no longer renders it",
-  // QuotesEntryRow.tsx was here until 2026-10-19: quotes moved into Post a Job and the file was deleted
+  // QuotesEntryRow.tsx was here until 2026-10-19: quotes moved into Post a job and the file was deleted
   // (src/components/quotes/quotesMenuLink.test.tsx pins it gone).
 };
 
@@ -150,7 +150,7 @@ describe("the Profile landing waits for its switches (Q1894)", () => {
     expect(screen.queryByTestId("landing")).toBeNull();
     // Every read starts with the page, not with the landing.
     // 2026-10-19: Declutter, Shops and Homes left the landing for the dock (design-small) and
-    // Quotes moved into Post a Job. 2026-10-20 (board 18): the activity tiles read Declutter, Shops and Homes.
+    // Quotes moved into Post a job. 2026-10-20 (board 18): the activity tiles read Declutter, Shops and Homes.
     // ONE batched read for every switch (nightly-red #2601), and it covers them.
     expect([...switches.pending.keys()]).toEqual(["(batch)"]);
     expect(switches.pending.get("(batch)")?.keys).toContain("declutter");

@@ -165,7 +165,7 @@ const MEASURE_OVERLAP = `(() => {
     sheetScrolls: scroller ? scroller.scrollHeight - scroller.clientHeight > 1 : false,
     rowIsSticky: getComputedStyle(row).position === "sticky",
     // Space between the button's bottom edge and the sheet's inner bottom edge.
-    // This is the "extra space under Apply Now" half of the same report.
+    // This is the "extra space under Apply now" half of the same report.
     gapUnderButton: scroller && btnRect
       ? +(scroller.getBoundingClientRect().bottom - btnRect.bottom).toFixed(1)
       : null,
@@ -175,13 +175,13 @@ const MEASURE_OVERLAP = `(() => {
 
 /**
  * THE OWNER'S ACTUAL DEFECT, measured directly: is the payout-gate notice —
- * the sentence saying why this helper cannot be hired, and the "Set Up
+ * the sentence saying why this helper cannot be hired, and the "Set up
  * Payouts" link that fixes it — fully readable, or is the submit row sitting
  * on it?
  *
  * Takes a scroll position as `SCROLL_FRACTION` and reports, at that position,
  * how much of the notice is hidden: clipped by the scrollport, or covered by
- * the Apply Now button. Both must be zero at EVERY scroll position, which is
+ * the Apply now button. Both must be zero at EVERY scroll position, which is
  * only true if the notice and the button are one sticky unit — the fix.
  */
 const MEASURE_NOTICE = `(() => {
@@ -318,7 +318,7 @@ for (const { width, height, label } of [
     //
     // Before the notice was moved inside the sticky block, this failed at
     // scroll-top on the phone by 21.1px: the lifted row covered the notice's
-    // last line, which is the line carrying "Set Up Payouts".
+    // last line, which is the line carrying "Set up payouts".
     for (const fraction of [0, 0.5, 1]) {
       await page.evaluate((f) => {
         const dialogs = document.querySelectorAll('[role="dialog"],[role="alertdialog"]');
@@ -346,7 +346,7 @@ for (const { width, height, label } of [
       ).toBeLessThanOrEqual(0.5);
       expect(
         n.linkVisible,
-        `"Set Up Payouts" — the only control that clears the block — is not readable at scroll ${fraction}`,
+        `"Set up payouts" — the only control that clears the block — is not readable at scroll ${fraction}`,
       ).toBe(true);
     }
 

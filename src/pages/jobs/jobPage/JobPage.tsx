@@ -106,7 +106,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           ),
       }
     : isHired
-      ? { label: "Open in Working", go: () => navigate("/jobs?tab=working") }
+      ? { label: "Open in working", go: () => navigate("/jobs?tab=working") }
       : canApply
         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) }
         : null;

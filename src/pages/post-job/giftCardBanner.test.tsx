@@ -1,7 +1,7 @@
 /**
- * The gift card banner lives at the top of Post a Job, not on /home, and its
+ * The gift card banner lives at the top of Post a job, not on /home, and its
  * X dismisses it for this set of gifts (owner, 2026-10-01: "remove it from
- * /home, put it at the top of Post a Job, add an x on the right side").
+ * /home, put it at the top of Post a job, add an x on the right side").
  * Shown able to fail: with the dismissed check dropped, the X and private-mode tests red.
  * @mutate src/pages/post-job/GiftCardTeaser.tsx | if (count <= 0 \|\| dismissed === signature) return null; | if (count <= 0) return null;
  */
@@ -60,7 +60,7 @@ describe("gift card banner", () => {
     gift.value = { userId: "user-1", ids: ["g1", "g2"], settled: true };
   });
 
-  it("renders at the top of Post a Job's entry screen, linking to the gift tab", () => {
+  it("renders at the top of Post a job's entry screen, linking to the gift tab", () => {
     renderEntry();
     expect(banner()).toHaveTextContent("2 Helpr gift cards waiting for you");
     expect(screen.getByRole("link", { name: "See them" })).toHaveAttribute("href", "/profile?tab=gift_card");

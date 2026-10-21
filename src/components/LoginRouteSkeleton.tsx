@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
  *
  * The classes below are copied verbatim from the branch AuthShell takes for
  * Login's exact props — `hideHeader centerColumn backTo="/" maxWidth="2xl"
- * title="Log In" noWebChrome` — i.e. `centered` + `anchor="top"`, no compact
+ * title="Log in" noWebChrome` — i.e. `centered` + `anchor="top"`, no compact
  * bar, no full header, no brand pane. If AuthShell's column geometry changes,
  * change it here too.
  *
@@ -72,7 +72,7 @@ const LoginRouteSkeleton = () => (
             className="flex-1 min-w-0 font-display font-bold text-headline-hero leading-tight truncate"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
           >
-            Log In
+            Log in
           </h1>
         </div>
 

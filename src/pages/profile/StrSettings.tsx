@@ -243,7 +243,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
             block siblings: rail card, then empty-state card, both saying the
             same cadence sentence one after another. That sentence already
             lives inside whichever real card is showing (the empty state's
-            footnote, or the "Add a Calendar" card's footnote once connections
+            footnote, or the "Add a calendar" card's footnote once connections
             exist) — it was `lg:hidden` there specifically to make room for
             the rail's desktop copy. Now that the rail is gone, both footnotes
             below render unconditionally, and the cadence note has exactly one
@@ -284,7 +284,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                  the standard near-white `.liquid-glass` surface every other
                  empty state (Messages, My Posts/Jobs, Browse, Home History)
                  uses. Falls back to EmptyState's default liquid-glass now;
-                 ConnectionCard and the "Add a Calendar" card below still use
+                 ConnectionCard and the "Add a calendar" card below still use
                  `cardStyle`, so the premium treatment stays once a host has
                  actually connected something. */
               <EmptyState
@@ -295,7 +295,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                 action={
                   <BarkPillButton onClick={() => setAddOpen(true)}>
                     <Plus className="w-4 h-4 mr-1.5" />
-                    Add a Calendar
+                    Add a calendar
                   </BarkPillButton>
                 }
                 /* Fine print INSIDE the card. This sentence used to print on
@@ -359,7 +359,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                         className="font-display font-semibold text-ds-14"
                         style={{ color: "hsl(var(--ink-deep))" }}
                       >
-                        Add a Calendar
+                        Add a calendar
                       </span>
                     </div>
                     {addOpen ? (

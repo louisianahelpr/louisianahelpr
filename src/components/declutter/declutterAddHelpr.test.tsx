@@ -1,7 +1,7 @@
 /**
  * Declutter "Add a Helpr" panel (docs/specs/declutter-add-a-helpr.md): hidden
  * while the switch is off for the viewer; otherwise three one-tap choices that
- * each open Post a Job for THIS order, the booked (funded) jobs listed with a
+ * each open Post a job for THIS order, the booked (funded) jobs listed with a
  * link, an unpaid one left out, and a refusal shown in plain words. The data
  * module is stubbed; the backend proof is
  * src/test/pglite/declutterAddAHelpr.pglite.mjs.
@@ -54,7 +54,7 @@ function show() {
   );
 }
 
-/** The panel on an order page, with Post a Job as a route the tap can reach. */
+/** The panel on an order page, with Post a job as a route the tap can reach. */
 function showRouted() {
   qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -62,7 +62,7 @@ function showRouted() {
       <QueryClientProvider client={qc}>
         <Routes>
           <Route path="/declutter" element={<AddHelprPanel orderId="o1" />} />
-          <Route path="/post-job" element={<p>Post a Job page</p>} />
+          <Route path="/post-job" element={<p>Post a job page</p>} />
         </Routes>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -79,7 +79,7 @@ describe("Declutter Add a Helpr panel", () => {
     state.explained = [];
   });
 
-  it("under 18: the choices are greyed out, a tap says why and does not open Post a Job (Q1586(c))", async () => {
+  it("under 18: the choices are greyed out, a tap says why and does not open Post a job (Q1586(c))", async () => {
     state.underAge = true;
     showRouted();
     expect(await screen.findByText("Need a hand with it?")).toBeTruthy();
@@ -90,16 +90,16 @@ describe("Declutter Add a Helpr panel", () => {
       fireEvent.click(l);
     }
     expect(state.explained).toEqual(["post", "post", "post"]);
-    expect(screen.queryByText("Post a Job page")).toBeNull();
+    expect(screen.queryByText("Post a job page")).toBeNull();
     expect(screen.getByText("Need a hand with it?")).toBeTruthy();
   });
 
-  it("18 or older: the choices are live and a tap opens Post a Job", async () => {
+  it("18 or older: the choices are live and a tap opens Post a job", async () => {
     showRouted();
     const l = await screen.findByRole("link", { name: "Put it together" });
     expect(l.getAttribute("aria-disabled")).toBeNull();
     fireEvent.click(l);
-    expect(await screen.findByText("Post a Job page")).toBeTruthy();
+    expect(await screen.findByText("Post a job page")).toBeTruthy();
     expect(state.explained).toEqual([]);
   });
 
@@ -111,7 +111,7 @@ describe("Declutter Add a Helpr panel", () => {
     expect(state.fetches).toBe(0);
   });
 
-  it("offers three one-tap choices, each opening Post a Job for this order", async () => {
+  it("offers three one-tap choices, each opening Post a job for this order", async () => {
     show();
     expect(await screen.findByText("Need a hand with it?")).toBeTruthy();
     const hrefs = ["Put it together", "Hang it on the wall", "Set it up"].map((t) => screen.getByRole("link", { name: t }).getAttribute("href"));

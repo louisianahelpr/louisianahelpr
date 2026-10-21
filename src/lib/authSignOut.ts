@@ -23,7 +23,7 @@ type SignOutOptions = { scope?: "global" | "local" };
 // /auth/v1/logout, which may first refresh an expired token). On a slow or
 // hung line each of those can take as long as the network does, while the
 // person looks at a screen that has not changed. So each step has a cap and
-// sign-out always finishes; the Log Out buttons show "Logging Out…" meanwhile
+// sign-out always finishes; the Log Out buttons show "Logging out…" meanwhile
 // (useSignOutAction). src/lib/authSignOut.test.ts hangs EVERY network call
 // and asserts sign-out still completes.
 //
@@ -268,7 +268,7 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // Cache Storage `api-cache` (signed-in Supabase responses an older service
   // worker wrote to disk, Q1174) and the persisted IndexedDB copy. Each is
   // started regardless of the other, and together they are capped: an
-  // IndexedDB delete blocked by another tab must not hold "Logging Out…".
+  // IndexedDB delete blocked by another tab must not hold "Logging out…".
   const diskWipe = Promise.all([
     purgeApiCache(),
     Promise.resolve().then(() => removePersistedClient()),

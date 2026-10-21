@@ -225,7 +225,7 @@ describe("BrowseMap pins", () => {
 
 // B1/B3 (owner live-QA 2026-09-15): the list feed hides jobs the viewer has
 // applied to, but the map kept their pins — so an applied job pinned the map
-// and its detail dialog still offered "Apply Now." The map now drops applied
+// and its detail dialog still offered "Apply now." The map now drops applied
 // pins to match the feed and the header count.
 describe("BrowseMap — viewer-local exclusions (B1/B3, and 2026-09-19)", () => {
   const exclude = (over: Partial<ViewerFeedExclusions>): ViewerFeedExclusions => ({

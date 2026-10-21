@@ -19,7 +19,7 @@ import { Toaster } from "@/components/ui/sonner";
  *   · the push nudge did not merely overlap the My Jobs title card, it
  *     REPLACED it — the <h1> invisible and its Search and Filter controls
  *     unreachable for a full 12 seconds;
- *   · at 1440 the toast sat over the right rail's "Post a Job" and over the
+ *   · at 1440 the toast sat over the right rail's "Post a job" and over the
  *     header's Notifications control, with elementFromPoint returning the
  *     toast rather than the control;
  *   · at 375 every top-centre toast covered the header's Notifications bell.
@@ -79,7 +79,7 @@ describe("toast placement", () => {
     });
     expect(
       container.getAttribute("data-y-position"),
-      "desktop toasts must anchor to the BOTTOM — a top-right anchor lands on the rail's Post a Job and the header's Notifications control",
+      "desktop toasts must anchor to the BOTTOM — a top-right anchor lands on the rail's Post a job and the header's Notifications control",
     ).toBe("bottom");
     expect(container.getAttribute("data-x-position")).toBe("right");
   });

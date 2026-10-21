@@ -98,11 +98,11 @@ describe("parseHaulAwayParam / haulAwayPostJobPath", () => {
     const many = Array.from({ length: 12 }, (_, i) => `${String(i).padStart(8, "0")}-1111-4111-8111-111111111111`);
     expect(parseHaulAwayParam(many.join(","))).toHaveLength(10);
   });
-  it("the parse cap and the link cap are the same number (restated so the screen shares no module with Post a Job, Q178)", () => {
+  it("the parse cap and the link cap are the same number (restated so the screen shares no module with Post a job, Q178)", () => {
     expect(HAUL_AWAY_PARSE_MAX).toBe(HAUL_AWAY_MAX_ITEMS);
     expect(HAUL_AWAY_MAX_ITEMS).toBe(10);
   });
-  it("builds the Post a Job link", () => {
+  it("builds the Post a job link", () => {
     expect(haulAwayPostJobPath([A, B])).toBe(`/post-job?haulAway=${A},${B}`);
   });
 });

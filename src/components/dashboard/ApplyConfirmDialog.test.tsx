@@ -145,7 +145,7 @@ describe("ApplyConfirmDialog", () => {
     expect(props.setApplyMessage).toHaveBeenCalledWith("I have done this before.");
   });
 
-  it("submits via handleApplyConfirm when Apply Now is clicked", () => {
+  it("submits via handleApplyConfirm when Apply now is clicked", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
     fireEvent.click(screen.getByRole("button", { name: "Apply at $100" }));

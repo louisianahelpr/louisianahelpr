@@ -33,19 +33,19 @@ describe("AiJobBuilder", () => {
   it("starts collapsed (no input visible)", () => {
     render(<AiJobBuilder onGenerated={vi.fn()} />);
     expect(screen.queryByPlaceholderText(/I need help/i)).toBeNull();
-    expect(screen.getByText(/Try the AI Job Builder/)).toBeInTheDocument();
+    expect(screen.getByText(/Try the AI job builder/)).toBeInTheDocument();
   });
 
   it("expands on clicking the toggle", () => {
     render(<AiJobBuilder onGenerated={vi.fn()} />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
     expect(screen.getByPlaceholderText(/I need help/i)).toBeInTheDocument();
   });
 
   it("toasts an error when prompt is empty", () => {
     render(<AiJobBuilder onGenerated={vi.fn()} />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
+    fireEvent.click(screen.getByRole("button", { name: /Generate job posting/ }));
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("Describe what you need"));
     expect(invokeMock).not.toHaveBeenCalled();
   });
@@ -60,10 +60,10 @@ describe("AiJobBuilder", () => {
     invokeMock.mockResolvedValue({ data: generated, error: null });
     const onGenerated = vi.fn();
     render(<AiJobBuilder onGenerated={onGenerated} locationContext="New Orleans, LA" />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
     const textarea = screen.getByPlaceholderText(/I need help/i);
     fireEvent.change(textarea, { target: { value: "Need help raking my yard" } });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Generate job posting/ }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock).toHaveBeenCalledWith("ai-job-builder", {
       body: {
@@ -85,11 +85,11 @@ describe("AiJobBuilder", () => {
     invokeMock.mockResolvedValue({ data: null, error: err });
     const onGenerated = vi.fn();
     render(<AiJobBuilder onGenerated={onGenerated} />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
     fireEvent.change(screen.getByPlaceholderText(/I need help/i), {
       target: { value: "anything" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Generate job posting/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     const msg = toastError.mock.calls[0][0] as string;
     expect(msg).toMatch(/busy right now/);
@@ -101,11 +101,11 @@ describe("AiJobBuilder", () => {
     invokeMock.mockResolvedValue({ data: null, error: new Error("Describe the job in a bit more detail.") });
     const onGenerated = vi.fn();
     render(<AiJobBuilder onGenerated={onGenerated} />);
-    fireEvent.click(screen.getByText(/Try the AI Job Builder/));
+    fireEvent.click(screen.getByText(/Try the AI job builder/));
     fireEvent.change(screen.getByPlaceholderText(/I need help/i), {
       target: { value: "anything" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Generate job posting/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("bit more detail"));
     expect(onGenerated).not.toHaveBeenCalled();

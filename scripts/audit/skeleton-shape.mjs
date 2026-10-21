@@ -66,7 +66,7 @@ export const FRAME_BOXES = (placeholderSel) => {
   const root = document.getElementById("root");
   // App chrome is not the page: the dock, the desktop rail, toasts, dialogs.
   // Found by role and by being a small FIXED layer, never by a component
-  // list. (A page's own <aside>, like Gift Card's "What is this?" card, is
+  // list. (A page's own <aside>, like Gift card's "What is this?" card, is
   // content: it is not excluded.)
   const CHROME = 'nav, footer, [role="navigation"], [role="dialog"], [data-sonner-toaster]';
   const visible = (el) => {

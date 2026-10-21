@@ -117,7 +117,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // same `profileHasPerk`, which also owns the expiry convention (null expiry
   // on a paid tier = active).
   // Roadmap F4a (owner 2026-10-15): while memberships are off, instant
-  // cash-out and Advanced Analytics are off for EVERYONE, plan holders
+  // cash-out and Advanced analytics are off for EVERYONE, plan holders
   // included, and nothing offers an upgrade: Cash Out is the standard payout
   // only. The instant-payout edge function refuses on the same switch.
   const membershipsOn = useFeature("memberships");
@@ -459,7 +459,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    More Insights
+                    More insights
                   </span>
                   <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Where your money comes from, by category and month
@@ -487,7 +487,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                    Advanced Analytics
+                    Advanced analytics
                   </span>
                   <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
                     Trends over time, and when work gets posted near you

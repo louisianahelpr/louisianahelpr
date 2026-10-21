@@ -130,7 +130,7 @@ describe("VN-20 — arrival labels", () => {
     });
   });
 
-  it("the map stays from On the Way through Arrived and Working, and hides once done", () => {
+  it("the map stays from On the way through Arrived and Working, and hides once done", () => {
     const ping = { latitude: 30.2, longitude: -92.0 };
     for (const status of ["on_the_way", "arrived", "working"]) {
       expect(shouldShowTrackingMap({ ...ping, status }, JOB_LAT, JOB_LNG)).toBe(true);

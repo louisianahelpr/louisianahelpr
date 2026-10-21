@@ -46,7 +46,7 @@
  * tried first and is not a sound invariant — the 25 tabs draw their bodies
  * with genuinely different components, so a generic "first rounded painted
  * box" finds the outer panel on Notifications (24), an inner record card on
- * Home History (44), a pill INSIDE the card on Support at 375 (12), and
+ * Home history (44), a pill INSIDE the card on Support at 375 (12), and
  * nothing at all on Support at 1440. Those are four different things, not four
  * gutters, and a guard that reds on them would be a false-positive machine.
  * The column edge above is the same element on every surface, which is what

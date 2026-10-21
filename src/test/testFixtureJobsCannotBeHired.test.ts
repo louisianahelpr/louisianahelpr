@@ -90,7 +90,7 @@ describe("scripts/e2e/browseFixture.mjs keeps exactly one healthy fixture", () =
     const row = fixtureRow(POSTER, Date.parse("2024-10-07T12:00:00Z"));
     expect(row).toMatchObject({ customer_id: POSTER, status: "open", payment_status: "escrow", is_seed: true, category: "cleaning", title: BROWSE_FIXTURE_TITLE });
     expect(row).not.toHaveProperty("stripe_payment_intent_id");
-    // Long enough for JobDetailDialog's Read More (> 180), within the DB's 1000 (Q949).
+    // Long enough for JobDetailDialog's Read more (> 180), within the DB's 1000 (Q949).
     expect(String(row.description).length).toBeGreaterThan(180);
     expect(String(row.description).length).toBeLessThanOrEqual(1000);
     expect(String(row.title).length).toBeLessThanOrEqual(32);

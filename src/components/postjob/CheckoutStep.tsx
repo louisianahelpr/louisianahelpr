@@ -179,7 +179,7 @@ export function CheckoutStep({
   // 9-11% range this row was built to kill, just pointed at gifts.
   const totalWithTax = hasGift ? totalCharge : totalCharge + (salesTax ?? 0);
   // `giftCoversEverything` is the $0 case: nothing left to collect. The CTA
-  // and the total both change wording for it, because "Continue to Payment"
+  // and the total both change wording for it, because "Continue to payment"
   // in front of a $0.00 total is the screen contradicting itself.
   const giftCoversEverything = hasGift && totalCharge <= 0;
   return (
@@ -423,7 +423,7 @@ export function CheckoutStep({
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
           <h3 className="font-display font-semibold text-foreground flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-primary" /> Payment Breakdown
+            <CreditCard className="w-4 h-4 text-primary" /> Payment breakdown
           </h3>
         </div>
         <div className="p-5 space-y-3">
@@ -782,20 +782,20 @@ export function CheckoutStep({
           {uploadProgress
             ? `Uploading photo ${uploadProgress.done + 1} of ${uploadProgress.total}…`
             : uploading
-              ? "Uploading Photos…"
+              ? "Uploading photos…"
               : saving
                 ? "Processing…"
                 : giftLoading
                   ? "Checking your gift…"
                   : !confirmed
-                    ? "Confirm Details to Continue"
-                    // "Continue to Payment" in front of a $0.00 total is the
+                    ? "Confirm details to continue"
+                    // "Continue to payment" in front of a $0.00 total is the
                     // screen arguing with itself — there is no payment step
                     // when the gift covers the job; create-payment returns
                     // straight to /payment-success.
                     : giftCoversEverything
-                      ? "Post Job — Covered by Your Gift"
-                      : "Continue to Payment"}
+                      ? "Post job — covered by your gift"
+                      : "Continue to payment"}
         </Button>
         {underAge && <AgeGateNote kind="post" className="text-center" />}
         {/* Escrow-trust microline — sits right under the pay CTA so the

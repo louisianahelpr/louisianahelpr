@@ -181,7 +181,7 @@ function BackgroundCheckCard({ status }: { status: string }) {
             <Loader2 className="w-4 h-4 animate-spin" /> Starting…
           </>
         ) : (
-          <>Get Background-Checked · {BGC_PRICE}</>
+          <>Get background-checked · {BGC_PRICE}</>
         )}
       </Button>
     </div>

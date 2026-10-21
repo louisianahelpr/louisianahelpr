@@ -1,4 +1,4 @@
-// Q268 — "Tap to Retry" on a message whose RESPONSE was lost sent it twice.
+// Q268 — "tap to retry" on a message whose RESPONSE was lost sent it twice.
 //
 // The first INSERT reached the server and was stored; only the answer was
 // lost on the wire, so the bubble went "failed". Tapping it re-ran the INSERT
@@ -118,7 +118,7 @@ beforeEach(() => {
   server.inserts = 0;
 });
 
-describe("Q268: Tap to Retry after a lost response writes the message once", () => {
+describe("Q268: tap to retry after a lost response writes the message once", () => {
   it("the retry resends the same key, the server refuses the copy, and the bubble shows as sent", async () => {
     const h = harness();
     server.loseNextResponse = true;
@@ -132,7 +132,7 @@ describe("Q268: Tap to Retry after a lost response writes the message once", () 
     await h.handlers().retryMessage(failed!.clientId!);
 
     expect(server.inserts).toBe(2); // the retry really did reach the server
-    expect(server.rows, "Tap to Retry wrote the message a second time").toHaveLength(1);
+    expect(server.rows, "tap to retry wrote the message a second time").toHaveLength(1);
     const bubbles = h.messages().filter((m) => m.content === "On my way");
     expect(bubbles).toHaveLength(1);
     expect(bubbles[0].sendStatus, "the bubble still says failed for a message that was delivered").not.toBe("failed");

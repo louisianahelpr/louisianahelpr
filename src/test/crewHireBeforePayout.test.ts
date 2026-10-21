@@ -55,7 +55,7 @@ describe("a crew hire is an offer: the payout gate is at the member's Confirm", 
     expect(MIG).toMatch(/REVOKE ALL ON public\.crew_confirm_pending FROM PUBLIC, anon, authenticated/);
   });
 
-  it("the app opens the Set Up Payouts pop-up on a pending crew Confirm", () => {
+  it("the app opens the Set up payouts pop-up on a pending crew Confirm", () => {
     expect(read("src/lib/crewLifecycle.ts")).toMatch(/answer\.action === "pending_setup"/);
     const ui = read("src/pages/jobs/appliedJobCard/CrewMemberSection.tsx");
     expect(ui).toMatch(/"pendingMissing" in r/);

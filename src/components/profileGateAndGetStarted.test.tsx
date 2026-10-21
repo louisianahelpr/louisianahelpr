@@ -5,12 +5,12 @@
  * phone and birthday before the first Apply or Post was removed (owner,
  * 2026-10-14, "no later prompt"; src/test/applyAndPostAskNoProfileDetails.test.tsx).
  * These cases never tested the prompt: they pin the profile gate and the
- * header's Get Started, which stay as they were.
+ * header's Get started, which stay as they were.
  *
  * - The profile gate passes a profile with no photo and no phone.
  * - (A Google/Apple sign-up's age check moved to Complete Profile's 18+ box on
  *   2026-10-14, owner: src/test/socialSignupPassesThe18Box.test.tsx.)
- * - Get Started opens the job list from the landing page; on the job list it is
+ * - Get started opens the job list from the landing page; on the job list it is
  *   the sign-up.
  */
 import { describe, expect, it, vi } from "vitest";
@@ -37,10 +37,10 @@ describe("profile photo and phone are optional", () => {
   });
 });
 
-describe("browse first: the header's Get Started", () => {
+describe("browse first: the header's Get started", () => {
   const getStarted = (path: string) => {
     const { unmount } = render(<MemoryRouter initialEntries={[path]}><Navbar /></MemoryRouter>);
-    const href = screen.getByRole("link", { name: "Get Started" }).getAttribute("href");
+    const href = screen.getByRole("link", { name: "Get started" }).getAttribute("href");
     unmount();
     return href;
   };
@@ -50,5 +50,5 @@ describe("browse first: the header's Get Started", () => {
 
 // The phone must not be a gate field again.
 // @mutate src/components/ProtectedRoute.tsx |   { key: "location", label: "City" }, |   { key: "phone", label: "Phone number" }, { key: "location", label: "City" },
-// Get Started opens the job list.
+// Get started opens the job list.
 // @mutate src/components/Navbar.tsx | ? "/signup" : "/browse"; | ? "/signup" : "/signup";

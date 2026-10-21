@@ -30,7 +30,7 @@
  * a minute of quiet retries, Q199) is driven against a real build swap in
  * deploy-stale-chunk.spec.ts and chunkReload.test.ts; here it would cost a
  * minute per route. Never blank, never "Update ready"/"newer version".
- * And Try Again, once the chunk is reachable again, must actually recover.
+ * And Try again, once the chunk is reachable again, must actually recover.
  */
 import type { Page, BrowserContext, Route } from "@playwright/test";
 
@@ -181,7 +181,7 @@ async function expectHonestCard(page: Page, label: string) {
   const body = await bodyText(page);
   expect(body.length, `${label}: never blank`).toBeGreaterThan(20);
   expect(body, `${label}: no "Update ready" disguise`).not.toMatch(FORBIDDEN);
-  await expect(page.getByRole("button", { name: /Try Again/i }).first(), `${label}: Try Again`).toBeVisible();
+  await expect(page.getByRole("button", { name: /Try again/i }).first(), `${label}: Try again`).toBeVisible();
 }
 
 /** Watches the body the whole time so a transient blank or forbidden screen is caught too. */
@@ -199,7 +199,7 @@ for (const rc of ROUTES) {
   test.describe(`stale deploy · ${rc.path}`, () => {
     test.describe.configure({ mode: "parallel" });
 
-    test("warm, guard armed: honest card, then Try Again recovers once unblocked", async ({ page, context, baseURL }) => {
+    test("warm, guard armed: honest card, then Try again recovers once unblocked", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
       const seen = trackJs(page);
@@ -217,12 +217,12 @@ for (const rc of ROUTES) {
 
       // The deploy "finishes propagating": chunks reachable again.
       await block.unblock();
-      await page.getByRole("button", { name: /Try Again/i }).first().click();
+      await page.getByRole("button", { name: /Try again/i }).first().click();
       await expect
         .poll(async () => {
           const b = await bodyText(page);
           return !HONEST.test(b) && b.length > 40;
-        }, { message: `${rc.path}: Try Again recovers`, timeout: 20_000 })
+        }, { message: `${rc.path}: Try again recovers`, timeout: 20_000 })
         .toBe(true);
       expect(forbidden.hits, "never showed Update ready").toEqual([]);
       await page.screenshot({ path: test.info().outputPath("recovered.png") });
@@ -311,13 +311,13 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
       await page.waitForTimeout(4000);
       expect(block.aborted.size).toBeGreaterThan(0);
       expect(docs.n, "cold load + exactly one reload").toBe(2);
-      await expect(page.getByRole("button", { name: /Try Again/i })).toBeVisible();
+      await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
       expect(await bodyText(page)).not.toMatch(FORBIDDEN);
       expect(forbidden.hits).toEqual([]);
       await page.screenshot({ path: test.info().outputPath("boot-failure.png") });
     });
 
-    test("stale HTML, guard armed: honest message, then Try Again boots the app and the failure is reported", async ({ page, context, baseURL }) => {
+    test("stale HTML, guard armed: honest message, then Try again boots the app and the failure is reported", async ({ page, context, baseURL }) => {
       test.slow();
       await setup(page, context, rc, baseURL ?? "");
       await armOnFirstLoad(page, CHUNK_RELOAD_MAX_ATTEMPTS, 0);
@@ -331,13 +331,13 @@ for (const rc of [ROUTES[3], ROUTES[6]]) {
       expect(await page.evaluate(() => localStorage.getItem("helpr_boot_failure"))).toBeTruthy();
 
       await block.unblock();
-      await page.getByRole("button", { name: /Try Again/i }).click();
+      await page.getByRole("button", { name: /Try again/i }).click();
       await expect
         .poll(async () => {
           const gone = await page.evaluate(() => !document.getElementById("boot-loader")).catch(() => false);
           const b = await bodyText(page);
           return gone && !BOOT_FAIL.test(b) && b.length > 40;
-        }, { message: "Try Again boots the app", timeout: 20_000 })
+        }, { message: "Try again boots the app", timeout: 20_000 })
         .toBe(true);
       // main.tsx picked the record up and reported it.
       expect(await page.evaluate(() => localStorage.getItem("helpr_boot_failure"))).toBeNull();

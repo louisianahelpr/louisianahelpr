@@ -15,7 +15,7 @@
  *     (stalledNoticeDisclosure.test.tsx x2, jobStepOneRow.test.tsx x1).
  *   - `helper_cancel_booking`'s gate and `hasJobStarted` go through
  *     `jobLocalStartMs`, so a "start already passed" fixture dated UTC-tomorrow
- *     had a start two hours in the FUTURE and Cancel Job was correctly still
+ *     had a start two hours in the FUTURE and Cancel job was correctly still
  *     offered — four controls where the case asserts three
  *     (jobStepOneRow.test.tsx x1).
  *   - Activity bucketing compares `jobDateMs` against `todayMs()`
@@ -183,7 +183,7 @@ describe("a job day is Central, never UTC", () => {
      `ConfirmedSection.test.tsx` hardcoded `date_needed: "2026-09-20"`. On
      2026-09-14, when it was written, that was comfortably in the future and
      both of its tests passed. On 2026-09-20 it became TODAY, its 09:00 start
-     passed, `hasJobStarted` correctly hid the Cancel Job chip, and two tests
+     passed, `hasJobStarted` correctly hid the Cancel job chip, and two tests
      went red against a product doing exactly what it was specified to do.
 
      Nothing caught it, because a literal date is not a timezone bug and the
@@ -298,7 +298,7 @@ describe("a job day is Central, never UTC", () => {
    The zone and the calendar can both be right and a fixture still go red at a
    time nobody chose. `date_needed: TODAY, start_time: "23:59"` is a start LATER
    today for 1,439 minutes and NOW for the last one: from 23:59 to midnight
-   Central the start has arrived and Cancel Job is (correctly) gone, so a row
+   Central the start has arrived and Cancel job is (correctly) gone, so a row
    that should hold four controls holds three. jobRowControlSameness went red on
    exactly that at 04:59Z (PR #1996, run 36817413591) and pinned its own clock;
    its sibling jobStepOneRow did not, and went red the same way on PR #2178

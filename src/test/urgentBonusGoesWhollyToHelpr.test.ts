@@ -4,7 +4,7 @@
  *
  * Before: netUrgentFeeDollars took 2.9% off the bonus in every payout path and
  * every earnings display, get_payout_batches repeated that in SQL as
- * `urgent_fee * (1 - 0.029)`, and the Post Job copy said "only card processing"
+ * `urgent_fee * (1 - 0.029)`, and the Post job copy said "only card processing"
  * was taken. Now the Helpr receives the whole bonus and the poster is charged
  * `urgentBonusCardFeeCents` as its own checkout line (create-payment; the
  * Post-a-Task quote shows the same line, useJobDerived).
@@ -130,7 +130,7 @@ describe("Q362: the urgent bonus goes wholly to the Helpr; the poster pays its c
     expect(floorCases).toBeGreaterThan(3);
   });
 
-  it("(5) the Post Job copy promises the whole bonus and names the fee on top", () => {
+  it("(5) the Post job copy promises the whole bonus and names the fee on top", () => {
     const copy = readFileSync(resolve(ROOT, "src/components/postjob/BudgetSection.tsx"), "utf8");
     const urgent = copy.match(/For jobs that need doing right away\.[^<]*/)?.[0] ?? "";
     expect(urgent.length).toBeGreaterThan(0);

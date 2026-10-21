@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { rpcErrorCode, rpcErrorMessage } from "./lifecycleErrors";
 
 describe("rpcErrorMessage", () => {
-  it("a Cancel Job that lands after the job was marked complete says so, not 'check your connection'", () => {
+  it("a Cancel job that lands after the job was marked complete says so, not 'check your connection'", () => {
     // PostgREST hands the RAISE text back as the message, verbatim.
     const err = { code: "P0001", message: "job_already_completed", hint: "Once a job is marked done it is final." };
     expect(rpcErrorCode("helper_abort_job", err)).toBe("job_already_completed");

@@ -62,7 +62,7 @@ function StackedCopy({ shown }: { shown: Shown | null }) {
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
         <span className={`${cell("setup")} inline-flex items-center gap-0.5 justify-end`} data-payout-action="setup">
-          Set Up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
+          Set up <ChevronRightIcon className="w-3.5 h-3.5" strokeWidth={2.25} />
         </span>
         <span className={`${cell("error")} inline-flex items-center gap-0.5 justify-end`} data-payout-action="error">
           Retry <RefreshCw className="w-3.5 h-3.5" strokeWidth={2.25} />

@@ -4,7 +4,7 @@
  * after accepting. this is not an exception, it's the rule.").
  *
  * The defect (live prod 2026-10-07, 375, the owner's job as a Helpr with no
- * payout account): the Helpr's offer card drew "Set Up Payouts" with "Set up
+ * payout account): the Helpr's offer card drew "Set up payouts" with "Set up
  * payouts with Stripe to accept this job..." as its primary and no Accept,
  * because the card read the profile mirror of helper_accept_missing and
  * swapped the accept for the setup.
@@ -173,7 +173,7 @@ describe("the Helpr's offer card offers Accept to everyone (Q1399, owner 2026-10
     expect(accept).toBeEnabled();
     expect(accept).toHaveAttribute("data-offer-primary", "accept");
     expect(screen.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
-    expect(screen.queryByRole("button", { name: /Set Up Payouts|Finish Stripe Setup|Checking/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Set up payouts|Finish Stripe Setup|Checking/ })).toBeNull();
     expect(document.querySelector('[data-offer-primary="setup"]')).toBeNull();
     expect(document.body.textContent).not.toMatch(/to accept this job|before you can accept/);
   });

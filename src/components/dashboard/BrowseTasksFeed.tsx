@@ -472,7 +472,7 @@ export function BrowseTasksFeed({
                     className="rounded-ds-md font-sans font-medium"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                   >
-                    Show All Locations
+                    Show all locations
                   </Button>
                 </div>
               ) : (
@@ -583,7 +583,7 @@ export function BrowseTasksFeed({
                     onClick={() => fetchNextPage()}
                     className="text-ds-11 text-muted-foreground hover:text-foreground rounded-ds-md btn-press"
                   >
-                    Load More
+                    Load more
                   </Button>
                 )}
               </div>

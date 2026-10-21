@@ -57,7 +57,7 @@ const ResetPassword = () => {
   // beside it claimed that was "confirmation without making the user stare at a
   // toast", but nothing was ever drawn, so the only feedback a person got for
   // changing their password was the screen vanishing. Measured 2026-09-01: 400 ms
-  // after submit the form still read "Update Password" with both fields filled,
+  // after submit the form still read "Update password" with both fields filled,
   // and the URL was already /home. Changing a password is a security
   // action — the one class of action that must leave visible evidence it worked.
   //
@@ -282,7 +282,7 @@ const ResetPassword = () => {
                 navigate("/home", { replace: true });
               }}
             >
-              Go to Dashboard
+              Go to dashboard
             </Button>
           </div>
         ) : !ready && verifying ? (
@@ -305,7 +305,7 @@ const ResetPassword = () => {
                 src/test/noButtonInsideLink.test.ts. */}
             <Button asChild variant="outline" className="w-full rounded-ds-md">
               <Link to="/forgot-password">
-                {linkError ? "Request a New Reset Link" : "Request a Reset Link"}
+                {linkError ? "Request a new reset link" : "Request a reset link"}
               </Link>
             </Button>
           </div>
@@ -458,7 +458,7 @@ const ResetPassword = () => {
               size="lg"
               disabled={loading}
             >
-              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</> : "Update Password"}
+              {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Updating…</> : "Update password"}
             </Button>
           </form>
         )}

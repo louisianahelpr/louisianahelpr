@@ -218,7 +218,7 @@ for (const { name, width, job } of [
     await card.click();
     const detail = page.locator('[role="dialog"]').last();
     // ONE SHEET, ONE STEP (owner, 2026-09-09). This used to tap a "Continue"
-    // CTA to reach the apply step; the note field and "Apply Now" are on the
+    // CTA to reach the apply step; the note field and "Apply now" are on the
     // detail sheet itself now, so there is nothing to tap — and tapping the
     // matcher's first hit would SUBMIT the application and close the sheet
     // this spec exists to measure.
@@ -227,7 +227,7 @@ for (const { name, width, job } of [
     // sleep. The dialog enters with `zoom-in-95` (ui/dialog.tsx), so while the
     // animation is still running every rect inside it is scaled by up to 0.95.
     // In WebKit the fixed 500ms was not always enough, and the 44px tap-target
-    // assertion read the Apply Now button at 41.8px — which is exactly
+    // assertion read the Apply now button at 41.8px — which is exactly
     // 44 x 0.95, the entry scale, not an undersized button. Waiting for the
     // element's own geometry to stop moving measures the dialog the user ends
     // up looking at; a genuinely short button still fails, because this waits
@@ -243,7 +243,7 @@ for (const { name, width, job } of [
           (window as unknown as { __lhDlgW?: number }).__lhDlgW = w;
           // Two consecutive identical widths, no residual scale on the box, and
           // its entry animation FINISHED. A 1% scale tolerance let WebKit
-          // measure the 44px Apply Now at 43.7-43.9px (0.993-0.998 of 44: the
+          // measure the 44px Apply now at 43.7-43.9px (0.993-0.998 of 44: the
           // zoom-in-95 tail) in nightly-webkit run 38434750617.
           const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
           const running = el.getAnimations({ subtree: true }).some((a) => a.playState === "running");
@@ -275,7 +275,7 @@ for (const { name, width, job } of [
     // 5. Both actions are on screen, tappable, and showing their full label.
     //
     // Matched case-INSENSITIVELY. The app-wide Title Case pass (Apple HIG —
-    // button labels are Title Case) renamed this control to "Apply Now", and an
+    // button labels are Title Case) renamed this control to "Apply now", and an
     // exact-string match reads a rename as a missing button, which is what this
     // assertion was doing rather than measuring fit.
     const labels = m.actions.map((a) => a.text);

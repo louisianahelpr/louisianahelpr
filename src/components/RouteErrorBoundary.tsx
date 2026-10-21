@@ -209,7 +209,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
+            Try again
           </Button>
           <Button
             variant="outline"

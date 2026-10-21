@@ -1,6 +1,6 @@
 /**
  * Guards the no-button-height-override rule itself:
- *   1. it catches the Enter App / Sign Out repro (a check that cannot fail is
+ *   1. it catches the Enter App / Sign out repro (a check that cannot fail is
  *      not a check), and allows `size`, `h-auto` and `h-full`;
  *   2. its legacy ledger only shrinks — a listed file that no longer hand-sets
  *      a Button height must be removed from the list.
@@ -25,7 +25,7 @@ const tester = new RuleTester({
 describe("no-button-height-override", () => {
   tester.run("no-button-height-override", rule as never, {
       valid: [
-        `<Button size="lg" className="w-full">Sign Out</Button>`,
+        `<Button size="lg" className="w-full">Sign out</Button>`,
         `<Button className="h-auto whitespace-normal">x</Button>`,
         `<Button className="h-full">x</Button>`,
         `<div className="h-12">not a Button</div>`,

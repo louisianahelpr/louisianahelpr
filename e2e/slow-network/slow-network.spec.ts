@@ -206,10 +206,10 @@ function removeJobsTitled(api: APIRequestContext, poster: Session, title: string
   };
 }
 
-/** Post a Job form up to the checkout step, on whatever network the page has. */
+/** Post a job form up to the checkout step, on whatever network the page has. */
 async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp, why: string) => void) {
   await page.goto("/post-job");
-  await page.getByRole("button", { name: /Start Fresh/ }).click();
+  await page.getByRole("button", { name: /Start fresh/ }).click();
   await expect(page.getByRole("heading", { name: "What do you need?" })).toBeVisible({ timeout: 60_000 });
   await fillJobDetails(page, title);
   await fillBudget(page);
@@ -218,7 +218,7 @@ async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp
   await review.click();
   await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 60_000 });
   await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
-  return page.getByRole("button", { name: /Continue to Payment|Post Job/i });
+  return page.getByRole("button", { name: /Continue to payment|Post job/i });
 }
 
 // ─── sign-in ──────────────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ test(stepTitle("sign-in", "3g"), async ({ browser, journey }) => {
   await waitShowsProgress(page, "cold load /login", () => page.goto("/login", { waitUntil: "commit" }), visible(page.locator("#email")), { coldLoad: true });
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
-  await waitShowsProgress(page, "Log In", () => page.locator('button[type="submit"]').click(), async () => /\/(home|complete-profile)/.test(page.url()));
+  await waitShowsProgress(page, "Log in", () => page.locator('button[type="submit"]').click(), async () => /\/(home|complete-profile)/.test(page.url()));
   await assertHealthy(page, "signed in on 3G", { settleMs: 60_000 });
   await journey.milestone(page, "signin-3g");
   await ctx.close();
@@ -261,10 +261,10 @@ test(stepTitle("sign-in", "drop"), async ({ browser, journey }) => {
   await page.locator("#email").fill(creds.email);
   await page.locator("#password").fill(creds.password);
 
-  await test.step("offline when pressing Log In: says so", async () => {
+  await test.step("offline when pressing Log in: says so", async () => {
     await ctx.setOffline(true);
     await page.locator('button[type="submit"]').click();
-    await expectOfflineSaid(page, "Log In while offline");
+    await expectOfflineSaid(page, "Log in while offline");
     await ctx.setOffline(false);
   });
   await test.step("response lost after the server signed in: a retry still lands signed in", async () => {
@@ -357,7 +357,7 @@ test(stepTitle("post", "3g"), async ({ browser, request, journey }) => {
   const submit = await fillToCheckout(page, title, journey.allowReport);
   const q = `jobs?customer_id=eq.${poster.user.id}&title=eq.${encodeURIComponent(title)}&select=id`;
   // Done = the job row exists; the payment hand-off after it is pay-start's.
-  await waitShowsProgress(page, "Continue to Payment (job insert)", () => submit.click(), async () => (await count(request, poster, q)) > 0);
+  await waitShowsProgress(page, "Continue to payment (job insert)", () => submit.click(), async () => (await count(request, poster, q)) > 0);
   await journey.milestone(page, "post-3g-submitted");
   await ctx.close();
 });
@@ -410,7 +410,7 @@ async function openApplyDialog(page: Page, jobTitleText: string) {
   const esc = jobTitleText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   await page.getByRole("button", { name: new RegExp(`View .*${esc}`) }).first().click();
   const dialog = page.getByRole("dialog").first();
-  const apply = dialog.getByRole("button", { name: /^(Apply Now|Try Again)$/ });
+  const apply = dialog.getByRole("button", { name: /^(Apply now|Try again)$/ });
   await expect(apply).toBeVisible({ timeout: 60_000 });
   await dialog.getByRole("textbox").first().fill(`Slow network ${RUN}: I can do this one.`);
   return apply;
@@ -434,7 +434,7 @@ test(stepTitle("apply", "3g"), async ({ browser, request, journey }) => {
   await throttle3g(ctx, page);
   const apply = await openApplyDialog(page, job.title);
   const q = `applications?job_id=eq.${job.id}&helper_id=eq.${helper.user.id}&select=id`;
-  await waitShowsProgress(page, "Apply Now", () => apply.click(), async () => (await count(request, helper, q)) > 0);
+  await waitShowsProgress(page, "Apply now", () => apply.click(), async () => (await count(request, helper, q)) > 0);
   await expect(page.getByText(/applied|application sent|you're in/i).first(), "no visible confirmation after applying on 3G").toBeVisible({ timeout: 60_000 });
   await journey.milestone(page, "apply-3g");
   await ctx.close();
@@ -538,7 +538,7 @@ test(stepTitle("message", "drop"), async ({ browser, request, journey }) => {
     await loseNextResponse(t.page, `${SUPABASE_URL}/rest/v1/messages**`);
     if (!(await t.box.inputValue())) await t.box.fill(text);
     await t.box.press("Enter");
-    const retry = t.page.getByRole("button", { name: /Retry sending|Tap to Retry/i }).first();
+    const retry = t.page.getByRole("button", { name: /Retry sending|tap to retry/i }).first();
     await expect(retry, "a lost send left no retry affordance (silent)").toBeVisible({ timeout: 60_000 });
     await retry.click();
     await expectExactlyOnce(request, t.poster, q, "messages row");
@@ -557,7 +557,7 @@ test(stepTitle("pay-start", "3g"), async ({ browser, request, journey }) => {
   const submit = await fillToCheckout(page, title, journey.allowReport);
   await throttle3g(ctx, page);
   // Stops at Stripe's door: pay START, nothing is charged.
-  await waitShowsProgress(page, "Continue to Payment → Stripe Checkout", () => submit.click(), async () => new URL(page.url()).hostname === "checkout.stripe.com");
+  await waitShowsProgress(page, "Continue to payment → Stripe Checkout", () => submit.click(), async () => new URL(page.url()).hostname === "checkout.stripe.com");
   await ctx.close();
 });
 

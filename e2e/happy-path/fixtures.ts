@@ -384,7 +384,7 @@ export async function installSupabaseMocks(
  * and real PostgREST answers with ONE OBJECT — or 406 / PGRST116 when the row
  * count is not exactly one. This mock answered every read with an array, so a
  * `.single()` caller got `data = [row]`: every field read off it was
- * `undefined`, silently. The Work Record rendered "Helpr Member" and
+ * `undefined`, silently. The Work record rendered "Helpr Member" and
  * `Invalid Date` for MEMBER SINCE on an Employment & Earnings Record, and the
  * state-matrix sweep filed it as an app defect (2026-09-11). The app was
  * fine; the fixture was answering a question it had not been asked.

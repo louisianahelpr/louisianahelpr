@@ -275,7 +275,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
             setEditing(true);
           }}
         >
-          <Target className="w-3.5 h-3.5 mr-1.5" /> Set a Monthly Earnings Goal
+          <Target className="w-3.5 h-3.5 mr-1.5" /> Set a monthly earnings goal
         </Button>
       )}
     </div>

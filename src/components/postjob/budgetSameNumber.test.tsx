@@ -1,5 +1,5 @@
 /**
- * Post a Job's Budget is the poster's own number (owner, 2026-10-08: "remove the
+ * Post a job's Budget is the poster's own number (owner, 2026-10-08: "remove the
  * suggested prices from post a job ... also remove jobs under rarely get
  * applications"). What stays: the field, the minimum and the cap.
  *
@@ -31,7 +31,7 @@ function Harness({ initial = "" }: { initial?: string }) {
   );
 }
 
-describe("Post a Job budget: the poster's own number", () => {
+describe("Post a job budget: the poster's own number", () => {
   it("no suggested range, no Use button, no preset prices, no lowball warning", () => {
     render(<Harness initial="12" />);
     expect(screen.queryByText(/Suggested:/)).toBeNull();

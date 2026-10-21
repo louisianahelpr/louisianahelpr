@@ -127,7 +127,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
             onClick={() => navigate("/profile?tab=earnings")}
             className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-ds-md font-semibold text-ds-13"
           >
-            Go to Earnings
+            Go to earnings
           </button>
         }
       />,
@@ -161,7 +161,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
             onClick={() => void refetch()}
             className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-ds-md font-semibold text-ds-13"
           >
-            Try Again
+            Try again
           </button>
         }
       />,

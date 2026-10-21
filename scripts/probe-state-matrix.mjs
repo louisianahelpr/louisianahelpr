@@ -138,10 +138,10 @@ async function main() {
     await page.goto(`${TARGET}/post-job`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(1500);
     await page.screenshot({ path: path.join(OUT_DIR, 'kb-01-postjob-initial.png') });
-    // /post-job's first step is an entry chooser (Start Fresh / Repost /
+    // /post-job's first step is an entry chooser (Start fresh / Repost /
     // Template / Offer to Saved Helpr / AI Builder) — no inputs render until
-    // "Start Fresh" is picked.
-    await page.getByText('Start Fresh', { exact: false }).first().click({ timeout: 5000 }).catch(() => {});
+    // "Start fresh" is picked.
+    await page.getByText('Start fresh', { exact: false }).first().click({ timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
     await page.screenshot({ path: path.join(OUT_DIR, 'kb-01b-postjob-form-step.png') });
 
@@ -201,7 +201,7 @@ async function main() {
     const page = await context.newPage();
     await page.goto(`${TARGET}/post-job`, { waitUntil: 'networkidle', timeout: 30000 });
     await page.waitForTimeout(1500);
-    await page.getByText('Start Fresh', { exact: false }).first().click({ timeout: 5000 }).catch(() => {});
+    await page.getByText('Start fresh', { exact: false }).first().click({ timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(1000);
 
     const titleInput = page.locator('input[name="title"], input[placeholder*="title" i], input[id*="title" i]').first();

@@ -2,7 +2,7 @@ import { expect, type Page } from "@playwright/test";
 import { isoDayIn, pickCalendarDay } from "../calendarPicker";
 
 /**
- * Driving the Post a Job form, shared by the marketplace journey (J2,
+ * Driving the Post a job form, shared by the marketplace journey (J2,
  * 02-marketplace.spec.ts) and the slow-network suite (e2e/slow-network, Q68),
  * so the rural-network run posts through exactly the form J2 proves, never a
  * hand-rolled copy of it.

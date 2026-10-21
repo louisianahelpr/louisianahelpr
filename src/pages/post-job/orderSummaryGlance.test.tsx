@@ -1,6 +1,6 @@
 // @mutate src/components/postjob/CheckoutStep.tsx | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right" | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
 /**
- * Owner, 2026-10-01, on the Post a Job "Order Summary" (review) screen:
+ * Owner, 2026-10-01, on the Post a job "Order Summary" (review) screen:
  * "Remove detail and review and pay at the top. Category should be seperate
  * from the title in its own space. Description should be right aligned like
  * the other stufff" + "no need to show vermilion parish in the location or

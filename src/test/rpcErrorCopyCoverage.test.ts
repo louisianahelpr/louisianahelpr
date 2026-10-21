@@ -22,7 +22,7 @@ import {
  * EVERY CODE A CLIENT-CALLED RPC CAN RAISE HAS WORDS AT THE PLACE IT IS CALLED.
  *
  * The bug this was built on (docs/OPEN.md, "Done is final", 2026-09-14): once
- * `open_dispute_as` started refusing completed jobs, a Helpr's Cancel Job
+ * `open_dispute_as` started refusing completed jobs, a Helpr's Cancel job
  * (`helper_abort_job` → `rpc_open_dispute` → `open_dispute_as`) could come back
  * `job_already_completed`. ActiveJobSection only knew `not_abortable`, so the
  * person saw "We couldn't send that — check your connection and try again"
@@ -101,7 +101,7 @@ const UNREACHABLE: Allowlist = {
   helper_abort_job: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
     reason_required: {
-      reason: "ActiveJobSection disables Cancel Job until abortReason.trim().length >= 5 and sends the trimmed text, so btrim(p_reason) is never empty.",
+      reason: "ActiveJobSection disables Cancel job until abortReason.trim().length >= 5 and sends the trimmed text, so btrim(p_reason) is never empty.",
     },
   },
   block_user_and_settle: {
@@ -351,7 +351,7 @@ describe("admin-only RPC copy stays out of the shared table", () => {
 });
 
 describe("the checks can fail (the original bug, pinned)", () => {
-  // The Cancel Job handler as it stood before this guard: its own regex for
+  // The Cancel job handler as it stood before this guard: its own regex for
   // the one code it knew, no shared copy.
   const ORIGINAL_ACTIVE_JOB_SECTION = `
     const handleAbort = async () => {

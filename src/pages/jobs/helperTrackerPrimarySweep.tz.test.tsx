@@ -13,14 +13,14 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  *
  * WHAT IT CATCHES (nightly-red, main: Vitest, 2026-09-23 04:18Z = 23:18
  * Central). jobStepOneRow's "day-of confirmation still owed" case rendered
- * ["I'm On My Way", "I'm Still On"] in the row's primary slot on the UTC CI
+ * ["I'm On My Way", "I'm still on"] in the row's primary slot on the UTC CI
  * runner and passed on a Central laptop. HelperTrackerPanel measured its
  * "Confirmed step still open" gate from `parseLocalDate(date_needed)` — the
- * VIEWER's midnight — while JobConfirmation, which renders "I'm Still On",
+ * VIEWER's midnight — while JobConfirmation, which renders "I'm still on",
  * measures the same window from the JOB's (America/Chicago) midnight. On a
  * device east of Central the gate dropped early (UTC: 19:00 Central on the job
  * day), the tracker went live with "I'm On My Way" once the start was inside
- * its 2h unlock, and "I'm Still On" was still on screen beside it. West of
+ * its 2h unlock, and "I'm still on" was still on screen beside it. West of
  * Central the gate outlived the control that releases it: no primary at all.
  * A real product bug for any helper whose phone is not set to Central, not a
  * fixture clock bug — the same instant renders differently by zone.

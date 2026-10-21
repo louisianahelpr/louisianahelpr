@@ -42,7 +42,7 @@ describe("HaulAwayCard", () => {
     const { container } = wrap(<HaulAwayCard group={[]} />);
     expect(container.textContent).toBe("");
   });
-  it("one tap opens Post a Job pre-filled with every item of the trip", () => {
+  it("one tap opens Post a job pre-filled with every item of the trip", () => {
     wrap(<HaulAwayCard group={[row({ item_id: "i1" }), row({ item_id: "i2" })]} />);
     expect(screen.getByText("2 items haven't sold")).toBeTruthy();
     expect(screen.getByText(/donation, or the dump/)).toBeTruthy();

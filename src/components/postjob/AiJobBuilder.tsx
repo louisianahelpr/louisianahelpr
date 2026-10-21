@@ -129,7 +129,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
             className="block font-display font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
-            Try the AI Job Builder
+            Try the AI job builder
           </span>
           <span className="block font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Describe your job and let AI fill the form.
@@ -169,7 +169,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 mr-2" /> Generate Job Posting
+                <Sparkles className="w-4 h-4 mr-2" /> Generate job posting
               </>
             )}
           </Button>

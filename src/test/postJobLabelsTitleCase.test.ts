@@ -6,7 +6,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * OWNER OVERRIDE 2026-10-20 (design spec v2 §2, "sentence case everywhere,
- * form labels included"): Post a Job labels are SENTENCE case ("Job title",
+ * form labels included"): Post a job labels are SENTENCE case ("Job title",
  * "Street address", "Mark as urgent"). This guard used to enforce the opposite
  * (VN-48, owner 2026-09-14: Title Case labels); the 10-20 decision replaces it.
  * Capitalised words allowed after the first: proper nouns (PROPER below) and
@@ -72,7 +72,7 @@ function collectLabels(): { file: string; text: string }[] {
   return out;
 }
 
-describe("Post a Job labels are sentence case (owner override 2026-10-20)", () => {
+describe("Post a job labels are sentence case (owner override 2026-10-20)", () => {
   it("the checker itself fails on the old Title Case labels", () => {
     expect(sentenceCaseViolations("Job Title *")).toEqual(["Title"]);
     expect(sentenceCaseViolations("Require Before & After Photos")).toEqual(["Before", "After", "Photos"]);

@@ -57,7 +57,7 @@ const KNOWN_SHAPES: Record<string, string> = {
   "1440 /profile?tab=saved_helpers": "block y",
   // Two full-width cards; the page is a 480px calendar beside an Upcoming jobs column.
   "1440 /profile?tab=schedule": "block w",
-  // One card; the page is a Share Record row, then a timeline whose cards start
+  // One card; the page is a Share record row, then a timeline whose cards start
   // at x44 (y148 -> 214, w1144 -> 1124).
   "1440 /profile?tab=home_history": "block y; block x; block w",
   // A full-column card; the page is a centred 420px card (x24 -> 386).

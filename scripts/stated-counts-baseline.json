@@ -176,7 +176,7 @@
     "scripts/audit/press-every-control.mjs :: * * - shards 1 and 3 enumerated FOUR controls",
     "scripts/audit/press-every-control.mjs :: - shard 4 enumerated 50 rows",
     "scripts/audit/press-every-control.mjs :: 35692554813 excused seven page",
-    "scripts/audit/press-every-control.mjs :: fresh (\"Go Back\" on the 404 page",
+    "scripts/audit/press-every-control.mjs :: fresh (\"Go back\" on the 404 page",
     "scripts/audit/pressLoadHealth.mjs :: upabase requests vs * ≈19 on routes",
     "scripts/audit/rail-overlap-probe.mjs :: full desktop width\". At 1440 the content column",
     "scripts/audit/two-account-journey.mjs :: s how prod ends up with 68 bracketed job",

@@ -15,7 +15,7 @@
  * were everywhere else that counted for itself: admin Users (every row,
  * blind-period ones included), admin Helpr Tiers (get_helper_tiers, no
  * predicate at all — tiers were awarded on reviews nobody may see yet), the
- * owner's own profile stats and Work Record (reveal only, no cancelled-job
+ * owner's own profile stats and Work record (reveal only, no cancelled-job
  * rule), the Wallet pass and the weekly email (service-role reads of
  * everything), and the "All" chip on a profile's review list, which counted
  * the 20 loaded so far.

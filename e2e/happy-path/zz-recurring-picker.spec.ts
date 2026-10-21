@@ -62,14 +62,14 @@ for (const width of [375, 1440]) {
     // Land on the form itself, not the entry choice. The entry step is a
     // deliberate landing (start fresh / repost / template / AI), so the form
     // is one tap in.
-    // Case-INSENSITIVE on purpose: the control reads "Start Fresh" in title
-    // case, and its accessible name also carries the description ("Start Fresh
+    // Case-INSENSITIVE on purpose: the control reads "Start fresh" in title
+    // case, and its accessible name also carries the description ("Start fresh
     // Build your request from a blank form."), so an exact or case-sensitive
     // match silently waits out its full timeout instead of failing usefully.
     const startFresh = page.getByRole("button", { name: /^start fresh/i }).first();
     await startFresh.waitFor({ timeout: 20_000 });
     await startFresh.click();
-    // J1 (2026-10-20): Post a Job is one question per screen and Repeats lives on
+    // J1 (2026-10-20): Post a job is one question per screen and Repeats lives on
     // screen 4 (When and where). Open it the way the form's own submit pass does
     // (scrollToField in postJobFormHelpers.ts dispatches lh:show-form-page on the
     // hidden screen), so this spec measures the picker without re-driving screens 1-3.

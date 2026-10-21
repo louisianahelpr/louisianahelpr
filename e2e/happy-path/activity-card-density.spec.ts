@@ -223,7 +223,7 @@ async function openMore(page: Page) {
  * (tracker, step row, More) open from the face's button when it is the
  * fallback "Manage job", and from the app's own deep link
  * `?highlight=<id>&manage=1` (JobListPage -> useManageDeepLink), which is what
- * a notification uses. JobCardShell's sr-only "Expand Job Details" toggle is
+ * a notification uses. JobCardShell's sr-only "Expand job details" toggle is
  * gone from these cards (`expandable={false}`), so this used to wait for it and
  * fail (PR #3463's smoke run).
  *
@@ -818,7 +818,7 @@ test.describe("My Posts — card density + header", () => {
     await dismissNudge(page);
 
     // Boards 14/21 (2026-10-20): the face replaced JobCardShell's whole-card
-    // toggle and its sr-only "Expand Job Details" button. Two ways in, each a
+    // toggle and its sr-only "Expand job details" button. Two ways in, each a
     // real control: the face's link to /jobs/:id, and its one button.
     await expect(page.getByRole("button", { name: /^(Expand|Collapse) Job Details$/ })).toHaveCount(0);
     const face = page.getByRole("link", { name: `Open ${String(LONELY_OPEN.title)}` });

@@ -14,7 +14,7 @@
  * read). While signOutWithPushCleanup has an abort scope open, every
  * /auth/v1/ request carries the scope's AbortSignal; on the cap the scope is
  * aborted, auth-js sees a fetch error, removes the session and emits
- * SIGNED_OUT while the "Logging Out…" dialog is still up, and nothing is left
+ * SIGNED_OUT while the "Logging out…" dialog is still up, and nothing is left
  * running to wipe a later session. src/lib/authSignOut.lateLogout.test.ts
  * drives the real supabase-js client through it.
  */

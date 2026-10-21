@@ -12,7 +12,7 @@ import { SaveBar } from "./SaveBar";
  * VISIBILITY, the in-flight latch in BOTH directions (engaged while saving and
  * during the Saved confirmation, RELEASED once merely dirty), and the fact that
  * the two buttons are WIRED. Without the last one, `onClick` could be deleted
- * off either button and every assertion here stayed green — a Save Changes
+ * off either button and every assertion here stayed green — a Save changes
  * button that is present, enabled, correctly labelled and does nothing.
  */
 const noop = vi.fn();
@@ -27,9 +27,9 @@ describe("SaveBar", () => {
     expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
   });
 
-  it("offers an enabled Save Changes once something changed", () => {
+  it("offers an enabled Save changes once something changed", () => {
     render(<SaveBar dirty saving={false} justSaved={false} onBack={noop} onSave={noop} />);
-    expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 
   it("stays up while saving and for the Saved confirmation", () => {
@@ -39,12 +39,12 @@ describe("SaveBar", () => {
     expect(screen.getByRole("button", { name: /Saved/ })).toBeDisabled();
   });
 
-  it("both buttons are wired — Save Changes saves, Cancel backs out", () => {
+  it("both buttons are wired — Save changes saves, Cancel backs out", () => {
     const onSave = vi.fn();
     const onBack = vi.fn();
     render(<SaveBar dirty saving={false} justSaved={false} onBack={onBack} onSave={onSave} />);
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
-    expect(onSave, "Save Changes did not call onSave").toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(onSave, "Save changes did not call onSave").toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onBack, "Cancel did not call onBack").toHaveBeenCalledTimes(1);
   });
@@ -57,7 +57,7 @@ describe("SaveBar", () => {
     fireEvent.click(screen.getByRole("button", { name: /Saving/ }));
     expect(onSave, "a save in flight fired a second save").not.toHaveBeenCalled();
     rerender(<SaveBar dirty saving={false} justSaved={false} onBack={noop} onSave={onSave} />);
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
     expect(onSave, "the in-flight latch was never released").toHaveBeenCalledTimes(1);
   });
 });

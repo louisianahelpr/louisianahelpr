@@ -324,7 +324,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   });
 });
 
-describe("Senior Mode from the ACCOUNT is on at first paint (Q169)", () => {
+describe("Senior mode from the ACCOUNT is on at first paint (Q169)", () => {
   afterEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove("senior-mode");

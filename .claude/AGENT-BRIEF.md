@@ -116,6 +116,15 @@ New features ship to the real app behind a hidden switch: on only for testers
   Switches (confirmation + admin_audit_log row), never a migration. The nightly
   feature-switch-audience workflow checks as an ordinary account that no
   switch not set to everyone is on for it.
+- The ONE exception: a switch the owner has explicitly asked to turn on for
+  everyone BY MIGRATION (through the lead). It is listed in
+  `OWNER_APPROVED_GO_LIVE` in src/test/featureSwitchRegistry.test.ts (migration
+  file -> the one key it may turn on, with the owner's words and date), and
+  that migration's UPDATE is guarded by NOT EXISTS an admin_audit_log row for
+  the switch, so a replay never overrides an admin's later choice. Today it
+  holds one entry: `come_back_emails` (20261021135921, owner 2026-10-21, Q2299,
+  issue #3498, "turn it ON as written"). Never add an entry without the owner's
+  own words; the registry guard is exact both ways.
 - Retiring a switch after go-live: remove the `useFeature`/`require_feature`
   calls and `DELETE FROM public.feature_switches WHERE key = '<key>';` in one
   change (the registry guard stays exact).

@@ -355,7 +355,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // an account. This reverses the earlier "tease & convert" behaviour, where
   // guests saw the full dock with locked tabs that opened a signup sheet; the
   // dock is now a signed-in surface only. Guests are not stranded: the guest
-  // browse dashboard carries its own sticky header with Log in / Get started,
+  // browse dashboard carries its own sticky header with Log in / Join free,
   // and the marketing pages carry the Navbar.
   //
   // Everything below still branches on `isGuest` (tab remapping to
@@ -541,7 +541,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               as a barrier wall on a first-time guest's home screen. The tab
               is gently dimmed (opacity-50) and a tap routes to sign-up, so
               "locked" is communicated without the cluttered lock glyphs. The
-              header's prominent Get started button is the single unlock CTA. */}
+              header's prominent Join free button is the single unlock CTA. */}
           {showBadge && (
             <span
               data-dock-badge={path}

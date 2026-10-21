@@ -1057,9 +1057,9 @@ test.describe.serial("marketplace chain", () => {
          renders, and its failure read as a missing product feature. */
       const c = await card(pp, "/jobs?tab=posted", "Needs You");
       await press(pp, c, /^Approve\b/, "open the completion choice");
-      const sheet = pp.getByRole("dialog").filter({ hasText: "I Need Something Fixed First" });
+      const sheet = pp.getByRole("dialog").filter({ hasText: "Something's not right" });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
-      await sheet.getByRole("button", { name: /I Need Something Fixed First/ }).click();
+      await sheet.getByRole("button", { name: /Something's not right/ }).click();
       await pp.getByRole("textbox", { name: "Describe what needs to be redone" }).first().fill(`Journey ${RUN}: please redo the corner.`);
       await journey.milestone(pp, "revision-sheet");
       await pp.getByRole("button", { name: "Send Revision Request" }).click();
@@ -1088,10 +1088,10 @@ test.describe.serial("marketplace chain", () => {
          and the failure surfaced 90 seconds later as "release never settled",
          which reads as a broken payout rather than an unclicked button. */
       await press(pp, c, /^Approve\b/, "approve");
-      const sheet = pp.getByRole("dialog").filter({ hasText: "All Done — Looks Great!" });
+      const sheet = pp.getByRole("dialog").filter({ hasText: /Confirm and release/ });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
       await journey.milestone(pp, "release-confirm");
-      await sheet.getByRole("button", { name: /All Done/ }).click();
+      await sheet.getByRole("button", { name: /^Confirm and release/ }).click();
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "release never settled" })
         .toMatch(/^(payout_pending|released)$/);

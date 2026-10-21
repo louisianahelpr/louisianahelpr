@@ -11,13 +11,14 @@
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (row?.state !== "unpaid") return null; |   if (!row) return null;
  * @mutate src/components/declutter/DeclutterHaulAway.tsx | onClick={() => onFinishBooking(row)}>\n        Finish booking | onClick={() => onFinishBooking(row)}>\n        Book it again
  * @mutate src/components/declutter/DeclutterHaulAway.tsx | Finish booking, or put the item back on sale. | Book it again, or put the item back on sale.
+ * @mutate src/components/declutter/DeclutterHaulAway.tsx |   return more > 0 ? `${head} and ${more} more` : head; |   return head;
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine } from "./DeclutterHaulAway";
+import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine, leftoversLine } from "./DeclutterHaulAway";
 import type { HaulAwayRow } from "@/lib/declutter/haulAway";
 
 const row = (over: Partial<HaulAwayRow>): HaulAwayRow => ({
@@ -45,13 +46,20 @@ describe("HaulAwayCard", () => {
     wrap(<HaulAwayCard group={[row({ item_id: "i1" }), row({ item_id: "i2" })]} />);
     expect(screen.getByText("2 items haven't sold")).toBeTruthy();
     expect(screen.getByText(/donation, or the dump/)).toBeTruthy();
-    const link = screen.getByRole("link", { name: "Book a haul-away for 2 items" });
+    expect(screen.getByRole("heading", { name: "Haul it away" })).toBeTruthy();
+    const link = screen.getByRole("link", { name: "Post a haul-away job for 2 items" });
     expect(link.getAttribute("href")).toBe("/post-job?haulAway=i1,i2");
   });
   it("one item reads in the singular", () => {
     wrap(<HaulAwayCard group={[row({})]} />);
     expect(screen.getByText("1 item hasn't sold")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Book a haul-away" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Post a haul-away job" })).toBeTruthy();
+  });
+  it("board 164: the leftovers line names the first three titles, then how many more", () => {
+    const titles = ["Dresser", "Chair", "Chair", "Boxes", "Lamp"];
+    wrap(<HaulAwayCard group={titles.map((title, i) => row({ item_id: `i${i}`, title }))} />);
+    expect(screen.getByText("Dresser, Chair, Chair and 2 more")).toBeTruthy();
+    expect(leftoversLine(["Dresser", "Lamp"])).toBe("Dresser, Lamp");
   });
 });
 

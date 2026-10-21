@@ -37,7 +37,7 @@ import { migrationFiles, parseDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { replayTablePrivileges, type Priv } from "./helpers/tablePrivilegeReplay";
 
-// @mutate release/app-review-freeze.json | "liveClientCompatFloor": 1, | "liveClientCompatFloor": 0,
+// @mutate release/app-review-freeze.json | "liveClientCompatFloor": 2, | "liveClientCompatFloor": 0,
 // @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.member_under_18(uuid) TO service_role;\nREVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated;
 // @mutate src/test/appReviewFreeze.test.ts |     if (createsTable(m.code, t) \|\| createsNewView(m.code, t, files.slice(0, idx))) continue;\n    const word |     if (createsTable(m.code, t) \|\| createsNewView(m.code, t, files.slice(0, idx)) \|\| t === "profiles") continue;\n    const word
 

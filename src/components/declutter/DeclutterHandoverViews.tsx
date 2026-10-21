@@ -60,6 +60,8 @@ import { currentPosition } from "@/lib/declutter/position";
 import { PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
+// Seller delivery (20261021181258) loads with its own orders only (Q178).
+const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
 
@@ -154,6 +156,18 @@ const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
   nothing_due: "Nothing to pay out: this sale covered a card fee you owed.",
 };
 
+/**
+ * "($30.00 + $15.00 delivery minus $1.50 you owed)". A seller delivery's rate
+ * is paid with the items (20261021181258): amount = items + rate - debt, so the
+ * rate is read from the row's own numbers (no new column read by this screen).
+ */
+function payoutBreakdown(p: Pick<MyPayout, "amount_cents" | "items_cents" | "debt_cents">): string {
+  const rate = p.amount_cents + p.debt_cents - p.items_cents;
+  if (rate <= 0 && p.debt_cents <= 0) return "";
+  const parts = rate > 0 ? `${formatPrice(p.items_cents)} + ${formatPrice(rate)} delivery` : formatPrice(p.items_cents);
+  return p.debt_cents > 0 ? ` (${parts} minus ${formatPrice(p.debt_cents)} you owed)` : ` (${parts})`;
+}
+
 function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
@@ -168,7 +182,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
+            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>
@@ -187,14 +201,22 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
       )}
       {done ? (
         <>
-          {order.handover === "delivery" && <p className="text-sm font-medium">Handed over. The sale is final.</p>}
+          {(order.handover === "delivery" || order.handover === "seller_delivery") && <p className="text-sm font-medium">Handed over. The sale is final.</p>}
           {order.side === "seller" && payout && (
             <p className="text-sm">
               {formatPrice(payout.amount_cents)}
-              {payout.debt_cents > 0 ? ` (${formatPrice(payout.items_cents)} minus ${formatPrice(payout.debt_cents)} you owed)` : ""}. {PAYOUT_WORDS[payout.status]}
+              {payoutBreakdown(payout)}. {PAYOUT_WORDS[payout.status]}
             </p>
           )}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
+        </>
+      ) : order.handover === "seller_delivery" ? (
+        <>
+          {/* 20261021181258: the seller brings it at the time the buyer picked. */}
+          <Suspense fallback={<HelprSpinner />}>
+            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
+          </Suspense>
+          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
         </>
       ) : order.handover === "delivery" ? (
         <>

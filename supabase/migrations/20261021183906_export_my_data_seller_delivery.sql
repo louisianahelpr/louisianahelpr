@@ -324,7 +324,9 @@ BEGIN
       WHERE t.buyer_id = v_uid));
   -- Declutter seller delivery (20261021181258): the seller's setting, delivery windows, days off and the items
   -- they switched delivery off for; each delivery the member is a side of. The drop-off address and point are
-  -- the BUYER's, so they leave a seller's copy (as declutter_delivery_dropoffs is never the seller's).
+  -- the BUYER's, so they leave a seller's copy (as declutter_delivery_dropoffs is never the seller's), and a
+  -- seller's copy of a checkout that was never paid ('held' / 'released') carries only its order, status and
+  -- time, nothing of the buyer's (lh-authz-rls review #1).
   v_out := v_out || jsonb_build_object('declutter_seller_delivery', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_seller_delivery t
       WHERE t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_delivery_windows', (SELECT coalesce(jsonb_agg(to_jsonb(t)), '[]'::jsonb) FROM public.declutter_delivery_windows t
@@ -335,6 +337,7 @@ BEGIN
       WHERE t.seller_id = v_uid));
   v_out := v_out || jsonb_build_object('declutter_seller_deliveries', (SELECT coalesce(jsonb_agg(
         CASE WHEN t.buyer_id = v_uid THEN to_jsonb(t)
+             WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)
              ELSE to_jsonb(t) - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' END), '[]'::jsonb) FROM public.declutter_seller_deliveries t
       WHERE t.buyer_id = v_uid OR t.seller_id = v_uid));
 

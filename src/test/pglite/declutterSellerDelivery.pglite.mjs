@@ -326,6 +326,9 @@ const pay2 = (await svc(`SELECT * FROM public.declutter_payouts WHERE order_id =
 ok(pay2?.items_cents === 3000 && pay2.delivery_cents === RATE && pay2.amount_cents === 3000 + RATE && pay2.status === "pending",
   `the seller's payout is items + rate, exact cents: $${((pay2?.amount_cents ?? 0) / 100).toFixed(2)} (no rounding, no cut)`);
 ok((await sd(o2?.order_id))?.status === "done", "the delivery is done");
+ok(one(await me(SELLER, `SELECT public.declutter_seller_delivery_booking('${o2?.order_id}')`))?.dropoff_address === null
+  && !!one(await me(BUYER2, `SELECT public.declutter_seller_delivery_booking('${o2?.order_id}')`))?.dropoff_address,
+  "after the handover the seller no longer reads the buyer's address (the buyer still does)");
 ok(refused(await svc(`INSERT INTO public.declutter_payouts (order_id, seller_id, items_cents, delivery_cents, debt_cents, amount_cents, status)
   VALUES ('${o1?.order_id}', '${SELLER}', 100, 500, 0, 100, 'pending')`), /declutter_payouts_amount/),
   "a payout row that leaves the rate out fails its CHECK");
@@ -401,6 +404,11 @@ ok(refused(await me(SELLER2, `SELECT public.declutter_set_delivery_handoff('${o5
 ok(one(await me(BUYER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'leave')`)) === "leave"
   && await notes(SELLER2, "Delivery changed") === 1, "the buyer changes it after paying; the seller is told");
 await me(BUYER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'hand')`);
+const times5 = one(await me(BUYER2, `SELECT public.declutter_delivery_open_times('${o5?.order_id}')`));
+ok(Array.isArray(times5?.slots) && times5.slots.length > 10 && times5.slot_minutes === 60
+  && one(await me(SELLER2, `SELECT public.declutter_delivery_open_times('${o5?.order_id}')`))?.slots?.length === times5.slots.length,
+  "both sides read the open times to move to (the checkout list, after payment)");
+ok(refused(await me(OUTSIDER, `SELECT public.declutter_delivery_open_times('${o5?.order_id}')`), /item_not_found/), "a stranger reads no times");
 ok(refused(await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${o5?.order_id}', '${iso(Date.now() + 3600e3)}')`), /slot_unavailable/),
   "a proposed time must be one of the seller's open times");
 ok(one(await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${o5?.order_id}', '${o5s[1]}')`))?.result === "proposed", "the buyer proposes a new time");
@@ -457,11 +465,15 @@ const memberFns = ["declutter_my_seller_delivery()", "declutter_set_seller_deliv
   "declutter_set_item_seller_delivery(uuid,boolean)", "declutter_seller_delivery_offer(uuid)", "declutter_seller_delivery_booking(uuid)",
   "declutter_seller_delivered(uuid,text)", "declutter_report_not_delivered(uuid)", "declutter_seller_cancel_delivery(uuid)",
   "declutter_propose_delivery_time(uuid,timestamptz)", "declutter_answer_delivery_time(uuid,boolean)", "declutter_set_delivery_handoff(uuid,text)",
-  "declutter_buyer_cancel_delivery(uuid)",
-  "declutter_start_checkout(uuid,text,timestamptz,text)"];
+  "declutter_buyer_cancel_delivery(uuid)", "declutter_delivery_open_times(uuid)",
+  "declutter_start_checkout(uuid,text,timestamptz,text)", "declutter_seller_delivery_rules()",
+  "declutter_buyer_fee_cents_seller_delivery(integer,integer)"];
 const internalFns = ["declutter_delivery_slot_starts(uuid,timestamptz,timestamptz)", "declutter_delivery_slot_used(uuid,timestamptz,uuid)",
   "declutter_delivery_open_slots(uuid,uuid)", "declutter_seller_delivery_check(uuid,uuid,uuid[])", "declutter_delivery_when(timestamptz)",
-  "declutter_seller_delivery_on_order()", "declutter_seller_delivery_seed()"];
+  "declutter_seller_delivery_on_order()", "declutter_seller_delivery_seed()",
+  // Restated: still service only (CREATE OR REPLACE keeps the ACL; the migration restates the REVOKE too).
+  "declutter_complete_handover(uuid,text)", "declutter_handover_sweep()", "declutter_delivery_refund(uuid,text)",
+  "declutter_address_access(uuid,uuid)", "declutter_bookings_not_delivery()", "declutter_orders_fee_rule_f1()"];
 let grantsOk = true;
 for (const [fns, member] of [[memberFns, true], [internalFns, false]]) {
   for (const fn of fns) {

@@ -87,7 +87,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(MIG)).toContain("order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,");
     expect(flat(MIG)).toContain("CONSTRAINT declutter_payouts_amount CHECK (amount_cents = items_cents - debt_cents AND amount_cents >= 0)");
     const done = flat(body("declutter_complete_handover"));
-    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents);");
+    // Seller delivery (20261021181258): the cap is items + the seller's rate (0 on every other handover).
+    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents + v_rate);");
     expect(done).toContain("ON CONFLICT (order_id) DO NOTHING");
   });
 
@@ -139,9 +140,11 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
 
   it("owner 2026-10-18: porch auto-pay needs the set-out photo; door pickups end by the seller's \"Picked up\"; no NEW 'code' anywhere; Helpr delivery has no code", () => {
     const sw = flat(body("declutter_handover_sweep"));
-    expect(DEFS.get("declutter_handover_sweep")?.file).toBe(NO_QR_FILE);
-    // both the query and the re-check under the lock
-    expect(sw.split("h.set_out_photo_path IS NOT NULL").length - 1).toBe(2);
+    // Restated by seller delivery (20261021181258) with the porch rule unchanged.
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261021181258_declutter_seller_delivery.sql");
+    // porch: both the query and the re-check under the lock
+    expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
+    expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
     const sp = flat(body("declutter_seller_picked_up"));
     expect(sp).toContain("IF v_side <> 'seller' THEN RAISE EXCEPTION 'wrong_side'");
     expect(sp).toContain("IF o.handover <> 'pickup_home' THEN RAISE EXCEPTION 'not_a_door_pickup'");

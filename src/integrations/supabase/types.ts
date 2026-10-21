@@ -12030,6 +12030,7 @@ export type Database = {
       declutter_delivery_compute: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
       declutter_delivery_on_task_event: { Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }; Returns: Json }
       declutter_delivery_open_slots: { Args: { p_except_order: string; p_seller: string }; Returns: string[] }
+      declutter_delivery_open_times: { Args: { p_order_id: string }; Returns: Json }
       declutter_delivery_price_cents: { Args: { p_miles: number; p_sizes: string[] }; Returns: number }
       declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
       declutter_delivery_refund: { Args: { p_order_id: string; p_reason: string }; Returns: string }

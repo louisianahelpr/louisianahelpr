@@ -400,6 +400,12 @@ async function sellerDeliveryQuote(body: Record<string, unknown>, user: { id: st
   // New work for the seller: the switch, from the verified user, never the body.
   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);
   if (off) return off;
+  const declutterOff = await requireFeature(admin, "declutter", user, corsHeaders);
+  if (declutterOff) return declutterOff;
+  // lh-authz-rls review #3: the buyer's own cart with this seller first (the offer RPC's
+  // cart and seller checks), so no address is geocoded or stored against an arbitrary id.
+  const { error: cartErr } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (cartErr) return rpcRefusal(cartErr);
   if (body.address !== undefined && body.address !== null && body.address !== "") {
     const address = plausibleAddress(body.address);
     if (!address) return json({ error: "invalid_address" }, 400);
@@ -418,7 +424,8 @@ async function sellerDeliveryQuote(body: Record<string, unknown>, user: { id: st
     const { error: setErr } = await admin.rpc("declutter_set_delivery_dropoff", {
       p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
     });
-    if (setErr) return rpcRefusal(setErr);
+    // A seller id that is no member (foreign key) answers like any unknown seller.
+    if (setErr) return setErr.code === "23503" ? json({ error: "item_not_found" }, 404) : rpcRefusal(setErr);
   }
   const { data: offer, error: offerErr } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
   if (offerErr) return rpcRefusal(offerErr);

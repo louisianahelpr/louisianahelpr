@@ -28,7 +28,8 @@
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
- * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status IN ('paid', 'handed_over') THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
+ * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
+ * @mutate supabase/migrations/20261021183906_export_my_data_seller_delivery.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |                            AND o.handover <> 'seller_delivery') THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
  * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |   RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); |   RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', NULL, NULL, NULL);
@@ -37,14 +38,18 @@
  * @mutate src/lib/declutter/sellerDelivery.ts |   slot_minutes: 60, |   slot_minutes: 30,
  * @mutate src/lib/declutter/sellerDelivery.ts |   const premiumCents = Math.round((Math.max(0, itemsCents) + Math.max(0, rateCents)) * 0.05) + 70; |   const premiumCents = Math.round(Math.max(0, itemsCents) * 0.05) + 70;
  * @mutate supabase/functions/declutter-checkout/index.ts |   const carriesDelivery = handover === "delivery" \|\| handover === "seller_delivery"; |   const carriesDelivery = handover === "delivery";
- * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);\n  if (off) return off;\n  if (body.address | if (body.address
+ * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);\n  if (off) return off;\n  const declutterOff | const declutterOff
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |     buyerCancel: open && b.side === "buyer" && !marked && (cancelBy === null \|\| now <= cancelBy), |     buyerCancel: open && b.side === "buyer",
+ * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     case "out_of_range": return typed ? "out_of_range" : "hidden"; |     case "out_of_range": return "out_of_range";
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { SELLER_DELIVERY_RULES, sellerDeliveryAmounts } from "@/lib/declutter/sellerDelivery";
+import { SELLER_DELIVERY_RULES, groupSlotsByDay, sellerDeliveryAmounts, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
+import { sellerDeliveryActions } from "@/components/declutter/SellerDeliveryOrder";
+import { sellerDeliveryState } from "@/components/declutter/SellerDeliveryChoice";
 
 const ROOT = process.cwd();
 const MIG_DIR = join(ROOT, "supabase/migrations");
@@ -139,9 +144,13 @@ describe("Declutter seller delivery (20261021181258)", () => {
     expect(acc.indexOf("FROM public.declutter_seller_delivery s WHERE s.seller_id = o.seller_id FOR UPDATE")).toBeGreaterThan(0);
   });
 
-  it("the buyer's address reaches the seller only after payment; the seller's address is not given to the buyer", () => {
+  it("the buyer's address reaches the seller only while paid; the seller's address is not given to the buyer", () => {
     expect(flat(body("declutter_seller_delivery_booking"))).toContain(
-      "'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status IN ('paid', 'handed_over') THEN d.dropoff_address END,");
+      "'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END,");
+    // Download My Data: a seller's copy drops the buyer's address and point, and has no unpaid checkout.
+    const exp = flat(body("export_my_data"));
+    expect(exp).toContain("ELSE to_jsonb(t) - 'dropoff_address' - 'dropoff_lat' - 'dropoff_lng' END)");
+    expect(exp).toContain("WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)");
     expect(flat(body("declutter_address_access"))).toContain("AND o.handover <> 'seller_delivery') THEN 'paid_buyer'");
   });
 
@@ -163,5 +172,49 @@ describe("Declutter seller delivery (20261021181258)", () => {
     expect(flat(body("declutter_start_checkout"))).toMatch(
       /IF p_handover = 'seller_delivery' THEN PERFORM public\.require_feature\('declutter'\); PERFORM public\.require_feature\('declutter_seller_delivery'\);/);
     expect(EDGE).toMatch(/requireFeature\(admin, "declutter_seller_delivery", user, corsHeaders\);\s*if \(off\) return off;/);
+  });
+});
+
+describe("Declutter seller delivery screens follow the server's rules", () => {
+  const base: SellerDeliveryBooking = {
+    order_id: "o", side: "buyer", order_status: "paid", status: "booked", slot_start: "2026-11-01T19:00:00.000Z",
+    slot_end: "2026-11-01T20:00:00.000Z", delivery_cents: 2000, dropoff_area: "Mid-City", handoff: "leave",
+    dropoff_address: null, proposed_start: null, proposed_by: null, proposals_left: 3, delivered_at: null,
+    delivered_photo_path: null, confirmed_at: null, not_delivered_from: "2026-11-01T20:15:00.000Z",
+  };
+  const at = (iso: string) => Date.parse(iso);
+
+  it("the buyer cancels until 24 h before the slot, never after the seller's mark", () => {
+    expect(sellerDeliveryActions(base, at("2026-10-31T18:00:00Z")).buyerCancel).toBe(true);
+    expect(sellerDeliveryActions(base, at("2026-10-31T20:00:00Z")).buyerCancel).toBe(false);
+    expect(sellerDeliveryActions({ ...base, delivered_at: "2026-11-01T19:10:00Z" }, at("2026-10-30T00:00:00Z")).buyerCancel).toBe(false);
+    expect(sellerDeliveryActions({ ...base, status: "needs_time", slot_start: null, slot_end: null }, at("2026-11-02T00:00:00Z")).buyerCancel).toBe(true);
+  });
+
+  it("'It wasn't delivered' from 15 minutes after the hour ends; the seller's mark from the slot start", () => {
+    expect(sellerDeliveryActions(base, at("2026-11-01T20:10:00Z")).notDelivered).toBe(false);
+    expect(sellerDeliveryActions(base, at("2026-11-01T20:16:00Z")).notDelivered).toBe(true);
+    const seller = { ...base, side: "seller" as const };
+    expect(sellerDeliveryActions(seller, at("2026-11-01T18:59:00Z")).markDelivered).toBe(false);
+    expect(sellerDeliveryActions(seller, at("2026-11-01T19:01:00Z")).markDelivered).toBe(true);
+    expect(sellerDeliveryActions({ ...seller, status: "needs_time" }).sellerCancel).toBe(false);
+  });
+
+  it("checkout shows the choice only when the server says so", () => {
+    const offer = { available: false, reason: null, rate_cents: 2000, radius_miles: 10, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null };
+    expect(sellerDeliveryState(undefined, false)).toBe("hidden");
+    expect(sellerDeliveryState({ ...offer, reason: "seller_not_delivering" }, true)).toBe("hidden");
+    expect(sellerDeliveryState({ ...offer, reason: "out_of_range" }, false)).toBe("hidden");
+    expect(sellerDeliveryState({ ...offer, reason: "out_of_range" }, true)).toBe("out_of_range");
+    expect(sellerDeliveryState({ ...offer, reason: "no_times" }, false)).toBe("no_times");
+    expect(sellerDeliveryState({ ...offer, reason: "address_needed" }, false)).toBe("address");
+    expect(sellerDeliveryState({ ...offer, available: true }, false)).toBe("pick");
+  });
+
+  it("times are grouped by the Louisiana day", () => {
+    // 10:30 PM Oct 31 in Louisiana (CDT, UTC-5) is 03:30Z Nov 1: the same Louisiana day as 9 PM Oct 31.
+    const g = groupSlotsByDay(["2026-11-01T03:30:00.000Z", "2026-11-01T02:00:00.000Z", "2026-11-01T15:00:00.000Z"]);
+    expect(g.map((d) => d.slots.length)).toEqual([2, 1]);
+    expect(g[0].day).toBe("2026-10-31");
   });
 });

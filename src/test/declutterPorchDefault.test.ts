@@ -83,6 +83,7 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
 
   it("the cart reports porch per line, and the app offers porch first only when every line allows it", () => {
     expect(flat(body("declutter_my_cart"))).toContain("i.porch_ok");
-    expect(CART_UI).toContain('const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"];');
+    // Seller delivery (20261021181258) keeps porch first and adds its choice after pickup at the home.
+    expect(CART_UI).toContain('const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home",');
   });
 });

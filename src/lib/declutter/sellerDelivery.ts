@@ -185,7 +185,7 @@ export async function saveDeliverySchedule(windows: DeliveryWindow[], daysOff: s
 
 export async function setItemSellerDelivery(itemId: string, on: boolean): Promise<boolean> {
   return data(await supabase.rpc("declutter_set_item_seller_delivery", { p_item_id: itemId, p_on: on }),
-    (e) => rpcErrorMessage("declutter_set_item_seller_delivery", e));
+    (e) => rpcErrorMessage("declutter_set_item_seller_delivery", e)) === true;
 }
 
 export async function fetchSellerDeliveryBooking(orderId: string): Promise<SellerDeliveryBooking> {
@@ -230,6 +230,12 @@ export async function answerDeliveryTime(orderId: string, accept: boolean): Prom
   const out = data(await supabase.rpc("declutter_answer_delivery_time", { p_order_id: orderId, p_accept: accept }),
     (e) => rpcErrorMessage("declutter_answer_delivery_time", e)) as unknown as { result: "moved" | "kept" | "slot_taken" };
   return out.result;
+}
+
+/** The open times a paid seller delivery can move to (either side; the same list checkout offers). */
+export async function fetchDeliveryOpenTimes(orderId: string): Promise<{ slots: string[]; slot_minutes: number }> {
+  return data(await supabase.rpc("declutter_delivery_open_times", { p_order_id: orderId }),
+    (e) => rpcErrorMessage("declutter_delivery_open_times", e)) as unknown as { slots: string[]; slot_minutes: number };
 }
 
 /** The open times of a SELLER for the order being moved (the same list checkout offers). */

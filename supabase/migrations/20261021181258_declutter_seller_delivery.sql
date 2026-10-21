@@ -1120,7 +1120,8 @@ GRANT EXECUTE ON FUNCTION public.declutter_address_access(uuid, uuid) TO service
 --     off never strands one.
 
 -- Either side's view of the delivery. The buyer's address reaches the seller
--- only once the order is paid (and not after a refund).
+-- only while the order is paid: not before, not after a refund, and not after
+-- the handover (lh-authz-rls review #2: the address is never the seller's to keep).
 CREATE OR REPLACE FUNCTION public.declutter_seller_delivery_booking(p_order_id uuid)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1151,7 +1152,7 @@ BEGIN
     'order_id', o.id, 'side', v_side, 'order_status', o.status, 'status', d.status,
     'slot_start', d.slot_start, 'slot_end', d.slot_end, 'delivery_cents', o.delivery_cents,
     'dropoff_area', d.dropoff_area, 'handoff', d.handoff,
-    'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status IN ('paid', 'handed_over') THEN d.dropoff_address END,
+    'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END,
     'proposed_start', d.proposed_start, 'proposed_by', d.proposed_by,
     'proposals_left', (v_rules ->> 'proposals_per_side')::integer
                       - CASE WHEN v_side = 'buyer' THEN d.buyer_proposals ELSE d.seller_proposals END,
@@ -1162,6 +1163,38 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_seller_delivery_booking(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_seller_delivery_booking(uuid) TO authenticated, service_role;
+
+-- The open times a paid seller delivery can move to (the same list checkout
+-- offers: the seller's schedule, 24 h ahead to 14 days out, under the per-slot
+-- limit, this order's own slot not counted), for either side of the order.
+CREATE OR REPLACE FUNCTION public.declutter_delivery_open_times(p_order_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  o public.declutter_orders;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+  IF public.declutter_order_side(o.buyer_id, o.seller_id, v_uid) IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF o.status <> 'paid' OR o.handover <> 'seller_delivery' THEN
+    RAISE EXCEPTION 'not_a_seller_delivery' USING ERRCODE = '55000';
+  END IF;
+  RETURN jsonb_build_object(
+    'slot_minutes', (public.declutter_seller_delivery_rules() ->> 'slot_minutes')::integer,
+    'slots', to_jsonb(ARRAY(SELECT s FROM public.declutter_delivery_open_slots(o.seller_id, o.id) s)));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_delivery_open_times(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_delivery_open_times(uuid) TO authenticated, service_role;
 
 -- The seller's "Delivered" (left at the door: a photo is required) or
 -- "Handed over" (handed to the buyer: a photo is optional), from the booked
@@ -1231,8 +1264,8 @@ BEGIN
          updated_at = now()
    WHERE order_id = o.id;
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your items were delivered',
-    CASE WHEN d.handoff = 'hand' THEN 'The seller says they handed you your items. Tap "I got it", or report a problem.'
-         ELSE 'The seller left your items at your door and took a photo. Tap "I got it" when you have them, or report a problem.' END,
+    CASE WHEN d.handoff = 'hand' THEN 'The seller says they handed you your items. Tap "I got it". If something is wrong, report a problem within 24 hours; after that the seller is paid.'
+         ELSE 'The seller left your items at your door and took a photo. Tap "I got it" when you have them. If something is wrong, report a problem within 24 hours; after that the seller is paid.' END,
     '/declutter?view=cart', o.seller_id);
   RETURN jsonb_build_object('result', 'delivered');
 END;
@@ -1563,6 +1596,9 @@ BEGIN
     RAISE EXCEPTION 'no_proposal' USING ERRCODE = '55000';
   END IF;
   v_other := CASE WHEN v_side = 'buyer' THEN o.seller_id ELSE o.buyer_id END;
+  IF p_accept AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
+    RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000';
+  END IF;
   IF p_accept AND d.proposed_by = v_side THEN
     RAISE EXCEPTION 'wrong_side' USING ERRCODE = '42501', HINT = 'The other side accepts the time you asked for.';
   END IF;

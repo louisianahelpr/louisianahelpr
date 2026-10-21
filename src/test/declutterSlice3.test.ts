@@ -59,7 +59,10 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     // that one handover only; pickup and porch still finish with the switch off.
     const DELIVERY_ONLY = /IF p_handover = 'delivery' THEN\s+PERFORM public\.require_feature\('declutter'\);\s+END IF;/;
     expect(body("declutter_start_checkout")).toMatch(DELIVERY_ONLY);
-    for (const fn of FINISHING) expect(body(fn).replace(DELIVERY_ONLY, ""), fn).not.toMatch(/require_feature/);
+    // Seller delivery (20261021181258) is new work for the seller: both switches, for that handover only.
+    const SELLER_DELIVERY_ONLY = /IF p_handover = 'seller_delivery' THEN\s+PERFORM public\.require_feature\('declutter'\);\s+PERFORM public\.require_feature\('declutter_seller_delivery'\);/;
+    expect(body("declutter_start_checkout")).toMatch(SELLER_DELIVERY_ONLY);
+    for (const fn of FINISHING) expect(body(fn).replace(DELIVERY_ONLY, "").replace(SELLER_DELIVERY_ONLY, ""), fn).not.toMatch(/require_feature/);
     for (const fn of CLIENT_WRITES) expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
     for (const fn of ["declutter_make_offer", "declutter_respond_offer", "declutter_buy_now", "declutter_start_checkout"]) {
       expect(body(fn), fn).toContain("public.declutter_assert_member(true)");
@@ -91,7 +94,8 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     expect(f1).toContain("(fee_rule = 'f1' AND premium_cents = round(items_cents * 0.05)::integer + 70)");
     expect(f1).toContain("NEW.fee_rule := 'f1';");
     expect(flat(body("declutter_buyer_fee_cents"))).toContain("round(greatest(COALESCE(p_items_cents, 0), 0) * 0.05)::integer + 70");
-    expect(flat(body("declutter_start_checkout"))).toContain("v_premium := public.declutter_buyer_fee_cents(v_items);");
+    // Seller delivery's fee counts the rate (20261021181258); every other handover keeps F1 on the items.
+    expect(flat(body("declutter_start_checkout"))).toContain("ELSE public.declutter_buyer_fee_cents(v_items) END;");
     expect(flat(body("declutter_start_checkout"))).toContain("RAISE EXCEPTION 'seller_tax_not_ready'");
   });
 

@@ -92,6 +92,11 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
   },
+  declutter_delivery_open_times: {
+    item_not_found: DC.item_not_found,
+    not_a_seller_delivery: S.not_a_seller_delivery,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_seller_delivered: {
     account_restricted: DC.account_restricted,
     before_delivery_time: S.before_delivery_time,
@@ -180,6 +185,7 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
     no_proposal: S.no_proposal,
     not_a_seller_delivery: S.not_a_seller_delivery,
     not_authenticated: DC.not_authenticated,
+    problem_open: DC.problem_open,
     wrong_side: D.wrong_side_accept,
   },
 } satisfies Record<string, Record<string, string>>;

@@ -23,7 +23,7 @@ export interface ShareableListing {
   status: string;
 }
 
-export const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`;
+const listingLink = (id: string) => `${getPublicOrigin()}/declutter/item/${id}`;
 
 /** Copy the public link; if the clipboard refuses, the shared share path surfaces it instead. */
 export async function copyListingLink(it: ShareableListing): Promise<void> {

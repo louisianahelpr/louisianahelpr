@@ -117,8 +117,12 @@ describe("every pop-up title is sentence case", () => {
     // title raises it, a deleted one lowers it, in the same commit. 169 on the
     // combined tree: +7 titles from the trains merged after builder1g's base
     // (measured by this test on the rebased TRAIN34). 170 with board 91's
-    // saved-search sheets (builder1h, measured on its rebased tree).
-    expect(all.length).toBe(170);
+    // saved-search sheets (builder1h, measured on its rebased tree). 174 with
+    // Builder 5's boards 156/120/142 (2026-10-21): the dispute timeline's one
+    // "Timeline" title became four states (Under review, Decision, Withdrawn,
+    // Dispute on a failed load), and the delete dialog's and SOS sheet's titles
+    // changed in place.
+    expect(all.length).toBe(174);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

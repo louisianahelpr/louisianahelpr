@@ -4,12 +4,13 @@
  *
  * A helper may browse and APPLY freely, and a poster may OFFER them a job
  * whatever their Stripe state. The Helpr's ACCEPT completes only once their
- * payout setup and Stripe ID are both done (owner, 2026-10-02/03, docs/OPEN.md
- * Q1180): tapping Accept before that records the accept as pending and opens
- * the thank-you dialog listing only what is missing; the accept completes by
- * itself when Stripe reports both done, and only then is the poster told.
- * Identity gates nothing else (posting and the poster's Hire stay ungated,
- * migration 20261001222911).
+ * payout setup and Stripe Identity are both done (owner, 2026-10-02/03, Q1180;
+ * Identity = photo ID + selfie only since 2026-10-21): tapping Accept before
+ * that records the accept as pending and opens the thank-you dialog listing
+ * only what is missing; the accept completes by itself when both are done, and
+ * only then is the poster told. Stripe Identity also gates a member's job post
+ * and a Helpr's On the way (migration 20261021081258); the poster's Hire,
+ * confirm and release are never gated on it.
  *
  * THE ENFORCEMENT IS NOT HERE. It is `accept_job_offer`, `jobs_award_gate` and
  * `helper_accept_block_reason` (migration 20261003193541). This module exists
@@ -33,21 +34,19 @@ export type AcceptMissing = "payout_setup" | "stripe_id";
 /**
  * The client's copy of `helper_accept_missing` (20261003193541), branch for
  * branch, from the caller's own profile row: the seed carve-out, the payout
- * check, then Stripe ID ({@link isIdentityVerified}).
+ * check, then Stripe Identity ({@link hasIdBadge}: the server's
+ * identity_is_verified is idv_status = 'verified' only since 20261021081258).
  */
 export function acceptMissingFromProfile(profile: {
   is_seed?: boolean | null;
   stripe_account_id?: string | null;
   stripe_payouts_enabled?: boolean | null;
-  stripe_identity_verified?: boolean | null;
   idv_status?: string | null;
 }): AcceptMissing[] {
   if (profile.is_seed === true && profile.stripe_account_id == null) return [];
   const missing: AcceptMissing[] = [];
   if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) missing.push("payout_setup");
-  if (!isIdentityVerified({ connectIdentityVerified: profile.stripe_identity_verified, idvStatus: profile.idv_status })) {
-    missing.push("stripe_id");
-  }
+  if (!hasIdBadge(profile.idv_status)) missing.push("stripe_id");
   return missing;
 }
 
@@ -95,46 +94,13 @@ export interface AwardGateStatus {
 }
 
 /**
- * The identity verdict the hiring GATE reads (fetchAwardBlockReason below).
- * Never a badge: the "ID verified" badge is {@link hasIdBadge}, Stripe Identity
- * only (owner, 2026-10-21).
- *
- * TWO checks answer "do we know who this is", and either one counts:
- *
- *   • `stripe_identity_verified` — the Stripe CONNECT verdict, true only when
- *     no identity requirement is outstanding on the payout account. Nothing in
- *     this app can put that flow in front of a person on its own; it clears as
- *     a side effect of payout onboarding.
- *   • `idv_status = 'verified'`  — Stripe IDENTITY, the document + selfie check
- *     `stripe-idv-start` launches (no screen has opened that flow since
- *     2026-10-01; existing verdicts still draw the badge).
- *
- * Reading only the Connect flag — which is what this module did until now — is
- * a FALSE BLOCK, not a conservative one. Measured against prod 2026-09-06: one
- * live non-seed profile has `idv_status = 'verified'`, `stripe_identity_verified
- * = false`, payouts enabled, and `helper_award_block_reason() = NULL`. The
- * server would hand that person the job; the client stopped them at
- * "Stripe Is Still Verifying You" with a CTA that had nothing left to collect.
- *
- * Fails CLOSED on absence: an unknown `idvStatus` contributes nothing.
- */
-export function isIdentityVerified(source: {
-  /** `identity_verified` from `stripe-connect { action: "status" }`, or the
-      cached `profiles.stripe_identity_verified`. */
-  connectIdentityVerified?: boolean | null;
-  /** `profiles.idv_status`. */
-  idvStatus?: string | null;
-}): boolean {
-  return source.connectIdentityVerified === true || source.idvStatus === "verified";
-}
-
-/**
- * The "ID verified" BADGE (owner, 2026-10-21): Stripe Identity's photo ID +
- * selfie verdict, `profiles.idv_status = 'verified'`, and nothing else. Payout
- * setup (Stripe Connect, `stripe_identity_verified` / `stripe_payouts_enabled`)
- * is a separate fact with its own "Payouts set up" badge and never draws this
- * one. The server says the same (get_safe_profiles.is_id_verified,
- * migration 20261021074131). An admin-approved ID writes the same value (Q2201).
+ * "ID verified", THE one rule for badges AND gates (owner, 2026-10-21): Stripe
+ * Identity's photo ID + selfie verdict, `profiles.idv_status = 'verified'`, and
+ * nothing else. Payout setup (Stripe Connect, `stripe_identity_verified` /
+ * `stripe_payouts_enabled`) is a separate fact with its own "Payouts set up"
+ * badge and never counts as an ID check. The server says the same
+ * (get_safe_profiles.is_id_verified, 20261021074131; identity_is_verified,
+ * 20261021081258). An admin-approved ID writes the same value (Q2201).
  */
 export function hasIdBadge(idvStatus: string | null | undefined): boolean {
   return idvStatus === "verified";
@@ -186,13 +152,12 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
       };
     case "helper_identity_unverified":
       return {
-        title: "Finish Your Stripe ID Check",
+        title: "Verify your ID with Stripe",
         body:
-          "Stripe still needs to confirm your ID, and the job is fully yours once it does. It's part of the same Stripe setup, and you only do it once.",
-        ctaLabel: "Finish Stripe Setup",
-        // eventually_due: the ID gate reads every bucket (stripeIdentityVerified),
-        // so a currently_due link has nothing to ask and sends them straight
-        // back still blocked (seen live 2026-10-05: ssn_last_4 eventually_due).
+          "Stripe checks a photo ID and a selfie before your first job is booked. It takes about 2 minutes, once, and the job is fully yours as soon as it's done.",
+        ctaLabel: "Verify my ID",
+        // Not a Connect link: the CTA opens the Stripe Identity sheet
+        // (AwardGateDialog). `collect` only matters for the payout step.
         collect: "eventually_due",
       };
     case "helper_unknown":
@@ -254,11 +219,11 @@ export function helperApplyBlockNotice(
       };
     case "helper_identity_unverified":
       return {
-        headline: "You can apply and accept offers. Stripe still needs your ID.",
+        headline: "You can apply and accept offers. Verify your ID before your first job.",
         body:
-          "If you accept an offer first, the job becomes yours as soon as Stripe confirms your ID. Finish what Stripe is asking for and this clears on its own.",
-        ctaLabel: "Finish Stripe Setup",
-        href: "/profile?tab=payment",
+          "Stripe checks a photo ID and a selfie. If you accept an offer first, the job becomes yours as soon as it's done. It takes about 2 minutes, once.",
+        ctaLabel: "Verify my ID",
+        href: "/home?verify_id=1",
       };
   }
 }
@@ -272,7 +237,7 @@ export function helperApplyBlockNotice(
 export function acceptPendingCopy(missing: readonly AcceptMissing[]): AwardBlockCopy {
   const steps = [
     missing.includes("payout_setup") ? "set up payouts" : null,
-    missing.includes("stripe_id") ? "finish your Stripe ID check" : null,
+    missing.includes("stripe_id") ? "verify your ID with Stripe (a photo ID and a selfie)" : null,
   ].filter(Boolean) as string[];
   const todo = steps.length === 2 ? `${steps[0]} and ${steps[1]}` : steps[0] ?? "finish your Stripe setup";
   // NOT ACCEPTED YET, said in the first words (owner, 2026-10-07, Q1399): the
@@ -281,9 +246,8 @@ export function acceptPendingCopy(missing: readonly AcceptMissing[]): AwardBlock
   return {
     title: "Thanks for Accepting!",
     body: `You're not booked yet. To fully accept, ${todo}. As soon as ${steps.length === 2 ? "both are" : "that's"} done, your accept goes through and we let the person who posted the job know.`,
-    ctaLabel: "Finish Stripe Setup",
-    // The ID step is only clearable by collecting eventually_due (see the
-    // identity case in awardBlockCopy).
+    // The payout step first when both are missing; the ID row has its own button.
+    ctaLabel: missing.includes("payout_setup") ? "Set up payouts" : "Verify my ID",
     collect: "eventually_due",
   };
 }
@@ -334,7 +298,7 @@ export function posterAwardBlockMessage(reason: AwardBlockReason, helperName?: s
     case "helper_payout_setup_incomplete":
       return `${who} hasn't finished setting up payouts yet, so they can't be hired. They'll show as ready once they do.`;
     case "helper_identity_unverified":
-      return `Stripe hasn't finished checking ${who}'s ID yet, so they can't be hired yet.`;
+      return `${who} hasn't verified their ID with Stripe yet, so they can't be booked yet.`;
     case "helper_unknown":
       return `We couldn't check ${who}'s verification status — give it a moment and try again.`;
   }

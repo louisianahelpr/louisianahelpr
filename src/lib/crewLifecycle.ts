@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import type { AcceptMissing } from "@/lib/awardGate";
@@ -173,7 +174,10 @@ export async function crewMemberOnTheWay(
     p_lat: loc?.lat ?? undefined,
     p_lng: loc?.lng ?? undefined,
   });
-  if (error) throw new CrewActionError(rpcErrorMessage("rpc_group_member_on_the_way", error), error, error.message);
+  if (error) {
+    if (identityRefusal(error)) openIdentityCheck("start");
+    throw new CrewActionError(rpcErrorMessage("rpc_group_member_on_the_way", error), error, error.message);
+  }
   return stampOrThrow(data, "helper_on_the_way_at", "rpc_group_member_on_the_way");
 }
 
@@ -186,7 +190,10 @@ export async function crewMemberMarkArrival(
     p_lat: loc?.lat ?? undefined,
     p_lng: loc?.lng ?? undefined,
   });
-  if (error) throw new CrewActionError(rpcErrorMessage("rpc_group_member_mark_arrival", error), error, error.message);
+  if (error) {
+    if (identityRefusal(error)) openIdentityCheck("start");
+    throw new CrewActionError(rpcErrorMessage("rpc_group_member_mark_arrival", error), error, error.message);
+  }
   // Same jsonb verdict shape as the single-Helpr mark_helper_arrival.
   const verdict = arrivalVerdictFromRpc(data);
   if (!verdict || !verdict.arrivalRecorded) {

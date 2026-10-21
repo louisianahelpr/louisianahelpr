@@ -231,7 +231,7 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
   });
 
   it("the copy names only the missing steps", () => {
-    expect(acceptPendingCopy(["payout_setup", "stripe_id"]).body).toMatch(/set up payouts and finish your Stripe ID check/);
+    expect(acceptPendingCopy(["payout_setup", "stripe_id"]).body).toMatch(/set up payouts and verify your ID with Stripe \(a photo ID and a selfie\)/);
     expect(acceptPendingCopy(["stripe_id"]).body).not.toMatch(/payouts/);
     expect(acceptPendingCopy(["payout_setup"]).body).not.toMatch(/Stripe ID/);
     expect(acceptPendingCopy(["stripe_id"]).title).toBe("Thanks for Accepting!");
@@ -240,7 +240,9 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
   it("the client's mirror of helper_accept_missing matches it branch for branch", () => {
     expect(acceptMissingFromProfile({ stripe_account_id: null })).toEqual(["payout_setup", "stripe_id"]);
     expect(acceptMissingFromProfile({ stripe_account_id: "acct", stripe_payouts_enabled: true })).toEqual(["stripe_id"]);
-    expect(acceptMissingFromProfile({ stripe_account_id: "acct", stripe_payouts_enabled: true, stripe_identity_verified: true })).toEqual([]);
+    // Payout setup's Connect flag is not an ID check (owner 2026-10-21): only Stripe Identity clears stripe_id.
+    const connectOnly = { stripe_account_id: "acct", stripe_payouts_enabled: true, stripe_identity_verified: true };
+    expect(acceptMissingFromProfile(connectOnly)).toEqual(["stripe_id"]);
     expect(acceptMissingFromProfile({ stripe_account_id: "acct", stripe_payouts_enabled: true, idv_status: "verified" })).toEqual([]);
     expect(acceptMissingFromProfile({ is_seed: true, stripe_account_id: null })).toEqual([]);
   });
@@ -259,7 +261,7 @@ describe("the app: the thank-you pop-up asks only for what is missing (Q1180)", 
     // codes are not the RPC's own: the call site adds the award sentence.
     const series = blankComments(readFileSync(join(REPO, "src/lib/seriesDates.ts"), "utf8"));
     expect(series).toContain('rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error)');
-    expect(awardBlockMessage(new Error("helper_identity_unverified"))).toMatch(/Stripe still needs to confirm your ID/);
+    expect(awardBlockMessage(new Error("helper_identity_unverified"))).toMatch(/Stripe checks a photo ID and a selfie/);
     expect(awardBlockMessage(new Error("helper_payout_setup_incomplete"))).toMatch(/payout account/);
     expect(awardBlockMessage(new Error("offer_not_active"))).toBeNull();
   });

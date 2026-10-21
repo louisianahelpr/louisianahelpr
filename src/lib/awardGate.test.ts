@@ -14,12 +14,12 @@
 //
 // The server's rule since migration 20260907013734 was EITHER verdict. Since
 // 2026-10-01 identity gates nothing at all (migration
-// 20261001222911_remove_idv_requirement); isIdentityVerified survives only to
-// draw the verified badge, and these tests pin that display predicate plus the
-// payout-only award gate.
+// 20261001222911_remove_idv_requirement). Since 2026-10-21 the ONE ID rule is
+// Stripe Identity only (hasIdBadge; payout setup is not an ID check), and these
+// tests pin it plus the payout-only award gate.
 import { describe, it, expect } from "vitest";
 import {
-  isIdentityVerified,
+  hasIdBadge,
   awardBlockReasonFromStatus,
   awardBlockFromError,
   type AwardGateStatus,
@@ -31,28 +31,21 @@ const PAYOUT_READY: AwardGateStatus = {
   payouts_enabled: true,
 };
 
-describe("isIdentityVerified accepts either verdict, like the server", () => {
-  it("accepts the Stripe Connect verdict alone", () => {
-    expect(isIdentityVerified({ connectIdentityVerified: true, idvStatus: null })).toBe(true);
-  });
-
-  it("accepts the Stripe Identity verdict alone — the live case that was refused", () => {
-    expect(
-      isIdentityVerified({ connectIdentityVerified: false, idvStatus: "verified" }),
-    ).toBe(true);
+describe("hasIdBadge: the one ID rule is Stripe Identity only (owner 2026-10-21)", () => {
+  it("accepts the Stripe Identity verdict", () => {
+    expect(hasIdBadge("verified")).toBe(true);
   });
 
   it.each(["pending", "processing", "manual_review", "failed", "skipped", "not_started"])(
     "does NOT accept idv_status %s",
     (status) => {
-      expect(isIdentityVerified({ connectIdentityVerified: false, idvStatus: status })).toBe(false);
+      expect(hasIdBadge(status)).toBe(false);
     },
   );
 
-  it("fails closed when neither verdict is readable", () => {
-    // Absent is not permission. Both fields undefined must never come back true.
-    expect(isIdentityVerified({})).toBe(false);
-    expect(isIdentityVerified({ connectIdentityVerified: null, idvStatus: null })).toBe(false);
+  it("fails closed when the verdict is unreadable", () => {
+    expect(hasIdBadge(null)).toBe(false);
+    expect(hasIdBadge(undefined)).toBe(false);
   });
 });
 

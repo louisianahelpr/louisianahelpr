@@ -16,7 +16,7 @@ import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { hasIdBadge } from "@/lib/awardGate";
+import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 
 /** Both sides of each section, the spec v2 §11 wording. */
@@ -203,9 +203,10 @@ export function SettingsTab({
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
-        {hasIdBadge(profile?.idv_status) && (
-          // Status only: ID checks start nowhere any more (owner 2026-10-01), so the row opens nothing.
-          <Row testId="id" label="ID" sub="Verified" />
+        {/* Stripe Identity (owner 2026-10-21): the row says where the check
+            stands and opens the one ID sheet. A test account has no check. */}
+        {profile && profile.is_seed !== true && (
+          <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheck("general")} />
         )}
         {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
         <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
@@ -228,3 +229,13 @@ export function SettingsTab({
     </ProfileTabBody>
   );
 }
+
+/** The ID row's status line, from the same states as the ID sheet. */
+const ID_ROW_SUB: Record<IdentityView, string> = {
+  start: "Not verified yet",
+  continue: "Not finished",
+  checking: "Stripe is checking",
+  with_team: "With our team",
+  failed: "Couldn't verify",
+  verified: "Verified",
+};

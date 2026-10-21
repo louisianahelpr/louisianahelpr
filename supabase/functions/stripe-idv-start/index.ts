@@ -46,12 +46,20 @@ serve(async (req) => {
     // Read once: native callers get a return URL the app can intercept.
     const body = await req.json().catch(() => ({}));
     const isNative = isNativeRequest(body);
-    // Only PostJob's IDVPromptDialog sends "job_post". The Profile row
-    // (VerificationStatusRow) mounts the same dialog but deliberately sends no
-    // context, so it keeps the fee gate — see
-    // 20260829090211_idv_job_post_skips_fee_gate.sql for why that context is
-    // allowed to skip the pre-paid-fee requirement.
-    const skipFeeGate = (body as { context?: string })?.context === "job_post";
+    // NO FEE GATE (owner, 2026-10-21): Stripe Identity is required before a
+    // member's first accepted or posted job, and Helpr absorbs its cost. The
+    // poster's $2 first-job setup fee is unchanged and is charged where it always
+    // was, at the first job's checkout; this function never charged it and never
+    // marks it paid, so skipping the old "settle the fee first" check can neither
+    // drop nor double it (idvStartNeverTouchesTheSetupFee.test.ts).
+    const skipFeeGate = true;
+    // Where Stripe sends the member back: an in-app path only (a leading "/",
+    // never "//" or a scheme), else Home. Home opens the ID sheet on idv=complete.
+    const rawReturn = (body as { return_path?: unknown })?.return_path;
+    const returnPath = typeof rawReturn === "string" && /^\/(?![\/\\])[A-Za-z0-9/_\-?=&.]*$/.test(rawReturn) && rawReturn.length <= 200
+      ? rawReturn
+      : "/home";
+    const returnWithFlag = `${returnPath}${returnPath.includes("?") ? "&" : "?"}idv=complete`;
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? ""
@@ -92,9 +100,9 @@ serve(async (req) => {
       throw new Error("Could not load your account right now. Please try again.");
     }
 
-    // Already verified, by ANY route (Stripe Identity, Stripe Connect's identity
-    // check, or an admin-approved ID): THE one rule, public.is_identity_verified
-    // (owner 2026-10-19: verified once is never asked again). An unreadable
+    // Already verified (Stripe Identity, or an admin-approved ID): THE one rule,
+    // public.is_identity_verified, which since 2026-10-21 is Stripe Identity only
+    // (payout setup is not an ID check). Verified once is never asked again. An unreadable
     // answer is not permission to start a check: it throws, like profileErr.
     // PGRST202 (the function's migration not deployed yet) falls back to the
     // old answer below plus claim_idv_attempt's own already_verified, so a
@@ -222,7 +230,7 @@ serve(async (req) => {
           allowed_types: ["driving_license", "passport", "id_card"],
         },
       },
-      return_url: buildRedirectUrl(`/profile?idv=complete`, isNative),
+      return_url: buildRedirectUrl(returnWithFlag, isNative),
     }, {
       // Keyed on the claimed attempt number, so a retry of THIS request (a
       // dropped response, a native handoff that bounced) reuses the same

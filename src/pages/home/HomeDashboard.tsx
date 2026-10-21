@@ -19,6 +19,8 @@ import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { ProgressSegments } from "@/components/ui/ProgressSegments";
 import { LIVE_STEPS } from "./homeDashboard/nextUpStates";
+import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
+import { needsIdentityCheck } from "@/lib/identityCheck";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -97,6 +99,11 @@ function HomeDashboardScreen() {
             900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
         <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
           <div data-home-main className="flex flex-col gap-section min-w-0">
+
+            {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
+            {needsIdentityCheck(profile) && (summary.counts.posted > 0 || summary.counts.working > 0) && (
+              <IdentityPromptCard idvStatus={profile?.idv_status} />
+            )}
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {

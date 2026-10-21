@@ -1,8 +1,11 @@
-// Identity verification never gates POSTING a job or the poster's HIRE.
-// Since 2026-10-03 it gates exactly one thing: the Helpr's ACCEPT completes
-// only once Stripe's ID check is done (owner: "in order to fully accept these
-// 2 things must be done", payout setup and Stripe ID; docs/OPEN.md Q1180,
-// 20261003193541, helper_accept_missing).
+// Identity verification never gates the poster's HIRE, and never through a jobs
+// POLICY. Since 2026-10-03 the Helpr's ACCEPT completes only once Stripe's ID
+// check is done (Q1180, 20261003193541, helper_accept_missing). Since 2026-10-21
+// (owner) Stripe Identity ALSO gates a member's own job post and a Helpr's On the
+// way, by TRIGGER (20261021081258); that gate and its limits (never the poster's
+// confirm/release, never a server write) are pinned by identityGatesPostAndStart.
+// What stays forbidden here: identity in the Hire, in an award gate, or in a
+// jobs policy, and the retired ID-upload vocabulary.
 //
 // Owner, 2026-10-01: "Remove finish verifying id we don't do that anymore."
 // Before that, measured live on prod (pg_policies / pg_get_functiondef):
@@ -23,8 +26,8 @@
 //                   (effectiveDefs replays rewrites and drops);
 //   * client     — every non-test source file under src/, comments blanked.
 //
-// Identity stays as DISPLAY (badges, WorkRecord, admin review): reading
-// `isIdentityVerified` to draw a pill is fine. What is forbidden is the gate
+// Identity is also DISPLAY (badges, WorkRecord, admin review): reading
+// `hasIdBadge` to draw a pill is fine. What is forbidden is the gate
 // vocabulary and the posting/award code paths consulting identity at all.
 //
 // @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql |     RETURN 'helper_payout_setup_incomplete'; |     RETURN CASE WHEN public.identity_is_verified(NULL, NULL) THEN NULL ELSE 'helper_payout_setup_incomplete' END;
@@ -115,7 +118,7 @@ describe("DB: the Hire never requires identity; the Accept does (Q1180)", () => 
   });
 });
 
-describe("client: posting and hiring never gate on identity; only the accept mirror reads it", () => {
+describe("client: hiring never gates on identity; only the accept mirror reads it", () => {
   const files = walkSource([join(REPO, "src")]).filter(
     (f) => !/\.test\.tsx?$/.test(f) && !f.includes(`${join("src", "test")}`) && !f.endsWith("integrations/supabase/types.ts"),
   );
@@ -138,18 +141,17 @@ describe("client: posting and hiring never gate on identity; only the accept mir
     expect(reasonUsers.sort()).toEqual(["src/components/AwardGateDialog.tsx", "src/lib/awardGate.ts", "src/lib/helprTasks/errorCopy.ts"]);
   });
 
-  it("the post and hire code paths never read identity", () => {
+  it("the hire code paths never read identity", () => {
     // useAwardBlockReason.ts is not here: since 20261003193541 it mirrors the
     // ACCEPT gate (helper_accept_block_reason), which does require the Stripe
     // ID, through acceptMissingFromProfile (Q1180 re-review nit).
     const PATHS = [
-      "src/pages/post-job/",
       "src/hooks/useStripeConnectCheck.ts",
       "src/components/AwardGateDialog.tsx",
       "src/components/job-card/activityActions/useOfferHandlers.ts",
     ];
     const scoped = files.filter((f) => PATHS.some((p) => relative(REPO, f).startsWith(p)));
-    expect(scoped.length).toBeGreaterThan(5);
+    expect(scoped.length).toBe(3);
     const IDENTITY_TS = /idv_status|idvStatus|stripe_identity_verified|isIdentityVerified\(/;
     const offenders = scoped
       .filter((f) => IDENTITY_TS.test(blankComments(readFileSync(f, "utf8"))))
@@ -160,10 +162,9 @@ describe("client: posting and hiring never gate on identity; only the accept mir
   it("awardGate.ts reads identity only in the accept mirror (acceptMissingFromProfile) and the display predicate", () => {
     const code = blankComments(readFileSync(join(REPO, "src/lib/awardGate.ts"), "utf8"));
     const rest = code
-      .replace(/export function isIdentityVerified\([\s\S]*?\n}\n/, "")
       .replace(/export function hasIdBadge\([\s\S]*?\n}\n/, "")
       .replace(/export function acceptMissingFromProfile\([\s\S]*?\n}\n/, "");
-    expect(code).toMatch(/export function acceptMissingFromProfile\([\s\S]*?isIdentityVerified\(/);
+    expect(code).toMatch(/export function acceptMissingFromProfile\([\s\S]*?hasIdBadge\(/);
     expect(rest).not.toMatch(/idv_status|idvStatus|stripe_identity_verified|isIdentityVerified\(/);
   });
 });

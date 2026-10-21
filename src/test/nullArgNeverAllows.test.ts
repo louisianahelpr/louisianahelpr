@@ -212,7 +212,8 @@ describe("a NULL argument never makes an allow check say yes (Q140)", () => {
     });
     it("identity_is_verified: never NULL", () => {
       const d = newestFunction("identity_is_verified")!;
-      expect(d.body).toBe("SELECT p_idv_status IS NOT DISTINCT FROM 'verified' OR p_stripe_identity_verified IS TRUE;");
+      // Stripe Identity only since 20261021081258; the Connect argument only says a row was read.
+      expect(d.body).toBe("SELECT p_idv_status IS NOT DISTINCT FROM 'verified' AND p_stripe_identity_verified IS NOT NULL;");
     });
     it("job_is_funded: no row / NULL id is false", () => {
       const d = newestFunction("job_is_funded")!;

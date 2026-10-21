@@ -4,8 +4,9 @@
  * and is never asked again"; and an admin-APPROVED uploaded ID counts the same).
  *
  * THE RULE. SQL: public.identity_is_verified(idv_status, stripe_identity_verified)
- * (looked up per user by public.is_identity_verified(uuid)). Client:
- * isIdentityVerified (src/lib/awardGate.ts), the same OR. An admin approval of a
+ * (looked up per user by public.is_identity_verified(uuid)); since 2026-10-21 it
+ * is Stripe Identity ONLY (idv_status = 'verified'; the Connect argument is
+ * ignored, 20261021081258). Client: hasIdBadge (src/lib/awardGate.ts), the same. An admin approval of a
  * landlord's ID photo (rentals_admin_review_landlord_id, 20261019051407) writes
  * idv_status = 'verified' exactly as admin-user-actions manual_verify does, so
  * it passes every gate through the rule without a second copy.
@@ -34,7 +35,7 @@ import { join, relative, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { readdirSync } from "./helpers/trackedFiles";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 
 const REPO = resolve(__dirname, "..", "..");
 const MIGRATIONS = join(REPO, "supabase", "migrations");
@@ -65,7 +66,7 @@ const SQL_ALLOWED: Record<string, string> = {
 /** `file :: matched text` for TS that may test a verdict column. EXACT. */
 // @two-way src/test/identityOneRule.test.ts:const staleTs =
 const TS_ALLOWED: Record<string, string> = {
-  "src/lib/awardGate.ts :: idvStatus === \"verified\"": "THE client rule, isIdentityVerified",
+  "src/lib/awardGate.ts :: idvStatus === \"verified\"": "THE client rule, hasIdBadge (Stripe Identity only, owner 2026-10-21)",
   "supabase/functions/stripe-idv-start/index.ts :: idv_status === \"verified\"":
     "deploy-order fallback only: used when is_identity_verified answers PGRST202 (not deployed yet); the normal path is the rule",
   "supabase/functions/_shared/connectGateSync.ts :: stripe_identity_verified === true":
@@ -136,7 +137,7 @@ describe("every identity gate reads the one rule (owner 2026-10-19)", () => {
     const hits = tsHits(files);
     const staleTs = Object.keys(TS_ALLOWED).filter((k) => !hits.includes(k));
     expect(staleTs, "stale TS_ALLOWED entry: remove it in the same commit").toEqual([]);
-    expect(hits.filter((h) => !(h in TS_ALLOWED)), "a gate reads a verdict column itself: use isIdentityVerified (src/lib/awardGate.ts)").toEqual([]);
+    expect(hits.filter((h) => !(h in TS_ALLOWED)), "a gate reads a verdict column itself: use hasIdBadge (src/lib/awardGate.ts)").toEqual([]);
   });
 
   it("the gates named in the bug call the rule", () => {
@@ -151,13 +152,13 @@ describe("every identity gate reads the one rule (owner 2026-10-19)", () => {
     expect(review).toContain("SET idv_status = 'verified', idv_confidence = 100, idv_failure_reason = NULL, legacy_manual_review = true");
     expect(review).not.toMatch(/stripe_identity_verified/);
     // and the client rule accepts it (idv_status 'verified' alone).
-    expect(isIdentityVerified({ connectIdentityVerified: false, idvStatus: "verified" })).toBe(true);
+    expect(hasIdBadge("verified")).toBe(true);
   });
 
   it("can fail: planted direct reads are caught", () => {
     expect(tsHits([{ file: "x.ts", text: `if (p.stripe_identity_verified !== true) block();` }])).toHaveLength(1);
     expect(tsHits([{ file: "x.ts", text: `const ok = profile.idv_status === "verified";` }])).toHaveLength(1);
-    expect(tsHits([{ file: "x.ts", text: `// p.idv_status === "verified"\nconst ok = isIdentityVerified(x);` }])).toHaveLength(0);
+    expect(tsHits([{ file: "x.ts", text: `// p.idv_status === "verified"\nconst ok = hasIdBadge(x);` }])).toHaveLength(0);
     expect(SQL_TESTS.some((re) => new RegExp(re.source, re.flags).test("IF v.idv_status = 'verified' THEN"))).toBe(true);
     expect(SQL_TESTS.some((re) => new RegExp(re.source, re.flags).test("WHERE p.stripe_identity_verified IS TRUE"))).toBe(true);
   });

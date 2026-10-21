@@ -14,7 +14,7 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 46 |
+| Routes (non-redirect) | route | 47 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 30 |
 | `?view=` variants | variant | 26 |
@@ -23,14 +23,14 @@ reports coverage against THIS file, not against the route list.
 | Toast messages | **call site** | 901 (across 227 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 20 |
-| Back/next navigation only | flow | 45 |
-| Forms (submittable) | form | 73 |
+| Back/next navigation only | flow | 46 |
+| Forms (submittable) | form | 74 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **600** |
+| **Navigable surfaces** (places a person can stand) | mixed | **603** |
 | **Copy surfaces** (strings a person may read) | mixed | **939** |
-| **Total auditable surface** | mixed | **1539** |
+| **Total auditable surface** | mixed | **1542** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,11 +67,11 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 46 | 34 | agree |
+| Real routes | 47 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 179 | 130 | agree within method (script counts every menu instance) |
-| Forms | 73 | ~38 | agree |
+| Forms | 74 | ~38 | agree |
 | Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -121,6 +121,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/legal`
 - [ ] `/terms`
 - [ ] `/privacy`
+- [ ] `/search`
 - [ ] `/jobs/settings`
 - [ ] `/jobs/:id`
 - [ ] `/browse`
@@ -473,6 +474,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
 | `src/pages/profile/StrSettings.tsx` | nav-handler |
 | `src/pages/profile/WorkRecord.tsx` | nav-handler |
+| `src/pages/search/SearchPage.tsx` | nav-handler |
 
 
 ## Forms — every submittable surface
@@ -554,6 +556,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/profile/strSettings/AddCalendarForm.tsx` (form tag)
 - [ ] `src/pages/quotes/QuoteRequestPage.tsx` (form tag)
 - [ ] `src/pages/quotes/SendQuotePage.tsx` (form tag)
+- [ ] `src/pages/search/SearchPage.tsx` (form tag)
 
 ## Emails — every template a user receives OUTSIDE the app
 

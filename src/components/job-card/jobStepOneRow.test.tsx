@@ -604,31 +604,38 @@ const CASES: Array<{
     primary: ["Confirm they've arrived"],
   },
   {
-    name: "Posts · In Progress, arrival confirmed (Confirm they're working + SOS · Message)",
+    // Owner rule 2026-10-21 (lead ruling): no greyed "Confirm they're working" before the Helpr taps Start
+    // working; "Message Hallie" holds the slot and the line says what happens next.
+    name: "Posts · In Progress, arrival confirmed, Helpr not working yet (Message <Helpr>; waiting line)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), poster_confirmed_working_at: null }))} />),
-    minControls: 3,
-    primary: ["Confirm they're working"],
+    minControls: 2,
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /taps Start working when they begin/,
   },
   {
     // Q1400 (owner, 2026-10-07): no disabled arrival box before arrival.
-    name: "Posts · In Progress, start passed and nobody arrived (no arrival box; No-Show · Message)",
+    name: "Posts · In Progress, start passed and nobody arrived (no arrival box; Message <Helpr> primary · No-Show)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null }))} />),
     minControls: 2,
-    primary: [],
+    primary: ["Message Hallie"],
   },
   {
     /* WAS item 6c, "the box is drawn before the Helpr arrives, and says the
        truth": a disabled box with "on the way" under it. Owner decision Q1400
        (2026-10-07) hides it until the Helpr marks themselves arrived. */
-    name: "Posts · In Progress, Helpr on the way, not arrived yet (no arrival box — Q1400)",
+    // Owner rule 2026-10-21 (lead ruling) supersedes Q1568's greyed box: "Message Hallie" + the waiting line.
+    name: "Posts · In Progress, Helpr on the way, not arrived yet (Message <Helpr>; no greyed arrival box)",
     render: () =>
       wrap(
         <InProgressStep
-          {...posterCtx(makeJob({ helper_arrived_at: null, helper_on_the_way_at: ago(1), poster_confirmed_working_at: null }))}
+          {...posterCtx(makeJob({ helper_arrived_at: null, helper_on_the_way_at: ago(1), poster_confirmed_working_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))}
         />,
       ),
     minControls: 1,
-    primary: [],
+    primary: ["Message Hallie"],
+    primaryDisabled: false,
+    note: /on the way\. You'll confirm once they say they've arrived/,
   },
   {
     // ALREADY ACTIONED, STILL ON SCREEN (owner: "if it was clicked already it
@@ -737,7 +744,7 @@ const CASES: Array<{
         />,
       ),
     minControls: 5,
-    primary: ["Resolve & Pay"],
+    primary: ["Resolve & pay"],
   },
 ];
 

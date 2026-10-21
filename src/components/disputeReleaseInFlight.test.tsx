@@ -98,7 +98,7 @@ describe("dispute release — same-frame double click sends one request", () => 
         />
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Resolve & Pay/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve & pay/i }));
     doubleClick(await screen.findByRole("button", { name: "Release Payment" }));
     await waitFor(() => expect(rpcMock).toHaveBeenCalled());
     await settle();
@@ -146,7 +146,7 @@ describe("dispute release — same-frame double click sends one request", () => 
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Resolve & Pay/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolve & pay/i }));
     fireEvent.click(await screen.findByRole("button", { name: "Release Payment" }));
     await waitFor(() => expect(rpcMock).toHaveBeenCalledTimes(1));
     await settle();
@@ -157,7 +157,7 @@ describe("dispute release — same-frame double click sends one request", () => 
     // or the open flag flips back inside the same unmount and renders nothing.
     await act(async () => { await new Promise((r) => setTimeout(r, 300)); });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Resolve & Pay/ }));
+      fireEvent.click(screen.getByRole("button", { name: /Resolve & pay/i }));
       await new Promise((r) => setTimeout(r, 300));
     });
     fireEvent.click(await screen.findByRole("button", { name: "Release Payment" }));

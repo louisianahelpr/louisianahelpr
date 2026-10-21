@@ -25,7 +25,7 @@ describe("Live now (board 165)", () => {
     expect([...JOB_PROGRESS_STEPS]).toEqual(["Posted", "Hired", "Working", "Done"]);
     const l = deriveLiveNow([job({ id: "p1", status: "in_progress", helper_id: "h", helper_confirmed_at: "t", poster_confirmed_arrival_at: "t" })], []);
     expect(l?.progress.step).toBe(3);
-    expect(l?.progress.next).toBe("Your Helpr is working");
+    expect(l?.progress.next).toBe("Your Helpr is at the job");
     expect(l?.side).toBe("You hired");
   });
 

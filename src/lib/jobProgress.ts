@@ -109,7 +109,9 @@ export function jobProgress(
   const working =
     status === "in_progress" &&
     !!(job.poster_confirmed_working_at || job.poster_confirmed_arrival_at || job.helper_arrival_verified_at);
-  if (working) return { step: 3, word: "Working", next: poster ? `${other} is working` : "Mark it done when you finish", held };
+  // "is working" only once the poster has vouched for it; arrival evidence alone says where they are, not what
+  // they are doing (the Helpr's Start working is not on the job row; the card's line says when it comes).
+  if (working) return { step: 3, word: "Working", next: poster ? (job.poster_confirmed_working_at ? `${other} is working` : `${other} is at the job`) : "Mark it done when you finish", held };
   if (job.helper_arrived_at) {
     return { step: 2, word: "Hired", next: poster ? `${other} arrived. Confirm they've arrived` : `You've arrived. Waiting on ${otherLow} to confirm`, held };
   }

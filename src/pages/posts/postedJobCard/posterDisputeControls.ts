@@ -92,7 +92,7 @@ export function posterDisputeControls(
   const canEscalate = disputeLive;
 
   const consequenceText = canResolve
-    ? "Resolve & Pay to close this out, or escalate to admin. If no action is taken, payment auto-releases to the Helpr."
+    ? "Resolve & pay to close this out, or escalate to an admin. If no action is taken, payment auto-releases to the Helpr."
     : canEscalate
       ? "Your Helpr opened this, so only they can withdraw it. Escalate to have an admin decide — otherwise the payment auto-releases to the Helpr when the clock runs out."
       : "Payment stays on hold until this is decided. If no action is taken, payment auto-releases to the Helpr.";

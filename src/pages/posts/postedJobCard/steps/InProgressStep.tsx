@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, Image, HelpCircle } from "lucide-react";
+import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, MessageSquare, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { SosShareButton, SosShareSheet, sosOffered } from "@/components/SosShareButton";
@@ -135,6 +135,8 @@ export function InProgressStep(ctx: PosterStepCtx) {
   const showDispute = shouldShowDisputeLink(job, "customer");
   const hasProof = (job.proof_before_urls?.length ?? 0) > 0 || (job.proof_after_urls?.length ?? 0) > 0;
 
+  const helperFirst = ((job.helper_id && helperNames?.[job.helper_id]) || "").trim().split(/\s+/)[0] || null;
+  const messageHelpr = () => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages");
   const awaitingApproval =
     !!job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at;
 
@@ -161,8 +163,13 @@ export function InProgressStep(ctx: PosterStepCtx) {
               if (!job.poster_completed_at) setCompletionSheetOpen(true);
             }}
           />
-        ) : undefined
+        ) : (
+          /* Nothing to confirm or approve yet (owner, 2026-10-21): talking to the Helpr. A confirmation box or
+             the stalled box claims the slot over this the moment it applies; No-Show stays a chip in More. */
+          <JobStepPrimaryButton icon={MessageSquare} label={helperFirst ? `Message ${helperFirst}` : "Message your Helpr"} onClick={messageHelpr} />
+        )
       }
+      primaryChipKey={showApprove ? undefined : "message"}
       notice={
         <>
           {/* ONE ROW, PRIMARY IN THE DARK GREEN (owner, 2026-09-14, VN-21:
@@ -278,7 +285,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
           ariaLabel="Message Helpr"
           tone="message"
           // Straight into the thread with THIS helpr on THIS job.
-          onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
+          onClick={messageHelpr}
         />,
       ]}
       /* No footnote: nothing sits below the row (owner, 2026-10-08). "Approve &

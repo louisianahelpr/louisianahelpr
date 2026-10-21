@@ -237,11 +237,11 @@ describe("Q1400 — no arrival box from accept until the Helpr marks themselves 
     expect(posterConfirmationRung(onTheWay, "scheduled")).toBeNull();
   });
 
-  it("SUPERSEDED 2026-10-08 (Q1568): on the way, the box is drawn greyed, saying when it turns on", () => {
-    // Owner: "where do i confirm they arrived? it should be a greyed out confirm they arrived button".
+  it("SUPERSEDED AGAIN 2026-10-21 (owner rule, lead ruling): on the way, a WAITING line, no greyed box", () => {
+    // Q1568's greyed box is gone: "Message Hallie" holds the slot and the line says what happens next.
     const r = posterConfirmationRung(startedNotArrived, "in_progress");
-    expect(r).toMatchObject({ action: "arrival", enabled: false, label: "Confirm they've arrived" });
-    expect(r?.reason).toMatch(/turns on once your Helpr says they've arrived/);
+    expect(r).toMatchObject({ action: "arrival", enabled: false, waiting: true });
+    expect(r?.reason).toMatch(/on the way\. You'll confirm once they say they've arrived/);
   });
 
   it("over the whole matrix: a DISABLED arrival box only ever means 'on the way, not arrived yet'", () => {

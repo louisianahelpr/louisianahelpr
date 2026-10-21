@@ -68,13 +68,13 @@ describe("one job, start to finish, both sides", () => {
   });
 
   const confirmed = { ...accepted, helper_dayof_confirmed_at: "2032-10-13T13:00:00Z", poster_confirmed_at: "2032-10-13T14:00:00Z" };
-  it("7 On the way: started -> Needs You; 'Lexi is on the way'; poster's Confirm they've arrived greyed, saying when", () => {
+  it("7 On the way: started -> Needs You; 'Lexi is on the way'; the poster WAITS (no greyed box), saying what comes next", () => {
     const j = job({ ...confirmed, status: "in_progress", helper_on_the_way_at: "2032-10-14T17:30:00Z" });
     const now = T("2032-10-14T17:40:00Z");
     expect(poster(j, now)).toEqual({ tab: "needs_you", line: "Lexi is on the way" });
     const r = posterConfirmationRung(j, "in_progress", now)!;
-    expect([r.label, r.enabled]).toEqual(["Confirm they've arrived", false]);
-    expect(r.reason).toMatch(/turns on once your Helpr says they've arrived/);
+    expect([r.action, r.enabled, r.waiting]).toEqual(["arrival", false, true]);
+    expect(r.reason).toMatch(/You'll confirm once they say they've arrived/);
   });
 
   it("8 Arrived: the poster's Confirm they've arrived turns on", () => {
@@ -82,7 +82,7 @@ describe("one job, start to finish, both sides", () => {
     expect(posterConfirmationRung(j, "in_progress", T("2032-10-14T18:56:00Z"))!.enabled).toBe(true);
   });
 
-  it("9 Working: the poster's Confirm they're working is greyed until the Helpr starts, then live", () => {
+  it("9 Working: the poster WAITS for the Helpr's Start working (no greyed box), then Confirm they're working is live", () => {
     const j = job({ ...confirmed, status: "in_progress", helper_on_the_way_at: "x", helper_arrived_at: "y", poster_confirmed_arrival_at: "z" });
     const now = T("2032-10-14T19:05:00Z");
     expect(posterConfirmationRung(j, "in_progress", now, false)!.enabled).toBe(false);

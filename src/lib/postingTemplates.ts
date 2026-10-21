@@ -103,9 +103,9 @@ export const categoryTemplates: Record<string, PostingTemplate> = {
   },
   assembly: {
     title: "Furniture assembly needed",
-    description: "I need help assembling [furniture item] at my home in [neighborhood]. It's from [IKEA / Wayfair / Amazon / brand] and the box is [# of boxes].",
+    description: "I need help assembling [furniture item] at my home in [neighborhood]. It's from [store or brand] and the box is [# of boxes].",
     checklist: [
-      "What brand / item name? (IKEA Kallax, etc.)",
+      "What brand / item name?",
       "How many pieces?",
       "Do you have the instructions?",
       "Where in the home? (stairs involved?)",

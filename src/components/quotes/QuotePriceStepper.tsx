@@ -1,5 +1,6 @@
 import { Minus, Plus } from "lucide-react";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { useApplyTakeHome } from "@/components/dashboard/applyConfirmDialog/applyTakeHome";
 import { formatPriceFloor } from "@/lib/format";
 import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT } from "@/lib/helprFlatFee";
@@ -66,15 +67,23 @@ export function QuotePriceStepper({
 }
 
 function TakeHomeNote({ dollars }: { dollars: number }) {
-  const posterFeeModel = useFeature("jobs_poster_fee");
-  // A one-Helpr job on the flat model, the shape a booked quote becomes.
+  // Only once both reads have answered (lh-money-escrow review 2026-10-21 #4): while loading, the
+  // switch reads off and the setup fee reads 0, which would flash a figure up to $2 too high.
+  const posterFee = useFeatureStatus("jobs_poster_fee");
+  const feeKnown = useFirstPayoutFeeKnown();
+  // A one-Helpr job on the flat model, the shape a booked quote becomes (quote_insert_job: one Helpr,
+  // no urgent bonus; budget = the quoted price, locked by trg_lock_quote_booked_job_terms).
   const job = { budget: dollars, is_group_job: false, helpers_needed: 1, urgent_fee: null, helper_fee_flat_cents: HELPR_FLAT_FEE_CENTS, helper_fee_percent: HELPR_FLAT_FEE_PERCENT } as unknown as EnrichedJob;
-  const { takeHome, firstPayoutFee } = useApplyTakeHome(job, HELPR_FLAT_FEE_PERCENT);
-  if (posterFeeModel) return null;
+  const { takeHome, firstPayoutFee, feeLabel } = useApplyTakeHome(job, HELPR_FLAT_FEE_PERCENT);
+  // ASSUMES 'jobs_poster_fee' is 'off' for everyone (it is on prod, 2026-10-21): create-payment decides
+  // the model from the POSTER's switch, this reads the viewer's. Before that switch's audience leaves
+  // 'off', hide this note globally (review #1).
+  if (!posterFee.settled || posterFee.on || !feeKnown) return null;
   return (
     <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-quote-take-home="">
-      You take home <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceFloor(takeHome)}</strong> after the Helpr fee (5% + 70¢)
-      {firstPayoutFee > 0 ? " and the one-time setup fee" : ""} if this quote is booked. The money is held when it is booked and released when the job is confirmed done.
+      You take home <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceFloor(takeHome)}</strong> after the Helpr fee ({feeLabel})
+      {firstPayoutFee > 0 ? " and the one-time setup fee" : ""} if this quote is booked. The money is held when it is booked and
+      paid out after the job is done: when they confirm, or on its own a day after you mark it done.
     </p>
   );
 }

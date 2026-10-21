@@ -2,6 +2,8 @@
  * A shop's hours in Louisiana time (src/lib/shops/hours.ts), shared by the shop
  * page and the Browse card, plus the per-group placeholder icon a shop with no
  * cover photo shows (src/lib/shops/categoryIcons.ts).
+ *
+ * @mutate src/lib/shops/hours.ts |   const h12 = hh % 12 === 0 ? 12 : hh % 12; |   const h12 = hh % 12;
  */
 import { describe, expect, it } from "vitest";
 import { Store, Utensils } from "lucide-react";

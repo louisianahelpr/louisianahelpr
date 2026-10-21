@@ -3,6 +3,8 @@
  * Job path, the Declutter Help prefill, and the Shops category both options
  * name. The title must fit public.jobs' 32-character cap (Q782) and the
  * description must carry the no-account-access promise.
+ *
+ * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph, list and sell all of my items";
  */
 import { describe, expect, it } from "vitest";
 import {

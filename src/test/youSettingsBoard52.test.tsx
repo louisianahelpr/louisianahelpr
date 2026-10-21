@@ -77,7 +77,9 @@ describe("You › Settings, board 52", () => {
 
   it("each row is named what the screen it opens is titled (one source, sentence case)", () => {
     renderSettings();
-    for (const key of ["notifications", "profile", "security", "warnings"] as const) {
+    const keys = ["notifications", "profile", "security", "warnings"] as const;
+    expect(keys.length).toBe(4); // vacuity floor (#2894)
+    for (const key of keys) {
       expect(screen.getByText(TAB_TITLES[key])).toBeTruthy();
     }
     expect([TAB_TITLES.profile, TAB_TITLES.security, TAB_TITLES.warnings, TAB_TITLES.support]).toEqual([

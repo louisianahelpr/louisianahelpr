@@ -36,6 +36,8 @@ describe("rating stars are olive, never rust", () => {
 
   it("no <Star> tag outside JOBS_OWNED carries rust; JOBS_OWNED is exact", () => {
     const files = trackedFiles("src").filter((f) => /^src\/.*\.tsx$/.test(f) && !f.startsWith("src/test/"));
+    // Vacuity floor (#2894): 1074 non-test .tsx files on 2026-10-21.
+    expect(files.length).toBeGreaterThan(900);
     let stars = 0;
     const rusty = new Set<string>();
     for (const f of files) {

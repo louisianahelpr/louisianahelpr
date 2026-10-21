@@ -38,7 +38,6 @@
     "src/components/admin/ManualVerifyDialog.tsx",
     "src/components/admin/ResetPasswordDialog.tsx",
     "src/components/admin/adminusers/AdminUserRow.tsx",
-    "src/components/landing/HeroSection.tsx",
     "src/components/messages/ChatView.tsx",
     "src/components/messages/ConversationList.tsx",
     "src/components/profile/HelperWorkPhotos.tsx",

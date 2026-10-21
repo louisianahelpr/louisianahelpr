@@ -4,6 +4,9 @@
  * falls back to the local map. Any other error throws (toggle, snooze,
  * unmute) or is reported (the bulk read), never silently read as "not muted".
  * A team thread is never muted.
+ *
+ * @mutate src/lib/threadMutes.ts |   if (isTeamThreadKey(jobId)) return false; |
+ * @mutate src/lib/threadMutes.ts |     if (isMissingRpcNamed(error, "toggle_thread_mute")) { |     if (error) {
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

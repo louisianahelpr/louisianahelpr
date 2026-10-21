@@ -561,7 +561,7 @@ const JobDetailDialog = ({
                     // 4.86:1 both themes.
                     style={{ color: "hsl(var(--accent-ink) / 0.9)" }}
                   >
-                    {descExpanded ? "Show Less" : "Read More"}
+                    {descExpanded ? "Show less" : "Read more"}
                   </button>
                 )}
               </div>
@@ -831,7 +831,7 @@ const JobDetailDialog = ({
                   boxShadow: "0 1px 4px hsl(var(--bark) / 0.18)",
                 }}
               >
-                View All
+                View all
               </button>
             )}
           </div>

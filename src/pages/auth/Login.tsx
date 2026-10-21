@@ -402,7 +402,7 @@ const Login = () => {
                 className="w-full text-center text-ds-11 font-sans tracking-wide hover:opacity-70 active:opacity-50 transition-opacity"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
               >
-                Use a Different Account
+                Use a different account
               </button>
             </form>
           </div>

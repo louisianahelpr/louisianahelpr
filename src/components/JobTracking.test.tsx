@@ -69,7 +69,7 @@ describe("deriveCurrentStatusIdx", () => {
     ).toBe(STATUS_IDX.job_confirmed);
   });
 
-  it("advances to On the Way from the jobs-row stamp alone", () => {
+  it("advances to On the way from the jobs-row stamp alone", () => {
     expect(
       deriveCurrentStatusIdx({ jobStatus: "in_progress", helperOnTheWayAt: AT }),
     ).toBe(STATUS_IDX.on_the_way);
@@ -272,7 +272,7 @@ describe("a revision or a dispute undoes Done", () => {
 
   it("caps a DISPUTED job at Working even with a completion stamp", () => {
     // The reported bug. Owner: "Can't be marked done if it's in revision is
-    // dispute." Their screenshot: Confirmed / On the Way / Arrived all green,
+    // dispute." Their screenshot: Confirmed / On the way / Arrived all green,
     // Working red, DONE GREEN — directly above "Escalated to Admin … nothing
     // is charged or released until then". Done on this rail is the completion
     // that releases the money; while an admin is still deciding whether that

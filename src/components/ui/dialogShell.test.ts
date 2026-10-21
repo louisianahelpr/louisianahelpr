@@ -893,7 +893,7 @@ describe("Popup grammar — footer", () => {
    * controls that a 1:3 dismiss/commit row would actively misrepresent:
    *
    *   EarningsExport      "Download CSV" + "Download PDF" — two EQUAL commits.
-   *   GateSheet           "Create Free Account" + "Log In" — two nav choices.
+   *   GateSheet           "Create free account" + "Log in" — two nav choices.
    *   adminJobs/JobDetail Remove / Override / Refund — a wrapping toolbar.
    *   AdminSettings       inline per-section saves inside a settings form.
    *   TipDialog           one Send beside the amount input — an input group.
@@ -917,7 +917,7 @@ describe("Popup grammar — footer", () => {
         const body = row[1];
         // The left slot is identified by what it SAYS, not how it is styled.
         // Styling cannot tell a dismiss from a second destination: GateSheet's
-        // "Log In" is `variant="outline"` beside a primary "Create Free
+        // "Log in" is `variant="outline"` beside a primary "Create Free
         // Account", and EarningsExport's "Download CSV" is outline beside
         // "Download PDF" — both look exactly like a footer and neither is one.
         // The first version of this rule flagged them, and satisfying it would
@@ -1089,7 +1089,7 @@ describe("Popup grammar — footer", () => {
       "I already have an account",
       // Q1550: the Application Sent pop-up's other answer goes on browsing;
       // nothing is being cancelled (the application is already sent).
-      "Keep Browsing",
+      "Keep browsing",
       // Shops M3 (ShopOrderCancel): the buyer's / shop's "Cancel order?" confirm. Same grammar
       // as "Keep the Job": "Cancel" beside "Cancel order" would read as the action itself.
       "Keep the order",

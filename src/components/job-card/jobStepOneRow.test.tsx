@@ -104,7 +104,7 @@ const ahead = (h: number) => new Date(NOW + h * 3_600_000).toISOString();
 // `jobClock` below, which this pair predates and contradicted. They were
 // `new Date(...).toISOString().slice(0, 10)`, i.e. the UTC day, which after
 // 19:00 Pacific names the NEXT Central day: "start already passed" became a
-// start two hours in the future (so Cancel Job was still correctly offered,
+// start two hours in the future (so Cancel job was still correctly offered,
 // four controls not three), and the stalled fixture became a job whose day is
 // not over (so `completionStalled` was correctly false, three controls not
 // four). Green all morning, red after 19:00 — the product was right both times.
@@ -295,14 +295,14 @@ const CASES: Array<{
     /* THE START HAS NOT PASSED — and that is the whole state this case names.
        It was written `date_needed: TODAY, start_time: "00:00"`, which is a job
        whose start is already hours behind us; `ae6c80903` then (correctly)
-       hid the Cancel Job chip in exactly that window, because
+       hid the Cancel job chip in exactly that window, because
        `helper_cancel_booking` REFUSES it there (`job_already_started`) and an
        offered control that the server refuses is a dead-end tap. The fixture
        had simply stopped reaching the state its own name describes, and the
        floor caught it: three controls, not four. The product is right; the
        clock in the fixture was wrong. Its companion below pins the other side
        of that same gate. */
-    name: "Jobs · Confirmed (tracker CTA + Directions · Message · Cancel Job)",
+    name: "Jobs · Confirmed (tracker CTA + Directions · Message · Cancel job)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -327,7 +327,7 @@ const CASES: Array<{
        is legitimately three controls. Without this case, a future change that
        hid Cancel EVERYWHERE would still pass the case above by accident of the
        clock. */
-    name: "Jobs · Confirmed, start already passed (no Cancel Job — the RPC would refuse it)",
+    name: "Jobs · Confirmed, start already passed (no Cancel job — the RPC would refuse it)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -342,13 +342,13 @@ const CASES: Array<{
         />,
       ),
     // Four since board 187 (e1b80db64a): "Running late" joins Message and
-    // Directions in More on the job's day. Cancel Job would make five.
+    // Directions in More on the job's day. Cancel job would make five.
     minControls: 4,
     maxControls: 4,
     primary: ["I'm On My Way"],
   },
   {
-    name: "Jobs · Confirmed, day-of confirmation still owed (I'm Still On)",
+    name: "Jobs · Confirmed, day-of confirmation still owed (I'm still on)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -367,7 +367,7 @@ const CASES: Array<{
     primary: ["Confirm You'll Be at the Job"],
   },
   {
-    name: "Jobs · On the Way (I've Arrived + Directions · Message · Report a Problem)",
+    name: "Jobs · On the way (I've Arrived + Directions · Message · Report a Problem)",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
     primary: ["I've Arrived"],
@@ -414,7 +414,7 @@ const CASES: Array<{
   {
     /* THE CAPTURE IS IN THE ROW NOW (owner, 2026-09-19: "before and after
        buttons should also be on the same lines as the other buttons"). It was
-       a titled panel with a full-width "Add Photo" button in the `ask` slot
+       a titled panel with a full-width "Add photo" button in the `ask` slot
        ABOVE the row — the block in the owner's screenshot. Four controls:
        Message · After Photo · More (Report a Problem, Dispute and SOS) + the
        disabled primary. */
@@ -431,7 +431,7 @@ const CASES: Array<{
     primary: [],
   },
   {
-    name: "Jobs · Revision (I'll Fix It + Message)",
+    name: "Jobs · Revision (I'll fix it + Message)",
     render: active(
       makeJob({
         status: "revision_requested", helper_completed_at: ago(5), revision_requested_at: ago(3),
@@ -440,7 +440,7 @@ const CASES: Array<{
       "working",
     ),
     minControls: 3,
-    primary: ["I'll Fix It"],
+    primary: ["I'll fix it"],
   },
   {
     name: "Jobs · Disputed, filed by the Helpr (Withdraw + Timeline · Message · Contact Admin)",
@@ -823,7 +823,7 @@ describe("VN-21 — the TIGHT rung instead of a second row (and never icon-only)
 
   it("tightens when 3–4 buttons would squeeze a label at 375 and 320", () => {
     // Widths are the function's arguments; the app's rows measure 262 at 375
-    // and 212 at 320. Primary + 3 chips (Confirmed, On the Way).
+    // and 212 at 320. Primary + 3 chips (Confirmed, On the way).
     expect(shouldTightenJobStepRow({ width: 311, chips: 3, hasPrimary: true })).toBe(true);
     // 375: primary + 4 chips (poster Disputed).
     expect(shouldTightenJobStepRow({ width: 311, chips: 4, hasPrimary: true })).toBe(true);

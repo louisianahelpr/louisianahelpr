@@ -44,7 +44,7 @@ describe("formatPriceFloor — a payout may never read above the payout", () => 
 
 describe("payout headlines floor the take-home they are given", () => {
   // The worked example behind the sweep that moved seven take-home headlines
-  // (Profile identity card, Work Record, Wrapped, monthly goal, JobCard's
+  // (Profile identity card, Work record, Wrapped, monthly goal, JobCard's
   // aria-label) from formatPrice to formatPriceFloor:
   //
   //   $120 budget · 12% platform fee · group job, 2 helprs · $10 urgent bonus

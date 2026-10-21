@@ -317,7 +317,7 @@ const Support = () => {
                   </p>
                 </div>
                 <Button variant="outline" onClick={reset} className="mt-2">
-                  Send Another
+                  Send another
                 </Button>
               </div>
             ) : (

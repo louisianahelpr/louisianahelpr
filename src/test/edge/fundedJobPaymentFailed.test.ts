@@ -358,7 +358,7 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
         // A hired job is not "hireable again" and cannot be re-checked-out from
         // My Posts (which hides 'failed'): no promise of a button that isn't there.
         const poster = n.find((x) => x.user_id === "poster-1")!;
-        expect(String(poster.message)).not.toMatch(/hire|pay again|Post a Job/i);
+        expect(String(poster.message)).not.toMatch(/hire|pay again|Post a job/i);
         expect(poster.link).toBeNull();
       }
     }

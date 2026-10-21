@@ -71,7 +71,7 @@ const icons = controls.filter((c) => c.kind === "icon");
 const own = icons.filter((c) => c.what !== "<BackButton>");
 const delegates = icons.filter((c) => c.what === "<BackButton>");
 /**
- * Word-bearing exits — a footer "Cancel", "Go Back" on /404. Inventoried for
+ * Word-bearing exits — a footer "Cancel", "Go back" on /404. Inventoried for
  * completeness and deliberately NOT subject to the shape rule: a rounded-full
  * text button is a pill, which is a different component. Their look belongs to
  * `buttonVariants` and to the popup-footer contract.

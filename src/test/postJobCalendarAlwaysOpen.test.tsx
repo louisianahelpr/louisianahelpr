@@ -1,5 +1,5 @@
 /**
- * Owner, 2026-10-08 (pop-up: "Inline, both boxes same height"): Post a Job's
+ * Owner, 2026-10-08 (pop-up: "Inline, both boxes same height"): Post a job's
  * date calendar is always open, filling its column, and the Start Time card
  * stretches to the calendar's height. No pill, no popover over the fields
  * below.
@@ -13,7 +13,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { DatePickerField } from "@/components/DatePickerField";
 
-describe("Post a Job's date calendar is always open", () => {
+describe("Post a job's date calendar is always open", () => {
   it("Logistics asks for the inline calendar, labelled by Date Needed", () => {
     const src = readFileSync(join(process.cwd(), "src/components/postjob/LogisticsSection.tsx"), "utf8");
     const field = src.slice(src.indexOf("<DatePickerField"), src.indexOf("/>", src.indexOf("<DatePickerField")));

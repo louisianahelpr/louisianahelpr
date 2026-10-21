@@ -1,5 +1,5 @@
 /**
- * Post a Job, "Set a price" or "Get quotes" (owner Q1, Q4; owner 2026-10-19:
+ * Post a job, "Set a price" or "Get quotes" (owner Q1, Q4; owner 2026-10-19:
  * pills with one line on what happens next). Since board 3 (builder2-jobs
  * 2026-10-20) the choice heads screen 3 of 5, "What will you pay?"; the quote
  * ask goes out from screen 4. The three form
@@ -96,7 +96,7 @@ beforeEach(() => {
   handleReview.mockClear();
 });
 
-describe("Post a Job: Set a price or Get quotes", () => {
+describe("Post a job: Set a price or Get quotes", () => {
   it("heads the price screen (3 of 5), as pills, saying what happens next", () => {
     show(form());
     const group = screen.getByRole("radiogroup", { name: "How to price this job" });

@@ -324,7 +324,7 @@ export function MessageBubble({
             title="Retry sending"
           >
             <RotateCw className="w-2.5 h-2.5" />
-            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Tap to Retry"}
+            {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"}
           </button>
         ) : isRefused ? (
           <span className="text-destructive-ink font-medium">

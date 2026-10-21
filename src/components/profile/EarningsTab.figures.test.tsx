@@ -272,7 +272,7 @@ describe("Money: wallet, then Earned | Spent, no payouts list (owner, 2026-10-08
       at("EarnedSpent"), // the switcher
       at("$264.00"), // the Earned summary
       at("Your next payout is $2 less"),
-      at("More Insights"),
+      at("More insights"),
       at("bank account section"),
       at("Tax reporting:"),
     ];

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
  * copy unchanged).
  *
  * Filtered: widen the radius / show all locations, or clear the filters.
- * Unfiltered: "Notify Me When Work Lands" and "Or Hire Someone for a Job".
+ * Unfiltered: "Notify me when work lands" and "Or hire someone for a job".
  */
 export function GuestEmptyStateActions({
   hasFilters,
@@ -45,7 +45,7 @@ export function GuestEmptyStateActions({
           onClick={onShowAllLocations}
           className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
         >
-          Show All Locations
+          Show all locations
         </button>
       </div>
     ) : (
@@ -79,14 +79,14 @@ export function GuestEmptyStateActions({
         onClick={onNotify}
         className="rounded-ds-md px-5 text-ds-16 font-semibold"
       >
-        Notify Me When Work Lands
+        Notify me when work lands
       </Button>
       <button
         type="button"
         onClick={onHire}
         className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
       >
-        Or Hire Someone for a Job
+        Or hire someone for a job
       </button>
     </div>
   );

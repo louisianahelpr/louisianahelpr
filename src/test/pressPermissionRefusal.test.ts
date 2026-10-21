@@ -89,7 +89,7 @@ describe("press-every-control: a truthful permission refusal is not a failed pre
   });
 
   it("still FAILS the permission-off toast when it appears away from the push prompt", () => {
-    for (const chain of [["Save Changes"], ["Notifications"], ["Profile", "Notification Preferences", "Save"], []]) {
+    for (const chain of [["Save changes"], ["Notifications"], ["Profile", "Notification Preferences", "Save"], []]) {
       expect(isTruthfulPermissionRefusal({ toast: appCopy[1], chain, permission: "denied" })).toBe(false);
     }
   });

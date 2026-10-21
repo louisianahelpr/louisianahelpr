@@ -132,7 +132,7 @@ const S = {} as Shared;
  * job's zone, is today). 100 < 120, so the ladder is unlocked from the instant
  * the job is posted, whatever hour the suite runs at.
  *
- * And the day-of "I'm Still On" prompt is NOT part of that ladder here:
+ * And the day-of "I'm still on" prompt is NOT part of that ladder here:
  * `helperDayOfConfirmation` counts an accept that itself happened inside the
  * 24h window as the day-before answer ("don't ask the same question twice"),
  * and in this chain J4 accepts minutes after J2 posts. So the helper's card
@@ -296,7 +296,7 @@ test.describe.serial("marketplace chain", () => {
     const page = journey.track("poster", S.posterPage);
     journey.track("helper", S.helperPage);
 
-    await test.step("poster opens Post a Job and starts fresh", async () => {
+    await test.step("poster opens Post a job and starts fresh", async () => {
       await page.goto("/post-job");
       await page.getByRole("button", { name: /Start from scratch/ }).click();
       await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 30_000 });
@@ -330,7 +330,7 @@ test.describe.serial("marketplace chain", () => {
       await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
       const [resp] = await Promise.all([
         page.waitForResponse((r) => r.url().includes("/functions/v1/create-payment") && r.request().method() === "POST", { timeout: 60_000 }),
-        page.getByRole("button", { name: /Continue to Payment|Post Job/i }).click(),
+        page.getByRole("button", { name: /Continue to payment|Post job/i }).click(),
       ]);
       const body = await resp.json().catch(() => ({}));
       const jobs = await request.get(
@@ -414,10 +414,10 @@ test.describe.serial("marketplace chain", () => {
       await searchFeed(hp, RUN, { timeout: 60_000 });
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();
-      await expect(dialog.getByRole("button", { name: "Apply Now" })).toBeVisible({ timeout: 30_000 });
+      await expect(dialog.getByRole("button", { name: "Apply now" })).toBeVisible({ timeout: 30_000 });
       await dialog.getByRole("textbox").first().fill(NOTE);
       await journey.milestone(hp, "apply-dialog-filled");
-      await dialog.getByRole("button", { name: "Apply Now" }).click();
+      await dialog.getByRole("button", { name: "Apply now" }).click();
       await expect
         .poll(
           async () => {
@@ -575,7 +575,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster messages the helper with an attachment", async () => {
       // Message may be on the row or in More: at 390px the booked card's row
-      // is More + "I'm Still On" (e2e-journeys 39020810698, 2026-10-17).
+      // is More + "I'm still on" (e2e-journeys 39020810698, 2026-10-17).
       const booked = await card(pp, "/jobs?tab=posted", scheduledTab());
       const message = await findChip(pp, booked, /^Message\b/, 30_000);
       expect(message, `the poster's ${scheduledTab()} card offers no Message, on the row or in More`).not.toBeNull();
@@ -790,7 +790,7 @@ test.describe.serial("marketplace chain", () => {
          has already been answered.
 
          `HelperTrackerPanel`'s `gateActive` withholds the ladder and portals
-         "I'm Still On" into the row only while `helperDayOfConfirmation` is
+         "I'm still on" into the row only while `helperDayOfConfirmation` is
          null — and that helper counts an accept that itself landed inside the
          job day's 24h window AS the day-before answer ("don't ask the same
          question twice", JobConfirmation). J4 accepts minutes after J2 posts,
@@ -804,7 +804,7 @@ test.describe.serial("marketplace chain", () => {
          24h-out slot rendered "I'm On My Way" disabled under "Actions unlock
          at 9:40 PM on Sep 22" and this assertion passed on it. */
       const c = await card(hp, "/jobs?tab=working", scheduledTab());
-      const stillOn = c.getByRole("button", { name: /I'm Still On/ }).first();
+      const stillOn = c.getByRole("button", { name: /I'm still on/ }).first();
       const onWay = c.getByRole("button", { name: /I'm On My Way/ }).first();
       await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
       await expect(
@@ -816,7 +816,7 @@ test.describe.serial("marketplace chain", () => {
         await stillOn.click();
         const yes = hp.getByRole("button", { name: /Yes, I Confirm/ });
         if (await appears(yes, 5_000)) await yes.click();
-        /* The POSTER's half of the same control, and it is "I'm Still On"
+        /* The POSTER's half of the same control, and it is "I'm still on"
            there too (JobConfirmation's `isOwner` branch). There is no "Confirm
            This Job" button anywhere in `src/`: that string is JobTracking's
            STEP ACTION phrasing for `job_confirmed`, a step the tracker's
@@ -826,9 +826,9 @@ test.describe.serial("marketplace chain", () => {
            midnight, against the helper's -24), so on an evening job it has
            already closed while the helper's is still open. */
         const pc = await card(pp, "/jobs?tab=posted", scheduledTab());
-        const posterStillOn = pc.getByRole("button", { name: /I'm Still On/ }).first();
+        const posterStillOn = pc.getByRole("button", { name: /I'm still on/ }).first();
         if (await appears(posterStillOn, 10_000)) {
-          await press(pp, pc, /I'm Still On/, "poster confirm");
+          await press(pp, pc, /I'm still on/, "poster confirm");
           const py = pp.getByRole("button", { name: /Yes, I Confirm/ });
           if (await appears(py, 5_000)) await py.click();
           await assertHealthy(pp, "poster day-of confirm");
@@ -926,7 +926,7 @@ test.describe.serial("marketplace chain", () => {
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
           seen.push(`${label} photo`);
-          /* THE CHIP IS THE TRIGGER — there is no "Add Photo" button.
+          /* THE CHIP IS THE TRIGGER — there is no "Add photo" button.
              That was `PhotoProofStep`'s full-width button, the same removed
              panel the two stale `getByText` literals above were fixed for on
              2026-09-21; only half the locator was corrected. The card renders
@@ -1070,7 +1070,7 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper sees the note and resubmits", async () => {
       const c = await card(hp, "/jobs?tab=working", "Needs You");
       await expect(c.getByText(`Journey ${RUN}: please redo the corner.`), "the helper never sees the revision note").toBeVisible({ timeout: 45_000 });
-      await press(hp, c, /I'll Fix It/, "acknowledge revision");
+      await press(hp, c, /I'll fix it/, "acknowledge revision");
       const c2 = await card(hp, "/jobs?tab=working", "Needs You", false);
       await press(hp, c2, /Mark Fixed/, "mark fixed");
       const yes = hp.getByRole("dialog").getByRole("button", { name: /Mark Fixed|Yes|Confirm/ }).last();

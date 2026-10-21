@@ -7,7 +7,7 @@
  * Supabase's own reads wait for it, but a synchronous localStorage probe made
  * first reads "no session" for a signed-in person (finding
  * lh-silent-failure@ac93c18b6#1): the guest page on a cold deep link to
- * /browse, the dock jumping in late, Senior Mode text jumping, and analytics
+ * /browse, the dock jumping in late, Senior mode text jumping, and analytics
  * and error rows filed as anonymous.
  *
  * Part 1 drives each reader through the eviction case: native shell, empty
@@ -160,7 +160,7 @@ describe("readers of the stored session wait for the native restore (Q1463)", ()
   });
 
   // @mutate src/lib/simpleMode.ts |   if (!sessionKnown()) void whenSessionKnown().then(reapplyAfterRestore); |
-  it("Senior Mode from the restored session applies once the restore lands", async () => {
+  it("Senior mode from the restored session applies once the restore lands", async () => {
     await nativeBeforeRestore();
     const { initSimpleMode } = await import("@/lib/simpleMode");
     initSimpleMode();

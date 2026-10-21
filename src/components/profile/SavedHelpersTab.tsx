@@ -412,7 +412,7 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                 {...ageGatedProps("post")}
                 className="text-ds-13"
               >
-                Post a Job Instead
+                Post a job instead
               </Button>
             }
           />

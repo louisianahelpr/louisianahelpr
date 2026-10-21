@@ -34,7 +34,7 @@ import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRo
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 
 // Lazy-load the Leaflet tracking map so the ~45KB Leaflet bundle is only
-// pulled in when a tracking card between On the Way and Done is visible.
+// pulled in when a tracking card between On the way and Done is visible.
 const TrackingMap = lazy(() =>
   import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap }))
 );
@@ -96,7 +96,7 @@ const STATUSES: TrackerStep[] = [
   // "both sides confirmed, the date is locked", which a calendar says plainly
   // and cannot be confused with "Accepted".
   { key: "job_confirmed", label: "Confirmed", action: "Confirm This Job", icon: CalendarCheck, color: "text-primary" },
-  { key: "on_the_way", label: "On the Way", action: "I'm On My Way", icon: Truck, color: "text-primary" },
+  { key: "on_the_way", label: "On the way", action: "I'm On My Way", icon: Truck, color: "text-primary" },
   { key: "arrived", label: "Arrived", action: "I've Arrived", icon: MapPin, color: "text-primary" },
   { key: "working", label: "Working", action: "Start Working", icon: Wrench, color: "text-primary" },
   { key: "done", label: "Done", action: "Mark Job Complete", icon: PartyPopper, color: "text-primary" },
@@ -303,7 +303,7 @@ export function deriveCurrentStatusIdx({
   //
   // DISPUTE: the same stamp, the same lie, one state later. Owner: "Can't be
   // marked done if it's in revision is dispute." Their screenshot was a
-  // disputed job whose rail read Confirmed → On the Way → Arrived → Working
+  // disputed job whose rail read Confirmed → On the way → Arrived → Working
   // (red) → DONE (green), sitting directly on top of a panel reading
   // "Escalated to Admin … nothing is charged or released until then". Done on
   // this rail is not "the helpr pressed a button"; it is the completion that
@@ -337,7 +337,7 @@ export { trackingProofCaption } from "./trackingProofCaption";
  *
  * KEEP THE MAP UNTIL DONE (owner, 2026-09-14, VN-20 pop-up: "Keep map until
  * done"). This reverses the map being en-route only ("this should show map
- * tracker when they're on the way"): it now stays from On the Way through
+ * tracker when they're on the way"): it now stays from On the way through
  * Arrived and Working, so the arrival label on its job pin is actually seen,
  * and hides once the job is marked done.
  */
@@ -363,7 +363,7 @@ const CONTESTED_MAP_TRACKING_STATUSES = new Set([...MAP_TRACKING_STATUSES, "done
  * placement (VN-20) so "the map shows the arrival" and "the map is on screen"
  * can never be two different answers.
  *
- * DRAWING THE MAP STARTS NO TRACKING. After On the Way the helper pin is the
+ * DRAWING THE MAP STARTS NO TRACKING. After On the way the helper pin is the
  * last position already on the `job_tracking` row; the position watch
  * (`startEnRouteWatch`, the effect gated on `tracking.status === "on_the_way"`)
  * still stops at arrival exactly as before.
@@ -1965,7 +1965,7 @@ export function JobTracking({
                     // intended.
                     //
                     // `min-h-[2.5em]` RESERVES BOTH LINES ON EVERY STEP.
-                    // "On the Way" is the one label that does not fit a 60px
+                    // "On the way" is the one label that does not fit a 60px
                     // column on one line, so it — and only it — wrapped to two.
                     // Measured at 500px: that column stood 61px tall against 47
                     // for the other seven, and because the row is `items-start`
@@ -2002,7 +2002,7 @@ export function JobTracking({
                   {/* ETA rides UNDER ITS OWN STEP (owner: "put eta under on
                       the way"). It used to be a centred paragraph below the
                       map, a full card-width away from the word it qualifies —
-                      so "On the Way" and "~12 min" were two unrelated-looking
+                      so "On the way" and "~12 min" were two unrelated-looking
                       facts and the reader had to join them. Here the number is
                       the step's own caption.
 
@@ -2061,7 +2061,7 @@ export function JobTracking({
                       0.4 mi out" now reads as one sentence instead of the
                       distance and the ETA sitting in two places. What it
                       also buys is a tracker row where no column is ever
-                      taller than the others, which is what made "On the Way"
+                      taller than the others, which is what made "On the way"
                       wrap to two lines and hang below its neighbours. */}
                 </div>
               );
@@ -2126,7 +2126,7 @@ export function JobTracking({
               </span>
             );
           })()}
-          {/* ETA, moved here off the "On the Way" step (owner, 2026-09-11:
+          {/* ETA, moved here off the "On the way" step (owner, 2026-09-11:
               "move 12 min into the line below"). Same guard as before — only
               while the helper is genuinely en route and the server has an
               estimate — so this line never carries a stale number once they
@@ -2172,10 +2172,10 @@ export function JobTracking({
           where the `personTile` prop used to be declared. */}
 
       {/* Tracking map — KEPT UNTIL DONE (owner, 2026-09-14: "Keep map until
-          done"; was en-route only). Shown from On the Way through Arrived and
+          done"; was en-route only). Shown from On the way through Arrived and
           Working while both positions are known (`shouldShowTrackingMap`),
           for the Helpr and the poster alike, and hidden once the job is
-          marked done. Past On the Way the helper pin is the last ping on the
+          marked done. Past On the way the helper pin is the last ping on the
           tracking row — the map draws it, it does not start or extend any
           location watch. Lazy-loaded so the Leaflet chunk isn't paid for by
           cards that never enter these steps. Falls back to the status line
@@ -2297,7 +2297,7 @@ export function JobTracking({
 
         // Locked until TWO HOURS BEFORE the start time, not just until
         // midnight of the job day (owner, 2026-08-24 transition audit): the
-        // old gate let a helper tap "On the Way" at 7 AM for an 8 PM job,
+        // old gate let a helper tap "On the way" at 7 AM for an 8 PM job,
         // starting the tracker half a day early and making the poster's
         // "they're on the way" signal meaningless. A job with no start_time
         // falls back to the old day gate — with nothing to measure against,

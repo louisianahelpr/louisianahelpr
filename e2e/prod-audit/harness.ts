@@ -601,7 +601,7 @@ export interface Fixtures {
    * read as the helper. The three above are all poster-e2e's jobs, and three
    * helper-card states live only on jobs the seeded pairs posted
    * (`5eed0a10-…` rows, is_seed): a job the helper CONFIRMED but has not left
-   * for (ActiveJobSection's "Cancel Job" → abort-reason box), one the helper
+   * for (ActiveJobSection's "Cancel job" → abort-reason box), one the helper
    * is on the way to or working (its "Report a problem" chip → DisputeDialog),
    * and a dispute the OTHER side filed (DisputedSection's "Respond to
    * Dispute" box). Measured on prod 2026-09-23: poster-e2e had no disputed

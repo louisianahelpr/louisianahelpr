@@ -1,5 +1,5 @@
 /**
- * Post a Job's loading column draws five cards when the poster has past jobs
+ * Post a job's loading column draws five cards when the poster has past jobs
  * and four otherwise, so nobody sees a jump (owner, 2026-10-17). Before: the
  * skeleton drew four until the job-history read landed, and a returning
  * poster's column grew by the Repost card, inserted second
@@ -69,7 +69,7 @@ beforeEach(() => {
   recent.value = null;
 });
 
-describe("the Post a Job skeleton checks job history (owner, 2026-10-17)", () => {
+describe("the Post a job skeleton checks job history (owner, 2026-10-17)", () => {
   it("a poster with past jobs: five cards (the Repost card included)", () => {
     recent.value = [{ id: "j1" }];
     expect(bones()).toBe(5);

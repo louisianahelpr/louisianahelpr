@@ -45,7 +45,7 @@ const DIST_DIR = resolve(arg("dist", "dist"));
 const BASE = `http://localhost:${PORT}`;
 
 // What "the page is here" means per route: the real page's element, never its
-// skeleton (LoginRouteSkeleton renders a real "Log In" h1, so /login waits for
+// skeleton (LoginRouteSkeleton renders a real "Log in" h1, so /login waits for
 // the email field that only the real page has).
 const ROUTES = [
   { path: "/", name: "landing H1", selector: "h1", text: "Louisiana" },

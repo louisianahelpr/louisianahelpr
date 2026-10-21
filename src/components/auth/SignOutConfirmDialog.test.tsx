@@ -1,7 +1,7 @@
 /**
  * Owner, 2026-10-09: "I pressed Log Out and nothing happened." The Log Out
  * dialog closed on the press and sign-out then ran with nothing on screen.
- * Pressed, this dialog must stay open, say "Logging Out…", refuse a second
+ * Pressed, this dialog must stay open, say "Logging out…", refuse a second
  * press and refuse Escape/Cancel until sign-out has finished.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -29,11 +29,11 @@ function Harness({ after }: { after: (r: unknown) => void }) {
 }
 
 describe("SignOutConfirmDialog", () => {
-  it("stays open on a disabled 'Logging Out…' until sign-out finishes, then runs after()", async () => {
+  it("stays open on a disabled 'Logging out…' until sign-out finishes, then runs after()", async () => {
     const after = vi.fn();
     render(<Harness after={after} />);
     fireEvent.click(screen.getByRole("button", { name: "Log Out" }));
-    const pending = screen.getByRole("button", { name: "Logging Out…" });
+    const pending = screen.getByRole("button", { name: "Logging out…" });
     expect(pending).toBeDisabled();
     // Escape and Cancel cannot close it mid-sign-out.
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
@@ -57,4 +57,4 @@ describe("SignOutConfirmDialog", () => {
 
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | e.preventDefault(); |
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | onOpenChange={(next) => { if (!signingOut) onOpenChange(next); }} | onOpenChange={onOpenChange}
-// @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryLabel={signingOut ? "Logging Out…" : label} | primaryLabel={label}
+// @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryLabel={signingOut ? "Logging out…" : label} | primaryLabel={label}

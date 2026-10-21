@@ -144,7 +144,7 @@ export function useProfileLandingDerived({
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
         {
           key: "gift-card",
-          label: "Gift Card",
+          label: "Gift card",
           icon: <Gift className="w-5 h-5" />,
           desc: "Send a Helpr gift card by email",
           tint: SECTION_TINT.money,

@@ -50,7 +50,7 @@ export function HiddenUnreadBar({
           style={{ color: "hsl(var(--olivewood) / 0.9)" }}
         >
           {count === 1
-            ? "1 unread conversation isn't in Active — show all"
+            ? "1 unread conversation isn't in active — show all"
             : `${count} unread conversations aren't in Active — show all`}
         </span>
       </button>

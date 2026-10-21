@@ -71,7 +71,7 @@
  *    concatenation, a label read from the database). Those are invisible to a
  *    literal scan and are reported by the coverage assertion below rather than
  *    silently skipped.
- *  • Reachability through NAVIGATION: "go to Settings and tap Delete Account"
+ *  • Reachability through NAVIGATION: "go to Settings and tap Delete account"
  *    is satisfied by the label existing, not by the route being reachable from
  *    where the reader is standing.
  *  • CHECK 2 proves a producer EXISTS, not that it succeeds. VN-33's writer

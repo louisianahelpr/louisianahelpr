@@ -245,7 +245,7 @@ test("every route holds the one phone rhythm, and 1440 holds 24", async ({ brows
 // phone; src/index.css), read by ProfileTabBody and Tailwind's `section`
 // spacing key. Measured before/after on the built app against prod
 // (~/.lh-shots/q191/{before,after}.json): Profile tabs 16 → 12, After a Job /
-// Home History / Legal 20 → 12, Gift Card / Help 24 → 12, My Posts 16 → 12.
+// Home history / Legal 20 → 12, Gift card / Help 24 → 12, My Posts 16 → 12.
 //
 // The claim, at 320/375/390/430 on every catalog screen: every gap between the
 // sections of the page's own stack (readSectionSpacing) equals --section-gap
@@ -254,8 +254,8 @@ test("every route holds the one phone rhythm, and 1440 holds 24", async ({ brows
 // screen either has a stack or is listed as having none (two-way again).
 //
 // Red on the original: the build of origin/main 80ef9f186 fails this test with
-// 91 violations (every Profile tab at 16, Legal 20, Help / Gift Card 24, After
-// a Job / Home History 20, My Posts 16) and the rhythm test above with 32 (the
+// 91 violations (every Profile tab at 16, Legal 20, Help / Gift card 24, After
+// a Job / Home history 20, My Posts 16) and the rhythm test above with 32 (the
 // Q190 pages); both green on the fix, vacuity leg included (2026-09-23).
 
 /** The token, read from the stylesheet. */
@@ -310,7 +310,7 @@ const DATA_ROW_STACKS: Record<string, string> = {
   // account's own rows too. Since the launch switch hid seed jobs from browse
   // (Q552) prod's feed holds ONE public job, poster-e2e's default My Posts view
   // is empty and it has no reviews, so these measured "no section stack" and
-  // kept prod-audit red on data (Home History likewise: no finished job).
+  // kept prod-audit red on data (Home history likewise: no finished job).
   // Two rows or more, they are held as before.
   // (job-detail-1 / job-detail-missing name a mock-only job id and land on the
   // /home feed on prod.)

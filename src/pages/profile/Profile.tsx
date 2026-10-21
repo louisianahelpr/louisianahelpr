@@ -32,7 +32,6 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { splitName } from "@/lib/splitName";
 import { requireOnline } from "@/lib/requireOnline";
 import { useProfileTabQueries } from "./useProfileTabQueries";
-
 // Only the landing tab + its lightweight header are needed on first paint.
 // Every other tab panel and the rarely-opened dialogs are code-split so the
 // Profile route chunk stays small — each is fetched the first time it shows.
@@ -42,7 +41,8 @@ import { useProfileTabQueries } from "./useProfileTabQueries";
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
 import SectionBoundary from "@/components/SectionBoundary";
 import { ProfileTabPanels } from "./ProfileTabPanels";
-import { PROFILE_COLUMN, TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
+import { TAB_TITLES, profileTabTitle, resolveTab, type Profile, type Tab } from "./types";
+import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { hasInAppHistory } from "@/lib/inAppHistory";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
@@ -556,7 +556,7 @@ const ProfilePage = () => {
             arriving. Without it the landing's wait for its switch answers
             (Q?profile-declutter-shift) read as a second content wave. */}
         <div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">
-          <div className={`page-measure ${PROFILE_COLUMN}`}>
+          <div className={`page-measure ${PAGE_COLUMN}`}>
             {/* THE PLACEHOLDER MUST BE THE SCREEN YOU ASKED FOR. This line
                 used to read `isEarningsTabUrl() ? <EarningsPageSkeleton /> :
                 <ProfilePageSkeleton />`, which special-cased exactly ONE tab
@@ -666,7 +666,7 @@ const ProfilePage = () => {
             canTrigger={canTrigger}
             className="w-full page-measure mx-auto flex-1 min-h-0 flex flex-col gap-3 lg:gap-4 pb-safe-nav"
           >
-            <div className={`${PROFILE_COLUMN} shrink-0 flex flex-col gap-3 lg:gap-4`}>
+            <div className={`${PAGE_COLUMN} shrink-0 flex flex-col gap-3 lg:gap-4`}>
             <ProfileLanding
               profile={profile}
               userId={userId}
@@ -768,7 +768,7 @@ const ProfilePage = () => {
           <SectionBoundary key={tab} label={`the ${tab.replace(/_/g, " ")} section`}>
           {/* No entrance animation (owner, 2026-10-08: pages appear in
               place, like Messages; see PageScaffold). */}
-          <div className={PROFILE_COLUMN}>
+          <div className={PAGE_COLUMN}>
           <ProfileTabPanels
             tab={tab}
             onBackFromTab={backFromTab}

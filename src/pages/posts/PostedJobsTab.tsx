@@ -232,7 +232,7 @@ export const PostedJobsTab = ({
         body="Post your first job and we'll match you with ID-verified Louisiana Helprs nearby."
         action={
           <Button onClick={ageGate("post", () => navigate("/post-job"))} {...ageGatedProps("post")} className="rounded-ds-md btn-press">
-            <Wrench className="w-4 h-4 mr-1.5" /> Post a Job
+            <Wrench className="w-4 h-4 mr-1.5" /> Post a job
           </Button>
         }
       />

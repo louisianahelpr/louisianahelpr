@@ -7,7 +7,7 @@
  * two halves: signOutWithPushCleanup caps every network step
  * (src/lib/authSignOut.test.ts), and every button a person presses goes
  * through useSignOutAction, whose `signingOut` the button binds to BOTH
- * `disabled` and its label ("Logging Out…"). The three confirm dialogs
+ * `disabled` and its label ("Logging out…"). The three confirm dialogs
  * (Profile, Admin, Security) do that through SignOutConfirmDialog, whose own
  * behaviour test is src/components/auth/SignOutConfirmDialog.test.tsx.
  *
@@ -17,7 +17,7 @@
  *     Log Out button. Two-way: a new caller fails it, and so does an allowlisted
  *     one that stops calling it (lower the list in the same commit).
  *  2. Every file that calls useSignOutAction( binds `signingOut` to disabled
- *     and to the "Logging Out…" label once per signOut({ … }) it makes.
+ *     and to the "Logging out…" label once per signOut({ … }) it makes.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -49,7 +49,7 @@ const CALLS_HELPER = /\bsignOutWithPushCleanup\s*\(/g;
 const CALLS_HOOK = /\buseSignOutAction\s*\(/g;
 const SIGN_OUT_CALL = /\bsignOut\s*\(\s*\{/g;
 const DISABLED_BOUND = /\b(?:primaryDisabled|disabled)=\{signingOut\}/g;
-const LABEL_BOUND = /signingOut\s*\?\s*"Logging Out…"/g;
+const LABEL_BOUND = /signingOut\s*\?\s*"Logging out…"/g;
 
 /** What is wrong with one useSignOutAction caller, or null. */
 export function bindingProblem(code: string): string | null {
@@ -58,17 +58,17 @@ export function bindingProblem(code: string): string | null {
   const disabled = count(code, DISABLED_BOUND);
   const label = count(code, LABEL_BOUND);
   if (disabled !== calls) return `${calls} signOut({ … }) call(s) but ${disabled} disabled={signingOut} binding(s)`;
-  if (label !== calls) return `${calls} signOut({ … }) call(s) but ${label} signingOut ? "Logging Out…" label(s)`;
+  if (label !== calls) return `${calls} signOut({ … }) call(s) but ${label} signingOut ? "Logging out…" label(s)`;
   return null;
 }
 
 describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
   it("the binding check catches a button with no disabled or no label, and passes a bound one", () => {
     const bound = `const { signingOut, signOut } = useSignOutAction();
-      <Button onClick={() => void signOut({ after })} disabled={signingOut}>{signingOut ? "Logging Out…" : "Sign Out"}</Button>`;
+      <Button onClick={() => void signOut({ after })} disabled={signingOut}>{signingOut ? "Logging out…" : "Sign out"}</Button>`;
     expect(bindingProblem(bound)).toBeNull();
     expect(bindingProblem(bound.replace("disabled={signingOut}", ""))).toMatch(/disabled/);
-    expect(bindingProblem(bound.replace('signingOut ? "Logging Out…" : "Sign Out"', '"Sign Out"'))).toMatch(/Logging Out/);
+    expect(bindingProblem(bound.replace('signingOut ? "Logging out…" : "Sign out"', '"Sign out"'))).toMatch(/Logging out/);
     expect(bindingProblem(bound + `<Button onClick={() => void signOut({ after })}>Sign Out</Button>`)).not.toBeNull();
   });
 
@@ -80,7 +80,7 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
     );
   });
 
-  it("every useSignOutAction caller binds signingOut to disabled and the Logging Out… label", () => {
+  it("every useSignOutAction caller binds signingOut to disabled and the Logging out… label", () => {
     const users = sources.filter(({ f, code }) => f !== HOOK && count(code, CALLS_HOOK) > 0);
     // SignOutConfirmDialog (Profile, Admin, SecurityTab), AccountBanned and
     // CompleteProfile on 2026-10-09.
@@ -94,5 +94,5 @@ describe("pressed Log Out buttons show progress (owner, 2026-10-09)", () => {
 // "nothing happened" wiring and fails this guard (and so did checking out the
 // five wired files from origin/main: both inventory tests failed).
 // @mutate src/components/auth/SignOutConfirmDialog.tsx | primaryDisabled={signingOut} |
-// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging Out…" : "Sign Out"} | Sign Out
+// @mutate src/pages/auth/AccountBanned.tsx | {signingOut ? "Logging out…" : "Sign out"} | Sign Out
 // @mutate src/pages/profile/Profile.tsx | after={() => navigate("/")} | after={async () => { await signOutWithPushCleanup(); navigate("/"); }}

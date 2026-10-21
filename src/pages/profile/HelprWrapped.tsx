@@ -517,7 +517,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                       disabled={isFetching}
                       className="underline underline-offset-2 disabled:opacity-60"
                     >
-                      Try Again
+                      Try again
                     </button>
                   </p>
                 )}
@@ -544,8 +544,8 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                 {isSharing
                   ? "Opening\u2026"
                   : SEASON.isYearEnd
-                    ? "Share Your Wrapped"
-                    : "Share Your Year"}
+                    ? "Share your Wrapped"
+                    : "Share your year"}
               </Button>
               {/* The "See yours" anchor that sat here preventDefault-ed into
                   nothing — a dead link directly under the real Share button.

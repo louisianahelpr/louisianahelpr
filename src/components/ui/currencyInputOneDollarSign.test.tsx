@@ -1,6 +1,6 @@
 // @mutate src/components/ui/currency-input.tsx |     style: "decimal", |     style: "currency", currency: "USD",
 /**
- * Cowork design audit 2026-10-20, J2: the Post a Job budget field read
+ * Cowork design audit 2026-10-20, J2: the Post a job budget field read
  * "$ $40.00" once it lost focus. The field draws a "$" prefix AND formatted
  * the value as currency, so every blurred CurrencyInput showed two.
  *

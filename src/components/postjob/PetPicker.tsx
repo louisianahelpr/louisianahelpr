@@ -74,7 +74,7 @@ export function PetPicker({
           className="text-ds-11 font-medium inline-flex items-center gap-1 btn-press"
           style={{ color: "hsl(var(--bark))" }}
         >
-          <Plus className="w-3 h-3" /> Add a Pet
+          <Plus className="w-3 h-3" /> Add a pet
         </Link>
       </div>
 

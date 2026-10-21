@@ -25,7 +25,7 @@ export interface InboxViewItemsProps {
 }
 
 /* Both views are wired to real data: Pinned reads the existing swipe-to-pin
-   state (getPinnedSet/pinnedKey); Recently Deleted reads the existing archive
+   state (getPinnedSet/pinnedKey); Recently deleted reads the existing archive
    state (archivedConversations.ts, already backing the swipe-to-archive
    action) via allConversations, the pre-archive-filter list useMessagesData
    already keeps around for deep links. The status-filter stubs (Needs You /
@@ -48,7 +48,7 @@ function InboxViewItems({ canSelect, onSelect, onPinned, onRecentlyDeleted }: In
       </DropdownMenuItem>
       <DropdownMenuItem onClick={onRecentlyDeleted}>
         <Trash2 className="w-4 h-4 mr-2" />
-        Recently Deleted
+        Recently deleted
       </DropdownMenuItem>
     </>
   );
@@ -57,7 +57,7 @@ function InboxViewItems({ canSelect, onSelect, onPinned, onRecentlyDeleted }: In
 /* Hamburger — the OVERFLOW MENU, not the disclosure. It opens Select
    messages / Pinned / Recently Deleted: one bulk action and two views onto
    data the three tabs do not cover. It stays exactly as it was — the chevron
-   beside it is an addition, not a replacement — because Recently Deleted is
+   beside it is an addition, not a replacement — because Recently deleted is
    the only route back to a thread you have hidden.
 
    Deliberately NOT gated on hasThreads: Pinned/Recently Deleted look at

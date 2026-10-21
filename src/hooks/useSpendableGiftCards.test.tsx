@@ -1,6 +1,6 @@
 /**
  * useSpendableGiftCards: the one definition of "a gift waiting for you" that
- * the gift card banner on Post a Job reads. These pin the conditions
+ * the gift card banner on Post a job reads. These pin the conditions
  * redeem_gift_card checks (funded, sent/available, unexpired), the sorted id
  * spelling the banner's dismissal signature depends on, and that a failed read
  * is reported instead of passing as "no gifts".

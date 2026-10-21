@@ -17,7 +17,7 @@ import type { ReactElement } from "react";
  *
  * ── PART 1: WHERE THE CONTROL IS ────────────────────────────────────────────
  * It used to be `PhotoProofStep` in the card's `ask` slot: a titled panel with
- * a hint and a full-width "Add Photo" button, stacked ABOVE the one action row
+ * a hint and a full-width "Add photo" button, stacked ABOVE the one action row
  * VN-21 asked for. It is now one chip IN the row, on every step that offers it
  * (on_site, working, dispute), and it still self-gates on
  * `jobs.require_photo_proof` so a no-photos job shows no control at all.

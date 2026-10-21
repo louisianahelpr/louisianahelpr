@@ -10,7 +10,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  * ONE primary action per card.
  *
  * 1808 unit tests were green while a revision-state card stacked THREE
- * completion CTAs — the tracker's "Done", the revision card's "I'll Fix It",
+ * completion CTAs — the tracker's "Done", the revision card's "I'll fix it",
  * and "Mark Fixed" — because every one of those tests asserted props and
  * branches, never the coherence of what actually rendered together. This file
  * asserts the rendered output: across every state the helper's active card can
@@ -231,10 +231,10 @@ const CASES: Array<{
 /**
  * The sanctioned exit, and its replacement.
  *
- * Owner, 2026-09-14 (VN-18): the back-out is labelled "Cancel Job" and exists
+ * Owner, 2026-09-14 (VN-18): the back-out is labelled "Cancel job" and exists
  * ONLY after the helper has confirmed and BEFORE "I'm On My Way". Once on the
  * way, arrived or working there is no back-out at all. Removing a CONTROL must
- * not remove the PATH, so every state that lacks Cancel Job gains "Report a
+ * not remove the PATH, so every state that lacks Cancel job gains "Report a
  * Problem" — and (VN-19) that is a danger chip IN the action row beside
  * Message, not a link under it. Complements: no state may have both, and no
  * live state may have neither.
@@ -252,7 +252,7 @@ describe("helper active card — exactly one way out of a live job", () => {
   const exitIn = (c: HTMLElement) => {
     const more = c.querySelector<HTMLElement>("[data-job-step-overflow]");
     if (more && !document.querySelector('[role="dialog"][aria-label="More actions for this job"]')) fireEvent.click(more);
-    return [...document.body.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
+    return [...document.body.querySelectorAll("button")].find((b) => /Cancel job/i.test(b.textContent || ""));
   };
   const confirmedNotOnTheWay = makeJob({
     status: "in_progress",
@@ -261,11 +261,11 @@ describe("helper active card — exactly one way out of a live job", () => {
     poster_confirmed_working_at: null,
   });
 
-  it("confirmed, before On the Way: Cancel Job is the exit, and Report a Problem is not offered", async () => {
+  it("confirmed, before On the way: Cancel job is the exit, and Report a Problem is not offered", async () => {
     const { container } = renderSection(confirmedNotOnTheWay, "job_confirmed");
     await act(async () => { await Promise.resolve(); });
     const exit = exitIn(container);
-    expect(exit, "the pre-on-the-way Cancel Job disappeared").toBeTruthy();
+    expect(exit, "the pre-on-the-way Cancel job disappeared").toBeTruthy();
     expect(exit!.hasAttribute("data-job-action-chip")).toBe(true);
     expect(reportIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
     expect(
@@ -278,7 +278,7 @@ describe("helper active card — exactly one way out of a live job", () => {
     ["on the way", CASES[0].job, "on_the_way"],
     ["working", CASES[1].job, "working"],
   ] as const) {
-    it(`${name}: no Cancel Job, and Report a Problem is inside More, in Message's row`, async () => {
+    it(`${name}: no Cancel job, and Report a Problem is inside More, in Message's row`, async () => {
       const { container } = renderSection(job, tracking);
       await act(async () => { await Promise.resolve(); });
       expect(exitIn(container), `a job that is ${name} still offers the back-out`).toBeUndefined();
@@ -326,17 +326,17 @@ describe("helper active card — at most one primary CTA per state", () => {
     });
   }
 
-  it("revision_requested offers 'I'll Fix It' and NOT the tracker's Done", async () => {
+  it("revision_requested offers 'I'll fix it' and NOT the tracker's Done", async () => {
     // The exact three-CTA stack found live: the tracker's next step was "Done"
-    // while the revision card offered "I'll Fix It" and the section offered
+    // while the revision card offered "I'll fix it" and the section offered
     // "Mark Fixed". The revision flow owns completion here.
     const { container } = renderSection(CASES[3].job);
-    expect(await screen.findByRole("button", { name: /I'll Fix It/i })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /I'll fix it/i })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /^Done$/i }),
       "the tracker's Done button is back on a revision-state card — that is the third CTA",
     ).toBeNull();
-    expect(primaryCtas(container)).toEqual(["I'll Fix It"]);
+    expect(primaryCtas(container)).toEqual(["I'll fix it"]);
   });
 
   it("'Mark Fixed' does not exist until the revision is accepted", async () => {
@@ -351,7 +351,7 @@ describe("helper active card — at most one primary CTA per state", () => {
     expect(markFixed(), "'Mark Fixed' is showing on a revision nobody has accepted yet").toBeUndefined();
 
     // …and it must arrive once they accept, or the way out of a revision is gone.
-    const fixIt = await screen.findByRole("button", { name: /I'll Fix It/i });
+    const fixIt = await screen.findByRole("button", { name: /I'll fix it/i });
     await act(async () => { fixIt.click(); await Promise.resolve(); });
     const btn = markFixed();
     expect(btn, "the 'Mark Fixed' escape from an accepted revision never appeared").toBeTruthy();
@@ -388,6 +388,6 @@ describe("helper active card — at most one primary CTA per state", () => {
 });
 
 // Shown able to fail: the upper bound on the sanctioned exit (owner VN-18 —
-// Cancel Job exists only BEFORE "I`m On My Way"). Drop `!onTheWay` and a helper
+// Cancel job exists only BEFORE "I`m On My Way"). Drop `!onTheWay` and a helper
 // who is on the way, arrived or working is offered the back-out again.
 // @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | const showExit = !aborted && hasConfirmed && !onTheWay; | const showExit = !aborted && hasConfirmed;

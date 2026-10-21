@@ -266,16 +266,16 @@ const AccountBanned = () => {
           <Button asChild variant="primary" className="w-full rounded-ds-md" size="lg">
             <Link to="/support?topic=message&subject=Account%20suspension%20appeal">
               <Mail className="w-4 h-4 mr-2" />
-              Contact Support
+              Contact support
             </Link>
           </Button>
           <Button asChild variant="ghost" className="w-full rounded-ds-md" size="sm">
-            <Link to="/rules">Review Platform Rules</Link>
+            <Link to="/rules">Review platform Rules</Link>
           </Button>
         </div>
       </div>
 
-      {/* Sign Out and Delete Account, in that order and both subordinate to the
+      {/* Sign out and Delete Account, in that order and both subordinate to the
           appeal CTAs above. Deletion is a real exit and it must be offered —
           but a suspended user's FIRST move should be the appeal, not the
           irreversible thing, so neither of these wears a filled treatment.
@@ -289,7 +289,7 @@ const AccountBanned = () => {
           disabled={signingOut}
           className="text-muted-foreground"
         >
-          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging Out…" : "Sign Out"}
+          <LogOut className="w-4 h-4 mr-1" /> {signingOut ? "Logging out…" : "Sign out"}
         </Button>
         <Button
           variant="ghost"
@@ -297,7 +297,7 @@ const AccountBanned = () => {
           onClick={deleteAccount.requestDelete}
           className="text-destructive-ink hover:text-destructive-ink"
         >
-          <Trash2 className="w-4 h-4 mr-1" /> Delete Account
+          <Trash2 className="w-4 h-4 mr-1" /> Delete account
         </Button>
       </div>
 

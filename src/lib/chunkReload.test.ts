@@ -349,7 +349,7 @@ describe("hardReloadBypassCache follow-ups", () => {
 });
 
 // Shown able to fail:
-// The WebKit replay refetch. Without it iOS Try Again replays the cached 404 forever.
+// The WebKit replay refetch. Without it iOS Try again replays the cached 404 forever.
 // @mutate src/lib/chunkReload.ts | if (failedAssetUrls.size > 0 && typeof fetch === "function") { | if (false) {
 // The cap itself. Without it a tab whose chunk keeps 404ing reloads forever.
 // @mutate src/lib/chunkReload.ts | if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) return { reload: false }; | if (count >= 99) return { reload: false };

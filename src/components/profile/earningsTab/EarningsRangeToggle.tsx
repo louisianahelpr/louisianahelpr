@@ -7,8 +7,8 @@ import { SegmentedControl, type SegmentedOption } from "@/components/ui/Segmente
  *  1. It scopes the headline take-home, the job count and the tips figure in
  *     <EarningsSummaryCard /> (see `completedWithin` / `rangeStartMs` in
  *     earningsTabHelpers). Before that it scoped NOTHING — every figure on the
- *     screen was lifetime whichever option was selected, so "This Year" was a
- *     pure no-op and "This Week" printed a lifetime total beneath a control
+ *     screen was lifetime whichever option was selected, so "This year" was a
+ *     pure no-op and "This week" printed a lifetime total beneath a control
  *     that said otherwise.
  *  2. It surfaces the two forward-looking cards that used to sit permanently
  *     on the page (the Sunday projection and the monthly-goal streak card), so
@@ -18,9 +18,9 @@ export type EarningsRange = "lifetime" | "week" | "month" | "year";
 
 const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = [
   { value: "lifetime", label: "Lifetime" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
-  { value: "year", label: "This Year" },
+  { value: "week", label: "This week" },
+  { value: "month", label: "This month" },
+  { value: "year", label: "This year" },
 ];
 
 /**
@@ -28,7 +28,7 @@ const RANGE_OPTIONS: SegmentedOption<EarningsRange>[] = [
  *
  * It used to sit full-width between the tab bar and the wallet card, attached
  * to nothing, one screen above a second near-identical pill (PaymentTab's
- * poster-spend scope, whose options read "Lifetime / This Week / August / This
+ * poster-spend scope, whose options read "Lifetime / This week / August / This
  * Year"). Two unlabelled segmented controls with different option sets and no
  * visible owner is why the screen read as though nobody could say which
  * control governed which number. The toggle now lives in the card whose

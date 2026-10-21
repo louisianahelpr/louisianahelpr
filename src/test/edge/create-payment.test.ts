@@ -1243,7 +1243,7 @@ describe("create-payment edge function", () => {
         expect(stripeMock.checkout.sessions.create.mock.calls[0][0].cancel_url).toMatch(new RegExp(`/quotes/request/${REQ_ID}$`));
       });
 
-      it("without a returnPath a cancelled checkout returns to Post a Job", async () => {
+      it("without a returnPath a cancelled checkout returns to Post a job", async () => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
         await escrow();
         expect(stripeMock.checkout.sessions.create.mock.calls[0][0].cancel_url).toMatch(/\/post-job$/);

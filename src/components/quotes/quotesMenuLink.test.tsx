@@ -1,7 +1,7 @@
 /**
  * Owner answer 12 (2026-10-17) put a Quotes link in the menu (the Profile
  * landing row on a phone, the desktop rail's Quotes entry). Owner decision
- * 2026-10-19 superseded it: quotes live INSIDE Post a Job, Jobs, My Jobs and
+ * 2026-10-19 superseded it: quotes live INSIDE Post a job, Jobs, My Jobs and
  * Posts, and the /quotes hub redirects (src/test/quotesHubRetired.test.ts;
  * the Wants Quotes lens: src/components/quotes/wantsQuotesFilter.test.tsx).
  * Re-pointed the same day: the menu link is GONE from both places, and its

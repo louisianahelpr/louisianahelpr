@@ -77,7 +77,7 @@ export async function pickCalendarDay(page: Page, isoDay: string, opts: { inline
     deviceZone,
     "pickCalendarDay needs a browser context in America/Chicago (newUserContext(..., { timezoneId: \"America/Chicago\" }))",
   ).toBe(CALENDAR_ZONE);
-  // `inline`: an always-open calendar (Post a Job since 2026-10-08), found by
+  // `inline`: an always-open calendar (Post a job since 2026-10-08), found by
   // the label that names its group; nothing to open and nothing to close.
   const popover = opts.inline
     ? page.getByRole("group", { name: opts.inline })

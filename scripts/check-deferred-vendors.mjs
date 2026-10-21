@@ -92,7 +92,7 @@ const DEFERRED_PACKAGES = [
  *
  * vite.config.ts's `app-shared` group captures every src/lib module that two
  * chunks share, and puts it on the boot path of every page. pdfDocument.ts is
- * shared by the two PDF exports (Home History, Work Record), so it went there,
+ * shared by the two PDF exports (Home history, Work record), so it went there,
  * and with it helprMarkPng.ts: a 32 KB base64 crest that compresses badly
  * (~24 KB brotli), read by nothing but a PDF export. The `pdf-documents`
  * group now keeps both with their importers. A prefix check on
@@ -103,7 +103,7 @@ const DEFERRED_PACKAGES = [
  */
 const DEFERRED_MODULES = [
   { file: "src/lib/helprMarkPng.ts", why: "a 32 KB base64 crest only the PDF exports embed (vite.config.ts pdf-documents group)" },
-  { file: "src/lib/pdfDocument.ts", why: "the PDF document builder (Home History, Work Record exports); vite.config.ts pdf-documents group" },
+  { file: "src/lib/pdfDocument.ts", why: "the PDF document builder (Home history, Work record exports); vite.config.ts pdf-documents group" },
 ];
 
 const json = process.argv.includes("--json");

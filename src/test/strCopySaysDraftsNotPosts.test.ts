@@ -1,13 +1,13 @@
 /**
- * Host Automation's words match what the sync does (Q768, seen on prod
+ * Host automation's words match what the sync does (Q768, seen on prod
  * 2026-10-12 at 375 while proving Q1119): str-ical-sync DRAFTS a cleaning job
- * for each checkout (a notice that opens Post a Job pre-filled; nothing posted,
+ * for each checkout (a notice that opens Post a job pre-filled; nothing posted,
  * nothing charged), but the empty state still promised "Helpr automatically
  * posts a cleaning job" and the footnote "Cleaning jobs are created for
  * checkouts up to 7 days out". A host reading that would wait for a cleaner who
  * was never booked.
  *
- * Class: every user-facing string in the Host Automation screen (StrSettings
+ * Class: every user-facing string in the Host automation screen (StrSettings
  * and src/pages/profile/strSettings/*) — read with comments blanked — makes no
  * auto-post / auto-create claim.
  *
@@ -26,7 +26,7 @@ const FILES = [join(ROOT, "src/pages/profile/StrSettings.tsx"), ...readdirSync(D
 /** Claims the draft-only sync does not keep. */
 const CLAIMS = [/automatically posts?/i, /auto-?posts?\b/i, /jobs? (?:are|is|get|gets) (?:created|posted)/i, /\bcreates (?:a )?cleaning jobs?/i, /posts? a cleaning job/i];
 
-describe("Host Automation says drafts, never auto-posts", () => {
+describe("Host automation says drafts, never auto-posts", () => {
   it("reads the whole screen", () => {
     // Floor: StrSettings + AddCalendarForm + ConnectionCard + helpers today.
     expect(FILES.length).toBeGreaterThan(3);

@@ -1,4 +1,4 @@
-// Board 166 (desktop Post a Job, step 1): the step rail, the group cards'
+// Board 166 (desktop Post a job, step 1): the step rail, the group cards'
 // "what's in it" line, and the open group's olive outline (not a fill).
 // @mutate src/components/postjob/PostJobStepRail.tsx | {done && onPick && (canPick?.(key) ?? true) ? ( | {false ? (
 // @mutate src/components/postjob/JobCategoryGroups.tsx | i === 0 \|\| /^[A-Z]{2}/.test(it.label) | i === 0

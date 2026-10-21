@@ -281,7 +281,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
             size="lg"
             className="w-full h-9 rounded-ds-sm text-ds-13 font-semibold"
           >
-            {saving ? "Saving..." : "Save Availability"}
+            {saving ? "Saving..." : "Save availability"}
           </Button>
         </div>
       </div>
@@ -407,7 +407,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         size="lg"
         className="w-full h-12 rounded-2xl text-ds-15 font-semibold"
       >
-        {saving ? "Saving…" : "Save Availability"}
+        {saving ? "Saving…" : "Save availability"}
       </Button>
     </div>
   );

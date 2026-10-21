@@ -23,7 +23,7 @@ const IN_ORDER: RegExp[] = [
   // the label under the figure whatever the figure is.
   /total earned/i,
   // No Payouts list and no "Sent to your bank" (owner, 2026-10-08): asserted absent below.
-  /More Insights/i,
+  /More insights/i,
   /Tax reporting:/i,
 ];
 

@@ -4,7 +4,7 @@
 
 /**
  * Q248(a): the guest CTA in the job-detail footer must match the app's Title
- * Case CTA convention (see Navbar.tsx "Get Started" / "Log In"), not sentence
+ * Case CTA convention (see Navbar.tsx "Get started" / "Log in"), not sentence
  * case.
  */
 import { describe, it, expect } from "vitest";

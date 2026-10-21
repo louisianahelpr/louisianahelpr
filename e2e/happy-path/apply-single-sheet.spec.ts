@@ -14,7 +14,7 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockTable, mockRpc } f
 //
 //   1. ONE SURFACE. Exactly one dialog, and no Continue/Back anywhere on it.
 //   2. ONE STEP. The note field, the save-as-default-pitch checkbox and
-//      "Apply Now" are on the SAME surface as the job's own title and
+//      "Apply now" are on the SAME surface as the job's own title and
 //      description — reachable without tapping anything.
 //   3. NOTHING STEPS. Tapping around the sheet never swaps its body: the job
 //      description is still there after the note field has been typed into.
@@ -128,8 +128,8 @@ test("one sheet, one step: the apply form is on the job detail surface", async (
     const cs = getComputedStyle(el);
     return { image: cs.backgroundImage, color: cs.backgroundColor, olive };
   });
-  expect(cta.image, `Apply Now background-image: ${cta.image}`).toBe("none");
-  expect(cta.color, `Apply Now background-color ${cta.color}, the olive is ${cta.olive}`).toBe(cta.olive);
+  expect(cta.image, `Apply now background-image: ${cta.image}`).toBe("none");
+  expect(cta.color, `Apply now background-color ${cta.color}, the olive is ${cta.olive}`).toBe(cta.olive);
 
   // 3. NOTHING STEPS. Typing into the note must not swap the body out — the
   //    job is still on screen, which is the property the two-step version
@@ -213,7 +213,7 @@ test("a short job leaves no dead band under the CTA", async ({ helperPage: page 
     const btn = [...el.querySelectorAll("button")].find(
       (b) => /^apply now$/i.test((b.textContent || "").trim()),
     );
-    if (!btn) return { error: "no Apply Now" } as const;
+    if (!btn) return { error: "no Apply now" } as const;
     // Measure to the ACTION ROW's bottom, not the button's. The row carries a
     // deliberate `-mb-4 pb-4` so its opaque surface runs to the sheet's own
     // padding edge and scrolled content passes UNDER it rather than through
@@ -286,7 +286,7 @@ test("dismissing the sheet abandons the apply", async ({ helperPage: page }) => 
   await expect(page.getByRole("button", { name: /^apply now$/i })).toHaveCount(0);
 });
 
-// "Apply Now" is the sheet's one primary, and primaries wear the solid olive
+// "Apply now" is the sheet's one primary, and primaries wear the solid olive
 // (CLAUDE.md: primary-surface tests assert the computed style, never the
 // class name — which is what the check above does). Handing the Button an
 // `outline` variant strips the olive while leaving the class list plausible,

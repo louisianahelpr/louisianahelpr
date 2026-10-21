@@ -6,7 +6,7 @@
  * Measured on prod before the fix, /browse at 375 as a guest: the empty state
  * sat in a `min-h-screen` box (a loading reserve kept for CLS), so "Nothing
  * today, neighbor." floated ~270px under the title and ~320px of blank ran from
- * "Or Hire Someone for a Job" to the footer. The reserve is gone; the footer
+ * "Or hire someone for a job" to the footer. The reserve is gone; the footer
  * now waits for the feed (PublicLayout `footer`), so there is nothing to hold
  * below the fold while it loads.
  *

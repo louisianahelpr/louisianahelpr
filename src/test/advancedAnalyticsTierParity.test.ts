@@ -14,7 +14,7 @@ import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
  *
  * The failure this guards against is silent and expensive in both directions:
  *
- *   - Perk table says a tier gets Advanced Analytics, SQL disagrees → someone
+ *   - Perk table says a tier gets Advanced analytics, SQL disagrees → someone
  *     pays for a page that answers `entitled:false`. That is the bug this
  *     whole feature exists to fix, reintroduced from the other end.
  *   - SQL says a tier gets it, perk table disagrees → the perk is given away,
@@ -62,7 +62,7 @@ function tiersInSql(sql: string): string[] {
 }
 
 // @mutate supabase/migrations/20261017085012_helper_advanced_analytics.sql | IN ('pro', 'plus', 'elite') | IN ('pro', 'elite')
-describe("Advanced Analytics entitlement: SQL ↔ TIER_PERKS", () => {
+describe("Advanced analytics entitlement: SQL ↔ TIER_PERKS", () => {
   it("the SQL tier list is exactly the set with advancedAnalytics: true", () => {
     const fromPerks = (Object.keys(TIER_PERKS) as SubscriptionTier[])
       .filter((t) => TIER_PERKS[t].advancedAnalytics)

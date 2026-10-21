@@ -151,7 +151,7 @@ for (const theme of THEMES) {
           });
           // TEXT THAT IS CUT OFF. The owner reports this as "cut off" over and
           // over — the apply button sitting on the payout notice, the skills
-          // chips reading "Eve…", the Work Record's clipped line. A leaf whose
+          // chips reading "Eve…", the Work record's clipped line. A leaf whose
           // scrollWidth exceeds its clientWidth is text its own box cannot
           // show. `text-overflow: ellipsis` is EXCLUDED: a deliberate one-line
           // truncation with a visible ellipsis is a design choice, not a
@@ -174,7 +174,7 @@ for (const theme of THEMES) {
             // draws its own ellipsis, exactly like `text-overflow: ellipsis`
             // does for one line. Tailwind's `line-clamp-2` sets it without
             // setting `text-overflow`, so checking only the latter reported the
-            // Home History description excerpts as "clipped by 33px tall" — a
+            // Home history description excerpts as "clipped by 33px tall" — a
             // designed two-line excerpt read as a defect.
             if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") return;
             const r0 = el.getBoundingClientRect();
@@ -282,7 +282,7 @@ for (const theme of THEMES) {
 
             // `sr-only` controls are clipped to a pixel ON PURPOSE — they exist
             // for a screen reader, and a pointer is never meant to reach them.
-            // "Expand Job Details" on /posts is one. Reporting them as
+            // "Expand job details" on /posts is one. Reporting them as
             // unclickable is reporting the accessibility layer as a defect.
             const srOnly = await target
               .evaluate((el) => el.closest(".sr-only") !== null || el.classList.contains("sr-only"))
@@ -305,7 +305,7 @@ for (const theme of THEMES) {
               .catch(() => false);
             if (active) { rec.controls.push({ label, result: "already the active tab/route (no-op expected)" }); continue; }
 
-            // A DISABLED control is meant to be inert. "Continue to Checkout"
+            // A DISABLED control is meant to be inert. "Continue to checkout"
             // on /gift-card is disabled until a recipient and an amount exist,
             // which is correct; clicking it and reporting the timeout as
             // UNCLICKABLE turns a working guard into a defect report.

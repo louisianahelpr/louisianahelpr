@@ -47,7 +47,7 @@ describe("/help offers one unambiguous way to reach a person", () => {
 
   it("keeps exactly ONE primary action in the page BODY", () => {
     // Scoped to the FAQ section, not the document: the shared marketing navbar
-    // carries its own glossy "Get Started" on every public route, which is
+    // carries its own glossy "Get started" on every public route, which is
     // chrome rather than this page's primary action. Before this change the
     // body's count was ZERO — that nav CTA was the page's only gloss, which is
     // exactly why the raw `grep -c btn-grad-primary src/pages/info/HelpCenter.tsx`

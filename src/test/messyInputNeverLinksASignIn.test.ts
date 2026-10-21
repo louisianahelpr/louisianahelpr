@@ -34,6 +34,6 @@ describe("explore never links a sign-in", () => {
   });
 
   it("still lets ordinary controls through", () => {
-    for (const ok of ["Connect a Calendar", "Save Changes", "Add a Calendar"]) expect(NEVER_PRESS.test(ok), ok).toBe(false);
+    for (const ok of ["Connect a Calendar", "Save changes", "Add a calendar"]) expect(NEVER_PRESS.test(ok), ok).toBe(false);
   });
 });

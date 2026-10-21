@@ -217,7 +217,7 @@ if (stage === "cancelled") {
       notice: document.querySelector('[data-testid="thread-closed-notice"]')?.innerText ?? null,
       composer: !!document.querySelector('input[placeholder="Type a message…"]'),
       draftBox: document.querySelector('[data-testid="thread-closed-unsent-draft"]')?.innerText ?? null,
-      failedBubble: /Not Sent — Conversation Closed/.test(document.body.innerText),
+      failedBubble: /Not sent — Conversation Closed/.test(document.body.innerText),
     }));
     say("[cancelled] after pressing Send:", JSON.stringify(st));
     await shot("cancelled-race-after-send-375");

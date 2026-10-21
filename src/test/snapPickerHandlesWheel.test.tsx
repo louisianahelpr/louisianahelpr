@@ -1,6 +1,6 @@
 /**
  * EVERY scroll-snap picker column takes the mouse wheel one row at a time
- * (owner, 2026-10-09, Start Time on Post a Job: "this is not a scroll you have
+ * (owner, 2026-10-09, Start Time on Post a job: "this is not a scroll you have
  * to click every number to move it").
  *
  * Measured in desktop Chrome on prod: a `snap-mandatory` listbox left to the

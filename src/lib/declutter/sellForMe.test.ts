@@ -16,7 +16,7 @@ import {
 } from "./sellForMe";
 
 describe("sell it for me", () => {
-  it("links to Post a Job with the sellForMe flag", () => {
+  it("links to Post a job with the sellForMe flag", () => {
     expect(SELL_FOR_ME_PARAM).toBe("sellForMe");
     expect(sellForMePostJobPath()).toBe("/post-job?sellForMe=1");
     expect(new URL(sellForMePostJobPath(), "https://x.test").searchParams.get(SELL_FOR_ME_PARAM)).toBe("1");

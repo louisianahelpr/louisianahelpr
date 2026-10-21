@@ -8,7 +8,7 @@
  * `activeConvo.messagingClosesAt`, fetched once at inbox load, and nothing
  * re-asked. Pressing Send was what "fixed" it: RLS refused with 42501,
  * sendHandlers re-read the job, the chip flipped to CANCELLED, and the typed
- * text became a failed "Not Sent — Conversation Closed" bubble.
+ * text became a failed "Not sent — Conversation Closed" bubble.
  *
  * That is fail-on-tap, which ChatComposer's own header says this codebase
  * rejects. It also made the dashed `thread-closed-unsent-draft` box —

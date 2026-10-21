@@ -57,7 +57,7 @@ vi.mock("@/lib/appLock", () => ({
   ],
 }));
 
-// login_history rows; the Sign Out Everywhere button shows only when there are some.
+// login_history rows; the Sign out Everywhere button shows only when there are some.
 let loginRows: unknown[] = [];
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -239,11 +239,11 @@ describe("SecurityTab — the gate on arming the Face ID lock", () => {
 // @mutate src/components/profile/SecurityTab.tsx | if (!ok) {\n      // User cancelled or failed — leave the switch off. The OS already showed\n      // the prompt, so no extra error toast.\n      setAppLockOn(false);\n      return;\n    } | if (false) { setAppLockOn(false); return; }
 // @mutate src/components/profile/SecurityTab.tsx | onUnsecurableDevice: "deny", | onUnsecurableDevice: "allow",
 
-// ── Sign Out Everywhere that could not be confirmed (review of the 2026-10-09
+// ── Sign out Everywhere that could not be confirmed (review of the 2026-10-09
 // "I pressed Log Out and nothing happened" fix). THIS device is signed out by
 // then, so "try again?" on the same page would retry with no session, and
 // auth-js answers that with success while revoking nothing.
-describe("Sign Out Everywhere: an unconfirmed sign-out sends the person to sign in", () => {
+describe("Sign out Everywhere: an unconfirmed sign-out sends the person to sign in", () => {
   it("says what is known and goes to /login, never a retry on the dead session", async () => {
     vi.mocked(signOutWithPushCleanup).mockResolvedValueOnce({ error: new Error("capped") } as never);
     loginRows = [{ id: "1", created_at: "2026-10-01T00:00:00Z", ip_address: "1.2.3.4", user_agent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X)" }];

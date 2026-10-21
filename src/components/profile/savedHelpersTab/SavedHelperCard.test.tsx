@@ -8,7 +8,7 @@
  * is completely invisible from the outside: every click still worked, because
  * each child called `stopPropagation`. What did NOT work was assistive tech —
  * a `button` role flattens its subtree into its own accessible name, so
- * "Offer a Job", the note control and "Remove from saved" were swallowed into
+ * "Offer a job", the note control and "Remove from saved" were swallowed into
  * the card's label and could not be reached or operated by name.
  *
  * So the assertions below are about SHAPE, not behaviour: exactly one link,

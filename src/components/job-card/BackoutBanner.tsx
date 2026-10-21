@@ -66,7 +66,7 @@ function BackoutBannerBody({ notice, moneyHeld }: { notice: BackoutNotice; money
           }
         }}
       >
-        Got It
+        Got it
       </Button>
     </div>
   );

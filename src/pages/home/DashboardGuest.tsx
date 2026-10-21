@@ -59,7 +59,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  *     bottom) so a guest inside the app sees the actual marketplace surface,
  *     not marketing chrome it can't be part of yet.
  *   - Web: `PublicLayout` — the SAME shell as /legal, /help and /support
- *     (marketing Navbar with its own Log In / Get Started, and the site
+ *     (marketing Navbar with its own Log in / Get Started, and the site
  *     Footer with Company/Legal links). A signed-out visitor landing on
  *     /browse in a browser was getting the app's fixed-viewport dashboard
  *     frame with no footer and no way back to the rest of the site — the
@@ -92,7 +92,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * notification bell, occupying the same slot at the end of the title bar's
  * single row.
  *
- * "Log in" is a plain text control; "Get Started" is the SOLID primary button,
+ * "Log in" is a plain text control; "Get started" is the SOLID primary button,
  * matching the marketing nav's signup CTA (Navbar.tsx) so the one conversion
  * action on the site looks the same wherever a guest meets it. That parity is
  * the point — /jobs and /browse are the two guest browse surfaces, and V9 of
@@ -127,11 +127,11 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
  * Tight horizontal padding rather than the button default (`sm` = px-4): it is
  * the only slack in this row that costs nothing — the labels and the 44px tap
  * heights are untouched. "Log in" keeps `px-2` (a text control needs no box);
- * the solid "Get Started" takes `px-3` so its filled pill has room to read as
+ * the solid "Get started" takes `px-3` so its filled pill has room to read as
  * a button rather than a label with a background.
  *
  * Measured at 375 after the change: the title card is 335px wide, "Log in" is
- * 51px at x=190, and "Get Started" is 88px ending at x=334 — 21px of card
+ * 51px at x=190, and "Get started" is 88px ending at x=334 — 21px of card
  * padding still to spare, and documentElement.scrollWidth === clientWidth.
  * Going solid cost the button 6px (82 → 88); the row absorbed it.
  */
@@ -176,7 +176,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         className="text-ds-11 h-11 px-2 rounded-ds-md font-sans font-semibold"
         style={{ color: "hsl(var(--ink-deep) / 0.72)" }}
       >
-        Log In
+        Log in
       </Button>
       <Button
         size="sm"
@@ -184,7 +184,7 @@ function GuestAuthActions({ onLogin, onSignup }: { onLogin: () => void; onSignup
         className="text-ds-11 h-11 px-3 rounded-ds-md font-sans font-semibold btn-press"
         style={{ color: "hsl(var(--parchment))" }}
       >
-        Get Started
+        Get started
       </Button>
     </>
   );
@@ -565,7 +565,7 @@ const DashboardGuest = () => {
             body="Open jobs will load here as soon as you're back online."
             action={
               <Button variant="outline" size="sm" onClick={() => void refetch()} className="rounded-ds-md">
-                Try Again
+                Try again
               </Button>
             }
           />
@@ -762,7 +762,7 @@ const DashboardGuest = () => {
   }
 
   // Web: the SAME shell as /legal, /help and /support — marketing Navbar
-  // (which already renders Log In / Get Started for a signed-out visitor)
+  // (which already renders Log in / Get started for a signed-out visitor)
   // above, the site Footer (Company/Legal columns) below. See the shell-split
   // note atop this component for why this diverges from the native branch.
   // PublicHeaderPage, NOT a hand-rolled PublicLayout + PageHeader + padded

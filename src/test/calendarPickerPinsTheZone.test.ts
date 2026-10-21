@@ -5,14 +5,14 @@
  * "double-tap the final Post" failed with "2026-10-11 is present but not
  * selectable". The spec computed a Louisiana day (isoDayIn, America/Chicago)
  * while its browser context ran on the runner's UTC clock, where it was
- * already 10-12, and Post a Job disables days before the DEVICE's today
+ * already 10-12, and Post a job disables days before the DEVICE's today
  * (DatePickerField min = todayLocalISO()). Every evening run from 7 PM CT to
  * midnight hit it.
  *
  * Class: pickCalendarDay asserts the page's own time zone is the one its
  * caller's day was computed in, so any caller on the wrong clock fails on
  * that, by name, instead of on a disabled cell; and every spec that picks a
- * Post a Job day (directly or through fillLogistics) makes its context in that
+ * Post a job day (directly or through fillLogistics) makes its context in that
  * zone.
  *
  * @mutate e2e/calendarPicker.ts |   ).toBe(CALENDAR_ZONE); |   ).toBeDefined();
@@ -39,7 +39,7 @@ describe("the e2e calendar picker runs in the zone its day is computed in", () =
     expect(check).toBeLessThan(fn.indexOf("await button.click()"));
   });
 
-  it("every spec that picks a Post a Job day gives its poster context the Louisiana zone", () => {
+  it("every spec that picks a Post a job day gives its poster context the Louisiana zone", () => {
     const specs = walkSource([join(ROOT, "e2e")], [".ts"])
       .filter((f) => /\.spec\.ts$/.test(f))
       .filter((f) => /\b(pickCalendarDay|fillLogistics)\(/.test(blankComments(readFileSync(f, "utf8"))));

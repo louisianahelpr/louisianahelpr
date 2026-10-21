@@ -1,5 +1,5 @@
 /**
- * Q1660 (found 2026-10-12 looking at Post a Job on prod in Playwright WebKit,
+ * Q1660 (found 2026-10-12 looking at Post a job on prod in Playwright WebKit,
  * 390x844, the iPhone's engine): with no Start Time chosen, the Order Summary
  * read "Wed, Oct 14 · 12:00 AM · Flexible" in WebKit and "Wed, Oct 14 ·
  * Flexible" in Chromium. Without Flexible, WebKit's submit button skipped

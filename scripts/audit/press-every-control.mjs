@@ -251,9 +251,9 @@ export const SENTRY_PROBE_RX = /uncaught:\s*Sentry uncaught test\b/i;
 // document's "Take It Back" named none of the words before them, so the sweep
 // would press them ungated. Guard: src/test/pressGatesEveryIrreversibleControl.test.ts.
 /*
- * "got it" (run 39014836855, leg 4): BackoutBanner's "Got It" calls
+ * "got it" (run 39014836855, leg 4): BackoutBanner's "Got it" calls
  * ack_backout_notice, and Declutter's "I got it" pays the seller. Neither word
- * was here, so the sweep pressed twelve "Got It"s on /posts as an ungated,
+ * was here, so the sweep pressed twelve "Got it"s on /posts as an ungated,
  * unrecorded read, cleared twelve backout notices on prod, and then reported
  * the cards those writes moved out of the "You" bucket as missing.
  */
@@ -306,7 +306,7 @@ import { RequestMeter } from "../../e2e/requestMeter.mjs";
  * Scripts only Vercel's edge serves. The harness runs against a local
  * `vite preview`, where /_vercel/insights/script.js and
  * /_vercel/speed-insights/script.js are always 404 — so any press that
- * mounted the app afresh ("Go Back" on the 404 page) failed on a request that
+ * mounted the app afresh ("Go back" on the 404 page) failed on a request that
  * cannot succeed off Vercel (runs 34744828202 and 34865377511). Ignored only
  * when the harness is NOT pointed at a Vercel host.
  */
@@ -544,7 +544,7 @@ export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
  * A PRESS THAT WROTE IS A MUTATING PRESS, WHATEVER ITS LABEL SAID.
  *
  * Release gate run 38459066451 (c16b0f0dc, 2026-10-14), shard 7, /posts
- * (customer): "Got It" on the poster's "[E2E DO NOT ACCEPT] J 7a4n6o" card
+ * (customer): "Got it" on the poster's "[E2E DO NOT ACCEPT] J 7a4n6o" card
  * PASSED at 04:29:06Z, and the same card's "Job address: 100 Audit Way …"
  * then FAILED "control not found on a freshly loaded page". Read off prod, not
  * guessed: backout_notices e032d4ab… (offer_expired, that job) has
@@ -552,7 +552,7 @@ export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
  * `ack_backout_notice`, and a cancelled job sits in Needs You only until its
  * banner is acknowledged (src/lib/backoutNotices.ts). The product worked; the
  * press consumed its own row. ROW_CONSUMED_SKIP exists for exactly this, but it
- * only learnt of writes from the LABEL gate (`entry.mutating`), and "Got It"
+ * only learnt of writes from the LABEL gate (`entry.mutating`), and "Got it"
  * is not a label anyone would gate. Labels are a guess about what a button
  * does; the request is the fact (same rule as the Stripe-write backstop). So
  * the record text of a press that SENT a successful write is recorded too, and
@@ -838,7 +838,7 @@ export function sameRecord(a, b) {
 /**
  * The control with this signature INSIDE THIS RECORD on the screen as it is
  * now, or null when the record has left it. A label alone cannot find it: on
- * /posts every backed-out card carries an identical "Got It", so once one card
+ * /posts every backed-out card carries an identical "Got it", so once one card
  * leaves the list both the DOM path and the signature ordinal point at the
  * NEXT card's button.
  */
@@ -1247,7 +1247,7 @@ async function main() {
    * admin pressed no logout and kept 4; seed-incomplete pressed ONE and kept 3
    * (local); poster pressed two and kept ZERO; helper pressed one and kept
    * ZERO. Only scope:"global" deletes every row for a user in one call, and
-   * the only global sign-out in this app is SecurityTab.tsx:192, "Sign Out
+   * the only global sign-out in this app is SecurityTab.tsx:192, "Sign out
    * Everywhere" — corroborated by the same shard IP firing /recover x6 and
    * /factors x8 in those same minutes, which are that tab's other controls.
    *
@@ -1355,7 +1355,7 @@ async function main() {
       /**
        * STRIPE-WRITE BACKSTOP (owner, 2026-10-01: "Skip it on live").
        *
-       * Run 36784893957 pressed "Set Up Payouts with Stripe" for both shared
+       * Run 36784893957 pressed "Set up payouts with Stripe" for both shared
        * accounts; its label passed no gate, stripe-connect `onboard` ran
        * accounts.create, and live Connect accounts acct_1ULXMy3ISOxM8qBC and
        * acct_1ULXMw40YhFTkeRO exist because of it. Labels are a guess about
@@ -1928,7 +1928,7 @@ async function main() {
 
           /*
            * THE GATE APPROVED ONE RECORD; THE CLICK MUST LAND ON IT (run
-           * 39014836855 leg 4: twelve identical "Got It"s, each addressed by a
+           * 39014836855 leg 4: twelve identical "Got it"s, each addressed by a
            * path that had shifted to the next card once an earlier ack moved
            * its own card out of the list). See pressTargetRecord. Read HERE,
            * once `target` is the element about to be clicked: after any reload
@@ -2011,7 +2011,7 @@ async function main() {
           // bubble ("Please fill out this field.") — chrome the page's DOM does
           // not contain, so `snapshot()` cannot see it and the press reads as
           // "moved focus only". The press worked and the product behaved: the
-          // form is simply incomplete. /reset-password › "Update Password"
+          // form is simply incomplete. /reset-password › "Update password"
           // failed for exactly this reason every night (both inputs are
           // `required`; ResetPassword.tsx). Read BEFORE the click, like
           // alreadyActive, and narrowed to a control that actually owns a form.

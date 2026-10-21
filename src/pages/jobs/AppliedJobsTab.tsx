@@ -300,7 +300,7 @@ export const AppliedJobsTab = ({
           action={
             <>
               <Button onClick={() => navigate("/home")} className="rounded-ds-md btn-press">
-                <Briefcase className="w-4 h-4 mr-1.5" /> Browse Open Jobs
+                <Briefcase className="w-4 h-4 mr-1.5" /> Browse open Jobs
               </Button>
               <p
                 className="font-sans text-ds-13 mt-2"

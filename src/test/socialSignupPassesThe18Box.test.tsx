@@ -175,7 +175,7 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     updates.length = 0;
     renderPage();
     expect(screen.getByText("Confirm you're 18 or older")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Complete Required Fields/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled();
 
     fireEvent.click(screen.getByRole("checkbox", { name: /I confirm I am 18 years of age or older/ }));
     const enter = screen.getByRole("button", { name: /Enter App/ });
@@ -197,7 +197,7 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
     socialProfile.location = "";
     try {
       renderPage();
-      expect(screen.getByRole("button", { name: /Complete Required Fields/ })).toBeDisabled(); // the page, not a redirect
+      expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled(); // the page, not a redirect
       expect(screen.queryByRole("checkbox", { name: /18 years of age or older/ })).toBeNull();
       expect(screen.queryByText("Confirm you're 18 or older")).toBeNull();
     } finally {

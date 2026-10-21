@@ -182,7 +182,7 @@ export function WalletCard({
               }}
               className="h-8 text-ds-11 gap-1.5 shrink-0"
             >
-              <Zap className="w-3.5 h-3.5" /> Cash Out
+              <Zap className="w-3.5 h-3.5" /> Cash out
             </Button>
           </div>
         );

@@ -119,12 +119,3 @@ export function currentSearch(): string {
   return typeof window === "undefined" ? "" : window.location.search;
 }
 
-/**
- * THE ONE PROFILE COLUMN (lead, 2026-10-20). At 1440 every Profile tab's cards
- * and its Save button ran the whole ~1150px content width and read stretched
- * and empty. The landing, every tab body and their skeleton share this one
- * centred measure, set here and nowhere else (no per-tab max-widths). Spec v2
- * §4.4 keeps list columns narrow on desktop; 640px is a settings measure.
- * Guard: src/test/profileColumnCapOnce.test.ts.
- */
-export const PROFILE_COLUMN = "mx-auto w-full max-w-[640px]";

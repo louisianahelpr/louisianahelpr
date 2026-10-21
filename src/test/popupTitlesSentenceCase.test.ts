@@ -13,7 +13,7 @@
  * @mutate src/components/profile/AvatarCropDialog.tsx | "Position your photo" | "Position Your Photo"
  * @mutate src/components/PhotoProof.tsx | "After"} photos`} | "After"} Photos`}
  * @mutate src/components/messages/ChatView.tsx | title="Edit message" | title="Edit Message"
- * @mutate src/components/profile/EarningsTab.tsx | "Unlock instant cash out" | "Unlock Instant Cash Out"
+ * @mutate src/components/profile/EarningsTab.tsx | "Unlock instant cash out" | "Unlock Instant Cash out"
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

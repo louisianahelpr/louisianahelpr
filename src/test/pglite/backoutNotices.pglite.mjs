@@ -7,7 +7,7 @@
  *
  * OLD STATE: no backout_notices table at all (nothing keeps the card in Needs
  * You). NEW STATE: each back-out writes one notice for the OTHER person, named;
- * a crew job and a non-back-out update write none; Got It clears only your
+ * a crew job and a non-back-out update write none; Got it clears only your
  * own; the sweep re-pushes inside 24 h of the start and not outside it; the
  * email failing (no net schema here) never fails the back-out; applied 3x.
  */
@@ -95,13 +95,13 @@ j = await newJob(db, "is_group_job|true");
 await as(db, "service_role", null, `update public.jobs set status = 'open', helper_id = null where id = '${j}'`);
 check("a crew job writes nothing (its own notices, Q1409)", (await notices(db, j)).length === 0);
 
-// Got It.
+// Got it.
 const mine = (await db.query(`select id from public.backout_notices where user_id = '${P}' limit 1`)).rows[0].id;
 const acked = async () => (await db.query(`select acknowledged_at from public.backout_notices where id = '${mine}'`)).rows[0].acknowledged_at;
 r = await as(db, "authenticated", X, `select public.ack_backout_notice('${mine}')`);
-check("someone else's Got It changes nothing", r.ok && (await acked()) === null, r.err);
+check("someone else's Got it changes nothing", r.ok && (await acked()) === null, r.err);
 r = await as(db, "authenticated", P, `select public.ack_backout_notice('${mine}')`);
-check("the recipient's Got It clears it", r.ok && (await acked()) !== null, r.err);
+check("the recipient's Got it clears it", r.ok && (await acked()) !== null, r.err);
 r = await as(db, "authenticated", A, `select count(*)::int c from public.backout_notices`);
 check("a recipient reads only their own notices", r.ok && r.rows[0].c === 1, JSON.stringify(r.rows));
 
@@ -120,7 +120,7 @@ check("a client cannot write a notice", refused(r, /permission denied/), r.err);
 const acl = (await db.query(`select has_function_privilege('authenticated', 'public.ack_backout_notice(uuid)', 'EXECUTE') a,
   has_function_privilege('authenticated', 'public.sweep_backout_notice_reminders()', 'EXECUTE') s,
   has_function_privilege('anon', 'public.ack_backout_notice(uuid)', 'EXECUTE') n`)).rows[0];
-check("grants: Got It for signed-in users; the sweep for nobody", acl.a && !acl.s && !acl.n, JSON.stringify(acl));
+check("grants: Got it for signed-in users; the sweep for nobody", acl.a && !acl.s && !acl.n, JSON.stringify(acl));
 
 await db.close();
 if (failures()) process.exit(1);

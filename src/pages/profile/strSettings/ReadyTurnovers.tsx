@@ -42,7 +42,7 @@ export function ReadyTurnovers() {
         className="px-4 pt-3.5 pb-1 font-display font-semibold text-ds-14"
         style={{ color: "hsl(var(--ink-deep))" }}
       >
-        Ready to Post
+        Ready to post
       </h2>
       <p className="px-4 pb-2 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         Guest checkouts from your calendars that don't have a cleaning job yet.

@@ -4,7 +4,7 @@
  * start at least 2 hours out, and its listing closes AT the start.
  *
  * The class: one notice rule, held by every layer that can let a job through.
- *  - Post a Job paints the error and disables the CTA (useJobDerived),
+ *  - Post a job paints the error and disables the CTA (useJobDerived),
  *  - the submit refuses it (useJobSubmit),
  *  - the database refuses a user insert (trg_jobs_short_notice, BEFORE INSERT,
  *    newest refuse_short_notice_job) and clamps expires_at to the start,
@@ -65,7 +65,7 @@ describe("a new job needs the same 2 hours' notice in every layer (Q1565)", () =
     expect(trg!.events).toMatch(/INSERT/);
   });
 
-  it("Post a Job disables the CTA and the submit refuses it", () => {
+  it("Post a job disables the CTA and the submit refuses it", () => {
     expect(code("src/pages/post-job/useJobDerived.ts")).toMatch(/return isScheduleTooSoon\(dateNeeded, startTime\);/);
     expect(code("src/pages/post-job/useJobSubmit.ts")).toMatch(
       /if \(isScheduleTooSoon\(dateNeeded, startTime\)\) \{\s*toast\.error\(SCHEDULE_TOO_SOON_COPY\);[\s\S]{0,1500}?return;/,

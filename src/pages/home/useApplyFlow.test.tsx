@@ -1,6 +1,6 @@
 // useApplyFlow — the synchronous in-flight guard on handleApplyConfirm.
 //
-// What this prevents: two Apply Now clicks dispatched in the same frame both
+// What this prevents: two Apply now clicks dispatched in the same frame both
 // calling apply_to_job. `applyLoading` is React state, so both clicks read
 // `false` before any re-render; measured on prod 2026-09-12 as 2 RPCs from one
 // intent. The guard is a ref set before mutate() and cleared on settle. The

@@ -4,7 +4,7 @@
  * The detector is judged against DOM it is handed, not against the app, so
  * every exclusion added for a false positive has its measured case here next
  * to the one true positive the whole thing exists for: "Enter App" at 49.5px
- * stacked on a 60px "Sign Out" (/complete-profile, owner, 2026-09-12). Tighten
+ * stacked on a 60px "Sign out" (/complete-profile, owner, 2026-09-12). Tighten
  * the detector all you like — this file says whether it still sees that.
  *
  * Runs under the happy-path project for its viewport, but uses setContent, so
@@ -30,9 +30,9 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
   test("catches the /complete-profile repro: 49.5px primary stacked on 60px secondary", async ({ page }) => {
     const r = await run(page, `<div class="stack">
       <button style="height:49.5px">Enter App</button>
-      <button style="height:60px">Sign Out</button>
+      <button style="height:60px">Sign out</button>
     </div>`);
-    expect(r.siblingMismatch).toEqual(['"Enter App" 49.5px vs "Sign Out" 60.0px (stacked)']);
+    expect(r.siblingMismatch).toEqual(['"Enter App" 49.5px vs "Sign out" 60.0px (stacked)']);
   });
 
   test("catches a same-row pair of unequal height", async ({ page }) => {
@@ -46,15 +46,15 @@ test.describe("detectButtonGeometry — sibling mismatch", () => {
   test("equal siblings are clean", async ({ page }) => {
     const r = await run(page, `<div class="stack">
       <button style="height:56px">Enter App</button>
-      <button style="height:56px">Sign Out</button>
+      <button style="height:56px">Sign out</button>
     </div>`);
     expect(r.siblingMismatch).toEqual([]);
   });
 
   test("a filled primary over bare text buttons is not a mismatch (/payment-success)", async ({ page }) => {
     const r = await run(page, `<div class="stack">
-      <button style="height:60px">Open My Posts</button>
-      <button style="height:56px;background:transparent;color:#333">Contact Support</button>
+      <button style="height:60px">Open my posts</button>
+      <button style="height:56px;background:transparent;color:#333">Contact support</button>
     </div>`);
     expect(r.siblingMismatch).toEqual([]);
   });

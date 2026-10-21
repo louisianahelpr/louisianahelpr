@@ -4,7 +4,7 @@ import { readSource, walkSource } from "./helpers/walkSource";
 
 /**
  * THE CLASS (Q247): a page header action that repeats the empty state's own
- * CTA. /pets at desktop showed "Add a Pet" twice with no pets: the
+ * CTA. /pets at desktop showed "Add a pet" twice with no pets: the
  * ProfileTabHeader `rightSlot` button (always rendered at lg) and the
  * EmptyState `action` button right below it.
  *

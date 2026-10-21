@@ -172,7 +172,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     expect(text()).toMatch(/Tipped job\s*Sep 1 · includes \$8\.55 tip\s*\$48\.55/);
     expect(text()).not.toMatch(/Cancelled free/);
     // The cancellation is dated when it was cancelled: inside this week's range.
-    await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This Week" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This week" })); });
     expect(text()).toMatch(/Total spent\s*\$15\.00\s*across 1 job(?!s)/);
   });
 
@@ -222,11 +222,11 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     const pick = async (label: string) => {
       await act(async () => { fireEvent.click(screen.getByRole("radio", { name: label })); });
     };
-    await pick("This Year");
+    await pick("This year");
     expect(text()).toMatch(/Total spent\s*\$45\.00\s*across 3 jobs/);
-    await pick("This Month");
+    await pick("This month");
     expect(text()).toMatch(/Total spent\s*\$10\.00\s*across 1 job(?!s)/);
-    await pick("This Week");
+    await pick("This week");
     expect(text()).toMatch(/Total spent\s*\$15\.00\s*across 2 jobs/);
     await pick("Lifetime");
     expect(text()).toMatch(/Total spent\s*\$65\.50\s*across 4 jobs/);
@@ -237,7 +237,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     const group = await screen.findByRole("radiogroup", { name: "Spend date range" });
     expect(group.className).toMatch(/overflow-x-auto/);
     expect(group.className).not.toMatch(/flex-wrap/);
-    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["Lifetime", "This Week", "This Month", "This Year"]);
+    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["Lifetime", "This week", "This month", "This year"]);
   });
 
   it("lists the jobs paid for in the selected range, newest first, each with its own amount", async () => {
@@ -246,7 +246,7 @@ describe("the Spent half of the Money tab (Q1177)", () => {
     const titles = screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent);
     expect(titles).toEqual(["Yard cleanup", "Job", "Gutter cleaning", "Old fence"]);
     expect(text()).toMatch(/Gutter cleaning\s*Sep 1\s*\$30\.00/);
-    await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This Week" })); });
+    await act(async () => { fireEvent.click(screen.getByRole("radio", { name: "This week" })); });
     expect(screen.getAllByRole("heading", { level: 4 }).map((h) => h.textContent)).toEqual(["Yard cleanup", "Job"]);
   });
 

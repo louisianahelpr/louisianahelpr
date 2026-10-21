@@ -115,14 +115,14 @@ describe("ShopPolicies (the shop page card)", () => {
 });
 
 describe("ShopPayoutRow (shop dashboard)", () => {
-  it("nothing once payouts work; Set Up goes to the one payout screen", () => {
+  it("nothing once payouts work; Set up goes to the one payout screen", () => {
     connect.prompt = { kind: "none" };
     const a = renderWith(<ShopPayoutRow />);
     expect(a.container.textContent).toBe("");
     a.unmount();
     connect.prompt = { kind: "setup" };
     renderWith(<ShopPayoutRow />);
-    fireEvent.click(screen.getByRole("button", { name: /Set Up/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Set up/ }));
     expect(nav).toHaveBeenCalledWith("/profile?tab=payment");
   });
 });

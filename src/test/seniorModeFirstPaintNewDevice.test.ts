@@ -6,7 +6,7 @@
 // @mutate src/pages/profile/Profile.tsx | updateUser({ data: { senior_mode: enabled } }) | getUser()
 // @mutate src/pages/profile/Profile.tsx | await refreshCurrentUser(); // Q200: before the hint | // Q200: before the hint
 /*
- * Senior Mode from the ACCOUNT is right at first paint on a NEW DEVICE (Q200).
+ * Senior mode from the ACCOUNT is right at first paint on a NEW DEVICE (Q200).
  *
  * Q169 cached the account flag per device, so every visit after the first
  * painted at the right size. The first signed-in visit on a device still
@@ -37,7 +37,7 @@ const html = () => document.documentElement.classList.contains("senior-mode");
 const session = (meta: Record<string, unknown>) =>
   JSON.stringify({ access_token: "x", user: { id: "u1", user_metadata: meta } });
 
-describe("Senior Mode from the account on a device's FIRST signed-in visit (Q200)", () => {
+describe("Senior mode from the account on a device's FIRST signed-in visit (Q200)", () => {
   afterEach(() => {
     localStorage.clear();
     document.documentElement.classList.remove("senior-mode");

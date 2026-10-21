@@ -22,7 +22,7 @@
  *
  * WHY BEING TEST-OWNED IS WHAT MADE IT DANGEROUS. `mutationGate` refuses a
  * mutating control on a record the run does not own. A test account's own
- * "Sign Out" is maximally owned, so every ownership check passed and the press
+ * "Sign out" is maximally owned, so every ownership check passed and the press
  * went ahead. The danger here is not destruction, it is SHARED SESSION STATE
  * across shards — a dimension ownership cannot see.
  *
@@ -60,9 +60,9 @@ const gate = (label: string) =>
 
 describe("press never ends the session it is driving", () => {
   it.each([
-    ["Sign Out", "the plain control, scope local — still kills the pressing shard"],
+    ["Sign out", "the plain control, scope local — still kills the pressing shard"],
     ["Log Out", "same control, the other spelling"],
-    ["Sign Out Everywhere", "SecurityTab.tsx:192, the ONLY global sign-out in the app"],
+    ["Sign out Everywhere", "SecurityTab.tsx:192, the ONLY global sign-out in the app"],
     ["Switch Account", "ends the current session to start another"],
   ])("refuses %s (%s)", async (label) => {
     await expect(gate(label)).resolves.toBe(SKIP_SESSION_END);
@@ -83,12 +83,12 @@ describe("press never ends the session it is driving", () => {
   });
 
   it("the pattern is not vacuous (an empty regex would pass everything above)", () => {
-    expect(SESSION_END_RX.test("Sign Out")).toBe(true);
+    expect(SESSION_END_RX.test("Sign out")).toBe(true);
     expect(SESSION_END_RX.test("Save changes")).toBe(false);
   });
 });
 
 // Proof this is able to fail: drop the session-end refusal from the gate and a
-// test account's own Sign Out becomes pressable again — exactly the state that
+// test account's own Sign out becomes pressable again — exactly the state that
 // revoked four shards' sessions on 2026-09-22.
 // @mutate scripts/audit/pressProdSafety.mjs | if (SESSION_END_RX.test(label)) return SKIP_SESSION_END; | if (false) return SKIP_SESSION_END;

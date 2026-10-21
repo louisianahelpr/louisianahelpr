@@ -752,7 +752,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 className="w-full font-display font-semibold"
               >
                 <Gift aria-hidden />
-                {donateMutation.isPending ? "Starting Checkout…" : "Continue to Checkout"}
+                {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}
               </Button>
             </div>
           </aside>

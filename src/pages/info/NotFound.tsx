@@ -23,7 +23,7 @@ import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
  * public route with bespoke chrome, so a wrong URL made the site look like
  * it had changed identity at the worst possible moment for trust.
  *
- * The branded 404 hero, Go Back and Back to Home are unchanged.
+ * The branded 404 hero, Go back and Back to Home are unchanged.
  *
  * On NATIVE, PublicLayout renders AppShell instead of the marketing chrome
  * (no App Store footer inside the app), so the in-app 404 is unaffected.
@@ -102,7 +102,7 @@ const NotFound = () => {
               onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Go Back
+              Go back
             </Button>
             <Button
               asChild

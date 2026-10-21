@@ -113,7 +113,7 @@ export function JobCardShell({
             onToggle();
           }}
         >
-          {expanded ? "Collapse Job Details" : "Expand Job Details"}
+          {expanded ? "Collapse job details" : "Expand job details"}
         </button>
       )}
       {children}

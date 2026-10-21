@@ -7,7 +7,7 @@
  * Read off prod and the run's own results.json, not guessed:
  *   - between 11:14:10Z and 11:24:07Z poster-e2e's backout_notices got TWELVE
  *     acknowledged_at stamps, one a minute, each 2-3 s after the sweep pressed
- *     a "Got It" on /posts (BackoutBanner -> ack_backout_notice). Five were
+ *     a "Got it" on /posts (BackoutBanner -> ack_backout_notice). Five were
  *     100 Audit Way jobs. An acknowledged card leaves the "You" bucket, which is
  *     what /posts opens on (19 cards at enumeration), so the reloaded page had
  *     ~7 cards and no 100 Audit Way card at all.
@@ -17,7 +17,7 @@
  *   - and it could not have fired anyway: JobCardShell carries no class with
  *     "card" in it, so every control on a My Posts card resolved to NO record
  *     (rowText "", measured on prod /posts, 7 of 7 location chips). All the
- *     "Got It"s are identical, so once one card left, the next press's DOM path
+ *     "Got it"s are identical, so once one card left, the next press's DOM path
  *     pointed at the NEXT card's button: the gate approved one record and the
  *     click landed on another.
  *
@@ -65,16 +65,16 @@ function card(title: string) {
 }
 
 describe("press-every-control: a write on a job card lands on, and is remembered against, that card", () => {
-  it("treats the backout banner's Got It as a write (and Declutter's 'I got it', which pays the seller)", () => {
+  it("treats the backout banner's Got it as a write (and Declutter's 'I got it', which pays the seller)", () => {
     render(<QueryClientProvider client={new QueryClient()}>{card("[E2E DO NOT ACCEPT] J asc8ta")}</QueryClientProvider>);
-    const got = screen.getByRole("button", { name: "Got It" });
+    const got = screen.getByRole("button", { name: "Got it" });
     expect(DESTRUCTIVE_RX.test(got.textContent ?? "")).toBe(true);
     const handover = readFileSync(resolve(repoRoot, "src/components/declutter/DeclutterHandoverViews.tsx"), "utf8");
     expect(handover).toMatch(/>\s*I got it\s*</);
     expect(DESTRUCTIVE_RX.test("I got it")).toBe(true);
   });
 
-  it("resolves the Got It and the location chip of one My Posts card to THAT card, and two cards to two records", () => {
+  it("resolves the Got it and the location chip of one My Posts card to THAT card, and two cards to two records", () => {
     const { container } = render(
       <QueryClientProvider client={new QueryClient()}>
         {card("[E2E DO NOT ACCEPT] J asc8ta")}
@@ -83,20 +83,20 @@ describe("press-every-control: a write on a job card lands on, and is remembered
     );
     const shells = [...container.querySelectorAll("[data-activity-card]")];
     expect(shells).toHaveLength(2);
-    const gots = screen.getAllByRole("button", { name: "Got It" });
+    const gots = screen.getAllByRole("button", { name: "Got it" });
     const chips = screen.getAllByRole("button", { name: /tap to open this job/ });
     for (const i of [0, 1]) {
-      expect(gots[i].closest(RECORD_ROW_SEL), "Got It belongs to no record").toBe(shells[i]);
+      expect(gots[i].closest(RECORD_ROW_SEL), "Got it belongs to no record").toBe(shells[i]);
       expect(chips[i].closest(RECORD_ROW_SEL), "the chip belongs to no record").toBe(shells[i]);
     }
   });
 
-  // The run's shape: three identical "Got It"s, card A's already acknowledged
+  // The run's shape: three identical "Got it"s, card A's already acknowledged
   // away, so the path the sweep addressed for card B now holds card C's button.
   const A = "Cleaning [E2E DO NOT ACCEPT] J asc8ta $25 100 Audit Way, Baton Rouge, LA 99999";
   const B = "Cleaning [E2E DO NOT ACCEPT] J ataxm1 $25 100 Audit Way, Baton Rouge, LA 99999";
   const Cc = "Cleaning [E2E DO NOT ACCEPT] J 7s14qs $25 100 Audit Way, Baton Rouge, LA 99999";
-  const SIG = "button\u0000\u0000\u0000Got It";
+  const SIG = "button\u0000\u0000\u0000Got it";
   const nowAfterA: C[] = [
     { sig: SIG, rowText: B, path: "div:nth-of-type(1) button" },
     { sig: SIG, rowText: Cc, path: "div:nth-of-type(2) button" },
@@ -118,7 +118,7 @@ describe("press-every-control: a write on a job card lands on, and is remembered
   });
 
   it("excuses a control whose card left the list after this run's own write on THAT card, and nothing else", () => {
-    // Card A's chip, after card A's own Got It was pressed and recorded.
+    // Card A's chip, after card A's own Got it was pressed and recorded.
     expect(rowGoneAfterOwnWrite({ rowText: A, mutatedRows: new Set([A]), now: nowAfterA })).toBe(true);
     // Card A gone, but the run wrote only to card B: not excused.
     expect(rowGoneAfterOwnWrite({ rowText: A, mutatedRows: new Set([B]), now: nowAfterA })).toBe(false);

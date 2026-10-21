@@ -68,7 +68,7 @@ for (const width of [375, 1440]) {
     const startFresh = page.getByRole("button", { name: /^start from scratch/i }).first();
     await startFresh.waitFor({ timeout: 20_000 });
     await startFresh.click();
-    // J1 (2026-10-20): Post a Job is one question per screen and Repeats lives on
+    // J1 (2026-10-20): Post a job is one question per screen and Repeats lives on
     // screen 4 (When and where). Open it the way the form's own submit pass does
     // (scrollToField in postJobFormHelpers.ts dispatches lh:show-form-page on the
     // hidden screen), so this spec measures the picker without re-driving screens 1-3.

@@ -70,7 +70,7 @@ async function submitNewPassword() {
   fireEvent.change(screen.getByLabelText(/New password/i), { target: { value: GOOD } });
   fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: GOOD } });
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Update password/i }));
   });
 }
 
@@ -92,7 +92,7 @@ describe("a successful password change leaves visible evidence", () => {
     expect(await screen.findByText(/Password updated\./i)).toBeTruthy();
     // The form is gone — the old screen left it on display, filled in, as if
     // the tap had not registered.
-    expect(screen.queryByRole("button", { name: /Update Password/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Update password/i })).toBeNull();
   });
 
   it("revokes every other session, so the promise on the panel is kept (OA-006)", async () => {
@@ -132,7 +132,7 @@ describe("a successful password change leaves visible evidence", () => {
 
   it("offers a control so nobody has to wait out the timer", async () => {
     await submitNewPassword();
-    fireEvent.click(await screen.findByRole("button", { name: /Go to Dashboard/i }));
+    fireEvent.click(await screen.findByRole("button", { name: /Go to dashboard/i }));
     expect(navigateMock).toHaveBeenCalledWith("/home", { replace: true });
   });
 
@@ -141,7 +141,7 @@ describe("a successful password change leaves visible evidence", () => {
     await submitNewPassword();
     expect(toastError).toHaveBeenCalled();
     expect(screen.queryByText(/Password updated\./i)).toBeNull();
-    expect(screen.getByRole("button", { name: /Update Password/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Update password/i })).toBeTruthy();
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });
@@ -176,7 +176,7 @@ describe("a REFUSED password says why", () => {
     fireEvent.change(screen.getByLabelText(/New password/i), { target: { value: password } });
     fireEvent.change(screen.getByLabelText(/Confirm password/i), { target: { value: password } });
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Update password/i }));
     });
   }
 
@@ -208,8 +208,8 @@ describe("a REFUSED password says why", () => {
   it("replaces the message on a repeat tap rather than stacking copies", async () => {
     await typeAndSubmit("CoworkQA2026x");
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
-      fireEvent.click(screen.getByRole("button", { name: /Update Password/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Update password/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Update password/i }));
     });
     // Every call carries the same sonner id, which is what makes the third tap
     // replace the first toast instead of adding a third one to the pile.

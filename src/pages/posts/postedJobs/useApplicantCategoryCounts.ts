@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * Board 188: each applicant's completed jobs in THIS job's category, from
@@ -20,13 +21,9 @@ export function useApplicantCategoryCounts(jobId: string | null | undefined): Ma
     enabled: on && !!jobId,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      // Not in the generated types until db-deploy regenerates them; the shape is the migration's.
-      const { data: rows, error } = await (supabase.rpc as unknown as (fn: string, args: object) => Promise<{ data: unknown; error: { code?: string; message: string } | null }>)(
-        "get_applicant_category_counts",
-        { p_job_id: jobId },
-      );
+      const { data: rows, error } = await supabase.rpc("get_applicant_category_counts", { p_job_id: jobId as string });
       if (error) {
-        if (error.code !== "PGRST202") report(error, { severity: "warning", tags: { source: "useApplicantCategoryCounts" } });
+        if (!isMissingRpcNamed(error, "get_applicant_category_counts")) report(error, { severity: "warning", tags: { source: "useApplicantCategoryCounts" } });
         return null;
       }
       const map = new Map<string, number>();

@@ -27,10 +27,10 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel className="text-ds-11">Earnings tools</DropdownMenuLabel>
+        <DropdownMenuLabel className="text-ds-11">Money tools</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onExportPdf}>
-          <FileText className="w-4 h-4 mr-2" /> Export for Taxes (PDF)
+          <FileText className="w-4 h-4 mr-2" /> Export for taxes (PDF)
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={onExportCsv}>
           <FileSpreadsheet className="w-4 h-4 mr-2" /> Export payouts CSV

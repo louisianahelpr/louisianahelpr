@@ -20,8 +20,9 @@ import { TAB_TITLES } from "@/pages/profile/types";
 export const SECTION_TINT = {
   /** Account + household. Cool blue-grey — the "about you" group. */
   account: "var(--stormy-sky)",
-  /** Jobs settings (the old Work group + credentials). Warm sienna. */
-  work: "var(--burnt-sienna)",
+  /** Jobs settings (the old Work group + credentials). Neutral, like Account:
+   *  rust is for money only (audit #38, 2026-10-21; it was burnt-sienna). */
+  work: "var(--stormy-sky)",
   /** Money. Green, the colour money already reads as. */
   money: "var(--sage)",
   /** Legal, support, admin. Quiet grey-blue — REVERSED 2026-08-24 (owner):

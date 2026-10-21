@@ -204,8 +204,8 @@ export function SavedHelperCard({
           <div
             className="rounded-ds-md p-2.5 space-y-2"
             style={{
-              background: "hsl(var(--burnt-sienna) / 0.06)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
+              background: "hsl(var(--olivewood) / 0.05)",
+              border: "1px solid hsl(var(--olivewood) / 0.16)",
             }}
           >
             <textarea
@@ -247,8 +247,8 @@ export function SavedHelperCard({
           <div
             className="w-full text-left rounded-ds-md p-2.5 flex gap-2"
             style={{
-              background: "hsl(var(--burnt-sienna) / 0.06)",
-              border: "1px solid hsl(var(--burnt-sienna) / 0.22)",
+              background: "hsl(var(--olivewood) / 0.05)",
+              border: "1px solid hsl(var(--olivewood) / 0.16)",
             }}
           >
             <StickyNote className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
@@ -331,7 +331,8 @@ export function SavedHelperCard({
           className="rounded-ds-md shrink-0 !w-11 !px-0"
           aria-label="Remove from saved"
         >
-          <Heart className="w-3.5 h-3.5" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
+          {/* Olive, not rust: rust is for money only (audit #43, 2026-10-21). */}
+          <Heart className="w-3.5 h-3.5" style={{ color: "hsl(var(--bark))", fill: "hsl(var(--bark))" }} />
         </Button>
       </div>
     </div>

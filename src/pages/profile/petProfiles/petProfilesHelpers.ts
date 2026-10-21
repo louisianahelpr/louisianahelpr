@@ -1,8 +1,9 @@
 import type { PetInsert, PetProfile } from "./types";
 
+// Face emojis (audit #29, 2026-10-21): the full-body 🐕 read as a cat at avatar size.
 export const SPECIES_OPTIONS = [
-  { value: "dog", emoji: "🐕", label: "Dog" },
-  { value: "cat", emoji: "🐈", label: "Cat" },
+  { value: "dog", emoji: "🐶", label: "Dog" },
+  { value: "cat", emoji: "🐱", label: "Cat" },
   { value: "bird", emoji: "🐦", label: "Bird" },
   { value: "rabbit", emoji: "🐇", label: "Rabbit" },
   { value: "reptile", emoji: "🦎", label: "Reptile" },

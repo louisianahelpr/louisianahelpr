@@ -9,7 +9,8 @@
  * @mutate supabase/migrations/20261009223714_signup_leads.sql |         AND NOT EXISTS (SELECT 1 FROM public.suppressed_emails s WHERE lower(s.email) = l.email) |         AND true
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve, relative } from "node:path";
 
 const ROOT = resolve(__dirname, "..", "..");

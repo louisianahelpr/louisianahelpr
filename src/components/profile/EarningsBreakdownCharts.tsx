@@ -1,15 +1,17 @@
-// Earnings breakdown — small Recharts panel.
+// Earnings breakdown — Money › More insights.
 //
-// Two visualisations on the same surface:
+// Spec v2 rebuild (audit 2026-10-21): one palette, real data only.
 //
-//  1. Pie of take-home earnings by job category (`jobs.category`,
-//     formatted with formatCategory — the same bucketing fetchAnalytics
-//     uses for Top Categories). The slice is purely visual — not for
-//     tax math.
+//  1. Take-home by job category (`jobs.category`, formatCategory — the same
+//     bucketing fetchAnalytics uses) as a RANKED BAR LIST: one olive hue for
+//     magnitude, the amount in rust text beside each bar. It was a six-hue
+//     donut (sienna, bark, verdigris, gold, blue, plum) that was also caught
+//     mid-animation with a gap in its ring — a rainbow encoding a ranking.
 //
-//  2. YTD vs prior YTD month-by-month comparison. Cumulative line
-//     instead of bars so the divergence (or lack thereof) reads at a
-//     glance on a small mobile viewport.
+//  2. This year's take-home, month by month (running total), one olive line.
+//     Last year's line and the "% vs last year" figure render ONLY when last
+//     year has real earnings: a flat zero line labelled "2025" compared the
+//     member against a year they were not here for.
 //
 // Renders nothing when there's no qualifying data so the Earnings tab
 // stays compact for brand-new helpers.
@@ -18,7 +20,7 @@ import { useMemo } from "react";
 import { formatCategory, formatPriceExact } from "@/lib/format";
 import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import {
-  PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer,
   LineChart, Line, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
 import type { ReadableJobRow } from "@/lib/jobColumns";
@@ -35,19 +37,14 @@ interface EarningsBreakdownChartsProps {
   feeFallbackPercent: number;
 }
 
-// Palette — five brand-ish hues sequenced for max contrast around the
-// pie. We use bare hex/HSL values here because Recharts' SVG fills
-// can't follow `hsl(var(--token))` runtime references (it copies the
-// string into a `style` prop on the rendered <path>); a static palette
-// keeps the chart legible without a runtime token-resolver.
-const PIE_COLORS = [
-  "hsl(20, 60%, 50%)",   // burnt sienna
-  "hsl(70, 22%, 24%)",   // bark
-  "hsl(165, 18%, 50%)",  // verdigris
-  "hsl(38, 50%, 55%)",   // gold-warm
-  "hsl(190, 35%, 45%)",  // dusty blue
-  "hsl(280, 25%, 50%)",  // muted plum
-];
+/** A design token resolved to a colour string. Recharts writes `stroke` as an
+ *  SVG presentation ATTRIBUTE, where `var()` does not resolve, so the token is
+ *  read once per render from the live document (light or dark). */
+const token = (name: string, fallback: string): string => {
+  if (typeof window === "undefined") return fallback;
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v ? `hsl(${v})` : fallback;
+};
 
 // Display bucket for a job's category. "Other" catches a blank category
 // so the job still shows in the pie instead of vanishing.
@@ -138,120 +135,101 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent }: Ea
   // empty charts. The trend is meaningful even with one year of data,
   // but the pie needs at least one completed job — gate on that.
   const hasPieData = pieData.length > 0;
-  const hasTrendData = trendData.some((d) => (d.ytd ?? 0) > 0 || d.prior > 0);
+  const hasPriorYear = trendData.some((d) => d.prior > 0);
+  const hasTrendData = trendData.some((d) => (d.ytd ?? 0) > 0) || hasPriorYear;
+  const olive = token("--bark", "hsl(70, 20%, 33%)");
+  const muted = token("--muted-foreground", "hsl(40, 6%, 40%)");
+  const maxCategory = pieData[0]?.value ?? 0;
   if (!hasPieData && !hasTrendData) return null;
 
   return (
     <section className="space-y-3">
-      <div>
-        <h2
-          className="font-display font-bold leading-tight text-headline-section"
-          style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-        >
-          Where your money comes from
-        </h2>
-      </div>
+      <h2 className="font-sans font-bold leading-tight text-ds-17 text-foreground px-1">
+        Where your money comes from
+      </h2>
 
       {hasPieData && (
-        <div className="rounded-2xl liquid-glass p-card">
-          <div className="h-[180px] w-full">
-            <ResponsiveContainer width="100%" height="100%" minHeight={180}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={36}
-                  outerRadius={70}
-                  paddingAngle={2}
-                  stroke="hsl(var(--ivory-sand))"
-                  strokeWidth={1}
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => [`$${formatPriceExact(Number(value))}`, "Take-home"]}
-                  contentStyle={{
-                    background: "hsl(var(--ivory-sand) / 0.95)",
-                    border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                    borderRadius: 8,
-                    fontSize: "0.78rem",
-                  }}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  wrapperStyle={{ fontSize: "0.7rem" }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="rounded-[20px] liquid-glass p-card">
+          <ul className="space-y-3" aria-label="Take-home by job category">
+            {pieData.map((d) => (
+              <li key={d.name} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-3 text-ds-13">
+                  <span className="font-medium text-foreground truncate">{d.name}</span>
+                  <span className="font-semibold tabular-nums shrink-0" style={{ color: "hsl(var(--accent-ink))" }}>
+                    ${formatPriceExact(d.value)}
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden" aria-hidden>
+                  <div
+                    className="h-full rounded-full bg-primary"
+                    style={{ width: `${maxCategory > 0 ? Math.max(2, Math.round((d.value / maxCategory) * 100)) : 0}%` }}
+                  />
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
       {hasTrendData && (
-        <div className="rounded-2xl liquid-glass p-card">
+        <div className="rounded-[20px] liquid-glass p-card">
           <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
-            <p
-              className="font-sans uppercase text-ds-10"
-              style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}
-            >
-              {ytdYear} vs {priorYtdYear}
+            <p className="font-sans text-ds-13 font-semibold text-foreground">
+              {hasPriorYear ? `${ytdYear} vs ${priorYtdYear}, running total` : `${ytdYear}, running total`}
             </p>
-            {yoyPct !== null && (
-              <span
-                className="font-sans font-bold tabular-nums text-ds-14"
-                style={{
-                  color: yoyDelta >= 0 ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
-                }}
-              >
-                {yoyDelta >= 0 ? "+" : ""}{yoyPct}% YoY
+            {hasPriorYear && yoyPct !== null && (
+              <span className="font-sans font-bold tabular-nums text-ds-13 text-foreground">
+                {yoyDelta >= 0 ? "+" : ""}{yoyPct}% vs {priorYtdYear}
               </span>
             )}
           </div>
           <div className="h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%" minHeight={200}>
               <LineChart data={trendData} margin={{ top: 4, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.08} vertical={false} />
+                <CartesianGrid stroke={muted} strokeOpacity={0.15} vertical={false} />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
-                  axisLine={{ stroke: "hsl(var(--olivewood))", strokeOpacity: 0.2 }}
+                  tick={{ fontSize: 11, fill: muted }}
+                  axisLine={{ stroke: muted, strokeOpacity: 0.3 }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
+                  tick={{ fontSize: 11, fill: muted }}
                   axisLine={false}
                   tickLine={false}
                   width={44}
                   tickFormatter={(v: number) => `$${v >= 1000 ? Math.round(v / 100) / 10 + "k" : v}`}
                 />
                 <Tooltip
-                  formatter={(value, name) => [`$${formatPriceExact(Number(value))}`, String(name) === "ytd" ? String(ytdYear) : String(priorYtdYear)]}
+                  formatter={(value, name) => [`$${formatPriceExact(Number(value))}`, String(name)]}
                   contentStyle={{
-                    background: "hsl(var(--ivory-sand) / 0.95)",
-                    border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-                    borderRadius: 8,
-                    fontSize: "0.78rem",
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 14,
+                    fontSize: "0.8rem",
                   }}
                 />
-                <Line
-                  type="monotone"
-                  dataKey="prior"
-                  stroke="hsl(var(--olivewood))"
-                  strokeOpacity={0.35}
-                  strokeWidth={2}
-                  dot={false}
-                  name={String(priorYtdYear)}
-                />
+                {hasPriorYear && <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: "0.75rem" }} />}
+                {hasPriorYear && (
+                  <Line
+                    type="monotone"
+                    dataKey="prior"
+                    stroke={muted}
+                    strokeDasharray="4 4"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                    name={String(priorYtdYear)}
+                  />
+                )}
                 <Line
                   type="monotone"
                   dataKey="ytd"
-                  stroke="hsl(20, 60%, 50%)"
-                  strokeWidth={2.5}
-                  dot={{ r: 2.5, fill: "hsl(20, 60%, 50%)" }}
+                  stroke={olive}
+                  strokeWidth={2}
+                  dot={{ r: 3, fill: olive, strokeWidth: 0 }}
                   connectNulls={false}
+                  isAnimationActive={false}
                   name={String(ytdYear)}
                 />
               </LineChart>

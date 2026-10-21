@@ -24,7 +24,7 @@
  * buyer and seller never meet): the "Set out" photo, "I got it", the "Picked up"
  * photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -48,6 +48,8 @@ import {
   type ProblemReason,
 } from "@/lib/declutter/handover";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
+import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
+import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
@@ -155,6 +157,9 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
+  // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
+  const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
+  const [problemOpen, setProblemOpen] = useState(false);
   return (
     <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
       {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming and which side you are. */}
@@ -204,10 +209,10 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
           <BookingPanel order={order} booking={booking} />
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
-          {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} />}
-          {booking?.slot_start && <NoShowButton order={order} slotStart={booking.slot_start} />}
-          <ProblemForm orderId={order.orderId} />
+          {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} who={who} onProblem={() => setProblemOpen(true)} />}
+          {booking?.slot_start && <NoShowButton order={order} slotStart={booking.slot_start} who={who} />}
+          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
@@ -299,13 +304,15 @@ function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
   );
 }
 
-function HandoverPanel({ order, userId, slotStart }: { order: PaidOrder; userId: string; slotStart: string }) {
+function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: PaidOrder; userId: string; slotStart: string; who: string; onProblem: () => void }) {
   const qc = useQueryClient();
   const [photo, setPhoto] = useState<File | null>(null);
+  const [asking, setAsking] = useState(false);
   const confirm = useMutation({
     mutationFn: () => confirmHandover(order.orderId),
     onSuccess: () => {
       toast.success("Handover done. Enjoy your item.");
+      setAsking(false);
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -315,6 +322,7 @@ function HandoverPanel({ order, userId, slotStart }: { order: PaidOrder; userId:
     onSuccess: () => {
       toast.success("Picked up. You're being paid.");
       setPhoto(null);
+      setAsking(false);
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -344,36 +352,37 @@ function HandoverPanel({ order, userId, slotStart }: { order: PaidOrder; userId:
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional)</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
           onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
-        <button
-          type="button"
-          className={primary}
-          disabled={pickedUp.isPending}
-          onClick={() => {
-            if (window.confirm("Did the buyer take the item? Tapping \"Picked up\" makes the sale final.")) pickedUp.mutate();
-          }}
-        >
+        <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
           Picked up
         </button>
+        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
       </div>
     );
   }
   return (
-    <button
-      type="button"
-      className={primary}
-      disabled={confirm.isPending}
-      onClick={() => {
-        if (window.confirm("Do you have the item? Tapping \"I got it\" pays the seller and makes the sale final.")) confirm.mutate();
-      }}
-    >
-      I got it
-    </button>
+    <>
+      <button type="button" className={primary} disabled={confirm.isPending} onClick={() => setAsking(true)}>
+        I got it
+      </button>
+      <GotItSheet
+        open={asking}
+        onOpenChange={setAsking}
+        orderId={order.orderId}
+        porch={order.handover === "porch"}
+        who={who}
+        pending={confirm.isPending}
+        onConfirm={() => confirm.mutate()}
+        onProblem={() => { setAsking(false); onProblem(); }}
+      />
+    </>
   );
 }
 
-function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: string; booking: MyBooking }) {
+function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId: string; booking: MyBooking; who: string }) {
   const qc = useQueryClient();
   const [until, setUntil] = useState("");
+  // Board 159: the seller checks the porch photo in "Put it out" before sending it.
+  const [preview, setPreview] = useState<File | null>(null);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),
     onSuccess: () => { toast.success("Saved."); invalidate(qc, order.orderId); },
@@ -386,6 +395,7 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
       return porchPhoto(order.orderId, path, where);
     },
     onSuccess: (r) => {
+      setPreview(null);
       if (r.result === "set_out") toast.success("Left on porch. The buyer is told.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
       else toast.success("Picked up. The seller is paid and the sale is final.");
@@ -415,7 +425,7 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) photo.mutate(f); e.target.value = ""; }} />
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else photo.mutate(f); } e.target.value = ""; }} />
       <button type="button" className={order.side === "seller" ? primary : btn} disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
         {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
@@ -423,24 +433,37 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
       <p className="text-ds-12 text-muted-foreground">
         {order.side === "seller" ? "One photo where the buyer will find it. You need it before you can be paid automatically." : "Taken at the address. It tells the seller you have it, and pays them."}
       </p>
+      {order.side === "seller" && (
+        <PutItOutSheet
+          file={preview}
+          who={who}
+          pending={photo.isPending}
+          onSend={(f) => photo.mutate(f)}
+          onRetake={() => document.getElementById(fileId)?.click()}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </div>
   );
 }
 
-function NoShowButton({ order, slotStart }: { order: PaidOrder; slotStart: string }) {
+function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: string; who: string }) {
   const qc = useQueryClient();
+  const [asking, setAsking] = useState(false);
   const report = useMutation({
     mutationFn: () => reportNoShow(order.orderId),
-    onSuccess: () => { toast.success("Reported. We'll tell the other side and sort out the money."); invalidate(qc, order.orderId); },
+    onSuccess: () => { setAsking(false); toast.success("Reported. We'll tell the other side and sort out the money."); invalidate(qc, order.orderId); },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   // Row 94: from 15 minutes after the booked time. The server checks again.
   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
   return (
-    <button type="button" className={btn} disabled={report.isPending}
-      onClick={() => { if (window.confirm("Report that the other side didn't show?")) report.mutate(); }}>
-      They didn't show
-    </button>
+    <>
+      <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
+        They didn't show
+      </button>
+      <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} pending={report.isPending} onConfirm={() => report.mutate()} />
+    </>
   );
 }
 
@@ -453,9 +476,14 @@ const PROBLEM_WORDS: Record<ProblemReason, string> = {
   other: "Something else",
 };
 
-function ProblemForm({ orderId }: { orderId: string }) {
+function ProblemForm({ orderId, open: openProp, onOpenChange }: { orderId: string; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  // Controlled from the order card when "Something's not right" opens it (board 159).
+  const open = openProp ?? openState;
+  const setOpen = onOpenChange ?? setOpenState;
+  const formRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (open && openProp) formRef.current?.scrollIntoView?.({ block: "center" }); }, [open, openProp]);
   const [reason, setReason] = useState<ProblemReason>("not_as_described");
   const [note, setNote] = useState("");
   const send = useMutation({
@@ -470,7 +498,7 @@ function ProblemForm({ orderId }: { orderId: string }) {
   });
   if (!open) return <button type="button" className={btn} onClick={() => setOpen(true)}>Report a problem</button>;
   return (
-    <div className="space-y-2 rounded-xl border border-border p-3">
+    <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       <label htmlFor={`dcl-reason-${orderId}`} className="block text-xs font-medium">What went wrong?</label>
       <select id={`dcl-reason-${orderId}`} className={input} value={reason} onChange={(e) => setReason(e.target.value as ProblemReason)}>
         {(Object.keys(PROBLEM_WORDS) as ProblemReason[]).map((r) => <option key={r} value={r}>{PROBLEM_WORDS[r]}</option>)}

@@ -189,7 +189,7 @@ export function DeclutterQuestions({
               value={question}
               maxLength={500}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Ask the seller"
+              placeholder="Ask about size, condition…"
             />
             <Button type="submit" className="h-auto shrink-0" disabled={ask.isPending || text.length < 2}>
               Ask

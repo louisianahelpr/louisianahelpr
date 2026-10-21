@@ -134,6 +134,14 @@ function OfferRow({ o }: { o: MyOffer }) {
       {o.status !== "open" && (
         <span className="inline-flex rounded-full bg-muted px-2.5 py-1 text-xs font-medium">{OFFER_STATUS_WORDS[o.status]}</span>
       )}
+      {/* Board 160: an offer that ended unpaid never charged anything (offers charge only at checkout). The item page says
+          whether it can still be bought; this card does not know, so it never promises "Offer again". */}
+      {o.my_side === "buyer" && (o.status === "declined" || o.status === "expired") && (
+        <p className="text-ds-13 text-muted-foreground" data-offer-ended="">
+          Nothing was charged.{" "}
+          <Link to={`/declutter/item/${o.item_id}`} className="font-semibold text-foreground underline underline-offset-2">See the item</Link>
+        </p>
+      )}
       {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">This is under your lowest price ({formatPrice(o.floor_price_cents as number)}). Only you can see that.</p>}
       {o.status === "open" && (
         <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">

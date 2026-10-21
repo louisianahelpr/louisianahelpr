@@ -196,7 +196,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
           )}
           <DialogBody>
             <p>
-              How long should <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
+              How long should <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{them}</span> have to accept or decline this job?
             </p>
           </DialogBody>
           <div className="space-y-2">
@@ -242,7 +242,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               aria-label="Message to Helpr (optional)"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder={`Say something to ${helperName}…`}
+              placeholder={`Say something to ${them}…`}
               rows={3}
               className="resize-none"
             />

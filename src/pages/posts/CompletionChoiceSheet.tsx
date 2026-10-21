@@ -293,7 +293,7 @@ export function CompletionChoiceSheet({
               <button
                 type="button"
                 onClick={() => setMode("revision")}
-                className="w-full min-h-11 font-sans text-ds-15 font-semibold"
+                className="w-full min-h-11 font-sans font-semibold"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 Something's not right

@@ -28,7 +28,7 @@ const STEPS: Record<Pickup, readonly string[]> = {
 const time = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The current step (0-based) from the real handover row. */
-export function handoverStep(handover: Pickup, h: Pick<MyHandover, "status" | "picked_up_at" | "confirmed_at" | "set_out_at"> | null, booked: boolean): number {
+function handoverStep(handover: Pickup, h: Pick<MyHandover, "status" | "picked_up_at" | "confirmed_at" | "set_out_at"> | null, booked: boolean): number {
   if (h?.status === "handed_over") return 3;
   if (h?.picked_up_at || h?.confirmed_at) return 2;
   if (handover === "porch" ? !!h?.set_out_at : booked) return 1;

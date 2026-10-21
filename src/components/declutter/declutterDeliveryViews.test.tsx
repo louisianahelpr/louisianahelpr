@@ -47,6 +47,8 @@ vi.mock("@/lib/helprTasks/api", () => ({
   uploadTaskPhoto: async (_u: string, t: string) => `u1/task/${t}/photo.jpg`,
   uploadVehiclePhoto: async () => "u1/vehicle/truck.jpg",
 }));
+// Q1929's "Raise the pay" panel has its own test (deliveryRaisePanel.test.tsx); here it shows nothing.
+vi.mock("@/lib/declutter/deliveryRaise", () => ({ fetchDeliveryRaiseStatus: async () => null, startDeliveryRaise: vi.fn() }));
 
 import { DeliverView, OrderDeliveryPanel } from "./DeclutterDeliveryViews";
 

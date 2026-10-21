@@ -48,6 +48,8 @@ const DECLUTTER_FILES = [
   "20261021031757_declutter_wanted_public_replies.sql",
   // Stripe Identity once at the first purchase or listing (owner 2026-10-22): identity_required_to_buy / _to_list.
   "20261021202226_declutter_identity_first_buy_or_list.sql",
+  // Q1929: the buyer raises a delivery's pay (invalid_raise, delivery_not_waiting, raise_too_late, raise_limit, ...).
+  "20261021185418_declutter_delivery_raise_pay.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.

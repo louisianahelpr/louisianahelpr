@@ -1264,6 +1264,102 @@ export type Database = {
         Relationships: [
         ]
       }
+      declutter_delivery_raises: {
+        Row: {
+          applied_at: string | null
+          card_fee_cents: number
+          created_at: string
+          id: string
+          is_seed: boolean
+          livemode: boolean | null
+          order_id: string
+          paid_at: string | null
+          paid_cents: number | null
+          payout_transfer_id: string | null
+          raise_cents: number
+          refund_attempts: number
+          refund_cents: number | null
+          refund_last_error: string | null
+          refund_next_attempt_at: string | null
+          refund_reason: string | null
+          refunded_at: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_refund_ref: string | null
+          task_id: string
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          card_fee_cents: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          livemode?: boolean | null
+          order_id: string
+          paid_at?: string | null
+          paid_cents?: number | null
+          payout_transfer_id?: string | null
+          raise_cents: number
+          refund_attempts?: number
+          refund_cents?: number | null
+          refund_last_error?: string | null
+          refund_next_attempt_at?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_refund_ref?: string | null
+          task_id: string
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          card_fee_cents?: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          livemode?: boolean | null
+          order_id?: string
+          paid_at?: string | null
+          paid_cents?: number | null
+          payout_transfer_id?: string | null
+          raise_cents?: number
+          refund_attempts?: number
+          refund_cents?: number | null
+          refund_last_error?: string | null
+          refund_next_attempt_at?: string | null
+          refund_reason?: string | null
+          refunded_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_refund_ref?: string | null
+          task_id?: string
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_delivery_raises_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_delivery_raises_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "helpr_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_delivery_refunds: {
         Row: {
           attempts: number
@@ -2299,6 +2395,7 @@ export type Database = {
           id: string
           is_seed: boolean
           refund_id: string | null
+          raise_id: string | null
           remaining_cents: number
           seller_id: string
           shop_refund_id: string | null
@@ -2309,6 +2406,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           refund_id?: string | null
+          raise_id?: string | null
           remaining_cents: number
           seller_id: string
           shop_refund_id?: string | null
@@ -2319,6 +2417,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           refund_id?: string | null
+          raise_id?: string | null
           remaining_cents?: number
           seller_id?: string
           shop_refund_id?: string | null
@@ -3648,6 +3747,7 @@ export type Database = {
           pickup_lng: number
           pickup_photo_path: string | null
           pickup_slot_start: string | null
+          raised_cents: number
           releases: number
           size: string
           source_id: string
@@ -3689,6 +3789,7 @@ export type Database = {
           pickup_lng: number
           pickup_photo_path?: string | null
           pickup_slot_start?: string | null
+          raised_cents?: number
           releases?: number
           size: string
           source_id: string
@@ -3730,6 +3831,7 @@ export type Database = {
           pickup_lng?: number
           pickup_photo_path?: string | null
           pickup_slot_start?: string | null
+          raised_cents?: number
           releases?: number
           size?: string
           source_id?: string
@@ -11952,6 +12054,44 @@ export type Database = {
       declutter_delivery_on_task_event: { Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }; Returns: Json }
       declutter_delivery_price_cents: { Args: { p_miles: number; p_sizes: string[] }; Returns: number }
       declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
+      declutter_delivery_raise_attach: { Args: { p_raise_id: string; p_session_id: string }; Returns: undefined }
+      declutter_delivery_raise_card_fee_cents: { Args: { p_raise_cents: number }; Returns: number }
+      declutter_delivery_raise_hand_refund: {
+        Args: { p_amount_cents: number; p_payment_intent_id: string; p_stripe_refund_id: string }
+        Returns: string
+      }
+      declutter_delivery_raise_open: { Args: { p_minutes: number; p_order: unknown; p_task: unknown }; Returns: boolean }
+      declutter_delivery_raise_paid: {
+        Args: {
+          p_amount_cents: number
+          p_livemode: boolean
+          p_order_id: string
+          p_payment_intent_id: string
+          p_raise_id: string
+          p_session_id: string
+        }
+        Returns: Json
+      }
+      declutter_delivery_raise_payout_sent: { Args: { p_raise_id: string; p_transfer_id: string }; Returns: string }
+      declutter_delivery_raise_refund_defer: { Args: { p_minutes: number; p_raise_id: string }; Returns: undefined }
+      declutter_delivery_raise_refund_executed: {
+        Args: { p_error: string; p_raise_id: string; p_stripe_refund_id: string; p_succeeded: boolean }
+        Returns: string
+      }
+      declutter_delivery_raise_refund_reversed: { Args: { p_raise_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
+      declutter_delivery_raise_refunds_due: { Args: { p_limit: number }; Returns: unknown }
+      declutter_delivery_raise_rules: { Args: never; Returns: Json }
+      declutter_delivery_raise_start: {
+        Args: { p_order_id: string; p_raise_cents: number }
+        Returns: {
+          card_fee_cents: number
+          raise_cents: number
+          raise_id: string
+          superseded_session_id: string
+          total_cents: number
+        }[]
+      }
+      declutter_delivery_raise_status: { Args: { p_order_id: string }; Returns: Json }
       declutter_delivery_refund: { Args: { p_order_id: string; p_reason: string }; Returns: string }
       declutter_delivery_refund_executed: { Args: { p_error: string; p_id: string; p_stripe_refund_id: string; p_succeeded: boolean }; Returns: string }
       declutter_delivery_refund_reversed: { Args: { p_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
@@ -12233,6 +12373,8 @@ export type Database = {
         }[]
       }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
+      declutter_raise_card_fee_kept_reasons: { Args: never; Returns: string[] }
+      declutter_raise_seller_fault_reasons: { Args: never; Returns: string[] }
       declutter_record_ai_check: {
         Args: {
           p_flag_reason: string

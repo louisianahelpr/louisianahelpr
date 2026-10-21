@@ -660,6 +660,18 @@ async function findLiveRefundRequest(admin: PurgeCapableClient, userId: string):
 export const REFUND_REQUEST_WAITING_FILTER = "status.in.(open,finish_offered,coming_back),and(status.eq.declined,dispute_id.is.null)";
 
 /** A Declutter sale this member is a party to that is not settled yet (fail closed on a read error). */
+/** A delivery task still running: its applied raises are paid to the Helpr or refunded when it ends. */
+const RAISE_TASK_RUNNING = ["open", "accepted", "picked_up", "delivered"];
+
+/** declutter_delivery_raises on an order this member is the buyer or seller of (Q1929); with its task's status when asked. */
+// deno-lint-ignore no-explicit-any
+function raiseQuery(admin: PurgeCapableClient, userId: string, withTask = false): any {
+  return admin
+    .from("declutter_delivery_raises")
+    .select(withTask ? "id, declutter_orders!inner(buyer_id, seller_id), helpr_tasks!inner(status)" : "id, declutter_orders!inner(buyer_id, seller_id)")
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" });
+}
+
 async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
   const lines: PostgrestLike<{ id: string }[]> = await admin
     .from("declutter_cart_items")
@@ -686,6 +698,32 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   if (!tasks.ok || tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks;
   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed", "held_for_review"]);
   if (!pay.ok || pay.active) return pay.active ? { ...pay, detail: `helpr delivery pay ${pay.detail}` } : pay;
+  // Q1929: a delivery-pay raise not settled yet on an order this member is part of. In flight means: a raise
+  // page still payable (a Checkout page lives 31 minutes, so an abandoned one stops counting after that), a
+  // paid raise on a delivery that is still running (open, taken, picked up or delivered: it is either paid to
+  // the Helpr at confirmation or refunded when the task ends unpaid), or a refund still to go back to the
+  // buyer. Keyed on the TASK, not on payout_transfer_id, which stays empty for a payout settled by hand
+  // (lh-money-escrow re-review 2026-10-21 #3). A settled raise is history: its order_id is ON DELETE SET NULL,
+  // so it never blocks the order's cascade (lh-money-escrow review findings 1 and 2).
+  const pageCutoff = new Date(Date.now() - 31 * 60 * 1000).toISOString();
+  const raiseChecks: Array<{ label: string; build: () => PromiseLike<{ data: { id: string }[] | null; error: { code?: string; message: string } | null }> }> = [
+    { label: "refund to send", build: () => raiseQuery(admin, userId).eq("status", "refunding").limit(1) },
+    { label: "delivery running", build: () => raiseQuery(admin, userId, true).eq("status", "applied").in("helpr_tasks.status", RAISE_TASK_RUNNING).limit(1) },
+    { label: "page open", build: () => raiseQuery(admin, userId).eq("status", "awaiting_payment").gt("created_at", pageCutoff).limit(1) },
+  ];
+  for (const c of raiseChecks) {
+    const raises = await c.build();
+    if (raises.error) {
+      if (/does not exist|42P01|PGRST205|PGRST200/i.test(`${raises.error.code ?? ""} ${raises.error.message}`)) {
+        return { ok: true, active: false, detail: "declutter_delivery_raises absent" };
+      }
+      console.error(`[accountPurge] delivery raise check failed for ${userId}:`, raises.error.message);
+      return { ok: false, active: false, detail: raises.error.message };
+    }
+    if (raises.data && raises.data.length > 0) {
+      return { ok: true, active: true, detail: `declutter delivery raise ${raises.data[0].id} (${c.label})`, reason: "declutter" };
+    }
+  }
   return { ok: true, active: false };
 }
 

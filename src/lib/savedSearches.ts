@@ -13,7 +13,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { categoryLabels } from "@/components/job-card/activityConstants";
+// JOB_CATEGORY_LABELS straight from its source (activityConstants re-exports it as categoryLabels): importing
+// activityConstants from a src/lib module pulled that 16.7 KB module into app-shared, on every page's boot path
+// (/login 284 -> 286 KB gz, over the Q178 budget; TRAIN A, 2026-10-21).
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 
 /** The sections a member can save a search in today (Shops and Homes open later). */
@@ -53,7 +56,7 @@ const COLUMNS =
 
 function categoryWord(section: string, category: string): string {
   if (section === "declutter") return CATEGORY_WORD[category] ?? category;
-  return categoryLabels[category] ?? category;
+  return (JOB_CATEGORY_LABELS as Record<string, string>)[category] ?? category;
 }
 
 function sectionWord(section: string): string {

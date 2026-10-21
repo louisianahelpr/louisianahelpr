@@ -188,7 +188,7 @@ function newestViews(): Map<string, string> {
 describe("members never see another member's last name in a response", () => {
   it("reads the inventories (floors)", () => {
     expect(defs.size).toBeGreaterThan(1000);
-    expect(inventory.length).toBe(16); // exact: a new reader of full_name must be looked at. 16 on the TRAIN K tree (2026-10-21): TRAIN J added the Declutter Wanted readers (declutter_wanted_browse names the poster through member_display_name)
+    expect(inventory.length).toBe(19); // exact: a new reader of full_name must be looked at. 19 on the TRAIN Q tree (2026-10-21): board 141 adds rpc_open_refund_request, rpc_answer_refund_request and rpc_withdraw_refund_request, each naming the other party through member_display_name. 16 on the TRAIN K tree (2026-10-21): TRAIN J added the Declutter Wanted readers (declutter_wanted_browse names the poster through member_display_name)
     expect([...newestViews().keys()].sort()).toEqual(["analytics_events_real", "jobs_helper_safe", "open_jobs_browse"]); // prod pg_class, 2026-10-21
   });
 

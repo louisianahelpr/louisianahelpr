@@ -2,7 +2,7 @@
  * Q1402: a crew member's collapsed strip names the step their card offers.
  *
  * A hired crew member whose spot is not confirmed yet sees one button on the
- * expanded card, "Accept My Spot" (CrewMemberSection, CREW_ACCEPT_COPY: a crew
+ * expanded card, "Accept my spot" (CrewMemberSection, CREW_ACCEPT_COPY: a crew
  * member accepts, never confirms, Q1523 / owner Q1399). Their collapsed strip
  * (CrewStatusStrip, through helperStatusLine) used to read the single-Helpr
  * offer's sentence, "Accept or decline it" or "<Name> offered you this job":
@@ -43,7 +43,7 @@ describe("a crew member's strip names the crew card's own step (Q1402)", () => {
     const line = helperStatusLine(app({ status: "accepted", is_group_job: true, helper_confirmed_at: null }));
     expect(line.id).toBe("confirm_spot");
     expect(line.owesConfirmation).toBe(true);
-    // "Accept My Spot" on the button, "Accept your spot" on the strip.
+    // "Accept my spot" on the button, "Accept your spot" on the strip.
     const words = (s: string) => s.toLowerCase().replace(/\b(my|your)\b/g, "").replace(/\s+/g, " ").trim();
     expect(words(line.detail)).toBe(words(crewButton!));
     expect(line.detail).not.toMatch(/decline|offered|confirm/i);

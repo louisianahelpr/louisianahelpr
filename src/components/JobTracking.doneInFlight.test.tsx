@@ -1,4 +1,4 @@
-// JobTracking "Mark Job Complete" — synchronous in-flight guard + the
+// JobTracking "Mark job complete" — synchronous in-flight guard + the
 // server-owned completion RPC.
 //
 // `updating` is React state, so two clicks on the confirm dialog's primary

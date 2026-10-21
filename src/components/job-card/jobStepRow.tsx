@@ -12,10 +12,10 @@ import { createPortal } from "react-dom";
  *
  * The hard part is that three of those primaries are not the step's to draw:
  *
- *   - the tracker's next-step CTA ("I'm On My Way", "I've Arrived", "Mark Job
+ *   - the tracker's next-step CTA ("I'm on my way", "I've arrived", "Mark Job
  *     Complete") lives inside JobTracking, with its own busy state, gates,
  *     location retry and confirm dialog;
- *   - the day-of "I'm Still On" lives inside JobConfirmation;
+ *   - the day-of "I'm still on" lives inside JobConfirmation;
  *   - the revision's "I'll Fix It" lives inside HelperRevisionCard.
  *
  * Lifting their state out would fork three components that already carry
@@ -28,7 +28,7 @@ import { createPortal } from "react-dom";
  * A control that claims the `primary` slot SUPPRESSES the step's own `primary`
  * prop — "where a step has a tracker CTA, that CTA IS the primary; don't render
  * two primaries". That is what retires the Working card's stacked pair (the
- * tracker's "Mark Job Complete" above PayoutPrimary's identical one).
+ * tracker's "Mark job complete" above PayoutPrimary's identical one).
  */
 
 export interface JobStepRowHosts {
@@ -81,7 +81,7 @@ const PRIMARY_FLEX = 2;
  * the width, which is the hole a 12px primary shipped through: the row simply
  * divided the pixels it had and painted the loser's label onto the card.
  * Measured on prod 2026-09-19, both engines, at 320: helper `disputed`
- * "Withdraw Dispute" 12px wide with 43px of label outside it; poster
+ * "Withdraw dispute" 12px wide with 43px of label outside it; poster
  * `disputed` "Resolve & Pay" 12px with 31px outside — the control that
  * releases escrow.
  *
@@ -263,7 +263,7 @@ export interface JobStepRowAllocation {
  * ── THE PRIMARY SLOT MAY HOLD MORE THAN ONE CONTROL ────────────────────────
  * `primaryNeeds` is one entry per control in the slot, because two of them
  * land there today: on a day-of confirmation JobTracking's CTA and
- * JobConfirmation's "I'm Still On" arrive through two separate
+ * JobConfirmation's "I'm still on" arrive through two separate
  * `JobStepRowSlot`s. They are equal flex children (`index.css`), so the slot
  * is sized to `n × the widest of them` — sizing it to the SUM would still
  * leave the wider control short of its own need.

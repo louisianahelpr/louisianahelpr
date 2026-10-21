@@ -1,7 +1,7 @@
-// Q320 — Accept Job on a job whose escrow is not funded (refunded after the
+// Q320 — Accept job on a job whose escrow is not funded (refunded after the
 // offer). The live trigger enforce_job_funded_before_award refuses with 23514
 // "This job is not funded yet…". The client used to answer "Couldn't accept the
-// job — please try again.", a retry that can never work, and left Accept Job on
+// job — please try again.", a retry that can never work, and left Accept job on
 // the card to bounce again. It must say why and re-read.
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -74,7 +74,7 @@ function setup(refresh: () => Promise<void>) {
   );
 }
 
-describe("Accept Job on an unfunded job (Q320)", () => {
+describe("Accept job on an unfunded job (Q320)", () => {
   beforeEach(() => {
     toastError.mockReset();
     rpcResult.current = { data: null, error: null };

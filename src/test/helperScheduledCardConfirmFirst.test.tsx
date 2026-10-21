@@ -1,7 +1,7 @@
 /**
  * Q1554 — THE HELPR'S SCHEDULED CARD LEADS WITH "CONFIRM YOU'LL BE AT THE JOB"
  * (owner, 2026-10-08): until the Helpr's day-before confirmation the primary is
- * "Confirm You'll Be at the Job", never "I'm On My Way"; Cancel job, Directions
+ * "Confirm you'll be at the job", never "I'm on my way"; Cancel job, Directions
  * and Ask for a new date or time sit under More, not on the row.
  *
  * Renders the real ConfirmedSection (the Helpr's accepted card) at two points
@@ -11,7 +11,7 @@
  * three moves the owner named.
  *
  * @mutate src/components/job-card/JobStepCard.tsx | const isMoreOnly = (_c: ReactNode) => true; | const isMoreOnly = (_c: ReactNode) => false;
- * @mutate src/components/JobConfirmation.tsx | Confirm You'll Be at the Job | I'm still on
+ * @mutate src/components/JobConfirmation.tsx | Confirm you'll be at the job | I'm still on
  * @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | <DirectionsButton key="directions" location={job.location} />, | null,
  */
 import { describe, it, expect, vi, beforeAll } from "vitest";
@@ -142,8 +142,8 @@ describe("Q1554 — the Helpr's scheduled card: Confirm first, the rest under Mo
 
       // The row is More + ONE primary, and that primary is the confirm.
       expect(primaryLabels, `row controls besides More: [${primaryLabels.join(" | ")}]`).toHaveLength(1);
-      expect(primaryLabels[0]).toMatch(/Confirm You'll Be at the Job/);
-      expect(cardText).not.toMatch(/I'm On My Way/);
+      expect(primaryLabels[0]).toMatch(/Confirm you'll be at the job/);
+      expect(cardText).not.toMatch(/I'm on my way/);
       const disabled = primaries[0].hasAttribute("disabled") || primaries[0].getAttribute("aria-disabled") === "true";
       expect(disabled, enabled ? "the confirm is greyed inside the day-before window" : "the confirm is live before the day-before window").toBe(!enabled);
 

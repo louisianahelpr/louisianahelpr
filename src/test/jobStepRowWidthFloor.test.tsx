@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
  * Measured on PROD on 2026-09-19 at 320px, in Chromium and WebKit identically
  * (so it is layout arithmetic, not an engine bug):
  *
- *   helper `disputed`  "Withdraw Dispute"  w=12px, 43px of label on the card
+ *   helper `disputed`  "Withdraw dispute"  w=12px, 43px of label on the card
  *   poster `disputed`  "Resolve & Pay"     w=12px, 31px of label on the card
  *
  * The second one releases escrow.

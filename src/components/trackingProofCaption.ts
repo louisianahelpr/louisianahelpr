@@ -57,7 +57,7 @@ export function trackingProofCaption(
   arrivalShownOnMap = false,
   /** The server verified the arrival's location (helper_arrival_verified_at).
    *  Q1573 (owner, 2026-10-08, job 28f8cff5): a poster's confirm OUTRANKED it
-   *  in `state`, and Start Working clears the tracker's position, so a
+   *  in `state`, and Start working clears the tracker's position, so a
    *  GPS-verified arrival read "confirmed by the person who posted it · no
    *  location shared". The location WAS shared, at the arrival. */
   gpsVerified = state === "verified",

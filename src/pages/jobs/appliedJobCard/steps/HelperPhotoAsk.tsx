@@ -25,8 +25,8 @@ import { photoProofRequired, primaryPhotoAsk } from "@/components/job-card/prima
  * its button removed — a heading and a hint with no control is not an ask.
  *
  * The one-line hint went with it, and that is the deliberate trade: the label
- * ("Before Photo" / "After Photo") plus the dialog's own "Before photos"
- * heading carry it, and the helper's blocked "Mark Job Complete" already
+ * ("Before photo" / "After photo") plus the dialog's own "Before photos"
+ * heading carry it, and the helper's blocked "Mark job complete" already
  * states the rule in full (`requiredProof().reason`) at the step where it
  * actually bites.
  *
@@ -150,7 +150,7 @@ export function HelperPhotoAsk({
       type="before"
       existingUrls={beforeUrls}
       onUploaded={readBack}
-      label="Before Photo"
+      label="Before photo"
       crew={crew}
     />
   );
@@ -160,7 +160,7 @@ export function HelperPhotoAsk({
       type="after"
       existingUrls={afterUrls}
       onUploaded={readBack}
-      label="After Photo"
+      label="After photo"
       crew={crew}
     />
   );
@@ -182,7 +182,7 @@ export function HelperPhotoAsk({
         type={ask}
         existingUrls={ask === "before" ? beforeUrls : afterUrls}
         onUploaded={readBack}
-        label={ask === "before" ? "Before Photo" : "After Photo"}
+        label={ask === "before" ? "Before photo" : "After photo"}
         crew={crew}
         asPrimary
       />

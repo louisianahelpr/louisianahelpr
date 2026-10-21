@@ -36,7 +36,7 @@ export const trimTime = (v: string | null | undefined): string | null => {
 // Labels are capped by the row layout in NotificationPreferences.tsx: at a
 // 375px viewport the label column is ~131px wide (335px panel − px-4 − the
 // 28px glyph − the two 51px switch slots and their gap), so a label has to
-// measure under that at 14px/600. "Transit (On the Way / Arrived)" was 213px
+// measure under that at 14px/600. "Transit (On the way / Arrived)" was 213px
 // and truncated; every other label is a short Title Case pair well inside the
 // budget ("Payments and tips", the widest survivor, is 119px).
 //

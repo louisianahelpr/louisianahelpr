@@ -666,7 +666,7 @@
     },
     {
       "file": "src/components/JobConfirmation.tsx",
-      "line": 321,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -723,7 +723,7 @@
           },
           {
             "form": "template",
-            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
             "holes": {
               "unlocks": [
                 {
@@ -745,7 +745,7 @@
           },
           {
             "form": "template",
-            "text": "The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "text": "The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
             "holes": {
               "unlocks": [
                 {
@@ -5212,7 +5212,7 @@
           },
           {
             "form": "template",
-            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
             "holes": {
               "unlocks": [
                 {
@@ -5234,7 +5234,7 @@
           },
           {
             "form": "template",
-            "text": "The person who posted this job has to tap \"Confirm They Arrived\" ${unlocks}.",
+            "text": "The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
             "holes": {
               "unlocks": [
                 {
@@ -9355,7 +9355,7 @@
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
-        "text": "Got it — the person who posted this job knows you'll fix it. Tap Mark Fixed when it's done."
+        "text": "Got it — the person who posted this job knows you'll fix it. Tap Mark fixed when it's done."
       },
       "renders": true
     },

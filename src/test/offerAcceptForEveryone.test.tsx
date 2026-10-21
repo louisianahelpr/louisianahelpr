@@ -10,7 +10,7 @@
  * swapped the accept for the setup.
  *
  * The rule, on the real card wired to the real handlers (useActivityActions):
- *   - before the tap, every Helpr sees "Accept Job" (primary) and "Decline",
+ *   - before the tap, every Helpr sees "Accept job" (primary) and "Decline",
  *     whatever their Stripe state, including while the profile is loading;
  *   - tapping Accept calls accept_job_offer (respond_to_direct_offer for a
  *     direct offer), and its pending_setup answer opens AwardGateDialog's
@@ -165,11 +165,11 @@ describe("the Helpr's offer card offers Accept to everyone (Q1399, owner 2026-10
     expect(STATES.length).toBeGreaterThan(3);
   });
 
-  it.each(STATES)("%s: the primary is an enabled Accept Job beside Decline; no setup step before the tap", (_n, profile, loading) => {
+  it.each(STATES)("%s: the primary is an enabled Accept job beside Decline; no setup step before the tap", (_n, profile, loading) => {
     profileState.profile = profile;
     profileState.isLoading = loading;
     render(<OfferCard app={appOffer} />);
-    const accept = screen.getByRole("button", { name: /Accept Job/ });
+    const accept = screen.getByRole("button", { name: /Accept job/ });
     expect(accept).toBeEnabled();
     expect(accept).toHaveAttribute("data-offer-primary", "accept");
     expect(screen.getByRole("button", { name: /^Decline$/ })).toBeEnabled();
@@ -181,7 +181,7 @@ describe("the Helpr's offer card offers Accept to everyone (Q1399, owner 2026-10
   it("no payout account: tapping Accept calls accept_job_offer, and pending_setup opens Thanks for Accepting!", async () => {
     rpcAnswer.current = { data: { state: "pending_setup", missing: ["payout_setup", "stripe_id"] }, error: null };
     render(<OfferCard app={appOffer} />);
-    fireEvent.click(screen.getByRole("button", { name: /Accept Job/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Accept job/ }));
     await waitFor(() => expect(rpcCalls.map((c) => c.name)).toContain("accept_job_offer"));
     expect(rpcCalls.find((c) => c.name === "accept_job_offer")?.args).toEqual({ p_job_id: "job-1" });
     expect(await screen.findByText("Thanks for Accepting!")).toBeInTheDocument();
@@ -190,18 +190,18 @@ describe("the Helpr's offer card offers Accept to everyone (Q1399, owner 2026-10
   it("direct offer, no payout account: tapping Accept calls respond_to_direct_offer, and pending_setup opens the same pop-up", async () => {
     rpcAnswer.current = { data: { action: "pending_setup", missing: ["payout_setup"] }, error: null };
     render(<OfferCard app={directOffer} />);
-    fireEvent.click(screen.getByRole("button", { name: /Accept Job/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Accept job/ }));
     await waitFor(() => expect(rpcCalls.map((c) => c.name)).toContain("respond_to_direct_offer"));
     expect(rpcCalls.find((c) => c.name === "respond_to_direct_offer")?.args).toEqual({ p_job_id: "job-1", p_accept: true });
     expect(await screen.findByText("Thanks for Accepting!")).toBeInTheDocument();
   });
 
-  it("after the accept, while it waits on Stripe: Finish Accepting (it reopens the pop-up), and the card says it is not accepted yet", async () => {
+  it("after the accept, while it waits on Stripe: Finish accepting (it reopens the pop-up), and the card says it is not accepted yet", async () => {
     pendingJobs.add("job-1");
     rpcAnswer.current = { data: { state: "pending_setup", missing: ["payout_setup", "stripe_id"] }, error: null };
     render(<OfferCard app={appOffer} />);
     expect(document.querySelector("[data-offer-pending-status]")?.textContent).toMatch(/Not accepted yet: waiting on your payout setup and Stripe ID check/);
-    fireEvent.click(screen.getByRole("button", { name: /Finish Accepting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Finish accepting/ }));
     await waitFor(() => expect(rpcCalls.map((c) => c.name)).toContain("accept_job_offer"));
     expect(await screen.findByText(/You're not booked yet/)).toBeInTheDocument();
   });

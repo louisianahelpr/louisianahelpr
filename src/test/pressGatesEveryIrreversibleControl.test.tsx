@@ -7,7 +7,7 @@
  * same name) matched no word of DESTRUCTIVE_RX, so a sweep could open the
  * confirm and press its commit, calling end_recurring_series on prod. Measured
  * from the source the same day: six more confirm commits that write named no
- * word either ("Give up" series dates, "Turn Down" / "Leave Crew", "Escalate to
+ * word either ("Give up" series dates, "Turn down" / "Leave crew", "Escalate to
  * Admin", "Take It Back", the admin feature switch's "Set to ...").
  *
  * CLASS, two nets:

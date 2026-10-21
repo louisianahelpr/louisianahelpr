@@ -8,12 +8,12 @@ import { rpcErrorCode } from "@/lib/lifecycleErrors";
  * PULL-TO-REFRESH RE-CHECKS AN ARRIVAL THAT GPS NEVER CONFIRMED.
  *
  * ── WHY THIS EXISTS ───────────────────────────────────────────────────────
- * Owner, 2026-09-19: remove the "Try My Location Again" chip from the job
+ * Owner, 2026-09-19: remove the "Try my location again" chip from the job
  * card's action row, and make the refresh gesture do the job instead.
  *
  * That ruling was made knowing exactly what the button was for, because it was
  * measured first: when an arrival is RECORDED BUT UNVERIFIED the rail has
- * already advanced, so the row's primary reads "Start Working", not "Mark
+ * already advanced, so the row's primary reads "Start working", not "Mark
  * Arrived" — there is no other control whose tap re-runs the location fix. The
  * chip was the only claimed -> verified path in the product, and
  * `usePullToRefresh` only refetched React Query. Deleting the chip without
@@ -62,7 +62,7 @@ import { rpcErrorCode } from "@/lib/lifecycleErrors";
  * ── SCOPE ─────────────────────────────────────────────────────────────────
  * Helper side only, and only a job whose arrival is stamped and unverified.
  * Never on the poster's tab (they cannot check themselves in), never before an
- * arrival exists (that is the "I've Arrived" tap's job and it must stay a
+ * arrival exists (that is the "I've arrived" tap's job and it must stay a
  * deliberate act, not something a scroll gesture does), and never on a
  * verified one (there is nothing to win).
  */

@@ -292,7 +292,7 @@ export function pendingAcceptStatus(missing: readonly AcceptMissing[]): { headli
           : "Stripe to finish your setup";
   return {
     headline: `Not accepted yet: waiting on ${what}.`,
-    body: "The job isn't yours until that's done. Then your accept goes through and we tell the person who posted it. Tap Accept Job to see what's left.",
+    body: "The job isn't yours until that's done. Then your accept goes through and we tell the person who posted it. Tap Accept job to see what's left.",
   };
 }
 

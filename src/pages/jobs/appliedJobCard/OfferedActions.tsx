@@ -45,7 +45,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // ANYONE CAN ACCEPT; PAYOUT SETUP COMES AFTER (owner, 2026-10-06, said
   // twice: "you can offer job to anyone, they would set it up after
   // accepting. this is not an exception, it's the rule."). Before the tap the
-  // primary is always "Accept Job", whatever the Helpr's Stripe state:
+  // primary is always "Accept job", whatever the Helpr's Stripe state:
   // accept_job_offer / respond_to_direct_offer record the accept and answer
   // pending_setup, and AwardGateDialog ("Thanks for Accepting!") takes them to
   // Stripe. The 2026-10-05 card swapped Accept for "Set Up Payouts" when the
@@ -57,7 +57,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
   // src/test/offerCardHierarchy.test.tsx.
   // Once accepted and waiting only on Stripe, the button finishes that accept
   // (owner, 2026-10-08: "it should say finish accepting, they already accepted").
-  const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Accepting" : "Accept Job";
+  const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job";
   // Item 5 (owner, 2026-10-07): after a pending accept the card says plainly
   // it is NOT accepted yet, and what it waits on (the same profile mirror of
   // helper_accept_missing the pop-up's list comes from).

@@ -1,7 +1,7 @@
 /**
  * settleJobForward starts where the product starts: the Helpr ACCEPTS the offer.
  *
- * A hire (accept_application) is an offer until the Helpr taps Accept Job
+ * A hire (accept_application) is an offer until the Helpr taps Accept job
  * (accept_job_offer, Q1180). Since 20261004001807 (Q1187) the database's
  * enforce_helper_award_gate refuses arrival, Done and disputes on an offer no
  * one accepted (`accept_required`). scripts/e2e/settleForward.mjs walked

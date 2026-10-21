@@ -15,7 +15,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * accept_application, then PATCHed on-my-way and got 403 "accept_required".
  * accept_application only OFFERS the job; since 20261004001807 / 20261007051854
  * nothing starts on an offer the Helpr has not accepted, and the accept is
- * written only by accept_job_offer (the app's Accept Job button).
+ * written only by accept_job_offer (the app's Accept job button).
  *
  * Inventory: every e2e/ and scripts/e2e/ source that calls accept_application
  * in code (comments blanked), by URL (rpc/accept_application) OR by name

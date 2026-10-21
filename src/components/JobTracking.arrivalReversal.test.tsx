@@ -14,7 +14,7 @@
  * never calls the RPC — which is EXACTLY the defect the reversal undid:
  * `updateStatus("arrived")` used to `return` on a failed location fix, so a
  * Helpr with Location off produced no `helper_arrived_at`, the poster's
- * "Confirm They Arrived" control (gated on that column) never rendered, and
+ * "Confirm they've arrived" control (gated on that column) never rendered, and
  * the Helpr's blocked CTA told them to go ask for a tap nobody was offered.
  *
  * So this file drives the real component: it taps the real button, watches the
@@ -131,7 +131,7 @@ function renderHelperTracker(props: Record<string, unknown> = {}) {
 }
 
 const tapArrived = async () => {
-  const btn = screen.getByRole("button", { name: /I've Arrived/i });
+  const btn = screen.getByRole("button", { name: /I've arrived/i });
   await act(async () => { btn.click(); });
 };
 
@@ -164,7 +164,7 @@ describe("Mark Arrived always records the check-in", () => {
     await waitFor(() => expect(toast.info).toHaveBeenCalled());
     const said = (toast.info as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
     expect(said, "a successful check-in").toMatch(/checked in/i);
-    expect(said, "the one gate, named").toMatch(/Confirm They Arrived/);
+    expect(said, "the one gate, named").toMatch(/Confirm they've arrived/);
     // NOT an error and NOT a warning: an unverified location is an ordinary
     // outcome, not a fault of the Helpr's.
     expect(toast.error).not.toHaveBeenCalled();
@@ -178,13 +178,13 @@ describe("Mark Arrived always records the check-in", () => {
 
     await waitFor(() => expect(toast.error).toHaveBeenCalled());
     // The rail did not move: the same button is still offered.
-    expect(screen.getByRole("button", { name: /I've Arrived/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /I've arrived/i })).toBeTruthy();
     expect(toast.info).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });
 });
 
-describe("the blocked Start Working CTA is the Helpr's anti-cheat notice", () => {
+describe("the blocked Start working CTA is the Helpr's anti-cheat notice", () => {
   it("is ENABLED on a GPS-VERIFIED arrival the poster has not confirmed (owner pop-up 2026-10-08, \"GPS skips it\")", () => {
     // Was "disabled": the 09-19 rule required the poster's tap even with GPS.
     renderHelperTracker({
@@ -195,8 +195,8 @@ describe("the blocked Start Working CTA is the Helpr's anti-cheat notice", () =>
         eta_minutes: null, updated_at: AT,
       },
     });
-    const cta = screen.getByRole("button", { name: /Start Working/i }) as HTMLButtonElement;
-    expect(cta.disabled, "a verified arrival unlocks Start Working").toBe(false);
+    const cta = screen.getByRole("button", { name: /Start working/i }) as HTMLButtonElement;
+    expect(cta.disabled, "a verified arrival unlocks Start working").toBe(false);
   });
 
   it("is ENABLED on the poster's tap alone — no GPS anywhere on the row", () => {
@@ -208,7 +208,7 @@ describe("the blocked Start Working CTA is the Helpr's anti-cheat notice", () =>
         eta_minutes: null, updated_at: AT,
       },
     });
-    const cta = screen.getByRole("button", { name: /Start Working/i }) as HTMLButtonElement;
+    const cta = screen.getByRole("button", { name: /Start working/i }) as HTMLButtonElement;
     expect(cta.disabled, "the poster's tap is the whole gate").toBe(false);
   });
 });
@@ -239,7 +239,7 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
     expect(text, "what Location buys them").toMatch(/GPS proof you were here/i);
     expect(text).toMatch(/disputed/i);
     expect(
-      screen.queryByRole("button", { name: /Try My Location Again/i }),
+      screen.queryByRole("button", { name: /Try my location again/i }),
       "the retry chip is back in the row — the refresh gesture owns this now",
     ).toBeNull();
   });
@@ -252,7 +252,7 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
    * `arrivalGate.test.ts` pins the amber sentence as a string. It cannot see
    * the OVERLAP, which is a property of the two blocks TOGETHER on one card —
    * and the overlap is what the owner measured: ten lines between the photo box
-   * and the buttons, "turn Location on" in both, "Try My Location Again" in
+   * and the buttons, "turn Location on" in both, "Try my location again" in
    * both. So this reads the two rendered paragraphs off the real component and
    * asserts neither says the other's job.
    *
@@ -262,27 +262,27 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
   it("does not say the same thing twice: the blocker is amber-only, the GPS ask muted-only", () => {
     renderHelperTracker(CHECKED_IN_NO_GPS);
     const paras = [...document.querySelectorAll("p")].map((p) => p.textContent ?? "");
-    const amber = paras.find((t) => t.includes("Confirm They Arrived"));
+    const amber = paras.find((t) => t.includes("Confirm they've arrived"));
     const muted = paras.find((t) => /Location on/i.test(t));
     expect(amber, "the blocked CTA's amber reason is not on the card").toBeTruthy();
     expect(muted, "the muted GPS benefit line is not on the card").toBeTruthy();
     expect(amber).not.toBe(muted);
 
     // Amber: the blocker, and nothing about Location.
-    expect(amber!, `amber carries the GPS ask: ${amber}`).not.toMatch(/Location on|Try My Location Again/i);
+    expect(amber!, `amber carries the GPS ask: ${amber}`).not.toMatch(/Location on|Try my location again/i);
     // Muted: the benefit, and nothing about the poster's tap.
-    expect(muted!, `muted carries the blocker: ${muted}`).not.toMatch(/Confirm They Arrived|person who posted/i);
+    expect(muted!, `muted carries the blocker: ${muted}`).not.toMatch(/Confirm they've arrived|person who posted/i);
 
-    // "Try My Location Again" appears NOWHERE on the card any more. It used to
+    // "Try my location again" appears NOWHERE on the card any more. It used to
     // be asserted at exactly 1 — on the button — because the prose kept
     // duplicating the button's own words. The button is gone (owner,
     // 2026-09-19), so any occurrence at all is now a DANGLING REFERENCE: copy
     // naming a control the Helpr cannot find. That is the stronger assertion,
     // not the weaker one.
-    const hits = (document.body.textContent ?? "").match(/Try My Location Again/g) ?? [];
+    const hits = (document.body.textContent ?? "").match(/Try my location again/g) ?? [];
     expect(
       hits,
-      `the card names "Try My Location Again" ${hits.length}× and no such control exists`,
+      `the card names "Try my location again" ${hits.length}× and no such control exists`,
     ).toHaveLength(0);
 
     // And the whole block is materially shorter than the ten lines measured.
@@ -319,7 +319,7 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
     expect(text, "no Location ask of any wording once the poster has vouched").not.toMatch(
       /Turning Location on/i,
     );
-    expect(screen.queryByRole("button", { name: /Try My Location Again/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Try my location again/i })).toBeNull();
   });
 
   it("goes quiet once the location IS confirmed", () => {
@@ -329,7 +329,7 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
       /GPS proof you were here/i,
     );
     expect(text).not.toMatch(/Turning Location on/i);
-    expect(screen.queryByRole("button", { name: /Try My Location Again/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Try my location again/i })).toBeNull();
   });
 });
 

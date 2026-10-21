@@ -6,7 +6,7 @@
  * is the on-site step's primary, and the owed after photo the working step's,
  * until taken. HelperPhotoAsk draws that primary; the collapsed status line
  * (jobStatusLine `before_photo`) names the same step. They used to disagree:
- * an arrived Helpr with no before photo saw "Take Before Photo" expanded and
+ * an arrived Helpr with no before photo saw "Take Before photo" expanded and
  * "Finish and mark it done" collapsed (seed job 90aa6c8b at 375, 2026-10-12).
  *
  * Pure: no React, no query. Guard: src/test/collapsedLineNamesThePhotoPrimary.test.ts.
@@ -54,7 +54,7 @@ export function afterPhotoIsThePrimary(job: Job): boolean {
 /**
  * The collapsed line's question: is this arrived one-Helpr job's primary the
  * before photo? With no before photo the Helpr cannot be at the working step
- * (Start Working is refused server-side until it exists:
+ * (Start working is refused server-side until it exists:
  * tracker_requires_before_photo), so an arrived job with none is on its
  * on-site step, whose primary is that photo.
  */

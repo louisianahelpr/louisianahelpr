@@ -10,7 +10,7 @@ import type { HelperStepProps } from "./stepContract";
  *
  * There is no ask and no primary: the next move belongs to the poster. So the
  * card is the tracker, a notice, and Message — and the notice is a
- * {@link CardSubPanel}, which is the shape the "Marked Complete" box was
+ * {@link CardSubPanel}, which is the shape the "Marked complete" box was
  * hand-drawing (a primary-tinted header strip with an icon and a padded body).
  *
  * Approval is NOT payment: the payout is sent STANDARD_PAYOUT_PHRASE (3 days
@@ -50,7 +50,7 @@ export function SubmittedStep({
        wrong sentence. Same guard the notice carried before the split. */
     null
   ) : (
-    <CardSubPanel icon={CheckCircle2} title="Marked Complete" tone="primary">
+    <CardSubPanel icon={CheckCircle2} title="Marked complete" tone="primary">
       <div className="space-y-1">
         <p className="text-ds-11 text-muted-foreground">Waiting for the person who posted this job to:</p>
         <ul className="text-ds-11 text-muted-foreground list-disc pl-4 space-y-0.5">
@@ -88,7 +88,7 @@ export function SubmittedStep({
          problem always all the way on the left" (superseded 2026-09-27: Report a Problem now lives inside More — MORE_ONLY_CHIP_KEYS in JobStepCard), and "before and after photos
          should be to the left of the primary buttons". The primary is already
          far right (V2/V3), so the row reads:
-           Report a Problem · …middle… · Before/After Photo · [green primary]
+           Report a Problem · …middle… · Before/After photo · [green primary]
          The ends are also what the overflow control may never take — see
          `allocateJobStepRow`. */
       actions={[reportChip, messageChip]}

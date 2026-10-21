@@ -401,7 +401,7 @@ async function driveToHired(
 }
 
 /**
- * helper-e2e answers the offer the way the app's Accept Job button does:
+ * helper-e2e answers the offer the way the app's Accept job button does:
  * accept_job_offer (Q1180). Since 20261004001807 (Q1187) the database refuses
  * a direct PATCH of helper_confirmed_at (accept_required), which is how this
  * used to confirm. helper-e2e is a seed profile with no Stripe account, which
@@ -544,7 +544,7 @@ export async function ensureDisputedJob(
   // 42501; prod-audit run 39008504928, job 54bdd391 accepted with
   // helper_confirmed_at null), and an offer left unanswered is swept by
   // expire_unanswered_offers at its deadline, striking helper-e2e. So the
-  // helper accepts first, exactly as the app's Accept Job button does; on a
+  // helper accepts first, exactly as the app's Accept job button does; on a
   // resumed row already confirmed this is a read and nothing else.
   await helperConfirmsOffer(api, helper, id, log, "dispute");
   await rpc(api, poster, "rpc_open_dispute", {

@@ -21,22 +21,22 @@ const job = (over: Record<string, unknown>) =>
   ({ id: "j", status: "in_progress", helper_id: "h", helper_confirmed_at: T, is_group_job: false, ...over }) as unknown as Job;
 
 describe("the poster's confirms follow the Helpr's steps", () => {
-  it("on the way: Confirm They Arrived is drawn greyed, saying when it turns on", () => {
+  it("on the way: Confirm they've arrived is drawn greyed, saying when it turns on", () => {
     const r = posterConfirmationRung(job({ helper_on_the_way_at: T }), "in_progress")!;
-    expect(r.label).toBe("Confirm They Arrived");
+    expect(r.label).toBe("Confirm they've arrived");
     expect(r.enabled).toBe(false);
     expect(r.reason).toMatch(/turns on once your Helpr says they've arrived/);
   });
   it("arrived: it turns on", () => {
     expect(posterConfirmationRung(job({ helper_on_the_way_at: T, helper_arrived_at: T }), "in_progress")!.enabled).toBe(true);
   });
-  it("arrival confirmed, Helpr not working yet: Confirm They're Working is greyed", () => {
+  it("arrival confirmed, Helpr not working yet: Confirm they're working is greyed", () => {
     const r = posterConfirmationRung(job({ helper_arrived_at: T, poster_confirmed_arrival_at: T }), "in_progress", new Date(), false)!;
-    expect(r.label).toBe("Confirm They're Working");
+    expect(r.label).toBe("Confirm they're working");
     expect(r.enabled).toBe(false);
-    expect(r.reason).toMatch(/turns on once your Helpr taps Start Working/);
+    expect(r.reason).toMatch(/turns on once your Helpr taps Start working/);
   });
-  it("the Helpr tapped Start Working: it turns on", () => {
+  it("the Helpr tapped Start working: it turns on", () => {
     const r = posterConfirmationRung(job({ helper_arrived_at: T, poster_confirmed_arrival_at: T }), "in_progress", new Date(), true)!;
     expect(r.enabled).toBe(true);
     expect(r.reason).toBeNull();

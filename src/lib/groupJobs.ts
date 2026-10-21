@@ -105,7 +105,7 @@
  *      per-member payout state plus changes to create-payment,
  *      auto-release-payment, release-payout and the payout cron.
  *   3. THE UI. Crew tracker, per-member Done, and the poster's per-member
- *      "Confirm They Arrived". The RPCs exist; nothing calls them yet.
+ *      "Confirm they've arrived". The RPCs exist; nothing calls them yet.
  *   4. `reject_new_group_jobs` must be dropped in the SAME migration that
  *      flips this flag, or bundled builds stay refused by the server.
  */

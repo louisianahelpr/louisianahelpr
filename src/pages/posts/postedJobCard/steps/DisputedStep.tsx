@@ -16,7 +16,7 @@ import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
  * The mirror of the helper's DisputedSection, in the same shell and the same
  * slot order, so the two ends of one dispute finally read as one screen from
  * both sides: banner in `header`, the money move as the ONE `primary`, and
- * Photos / Timeline / Message / Contact Admin in the row. (The evidence used
+ * Photos / Timeline / Message / Contact admin in the row. (The evidence used
  * to fill `ask` as a panel above the row — owner item 10, 2026-09-19 made
  * "before & after pictures" a button on the row like the rest.)
  *
@@ -61,7 +61,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
             ? "Escalated to Admin"
             : disputeStatus === "resolved"
               ? "Dispute Resolved"
-              : "Dispute Under Review"}
+              : "Dispute under review"}
         </p>
         <p className="text-ds-11 text-muted-foreground mt-1">
           {awaitingAdmin
@@ -116,7 +116,7 @@ export function DisputedStep(ctx: PosterStepCtx) {
            escrow, and neither the label nor the spoken name mentioned money. It
            is named for its consequence and confirms before it moves anything. */
         /* It leads the card's ONE action row in the row's dark green (owner,
-           2026-09-14, VN-21), Escalate / Timeline / Message / Contact Admin
+           2026-09-14, VN-21), Escalate / Timeline / Message / Contact admin
            beside it. Still confirms before anything moves. */
         canEscalate && canResolve ? (
           <JobStepPrimaryButton
@@ -211,8 +211,8 @@ export function DisputedStep(ctx: PosterStepCtx) {
         <JobActionChip
           key="admin"
           icon={LifeBuoy}
-          label="Contact Admin"
-          ariaLabel="Contact Admin — get help from a Helpr admin about this dispute"
+          label="Contact admin"
+          ariaLabel="Contact admin — get help from a Helpr admin about this dispute"
           tone="neutral"
           /* CARRIES THE JOB — `?topic=` and `?subject=` are the two params
              Support.tsx reads, and it carries the job TITLE plus a short id

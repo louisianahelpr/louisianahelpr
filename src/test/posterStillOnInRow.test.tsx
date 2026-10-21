@@ -14,8 +14,8 @@
  *
  * @mutate src/pages/posts/PostedJobCard.tsx | import { GroupJobHelpers } | import { JobConfirmation } from "@/components/JobConfirmation";\nimport { GroupJobHelpers }
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         {job.status === "accepted" && job.helper_confirmed_at && ( |         {false && (
- * @mutate src/components/JobConfirmation.tsx |     const waitingPrimary = variant === "inline" && (isHelper \|\| isOwner) ? ( |     const waitingPrimary = variant === "inline" && isHelper ? (
- * @mutate src/components/JobConfirmation.tsx |           label="Confirm they've arrived"\n          disabled | label="Confirmed"\n          disabled
+ * @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
+ * @mutate src/components/JobConfirmation.tsx |       ) : null\n      /* Poster confirmed: NO greyed | ) : isOwner ? <JobStepPrimaryButton icon={CheckCircle2} label="Confirm they've arrived" disabled onClick={() => {}} /> : null\n      /* Poster confirmed: NO greyed
  * @mutate src/components/job-card/NudgeConfirmLink.tsx |               setResult(NUDGE_RESULT[String(data)] ?? NUDGE_RESULT.sent); |               toast.success(NUDGE_RESULT.sent);
  * @mutate src/components/JobConfirmation.tsx |   if (variant === "inline" && isOwner && (helperOnTheWayAt \|\| helperArrivedAt)) return null; |   if (variant === "inline" && isOwner && helperArrivedAt) return null;
  * @mutate src/components/job-card/jobStatusLine.ts |   confirmed: { detail: "You're scheduled" }, |   confirmed: { detail: "You're booked" },
@@ -117,23 +117,24 @@ describe("Posts, booked job: I'm still on is the row's primary beside More", () 
     expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
   });
 
-  it("confirmed poster: the greyed Confirm they've arrived sits in the row, its 'turns on' line above it", () => {
+  // Owner, 2026-10-21: never a disabled future step. Confirmed poster: no greyed arrival button; the
+  // primary is "Message <Helpr>" and the line says what happens next.
+  it("confirmed poster: no greyed arrival button; Message is the primary and the line says what's next", () => {
     wrap(<ScheduledStep {...ctx(makeJob({ poster_confirmed_at: ago(0.2) }))} />);
-    const btn = screen.getByRole("button", { name: /Confirm they've arrived/ });
-    expect(row().contains(btn)).toBe(true);
-    expect((btn as HTMLButtonElement).disabled).toBe(true);
-    const note = screen.getByText(/turns on once your Helpr says they've arrived/);
+    expect(screen.queryByRole("button", { name: /Confirm they've arrived/i })).toBeNull();
+    const msg = screen.getByRole("button", { name: /^Message /i });
+    expect(row().contains(msg)).toBe(true);
+    const note = screen.getByText(/Waiting on .+ to confirm by|You're both confirmed/);
     expect(noteHost().contains(note)).toBe(true);
-    expect(before(noteHost(), row())).toBe(true);
-    expect(screen.queryByText(/Still on for this one\?/)).toBeNull();
+    expect(screen.queryByText(/turns on once/)).toBeNull();
   });
 
-  it("more than a day out: a greyed I'm still on in the row (it says when it turns on)", () => {
+  it("more than a day out: no greyed I'm still on; the line says when confirming opens", () => {
     const far = jobClock(72);
     wrap(<ScheduledStep {...ctx(makeJob({ date_needed: far.date, start_time: far.time, helper_dayof_confirmed_at: null }))} />);
-    const btn = screen.getByRole("button", { name: /I'm still on/ });
-    expect(row().contains(btn)).toBe(true);
-    expect((btn as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: /I'm still on/ })).toBeNull();
+    expect(row().contains(screen.getByRole("button", { name: /^Message /i }))).toBe(true);
+    expect(screen.getByText(/confirm the day before\. Opens /)).toBeInTheDocument();
   });
 });
 
@@ -143,7 +144,7 @@ describe("on the way: ONE greyed arrival button, nothing above the profile", () 
     // On My Way moves the job to in_progress, so the card is InProgressStep;
     // the "Still on for this one?" panel PostedJobCard drew above it is gone.
     wrap(<InProgressStep {...ctx(makeJob({ status: "in_progress", poster_confirmed_at: ago(0.2), helper_on_the_way_at: ago(0.05) }))} />);
-    const boxes = screen.getAllByRole("button", { name: /Confirm They('ve)? Arrived/ });
+    const boxes = screen.getAllByRole("button", { name: /Confirm they('ve)? arrived/i });
     expect(boxes).toHaveLength(1);
     expect(row().contains(boxes[0])).toBe(true);
     expect((boxes[0] as HTMLButtonElement).disabled).toBe(true);

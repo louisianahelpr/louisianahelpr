@@ -47,7 +47,7 @@ export function deriveAppliedJobCardState(
   // LIVE, by the server's own definition (respond_to_direct_offer,
   // accept_job_offer; isHeldOffer in activityFilters): the job is still open
   // and nobody holds it. poster_cancel_job leaves the `pending` marker on the
-  // row until the expiry sweep, so a cancelled job kept rendering Accept Job /
+  // row until the expiry sweep, so a cancelled job kept rendering Accept job /
   // Decline, and both answered "This job is no longer open." (press-every-
   // control run 38536821617, shard 11, /jobs/fddf389d as the helper).
   const isDirectOffer =

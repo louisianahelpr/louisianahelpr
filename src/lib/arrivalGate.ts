@@ -18,7 +18,7 @@
  * and encouragement, never a gate. This SUPERSEDES VN-33 (owner, 2026-09-14,
  * "both required … no fallback"), whose enforcement — `mark_helper_arrival`
  * refusing a far or fix-less arrival and writing NOTHING — is what deadlocked
- * the job: with `helper_arrived_at` NULL the poster's "Confirm They Arrived"
+ * the job: with `helper_arrived_at` NULL the poster's "Confirm they've arrived"
  * control never rendered, while the Helpr's blocked CTA told them to go ask the
  * poster for exactly that tap.
  *
@@ -31,7 +31,7 @@
  * The display states below are about what the job row SAYS, not about whether
  * the gate is open:
  *
- *   confirmed — the poster tapped "Confirm They Arrived". THE GATE.
+ *   confirmed — the poster tapped "Confirm they've arrived". THE GATE.
  *   verified  — the server verified the location; the poster has not yet.
  *   claimed   — `helper_arrived_at` with neither. Since 20260919155016 this is
  *               a first-class, expected state again: the RPC records a claim on
@@ -169,7 +169,7 @@ export type ArrivalVerdict = {
   basis: ArrivalBasis;
   /** Distance to the job's map pin, when one could be measured. */
   distanceFt: number | null;
-  /** The poster has tapped "Confirm They Arrived". */
+  /** The poster has tapped "Confirm they've arrived". */
   posterConfirmed: boolean;
   /**
    * The poster STILL has to tap. True on every path but `already_confirmed` —
@@ -224,7 +224,7 @@ export function arrivalVerdictFromRpc(data: unknown): ArrivalVerdict | null {
  * the poster, because it is not one.
  */
 export function arrivalVerdictMessage(v: ArrivalVerdict): string {
-  const thenPoster = 'The person who posted this job now taps "Confirm They Arrived" so you can start working.';
+  const thenPoster = `The person who posted this job now taps "Confirm they've arrived" so you can start working.`;
   switch (v.basis) {
     case "already_confirmed":
       return "You're checked in — the person who posted this job confirmed you arrived.";
@@ -296,7 +296,7 @@ export function formatArrivalDistance(distanceFt: number): string {
  *
  * Browser verification on 2026-09-19 caught this copy promising the opposite:
  * "You're still checked in" and "the person who posted this job has to tap
- * Confirm They Arrived" — while `helper_arrived_at` stayed NULL, so the
+ * Confirm they've arrived" — while `helper_arrived_at` stayed NULL, so the
  * poster's control rendered DISABLED ("You'll be able to confirm this once
  * your Helpr is at the job"). Each side was told to wait for the other: the
  * very deadlock this batch removed, rebuilt out of reassuring words, and worse
@@ -311,7 +311,7 @@ export function arrivalRefusalMessage(
 ): string {
   // Named once so no branch can drift into implying the check-in landed.
   const notRecorded = "We couldn't check you in yet.";
-  // The "Try My Location Again" button is GONE (owner, 2026-09-19: "you can
+  // The "Try my location again" button is GONE (owner, 2026-09-19: "you can
   // remove the try my location again. they can pull the page to refresh"), and
   // the pull-to-refresh gesture now genuinely re-requests a fix and re-calls
   // mark_helper_arrival (src/lib/arrivalRefresh.ts) rather than only refetching

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CalendarClock, MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
-import { JobActionChip } from "../../../../components/job-card/JobActionRow";
+import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
@@ -20,8 +20,8 @@ import type { PosterStepCtx } from "./posterStepContract";
  * places") — the link it copies leads to a job nobody else can take.
  *
  * CONFIRM ARRIVAL, ON THE ROW (owner, 2026-09-14, VN-21: every button on a
- * Posts card on one row). A booked job whose Helpr has tapped "I've Arrived"
- * before the status moved on used to draw a full-width "Confirm Arrival" of its
+ * Posts card on one row). A booked job whose Helpr has tapped "I've arrived"
+ * before the status moved on used to draw a full-width "Confirm they've arrived" of its
  * own in PostedJobCard, above the tracker. It is this step's primary now.
  *
  * AND IT NO LONGER DISAPPEARS (owner, 2026-09-19: "if it was clicked already it
@@ -32,7 +32,7 @@ import type { PosterStepCtx } from "./posterStepContract";
  * has not vouched yet, the work is not already marked done); NO box before
  * that (owner decision Q1400, 2026-10-07: from accept until the Helpr marks
  * themselves arrived); a done-toned box after it. The label still differs
- * from InProgressStep's "Confirm They Arrived" — reported, not silently
+ * from InProgressStep's "Confirm they've arrived" — reported, not silently
  * changed, and it is the ladder that carries the difference now.
  */
 export function ScheduledStep({
@@ -58,6 +58,9 @@ export function ScheduledStep({
   const { data: pendingChange } = usePendingScheduleChange(job.id, canAsk);
   const askedOfMe = !!pendingChange && pendingChange.responder_id === userId;
   const askedByMe = !!pendingChange && pendingChange.requested_by === userId;
+  // "Yusef" from "Yusef H." (helperNames is already First L.); nothing invented when it is missing.
+  const helperFirst = ((job.helper_id && helperNames?.[job.helper_id]) || "").trim().split(/\s+/)[0] || null;
+  const messageHelpr = () => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages");
   return (
     <JobStepCard
       side="poster"
@@ -96,11 +99,17 @@ export function ScheduledStep({
             jobStatus={job.status}
             helperOnTheWayAt={job.helper_on_the_way_at}
             helperArrivedAt={job.helper_arrived_at}
+            otherFirstName={helperFirst}
             onCantMakeIt={() => onCancel(job)}
           />
         )}
         </>
       }
+      /* NOTHING TO CONFIRM YET (owner, 2026-10-21): while no confirmation or arrival claims the slot,
+         the primary is what this stage needs, talking to the Helpr. Never a greyed future step. The
+         Message chip stands down while this shows (primaryChipKey). */
+      primary={<JobStepPrimaryButton icon={MessageSquare} label={helperFirst ? `Message ${helperFirst}` : "Message your Helpr"} onClick={messageHelpr} />}
+      primaryChipKey="message"
       actions={[
         canAsk && !askedOfMe && (
           <JobActionChip
@@ -117,7 +126,7 @@ export function ScheduledStep({
           label="Message"
           ariaLabel="Message Helpr"
           tone="message"
-          onClick={() => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages")}
+          onClick={messageHelpr}
         />,
         <JobActionChip
           key="cancel"

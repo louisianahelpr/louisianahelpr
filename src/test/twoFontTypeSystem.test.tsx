@@ -152,7 +152,7 @@ describe("two-font type system", () => {
     // jsdom has no stylesheet, so the class list is the contract here: the
     // `font-display` token is the only route to Bodoni Moda in the app.
     expect(h1.className.split(/\s+/)).toContain("font-display");
-    const subhead = screen.getByText("Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account, one verified ID, real neighbors.");
+    const subhead = screen.getByText("Hire help or find work. Declutter, Shops and Homes are opening soon. One account, one verified ID, real neighbors.");
     expect(subhead.style.fontFamily).toMatch(/^Montserrat/);
     expect(subhead.className.split(/\s+/)).not.toContain("font-display");
   });

@@ -32,6 +32,13 @@ const signup = blankComments(readFileSync(resolve(ROOT, "src/pages/auth/Signup.t
 afterEach(cleanup);
 
 describe("Create account matches board 55", () => {
+  it("Q2256 / audit #44: the one combined consent box sits ABOVE Continue", () => {
+    const consent = step1.indexOf('htmlFor="policies"');
+    const button = step1.indexOf("onClick={handleContinue}");
+    expect(consent).toBeGreaterThan(0);
+    expect(button).toBeGreaterThan(consent);
+  });
+
   it("is not vacuous", () => {
     expect(step1.length).toBeGreaterThan(5000);
     expect(step1).toContain("onClick={handleContinue}");

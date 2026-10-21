@@ -12,8 +12,7 @@
  * INVENTORY (from source, comments blanked):
  *   SQL  the effective definition of every badge RPC (BADGE_RPCS) may not read
  *        stripe_identity_verified(_at) or the OR rule.
- *   TS   (a) isIdentityVerified (the OR, the GATE rule) is called only by the
- *        gate module itself (exact list, two-way);
+ *   TS   (a) isIdentityVerified (the old OR rule) is called nowhere;
  *        (b) no file that draws an ID badge (imports a badge symbol from
  *        IdVerifiedPill / YouCard, or calls hasIdBadge) reads
  *        stripe_identity_verified or stripe_identity_verified_at;
@@ -40,8 +39,9 @@ const MIGRATIONS = join(REPO, "supabase", "migrations");
 /** Every RPC that publishes the ID badge. */
 const BADGE_RPCS = ["get_safe_profiles", "get_public_profile_stats", "shop_badges"];
 
-/** Files allowed to call isIdentityVerified (the GATE rule). EXACT. */
-const GATE_CALLERS = ["src/lib/awardGate.ts"];
+/** Files allowed to call isIdentityVerified. EXACT: none since 2026-10-21 (the
+ *  OR rule is gone; badges and gates both read hasIdBadge). */
+const GATE_CALLERS: string[] = [];
 
 const BADGE_MARKERS =
   /\b(ID_VERIFIED_LABEL|IdVerifiedShield|ID_VERIFIED_PILL_STYLE|VERIFIED_NEIGHBOR|youCardFacts|hasIdBadge)\b/;
@@ -86,7 +86,7 @@ describe("the ID verified badge reads Stripe Identity only (owner 2026-10-21)", 
     }
   });
 
-  it("TS: only the gate module calls isIdentityVerified (exact, two-way)", () => {
+  it("TS: nothing calls the retired OR rule isIdentityVerified", () => {
     const callers = files.filter((f) => /\bisIdentityVerified\s*\(/.test(f.code)).map((f) => f.file).sort();
     expect(callers).toEqual(GATE_CALLERS);
   });

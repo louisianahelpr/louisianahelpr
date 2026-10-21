@@ -56,7 +56,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),
-  ('identity_is_verified',          'allow',    'identity badge / hire gate verdict'),
+  ('identity_is_verified',          'allow',    'the ID gate verdict: Stripe Identity only (20261021081258)'),
+  ('identity_check_exempt',         'deny',     'TRUE = an enrolled test account skips the Stripe Identity gates; a NULL user is COALESCEd to FALSE, never exempt (20261021081258)'),
   ('is_identity_verified',          'allow',    'rentals identity gate: the user''s identity_is_verified verdict looked up by id (20261019051407)'),
   ('is_party_to_job',               'allow',    'user is a party to the job'),
   ('is_party_to_job_folder',        'allow',    'caller is a party to the job owning this storage folder'),
@@ -201,9 +202,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
-  -- identity: each argument alone can say yes, so each gets the tuple where it is the one deciding.
-  ('identity_is_verified',          NULL, ARRAY['''verified''', 'false'], ARRAY[1]),
-  ('identity_is_verified',          NULL, ARRAY['''unverified''', 'true'], ARRAY[2]),
+  -- identity: Stripe Identity decides (arg 1); arg 2 (the NOT NULL Connect column) only says a row was read.
+  ('identity_is_verified',          NULL, ARRAY['''verified''', 'false'], ARRAY[1,2]),
   -- D's profile carries idv_status = 'verified' (profiles fixture step), so the non-NULL call is TRUE.
   ('is_identity_verified',          NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),

@@ -24,7 +24,6 @@ const WORDING = /["'`>]\s*(?:✓\s*)?(?:(?:Stripe )?ID verified(?: by Stripe)?|I
 /** Places that state the fact but are not a badge; each says why. */
 // @two-way src/test/idVerifiedOneForm.test.ts:EXEMPT is exact: every entry still matches
 const EXEMPT: Record<string, string> = {
-  "src/components/AwardGateDialog.tsx": "a checklist requirement row in the hire gate (met / not met), not a badge",
   "src/components/admin/adminUserHelpers.tsx": "admin-only console status badges, never shown to members",
   "src/components/admin/userDetail/ActionsTab.tsx": "admin-only action copy, never shown to members",
   "src/lib/workRecordDocument.ts": "the printable work-record PDF's table row, not an on-screen badge",

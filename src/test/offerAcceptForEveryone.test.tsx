@@ -146,7 +146,7 @@ const STATES: [string, Record<string, unknown> | null, boolean][] = [
   ["payout account started, payouts not enabled", { user_id: "helper-1", stripe_account_id: "acct_1", stripe_payouts_enabled: false }, false],
   ["payouts on, Stripe ID not confirmed", { user_id: "helper-1", stripe_account_id: "acct_1", stripe_payouts_enabled: true }, false],
   ["profile still loading", null, true],
-  ["fully set up", { user_id: "helper-1", stripe_account_id: "acct_1", stripe_payouts_enabled: true, stripe_identity_verified: true }, false],
+  ["fully set up", { user_id: "helper-1", stripe_account_id: "acct_1", stripe_payouts_enabled: true, idv_status: "verified" }, false],
 ];
 
 beforeEach(() => {

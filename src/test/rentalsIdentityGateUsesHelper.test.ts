@@ -22,7 +22,7 @@ import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 
 const DEFS = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
@@ -45,17 +45,16 @@ describe("every identity_not_verified gate uses public.is_identity_verified", ()
     expect(body).not.toMatch(/\bstripe_identity_verified\b/);
   });
 
-  it("the helper accepts EITHER verdict (the client's isIdentityVerified rule)", () => {
+  it("the helper reads the one rule, Stripe Identity only (owner 2026-10-21; the client's hasIdBadge)", () => {
     const helper = flat(DEFS.get("is_identity_verified")?.stmt ?? "");
     expect(helper).toContain("SELECT public.identity_is_verified(p.idv_status, p.stripe_identity_verified)");
-    // and that predicate is the either-verdict union
-    expect(flat(DEFS.get("identity_is_verified")?.stmt ?? "")).toContain(
-      "p_idv_status IS NOT DISTINCT FROM 'verified' OR p_stripe_identity_verified IS TRUE",
-    );
+    // and that predicate is Stripe Identity alone (the Connect argument is ignored)
+    const rule = flat(DEFS.get("identity_is_verified")?.stmt ?? "");
+    expect(rule).toContain("SELECT p_idv_status IS NOT DISTINCT FROM 'verified' AND p_stripe_identity_verified IS NOT NULL;");
+    expect(rule).not.toMatch(/OR p_stripe_identity_verified/);
     expect(helper).toContain("SECURITY DEFINER");
-    // The client rule it mirrors: either one alone is enough.
-    expect(isIdentityVerified({ connectIdentityVerified: true, idvStatus: "pending" })).toBe(true);
-    expect(isIdentityVerified({ connectIdentityVerified: null, idvStatus: "verified" })).toBe(true);
-    expect(isIdentityVerified({ connectIdentityVerified: false, idvStatus: "pending" })).toBe(false);
+    // The client rule it mirrors.
+    expect(hasIdBadge("verified")).toBe(true);
+    expect(hasIdBadge("pending")).toBe(false);
   });
 });

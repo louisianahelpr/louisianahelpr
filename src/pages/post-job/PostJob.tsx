@@ -7,10 +7,19 @@ import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
 import { FormStep } from "./FormStep";
 import { CheckoutStepView } from "./CheckoutStepView";
+import { ShieldCheck } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { needsIdentityCheck, openIdentityCheck } from "@/lib/identityCheck";
 
 const PostJob = () => {
   usePageTitle("Post a Job — Helpr");
   const form = usePostJobForm();
+  // Stripe Identity before a post (owner 2026-10-21; the server refuses the
+  // insert without it, 20261021081258). Say so before the form, not after it.
+  const { profile } = useCurrentUser();
+  const idGate = needsIdentityCheck(profile);
 
   // iOS keeps the focused field under the keyboard when it sits near the
   // bottom of this long document-scroll form (e.g. the logistics notes /
@@ -76,7 +85,14 @@ const PostJob = () => {
        backwards and only leaves the route from the first step. */
     <AppPage title={header.title} onBack={form.handlePostJobBack}>
       {form.redirecting && <RedirectingOverlay />}
-      {form.step === "entry" ? (
+      {idGate ? (
+        <EmptyState
+          icon={ShieldCheck}
+          title="Verify your ID to post"
+          body="Stripe checks a photo ID and a selfie before you post a job. It takes about 2 minutes, and you only do it once."
+          action={<BarkPillButton onClick={() => openIdentityCheck("post")}>Verify my ID</BarkPillButton>}
+        />
+      ) : form.step === "entry" ? (
         <div className="space-y-section">
           <EntryChoice form={form} />
         </div>

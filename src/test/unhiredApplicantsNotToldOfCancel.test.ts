@@ -3,7 +3,7 @@
  * cancellation notification (no bell, push or email); their card reads "This job is no longer available".
  * The offered/hired Helpr is still told. Behaviour: src/test/pglite/unhiredApplicantsNotToldOfCancel.pglite.mjs
  * (hired/offered -> notified, unhired -> not; 3x). This pins the newest definition and the card label.
- * @mutate supabase/migrations/20261021072502_unhired_applicants_not_told_of_cancel.sql |     IF NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper\n | IF false AND NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper\n
+ * @mutate supabase/migrations/20261021174935_application_notice_names_the_applicant.sql |     IF NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper\n | IF false AND NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper\n
  * @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | return "This job is no longer available"; | return "Job cancelled";
  */
 import { describe, it, expect } from "vitest";

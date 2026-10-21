@@ -4,7 +4,7 @@
 // the guard reads the NEWEST, so its mutation must break the newest (pointing it at
 // 20260923205811 left the guard green: it SURVIVED, 2026-09-25). Re-point this line
 // whenever a later migration redefines notify_on_application.
-// @mutate supabase/migrations/20261021072502_unhired_applicants_not_told_of_cancel.sql |     IF NEW.closed_reason = 'job_cancelled' THEN\n      v_message | IF false THEN\n      v_message
+// @mutate supabase/migrations/20261021174935_application_notice_names_the_applicant.sql |     IF NEW.closed_reason = 'job_cancelled' THEN\n      v_message | IF false THEN\n      v_message
 // @mutate src/components/job-card/jobStatusLine.ts | if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected"; | if (app.status === "rejected") return "not_selected";
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | if (app.closed_reason === "job_cancelled") return | if (app.closed_reason === "never") return
 // @mutate src/pages/posts/postedJobs/applicantBadge.ts |   job_cancelled: null, |   job_cancelled: "Declined",
@@ -93,7 +93,10 @@ describe("Q274: a cancelled job closes its pending applications, truthfully", ()
     const f = newestFunction("notify_on_application");
     expect(f).not.toBeNull();
     const b = f!.body;
-    const marker = b.indexOf("NEW.closed_reason = 'job_cancelled'");
+    // The message branch itself: since 20261021072502 an earlier early-return line also names
+    // job_cancelled (unhired applicants are not told), and matching that one left this check green
+    // with the message branch removed (its mutation line survived; found 2026-10-21).
+    const marker = b.search(/IF NEW\.closed_reason = 'job_cancelled' THEN/);
     const notSelected = b.indexOf("was not selected");
     expect(marker, `${f!.file}: no job_cancelled branch`).toBeGreaterThan(-1);
     expect(notSelected).toBeGreaterThan(marker);

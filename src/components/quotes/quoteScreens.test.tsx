@@ -6,6 +6,9 @@
  * create-payment { action: 'escrow', jobId } and nothing else. The backend is
  * proven by src/test/pglite/jobQuotes.pglite.mjs.
  *
+ * @mutate src/components/quotes/MyQuoteCard.tsx | (quote.job_payment === "paid" \|\| quote.job_payment === undefined) | (true)
+ * @mutate src/components/quotes/MyQuoteCard.tsx | ) : quote.job_payment === "bank_pending" ? ( | ) : false ? (
+ * @mutate src/components/quotes/MyQuoteCard.tsx | ) : quote.job_payment === "closed" ? ( | ) : false ? (
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
@@ -450,6 +453,36 @@ describe("Your quotes on My Jobs (the quoter)", () => {
     expect(screen.getByText(/^Waiting for their answer/)).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /^Accept / })).toHaveLength(1);
     expect(screen.getByText("They: $100")).toBeInTheDocument();
+  });
+
+  it("Q1877: an accepted quote is booked only once the money lands; a bank payment still clearing says so", async () => {
+    const base = {
+      request_id: "r9", parish: "East Baton Rouge", date_needed: jobLocalDateISO(8), note: "Mow", available_note: "Friday",
+      respond_until: null, status: "accepted", last_offer_side: "quoter", offers: [], created_at: "2026-10-15T09:00:00Z", price_cents: 9000,
+    };
+    state.rpc.get_my_job_quotes = [
+      { ...base, id: "p", title: "Paid one", job_id: "job-p", job_payment: "paid" },
+      { ...base, id: "b", title: "Bank one", job_id: "job-b", job_payment: "bank_pending" },
+      { ...base, id: "u", title: "Unpaid one", job_id: "job-u", job_payment: "unpaid" },
+      { ...base, id: "c", title: "Refunded one", job_id: "job-c", job_payment: "closed" },
+    ];
+    at("/jobs?quotes=1", <JobListQuotes tab="applied" focus />, "/jobs");
+    const paid = (await screen.findByText("Paid one")).closest("li")!;
+    expect(paid.textContent).toContain("It's booked.");
+    const bank = screen.getByText("Bank one").closest("li")!;
+    expect(bank.textContent).toContain("Bank payment pending. It is booked once their bank payment clears");
+    expect(bank.textContent).not.toContain("It's booked");
+    expect(bank.querySelector("a[href='/jobs/job-b']")).toBeNull();
+    const unpaid = screen.getByText("Unpaid one").closest("li")!;
+    expect(unpaid.textContent).toContain("Accepted. It is booked once it is paid for.");
+    expect(unpaid.querySelector("a[href='/jobs/job-u']")).toBeNull();
+    const closed = screen.getByText("Refunded one").closest("li")!;
+    expect(closed.textContent).toContain("This job has closed.");
+    expect(closed.textContent).not.toContain("paid for");
+    // The server reads the job's money, not the quote: the migration's CASE is pinned here.
+    const sql = readFileSync(resolve(__dirname, "../../../supabase/migrations/20261021113222_my_quotes_say_bank_payment_pending.sql"), "utf8");
+    expect(sql).toContain("WHEN public.job_payment_is_funded(j.payment_status) THEN 'paid'");
+    expect(sql).toContain("WHEN j.payment_status = 'unpaid' AND j.stripe_payment_intent_id IS NOT NULL");
   });
 });
 

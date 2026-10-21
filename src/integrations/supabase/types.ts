@@ -12352,6 +12352,7 @@ export type Database = {
           date_needed: string
           id: string
           job_id: string
+          job_payment: "paid" | "bank_pending" | "unpaid" | "closed" | null
           last_offer_side: string
           note: string
           offers: Json

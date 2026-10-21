@@ -9,12 +9,16 @@
  * @mutate src/pages/post-job/FormStep.tsx |         {page !== 1 && ( |         {true && (
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job"]; | "/admin"];
  * @mutate src/pages/post-job/usePostJobForm.ts |     if (step === "entry" && entryPanel) { |     if (false) {
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, categoryEmoji(it.value), it.label, | tile(it.value, "", it.label,
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { noNavPages } from "@/components/mobileNav/mobileNavHelpers";
+import { CATEGORY_EMOJI, GROUP_EMOJI } from "@/lib/categoryEmoji";
+import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
 
 vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
@@ -30,7 +34,7 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     setup();
     const groups = screen.getByRole("region", { name: "Category groups" });
     const names = [...groups.querySelectorAll("button")].map((b) => b.querySelector("span.block")?.textContent);
-    expect(names).toEqual(["Home", "Yard", "Moving and errands", "Auto", "Pets", "Events", "Trades", "Something else"]);
+    expect(names).toEqual(["Home", "Yard", "Moving & errands", "Auto", "Pets", "Events", "Trades", "Something else"]);
     expect(screen.queryByRole("button", { name: "Cleaning", exact: true } as never)).toBeNull();
   });
 
@@ -72,5 +76,21 @@ describe("Post a Job start (owner 2026-10-21)", () => {
     const form = read("src/pages/post-job/usePostJobForm.ts");
     expect(form).toMatch(/if \(step === "entry" && entryPanel\) \{\s*\/\/[^\n]*\n\s*setEntryPanel\(null\);/);
     expect(form).toMatch(/else if \(step === "form" && formPage === 1 && categoryGroup\) \{\s*\/\/[^\n]*\n\s*setCategoryGroup\(null\);/);
+  });
+
+  it("emoji (owner 2026-10-21): one per category from one map, decorative and aria-hidden", () => {
+    expect(Object.keys(CATEGORY_EMOJI).sort()).toEqual(Object.keys(JOB_CATEGORY_LABELS).sort());
+    setup("home");
+    const cleaning = screen.getByRole("button", { name: "Cleaning" });
+    const glyph = cleaning.querySelector("[aria-hidden]");
+    expect(glyph?.textContent).toBe(CATEGORY_EMOJI.cleaning);
+  });
+
+  it("group tiles carry the group emoji, and Moving reads 'Moving & errands' on its tile", () => {
+    setup();
+    const moving = screen.getByRole("button", { name: /^Moving & errands/ });
+    expect(moving.querySelector("[aria-hidden]")?.textContent).toBe(GROUP_EMOJI.moving_errands);
+    const entry = read("src/pages/post-job/EntryChoice.tsx");
+    for (const k of ["fresh", "templates", "offer", "ai"]) expect(entry).toContain(`{START_EMOJI.${k}}`);
   });
 });

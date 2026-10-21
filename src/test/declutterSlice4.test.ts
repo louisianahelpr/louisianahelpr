@@ -11,7 +11,7 @@
  * vs auto-pay vs problem vs no-show; two real sessions; the typed code is gone since 20261018183715): scripts/declutter/race-handover.mjs.
  *
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
- * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
+ * @mutate supabase/migrations/20261021023158_declutter_porch_note.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF v_side <> 'buyer' THEN | IF false THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
@@ -121,7 +121,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
   });
 
   it("no QR and no 4-digit code (owner 2026-10-17 + 2026-10-18 pop-up): \"Left on porch\" with a photo, \"I got it\", the porch photo and the auto-pay only", () => {
-    expect(DEFS.get("declutter_my_handover")?.file).toBe(NO_QR_FILE);
+    // Q2266 restated it with the porch note (20261021023158); still no code, read from the newest body below.
+    expect(DEFS.get("declutter_my_handover")?.file).toBe("20261021023158_declutter_porch_note.sql");
     expect(DEFS.get("declutter_confirm_handover")?.file).toBe(NO_QR_FILE);
     const h = flat(body("declutter_my_handover"));
     expect(h).not.toMatch(/'qr'|lhdeclutter:|'code'/);

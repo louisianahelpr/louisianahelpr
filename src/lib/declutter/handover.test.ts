@@ -15,6 +15,9 @@
  * @mutate src/lib/declutter/handover.ts |       .eq("seller_id", userId), |       .eq("buyer_id", userId),
  * @mutate src/lib/declutter/handover.ts |       .eq("status", "open") |       .eq("status", "closed")
  * @mutate src/lib/declutter/handover.ts |   return (rows?.[0] ?? null) as |   return (rows ?? null) as
+ * @mutate src/lib/declutter/handover.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_porch_note")) return "not_deployed"; |
+ * @mutate src/lib/declutter/handover.ts | send(tags.length ? { ...base, p_tags: [...tags] } : base) | send(base)
+ * @mutate src/lib/declutter/handover.ts |     res = await send(base); |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -75,6 +78,7 @@ import {
   fetchMyPayouts,
   fetchOpenProblemsForAdmin,
   leaveReview,
+  porchNote,
   porchPhoto,
   reportNoShow,
   reportProblem,
@@ -163,7 +167,7 @@ describe("writes send exactly the SQL's parameters", () => {
     expect(await reportProblem("o1", "damaged", "cracked", ["u1/declutter/handover/o1/c.jpg"])).toBe("p1");
 
     h.queue.push(ok("r1"));
-    expect(await leaveReview("o1", 5, null)).toBe("r1");
+    expect(await leaveReview("o1", 5, null)).toEqual({ id: "r1", tagsDropped: false });
 
     h.queue.push(ok({ refunded: true }));
     expect(await adminDecideProblem("p1", "refund_buyer", "seller", true, null)).toEqual({ refunded: true });
@@ -188,6 +192,34 @@ describe("writes send exactly the SQL's parameters", () => {
     expect(err).toBeInstanceOf(Error);
     expect(typeof (err as { userMessage?: unknown }).userMessage).toBe("string");
     expect((err as { userMessage: string }).userMessage.length).toBeGreaterThan(0);
+  });
+});
+
+describe("leaveReview tags (Q2265)", () => {
+  it("sends p_tags only when chosen; before the migration a tagged call is retried without them", async () => {
+    h.queue.push(ok("r1"));
+    await leaveReview("o1", 5, null);
+    expect(h.rpcs[h.rpcs.length - 1]).toEqual(["declutter_leave_review", { p_order_id: "o1", p_stars: 5, p_comment: null }]);
+    h.queue.push(ok("r2"));
+    await leaveReview("o1", 5, null, ["easy_pickup"]);
+    expect(h.rpcs[h.rpcs.length - 1]).toEqual(["declutter_leave_review", { p_order_id: "o1", p_stars: 5, p_comment: null, p_tags: ["easy_pickup"] }]);
+    h.rpcs.length = 0;
+    h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_leave_review(p_comment, p_order_id, p_stars, p_tags) in the schema cache", hint: null } });
+    h.queue.push(ok("r3"));
+    expect(await leaveReview("o1", 4, "ok", ["friendly"])).toEqual({ id: "r3", tagsDropped: true });
+    expect(h.rpcs.map((r) => Object.keys(r[1] as object).includes("p_tags"))).toEqual([true, false]);
+  });
+});
+
+describe("porchNote (Q2266)", () => {
+  it("sends the note to declutter_porch_note; before the migration it answers not_deployed, any other refusal throws", async () => {
+    h.queue.push(ok("By the swing"));
+    expect(await porchNote("o1", "By the swing")).toBe("By the swing");
+    expect(h.rpcs[h.rpcs.length - 1]).toEqual(["declutter_porch_note", { p_order_id: "o1", p_note: "By the swing" }]);
+    h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_porch_note(p_note, p_order_id) in the schema cache", hint: null } });
+    expect(await porchNote("o1", "x")).toBe("not_deployed");
+    h.queue.push(refused("photo_first"));
+    await expect(porchNote("o1", "x")).rejects.toThrow("photo_first");
   });
 });
 

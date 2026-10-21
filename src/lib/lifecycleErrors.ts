@@ -515,6 +515,7 @@ export const RPC_ERROR_COPY = {
     already_reviewed: DC.already_reviewed,
     comment_too_long: DC.comment_too_long,
     invalid_stars: DC.invalid_stars,
+    invalid_tags: DC.invalid_tags,
     item_not_found: DC.item_not_found,
     not_authenticated: DC.not_authenticated,
     not_handed_over: DC.not_handed_over,
@@ -535,6 +536,15 @@ export const RPC_ERROR_COPY = {
     order_not_paid: DC.order_not_paid,
     photo_not_uploaded: DC.photo_not_uploaded,
     problem_open: DC.problem_open,
+  },
+  declutter_porch_note: {
+    account_restricted: DC.account_restricted,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_a_porch_pickup: DC.not_a_porch_pickup,
+    not_authenticated: DC.not_authenticated,
+    note_too_long: DC.note_too_long,
+    photo_first: DC.photo_first,
   },
   declutter_seller_picked_up: {
     account_restricted: DC.account_restricted,

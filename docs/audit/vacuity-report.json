@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T13:15:37.697Z",
-  "guards": 2258,
-  "registered": 2257,
+  "generated": "2026-10-21T14:15:07.502Z",
+  "guards": 2275,
+  "registered": 2274,
   "unregistered": [
     "src/lib/savedSearches.test.ts"
   ],
@@ -10,12 +10,14 @@
     "src/components/disputeDecisionBoard142.test.ts",
     "src/test/alarmColourInvariant.test.ts",
     "src/test/analyticsCountsReadRealEvents.test.ts",
+    "src/test/declutterQuestionAskerHidden.test.ts",
     "src/test/identityGatesPostAndStart.test.ts",
     "src/test/identityVerifiedAtKeepsFirstDate.test.ts",
     "src/test/leadResubscribeUndoesOnlyTheLink.test.ts",
     "src/test/moneyOwedBlocksAccountDeletion.test.ts",
     "src/test/oneSoonMark.test.ts",
-    "src/test/paidTierBadgeNeedsMemberships.test.ts"
+    "src/test/paidTierBadgeNeedsMemberships.test.ts",
+    "src/test/pressRun39376366289.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -125,6 +127,15 @@
       ],
       "parents": [
         "src/App.tsx"
+      ]
+    },
+    {
+      "module": "src/components/declutter/DeclutterMovingSaleDetails.tsx",
+      "tests": [
+        "src/components/declutter/movingSaleDetails.test.tsx"
+      ],
+      "parents": [
+        "src/components/declutter/DeclutterMoveView.tsx"
       ]
     },
     {

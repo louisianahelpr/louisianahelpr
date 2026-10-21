@@ -1,23 +1,10 @@
 {
-  "generated": "2026-10-21T18:26:46.208Z",
-  "guards": 2285,
-  "registered": 2284,
-  "unregistered": [
-    "src/lib/savedSearches.test.ts"
-  ],
+  "generated": "2026-10-21T20:34:14.537Z",
+  "guards": 2296,
+  "registered": 2296,
+  "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/disputeDecisionBoard142.test.ts",
-    "src/test/alarmColourInvariant.test.ts",
-    "src/test/analyticsCountsReadRealEvents.test.ts",
-    "src/test/declutterQuestionAskerHidden.test.ts",
-    "src/test/identityGatesPostAndStart.test.ts",
-    "src/test/identityVerifiedAtKeepsFirstDate.test.ts",
-    "src/test/leadResubscribeUndoesOnlyTheLink.test.ts",
-    "src/test/moneyOwedBlocksAccountDeletion.test.ts",
-    "src/test/oneSoonMark.test.ts",
-    "src/test/paidTierBadgeNeedsMemberships.test.ts",
-    "src/test/pressRun39376366289.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -130,24 +117,6 @@
       ]
     },
     {
-      "module": "src/components/declutter/DeclutterMovingSaleDetails.tsx",
-      "tests": [
-        "src/components/declutter/movingSaleDetails.test.tsx"
-      ],
-      "parents": [
-        "src/components/declutter/DeclutterMoveView.tsx"
-      ]
-    },
-    {
-      "module": "src/components/declutter/MovingSaleBanner.tsx",
-      "tests": [
-        "src/components/declutter/movingSaleBanner.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
-      ]
-    },
-    {
       "module": "src/components/ErrorBoundary.tsx",
       "tests": [
         "src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx",
@@ -213,15 +182,6 @@
       ],
       "parents": [
         "src/pages/messages/Messages.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/HelperWorkPhotos.tsx",
-      "tests": [
-        "src/test/helperWorkPhotos.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
       ]
     },
     {
@@ -328,43 +288,6 @@
       ],
       "parents": [
         "src/pages/profile/GiftCard.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/user/AtAGlanceCard.tsx",
-      "tests": [
-        "src/pages/user/AtAGlanceCard.test.tsx",
-        "src/pages/user/ProfileHeroSkeleton.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/user/ProfileHeroSkeleton.tsx",
-      "tests": [
-        "src/pages/user/ProfileHeroSkeleton.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/user/RecognitionRow.tsx",
-      "tests": [
-        "src/pages/user/RecognitionRow.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/user/ReviewsSection.tsx",
-      "tests": [
-        "src/test/reviewCardOneDesign.test.tsx"
-      ],
-      "parents": [
-        "src/pages/user/UserProfile.tsx"
       ]
     }
   ],

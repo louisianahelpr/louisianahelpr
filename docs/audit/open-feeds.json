@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-21T18:25Z",
+  "measured_at": "2026-10-21T20:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -99,7 +99,7 @@
         "number": 3487,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39626323510",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39668308098",
         "runTruncated": false
       },
       {
@@ -113,7 +113,7 @@
         "number": 3505,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308912",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39660498519",
         "runTruncated": false
       }
     ]
@@ -579,7 +579,6 @@
     "ledger 43d77e26f272": "Q1816",
     "ledger 4b5ace7af165": "Q1596",
     "ledger 4c89303184fb": "Q1816",
-    "ledger 54ef0bfdcec3": "Q2300",
     "ledger 59e0e601cc69": "Q2295",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5be6011a46f6": "Q1816",

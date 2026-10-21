@@ -20,7 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { toast } from "sonner";
 import { hapticLight, hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
-import { categoryLabels } from "@/components/job-card/activityConstants";
+import { categoryFilterLabel } from "@/lib/jobCategoryGroups";
 
 interface SavedSearch {
   id: string;
@@ -106,7 +106,7 @@ function savedSearchSummary(s: SavedSearch): string {
   return (
     [
       s.query && `“${s.query}”`,
-      s.category && `Category: ${categoryLabels[s.category] ?? s.category}`,
+      s.category && `Category: ${categoryFilterLabel(s.category)}`,
       // Describes the real range. Was `Max $X`, which printed
       // nothing at all for a min-only search ("$300+") and
       // understated a banded one.
@@ -400,7 +400,7 @@ export function SavedSearches({
             {[
               currentFilters.searchQuery.trim() && `“${currentFilters.searchQuery.trim()}”`,
               currentFilters.selectedCategory &&
-                `Category: ${categoryLabels[currentFilters.selectedCategory] ?? currentFilters.selectedCategory}`,
+                `Category: ${categoryFilterLabel(currentFilters.selectedCategory)}`,
               // The whole band, in the same words the saved rows use below.
               // This printed only the max, so a "$50 – $150" band previewed as
               // "Max $150" — wider than what was about to be saved.

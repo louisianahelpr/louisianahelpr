@@ -32,6 +32,8 @@
  * @mutate src/components/create/CreateSheet.tsx | ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : []) | { label: "Moving out sale", path: "/declutter/move" }
  * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
  * @mutate src/components/create/CreateSheet.tsx | const DESCRIBE_IT_PATH = "/post-job?start=ai"; | const DESCRIBE_IT_PATH = "/post-job";
+ * @mutate src/components/create/CreateSheet.tsx |                   {s.key === "jobs" && ( |                   {s.key === "homes" && (
+ * @mutate src/components/create/CreateSheet.tsx |                       or describe it\n |                       Or describe a job: "gutters cleaned Saturday"\n
  * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
@@ -224,6 +226,19 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     fireEvent.click(screen.getByTestId("create-describe"));
     expect(where()).toBe("/home");
     expect(age.explained).toEqual(["post", "post"]);
+  });
+
+  it("'or describe it' is a Jobs action: a small link INSIDE the Jobs row, right under Post a job, never under the whole menu (owner 2026-10-21)", () => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
+    renderDock();
+    openSheet();
+    const describe = screen.getByTestId("create-describe");
+    expect(row("jobs").contains(describe)).toBe(true);
+    expect(describe.textContent?.trim()).toBe("or describe it");
+    // Under Post a job: it follows that button in document order, and no other row holds it.
+    expect(action("jobs").compareDocumentPosition(describe) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const key of ["declutter", "shops", "homes"]) expect(row(key).contains(describe)).toBe(false);
+    expect(screen.getAllByTestId("create-describe")).toHaveLength(1);
   });
 
   it("'Or just describe it' opens the AI builder path, which the post-a-job entry screen opens on", () => {

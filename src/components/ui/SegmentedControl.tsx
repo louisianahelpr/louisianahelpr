@@ -122,6 +122,16 @@ export interface SegmentedControlProps<T extends string | number> {
   /** Disables every segment (the whole control is unavailable, not one
    *  option — a segmented control with one dead cell is a different design). */
   disabled?: boolean;
+  /**
+   * How heavy the selected segment is.
+   *   "solid" (default) — the olive primary fill (`btn-grad-primary`).
+   *   "quiet" — a card-coloured segment with olive ink and a thin olive ring,
+   *     for a control that sits DIRECTLY above a solid one (owner 2026-10-21:
+   *     Explore's Jobs/Declutter/Shops/Homes row over the Browse/Posted/Working
+   *     switch read as two stacked olive pills). Paint in index.css
+   *     (`.segmented-option-quiet-selected`).
+   */
+  tone?: "solid" | "quiet";
 }
 
 export function SegmentedControl<T extends string | number>({
@@ -138,6 +148,7 @@ export function SegmentedControl<T extends string | number>({
   optionClassName,
   haptic = true,
   disabled = false,
+  tone = "solid",
 }: SegmentedControlProps<T>) {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -246,7 +257,7 @@ export function SegmentedControl<T extends string | number>({
               // The gradient stays `btn-grad-primary` — the app's one primary
               // surface — and the class is toggled here in JS rather than
               // through a Tailwind variant, which would compile to nothing.
-              active && "btn-grad-primary segmented-option-selected",
+              active && (tone === "quiet" ? "segmented-option-quiet-selected" : "btn-grad-primary segmented-option-selected"),
               optionClassName,
             )}
           >
@@ -269,7 +280,7 @@ export function SegmentedControl<T extends string | number>({
               <span
                 className={cn(
                   "tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5",
-                  active
+                  active && tone === "solid"
                     ? "segmented-count-selected"
                     : option.countTone === "attention"
                       ? "segmented-count-attention"

@@ -80,7 +80,10 @@ const JobsSection = () => {
   const header = (
     <div className="flex flex-col gap-1">
       <AppTopBar title={section.label} add={section.add} explore settings={{ label: "Jobs settings", path: "/jobs/settings" }} desktopGap={false} />
-      <ExploreSearchEntry />
+      {/* ONE search per screen (owner 2026-10-21): Browse has "Search jobs" with
+          its filters, so Explore's "Search all sections" shows only on Posted
+          and Working. Guard: src/test/browseCategoryGroups.test.tsx. */}
+      {tab !== "browse" && <ExploreSearchEntry />}
       <ExploreSwitcher current="jobs" />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} />
     </div>

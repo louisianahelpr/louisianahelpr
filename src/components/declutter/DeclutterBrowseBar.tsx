@@ -27,6 +27,7 @@ export function DeclutterBrowseBar({
   panel,
   shown,
   onClearAll,
+  columnFilters = false,
 }: {
   query: string;
   onQuery: (q: string) => void;
@@ -34,6 +35,11 @@ export function DeclutterBrowseBar({
   panel: ReactNode;
   shown: number;
   onClearAll: () => void;
+  /**
+   * The filter panel is already open beside the list (desktop column, board 39):
+   * no filter button and no sheet, so the filters live in ONE place (audit #33).
+   */
+  columnFilters?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -45,10 +51,10 @@ export function DeclutterBrowseBar({
         placeholder="Search items"
         filterCount={filterCount}
         filtersOpen={open}
-        onFilters={() => setOpen(true)}
+        onFilters={columnFilters ? undefined : () => setOpen(true)}
         filtersLabel={filterCount > 0 ? `Filters, ${filterCount} on` : "Filters"}
       />
-      <Sheet open={open} onOpenChange={setOpen}>
+      <Sheet open={open && !columnFilters} onOpenChange={setOpen}>
         <SheetContent side="bottom" floor className="max-h-[85dvh] overflow-y-auto overscroll-contain bg-premium-page">
           <SheetHero title="Filters" />
           <div className="mt-2">{panel}</div>

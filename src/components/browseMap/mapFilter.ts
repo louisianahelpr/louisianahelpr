@@ -34,6 +34,7 @@
 
 import { haversineMiles } from "@/lib/geo";
 import { jobMatchesWhen } from "@/lib/jobWhenFilter";
+import { categoryFilterMatches } from "@/lib/jobCategoryGroups";
 import type { MapJob } from "./config";
 
 export interface MapJobFilterInput {
@@ -122,7 +123,7 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
   const now = Date.now();
 
   return (job) => {
-    if (f.selectedCategory && job.category !== f.selectedCategory) return false;
+    if (!categoryFilterMatches(f.selectedCategory, job.category)) return false;
     // Title only — the map RPC doesn't return `description`, so a query that
     // matches only a job's body text will match in the list and not here.
     if (q && !job.title.toLowerCase().includes(q)) return false;

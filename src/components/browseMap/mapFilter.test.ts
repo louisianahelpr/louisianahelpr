@@ -150,7 +150,7 @@ describe("unsupportedMapFilters", () => {
 // The category predicate is the bug this file was written for ("I clicked
 // errands filter and it didn't filter"). Delete it and every job survives the
 // filter, which is precisely the reported behaviour.
-// @mutate src/components/browseMap/mapFilter.ts | if (f.selectedCategory && job.category !== f.selectedCategory) return false; |
+// @mutate src/components/browseMap/mapFilter.ts | if (!categoryFilterMatches(f.selectedCategory, job.category)) return false; |
 // The early-access gate is the one filter whose absence LEAKS data (paid-tier
 // jobs on a free viewer's map) rather than merely showing too much.
 // @mutate src/components/browseMap/mapFilter.ts | if (age < f.earlyAccessDelayMs) return false; |

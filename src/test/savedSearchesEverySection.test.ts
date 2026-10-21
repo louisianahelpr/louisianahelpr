@@ -5,14 +5,14 @@
  * "chair" -> "1 new", RLS, grants) is proven by
  * src/test/pglite/savedSearchesEverySection.pglite.mjs.
  *
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       AND s.section = 'jobs'\n      AND p.email_verified | AND p.email_verified
+ * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       AND s.section = 'jobs'\n      AND p.email_verified | AND p.email_verified
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql | AND s.notify_email\n     AND (s.last_emailed_at | AND (s.last_emailed_at
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   IF v_email_ids IS NOT NULL THEN\n  UPDATE |   IF true THEN\n  UPDATE
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       AND public.feature_enabled_for_user('declutter', s.user_id)\n |
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n |
+ * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n |
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       AND (NOT v_seller_seed OR COALESCE(p.is_seed, false))\n | 
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   WHERE s.user_id = (SELECT auth.uid());\n$fn$; |   WHERE true;\n$fn$;
+ * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.saved_search_new_counts() FROM PUBLIC;
+ * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |   WHERE s.user_id = (SELECT auth.uid());\n$fn$; |   WHERE true;\n$fn$;
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -105,7 +105,10 @@ describe("saved searches for every section (Q2275)", () => {
 
   it("the count RPC answers only for the caller and is not anon's", () => {
     expect(counts.body).toMatch(/WHERE s\.user_id = \(SELECT auth\.uid\(\)\);\s*\$fn\$;$/);
-    expect(ALL).toMatch(/REVOKE ALL ON FUNCTION public\.saved_search_new_counts\(\) FROM PUBLIC, anon;/);
+    // The file holding the NEWEST body restates its revoke (a restatement restates its grants), and no
+    // migration ever grants it to anon.
+    expect(blankSqlComments(readFileSync(resolve(DIR, counts.file), "utf8")), counts.file).toMatch(/REVOKE ALL ON FUNCTION public\.saved_search_new_counts\(\) FROM PUBLIC, anon;/);
+    expect(ALL).not.toMatch(/GRANT[^;]*ON FUNCTION public\.saved_search_new_counts\(\)[^;]*\banon\b/);
     expect(ALL).toMatch(/REVOKE ALL ON FUNCTION public\.deliver_saved_search_item_alerts\(uuid\) FROM PUBLIC, anon, authenticated;/);
   });
 

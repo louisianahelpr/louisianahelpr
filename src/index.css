@@ -2736,6 +2736,17 @@ button,
   box-shadow: none;
 }
 
+/* SegmentedControl tone="quiet" (owner 2026-10-21): the LIGHTER selected
+   segment, for Explore's section row, which sits right above the solid olive
+   Browse/Posted/Working switch. The card colour with olive ink and a thin
+   olive ring: clearly picked, never a second olive fill. Both tokens flip per
+   theme, so dark mode keeps the same relationship. */
+.segmented-option-quiet-selected {
+  background-color: hsl(var(--card));
+  color: hsl(var(--bark));
+  box-shadow: inset 0 0 0 1px hsl(var(--bark) / 0.45);
+}
+
 /* The count pill some segments carry (NotificationPanel's Unread/All). On the
    selected segment it has to sit on the olive gloss, so it borrows the
    parchment it is printed on rather than the burnt-sienna it wears at rest. */

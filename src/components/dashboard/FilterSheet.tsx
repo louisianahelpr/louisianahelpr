@@ -155,7 +155,13 @@ export function FilterSheet({
           event.preventDefault();
           button.focus({ preventScroll: true });
         }}
-        className={`max-h-[85dvh] overflow-y-auto overscroll-contain p-0 sm:p-0 gap-0 bg-premium-page ${webDesktop ? "sm:max-w-[520px]" : ""}`}
+        // THE HEADER NEVER SCROLLS (owner 2026-10-21: "Filter jobs" cut off at
+        // the top-left, over the sheet edge). The whole sheet used to be the
+        // scroller, so the first flick slid the title, the grab handle and the
+        // X up under the rounded top edge. Now the sheet is a fixed column:
+        // title row, then ONE scrolling body, then the footer.
+        // Guard: src/test/browseCategoryGroups.test.tsx.
+        className={`max-h-[85dvh] flex flex-col overflow-hidden p-0 sm:p-0 gap-0 bg-premium-page ${webDesktop ? "sm:max-w-[520px]" : ""}`}
       >
         {/* Title only: no eyebrow, no subtitle. The active-filter count shows
             as a badge on the Filters button, and the footer carries Clear all. */}
@@ -164,7 +170,9 @@ export function FilterSheet({
             it pads the hero here. */}
         {webDesktop ? <div className="px-5 pt-5 pb-1">{hero}</div> : hero}
 
-        <FilterBody sections={sections} footer={footer} />
+        <div data-filter-sheet-body="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <FilterBody sections={sections} footer={footer} />
+        </div>
         <FilterSheetFooter
           activeFilterCount={activeFilterCount}
           onClearAll={onClearAll}

@@ -58,7 +58,7 @@ import { blankComments, blankCssComments } from "./helpers/blankNonCode";
  *     tests in this file GREEN. The check below now reads the cascade, and
  *     that mutation is the second registration.
  */
-// @mutate src/components/ui/SegmentedControl.tsx | active && "btn-grad-primary segmented-option-selected" | active && "bg-primary segmented-option-selected"
+// @mutate src/components/ui/SegmentedControl.tsx | : "btn-grad-primary segmented-option-selected"), | : "bg-primary segmented-option-selected"),
 // @mutate src/index.css | .segmented-option-selected {\n  color: hsl(var(--parchment)); | .segmented-option-selected {\n  background: hsl(var(--parchment));
 // @mutate src/index.css | background-color: hsl(var(--bark));\n  background-image: none; | background-image: radial-gradient(125% 125% at 32% 22%, hsl(var(--bark-light)) 0%, hsl(var(--bark)) 46%, hsl(var(--bark-deep)) 100%);
 
@@ -240,7 +240,7 @@ describe("one segmented control, and it is glossy", () => {
     // look correct in the markup and render flat.
     const src = read("src/components/ui/SegmentedControl.tsx");
     expect(src).not.toMatch(/[\w[\]=-]+:btn-grad-primary/);
-    expect(src).toMatch(/active && "btn-grad-primary segmented-option-selected"/);
+    expect(src).toMatch(/: "btn-grad-primary segmented-option-selected"\)/);
 
     // And nothing in the component may set the `background` SHORTHAND, which
     // silently resets `background-image` and is exactly how the Earnings view

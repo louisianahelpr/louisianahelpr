@@ -8,7 +8,7 @@
  * identifiers are not copy. Lower-case "rental" as an adjective ("Rental
  * repair", "Party rentals" in Shops) is not the section name and is allowed.
  *
- * @mutate src/components/rentals/RentalsHomeView.tsx |       <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>\n        {tabs}\n        <HomesBrowse /> |       <SectionScreen section="homes" title="Rentals" add={sectionByKey("homes").add}>\n        {tabs}\n        <HomesBrowse />
+ * @mutate src/components/rentals/RentalsHomeView.tsx |       <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add} globalSearch={false}>\n        {tabs}\n        <HomesBrowse /> |       <SectionScreen section="homes" title="Rentals" add={sectionByKey("homes").add} globalSearch={false}>\n        {tabs}\n        <HomesBrowse />
  * @mutate supabase/migrations/20261019044500_rentals_ownership_alert_homes_words.sql | Admin -> Settings -> Homes: ownership proof | Admin -> Settings -> Rentals: ownership proof
  *
  * Server-written words (notifications, alerts) are copy too: the NEWEST

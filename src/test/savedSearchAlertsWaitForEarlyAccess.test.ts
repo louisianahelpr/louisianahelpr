@@ -28,7 +28,7 @@
  *   - the early-access tier ladder has ONE definition, early_access_delay_minutes,
  *     which both the feed cutoff and the alert delay read.
  *
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
+ * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids) |       PERFORM public.deliver_saved_search_alert(match_record.user_id, NEW.id, match_record.search_name, match_record.matched_search_ids);\n      INSERT INTO public.saved_search_alert_queue (user_id, job_id, notify_at, search_name, matched_search_ids)
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |      OR v_job.customer_id IS NULL\n |
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |      OR (COALESCE(v_job.credential_tier, 0) <> 0 | OR (false

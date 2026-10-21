@@ -53,8 +53,10 @@ function useCreateRows() {
  * Customize order: the section's icon and name, its main action (olive) and a
  * second action (outline) when one really exists. A section closed to the
  * viewer shows its row greyed with "Opening soon" and no actions; it never
- * routes into a closed section. "Or just describe it" opens the AI job builder.
- * Guard: src/test/centerCreateNav.test.tsx.
+ * routes into a closed section. "Or describe it" opens the AI job builder; it
+ * is a Jobs action, so it sits INSIDE the Jobs row as a small link under "Post
+ * a job" (owner 2026-10-21: it used to sit under the whole menu, below
+ * Declutter, Shops and Homes). Guard: src/test/centerCreateNav.test.tsx.
  */
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
@@ -99,6 +101,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                   {side && <span className="text-ds-13 text-muted-foreground shrink-0">{side}</span>}
                 </div>
                 {on && (
+                  <div className="flex flex-col items-start gap-1">
                   <div className="flex flex-wrap gap-2">
                     {actions[s.key].map((a, j) => (
                       <button
@@ -117,21 +120,25 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       </button>
                     ))}
                   </div>
+                  {s.key === "jobs" && (
+                    <button
+                      type="button"
+                      data-testid="create-describe"
+                      onClick={gate.gate("post", () => go(DESCRIBE_IT_PATH))}
+                      {...gate.gatedProps("post")}
+                      className="btn-press min-h-11 -mb-2 inline-flex items-center gap-1.5 px-1 text-ds-13 font-semibold"
+                      style={{ color: "hsl(var(--bark))" }}
+                    >
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden />
+                      or describe it
+                    </button>
+                  )}
+                  </div>
                 )}
               </li>
             );
           })}
         </ul>
-        <button
-          type="button"
-          data-testid="create-describe"
-          onClick={gate.gate("post", () => go(DESCRIBE_IT_PATH))}
-          {...gate.gatedProps("post")}
-          className="btn-press mt-3 w-full flex items-center gap-3 rounded-full px-4 min-h-11 py-3 text-left bg-muted"
-        >
-          <Sparkles className="w-4 h-4 shrink-0" aria-hidden style={{ color: "hsl(var(--bark))" }} />
-          <span className="text-ds-14 text-foreground">Or describe a job: "gutters cleaned Saturday"</span>
-        </button>
       </SheetContent>
     </Sheet>
   );

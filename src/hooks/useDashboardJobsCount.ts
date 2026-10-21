@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobWhenRange } from "@/lib/jobWhenFilter";
+import { categoriesForFilter } from "@/lib/jobCategoryGroups";
 
 // True total of jobs matching the current Browse filters — NOT "how many
 // have loaded into memory so far."
@@ -165,9 +166,11 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
           query = query.in("id", savedOnlyJobIds);
         }
       }
-      // Cast: `category` is a narrow generated enum; the filter value here
-      // is free-text state from the URL/UI, not one of the literal members.
-      if (selectedCategory) query = query.eq("category", selectedCategory as never);
+      // A group id (the filter sheet's 8 groups) counts every category in the
+      // group, the same rule the list applies (categoryFilterMatches); an old
+      // single-category value counts that one. Cast: `category` is a narrow
+      // generated enum; the filter value is free-text state from the URL/UI.
+      if (selectedCategory) query = query.in("category", categoriesForFilter(selectedCategory) as never);
       if (minBudget) query = query.gte("budget", parseFloat(minBudget));
       if (maxBudget) query = query.lte("budget", parseFloat(maxBudget));
       if (urgentOnly) query = query.eq("is_urgent", true);

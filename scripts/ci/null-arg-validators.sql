@@ -125,6 +125,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
+  ('saved_search_category_matches', 'classify', 'labels a new job as matching a saved search''s category or its group (20261021072206); a NULL search category is the "any category" search and matches by design; no access decision (EXECUTE is service_role only; the alert trigger still applies every visibility gate)'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),
   ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
   ('cron_silent_still_failing',     'classify', 'answers whether a cron-silent ledger item is still failing (ledger close rule, CJ-007); no access decision, and NULL means unknown, which keeps the item open'),

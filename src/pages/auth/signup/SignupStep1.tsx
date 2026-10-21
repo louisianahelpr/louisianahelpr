@@ -232,7 +232,7 @@ export function SignupStep1({
             </button>
           </div>
           {capsLockOn && (
-            <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert))" }}>
+            <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert-ink))" }}>
               <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> Caps Lock is on
             </p>
           )}
@@ -262,7 +262,7 @@ export function SignupStep1({
             // always said "green"; the token simply was not one.
             const { score, label } = passwordStrength(password);
             const barColor =
-              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--alert))";
+              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--alert-ink))";
             return (
               <div className="flex items-center gap-2">
                 <div className="flex gap-1 flex-1">

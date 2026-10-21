@@ -102,7 +102,7 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
       <div>
         <p
           className="text-ds-11 font-semibold uppercase tracking-wide mb-1.5"
-          style={{ color: "hsl(var(--alert))" }}
+          style={{ color: "hsl(var(--alert-ink))" }}
         >
           Erased for good
         </p>
@@ -112,7 +112,7 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
               <X
                 aria-hidden="true"
                 className="w-3 h-3 shrink-0 mt-[3px]"
-                style={{ color: "hsl(var(--alert))" }}
+                style={{ color: "hsl(var(--alert-ink))" }}
               />
               <span style={{ color: "hsl(var(--olivewood) / 0.9)" }}>{item}</span>
             </li>

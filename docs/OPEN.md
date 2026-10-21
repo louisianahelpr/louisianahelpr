@@ -122,6 +122,7 @@ sure someone hears it and closes it.
 
 ## MORNING QUESTIONS (held overnight 2026-09-23 while the owner sleeps)
 
+
 **Held 2026-10-03 night, ANSWERED 2026-10-03 ~14:30Z (owner pop-ups; each answer is on its item):** Q989 Keep (RE-ASK: the pop-up did not say the file is the last copy of the owner's ID document, see Q989); open_jobs_browse self-heal + page: YES (Q1156); Vercel: Speed Insights only, which was ALREADY ON (the question said it was off; the owner's screenshots show Speed Insights Plus with data since 2026-09-26; Web Analytics stays off); Connect accounts: DELETE both (Q1155). The questions as asked:
 - Q989: `user-documents/76b07824…/avatar.png` is NO LONGER a duplicate (measured: no other object shares its eTag 837a28b9… or its 810,107-byte size), so it is the only copy of that image. Delete it anyway, or keep it?
 - open_jobs_browse: the 2026-10-02 21:25:07Z and 21:25:17Z flips came from a Supabase DASHBOARD session (`-- source: dashboard`, session e68fec63…), statement identical to the Security Advisor's one-click "security definer view" fix. May a 5-minute cron put security_invoker back to false and page, so a repeat heals itself instead of breaking anon browse for hours?

@@ -313,6 +313,13 @@ export const RPC_ERROR_COPY = {
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to ask for a change.",
   },
+  // Board 66/172 slice 3: whoever asked takes a pending request back.
+  withdraw_job_schedule_change: {
+    not_authorized: "Only the person who asked can take this request back.",
+    request_not_found: "That request no longer exists. Refresh to see the job as it is.",
+    account_restricted: "Your account is restricted, so you can't change requests right now.",
+    not_authenticated: "Please sign in again to take this request back.",
+  },
   respond_job_schedule_change: {
     not_authorized: "Only the other person on this job can answer this request.",
     request_not_found: "That request no longer exists. Refresh to see the job as it is.",

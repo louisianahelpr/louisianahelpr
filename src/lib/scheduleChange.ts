@@ -73,6 +73,13 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
   if (error) throw changeError(error, rpcErrorMessage("request_job_schedule_change", error) ?? lifecycleErrorMessage(error));
 }
 
+/** Take back a request THIS person made while it is pending (board 66/172 slice 3). Returns the resulting status. */
+export async function withdrawScheduleChange(requestId: string): Promise<string> {
+  const { data, error } = await supabase.rpc("withdraw_job_schedule_change", { p_request_id: requestId });
+  if (error) throw changeError(error, rpcErrorMessage("withdraw_job_schedule_change", error));
+  return String(((data as { status?: string } | null) ?? {}).status ?? "");
+}
+
 /**
  * Returns the request's resulting status: accepted / declined / expired
  * ("expired:<reason>" when the server says why), or "clash" when an accept found the Helpr already booked at the new time (Q1262:

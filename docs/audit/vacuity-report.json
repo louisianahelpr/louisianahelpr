@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-21T12:17:01.978Z",
-  "guards": 2245,
-  "registered": 2244,
+  "generated": "2026-10-21T13:15:37.697Z",
+  "guards": 2258,
+  "registered": 2257,
   "unregistered": [
     "src/lib/savedSearches.test.ts"
   ],
@@ -14,6 +14,7 @@
     "src/test/identityVerifiedAtKeepsFirstDate.test.ts",
     "src/test/leadResubscribeUndoesOnlyTheLink.test.ts",
     "src/test/moneyOwedBlocksAccountDeletion.test.ts",
+    "src/test/oneSoonMark.test.ts",
     "src/test/paidTierBadgeNeedsMemberships.test.ts"
   ],
   "classD_selfReferential": [

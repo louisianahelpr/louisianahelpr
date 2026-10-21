@@ -8,10 +8,10 @@ import {
   DialogHero,
   DialogFooter,
   DialogSecondaryAction,
-  DialogDestructiveAction,
+  DialogPrimaryAction,
 } from "@/components/ui/dialog";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Upload, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -45,9 +45,11 @@ interface DisputeDialogProps {
   open: boolean;
   onClose: () => void;
   onDisputed: () => void;
+  /** Board 54's context card: which job this is about. Optional; hidden when absent. */
+  jobTitle?: string | null;
 }
 
-export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: DisputeDialogProps) => {
+export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle }: DisputeDialogProps) => {
   const [reason, setReason] = useState("");
   const [details, setDetails] = useState("");
   const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
@@ -288,40 +290,42 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHero
-          title="File a Dispute"
-        />
+        <DialogHero title="Something's not right" />
         <div className="space-y-3.5">
-          <div className="space-y-1.5">
-            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              Reason
-            </Label>
-            <Select value={reason} onValueChange={setReason}>
-              <SelectTrigger aria-label="Reason" className="rounded-ds-md bg-background/60 border-border/60 focus:border-primary/40">
-                <SelectValue placeholder="Pick the closest fit…" />
-              </SelectTrigger>
-              <SelectContent>
-                {reasons.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Board 54. The lede says what filing does to the money, per side
+              (the per-side detail is in the box below). */}
+          <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.9)" }}>
+            {side === "helper"
+              ? "Tell us what went wrong. Nothing moves while this is open."
+              : "Tell us what went wrong. The payment stays held while this is open."}
+          </p>
+          {jobTitle && (
+            <div className="rounded-2xl bg-card border border-border px-4 py-3">
+              <p className="font-sans font-semibold text-ds-14 leading-snug truncate" style={{ color: "hsl(var(--ink-deep))" }}>{jobTitle}</p>
+            </div>
+          )}
+
+          <RadioCardList
+            label="What happened?"
+            options={reasons.map((r) => ({ value: r.value, label: r.label }))}
+            value={reason}
+            onChange={setReason}
+          />
 
           <div className="space-y-1.5">
-            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              What happened?
+            <Label htmlFor="dispute-details" className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+              Tell us a little more
             </Label>
             <Textarea
-              aria-label="What happened?"
+              id="dispute-details"
               value={details}
               onChange={(e) => setDetails(e.target.value)}
-              placeholder="The more specific you are, the faster admin can help…"
+              placeholder="The more specific you are, the faster we can help…"
               rows={3}
               maxLength={1000}
               aria-required="true"
               aria-describedby="dispute-details-requirement"
-              className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
+              className="rounded-2xl bg-card border-border focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
             />
             {/* Says WHY it is required rather than just that it is. The
                 requirement is not a form rule, it is the whole basis of the
@@ -329,7 +333,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
             <p
               id="dispute-details-requirement"
               className="font-sans text-ds-11"
-              style={{ color: detailsOk ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--burnt-sienna))" }}
+              style={{ color: detailsOk ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--alert-ink))" }}
             >
               {detailsOk
                 ? "An admin reads this to decide."
@@ -338,8 +342,8 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
           </div>
 
           <div className="space-y-1.5">
-            <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              Photo evidence — up to 5
+            <Label className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+              Photos, up to 5
             </Label>
             <div className="flex flex-wrap gap-1.5">
               {evidenceFiles.map((file, i) => (
@@ -353,7 +357,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
                   }}
                 >
                   <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
-                  <button onClick={() => removeFile(i)} aria-label="Remove file" className="inline-flex items-center justify-center h-10 w-10 -my-2 -mr-2 active:opacity-70" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  <button onClick={() => removeFile(i)} aria-label="Remove file" className="inline-flex items-center justify-center h-10 w-10 -my-2 -mr-2 active:opacity-70" style={{ color: "hsl(var(--muted-foreground))" }}>
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -371,12 +375,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
           </div>
 
           <div
-            className="rounded-ds-md p-3"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.08)",
-              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              boxShadow: "var(--elev-inset-gloss)",
-            }}
+            className="rounded-2xl p-3 bg-card border border-border"
           >
             {/* CONSEQUENCE COPY IS PER-SIDE, because the consequence is.
                 What the helper used to be shown here was the poster's list,
@@ -422,21 +421,17 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed }: Disput
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
-          {/* Destructive: a filed dispute cannot be withdrawn from this
-              screen and it freezes the counterparty's escrow, so it belongs to
-              the same family as "Confirm No-Show". Shared `destructive`
-              variant, not a hand-copied burnt-sienna style block. */}
-          {/* `!detailsOk` in the disable set, matching the RESPONSE box on the
-              other side of this same dispute (DisputedSection's Submit is
-              `disabled={!disputeResponse.trim() || …}`). Until 2026-09-06 the
-              two halves disagreed: the reply required words, the FILING — the
-              half that freezes the money — did not. */}
-          <DialogDestructiveAction
+          {/* Board 54: "Send to Helpr" is the olive commit, not the red
+              destructive one. Filing deletes nothing; what it does to the
+              money (held, frozen, the deadline) is stated in the box above.
+              `!detailsOk` stays in the disable set, matching the RESPONSE box
+              on the other side of this dispute (DisputedSection's Submit). */}
+          <DialogPrimaryAction
             onClick={handleSubmit}
             disabled={submitting || !reason || !detailsOk}
           >
-            {submitting ? "Submitting…" : "Submit Dispute"}
-          </DialogDestructiveAction>
+            {submitting ? "Sending…" : "Send to Helpr"}
+          </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>
     </Dialog>

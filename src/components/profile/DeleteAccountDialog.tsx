@@ -215,7 +215,7 @@ export function DeleteAccountDialog({
       <BrandConfirmDialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="Delete Your Helpr Account?"
+        title="Delete your Helpr account?"
         description="This can't be undone. Here's exactly what happens."
         callout={{
           icon: AlertTriangle,

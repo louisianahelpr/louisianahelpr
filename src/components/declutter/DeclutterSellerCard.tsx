@@ -53,7 +53,7 @@ export function DeclutterSellerCard({ sellerId, noun = "seller" }: { sellerId: s
             {/* Two short lines, never one that wraps a stray "·" at 320. */}
             {reviews > 0 && (
               <span data-seller-rating="" className="flex items-center gap-1 text-xs text-foreground">
-                <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />
+                <Star className="h-3.5 w-3.5 fill-primary text-primary" aria-hidden />
                 <span className="font-semibold">{(stats.data?.avg ?? 0).toFixed(1)}</span>
                 <span className="text-muted-foreground">
                   <span className="sr-only"> stars from </span>

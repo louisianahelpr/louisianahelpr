@@ -37,7 +37,6 @@ import {
   fetchItemAddress,
   fetchMyBookings,
   fetchMyPayouts,
-  leaveReview,
   porchPhoto,
   reportNoShow,
   sellerPickedUp,
@@ -48,6 +47,7 @@ import {
   type MyPayout,
   type ProblemReason,
 } from "@/lib/declutter/handover";
+import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
@@ -188,7 +188,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
               {payout.debt_cents > 0 ? ` (${formatPrice(payout.items_cents)} minus ${formatPrice(payout.debt_cents)} you owed)` : ""}. {PAYOUT_WORDS[payout.status]}
             </p>
           )}
-          <ReviewForm orderId={order.orderId} side={order.side} />
+          <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
         </>
       ) : order.handover === "delivery" ? (
         <>
@@ -481,35 +481,6 @@ function ProblemForm({ orderId }: { orderId: string }) {
         <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate()}>Send</button>
         <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>
       </div>
-    </div>
-  );
-}
-
-function ReviewForm({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
-  const qc = useQueryClient();
-  const [stars, setStars] = useState(0);
-  const [comment, setComment] = useState("");
-  const [sent, setSent] = useState(false);
-  const send = useMutation({
-    mutationFn: () => leaveReview(orderId, stars, comment.trim() || null),
-    onSuccess: () => { setSent(true); toast.success("Thanks. Your review shows once both of you review, or after 14 days."); void qc.invalidateQueries({ queryKey: ["declutter"] }); },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  if (sent) return <p className="text-sm text-muted-foreground">Review sent.</p>;
-  return (
-    <div className="space-y-2">
-      <p className="text-sm font-medium">Review the {side === "buyer" ? "seller" : "buyer"}</p>
-      <div role="radiogroup" aria-label="Stars" className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} type="button" role="radio" aria-checked={stars === n} aria-label={`${n} star${n === 1 ? "" : "s"}`}
-            className={`h-11 w-11 rounded-full border border-border text-lg ${n <= stars ? "text-amber-500" : "text-muted-foreground"}`}
-            onClick={() => setStars(n)}>
-            ★
-          </button>
-        ))}
-      </div>
-      <textarea aria-label="Review (optional)" className={input} maxLength={1000} rows={2} value={comment} onChange={(e) => setComment(e.target.value)} />
-      <button type="button" className={primary} disabled={send.isPending || stars === 0} onClick={() => send.mutate()}>Send review</button>
     </div>
   );
 }

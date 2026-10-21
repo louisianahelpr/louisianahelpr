@@ -5,7 +5,7 @@
  * is src/test/pglite/declutterSlice4.pglite.mjs.
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} who={who} onProblem={() => setProblemOpen(true)} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
@@ -20,7 +20,7 @@
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
@@ -57,6 +57,9 @@ vi.mock("@/lib/declutter/handover", () => ({
   leaveReview: async (...a: unknown[]) => { state.calls.push(["review", ...a]); return "r1"; },
 }));
 
+// Boards 159/160 name the other person; the name read has its own test (declutterReviewForm.test.tsx).
+vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
+
 // Board 163: the review sheet has its own test (declutterReviewForm.test.tsx).
 vi.mock("./DeclutterReviewForm", () => ({
   DeclutterReviewForm: ({ orderId, side, userId }: { orderId: string; side: string; userId: string }) => <p>Review {orderId} as the {side} ({userId})</p>,
@@ -88,7 +91,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.payouts = [];
     state.calls = [];
     state.handover = null;
-    vi.spyOn(window, "confirm").mockReturnValue(true);
+    // Boards 159/160: every handover moment is a sheet; a browser confirm() is a failure.
+    vi.spyOn(window, "confirm").mockImplementation(() => { throw new Error("window.confirm used"); });
   });
 
   it("an unpaid cart shows nothing (inventory: only paid lines become cards)", async () => {
@@ -129,6 +133,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [slot(-60)];
     const { unmount } = show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    const gotIt = await screen.findByRole("dialog");
+    expect(within(gotIt).getByText(/the sale is final and Dana is paid/)).toBeInTheDocument();
+    expect(state.calls).toEqual([]);
+    fireEvent.click(within(gotIt).getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toContainEqual(["confirm", "o1"]));
     expect(screen.queryByText(/4-digit|handover code/i)).toBeNull();
     unmount();
@@ -140,6 +148,9 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByLabelText(/code/i)).toBeNull();
     expect(screen.getByText("Pickup at the door")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Picked up" }));
+    const picked = await screen.findByRole("dialog");
+    expect(within(picked).getByText("Did Dana take it?")).toBeInTheDocument();
+    fireEvent.click(within(picked).getByRole("button", { name: "Picked up" }));
     await waitFor(() => expect(state.calls).toContainEqual(["seller_picked_up", "o1", null]));
   });
 
@@ -178,6 +189,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [slot(16)];
     show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "They didn't show" }));
+    const noShow = await screen.findByRole("dialog");
+    // Board 160, the live rule: the buyer reporting the seller gets everything back.
+    expect(within(noShow).getByText(/you get everything back, including the buyer's fee/)).toBeInTheDocument();
+    fireEvent.click(within(noShow).getByRole("button", { name: "Report it" }));
     await waitFor(() => expect(state.calls).toContainEqual(["no_show", "o1"]));
   });
 
@@ -236,5 +251,59 @@ describe("Declutter slice 4: paid-order cards", () => {
     }
     const hv = blankComments(readFileSync("src/components/declutter/DeclutterHandoverViews.tsx", "utf8"));
     expect(hv).toMatch(/Take the porch photo/);
+  });
+});
+
+/**
+ * Boards 159 + 160 (Builder 3c): the handover moments are sheets.
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate(f); } | if (f) photo.mutate(f);
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The sale is cancelled and you get everything back, including the buyer's fee.</li> | <li>The sale is cancelled.</li>
+ */
+describe("boards 159 + 160: handover sheets", () => {
+  beforeEach(() => {
+    state.bookings = [];
+    state.calls = [];
+    state.handover = null;
+    vi.spyOn(window, "confirm").mockImplementation(() => { throw new Error("window.confirm used"); });
+    Object.assign(URL, { createObjectURL: () => "blob:porch", revokeObjectURL: () => {} });
+  });
+
+  it("159 seller, porch: the photo is checked in 'Put it out' and only sent on 'Send photo · it's out'", async () => {
+    state.bookings = [slot(-60)];
+    show([line({ handover: "porch", my_side: "seller" })]);
+    const input = await screen.findByLabelText(/Photo of the item on your porch/);
+    fireEvent.change(input, { target: { files: [new File(["x"], "porch.jpg", { type: "image/jpeg" })] } });
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Take one photo of it where Dana will find it. That photo is the handover.")).toBeInTheDocument();
+    expect(within(sheet).getByRole("img", { name: "Your porch photo" })).toBeInTheDocument();
+    expect(state.calls).toEqual([]);
+    // No "Where exactly?" note: the handover row has no field for it yet.
+    expect(within(sheet).queryByText(/Where exactly/)).toBeNull();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send photo · it's out" }));
+    await waitFor(() => expect(state.calls.some((c) => c[0] === "porch_photo")).toBe(true));
+  });
+
+  it("159 buyer: 'Something's not right' closes the sheet and opens the problem form, nothing confirmed", async () => {
+    state.bookings = [slot(-60)];
+    show([line({ handover: "porch" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
+    expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
+    expect(state.calls).toEqual([]);
+  });
+
+  it("160 seller: the live no-show rule (one new booking; a second miss refunds the item price, not the fee; item back on sale)", async () => {
+    state.bookings = [slot(16)];
+    show([line({ my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "They didn't show" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Dana didn't pick up?")).toBeInTheDocument();
+    expect(within(sheet).getByText(/Dana can book one new time before the 7-day pickup deadline/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/item price back \(not the buyer's fee\), and your item goes back on sale/)).toBeInTheDocument();
+    expect(sheet.textContent).not.toMatch(/\b(he|she|him|her)\b/);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
+    expect(state.calls).toEqual([]);
   });
 });

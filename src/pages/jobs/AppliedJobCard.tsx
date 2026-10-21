@@ -321,7 +321,7 @@ function AppliedJobCardInner({
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
   // The face's ONE button (board 21; helperFaceAction.ts).
   const faceAction = helperFaceAction({
-    isMinimalCard, isOffered,
+    isMinimalCard, isOffered, isPending,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
     review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
@@ -537,11 +537,9 @@ function AppliedJobCardInner({
               editing surface was invented.
 
               Two chips at 2-up cost exactly the height one chip cost at 1-up,
-              so the added affordance is free in vertical space. Withdraw keeps
-              the destructive tint so it never reads as a neutral "next step";
-              Edit takes the ordinary `edit` tone the posted card's Edit chip
-              already uses. The "Seen" trust chip is unchanged — it is
-              information, not an action. */}
+              so the added affordance is free in vertical space. Spec v2 (audit #48,
+              board 59): Edit application is neutral and Withdraw the quiet destructive
+              outline (no yellow, no pink fill); the face says "View application". */}
           {/* While the inline editor (PendingApplicationSection) is open it
               owns Save/Cancel, so the outer Edit/Withdraw pair is hidden —
               two Cancel-shaped controls a few rows apart, one of which
@@ -587,9 +585,9 @@ function AppliedJobCardInner({
               <JobActionRow columns={2}>
                 <JobActionChip
                   icon={Pencil}
-                  label="Edit"
+                  label="Edit application"
                   ariaLabel="Edit your application"
-                  tone="edit"
+                  tone="neutral"
                   onClick={() => {
                     if (!isExpanded) toggleExpandedJobId(app.job_id);
                     setEditingMessageAppId(app.id);
@@ -600,7 +598,7 @@ function AppliedJobCardInner({
                   icon={XCircle}
                   label={withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
                   ariaLabel="Withdraw application"
-                  tone="danger"
+                  tone="quietDanger"
                   disabled={withdrawingAppId === app.id}
                   onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "a job", jobId: job.id ?? null })}
                 />

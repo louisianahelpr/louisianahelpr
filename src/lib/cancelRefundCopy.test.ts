@@ -149,7 +149,9 @@ describe("cancelRefundToast", () => {
     expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew \}\)/);
     expect(src).toMatch(/cardShareCents = cardShareCentsFromRead\(giftRows, costCents\);/);
     expect(src).toMatch(/gift = giftOnJobFromRead\(giftRows, giftErr, costCents\);/);
-    expect(src).toMatch(/const flatModel = isFlatFeeJob\(feeStamp\);/);
+    // The fee model is the job's own stamp plus its poster-fee stamp (a legacy job moved
+    // to the flat Helpr fee keeps its service-fee copy, owner 2026-10-21).
+    expect(src).toMatch(/const flatModel = cancelRefundIsLessCardFee\(feeStamp, posterFee\);/);
     // The Activity caller hands it the cost and counts a declined card as unfunded (review #1, #2).
     const caller = blankComments(readFileSync("src/components/job-card/ActivityDialogs.tsx", "utf8"));
     expect(caller).toMatch(/jobUrgentFee=\{props\.cancelDialogJob\.urgent_fee\}/);

@@ -357,6 +357,28 @@ const CASES: Array<{
     primary: ["I'm on my way"],
   },
   {
+    // Owner 2026-10-21 (lead ruling): before the day-before window, no greyed "Confirm you'll be at the job";
+    // the primary is talking to the poster and the line says when confirming opens.
+    name: "Jobs · Confirmed, before the confirm window (Message <poster>; says when confirming opens)",
+    render: () =>
+      wrap(
+        <ConfirmedSection
+          app={{ ...makeApp(makeJob({})), posterName: "Lexi L." } as unknown as AppliedApp}
+          job={makeJob({
+            status: "accepted", date_needed: jobClock(96).date, start_time: jobClock(96).time,
+            helper_confirmed_at: ago(72), helper_dayof_confirmed_at: null,
+            helper_on_the_way_at: null, helper_arrived_at: null, poster_confirmed_working_at: null,
+          })}
+          userId={HELPER}
+          initialTracking={tracking("confirmed")}
+          navigate={vi.fn()}
+        />,
+      ),
+    minControls: 2,
+    primary: ["Message Lexi"],
+    primaryDisabled: false,
+  },
+  {
     name: "Jobs · Confirmed, day-of confirmation still owed (I'm still on)",
     render: () =>
       wrap(

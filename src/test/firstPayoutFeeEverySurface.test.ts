@@ -68,9 +68,8 @@ function inventory(): Record<string, Counts> {
 const EXEMPT: Record<string, { count: number; why: string }> = {
   "src/components/admin/adminAnalytics/adminAnalyticsHelpers.ts": { count: 2, why: "admin reporting over OTHER users' jobs; the viewer's own first payout is not in play" },
   "src/components/admin/userDetail/JobsTab.tsx": { count: 1, why: "admin view of another user's job earnings" },
-  "src/components/admin/useAdminUserSummaries.ts": { count: 1, why: "admin summary of other users' earnings" },
   "src/components/profile/EarningsTab.tsx": { count: 1, why: "MonthlyGoal: per-job progress toward a goal; the one-time fee is stated once and comes off the totals, never pinned to one job (lh-money-escrow review of Q753)" },
-  "src/components/profile/EarningsBreakdownCharts.tsx": { count: 2, why: "historical category/month distribution of completed work, not a payout preview (Q753 residual lives in OPEN.md)" },
+  "src/components/profile/earningsTab/earningsTabHelpers.ts": { count: 1, why: "earnedByJob: per-job take-home for the insights split; the first-payout fee is taken ONCE off the total as feeOwed (firstPayoutFeeDueFrom), never pinned to one job, so the split adds up to Earned (lh-money-escrow review, 2026-10-21)" },
   "src/components/profile/EarningsForecastCard.tsx": { count: 1, why: "sums inside the queryFn; the fee is applied ONCE at render with netAfterFirstPayoutFee (asserted below)" },
   "src/lib/helperAnalytics.ts": { count: 3, why: "analytics aggregates over completed jobs" },
   "src/lib/jobDisplayPay.ts": { count: 1, why: "sort key only: one constant off every job keeps the order, and jobs at or under the fee tie at the $0 the cards show" },

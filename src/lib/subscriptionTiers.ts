@@ -391,3 +391,28 @@ export function holdsPaidPlan(rawTier: string | null | undefined, expiresAt?: st
   const lapsed = !!expiresAt && new Date(expiresAt).getTime() < Date.now();
   return !lapsed && toSubscriptionTier((rawTier ?? "").toLowerCase()) !== "free";
 }
+
+/** Days after a plan's expiry date its holder can still reach Membership. */
+const MEMBERSHIP_GRACE_DAYS = 14;
+
+/**
+ * Lead 2026-10-21: anyone who is, or may still be, billed must always be able to
+ * manage or cancel. True while a plan is held, while a Stripe subscription is
+ * still linked (the webhook clears the link on canceled/unpaid/past_due/paused;
+ * trialing and active keep it), or for MEMBERSHIP_GRACE_DAYS after the expiry
+ * date (a late renewal webhook while Stripe is still billing). A one-time pass
+ * is never rebilled, so it gets no grace (the portal has nothing to show it).
+ */
+export function mayStillBeBilled(p: {
+  subscription_tier?: string | null;
+  subscription_expires_at?: string | null;
+  stripe_subscription_id?: string | null;
+  subscription_billing_cycle?: string | null;
+} | null | undefined): boolean {
+  if (!p) return false;
+  if (holdsPaidPlan(p.subscription_tier, p.subscription_expires_at)) return true;
+  if (p.stripe_subscription_id) return true;
+  if (!p.subscription_expires_at || p.subscription_billing_cycle === "one_time") return false;
+  if (toSubscriptionTier((p.subscription_tier ?? "").toLowerCase()) === "free") return false;
+  return Date.now() - new Date(p.subscription_expires_at).getTime() <= MEMBERSHIP_GRACE_DAYS * 86_400_000;
+}

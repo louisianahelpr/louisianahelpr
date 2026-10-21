@@ -13732,6 +13732,14 @@
    "kind": "table",
    "policies": [
     {
+     "cmd": "SELECT",
+     "name": "Admins can view group helpers",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
      "cmd": "DELETE",
      "name": "Job owner can remove group helpers while staffing",
      "permissive": "PERMISSIVE",

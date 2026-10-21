@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 898,
-    "files": 224,
+    "calls": 896,
+    "files": 225,
     "rendering": 782,
-    "suppressedByPolicy": 116,
+    "suppressedByPolicy": 114,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,13 +14,13 @@
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 120,
+      "toast.success": 118,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 424,
+      "literal": 423,
       "template": 97,
-      "dynamic": 425,
+      "dynamic": 424,
       "jsx": 0
     }
   },
@@ -676,7 +676,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 633,
+      "line": 616,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -686,7 +686,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 974,
+      "line": 957,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -696,7 +696,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 984,
+      "line": 967,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -771,7 +771,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 999,
+      "line": 982,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -781,7 +781,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1052,
+      "line": 1035,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -872,7 +872,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1057,
+      "line": 1040,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -892,7 +892,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1077,
+      "line": 1060,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -902,7 +902,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1163,
+      "line": 1146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1176,
+      "line": 1159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1203,
+      "line": 1186,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -932,7 +932,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1256,
+      "line": 1239,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -942,7 +942,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1300,
+      "line": 1283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -952,7 +952,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1359,
+      "line": 1342,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -962,23 +962,13 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1418,
+      "line": 1401,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
         "text": "Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know."
       },
       "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 1422,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "message"
-      },
-      "renders": false
     },
     {
       "file": "src/components/NotificationPanel.tsx",
@@ -4065,7 +4055,7 @@
     },
     {
       "file": "src/components/dashboard/applyConfirmDialog/ApplyBody.tsx",
-      "line": 241,
+      "line": 248,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -4199,7 +4189,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 242,
+      "line": 256,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4219,7 +4209,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 246,
+      "line": 260,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4229,7 +4219,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 293,
+      "line": 307,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4239,7 +4229,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 296,
+      "line": 310,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4249,7 +4239,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 301,
+      "line": 315,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4259,7 +4249,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 305,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4269,51 +4259,11 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 364,
+      "line": 378,
       "kind": "toast.success",
       "title": {
         "form": "literal",
         "text": "Saved."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 365,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 374,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Left on porch. The buyer is told."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 375,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 376,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Picked up. The seller is paid and the sale is final."
       },
       "renders": false
     },
@@ -4329,7 +4279,47 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 410,
+      "line": 388,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Left on porch. The buyer is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 389,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 390,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Picked up. The seller is paid and the sale is final."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 393,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterHandoverViews.tsx",
+      "line": 424,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4339,7 +4329,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 411,
+      "line": 425,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4349,7 +4339,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 440,
+      "line": 454,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4359,7 +4349,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 445,
+      "line": 459,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4369,7 +4359,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 471,
+      "line": 485,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4379,7 +4369,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 472,
+      "line": 486,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4389,7 +4379,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 134,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 311,
+      "line": 313,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4419,7 +4409,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 314,
+      "line": 316,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4429,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 319,
+      "line": 321,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4439,7 +4429,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 327,
+      "line": 329,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4449,7 +4439,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 330,
+      "line": 332,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4689,7 +4679,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 58,
+      "line": 59,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4699,17 +4689,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 157,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Offer sent. The seller has 48 hours to answer."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 160,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4719,7 +4699,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 165,
+      "line": 168,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4729,7 +4709,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 168,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4859,27 +4839,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 337,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "status === \"live\" ? \"Your item is for sale.\" : \"Sent for a review. We'll let you know when it's up for sale.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Your item is for sale."
-          },
-          {
-            "form": "literal",
-            "text": "Sent for a review. We'll let you know when it's up for sale."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 342,
+      "line": 340,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4889,7 +4849,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 355,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8276,6 +8236,16 @@
       "renders": true
     },
     {
+      "file": "src/components/whatNext/HelperDoneWhatNext.tsx",
+      "line": 21,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": false
+    },
+    {
       "file": "src/hooks/useAgeGate.ts",
       "line": 51,
       "kind": "toast.error",
@@ -10321,7 +10291,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 113,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10331,7 +10301,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 162,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10351,7 +10321,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 235,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10361,7 +10331,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 437,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

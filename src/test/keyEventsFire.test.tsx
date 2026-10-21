@@ -302,7 +302,7 @@ async function drivePaymentMade(): Promise<string> {
       <PaymentSuccess />
     </MemoryRouter>,
   );
-  await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+  await screen.findByRole("heading", { level: 1, name: /your job is live/i });
   return JOB;
 }
 
@@ -483,7 +483,7 @@ describe("payment_made and first_payment_collected count only real checkout retu
     localStorage.setItem("helpr_last_posted_job_id", PAYMENT_JOB);
     h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }]);
     renderAt("/payment-success");
-    await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+    await screen.findByRole("heading", { level: 1, name: /your job is live/i });
     await settle();
     expect(rowsFor("payment_made")).toEqual([]);
     expect(rowsFor("first_payment_collected")).toEqual([]);

@@ -28808,6 +28808,45 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
       "requests": 29
+    },
+    {
+      "url": "/search",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 3,
+        "ended": "empty"
+      },
+      "finalUrl": "/search",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
+      "requests": 21
+    },
+    {
+      "url": "/search",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 3,
+        "ended": "empty"
+      },
+      "finalUrl": "/search",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
+      "requests": 21
+    },
+    {
+      "url": "/search",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fsearch",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -28985,6 +29024,16 @@
         "customer /profile?tab=settings",
         "helper /profile?tab=settings"
       ]
+    },
+    {
+      "at": "2026-10-21T02:50:29.585Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "customer /search",
+        "helper /search",
+        "anon /search"
+      ],
+      "replaced": []
     }
   ]
 }

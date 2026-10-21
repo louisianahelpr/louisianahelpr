@@ -439,6 +439,8 @@ export const FORMS: FormSpec[] = [
   // posts-search / jobs-search left with the My Posts / My Jobs headers (Posted / Working carry no search).
   { name: "dashboard-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx"] },
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
+  // Board 89: /search, the one search across the sections (its field is always open).
+  { name: "search-page", url: "/search", as: "helper", prepare: openSearch, covers: ["src/pages/search/SearchPage.tsx"] },
   // Declutter > Browse (2026-10-19): the same shared SectionSearchRow as Jobs > Browse (every test account is a tester).
   { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/declutter/DeclutterBrowseBar.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },

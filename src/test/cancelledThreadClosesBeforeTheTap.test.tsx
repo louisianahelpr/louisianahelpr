@@ -53,6 +53,9 @@ const hoisted = vi.hoisted(() => ({
   listeners: [] as { filter?: string; handler: (payload: unknown) => void }[],
 }));
 
+// The pinned deal card (board 2) and the header's person line read Supabase
+// through React Query; this file is about layout, so both are stubbed.
+vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, usePersonFacts: () => "" }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),

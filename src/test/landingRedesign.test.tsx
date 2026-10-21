@@ -16,7 +16,7 @@
  *   - the nav shows Declutter only once its switch is open to everyone.
  *
  * @mutate src/components/landing/seasonalPill.ts |   if (month >= 5 && month <= 10) return | if (month >= 4 && month <= 10) return
- * @mutate src/components/landing/heroSearch.ts |   return { signedIn: `/jobs${qs}`, signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
+ * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
  * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
@@ -47,7 +47,7 @@ describe("landing redesign: the honesty fixes hold", () => {
   it("the search reaches the Jobs feed's own q filter: public board signed out, Jobs > Browse signed in", () => {
     const t = heroSearchTargets("  Mow   the lawn & trim ");
     expect(t.signedOut).toBe("/browse?q=Mow+the+lawn+%26+trim");
-    expect(t.signedIn).toBe("/jobs?q=Mow+the+lawn+%26+trim");
+    expect(t.signedIn).toBe("/search?q=Mow+the+lawn+%26+trim");
     // The pages read it back exactly (useDashboardFilters: param("q")).
     expect(new URLSearchParams(t.signedOut.split("?")[1]).get(SEARCH_PARAM)).toBe("Mow the lawn & trim");
     expect(read("src/hooks/useDashboardFilters.ts")).toMatch(/useState\(\(\) => param\("q"\)\)/);

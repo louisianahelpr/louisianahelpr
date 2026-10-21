@@ -185,7 +185,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // shared SectionSearchRow (Shops' new search uses it too): 3 files out, 1 in.
     // 2026-10-20: +1, the landing's hero search (HeroSection, on NO_X).
     // 2026-10-20 (TRAIN24): +1, Post a Job's category search (JobCategoryGroups, on NO_X, Q2260).
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(13);
+    // 2026-10-21: +1, /search (board 89, SearchPage), a permanent field with a "Clear search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(14);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -198,6 +199,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/SectionSearchRow.tsx",
       "src/pages/info/Legal.tsx",
+      "src/pages/search/SearchPage.tsx",
     ]);
     expect(EXPANDING_CALLERS).toEqual([
       "src/components/messages/ConversationList.tsx",

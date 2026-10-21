@@ -256,6 +256,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "posts-redirect", url: "/posts", redirectsTo: "/jobs?tab=posted" },
   // Jobs settings (2026-10-19): the Jobs rows that left Profile.
   { name: "jobs-settings", url: "/jobs/settings" },
+  // Board 89: one search across the sections (src/pages/search/SearchPage.tsx).
+  { name: "search", url: "/search?q=chair" },
   { name: "jobs", url: "/jobs?tab=working" },
   // Explore (the bottom bar's second slot, 2026-10-20): the four sections' switcher.
   { name: "explore", url: "/explore" },

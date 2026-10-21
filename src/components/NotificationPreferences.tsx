@@ -17,6 +17,7 @@ import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constant
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /** One delivery channel's outcome, as reported by `create-notification`. */
 type TestChannel = {
@@ -89,6 +90,15 @@ const NotificationPreferences = () => {
   const saving = savingKey !== null;
   const [userId, setUserId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // The member's saved row could not be read (Q2311). Every switch stays
+  // disabled and nothing is written until a retry reads it: `prefs` then holds
+  // only `defaultPrefs`, and both writers send the WHOLE row, so one press
+  // would save those defaults over every setting the member really has
+  // (email_messages, quiet hours and the rest). `loadAttempt` re-runs the
+  // load effect from the retry button.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const locked = !loaded || loadFailed;
   // Push-token count drives the "Send test" button. Zero = no devices
   // registered (probably haven't opened the iOS app and granted
   // permission yet); button is disabled with explanatory copy.
@@ -191,8 +201,15 @@ const NotificationPreferences = () => {
       // No row yet is expected (defaults apply); a real query failure is not.
       if (error) {
         console.error("[NotificationPreferences] failed to load preferences:", error);
-        toast.error("Couldn't load notification preferences — try again?");
-      } else if (data) {
+        // No toast: the card below says so and carries the Try again button
+        // (ErrorState also reports the failure), so a toast was a second
+        // message for one failure with a "try again" that had no button.
+        setLoadFailed(true);
+        setLoaded(true);
+        return;
+      }
+      setLoadFailed(false);
+      if (data) {
         // The cast is a LEFTOVER, not a requirement. It was added while
         // `quiet_start` / `quiet_end` were still absent from the generated
         // types; they have since been regenerated and both columns are
@@ -228,7 +245,7 @@ const NotificationPreferences = () => {
     // failing, once its stub returned a fresh `{ user, isReady }` each call.
     // A stub is allowed to do that; a component must not depend on it not to.
     // The id is a primitive and is what every query below actually uses.
-  }, [authReady, authUserId]);
+  }, [authReady, authUserId, loadAttempt]);
 
   // Both writers below send the WHOLE prefs object, so both have to drop
   // `email_enabled` while the column is still deploying (see
@@ -256,7 +273,9 @@ const NotificationPreferences = () => {
       : prefs[key] === true;
 
   const toggle = async (key: keyof Prefs) => {
-    if (!userId) return;
+    // After a failed load `prefs` is only the defaults: writing it would
+    // overwrite the member's real settings (Q2311).
+    if (!userId || loadFailed) return;
     // The opposite of what the switch SHOWS, so the first press on a
     // never-chosen Promotions email is an explicit choice either way.
     const newVal = !shownOn(key);
@@ -293,7 +312,7 @@ const NotificationPreferences = () => {
   // optimistic-state slot. `key` identifies which control to show the
   // inline spinner next to.
   const patchPrefs = async (patch: Partial<Prefs>, key: string) => {
-    if (!userId) return;
+    if (!userId || loadFailed) return;
     const updated = { ...prefs, ...patch };
     hapticLight();
     setPrefs(updated);
@@ -482,6 +501,23 @@ const NotificationPreferences = () => {
 
   return (
     <div className="rounded-2xl liquid-glass overflow-hidden shadow-sm">
+      {/* The saved settings could not be read: say so, offer a retry, and keep
+          every switch below disabled so no press can save the defaults over
+          them (Q2311). */}
+      {loadFailed && (
+        <div className="p-3">
+          <ErrorState
+            variant="inline"
+            title="We couldn't load your notification settings."
+            body="Your saved settings are safe. Tap Try again to load them."
+            onRetry={() => {
+              setLoaded(false);
+              setLoadFailed(false);
+              setLoadAttempt((n) => n + 1);
+            }}
+          />
+        </div>
+      )}
       {/* Column header — App / Email column labels sit directly above
           the master switches (and every row's switches) below, since
           the master row now carries its own two-column switch pair too.
@@ -574,7 +610,7 @@ const NotificationPreferences = () => {
             savingKey={savingKey}
             checked={prefs.push_enabled}
             onCheckedChange={() => toggle("push_enabled")}
-            disabled={!loaded}
+            disabled={locked}
             ariaLabel="Push notifications master toggle"
             savingId="push_enabled"
           />
@@ -583,7 +619,7 @@ const NotificationPreferences = () => {
             savingKey={savingKey}
             checked={emailMasterEnabled}
             onCheckedChange={toggleEmailMaster}
-            disabled={!loaded}
+            disabled={locked}
             ariaLabel="Email notifications master toggle"
             // `toggle()` names its spinner after the column it writes, so the
             // id has to follow which path toggleEmailMaster took.
@@ -648,7 +684,7 @@ const NotificationPreferences = () => {
               savingKey={savingKey}
               checked={quietEnabled}
               onCheckedChange={toggleQuiet}
-              disabled={!loaded || !prefs.push_enabled}
+              disabled={locked || !prefs.push_enabled}
               ariaLabel="Quiet hours"
               savingId="quiet_hours"
             />
@@ -687,7 +723,7 @@ const NotificationPreferences = () => {
                   type="time"
                   value={prefs.quiet_start ?? "22:00"}
                   onChange={(e) => void patchPrefs({ quiet_start: e.target.value }, "quiet_hours")}
-                  disabled={!prefs.push_enabled || saving}
+                  disabled={locked || !prefs.push_enabled || saving}
                   aria-label="Quiet hours start time"
                   className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
@@ -698,7 +734,7 @@ const NotificationPreferences = () => {
                   type="time"
                   value={prefs.quiet_end ?? "07:00"}
                   onChange={(e) => void patchPrefs({ quiet_end: e.target.value }, "quiet_hours")}
-                  disabled={!prefs.push_enabled || saving}
+                  disabled={locked || !prefs.push_enabled || saving}
                   aria-label="Quiet hours end time"
                   className="rounded-ds-sm border border-border/40 bg-card px-2 py-1 text-ds-11 font-mono tabular-nums focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
@@ -749,7 +785,7 @@ const NotificationPreferences = () => {
               savingKey={savingKey}
               checked={prefs[item.key] === true && prefs.push_enabled}
               onCheckedChange={() => toggle(item.key)}
-              disabled={!loaded || !prefs.push_enabled}
+              disabled={locked || !prefs.push_enabled}
               ariaLabel={`${item.label} push`}
               savingId={item.key}
             />
@@ -764,7 +800,7 @@ const NotificationPreferences = () => {
               savingKey={savingKey}
               checked={shownOn(item.emailKey) && emailMasterEnabled}
               onCheckedChange={() => toggle(item.emailKey)}
-              disabled={!loaded || !emailMasterEnabled}
+              disabled={locked || !emailMasterEnabled}
               ariaLabel={`${item.label} email`}
               savingId={item.emailKey}
             />
@@ -816,7 +852,7 @@ const NotificationPreferences = () => {
             savingKey={savingKey}
             checked={prefs.saved_helper_availability}
             onCheckedChange={() => toggle("saved_helper_availability")}
-            disabled={!loaded || !prefs.push_enabled}
+            disabled={locked || !prefs.push_enabled}
             ariaLabel="Saved Helpr availability nudges"
             savingId="saved_helper_availability"
           />

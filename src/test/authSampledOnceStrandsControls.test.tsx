@@ -167,7 +167,8 @@ describe("auth is never sampled once and treated as final", () => {
     // is silent — disabled controls look like a design choice, not a bug.
     const code = codeOf(readFileSync(join(SRC, "components/NotificationPreferences.tsx"), "utf8"));
     expect(code, "must read the shared auth snapshot").toContain("useAuthReady()");
-    expect(code, "must re-run when auth settles").toMatch(/\}, \[authReady, authUserId\]\)/);
+    // `loadAttempt` (Q2311) re-runs it from the Try again button as well.
+    expect(code, "must re-run when auth settles").toMatch(/\}, \[authReady, authUserId(?:, loadAttempt)?\]\)/);
     // And it must still mark itself loaded on the genuinely-signed-out path,
     // or the tab presents itself as mid-load forever for a guest instead.
     expect(code).toMatch(/if \(!user\) \{[\s\S]*?setLoaded\(true\)/);
@@ -175,4 +176,4 @@ describe("auth is never sampled once and treated as final", () => {
 });
 
 // Proof this is able to fail — restores the exact shape that shipped.
-// @mutate src/components/NotificationPreferences.tsx | }, [authReady, authUserId]); | }, []);
+// @mutate src/components/NotificationPreferences.tsx | }, [authReady, authUserId, loadAttempt]); | }, []);

@@ -111,9 +111,11 @@ describe("the Promotions email switch while the member has never chosen (Q2299)"
   });
 
   it("a failed load then a press on another switch never overwrites a stored Promotions-off", async () => {
-    // The member turned Promotions off; the read fails; the screen falls back
-    // to its defaults (email_promotions NULL) and still lets switches be
-    // pressed. The write must not carry that NULL over their false.
+    // The member turned Promotions off; the read fails; the screen holds only
+    // its defaults (email_promotions NULL). Since Q2311 every switch stays
+    // disabled after a failed load and nothing is written at all, so their
+    // false stands. (The whole-row write leaving email_promotions out is
+    // pinned on a loaded screen by the test above.)
     storedRow.email_promotions = false;
     loadError = { message: "network" };
     vi.spyOn(console, "error").mockImplementation(() => {
@@ -121,8 +123,8 @@ describe("the Promotions email switch while the member has never chosen (Q2299)"
     });
     await mount();
     fireEvent.click(screen.getByLabelText("Reviews email"));
-    await waitFor(() => expect(writes).toHaveLength(1));
-    expect(writes[0]).not.toHaveProperty("email_promotions");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(writes).toHaveLength(0);
     expect(storedRow.email_promotions).toBe(false);
   });
 

@@ -39,6 +39,9 @@ import NotificationPreferences from "@/components/NotificationPreferences";
 // that discarded writes would pass this suite with the original bug in place.
 let storedRow: Record<string, unknown>;
 let writes: Record<string, unknown>[];
+/** How many more `notification_preferences` reads fail (Q2311). */
+let failPrefsReads = 0;
+let prefsReads = 0;
 
 const startingRow = (): Record<string, unknown> => ({
   ...defaultPrefs,
@@ -79,10 +82,18 @@ vi.mock("@/hooks/useAuthReady", () => ({
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: { getUser: async () => ({ data: { user: { id: "u1" } } }) },
-    from: () => ({
+    from: (table: string) => ({
       select: () => ({
         eq: () => ({
-          maybeSingle: async () => ({ data: storedRow, error: null }),
+          maybeSingle: async () => {
+            if (table !== "notification_preferences") return { data: storedRow, error: null };
+            prefsReads++;
+            if (failPrefsReads > 0) {
+              failPrefsReads--;
+              return { data: null, error: { message: "network down", code: "PGRST000" } };
+            }
+            return { data: storedRow, error: null };
+          },
           // The push_tokens count query resolves through the same chain.
           then: (r: (v: unknown) => void) => r({ count: 0, data: null, error: null }),
         }),
@@ -102,6 +113,8 @@ const EMAIL_COLUMNS = rows.map((r) => r.emailKey);
 beforeEach(() => {
   storedRow = startingRow();
   writes = [];
+  failPrefsReads = 0;
+  prefsReads = 0;
 });
 
 const mountLoaded = async () => {
@@ -212,6 +225,77 @@ describe("email master switch preserves per-category choices", () => {
     expect(screen.getByLabelText("Promotions email").getAttribute("data-state")).toBe("unchecked");
   });
 });
+
+// ── A failed load writes nothing (Q2311) ──────────────────────────────────
+//
+// lh-silent-failure review, 2026-10-21, note 2: on a failed
+// notification_preferences read the screen toasted, then showed the
+// defaults with every switch live, and both writers upsert the WHOLE row, so
+// the first press saved the defaults over every setting the member had.
+describe("when the saved settings cannot be read", () => {
+  const mountFailed = async () => {
+    failPrefsReads = 1;
+    render(<NotificationPreferences />);
+    // Wait for the switches, not the message, so the old code (switches live,
+    // no message) fails on the WRITE below rather than on missing copy.
+    await screen.findByLabelText("Job offers push");
+    expect(prefsReads).toBe(1);
+  };
+
+  it("keeps every switch disabled, and pressing them writes nothing", async () => {
+    await mountFailed();
+    const switches = screen.getAllByRole("switch");
+    // Press first, assert after: the old code wrote on the first press.
+    for (const sw of switches) fireEvent.click(sw);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(writes, "a press after a failed load saved the defaults").toEqual([]);
+    expect(storedRow).toEqual(startingRow());
+    expect(screen.getByText("We couldn't load your notification settings.")).toBeTruthy();
+    // Inventory floor: both masters, quiet hours, every category row's pair.
+    expect(switches.length).toBeGreaterThan(rows.length);
+    for (const sw of switches) {
+      expect(sw.hasAttribute("disabled"), `${sw.getAttribute("aria-label")} is pressable`).toBe(true);
+    }
+  });
+
+  it("try again reads the settings and unlocks the switches", async () => {
+    await mountFailed();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
+    expect(prefsReads).toBe(2);
+    expect(screen.queryByText("We couldn't load your notification settings.")).toBeNull();
+    // The real row is shown now, not the defaults: the member's opt-out stands.
+    expect(screen.getByLabelText("Messages email").getAttribute("data-state")).toBe("unchecked");
+
+    fireEvent.click(emailMaster());
+    await waitFor(() => expect(writes.length).toBe(1));
+    expect(writes[0].email_messages).toBe(false);
+  });
+});
+
+// A member with no saved row yet is NOT a failed load: the read succeeded,
+// the defaults apply, and their first press must save.
+describe("a new member with no saved row", () => {
+  it("can change a setting", async () => {
+    storedRow = null as unknown as Record<string, unknown>;
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push").hasAttribute("disabled")).toBe(false));
+    expect(screen.queryByText("We couldn't load your notification settings.")).toBeNull();
+    fireEvent.click(pushMaster());
+    await waitFor(() => expect(writes.length).toBe(1));
+    expect(writes[0].push_enabled).toBe(false);
+  });
+});
+
+// Q2311: leave the switches live after a failed load, or treat the failure as
+// a loaded empty row. Either way a press saves the defaults over the member's
+// real settings.
+// @mutate src/components/NotificationPreferences.tsx |   const locked = !loaded \|\| loadFailed; |   const locked = !loaded;
+// @mutate src/components/NotificationPreferences.tsx |         setLoadFailed(true);\n        setLoaded(true);\n        return;\n |
+// Treat a missing row as a failed load and every new member is locked out.
+// @mutate src/components/NotificationPreferences.tsx |       setLoadFailed(false);\n      if (data) { |       setLoadFailed(!data);\n      if (data) {
+// A retry that never re-reads leaves the member stuck on the placeholder.
+// @mutate src/components/NotificationPreferences.tsx |   }, [authReady, authUserId, loadAttempt]); |   }, [authReady, authUserId]);
 
 // ── The promise printed under the switches ────────────────────────────────
 //

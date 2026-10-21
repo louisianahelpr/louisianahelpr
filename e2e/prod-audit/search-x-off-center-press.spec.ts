@@ -162,6 +162,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: '[role="dialog"] input[aria-label="Search admin sections"]',
     close: `[role="dialog"] ${CLEAR}`,
   },
+  {
+    // Board 89: /search, one search across the sections; the field is always open.
+    name: "search-page", file: "src/pages/search/SearchPage.tsx",
+    url: "/search?q=chair",
+    trigger: "",
+    field: 'input[aria-label="Search jobs, items, shops and homes"]',
+    close: CLEAR,
+  },
 ];
 
 // Q910: Reduce Motion is a second pass. Its at-rest `.btn-press` rule once

@@ -59,9 +59,22 @@ describe("DealCard never writes", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "DealCard.tsx"), "utf8"));
     expect(src).not.toMatch(/\.(insert|update|upsert|delete)\(/);
     const rpcs = [...src.matchAll(/\.rpc\(\s*"([^"]+)"/g)].map((m) => m[1]);
-    expect(rpcs).toEqual(["get_jobs_for_my_applications"]);
+    // Read-only RPCs only: the applicant's own jobs, and the person facts for the header.
+    expect(rpcs.sort()).toEqual(["get_jobs_for_my_applications", "get_public_profile_stats"]);
     // No address column is ever selected (spec v2 §1.6: no address before a deal).
     expect(src).not.toMatch(/[",]location[,"]|latitude|longitude|zip_code/);
     expect(src.length).toBeGreaterThan(1000);
+  });
+});
+
+// Lead 2026-10-21: while the card is pinned, the header names the PERSON (the
+// You card's real-or-absent facts) instead of repeating the job title.
+// @mutate src/components/messages/ChatHeader.tsx | {dealPinned ? personFacts : activeConvo.jobTitle} | {activeConvo.jobTitle}
+describe("chat header while the deal card is pinned", () => {
+  it("shows the person's facts, not the job title, and drops the status chip", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../ChatHeader.tsx"), "utf8"));
+    expect(src).toContain("{dealPinned ? personFacts : activeConvo.jobTitle}");
+    expect(src).toMatch(/activeConvo\.jobStatus && !inboxVisible && !dealPinned/);
+    expect(src).toMatch(/usePersonFacts\(dealPinned \? activeConvo\.otherUserId : null\)/);
   });
 });

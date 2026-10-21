@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { youCardFacts } from "@/components/profile/profileLanding/YouCard";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
@@ -75,6 +77,39 @@ function useDealCard(convo: Conversation, userId: string) {
       return { job, application };
     },
   });
+}
+
+/**
+ * True while the deal card is showing for this thread (same query, same key,
+ * so React Query answers both from one request). The chat header uses it to
+ * name the PERSON instead of repeating the job the card already carries
+ * (lead, 2026-10-21).
+ */
+export function useDealCardShown(convo: Conversation): boolean {
+  const { user } = useCurrentUser();
+  const { data } = useDealCard(convo, user?.id ?? "");
+  return !!data;
+}
+
+/**
+ * Board 2's line under the name: "Verified neighbor · 4.9 · 12 reviews", every
+ * part real or absent (youCardFacts, the You card's own rule). Read from
+ * get_public_profile_stats, the public profile's source.
+ */
+export function usePersonFacts(otherUserId: string | null): string {
+  const { data } = useQuery({
+    queryKey: ["chat-person-facts", otherUserId],
+    enabled: !!otherUserId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const rows = unwrap(await supabase.rpc("get_public_profile_stats", { p_user_ids: [otherUserId!] })) as
+        | { is_id_verified: boolean | null; avg_rating: number | null; review_count: number | null }[]
+        | null;
+      return rows?.[0] ?? null;
+    },
+  });
+  if (!data) return "";
+  return youCardFacts(!!data.is_id_verified, data.avg_rating, data.review_count ?? 0);
 }
 
 export function DealCard({ convo, userId }: { convo: Conversation; userId: string }) {

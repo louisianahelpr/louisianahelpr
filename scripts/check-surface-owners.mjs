@@ -52,6 +52,7 @@ const OWNERS = {
   // ── public / marketing ───────────────────────────────────────────────────
   "/": ["lh-seo-web", "lh-copy-content"],
   "/browse": ["lh-browse-discovery"],
+  "/search": ["lh-browse-discovery"],
   "/jobs/:id": ["lh-browse-discovery", "lh-seo-web", "lh-trust-safety"],
   "/legal": ["lh-compliance-store", "lh-copy-content"],
   "/privacy": ["lh-compliance-store"],

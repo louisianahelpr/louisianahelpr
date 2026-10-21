@@ -10,6 +10,7 @@ import {
 import { OnlineIndicator } from "@/components/ChatPresence";
 import UserAvatar from "@/components/UserAvatar";
 import { jobStatusLabel } from "@/lib/statusLabels";
+import { useDealCardShown, usePersonFacts } from "./chatView/DealCard";
 import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import { snoozeRemainingLabel } from "@/lib/threadMutes";
 import type { Conversation } from "./types";
@@ -76,6 +77,10 @@ export function ChatHeader({
   // screen reader — including the job line that now lives inside it. Wiring
   // that line up as the button's description keeps it announced.
   const subtitleId = useId();
+  // While the deal card is pinned it carries the job (title, stage), so the
+  // header names the person instead (lead, 2026-10-21; board 2).
+  const dealPinned = useDealCardShown(activeConvo);
+  const personFacts = usePersonFacts(dealPinned ? activeConvo.otherUserId : null);
   // Q262: messages.receiver_id is SET NULL when the other party deletes their
   // account, so the thread is keyed on no one (loadConversations).
   const otherDeleted = activeConvo.otherUserId === null;
@@ -203,7 +208,7 @@ export function ChatHeader({
             {!noProfile && (
               <ChevronRight className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.65)" }} />
             )}
-            {activeConvo.jobStatus && !inboxVisible && (() => {
+            {activeConvo.jobStatus && !inboxVisible && !dealPinned && (() => {
               const status = activeConvo.jobStatus;
               // Colour: MESSAGE_STATUS_CHIP, one neutral ink for every status here
               // (board 38 review), shared with the inbox row; not jobStatusColor.
@@ -235,7 +240,7 @@ export function ChatHeader({
               right-hand column so it reads as one identity block. */}
           <span id={subtitleId} className="flex items-center gap-1.5 w-full min-w-0">
             <span className="text-ds-11 truncate min-w-0 leading-tight font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              {activeConvo.jobTitle}
+              {dealPinned ? personFacts : activeConvo.jobTitle}
             </span>
           </span>
         </span>

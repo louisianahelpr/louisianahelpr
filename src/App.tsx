@@ -115,6 +115,7 @@ const PostsPage = lazyWithPreload(() => import("./pages/posts/PostsPage"));
 const ExploreRedirect = lazyWithPreload(() => import("./pages/explore/Explore"));
 // Jobs & Posts (owner, 2026-10-19): Browse | Posted | Working; /posts redirects to ?tab=posted.
 const JobsPage = lazyWithPreload(() => import("./pages/jobs/JobsSection"));
+const SearchPage = lazyWithPreload(() => import("./pages/search/SearchPage"));
 const Messages = lazyWithPreload(() => import("./pages/messages/Messages"));
 // Declutter (docs/specs/declutter-*.md): each page is the 404 unless its hidden switch is on (DeclutterGate).
 const DeclutterPage = lazyWithPreload(() => import("./pages/declutter/DeclutterPage"));
@@ -347,6 +348,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           crawlers and hands humans the same SPA, so a shared job still shows a
           real card in Messages and on social. */}
       {/* Jobs settings (lead decision 2026-10-19, option A): a static segment, so it ranks above /jobs/:id. */}
+      <Route path="/search" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SearchPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobsSettings /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/jobs/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PageTransition><JobDetail /></PageTransition></ProtectedRoute>)}</RouteErrorBoundary>} />
       {/* Guest "home dashboard" — what iOS native users see before signing up.

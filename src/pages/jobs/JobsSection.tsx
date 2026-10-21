@@ -19,6 +19,7 @@ import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
 import { AppTopBar } from "@/components/sections/AppTopBar";
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
+import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 
@@ -79,6 +80,7 @@ const JobsSection = () => {
   const header = (
     <div className="flex flex-col gap-1">
       <AppTopBar title={section.label} add={section.add} explore />
+      <ExploreSearchEntry />
       <ExploreSwitcher current="jobs" />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} />
     </div>

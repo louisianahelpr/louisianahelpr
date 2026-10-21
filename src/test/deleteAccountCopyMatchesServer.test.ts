@@ -11,7 +11,8 @@
  * server does not produce. It states the refusal instead, and that statement
  * is only allowed while the server really refuses on held AND pending money.
  *
- * @mutate src/components/profile/DeleteAccountDialog.tsx | or a job's payment is held or waiting to be paid out. | or your pending payouts will be forfeited.
+ * @mutate src/components/profile/DeleteAccountDialog.tsx | or money is still on its way to you. | or your pending payouts will be forfeited.
+ * @mutate supabase/functions/_shared/accountPurge.ts |   const owed = await findMoneyOwedToMember(admin, userId); |   const owed = { ok: true, active: false } as ActiveWorkResult;
  * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending)"; |   "payment_status.in.(escrow)";
  */
 import { describe, expect, it } from "vitest";
@@ -47,6 +48,13 @@ describe("board 120: delete-account copy matches delete-own-account", () => {
   });
 
   it("the dialog states that refusal, so nobody expects money to be lost", () => {
-    expect(DIALOG).toContain("or a job's payment is held or waiting to be paid out.");
+    expect(DIALOG).toContain("a job's payment is held or waiting to be paid out, or money is still on its way to you.");
+  });
+
+  // Q2273: "money is still on its way to you" is only true while findActiveWork
+  // also refuses on money owed TO the member (fees, held tips, held payouts).
+  it("the server refuses while money is owed to the member", () => {
+    const body = PURGE.slice(PURGE.indexOf("export async function findActiveWork"));
+    expect(body).toMatch(/const owed = await findMoneyOwedToMember\(admin, userId\);\s*if \(!owed\.ok \|\| owed\.active\) return owed;/);
   });
 });

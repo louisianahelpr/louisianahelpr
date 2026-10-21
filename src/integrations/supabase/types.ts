@@ -5983,7 +5983,7 @@ export type Database = {
           email_messages: boolean
           email_new_offers: boolean
           email_payments: boolean
-          email_promotions: boolean
+          email_promotions: boolean | null
           email_reviews: boolean
           email_system_alerts: boolean
           email_transit_updates: boolean
@@ -6020,7 +6020,7 @@ export type Database = {
           email_messages?: boolean
           email_new_offers?: boolean
           email_payments?: boolean
-          email_promotions?: boolean
+          email_promotions?: boolean | null
           email_reviews?: boolean
           email_system_alerts?: boolean
           email_transit_updates?: boolean
@@ -6057,7 +6057,7 @@ export type Database = {
           email_messages?: boolean
           email_new_offers?: boolean
           email_payments?: boolean
-          email_promotions?: boolean
+          email_promotions?: boolean | null
           email_reviews?: boolean
           email_system_alerts?: boolean
           email_transit_updates?: boolean

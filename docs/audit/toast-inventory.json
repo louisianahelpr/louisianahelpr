@@ -1012,7 +1012,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 229,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1022,7 +1022,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 303,
+      "line": 285,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1032,7 +1032,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 326,
+      "line": 308,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1042,7 +1042,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 421,
+      "line": 403,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -1052,7 +1052,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 457,
+      "line": 439,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1062,7 +1062,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 459,
+      "line": 441,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1072,7 +1072,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 461,
+      "line": 443,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1082,7 +1082,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 468,
+      "line": 450,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2345,7 +2345,7 @@
     },
     {
       "file": "src/components/admin/AdminNotifications.tsx",
-      "line": 170,
+      "line": 180,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2355,7 +2355,7 @@
     },
     {
       "file": "src/components/admin/AdminNotifications.tsx",
-      "line": 180,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2365,7 +2365,7 @@
     },
     {
       "file": "src/components/admin/AdminNotifications.tsx",
-      "line": 207,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2375,7 +2375,7 @@
     },
     {
       "file": "src/components/admin/AdminNotifications.tsx",
-      "line": 245,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "literal",

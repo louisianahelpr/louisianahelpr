@@ -125,6 +125,12 @@ describe("email master switch preserves per-category choices", () => {
     // the value it had; the master is a gate, not a bulk edit.
     const before = startingRow();
     for (const col of EMAIL_COLUMNS) {
+      // Promotions email is written only by its own switch (Q2299: it can be
+      // never chosen, NULL), so it is not in this payload at all.
+      if (col === "email_promotions") {
+        expect(writes[0], "email_promotions was written by the master").not.toHaveProperty(col);
+        continue;
+      }
       expect(writes[0][col], `${col} was rewritten by the master`).toBe(before[col]);
     }
   });

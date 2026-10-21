@@ -11,7 +11,10 @@ export const defaultPrefs: Prefs = {
   // stands in for the eleven category columns below it.
   push_enabled: true, email_enabled: true,
   email_job_applications: true, email_job_updates: true, email_messages: false,
-  email_payments: true, email_reviews: true, email_promotions: false, email_system_alerts: true,
+  // email_promotions: null = never chosen, the column default since
+  // 20261021135832 (Q2299); a false here would turn into a written opt-out the
+  // first time a member without a row touched any switch.
+  email_payments: true, email_reviews: true, email_promotions: null, email_system_alerts: true,
   new_offers: true, email_new_offers: true,
   transit_updates: true, email_transit_updates: false,
   work_status: true, email_work_status: true,

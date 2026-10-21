@@ -34,6 +34,7 @@ import { createSendHandlers } from "./messagesData/sendHandlers";
 import { fetchCounterpartyDeleted, flipToDeletedAccountThread, threadPairFilter } from "@/lib/deletedCounterparty";
 import { isTeamThreadKey, normalizeMessageRow, teamThreadKey, teamUserIdFromKey } from "@/lib/teamThread";
 import { buildTeamThreadPlaceholder } from "./messagesData/loadConversations";
+import { readJobGiftCards, readJobTips } from "./messagesData/threadMoneyReads";
 
 /** Stable empty list so a cold cache doesn't hand consumers a new array
     identity on every render (which would defeat the memoized rows). */
@@ -376,14 +377,9 @@ export function useMessagesData({
             )
             .eq("id", convo.jobId)
             .maybeSingle(),
-      // Board 181: paid tips on this job (tips RLS: the tipper and the tipped Helpr).
-      isTeam
-        ? Promise.resolve({ data: [], error: null })
-        : supabase.from("tips").select("id, amount, created_at, tipper_id, helper_id").eq("job_id", convo.jobId).eq("payment_status", "paid"),
-      // A gift card on the job means the card charge is not the price: no receipt (fails closed on error).
-      isTeam
-        ? Promise.resolve({ data: [], error: null })
-        : supabase.from("gift_cards").select("id").eq("job_id", convo.jobId).limit(1),
+      // Board 181: paid tips, and whether a gift card touched the job (fails closed on error).
+      isTeam ? Promise.resolve({ data: [], error: null }) : readJobTips(convo.jobId),
+      isTeam ? Promise.resolve({ data: [], error: null }) : readJobGiftCards(convo.jobId),
     ]);
     const { error } = messagesRes;
     const data = messagesRes.data?.map(normalizeMessageRow) ?? null;

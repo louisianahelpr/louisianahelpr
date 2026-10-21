@@ -110,7 +110,8 @@ export default function TipMoment() {
           )}
         </section>
       )}
-      {isHelpr && (
+      {/* A deleted tipper's id is NULL: no thread to open, so no button (AL-009). */}
+      {isHelpr && tip.tipper_id != null && (
         <button
           type="button"
           onClick={() => navigate(`/messages?jobId=${tip.job_id}&userId=${tip.tipper_id}`)}

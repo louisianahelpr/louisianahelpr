@@ -46,7 +46,7 @@ describe("board 116: Post a Wanted", () => {
     fireEvent.change(screen.getByLabelText("I'm looking for"), { target: { value: "Crib" } });
     fireEvent.change(screen.getByLabelText("Up to"), { target: { value: "40" } });
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "baby_kids" } });
-    fireEvent.click(screen.getByRole("button", { name: "Post Wanted" }));
+    fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(posted).toHaveLength(1));
     expect((posted[0] as unknown[])[0]).toEqual(expect.objectContaining({ public: false }));
   });

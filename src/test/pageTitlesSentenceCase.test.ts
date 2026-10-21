@@ -16,7 +16,8 @@
  * @mutate src/pages/profile/types.ts | legal: "Legal & policies", | legal: "Legal & Policies",
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve, relative } from "node:path";
 import * as meta from "@/lib/publicPageMeta.mjs";
 import { TAB_TITLES } from "@/pages/profile/types";

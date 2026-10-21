@@ -281,14 +281,14 @@ describe("while a build is in Apple review, no migration strands it (release/app
         code:
           "create table if not exists public.phone_save_attempts (id int); revoke all on public.phone_save_attempts from public, anon, authenticated;" +
           " revoke insert on public.profiles from anon, authenticated; revoke update (phone) on public.profiles from anon, authenticated;" +
-          " create or replace function public.client_compat_floor() returns integer language sql immutable as $$ select 2 $$;",
+          " create or replace function public.client_compat_floor() returns integer language sql immutable as $$ select 3 $$;",
       },
       { name: "c.sql", code: "revoke all on function public.save_thing() from public, anon, authenticated; grant execute on function public.save_thing() to authenticated;" },
       { name: "d.sql", code: "revoke all on function public.save_thing() from public, anon, authenticated;" },
       { name: "e.sql", code: "update public.platform_settings set min_supported_build = 7119;" },
     ];
     const rpc = new Set(["save_thing"]);
-    expect(strands(1, files, rpc)).toEqual(["client_compat_floor() -> 2", "profiles: authenticated", "profiles: anon"]);
+    expect(strands(1, files, rpc)).toEqual(["client_compat_floor() -> 3", "profiles: authenticated", "profiles: anon"]);
     expect(strands(2, files, rpc)).toEqual([]);
     expect(strands(3, files, rpc)).toEqual(["save_thing(): authenticated"]);
     expect(strands(4, files, rpc)).toEqual(["writes platform_settings.min_supported_build"]);

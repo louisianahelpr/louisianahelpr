@@ -174,14 +174,31 @@ describe("a migration that narrows authenticated privileges raises client_compat
     expect(narrowing).toContain(ORIGINAL);
   });
 
+  /**
+   * A narrowing of privileges NO client uses strands nobody, so it need not
+   * raise the floor (which would show every installed app "Update Helpr").
+   * Exact and two-way: each entry must still be a narrowing migration, and its
+   * reason names the client calls it was checked against.
+   */
+  // @two-way src/test/schemaBreakBumpsClientFloor.test.ts:stale NARROWS_NOTHING_A_CLIENT_USES entry
+  const NARROWS_NOTHING_A_CLIENT_USES: Record<string, string> = {
+    "20261021184118_user_roles_table_grants.sql":
+      "Q2305: authenticated keeps SELECT and DELETE on user_roles, the only two the client runs (grep 2026-10-21: useCurrentUser, AdminExport, AdminAnalytics, useHealthData, AdminSettings .select; AdminSettings .delete); INSERT, UPDATE, TRUNCATE, REFERENCES and TRIGGER were never used by any client (granting admin is admin-user-actions as service_role)",
+  };
+
   it("every narrowing migration since the floor exists raises the floor in the same migration", () => {
+    const stale = Object.keys(NARROWS_NOTHING_A_CLIENT_USES).filter((n) => {
+      const i = ALL.findIndex((f) => f.name === n);
+      return i < 0 || narrowedBy(i).length === 0;
+    });
+    expect(stale.map((n) => `stale NARROWS_NOTHING_A_CLIENT_USES entry ${n}`)).toEqual([]);
     let floor = 0;
     const offenders: string[] = [];
     ALL.forEach((f, i) => {
       const set = floorSetIn(f.sql);
       if (i > introIdx) {
         const narrowed = narrowedBy(i);
-        if (narrowed.length > 0 && !(set !== null && set > floor)) {
+        if (narrowed.length > 0 && !(set !== null && set > floor) && !(f.name in NARROWS_NOTHING_A_CLIENT_USES)) {
           offenders.push(`${f.name} narrows ${narrowed.join(", ")} for authenticated without raising ${FLOOR_FN}() above ${floor}`);
         }
       }

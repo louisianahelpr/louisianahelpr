@@ -5684,7 +5684,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 30,
+      "line": 45,
       "kind": "toast",
       "title": {
         "form": "template",

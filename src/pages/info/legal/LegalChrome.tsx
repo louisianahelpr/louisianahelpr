@@ -17,21 +17,10 @@ export const TldrCard = ({ items }: { items: string[] }) => {
   const query = useContext(PolicySearchContext);
   if (query.trim()) return null;
   return (
-  <div
-    className="rounded-2xl p-5 space-y-3"
-    style={{
-      // Bumped contrast vs the cream PolicySection surface below so
-      // the TLDR reads as a discrete summary card, not another row.
-      // Slightly tinted bark backdrop + inset highlight + bottom shadow
-      // gives the card a soft lift over the page.
-      background: "hsl(var(--bark) / 0.10)",
-      border: "1px solid hsl(var(--bark) / 0.28)",
-      boxShadow:
-        "inset 0 1px 1px 0 rgba(255, 255, 255, 0.4), " +
-        "0 1px 2px hsl(var(--olivewood) / 0.06), " +
-        "0 8px 18px -8px hsl(var(--olivewood) / 0.12)",
-    }}
-  >
+  // Spec v2 rebuild (audit 2026-10-21): the one card (20px radius, 1px
+  // --line border, no inset highlight or second shadow), same as the
+  // policy sections under it.
+  <div className="rounded-[20px] border border-border bg-card p-5 space-y-3">
     <div className="flex items-center gap-2">
       <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -86,13 +75,9 @@ export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?:
     data-print-hide
     className={
       cta
-        ? "rounded-2xl px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-        : "rounded-2xl px-4 py-3 flex items-center justify-between gap-3"
+        ? "rounded-[20px] bg-muted px-4 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        : "rounded-[20px] bg-muted px-4 py-3 flex items-center justify-between gap-3"
     }
-    style={{
-      background: "hsl(var(--bark) / 0.05)",
-      border: "1px solid hsl(var(--bark) / 0.16)",
-    }}
   >
     <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
       {cta ? (
@@ -117,8 +102,8 @@ export const PolicyFooter = ({ updated, cta = false }: { updated?: string; cta?:
       // target, real routing. The gloss comes from `variant="primary"`
       // (btn-grad-primary in index.css); never hand-paint a `background`
       // shorthand over it, which silently resets the gradient (CLAUDE.md).
-      <Button variant="primary" size="lg" className="shrink-0 rounded-ds-md h-11 sm:h-12 w-full sm:w-auto" asChild>
-        <Link to="/support">Contact Support</Link>
+      <Button variant="primary" size="lg" className="shrink-0 rounded-full h-12 w-full sm:w-auto" asChild>
+        <Link to="/support">Contact support</Link>
       </Button>
     )}
     {updated && (

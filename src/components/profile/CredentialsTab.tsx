@@ -457,11 +457,11 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     const noun = KIND_NOUN[kind];
 
     return (
-      <div className="rounded-2xl liquid-glass p-card space-y-4">
+      <div className="rounded-[20px] liquid-glass p-card space-y-4">
         <div className="min-w-0">
           {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
           <h3
-            className="font-display font-bold leading-tight text-headline-card"
+            className="font-sans font-bold leading-tight text-headline-card"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
           >
             {kind === "license" ? "Professional license" : "Insurance"}
@@ -496,7 +496,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <Button
               variant="outline"
               size="sm"
-              className="w-full"
+              className="w-full rounded-full"
               onClick={() => addInputRefs.current[kind]?.click()}
             >
               <Upload className="w-4 h-4" />
@@ -529,7 +529,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 className="flex items-center gap-3 rounded-ds-md p-3"
                 style={{
                   background: "hsl(var(--ivory-sand) / 0.55)",
-                  border: "0.5px dashed hsl(var(--burnt-sienna) / 0.45)",
+                  border: "0.5px dashed hsl(var(--bark) / 0.45)",
                 }}
               >
                 {draft.previewUrl ? (
@@ -649,7 +649,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
               ? `We'll pull your ${pullBackNoun} out of the review queue. Nothing has been verified yet, so nothing you've earned is lost — you can attach a new copy any time.`
               : `We'll clear the ${pullBackNoun} we couldn't verify so you can attach a new one.`
         }
-        primaryLabel={pullBackState === "review" ? "Take It Back" : "Remove"}
+        primaryLabel={pullBackState === "review" ? "Take it back" : "Remove"}
         primaryTone={pullBackState === "verified" ? "sienna" : "bark"}
         primaryHaptic={pullBackState === "verified" ? "warning" : "medium"}
         primaryDisabled={removing}
@@ -681,7 +681,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <div className="flex-1 min-w-0">
             {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
             <h3
-              className="font-display font-bold leading-tight text-ds-16"
+              className="font-sans font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               We couldn't verify your {reverifyKind === "both" ? "license or insurance" : reverifyKind}.
@@ -700,13 +700,13 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           cards below say what's happened to each file; this says what posters
           currently see. It used to repeat the same "pending" fact as an
           eyebrow AND a chip, in two different phrasings. */}
-      <div className="rounded-2xl liquid-glass p-card space-y-3">
+      <div className="rounded-[20px] liquid-glass p-card space-y-3">
         <div className="flex items-center gap-3">
           <div
-            className="w-10 h-10 rounded-ds-md flex items-center justify-center shrink-0"
+            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
             style={{
-              background: anyVerified ? "hsl(var(--bark) / 0.12)" : "hsl(var(--burnt-sienna) / 0.10)",
-              color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))",
+              background: anyVerified ? "hsl(var(--bark) / 0.12)" : "hsl(var(--muted))",
+              color: anyVerified ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))",
             }}
           >
             <ShieldCheck className="w-5 h-5" />
@@ -716,9 +716,9 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                 confirmed twice). This was the summary card's ONLY
                 overall-status indicator ("Licensed & Insured" / "Not yet
                 verified" etc) — the card no longer states verification status
-                at a glance, only the icon tint above (bark vs burnt-sienna)
+                at a glance, only the icon tint above (olive vs muted)
                 hints at it. */}
-            <h2 className="font-display font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            <h2 className="font-sans font-bold leading-tight text-headline-card" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               Professional credentials
             </h2>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -753,17 +753,17 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           on this screen with the documents rather than in general profile
           settings, and it re-enters review when it changes. */}
       {(licensedOn || insuredOn) && (
-        <div className="rounded-2xl liquid-glass p-card space-y-3">
+        <div className="rounded-[20px] liquid-glass p-card space-y-3">
           <div>
             {/* Small-caps "Optional" eyebrow removed at the owner's direction
                 (2026-08-27). The field is not required anywhere and the
                 Business Name label below is its own heading. */}
             <Label
               htmlFor="business-name"
-              className="font-display font-bold leading-tight cursor-pointer text-headline-card"
+              className="font-sans font-bold leading-tight cursor-pointer text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Business Name
+              Business name
             </Label>
             <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {anyVerified
@@ -800,7 +800,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             <Button
               variant="primary"
               size="sm"
-              className="w-full"
+              className="w-full rounded-full"
               disabled={savingName || nameTooLong}
               onClick={() => {
                 if (renameCostsBadge) {
@@ -825,7 +825,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
             ? "Your badge comes off your profile while we re-check your documents without a business name. It comes back once we've looked — usually within one business day."
             : `Your badge comes off your profile while we check “${trimmedName}” against the documents you sent. It comes back once we've looked — usually within one business day.`
         }
-        primaryLabel="Save It"
+        primaryLabel="Save it"
         primaryTone="sienna"
         primaryHaptic="warning"
         primaryDisabled={savingName}
@@ -845,16 +845,16 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         <div
           className="rounded-2xl p-5 space-y-3"
           style={{
-            background: "hsl(var(--burnt-sienna) / 0.06)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.32)",
+            background: "hsl(var(--bark) / 0.06)",
+            border: "0.5px solid hsl(var(--bark) / 0.32)",
           }}
         >
           <div className="flex items-start gap-3">
             <span
               className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
               style={{
-                background: "hsl(var(--burnt-sienna) / 0.12)",
-                color: "hsl(var(--burnt-sienna))",
+                background: "hsl(var(--bark) / 0.12)",
+                color: "hsl(var(--bark))",
               }}
             >
               <Send className="w-4 h-4" />
@@ -864,7 +864,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
                   direction (2026-08-27) — the h3 below already says the
                   documents are attached, so nothing is lost. */}
               <h3
-                className="font-display font-bold leading-tight text-ds-16"
+                className="font-sans font-bold leading-tight text-ds-16"
                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
               >
                 {draftKinds.length > 1
@@ -882,7 +882,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           <Button
             variant="primary"
             size="sm"
-            className="w-full"
+            className="w-full rounded-full"
             disabled={submitting}
             onClick={submitForReview}
           >

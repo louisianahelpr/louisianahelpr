@@ -131,3 +131,14 @@ export function CompareBar({
     </>
   );
 }
+
+/** Board 173: "Show 10 more" (or fewer at the end) under a long applicant list; nothing when all are shown. */
+export function ShowMoreApplicants({ total, shown, onMore }: { total: number; shown: number; onMore: () => void }) {
+  const left = total - shown;
+  if (left <= 0) return null;
+  return (
+    <button type="button" className="mx-auto block min-h-11 px-4 text-ds-14 font-semibold text-[hsl(var(--bark))]" onClick={onMore}>
+      Show {Math.min(10, left)} more
+    </button>
+  );
+}

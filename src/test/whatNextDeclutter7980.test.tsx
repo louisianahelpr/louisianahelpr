@@ -63,8 +63,8 @@ describe("board 80: after listing", () => {
     expect(text).toContain("As low as $38");
   });
 
-  it("a fixed-price listing shows no drop, and a reviewed one says so", async () => {
-    items.b = { id: "b", title: "Box fan", status: "live", sale_mode: "fixed", current_price_cents: 2000, live_at: new Date().toISOString() };
+  it("a listing the drop rule never touches (auction) shows no drop, and a reviewed one says so", async () => {
+    items.b = { id: "b", title: "Box fan", status: "live", sale_mode: "auction", current_price_cents: 2000, live_at: new Date().toISOString() };
     const { unmount } = renderListed("b", "live");
     expect(await screen.findByText(/Listed at/)).toBeTruthy();
     expect(screen.getByTestId("what-next-sheet").textContent).not.toMatch(/drop/i);

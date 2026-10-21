@@ -20,7 +20,7 @@ interface SplittableJob {
 }
 
 /** The job's approximate distance from the viewer, or null when either side is unknown. */
-export function approxJobMiles(job: SplittableJob, userLat: number | null, userLng: number | null): number | null {
+function approxJobMiles(job: SplittableJob, userLat: number | null, userLng: number | null): number | null {
   if (userLat == null || userLng == null) return null;
   const c = getParishCentroid(job.parish) ?? getCentroidFromLocation(job.location ?? null);
   return c ? tripMiles(haversineMiles(userLat, userLng, c.lat, c.lng)) : null;

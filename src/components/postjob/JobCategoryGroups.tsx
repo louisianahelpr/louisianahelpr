@@ -97,7 +97,7 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
 
       <section aria-label="Category groups" className="space-y-2.5">
         <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Groups</h2>
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5">
           {JOB_CATEGORY_GROUPS.map((g) => {
             const on = g.id === group.id;
             return (
@@ -107,9 +107,15 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
                 aria-expanded={on}
                 aria-controls="category-group-items"
                 onClick={() => setOpenGroup(g.id)}
-                className={`flex min-h-12 items-center rounded-ds-md px-4 py-2.5 text-left font-sans text-ds-15 font-semibold leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${on ? "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]" : "bg-card border border-border text-foreground"}`}
+                // The open group wears an olive OUTLINE (board 166): the one filled olive control on this
+                // screen is the Continue button, and the picked category chip below.
+                className={`flex min-h-12 flex-col justify-center rounded-ds-md bg-card px-4 py-2.5 text-left font-sans text-foreground leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${on ? "border-2 !border-primary" : "border border-border"}`}
               >
-                {g.label}
+                <span className="text-ds-15 font-semibold">{g.label}</span>
+                {/* Desktop (board 166): what is in the group, from the group's own categories. */}
+                {g.items.length > 1 && (
+                  <span className="hidden lg:block mt-1 text-ds-13 font-normal text-muted-foreground">{groupSample(g.items)}</span>
+                )}
               </button>
             );
           })}
@@ -130,4 +136,11 @@ export function JobCategoryGroups({ category, setCategory }: Props) {
       <SuggestCategory area="jobs" />
     </div>
   );
+}
+
+/** "Cleaning, handyman, assembly": the group's first three categories, in sentence case. */
+function groupSample(items: readonly { label: string }[]): string {
+  // Lower only a capital that starts an ordinary word ("Handyman" -> "handyman"), never an acronym ("HVAC").
+  const names = items.slice(0, 3).map((it, i) => (i === 0 || /^[A-Z]{2}/.test(it.label) ? it.label : it.label.charAt(0).toLowerCase() + it.label.slice(1)));
+  return items.length > 3 ? `${names.join(", ")} and more` : names.join(", ");
 }

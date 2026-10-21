@@ -16,6 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
+import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { sentenceCaseLabel } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
@@ -147,7 +148,11 @@ export function FormStep({ form }: FormStepProps) {
           : null;
 
   return (
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl space-y-section">
+    // Desktop (board 166): step rail left, the step centred (max 640px), the live
+    // "What Helprs will see" card right. The phone is the one centred column.
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-6">
+      <PostJobStepRail step={page} onPick={setPage} />
+      <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
           offerToHelperName={form.offerToHelperName}
@@ -273,12 +278,13 @@ export function FormStep({ form }: FormStepProps) {
         </div>
         )}
           {!askingQuotes && (
-            <PostJobPreviewCard
+            // Phone only: on desktop the same card stays in the right column on every screen.
+            <div className="lg:hidden"><PostJobPreviewCard
               title={form.title}
               category={form.category}
               photo={form.imagePreviews?.[0]}
               budget={form.budgetNum}
-            />
+            /></div>
           )}
         </div>
 
@@ -400,6 +406,10 @@ export function FormStep({ form }: FormStepProps) {
           )}
         </div>
       </form>
+      </div>
+      <aside className="hidden lg:block sticky top-6">
+        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={askingQuotes ? 0 : form.budgetNum} />
+      </aside>
     </div>
   );
 }

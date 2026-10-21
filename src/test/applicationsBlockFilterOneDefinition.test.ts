@@ -135,6 +135,8 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
           "src/components/messages/chatView/ApplicationNoteCard.tsx",
           // The job page's applicant count for the poster (board 15): status only, same policy.
           "src/pages/jobs/jobPage/useJobPage.ts",
+          // Board 189 first-job Home: a head-only count of the member's OWN applications (helper_id = self), no applicant list.
+          "src/pages/home/homeDashboard/FirstJobHome.tsx",
       ].sort(),
     );
   });

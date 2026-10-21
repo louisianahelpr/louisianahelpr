@@ -86,6 +86,11 @@ export const FEATURE_SWITCH_KEYS = [
   // who signed up and never came back (about day 3, one more about day 10).
   // Created OFF by 20261021113827. No screen: SERVER_ONLY below.
   "come_back_emails",
+  // Board 141, refund requests, Jobs side (owner 2026-10-21, Q2272): a poster asks the Helpr for part or all
+  // of a held job's money back; the Helpr agrees (the money moves on its own), offers to come back and finish,
+  // or says no (Helpr decides). Created 'testers' by 20261021102943; rpc_open_refund_request and
+  // rpc_answer_refund_request refuse without it (require_feature).
+  "refund_requests",
 ] as const;
 
 /**

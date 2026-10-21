@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { CheckCircle2, XCircle, AlertTriangle, MessageCircle, MessageSquare, Image, HelpCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
@@ -18,6 +18,11 @@ import {
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
 import { posterStalledNotice, recentArrivalNearMiss, type PosterStepCtx } from "./posterStepContract";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { canAskForRefund } from "@/lib/refundRequests";
+import { useRefundsOn } from "@/components/refund/RefundsSwitch";
+import { RefundAskChip } from "@/components/refund/RefundAskChip";
+
+const RefundRequestDialog = lazy(() => import("@/components/refund/RefundRequestDialog").then((m) => ({ default: m.RefundRequestDialog })));
 
 /**
  * POSTER STEP 3 — the job is underway (or in a revision).
@@ -73,6 +78,9 @@ export function InProgressStep(ctx: PosterStepCtx) {
    * action row, which is exactly what `jobStepOneRow.test.tsx` fails on.
    */
   const [whyOpen, setWhyOpen] = useState(false);
+  // Board 141 (Q2272): "Ask for a refund", behind the refund_requests switch.
+  const [refundOpen, setRefundOpen] = useState(false);
+  const refundsOn = useRefundsOn();
   const {
     job,
     userId,
@@ -137,6 +145,11 @@ export function InProgressStep(ctx: PosterStepCtx) {
 
   const helperFirst = ((job.helper_id && helperNames?.[job.helper_id]) || "").trim().split(/\s+/)[0] || null;
   const messageHelpr = () => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages");
+  // Offered only where the server would take it (a one-time, single-Helpr
+  // job under way, money held); the chip itself stands down while a request
+  // already waits, whose state shows below the row (RefundRequestPanel).
+  const showRefund = refundsOn && canAskForRefund(job, userId, null);
+
   const awaitingApproval =
     !!job.helper_completed_at && !job.poster_completed_at && !job.revision_requested_at;
 
@@ -248,6 +261,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             onClick={() => onDispute(job)}
           />
         ) : null,
+        showRefund ? <RefundAskChip key="refund" jobId={job.id} onOpen={() => setRefundOpen(true)} /> : null,
         /* THE PROOF PHOTOS, as a button on the row (owner item 10,
            2026-09-19: "before & after pictures" belongs with the other action
            buttons). Same gate the panel above the row had — the Helpr has
@@ -293,6 +307,17 @@ export function InProgressStep(ctx: PosterStepCtx) {
       dialogs={
         <>
           <SosShareSheet jobId={job.id} open={sosOpen} onOpenChange={setSosOpen} />
+          {refundsOn && refundOpen && (
+            <Suspense fallback={null}>
+              <RefundRequestDialog
+                open={refundOpen}
+                onOpenChange={setRefundOpen}
+                job={job}
+                helperName={job.helper_id ? helperNames[job.helper_id] || "your Helpr" : FORMER_MEMBER_LABEL}
+                userId={userId}
+              />
+            </Suspense>
+          )}
           {/* Rendered last and occupying no layout (JobStepCard `dialogs`), so
               the gallery costs the row nothing. */}
           <PhotoProofDialog

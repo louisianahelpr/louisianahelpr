@@ -7,6 +7,13 @@
   },
   "unused_index": [
     "public.admin_user_notes.idx_admin_user_notes_admin_id",
+    "public.refund_requests.refund_requests_agreed_idx",
+    "public.refund_requests.refund_requests_answered_by_idx",
+    "public.refund_requests.refund_requests_job_idx",
+    "public.refund_requests.refund_requests_open_answer_by_idx",
+    "public.refund_requests.refund_requests_requester_idx",
+    "public.refund_requests.refund_requests_responder_idx",
+    "public.refund_requests.refund_requests_schedule_change_idx",
     "public.cancellation_fee_transfers.cancellation_fee_transfers_helper_idx",
     "public.cancellation_fee_transfers.cancellation_fee_transfers_open_idx",
     "public.chargeback_clawbacks.chargeback_clawbacks_held_repay_owed_idx",

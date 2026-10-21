@@ -206,6 +206,7 @@ rpc_exempt(fn, why) AS (
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),
   ('rentals_end_tenancy', 'ending a tenancy (or revoking an unused invite) only removes access, like end_recurring_series: a banned tenant or landlord may still leave; it creates nothing and every other Rentals write is ban-gated'),
+  ('rpc_withdraw_refund_request', 'board 141: the poster withdraws their own refund request (open or declined, before a dispute exists); it only closes the request, moves no money and posts no content, and asking is ban-gated (rpc_open_refund_request refuses a banned caller)'),
   ('rentals_withdraw_request', 'the tenant pulls back their own undecided maintenance request (status submitted -> withdrawn); it only reduces activity and posts nothing, and filing one is ban-gated'),
   ('link_str_turnover_job', 'Q768: points the caller own STR turnover at the caller own open job; posting that job is ban-gated, and the link changes nothing another person sees'),
   ('apply_message_violation_consequence', 'only ever escalates the caller own ladder; refusing it would let a ban dodge escalation'),

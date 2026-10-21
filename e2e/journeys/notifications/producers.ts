@@ -170,6 +170,26 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "Q1972 (20261017205845): runs only from the stripe-webhook payment_intent.payment_failed handler (EXECUTE service_role only) when a hired job's bank payment fails; Stripe is live and the journeys never pay, so no bank payment can be made to fail. Proven in src/test/pglite/failedBankPaymentCancelsHiredJob.pglite.mjs (the confirmed Helpr told once, the poster told plainly, no fee, no strike).",
   },
+  "sql:rpc_open_refund_request": {
+    uncovered:
+      "Board 141 refund request (20261021102943): needs a hired job whose money is HELD in escrow, which on prod means a paid live Stripe checkout (Stripe is LIVE and the journeys never pay), and the RPC starts with require_feature('refund_requests'). The Helpr's 'Refund request' notice is proven in src/test/pglite/refundRequests.pglite.mjs (O9: First L., the amount, the 2-day clock).",
+  },
+  "sql:rpc_answer_refund_request": {
+    uncovered:
+      "Board 141 refund answer (20261021102943): needs an open refund request on an escrow-funded hired job (a paid live Stripe checkout, which the journeys never make). The poster's 'Refund agreed' and 'Offer to come back and finish' notices are proven in src/test/pglite/refundRequests.pglite.mjs (AG9, FN2).",
+  },
+  "sql:rpc_withdraw_refund_request": {
+    uncovered:
+      "Board 141 withdraw (20261021102943): needs an open refund request on an escrow-funded hired job (a paid live Stripe checkout, which the journeys never make). The Helpr's 'Refund request withdrawn' notice is proven in src/test/pglite/refundRequests.pglite.mjs (W2).",
+  },
+  "sql:refund_requests_sweep": {
+    uncovered:
+      "Board 141 sweep (20261021102943): service-only, run by the refund-request-sweep cron on a request declined or unanswered for 2 days on an escrow-funded job (a paid live Stripe checkout, never made by a journey). The poster's 'Your refund request goes to Helpr' notice is proven in src/test/pglite/refundRequests.pglite.mjs (E3).",
+  },
+  "sql:refund_agreements_due": {
+    uncovered:
+      "Board 141 held agreement (20261021102943): service-only, run by the refund-request-sweep cron on an agreed refund on an escrow-funded job (a paid live Stripe checkout, never made by a journey) whose poster or Helpr is banned, suspended, under a ban review or on a payout hold. Both parties' 'Your refund is waiting on Helpr' notice is proven in src/test/pglite/refundRequests.pglite.mjs (HD-notify).",
+  },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
   "sql:withdraw_job_schedule_change": { uncovered: GAP("withdraw_job_schedule_change after asking to move a hired journey job") },

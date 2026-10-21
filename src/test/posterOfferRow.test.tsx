@@ -11,7 +11,7 @@
  *       pixels are in the screenshots under ~/.lh-shots/q1399/).
  *
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         canAsk && !askedOfMe && ( |         false && (
- * @mutate src/pages/posts/PostedJobCard.tsx | viewer="poster" expanded={isExpanded} hideAsk /> | viewer="poster" expanded={isExpanded} />
+ * @mutate src/components/series/JobSeriesCardControls.tsx | viewer={viewer} expanded={expanded} hideAsk /> | viewer={viewer} expanded={expanded} />
  * @mutate src/components/job-card/JobCardMetaRow.tsx |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0" |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto"
  * @mutate src/components/job-card/JobCardMetaRow.tsx | fullAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap" | fullAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
  */
@@ -102,7 +102,12 @@ describe("11. the date-change ask is a button left of Message", () => {
 
   it("the link under the row is gone from the poster's card (the block keeps only a request's state)", () => {
     const card = blankComments(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8"));
-    expect(card).toMatch(/<ScheduleChangeForJob[^>]*viewer="poster"[^>]*hideAsk/);
+    // Since board 141 the expanded body renders it through JobRequestRows, which always hides the ask.
+    expect(card).toMatch(/<JobRequestRows[^>]*viewer="poster"/);
+    const rows = blankComments(readFileSync("src/components/series/JobSeriesCardControls.tsx", "utf8"));
+    const body = rows.slice(rows.indexOf("export function JobRequestRows"));
+    expect(body.length).toBeGreaterThan(100);
+    expect(body).toMatch(/<ScheduleChangeForJob[^>]*viewer=\{viewer\}[^>]*hideAsk \/>/);
   });
 });
 

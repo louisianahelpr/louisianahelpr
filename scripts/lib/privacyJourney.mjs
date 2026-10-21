@@ -126,6 +126,8 @@ export const EXPORT_SECTIONS = [
   "saved_homes",
   // Board 143a (20261021035753): the member's own bank payout failures.
   "payout_failures",
+  // Board 141 (20261021184925): refund requests the member asked, was asked or answered.
+  "refund_requests",
   "storage_objects",
 ];
 

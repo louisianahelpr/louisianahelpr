@@ -248,6 +248,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Board 141 refund requests (20261021102943): checks/mutations on ONE job the
+    // caller is party to; 'open' (or under way) is a precondition, never a feed.
+    ["public.refund_request_assert_job_open", "single-job precondition check (the job is still under way); not a feed"],
+    ["public.rpc_withdraw_refund_request", "single-job mutation on the poster's own request; status is a precondition"],
+    ["public.request_job_schedule_change", "single-job mutation by a party to the job (a date/time change or come back and finish); status is a precondition"],
     // Declutter haul-away (20261017070827): the caller's OWN haul-away job only
     // (customer_id = auth.uid() / the seller's own items); 'open' is a state
     // test, never a list of jobs shown to anyone.

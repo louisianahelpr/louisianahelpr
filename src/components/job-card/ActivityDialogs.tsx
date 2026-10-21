@@ -271,6 +271,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           side={props.disputeJob.helper_id === props.user.id ? "helper" : "poster"}
           open={!!props.disputeJob}
           onClose={() => props.setDisputeJob(null)} onDisputed={props.onRefresh}
+          jobTitle={props.disputeJob.title}
         />
       )}
 

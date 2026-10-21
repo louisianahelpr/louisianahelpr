@@ -12,9 +12,9 @@ import {
   DialogPrimaryAction,
   DialogBody,
 } from "@/components/ui/dialog";
+import { RadioCardList } from "@/components/ui/RadioCardList";
+import { Switch } from "@/components/ui/switch";
 import {
-  ChevronLeft,
-  ChevronRight,
   Check,
   Copy,
   Loader2,
@@ -46,7 +46,7 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 const MIN_LENGTH = 10;
 const MAX_LENGTH = 500;
 
-type Step = "reason" | "details" | "confirmation";
+type Step = "form" | "confirmation";
 
 interface ReportDialogProps {
   open: boolean;
@@ -67,6 +67,9 @@ interface ReportDialogProps {
    */
   reportedType: ReportedType;
   reportedId: string;
+  /** Board 157: offer "Also block <name>" (user reports). When on, Done hands
+   *  over to the caller's Block dialog; nothing is blocked from here. */
+  alsoBlock?: { name: string; onBlock: () => void };
 }
 
 /**
@@ -85,8 +88,9 @@ interface ReportDialogProps {
  * `DialogFooter` on EVERY step — no hand-rolled surface, no width override,
  * no bare floating "Cancel" text. Only the body morphs between steps.
  */
-const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogProps) => {
-  const [step, setStep] = useState<Step>("reason");
+const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: ReportDialogProps) => {
+  const [blockAfter, setBlockAfter] = useState(false);
+  const [step, setStep] = useState<Step>("form");
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -102,7 +106,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   // open after a confirmation would still show the case # screen.
   useEffect(() => {
     if (open) {
-      setStep("reason");
+      setStep("form");
+      setBlockAfter(false);
       setReason("");
       setDescription("");
       setCaseNumber(null);
@@ -159,6 +164,9 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
   const handleClose = () => {
     if (submitting) return;
     onClose();
+    // "Also block" was on and the report went in: open the caller's Block
+    // dialog now, which states what blocking closes and asks again.
+    if (step === "confirmation" && blockAfter && alsoBlock) alsoBlock.onBlock();
   };
 
   const copyCaseNumber = async () => {
@@ -172,7 +180,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
     }
   };
 
-  const title = step === "confirmation" ? "Report Received" : `Report ${noun}`;
+  const title = step === "confirmation" ? "Report sent" : `Report ${noun.toLowerCase()}`;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -187,188 +195,23 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
           stepped onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero title={title} />
 
-        {step === "reason" && (
-          <div className="space-y-3">
-            {/* The weight this screen was missing. Reporting is a trust
-                action; say what it sets in motion BEFORE the user commits,
-                not only on the receipt. Both claims are true of the code:
-                the row lands in the admin Reports queue, and nothing
-                anywhere notifies the reported party. */}
-            <p
-              className="font-sans leading-relaxed text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-            >
-              Reports go straight to the Louisiana Helpr trust &amp; safety team.
-              We never tell the other person who reported them.
-            </p>
-
-            {/* NO EYEBROW ABOVE THE LIST (owner, 2026-08-31: "Remove
-                eyebrow."). The rust letterspaced "WHAT'S WRONG WITH THIS
-                JOB?" line that used to sit here said nothing the dialog had
-                not already said twice — the hero title reads "Report job" and
-                the lede directly above explains where the report goes. Three
-                stacked framing lines before the first tappable row is a
-                preamble, not a heading.
-
-                The question survives as the group's ACCESSIBLE name: a screen
-                reader still hears "What's wrong with this job?, group" before
-                the first radio, so nothing is lost non-visually. */}
-            <div
-              role="group"
-              aria-label={REASON_PROMPT[reportedType]}
-              className="space-y-1.5"
-            >
-              {reasons.map(({ label, Icon }) => {
-                const active = reason === label;
-                return (
-                  <button
-                    aria-pressed={active}
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      hapticMedium();
-                      setReason(label);
-                      // Auto-advance: the row IS the action (that's what the
-                      // chevron promises), and the details step is required
-                      // anyway. The short delay lets the glossy selected
-                      // state register as confirmation of the tap.
-                      setTimeout(() => setStep("details"), 140);
-                    }}
-                    // Deliberately a bare <button>, not the shared <Button>:
-                    // button.tsx's base class list carries `whitespace-nowrap`,
-                    // which would stop a long label from ever wrapping and
-                    // would clip it at 320px. The global `button { min-height:
-                    // 44px }` floor still applies; min-h-[3.5rem] takes it to
-                    // 56px so a two-line label still has room.
-                    className={`group w-full flex items-center gap-3 min-h-[3.5rem] px-3 py-2.5 rounded-ds-md text-left transition-all duration-150 ease-ds-spring active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                      active
-                        ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                        : "bg-secondary/45 border border-border/60 hover:bg-secondary/70 hover:border-border shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]"
-                    }`}
-                  >
-                    <span
-                      className="shrink-0 w-9 h-9 rounded-ds-sm flex items-center justify-center"
-                      style={
-                        active
-                          ? {
-                              background: "hsl(var(--parchment) / 0.20)",
-                              border: "0.5px solid hsl(var(--parchment) / 0.30)",
-                            }
-                          : {
-                              background: "hsl(var(--bark) / 0.10)",
-                              border: "0.5px solid hsl(var(--bark) / 0.22)",
-                            }
-                      }
-                    >
-                      <Icon
-                        className="w-[18px] h-[18px]"
-                        style={{
-                          color: active
-                            ? "hsl(var(--parchment))"
-                            : "hsl(var(--bark))",
-                        }}
-                        strokeWidth={2}
-                        aria-hidden="true"
-                      />
-                    </span>
-                    {/* `whitespace-normal` + `break-words` live on the LABEL,
-                        not the row, so nothing in the cascade can pin the
-                        text to one line. `min-w-0` is what actually lets a
-                        flex child shrink far enough to wrap at 320px. */}
-                    <span
-                      className="flex-1 min-w-0 whitespace-normal break-words font-sans font-semibold leading-snug text-ds-14"
-                      style={{
-                        color: active
-                          ? "hsl(var(--parchment))"
-                          : "hsl(var(--ink-deep))",
-                      }}
-                    >
-                      {label}
-                    </span>
-                    <ChevronRight
-                      className="shrink-0 w-4 h-4 transition-transform duration-150 group-hover:translate-x-0.5"
-                      style={{
-                        color: active
-                          ? "hsl(var(--parchment) / 0.8)"
-                          : "hsl(var(--muted-foreground))",
-                      }}
-                      aria-hidden="true"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* A real footer button on the shared `DialogFooter`, matching
-                every other dialog — was a bare ghost "Cancel" floating in a
-                hand-rolled `justify-end` row with no button treatment and no
-                alignment to the list above it.
-                It was then given `outline` on the argument that a lone ghost
-                reads as "text floating at the bottom". The owner has since
-                settled the treatment directly (2026-08-31, shown all three
-                variants their screenshots contained): "Small, I feel like left
-                aligned makes more sense than right." A lone dismiss is the
-                same small ghost, in the same place, as one that has a commit
-                beside it — see popupFooter.ts. */}
-            <DialogFooter>
-              <DialogSecondaryAction type="button" onClick={handleClose}>
-                Cancel
-              </DialogSecondaryAction>
-            </DialogFooter>
-          </div>
-        )}
-
-        {step === "details" && (
+        {step === "form" && (
           <div className="space-y-4">
-            <div
-              className="rounded-ds-md px-3 py-2.5 flex items-center justify-between gap-2"
-              style={{
-                background: "hsl(var(--primary) / 0.06)",
-                border: "0.5px solid hsl(var(--primary) / 0.22)",
-              }}
-            >
-              <span
-                className="font-sans font-medium min-w-0 whitespace-normal break-words text-ds-13"
-                style={{ color: "hsl(var(--primary))" }}
-              >
-                {reason}
-              </span>
-              <button
-                type="button"
-                onClick={() => setStep("reason")}
-                className="shrink-0 font-sans font-medium underline-offset-2 hover:underline text-ds-11"
-                style={{ color: "hsl(var(--primary))" }}
-              >
-                Change
-              </button>
-            </div>
-
-            {/* Says who reads this and what it decides — the same weight the
-                reason step carries, and it is what makes a free-text box feel
-                worth filling in properly. It ALSO settles this step's width:
-                the shared shell is `sm:w-auto` (shrink-to-fit) above `sm`, so
-                without a full-measure line of prose the details step rendered
-                ~185px narrower than the reason and confirmation steps and the
-                dialog visibly shrank mid-flow. Fixed with content, not with a
-                width override on the shell. */}
-            <p
-              className="font-sans leading-relaxed text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.9)" }}
-            >
-              An admin reads this to decide what happens next — dates, amounts,
-              and exactly what was said help most.
-            </p>
+            {/* Board 157 / 54: one screen, not a reason step that auto-advances
+                into a details step. The reasons are the shared RadioCardList
+                (the same list Something's not right uses), the details box
+                sits under them, and the commit is one "Send report". Where the
+                report goes is said once, under the list. */}
+            <RadioCardList
+              label={REASON_PROMPT[reportedType]}
+              options={reasons.map(({ label }) => ({ value: label, label }))}
+              value={reason}
+              onChange={(v) => { hapticMedium(); setReason(v); }}
+            />
 
             <div className="space-y-1.5">
-              {/* A VISIBLE label, associated via htmlFor/id. The field used to
-                  carry only `aria-label="Report description"` and a
-                  placeholder, so a sighted user had no persistent label at
-                  all once they started typing. */}
-              <label
-                htmlFor={detailsId}
-                className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground block"
-              >
-                What happened?
+              <label htmlFor={detailsId} className="font-sans font-semibold text-ds-13 block" style={{ color: "hsl(var(--ink-deep))" }}>
+                Tell us a little more
               </label>
               <Textarea
                 id={detailsId}
@@ -376,18 +219,14 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 placeholder="Start with when it happened…"
                 value={description}
                 onChange={(e) => setDescription(e.target.value.slice(0, MAX_LENGTH))}
-                rows={4}
+                rows={3}
                 required
-                className="rounded-ds-md border-border/60 bg-background/80 focus-visible:bg-background focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-ds-14 leading-relaxed resize-none"
+                className="rounded-2xl border-border bg-card focus-visible:border-primary/40 focus-visible:ring-2 focus-visible:ring-primary/15 text-ds-14 leading-relaxed resize-none"
               />
               <div id={detailsHintId} className="flex items-center justify-between gap-2 text-ds-11">
-                <span
-                  className={
-                    tooShort ? "text-destructive font-medium" : "text-muted-foreground"
-                  }
-                >
+                <span className={tooShort ? "font-medium" : "text-muted-foreground"} style={tooShort ? { color: "hsl(var(--alert-ink))" } : undefined}>
                   {tooShort
-                    ? `${MIN_LENGTH - trimmedLength} more character${MIN_LENGTH - trimmedLength === 1 ? "" : "s"} required`
+                    ? `${MIN_LENGTH - trimmedLength} more character${MIN_LENGTH - trimmedLength === 1 ? "" : "s"} needed`
                     : trimmedLength === 0
                     ? `At least ${MIN_LENGTH} characters`
                     : "Looks good"}
@@ -405,22 +244,29 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
               </div>
             </div>
 
-            {/* No `sm:!justify-between`. The shared footer already puts the
-                dismiss hard-left and the commit hard-right at every width,
-                which is what that override was reaching for — and this
-                dialog's compact secondary is now the app-wide standard, so it
-                no longer has to state it locally. */}
+            {alsoBlock && (
+              // Board 157's "Also block". It never blocks on its own: blocking
+              // closes open deals with their real cancellation rules, so after
+              // the report is sent this hands over to the Block dialog, which
+              // states those consequences and asks again.
+              <div className="flex items-center justify-between gap-3 rounded-2xl bg-card border border-border px-4 min-h-[52px]">
+                <label htmlFor={`${uid}-also-block`} className="font-sans font-semibold text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
+                  Also block {alsoBlock.name}
+                </label>
+                <Switch id={`${uid}-also-block`} checked={blockAfter} onCheckedChange={setBlockAfter} />
+              </div>
+            )}
+
+            {/* What actually happens on insert (see the confirmation note):
+                the trust & safety queue, never the other person. */}
+            <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
+              A real person on the Helpr team reviews it. We never tell the other person who reported them.
+            </p>
+
             <DialogFooter>
-              <DialogSecondaryAction
-                type="button"
-                onClick={() => setStep("reason")}
-                disabled={submitting}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
+              <DialogSecondaryAction type="button" onClick={handleClose} disabled={submitting}>
+                Cancel
               </DialogSecondaryAction>
-              {/* Glossy primary (`btn-grad-primary` via DialogPrimaryAction),
-                  not the flat inline bark fill this used to hand-roll. */}
               <DialogPrimaryAction
                 type="button"
                 onClick={handleSubmit}
@@ -429,10 +275,10 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Submitting…
+                    Sending…
                   </>
                 ) : (
-                  "Submit Report"
+                  "Send report"
                 )}
               </DialogPrimaryAction>
             </DialogFooter>

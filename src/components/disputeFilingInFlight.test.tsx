@@ -39,21 +39,6 @@ vi.mock("@/integrations/supabase/client", () => ({
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticHeavy: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn() }));
-// Radix Select needs pointer geometry jsdom does not have. Swapped for plain
-// buttons: what is under test is the submit guard, not the picker.
-vi.mock("@/components/ui/select", () => {
-  let onChange: ((v: string) => void) | null = null;
-  return {
-    Select: ({ children, onValueChange }: never) => { onChange = onValueChange; return children; },
-    SelectTrigger: () => null,
-    SelectValue: () => null,
-    SelectContent: ({ children }: never) => children,
-    SelectItem: ({ value, children }: never) => (
-      <button type="button" data-reason={value} onClick={() => onChange?.(value)}>{children}</button>
-    ),
-  };
-});
-
 import { DisputeDialog } from "./DisputeDialog";
 import { disputeReasonsFor, DISPUTE_DETAILS_MIN } from "./disputeReasons";
 
@@ -80,7 +65,7 @@ describe("DisputeDialog — same-frame double submit files one dispute", () => {
 
     // Pick the first reason and write enough detail to clear the floor.
     const reason = disputeReasonsFor("poster")[0];
-    const option = document.querySelector(`[data-reason="${reason.value}"]`) as HTMLElement;
+    const option = screen.getByRole("radio", { name: reason.label });
     await act(async () => { fireEvent.click(option); });
 
     const details = screen.getByRole("textbox") as HTMLTextAreaElement;
@@ -90,7 +75,7 @@ describe("DisputeDialog — same-frame double submit files one dispute", () => {
       details.dispatchEvent(new Event("input", { bubbles: true }));
     });
 
-    const submit = await screen.findByRole("button", { name: /submit|file|open/i });
+    const submit = await screen.findByRole("button", { name: /send to helpr/i });
     act(() => {
       submit.click();
       submit.click();
@@ -103,3 +88,18 @@ describe("DisputeDialog — same-frame double submit files one dispute", () => {
 
 // The synchronous in-flight ref IS the guarantee this file buys.
 // @mutate src/components/DisputeDialog.tsx | if (submittingRef.current) return; | if (false) return;
+
+// Board 54 (Something's not right): one radio card per reason for that side,
+// the job named on top, and the commit is the olive "Send to Helpr".
+// @mutate src/components/DisputeDialog.tsx | {jobTitle && ( | {false && (
+describe("DisputeDialog — board 54 layout", () => {
+  it.each(["poster", "helper"] as const)("%s: a radio per reason, the job named, Send to Helpr", (side) => {
+    render(<DisputeDialog jobId="job-1" side={side} open onClose={() => {}} onDisputed={() => {}} jobTitle="Assemble a bookshelf" />);
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBe(disputeReasonsFor(side).length);
+    expect(radios.length).toBeGreaterThan(3);
+    expect(screen.getByText("Assemble a bookshelf")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Send to Helpr" })).toBeTruthy();
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+});

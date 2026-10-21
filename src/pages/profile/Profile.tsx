@@ -822,9 +822,9 @@ const ProfilePage = () => {
     <SignOutConfirmDialog
         open={showLogoutDialog}
         onOpenChange={setShowLogoutDialog}
-        title="Log Out?"
+        title="Log out?"
         description="You can sign back in anytime — your account stays intact."
-        label="Log Out"
+        label="Log out"
         after={() => navigate("/")}
       />
 

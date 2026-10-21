@@ -276,7 +276,7 @@ const Support = () => {
     // the header above it and stopped growing past `sm`, instead of filling
     // the same column. The shell fixes both the gutter and the double-gap
     // bug at once.
-    <PublicHeaderPage title="Contact Support" bottomPaddingClassName="pb-8">
+    <PublicHeaderPage title="Contact support" bottomPaddingClassName="pb-8">
       <section>
         <div className="page-measure mx-auto">
 

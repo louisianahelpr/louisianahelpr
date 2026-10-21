@@ -96,7 +96,7 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
     render(wrap(<ProfileOfflineGate tab="pets" onBack={() => {}}><p>skeleton</p></ProfileOfflineGate>));
     expect(screen.getByText("You're offline.")).toBeTruthy();
     expect(screen.queryByText("skeleton")).toBeNull();
-    expect(screen.getByRole("heading", { name: "My Pets" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "My pets" })).toBeTruthy();
   });
 
   it("Profile's boot placeholder: online and fetching -> the skeleton (can fail)", () => {

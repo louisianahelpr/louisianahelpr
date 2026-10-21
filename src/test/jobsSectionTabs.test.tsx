@@ -79,12 +79,12 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  it("on a phone the bar is Explore, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20)", () => {
+  it("on a phone the bar is Explore, the Jobs settings gear, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20; the gear is in the header, owner 2026-10-21)", () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
     expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Explore");
     const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Notifications", "Profile"]);
+    expect(labels).toEqual(["Jobs settings", "Notifications", "Profile"]);
     expect(within(screen.getByTestId("explore-switcher")).getByRole("radio", { name: "Jobs" }).getAttribute("aria-checked")).toBe("true");
   });
 

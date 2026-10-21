@@ -8,7 +8,7 @@ import {
   DialogSecondaryAction,
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
-import { BadgeDollarSign, Loader2 } from "lucide-react";
+import { BadgeDollarSign, Loader2, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
@@ -19,6 +19,7 @@ import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
 import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { userFacingError } from "@/lib/userFacingError";
+import { openIdentityCheck } from "@/lib/identityCheck";
 
 /**
  * What a Helpr sees when their accept needs Stripe setup first.
@@ -48,7 +49,17 @@ export function AwardGateDialog({
   const copy = pendingMissing ? acceptPendingCopy(pendingMissing) : awardBlockCopy(reason);
   const payoutMissing = pendingMissing ? pendingMissing.includes("payout_setup") : reason === "helper_payout_setup_incomplete";
   const idMissing = pendingMissing ? pendingMissing.includes("stripe_id") : reason === "helper_identity_unverified";
+  // Stripe Identity (photo ID + selfie) is its own sheet, not part of payout
+  // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
+  const openIdCheck = () => {
+    onOpenChange(false);
+    openIdentityCheck("accept");
+  };
   const handleFix = async () => {
+    if (!payoutMissing && idMissing) {
+      openIdCheck();
+      return;
+    }
     setLoading(true);
     try {
       track(AhaEvent.PayoutSetupStarted, { action: "award_gate", reason });
@@ -94,7 +105,11 @@ export function AwardGateDialog({
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
           <RequirementRow label="Payout account connected" met={!payoutMissing} />
-          <RequirementRow label="ID verified by Stripe" met={!idMissing} />
+          <RequirementRow
+            label="Photo ID and selfie checked by Stripe"
+            met={!idMissing}
+            action={payoutMissing && idMissing ? { label: "Verify", onClick: openIdCheck } : undefined}
+          />
         </div>
 
         <DialogFooter>
@@ -111,7 +126,7 @@ export function AwardGateDialog({
             {loading ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              <BadgeDollarSign className="w-4 h-4 mr-2" />
+              payoutMissing ? <BadgeDollarSign className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />
             )}
             {copy.ctaLabel}
           </DialogPrimaryAction>
@@ -121,7 +136,7 @@ export function AwardGateDialog({
   );
 }
 
-function RequirementRow({ label, met }: { label: string; met: boolean }) {
+function RequirementRow({ label, met, action }: { label: string; met: boolean; action?: { label: string; onClick: () => void } }) {
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-ds-md"
@@ -144,12 +159,18 @@ function RequirementRow({ label, met }: { label: string; met: boolean }) {
       <span className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
         {label}
       </span>
-      <span
-        className="ml-auto text-ds-11 font-sans"
-        style={{ color: met ? "hsl(var(--sage))" : "hsl(var(--amber-ink))" }}
-      >
-        {met ? "Done" : "Needed"}
-      </span>
+      {action ? (
+        <button type="button" onClick={action.onClick} className="ml-auto min-h-11 -my-2 px-2 text-ds-13 font-bold font-sans text-primary">
+          {action.label}
+        </button>
+      ) : (
+        <span
+          className="ml-auto text-ds-11 font-sans"
+          style={{ color: met ? "hsl(var(--sage))" : "hsl(var(--amber-ink))" }}
+        >
+          {met ? "Done" : "Needed"}
+        </span>
+      )}
     </div>
   );
 }

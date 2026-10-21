@@ -1,6 +1,8 @@
 import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
 import { jobDayStart } from "@/lib/jobDate";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
+import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
+import { needsIdentityCheck, useMyIdentityProfile } from "@/lib/identityCheck";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 
 /* `CardExpandedContext` WAS HERE and is GONE.
@@ -135,6 +137,13 @@ export function HelperTrackerPanel({
     !dayOfConfirmed &&
     hoursUntilJob > -24;
 
+  // Stripe Identity before heading out (owner 2026-10-21): a booked Helpr who
+  // still needs it reads so on the card; the server refuses On the way without it.
+  const me = useMyIdentityProfile();
+  const showIdLine =
+    !readOnly && (job.status === "accepted" || job.status === "in_progress") &&
+    !job.helper_on_the_way_at && !job.helper_arrived_at && needsIdentityCheck(me);
+
   const confirmation = (
     <JobConfirmation
       variant="inline"
@@ -161,6 +170,7 @@ export function HelperTrackerPanel({
        `rounded-2xl liquid-glass p-3` wrapper: a bordered box inside the card.
        Guard: src/test/noNestedTrackerCard.test.ts (cross-file job-card walk). */
     <div className="space-y-2">
+      {showIdLine && <IdentityPromptCard compact reason="start" idvStatus={me?.idv_status} />}
       {/* `isHelper={!gateActive}`: while the Confirmed step is outstanding this
           panel owns the helper's controls, so the tracker draws the rail only
           and cannot offer "I'm on my way" out of order. The two side effects

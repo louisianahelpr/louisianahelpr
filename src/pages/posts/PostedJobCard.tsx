@@ -1,4 +1,5 @@
 import { memo, useRef } from "react";
+import { PosterIdentityLine } from "@/components/identity/IdentityPromptCard";
 import { takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
@@ -293,21 +294,19 @@ function PostedJobCardInner({
   });
 
   return (
-        /* The Helpr's tile, published to whichever JobStepCard this status
-           mounts (jobCardPerson.tsx). The provider wraps the WHOLE card, not
-           just the actions block, so the fallback below and the claim above it
-           are answering the same question. */
+        /* The Helpr's tile, published to whichever JobStepCard this status mounts (jobCardPerson.tsx). The
+           provider wraps the WHOLE card, so the fallback below and the claim above it answer one question. */
         <JobCardPersonContext.Provider value={personCtx}>
         <div ref={cardRef}>
           <JobCardShell
-            /* The face is a link to /jobs/:id (board 14); the live controls open
-               in place from its one button or /posts?highlight=<id>&manage=1. */
+            /* The face links to /jobs/:id (board 14); live controls open in place (its button, or ?highlight=<id>&manage=1). */
             expandable={false}
             expanded={isExpanded}
             onToggle={() => toggleExpandedJobId(job.id)}
             className="group relative scroll-mt-3"
           >
             <BackoutBanner job={job} />{/* someone backed out: until Got It (Q1575) */}
+            <PosterIdentityLine status={job.status} />{/* Stripe Identity before the next post (2026-10-21) */}
             <MineJobFace
               jobId={job.id}
               title={job.title}

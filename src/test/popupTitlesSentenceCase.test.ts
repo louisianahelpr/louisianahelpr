@@ -121,8 +121,9 @@ describe("every pop-up title is sentence case", () => {
     // title became four states (Under review, Decision, Withdrawn, Dispute on
     // a failed load), and the delete dialog's and SOS sheet's titles changed
     // in place. 174 on TRAIN A (2026-10-21, measured by this test on the combined
-    // tree): +1 board 91 (Save this search).
-    expect(all.length).toBe(174);
+    // tree): +1 board 91 (Save this search). 175: +1 the Stripe Identity sheet
+    // (2026-10-21, IdentityCheckSheet: "Verify your ID" and its states).
+    expect(all.length).toBe(175);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

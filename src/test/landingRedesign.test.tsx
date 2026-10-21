@@ -13,14 +13,16 @@
  *   - the money band's hours are the cron's own number, never typed;
  *   - no price-drop timing is claimed for Declutter;
  *   - "Continue with Apple" sits behind the one social switch and loads lazily;
- *   - the nav shows Declutter only once its switch is open to everyone.
+ *   - the landing's top bar is the one public bar, "Jobs | Log in · Join free"
+ *     (owner, 2026-10-21): no Declutter link, no "How it works", no sections
+ *     read of its own.
  *
  * @mutate src/components/landing/seasonalPill.ts |   if (month >= 5 && month <= 10) return | if (month >= 4 && month <= 10) return
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
  * @mutate src/components/landing/SectionsShowcase.tsx | "Helpr holds the money. Nobody is paid out until the work is done." | "Held through Stripe. Nobody is paid out until the work is done."
  * @mutate src/components/landing/LandingAppleButton.tsx |   if (!SOCIAL_SIGN_IN_ENABLED) return null; |
- * @mutate src/components/Navbar.tsx |   const declutterOpen = !sectionIsComingSoon("declutter", open); |   const declutterOpen = true;
+ * @mutate src/components/Navbar.tsx |         {!user && ( |         {landing && <Link to="/signup?redirect=%2Fdeclutter">Declutter</Link>}\n        {!user && (
  * @mutate src/components/landing/HeroSection.tsx | className="flex flex-col items-center text-center gap-5 sm:gap-6 min-w-0" | className="flex flex-col items-start gap-5 sm:gap-6 min-w-0"
  * @mutate src/components/landing/HeroSection.tsx | <div className="relative mx-auto w-full max-w-[760px]"> | <div className="relative mx-auto w-full max-w-6xl">
  */
@@ -110,11 +112,15 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(blocks).not.toMatch(/from "@\/lib\/socialAuth"/);
   });
 
-  it("the landing nav shows Declutter only once its switch is open to everyone (fails closed)", () => {
+  it("the landing's top bar is the one public bar: no Declutter, no How it works, no sections read (owner, 2026-10-21)", () => {
     const nav = read("src/components/Navbar.tsx");
-    expect(nav).toMatch(/const declutterOpen = !sectionIsComingSoon\("declutter", open\);/);
-    // Only the landing bar reads it: every other public page's bar stays free of React Query.
-    expect(nav).toMatch(/\{landing && <LandingNavLinks \/>\}/);
-    expect(nav).toMatch(/\{declutterOpen && \(/);
+    // The bar's contents never branch on `landing` (it only sets the row's measure)...
+    const landingUses = nav.match(/\blanding\b(?!\?:)/g) ?? [];
+    expect(landingUses.length).toBeGreaterThan(0);
+    expect(nav).not.toMatch(/\{landing &&|landing \?/);
+    // ...and nothing on it reads the sections answer or links a section that may not be open.
+    expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|declutter|how-it-works|Get started/i);
+    expect(nav).toMatch(/to="\/browse"/);
+    expect(nav).toMatch(/to="\/signup"/);
   });
 });

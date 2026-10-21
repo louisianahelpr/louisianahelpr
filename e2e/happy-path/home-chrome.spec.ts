@@ -305,7 +305,7 @@ for (const width of [320, 375, 1440]) {
     // getByRole matches it case-insensitively, so "Log in" still matches the
     // rendered "Log in".)
     await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Get started" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Join free" })).toBeVisible();
 
     // NO Search and NO Filters on the guest surface. This assertion has now
     // been flipped twice, so the history matters more than the assertion:

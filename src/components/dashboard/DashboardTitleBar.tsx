@@ -24,7 +24,7 @@ interface DashboardTitleBarProps {
    * Controls pinned to the trailing end of the row. Defaults to the
    * notification bell.
    *
-   * The guest feed passes its "Log in" / "Get started" pair instead: a bell
+   * The guest feed passes its "Log in" / "Join free" pair instead: a bell
    * is meaningless with no session, and those two ARE the signed-out screen's
    * entire conversion path, so they occupy the same slot the bell holds for a
    * signed-in user rather than being demoted to a second bar. They stay full
@@ -67,7 +67,7 @@ export const TITLE_BAR_PADDING = "!py-1.5 lg:!py-2"; // = Posts/Jobs/Messages (2
  *
  * Shared by BOTH browse surfaces, which differ only in what fills those two
  * slots: Home ends the row with its in-progress job pill and the notification
- * bell, the signed-out guest feed with its "Log in" / "Get started" pair.
+ * bell, the signed-out guest feed with its "Log in" / "Join free" pair.
  * Everything else — the emblem, the padding constant, the degradation
  * behaviour — is identical, which is the point: a visitor who signs up should
  * recognise the screen they were just on.

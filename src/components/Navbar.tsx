@@ -8,7 +8,6 @@ import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { sectionIsComingSoon, useSectionsOpen } from "@/components/landing/useSectionsOpen";
 
 interface NavbarProps {
   /**
@@ -21,10 +20,9 @@ interface NavbarProps {
    */
   solid?: boolean;
   /**
-   * The landing page's bar (owner-approved redesign, 2026-10-20): the wordmark,
-   * Jobs / Declutter (only once its switch is open to everyone) / How it works
-   * from md, then Log in and "Join free". Every other public page keeps the
-   * default bar.
+   * The landing page: the bar's row is centred at the landing's 78rem measure.
+   * Its contents are the same bar as every other public page (owner,
+   * 2026-10-21: "Jobs | Log in · Join free").
    */
   landing?: boolean;
 }
@@ -32,8 +30,8 @@ interface NavbarProps {
 const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = false }, ref) => {
   // Session-only auth (no profile DB round-trip) so the marketing nav can
   // reflect logged-in state: an authenticated visitor landing on a public
-  // page (/legal, /) should see an "Open app" CTA instead of
-  // the logged-out "Log in / Get started" pair.
+  // page (/legal, /) sees none of the signed-out "Jobs | Log in · Join free"
+  // actions (see below).
   const { user } = useAuthReady();
   // On the wide desktop *website*, a signed-in visitor already has the
   // persistent RIGHT rail (DesktopSidebarNav) on app/marketing routes the rail
@@ -44,7 +42,6 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
   // native + narrow viewports, so this only suppresses the genuine overlap.
   const isWebDesktop = useIsWebDesktop();
   const location = useLocation();
-  const getStartedTo = location.pathname === "/browse" ? "/signup" : "/browse";
   const railOwnsNav = isWebDesktop && !!user && isDesktopRailRoute(location.pathname);
   // This nav is `position: fixed; top: 0`, so the global OfflineBanner (also
   // fixed at top:0) would overlay it. The `#root` padding that reserves space
@@ -69,7 +66,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
         // on landing, opaque on interior via is-scrolled).
         // Blur only — NO saturate(). `saturate()` on a backdrop filter
         // amplifies the colour of whatever passes beneath the bar, so the
-        // olive "Get started" button and the dark emblem bled a green cast up
+        // olive "Join free" button and the dark emblem bled a green cast up
         // into the strip, and it shifted as the page scrolled under it. That is
         // the "green jumping shadow" and the "jumping colours": not a shadow at
         // all, but the nav re-saturating live content behind itself.
@@ -110,119 +107,74 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             we want the same behavior in the future, replace with a
             local onClick wrapper. */}
 
-        {/* ONE nav at every width — text links, a subtle divider, then the auth
-            actions. There is no hamburger below lg any more (owner). It opened a
-            sheet whose contents were Jobs, Log In, Get started and a list of
-            links the footer already carries in full — a second copy of the site
-            index behind an extra tap. The three things that matter fit the bar
-            on a phone, so they sit in it. */}
-        <div className={cn("flex items-center gap-4 sm:gap-6 lg:gap-10", landing && "gap-2 sm:gap-6")}>
-          {/* "How it works" removed (owner). It pointed at /#how-it-works — an
-              ANCHOR on the landing page, not a page. From /login or /jobs it
-              threw you off the page you were on and onto the homepage before
-              scrolling, so the same nav item behaved differently depending on
-              where you stood. The landing page still carries that section in
-              its own reading order, and the Help Center covers the explaining
-              job for everyone else. */}
-          {/* "Jobs" removed from the nav (owner). It's still reachable — the
-              footer's Company column links to it, and "Browse Jobs" is a
-              primary hero CTA — so this is one fewer top-level item competing
-              with the two actions the bar actually exists to drive: Log in /
-              Get Started. */}
-          {/* Subtle vertical rule between text nav and auth actions —
-              two logical groups rather than one long list. Rendered only when
-              there ARE auth actions beside it: a signed-in visitor now gets
-              nothing in this group (see below), so an unconditional rule left
-              a hairline floating alone at the end of the bar. */}
-          {landing && <LandingNavLinks />}
-          {!user && (
-            <span
-              aria-hidden
-              className={cn("w-px h-5", landing && "hidden md:block")}
-              style={{ background: "hsl(var(--olivewood) / 0.18)" }}
-            />
-          )}
-          <div className="flex items-center gap-2">
-            {/* NOTHING for a signed-in visitor (owner, 2026-08-30: "delete
-                globally"). This used to be a "Dashboard →" CTA. A signed-in
-                person on a public page already has the app's own navigation —
-                the desktop sidebar rail (DesktopSidebarNav, which carries
-                Home / Posts / Jobs / Messages / Profile) on web and the bottom
-                nav on a phone — so this button was a second, redundant way
-                back into an app they are already inside, and the only one of
-                the two that named just one destination. */}
-            {!user && (
-              <>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="sm"
-                  className={cn("rounded-2xl btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]", landing && "rounded-full")}
-                >
-                  <Link
-                    to="/login"
-                    onMouseEnter={() => prefetchRoute("/login")}
-                    onFocus={() => prefetchRoute("/login")}
-                  >
-                    {landing ? "Log in" : "Log in"}
-                  </Link>
-                </Button>
-                {/* "Get started" — explicit light-cream text. The `default`
-                    variant nominally resolves text-primary-foreground →
-                    --parchment, but that two-hop token chain has repeatedly
-                    rendered dark-on-olive in the WebView. Pin the color
-                    locally — `!text-...` on the button itself plus a
-                    belt-and-braces inline style — so it can never lose the
-                    cascade, independent of variant token resolution. */}
-                <Button
-                  asChild
-                  size="sm"
-                  className={cn("rounded-2xl btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]", landing && "rounded-full px-5")}
-                  style={{ color: "hsl(var(--parchment))" }}
-                >
-                  {/* Browse first (owner, 2026-10-09): Get started opens the
-                      job list, no account needed; sign-up is asked for at
-                      Apply or Post. ON the job list it is the sign-up, so it
-                      never links to the page already open. */}
-                  <Link
-                    to={landing ? "/signup" : getStartedTo}
-                    onMouseEnter={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
-                    onFocus={() => prefetchRoute(landing ? "/signup" : getStartedTo)}
-                  >
-                    {landing ? "Join free" : "Get started"}
-                  </Link>
-                </Button>
-              </>
-            )}
+        {/* ONE bar on every public page, the landing included (owner, 2026-10-21):
+            signed out it reads "Jobs | Log in · Join free" at every width. "Jobs"
+            is the public board (/browse) and "Join free" is sign-up (/signup) on
+            every page; "Get started", "How it works" and the landing-only
+            Declutter link are gone. There is no hamburger (owner): the three
+            things that matter fit the bar on a phone.
+            A signed-in visitor gets NOTHING here (owner, 2026-08-30: "delete
+            globally"): the app's own navigation (the desktop rail, the bottom
+            nav on a phone) already carries them. */}
+        {!user && (
+          <div className="flex items-center gap-1 sm:gap-3">
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+            >
+              <Link
+                to="/browse"
+                aria-current={location.pathname === "/browse" ? "page" : undefined}
+                onMouseEnter={() => prefetchRoute("/browse")}
+                onFocus={() => prefetchRoute("/browse")}
+              >
+                Jobs
+              </Link>
+            </Button>
+            {/* The divider between the public link and the auth actions. */}
+            <span aria-hidden className="w-px h-5 mx-1" style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+            >
+              <Link
+                to="/login"
+                onMouseEnter={() => prefetchRoute("/login")}
+                onFocus={() => prefetchRoute("/login")}
+              >
+                Log in
+              </Link>
+            </Button>
+            {/* "Join free" — explicit light-cream text. The `default` variant
+                nominally resolves text-primary-foreground → --parchment, but that
+                two-hop token chain has repeatedly rendered dark-on-olive in the
+                WebView. Pin the color locally — `!text-...` on the button itself
+                plus a belt-and-braces inline style — so it can never lose the
+                cascade, independent of variant token resolution. */}
+            <Button
+              asChild
+              size="sm"
+              className="rounded-full px-4 sm:px-5 btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              style={{ color: "hsl(var(--parchment))" }}
+            >
+              <Link
+                to="/signup"
+                onMouseEnter={() => prefetchRoute("/signup")}
+                onFocus={() => prefetchRoute("/signup")}
+              >
+                Join free
+              </Link>
+            </Button>
           </div>
-
-        </div>
-
+        )}
       </div>
     </nav>
   );
 });
 Navbar.displayName = "Navbar";
-
-/**
- * The landing bar's text links, from md. Its own component so only the landing
- * reads the sections answer (React Query): every other public page's bar stays
- * free of it. Cache-only (never fetches): the sections block asks once it is on
- * screen; until that answer is in, Declutter stays out of the bar (fails closed).
- */
-function LandingNavLinks() {
-  const { open } = useSectionsOpen(false);
-  const declutterOpen = !sectionIsComingSoon("declutter", open);
-  const cls = "inline-flex items-center min-h-11 transition-opacity hover:opacity-70";
-  return (
-    <div className="hidden md:flex items-center gap-7 text-ds-15 font-semibold" style={{ color: "var(--lp-ink)" }}>
-      <Link to="/browse" className={cls}>Jobs</Link>
-      {declutterOpen && (
-        <Link to="/signup?redirect=%2Fdeclutter" className={cls}>Declutter</Link>
-      )}
-      <a href="#how-it-works" className={cls}>How it works</a>
-    </div>
-  );
-}
 
 export default Navbar;

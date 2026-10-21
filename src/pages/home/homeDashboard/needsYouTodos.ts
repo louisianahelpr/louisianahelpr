@@ -133,7 +133,9 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : line.detail,
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
-        to: `/jobs?tab=posted&filter=needs_you`,
+        // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
+        // review still lands on the Posted list where applicants are handled.
+        to: n > 0 ? `/jobs?tab=posted&filter=needs_you` : `/jobs/${j.id}`,
         action: n > 0 ? "See applicants" : "Open job",
       },
     });
@@ -149,7 +151,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         title: line.detail,
         meta: `${a.job!.helper_id ? "You're working" : "You applied"} · ${a.job!.title}`,
-        to: `/jobs?tab=working&filter=needs_you`,
+        to: `/jobs/${a.job!.id}`,
         action: "Open job",
       },
     });

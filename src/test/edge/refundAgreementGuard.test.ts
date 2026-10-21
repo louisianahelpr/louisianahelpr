@@ -59,6 +59,8 @@ const HELPR = "44444444-4444-4444-8444-444444444444";
 const REQUEST = "55555555-5555-4555-8555-555555555555";
 const STRANGER = "66666666-6666-4666-8666-666666666666";
 
+/** A captured PaymentIntent's status (a Stripe value, not a disputes row's). */
+const PI_PAID = "succeeded";
 const PROOF = {
   request_id: REQUEST, dispute_id: DISPUTE, job_id: JOB, poster_id: POSTER, helper_id: HELPR,
   amount_cents: 2000, budget_cents: 4000, answered_at: "2026-10-21T10:00:00Z",
@@ -214,7 +216,7 @@ describe("execute-dispute-split: an agreed part refunds EXACTLY the amount asked
   it("the owner's example: $20 of a $40 job with a $10 rush fee refunds $20; the Helpr gets $20 + the rush fee less 12% of the price ($27)", async () => {
     seedAgreed();
     (scenario.reads.jobs.rows as Array<Record<string, unknown>>)[0].urgent_fee = 10;
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount_received: 5500, latest_charge: "ch_1" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: PI_PAID, amount_received: 5500, latest_charge: "ch_1" });
     const res = await split();
     expect(res.status).toBe(200);
     expect((stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount).toBe(2000);
@@ -223,10 +225,8 @@ describe("execute-dispute-split: an agreed part refunds EXACTLY the amount asked
 
   it("a TAXED charge moves nothing on the exact path (Q1998 unchecked): an admin settles it", async () => {
     seedAgreed();
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
-      id: "pi_1", status: "succeeded", amount_received: 4800, latest_charge: "ch_1",
-      amount_details: { tax: { total_tax_amount: 400 } },
-    });
+    const paid = { id: "pi_1", status: PI_PAID, amount_received: 4800, latest_charge: "ch_1" };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ ...paid, amount_details: { tax: { total_tax_amount: 400 } } });
     const res = await split();
     expect(res.status).toBe(409);
     expect(stripeMoneyCalls()).toBe(0);
@@ -254,7 +254,7 @@ describe("execute-dispute-split: an agreed part refunds EXACTLY the amount asked
     // so the escrow cap (refund + Helpr <= captured) passes; only the
     // refundable ceiling (captured less the kept card fee) refuses it.
     scenario.rpc.refund_agreement_for_dispute = { ...PROOF, amount_cents: 3999 };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount_received: 4000, latest_charge: "ch_1" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: PI_PAID, amount_received: 4000, latest_charge: "ch_1" });
     const res = await split();
     expect(res.status).toBe(409);
     expect(stripeMoneyCalls()).toBe(0);

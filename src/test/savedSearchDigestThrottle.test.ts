@@ -16,10 +16,10 @@
  * may name match_digest again: the queue has no reader left, so a row written
  * there would be a match nobody is ever told about.
  *
- * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |         OR s.last_notified_at < now() - interval '1 hour'\n      )\n    GROUP BY |         OR true\n      )\n    GROUP BY
- * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  UPDATE public.saved_searches SET last_notified_at = now() WHERE id = ANY(p_search_ids);\n\n  -- ST-011: the matched
- * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  INSERT INTO public.match_digest_queue (user_id, job_id) VALUES (p_user_id, p_job_id) ON CONFLICT DO NOTHING;\n\n  -- ST-011: the matched
- * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |          AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour')\n       ORDER BY s.id | ORDER BY s.id
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |         OR s.last_notified_at < now() - interval '1 hour'\n      )\n    GROUP BY |         OR true\n      )\n    GROUP BY
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  UPDATE public.saved_searches SET last_notified_at = now() WHERE id = ANY(p_search_ids);\n\n  -- ST-011: the matched
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  INSERT INTO public.match_digest_queue (user_id, job_id) VALUES (p_user_id, p_job_id) ON CONFLICT DO NOTHING;\n\n  -- ST-011: the matched
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |          AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour')\n       ORDER BY s.id | ORDER BY s.id
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -58,7 +58,8 @@ describe("saved-search throttle (ST-011), with the digest retired (Q1657)", () =
     expect([...body.matchAll(/UPDATE public\.saved_searches/g)].length, `${file}: the trigger stamps`).toBe(0);
     const d = deliver.body;
     expect(d, `${deliver.file}: a digest diversion is back`).not.toMatch(/match_digest/);
-    const stamps = [...d.matchAll(/UPDATE public\.saved_searches/g)].map((m) => m.index!);
+    // Q2275: the email channel stamps last_emailed_at separately; this counts the throttle stamp.
+    const stamps = [...d.matchAll(/UPDATE public\.saved_searches\s+SET last_notified_at/g)].map((m) => m.index!);
     expect(stamps.length, deliver.file).toBe(1);
     const throttleAt = d.search(/s\.last_notified_at < now\(\) - interval '1 hour'/);
     const notifyAt = d.indexOf("INSERT INTO public.notifications");

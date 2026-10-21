@@ -380,6 +380,7 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "deliver_job_match",
       "deliver_parish_match_alert",
       "deliver_saved_search_alert",
+      "deliver_saved_search_item_alerts",
       "notify_on_application",
       "quote_notify_to",
       "rentals_notify",
@@ -387,7 +388,8 @@ describe("Q137: a seed subject never notifies a real person", () => {
     ]);
     // Q1575: the back-out email rides beside the RPCs' own notifications row,
     // so it applies the row's seed boundary itself instead of writing a second row.
-    for (const fn of emailers.filter((f) => f !== "send_backout_email")) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b/i.test(liveDef(fn)!.body), fn).toBe(true);
+    // Q2275: the Declutter saved-search sender writes its row through declutter_notify (the seller as the seed actor).
+    for (const fn of emailers.filter((f) => f !== "send_backout_email")) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify\(/i.test(liveDef(fn)!.body), fn).toBe(true);
     expect(liveDef("send_backout_email")!.body).toMatch(/IF public\.notification_crosses_seed_boundary\(p_user, p_job, p_link\) THEN\s+RETURN;/);
   });
 

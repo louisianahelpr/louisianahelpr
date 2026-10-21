@@ -18,7 +18,7 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   const net = computeNet(job.budget, tierPct, |   const net = computeNet(job.budget, 0,
- * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (at < 0 \|\| !side) return null; |   if (at < 0) return null;
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   if (!side) return null; |   if (false) return null;
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && job.payment_status === "escrow" && | {isPoster && open &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
@@ -36,6 +36,7 @@ const state = {
   party: false,
   applicants: { total: 0, pending: 0 },
   owed: 0,
+  myApplication: null as { status: string; closed_reason: string | null } | null,
 };
 
 vi.mock("./useJobPage", () => ({
@@ -43,6 +44,7 @@ vi.mock("./useJobPage", () => ({
     job: { isLoading: false, isError: false, data: state.job ? { job: state.job, party: state.party } : null, refetch: vi.fn() },
     applicants: { isLoading: false, data: state.applicants },
     isPoster: !!state.job && state.job.customer_id === userId,
+    myApplication: { data: state.myApplication },
   }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
@@ -123,10 +125,22 @@ beforeEach(() => {
   state.job = null;
   state.party = false;
   state.applicants = { total: 0, pending: 0 };
+  state.myApplication = null;
   state.owed = 0;
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
+  // Owner bug 2026-10-21: a member who already applied saw "Apply". Now: the applied state and View application.
+  it("an applicant sees 'You applied · Waiting on Rhonda' and View application, never Apply", async () => {
+    state.job = row();
+    state.myApplication = { status: "pending", closed_reason: null };
+    renderPage();
+    expect(await screen.findByText("You applied · Waiting on Rhonda")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "View application" }));
+    expect(screen.getByTestId("where").textContent).toContain("/jobs?tab=working");
+  });
+
   it("shows the real take-home, the fee line, the city only, and Apply opens the quick-apply sheet", () => {
     state.job = row();
     renderPage();
@@ -173,7 +187,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
     expect(screen.getByLabelText("Step 1 of 4: Posted")).toBeTruthy();
-    expect(screen.getByText("Next: pick your Helpr.")).toBeTruthy();
+    expect(screen.getByText("Pick your Helpr")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}`);
   });
@@ -194,19 +208,20 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, status: "cancelled", payment_status: "refunded" });
     state.party = true;
     renderPage();
-    expect(screen.getByText("This job was cancelled.")).toBeTruthy();
+    // The one tracker (owner 2026-10-21): off the path it is the line alone, no step bar.
+    expect(screen.getByText(/This job was cancelled/)).toBeTruthy();
     expect(screen.getByText("Refunded to your card.")).toBeTruthy();
-    expect(document.querySelector("[data-job-tracker]")).toBeNull();
+    expect(screen.queryByLabelText(/^Step \d of 4/)).toBeNull();
   });
 });
 
 describe("job page, the hired Helpr", () => {
   it("sees the tracker with their next step and opens the job in Working; no address note", () => {
-    state.job = row({ helper_id: ME, status: "in_progress" });
+    state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z", poster_confirmed_arrival_at: "2026-10-21T12:00:00Z" });
     state.party = true;
     renderPage();
     expect(screen.getByLabelText("Step 3 of 4: Working")).toBeTruthy();
-    expect(screen.getByText("Next: mark the job done.")).toBeTruthy();
+    expect(screen.getByText("Mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared after you're hired.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     expect(screen.getByTestId("where").textContent).toBe("/jobs?tab=working");

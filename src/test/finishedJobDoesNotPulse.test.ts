@@ -7,35 +7,24 @@
  * never held still. Q294 had carried these six as "not clickable, reason
  * unknown" since run 35837735324.
  *
- * Fix: railStepPulses (jobRailTone.ts) decides the pulse; no pulse once the
- * rail reached Done or on a disputed step.
+ * Fix (2026-09-26): a rail rule decided the pulse; no pulse once the rail reached Done or on a disputed step.
+ * 2026-10-21: the rail itself is gone (the one four-segment <JobProgress>, owner "we need 1 tracker",
+ * src/test/oneJobTracker.test.ts), and it never pulses. What stays is the CLASS, from the app's own source:
+ * every `step-current-pulse` in src/ sits on a <span> with no click handler (a status pill, not a control; the
+ * owner asked for the Subscription "current plan" pill to pulse), so nothing tappable ever wobbles.
  *
- * CLASS, from the app's own source: every `step-current-pulse` in src/ is
- * either decided by railStepPulses on its own line, or sits on a <span> with no
- * click handler (a status pill, not a control; the owner asked for the
- * Subscription "current plan" pill to pulse).
- *
- * @mutate src/components/job-card/jobRailTone.ts |   return isCurrent && !allDone && !disputed; |   return isCurrent && !disputed;
- * @mutate src/components/JobTracking.tsx | ${railStepPulses({ isCurrent, allDone, disputed: !!disputedStep }) ? "step-current-pulse" : ""} | ${isCurrent ? "step-current-pulse" : ""}
+ * @mutate src/components/tracker/StepTracker.tsx | <span aria-hidden className={`block h-1 rounded-full ${i <= at ? "bg-primary" : "bg-muted"}`} /> | <button type="button" onClick={() => {}} className={`block h-1 rounded-full step-current-pulse ${i <= at ? "bg-primary" : "bg-muted"}`} />
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { railStepPulses } from "@/components/job-card/jobRailTone";
 import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 
-describe("a finished job's rail does not pulse (#1582, Q294)", () => {
-  it("the current step of a live job pulses; Done on a finished job and a disputed step do not", () => {
-    expect(railStepPulses({ isCurrent: true, allDone: false, disputed: false })).toBe(true);
-    expect(railStepPulses({ isCurrent: true, allDone: true, disputed: false })).toBe(false);
-    expect(railStepPulses({ isCurrent: true, allDone: false, disputed: true })).toBe(false);
-    expect(railStepPulses({ isCurrent: false, allDone: false, disputed: false })).toBe(false);
-  });
-
-  it("every step-current-pulse in src/ is decided by railStepPulses or sits on a non-control span", () => {
+describe("nothing tappable pulses (#1582, Q294)", () => {
+  it("every step-current-pulse in src/ sits on a non-control span", () => {
     const files: string[] = [];
     const walk = (d: string) => {
       for (const f of readdirSync(d)) {
@@ -58,9 +47,9 @@ describe("a finished job's rail does not pulse (#1582, Q294)", () => {
         i = src.indexOf("step-current-pulse", i + 1);
       }
     }
-    // Inventory floor, measured 2026-09-26: JobTracking's rail dot, SubscriptionTab's pill.
-    expect(uses.length).toBeGreaterThanOrEqual(2);
-    const bad = uses.filter((u) => !/railStepPulses\(/.test(u.line) && !(/^<span\b/.test(u.tag) && !/onClick/.test(u.tag)));
+    // Inventory floor, measured 2026-10-21: SubscriptionTab's pill (the job rail's dot left with the rail).
+    expect(uses.length).toBeGreaterThanOrEqual(1);
+    const bad = uses.filter((u) => !(/^<span\b/.test(u.tag) && !/onClick/.test(u.tag)));
     expect(bad.map((u) => `${u.file}: ${u.line}`)).toEqual([]);
   });
 });

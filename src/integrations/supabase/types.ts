@@ -1230,6 +1230,25 @@ export type Database = {
           },
         ]
       }
+      declutter_delivery_days_off: {
+        Row: {
+          created_at: string
+          day: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          seller_id?: string
+        }
+        Relationships: [
+        ]
+      }
       declutter_delivery_dropoffs: {
         Row: {
           address: string
@@ -1327,6 +1346,34 @@ export type Database = {
           status?: string
           stripe_payment_intent_id?: string
           stripe_refund_ref?: string | null
+        }
+        Relationships: [
+        ]
+      }
+      declutter_delivery_windows: {
+        Row: {
+          created_at: string
+          ends_local: string
+          id: string
+          seller_id: string
+          starts_local: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          ends_local: string
+          id?: string
+          seller_id: string
+          starts_local: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          ends_local?: string
+          id?: string
+          seller_id?: string
+          starts_local?: string
+          weekday?: number
         }
         Relationships: [
         ]
@@ -1489,6 +1536,25 @@ export type Database = {
             referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      declutter_item_no_seller_delivery: {
+        Row: {
+          created_at: string
+          item_id: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          item_id: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          item_id?: string
+          seller_id?: string
+        }
+        Relationships: [
         ]
       }
       declutter_item_photos: {
@@ -1943,6 +2009,7 @@ export type Database = {
       declutter_payouts: {
         Row: {
           amount_cents: number
+          delivery_cents: number
           attempts: number
           created_at: string
           debt_cents: number
@@ -1965,6 +2032,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          delivery_cents?: number
           attempts?: number
           created_at?: string
           debt_cents: number
@@ -1987,6 +2055,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          delivery_cents?: number
           attempts?: number
           created_at?: string
           debt_cents?: number
@@ -2287,6 +2356,113 @@ export type Database = {
             referencedRelation: "declutter_orders"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      declutter_seller_deliveries: {
+        Row: {
+          buyer_id: string
+          buyer_proposals: number
+          created_at: string
+          delivered_at: string | null
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_lat: number
+          dropoff_lng: number
+          handoff: string
+          held_until: string | null
+          is_seed: boolean
+          order_id: string
+          proposed_at: string | null
+          proposed_by: string | null
+          proposed_start: string | null
+          reminded_hours: number[]
+          seller_id: string
+          seller_proposals: number
+          slot_end: string | null
+          slot_start: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_proposals?: number
+          created_at?: string
+          delivered_at?: string | null
+          dropoff_address: string
+          dropoff_area: string
+          dropoff_lat: number
+          dropoff_lng: number
+          handoff?: string
+          held_until?: string | null
+          is_seed?: boolean
+          order_id: string
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposed_start?: string | null
+          reminded_hours?: number[]
+          seller_id: string
+          seller_proposals?: number
+          slot_end?: string | null
+          slot_start?: string | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_proposals?: number
+          created_at?: string
+          delivered_at?: string | null
+          dropoff_address?: string
+          dropoff_area?: string
+          dropoff_lat?: number
+          dropoff_lng?: number
+          handoff?: string
+          held_until?: string | null
+          is_seed?: boolean
+          order_id?: string
+          proposed_at?: string | null
+          proposed_by?: string | null
+          proposed_start?: string | null
+          reminded_hours?: number[]
+          seller_id?: string
+          seller_proposals?: number
+          slot_end?: string | null
+          slot_start?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+        ]
+      }
+      declutter_seller_delivery: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          is_seed: boolean
+          radius_miles: number
+          rate_cents: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          is_seed?: boolean
+          radius_miles: number
+          rate_cents: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          is_seed?: boolean
+          radius_miles?: number
+          rate_cents?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
         ]
       }
       declutter_seller_fee_debts: {
@@ -11740,6 +11916,7 @@ export type Database = {
         Args: { p_approve: boolean; p_item_id: string; p_note: string }
         Returns: string
       }
+      declutter_answer_delivery_time: { Args: { p_accept: boolean; p_order_id: string }; Returns: Json }
       declutter_apply_seller_fault: {
         Args: { p_include_committed?: boolean; p_refund_id: string }
         Returns: number
@@ -11778,6 +11955,8 @@ export type Database = {
         Returns: string
       }
       declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
+      declutter_buyer_cancel_delivery: { Args: { p_order_id: string }; Returns: Json }
+      declutter_buyer_fee_cents_seller_delivery: { Args: { p_delivery_cents: number; p_items_cents: number }; Returns: number }
       declutter_buyer_fee_cents_ship: {
         Args: { p_items_cents: number; p_shipping_cents: number }
         Returns: number
@@ -11850,6 +12029,7 @@ export type Database = {
       declutter_deadline_sweep: { Args: never; Returns: Json }
       declutter_delivery_compute: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
       declutter_delivery_on_task_event: { Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }; Returns: Json }
+      declutter_delivery_open_slots: { Args: { p_except_order: string; p_seller: string }; Returns: string[] }
       declutter_delivery_price_cents: { Args: { p_miles: number; p_sizes: string[] }; Returns: number }
       declutter_delivery_quote: { Args: { p_seller_id: string }; Returns: Json }
       declutter_delivery_refund: { Args: { p_order_id: string; p_reason: string }; Returns: string }
@@ -11858,6 +12038,9 @@ export type Database = {
       declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
       declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
+      declutter_delivery_slot_starts: { Args: { p_from: string; p_seller: string; p_to: string }; Returns: string[] }
+      declutter_delivery_slot_used: { Args: { p_except_order: string; p_seller: string; p_start: string }; Returns: number }
+      declutter_delivery_when: { Args: { p_at: string }; Returns: string }
       declutter_give_strike: {
         Args: {
           p_item: string
@@ -12046,6 +12229,7 @@ export type Database = {
           updated_at: string
         }[]
       }
+      declutter_my_seller_delivery: { Args: never; Returns: Json }
       declutter_my_wanted: {
         Args: never
         Returns: {
@@ -12128,6 +12312,7 @@ export type Database = {
           sales: number
         }[]
       }
+      declutter_propose_delivery_time: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
       declutter_record_ai_check: {
         Args: {
@@ -12199,6 +12384,7 @@ export type Database = {
       }
       declutter_remove_item_photo: { Args: { p_photo_id: string }; Returns: string }
       declutter_report_no_show: { Args: { p_order_id: string }; Returns: Json }
+      declutter_report_not_delivered: { Args: { p_order_id: string }; Returns: Json }
       declutter_report_problem: {
         Args: {
           p_note: string
@@ -12229,7 +12415,13 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_seller_cancel_delivery: { Args: { p_order_id: string }; Returns: Json }
       declutter_seller_cancel_sale: { Args: { p_item_id: string }; Returns: number }
+      declutter_seller_delivered: { Args: { p_order_id: string; p_photo_path: string }; Returns: Json }
+      declutter_seller_delivery_booking: { Args: { p_order_id: string }; Returns: Json }
+      declutter_seller_delivery_check: { Args: { p_buyer: string; p_lines: string[]; p_seller: string }; Returns: unknown }
+      declutter_seller_delivery_offer: { Args: { p_seller_id: string }; Returns: Json }
+      declutter_seller_delivery_rules: { Args: never; Returns: Json }
       declutter_seller_hidden: { Args: { p_seller: string }; Returns: boolean }
       declutter_seller_moving_sale: {
         Args: { p_seller_id: string }
@@ -12257,6 +12449,9 @@ export type Database = {
         Args: { p_refund_id: string }
         Returns: undefined
       }
+      declutter_set_delivery_handoff: { Args: { p_handoff: string; p_order_id: string }; Returns: string }
+      declutter_set_delivery_schedule: { Args: { p_days_off: string[]; p_windows: Json }; Returns: Json }
+      declutter_set_item_seller_delivery: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
         Returns: number
@@ -12275,6 +12470,7 @@ export type Database = {
         Args: { p_mode: string; p_order_id: string; p_until: string }
         Returns: undefined
       }
+      declutter_set_seller_delivery: { Args: { p_enabled: boolean; p_radius_miles: number; p_rate_cents: number }; Returns: Json }
       declutter_set_wanted_public: {
         Args: { p_public: boolean; p_wanted_id: string }
         Returns: boolean
@@ -12293,7 +12489,7 @@ export type Database = {
         Returns: boolean
       }
       declutter_start_checkout: {
-        Args: { p_handover: string; p_seller_id: string }
+        Args: { p_handoff?: string; p_handover: string; p_seller_id: string; p_slot_start?: string }
         Returns: {
           items_cents: number
           order_id: string

@@ -6,6 +6,7 @@ import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import { SHOPS_RPC_ERROR_COPY } from "@/lib/shops/rpcErrorCopy";
 import { HAUL_AWAY_RPC_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
+import { SELLER_DELIVERY_RPC_ERROR_COPY } from "@/lib/declutter/sellerDeliveryErrors";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -267,7 +268,9 @@ const HELPR = HELPR_TASK_RPC_ERROR_COPY as CopyTable;
 const SHOPS = SHOPS_RPC_ERROR_COPY as CopyTable;
 // Declutter haul-away's RPCs keep theirs in their own lazily loaded module (src/lib/declutter/haulAwayErrors.ts, Q178).
 const HAUL = HAUL_AWAY_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL };
+// Declutter seller delivery's, likewise (src/lib/declutter/sellerDeliveryErrors.ts, 20261021181258).
+const SELLER_DELIVERY = SELLER_DELIVERY_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...SELLER_DELIVERY };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
@@ -287,6 +290,12 @@ describe("the inventory still sees the world", () => {
     const names = Object.keys(HAUL_AWAY_RPC_ERROR_COPY);
     expect(names.length).toBeGreaterThan(2);
     expect(names.filter((n) => !/^declutter_.*haul_away/.test(n) || n in RPC_ERROR_COPY)).toEqual([]);
+  });
+
+  it("the seller-delivery table adds only its own RPCs, none also in RPC_ERROR_COPY", () => {
+    const names = Object.keys(SELLER_DELIVERY_RPC_ERROR_COPY);
+    expect(names.length).toBeGreaterThan(8);
+    expect(names.filter((n) => !/^declutter_/.test(n) || n in RPC_ERROR_COPY || n in HAUL_AWAY_RPC_ERROR_COPY)).toEqual([]);
   });
 
   it("no RPC is called with a name the inventory cannot read", () => {
@@ -315,7 +324,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

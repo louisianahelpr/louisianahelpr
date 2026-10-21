@@ -9,12 +9,12 @@
  * Behaviour (22 checks, 3x replay, migration skipped = RED, server check
  * planted off = RED, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
  *
- * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |         WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
+ * @mutate supabase/migrations/20261021181258_declutter_seller_delivery.sql |         WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN |   IF false THEN
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"]; | const order: Handover[] = ["pickup_home", "porch"];
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", | const order: Handover[] = ["pickup_home", "porch",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

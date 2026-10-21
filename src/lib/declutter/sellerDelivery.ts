@@ -13,7 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { rpcErrorMessage } from "./sellerDeliveryErrors";
 
-/** The [DEFAULT]s the owner confirms (see the SQL function of the same name). */
+/** The numbers the owner confirmed on 2026-10-22 (see the SQL function of the same name). */
 export const SELLER_DELIVERY_RULES = {
   rate_min_cents: 500,
   rate_max_cents: 15000,
@@ -27,6 +27,7 @@ export const SELLER_DELIVERY_RULES = {
   not_delivered_after_minutes: 15,
   auto_confirm_hours: 24,
   proposals_per_side: 3,
+  buyer_cancel_hours: 24,
   reminder_hours: [24, 1],
   timezone: "America/Chicago",
 } as const;
@@ -44,11 +45,15 @@ export type SellerDeliveryRules = {
   not_delivered_after_minutes: number;
   auto_confirm_hours: number;
   proposals_per_side: number;
+  buyer_cancel_hours: number;
   reminder_hours: readonly number[];
   timezone: string;
 };
 
 export type DeliveryWindow = { weekday: number; starts: string; ends: string };
+
+/** The buyer's choice at booking (owner 2026-10-22): left at the door with a photo, or handed to them. */
+export type DeliveryHandoff = "leave" | "hand";
 
 export type MySellerDelivery = {
   enabled: boolean;
@@ -87,6 +92,7 @@ export type SellerDeliveryBooking = {
   slot_end: string | null;
   delivery_cents: number;
   dropoff_area: string;
+  handoff: DeliveryHandoff;
   dropoff_address: string | null;
   proposed_start: string | null;
   proposed_by: "buyer" | "seller" | null;
@@ -96,6 +102,16 @@ export type SellerDeliveryBooking = {
   confirmed_at: string | null;
   not_delivered_from: string | null;
 };
+
+/**
+ * The checkout amounts with the seller's delivery: the buyer's fee counts the
+ * rate (declutter_buyer_fee_cents_seller_delivery, 5% of items + rate, + 70c,
+ * once), and the rate is its own line. The server's numbers are the ones charged.
+ */
+export function sellerDeliveryAmounts(itemsCents: number, rateCents: number): { premiumCents: number; totalCents: number } {
+  const premiumCents = Math.round((Math.max(0, itemsCents) + Math.max(0, rateCents)) * 0.05) + 70;
+  return { premiumCents, totalCents: itemsCents + premiumCents + rateCents };
+}
 
 /** A whole-dollar rate inside the caps (the server checks the same). */
 export function rateIsValid(cents: number, rules: SellerDeliveryRules = SELLER_DELIVERY_RULES): boolean {
@@ -190,6 +206,18 @@ export async function reportNotDelivered(orderId: string): Promise<void> {
 export async function sellerCancelDelivery(orderId: string): Promise<void> {
   data(await supabase.rpc("declutter_seller_cancel_delivery", { p_order_id: orderId }),
     (e) => rpcErrorMessage("declutter_seller_cancel_delivery", e));
+}
+
+/** The buyer cancels until 24 h before the slot: everything back except the card fee (owner 2026-10-22). */
+export async function buyerCancelDelivery(orderId: string): Promise<void> {
+  data(await supabase.rpc("declutter_buyer_cancel_delivery", { p_order_id: orderId }),
+    (e) => rpcErrorMessage("declutter_buyer_cancel_delivery", e));
+}
+
+/** The buyer's door choice after paying (owner 2026-10-22); the seller is told. */
+export async function setDeliveryHandoff(orderId: string, handoff: DeliveryHandoff): Promise<DeliveryHandoff> {
+  return data(await supabase.rpc("declutter_set_delivery_handoff", { p_order_id: orderId, p_handoff: handoff }),
+    (e) => rpcErrorMessage("declutter_set_delivery_handoff", e)) as DeliveryHandoff;
 }
 
 export async function proposeDeliveryTime(orderId: string, slotStart: string): Promise<"proposed" | "booked"> {

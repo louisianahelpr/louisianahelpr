@@ -33,8 +33,8 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     payer_id: user.id, |
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (off) return off; |
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (deliveryCents > 0) { |   if (false) {
- * @mutate supabase/functions/declutter-checkout/index.ts |         if (quoteErr) return rpcRefusal(quoteErr);\n      }\n      try { |         void quoteErr;\n      }\n      try {
- * @mutate supabase/functions/declutter-checkout/index.ts |   if ((handover === "delivery") !== (deliveryCents > 0)\n      \|\| | if (
+ * @mutate supabase/functions/declutter-checkout/index.ts |         if (quoteErr) return rpcRefusal(quoteErr);\n      }\n      if (handover === "seller_delivery") { |         void quoteErr;\n      }\n      if (handover === "seller_delivery") {
+ * @mutate supabase/functions/declutter-checkout/index.ts |   if (carriesDelivery !== (deliveryCents > 0)\n      \|\| | if (
  * @mutate supabase/functions/declutter-card/index.ts |   const refused = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (refused) return refused; |
  * @mutate supabase/functions/_shared/stripeMode.ts |   if (session.mode === "setup") return meta.kind === "declutter_card"; |   if (session.mode === "setup") return false;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,

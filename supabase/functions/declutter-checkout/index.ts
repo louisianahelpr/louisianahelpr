@@ -40,9 +40,10 @@
  *                delivery; then declutter_seller_delivery_offer AS THE BUYER
  *                answers: available or why not, the seller's rate, the open
  *                times. Nothing is charged and no distance is returned.
- *   pay with handover 'seller_delivery' and slot_start (an ISO time from the
- *                offer's slots): declutter_start_checkout holds the slot and
- *                freezes the rate; the rate is its own "Seller delivery" line.
+ *   pay with handover 'seller_delivery', slot_start (an ISO time from the
+ *                offer's slots) and handoff ('leave' | 'hand', the buyer's door
+ *                choice): declutter_start_checkout holds the slot and freezes
+ *                the rate; the rate is its own "Seller delivery" line.
  *
  * Row 62: no switch check for pay/cancel_sale. Both only finish a sale that was
  * already agreed; starting anything new (offer, Buy, a card, a delivery) needs
@@ -116,10 +117,10 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
   }
 }
 
-async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
-  // p_slot_start only for a seller delivery: every other call is the same call as before.
+async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null, handoff: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
+  // p_slot_start and p_handoff only for a seller delivery: every other call is the same call as before.
   const args = handover === "seller_delivery"
-    ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart }
+    ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart, p_handoff: handoff }
     : { p_seller_id: sellerId, p_handover: handover };
   const { data, error } = await asBuyer.rpc("declutter_start_checkout", args);
   if (error) return { refusal: rpcRefusal(error) };
@@ -160,6 +161,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // Seller delivery: the chosen slot, an ISO time; the RPC checks it is one of the open ones.
   const slotStart = handover === "seller_delivery" ? isoTime(body.slot_start) : null;
   if (handover === "seller_delivery" && !slotStart) return json({ error: "slot_unavailable" }, 400);
+  // The buyer's door choice (owner 2026-10-22): "leave" it at the door, or "hand" it to me.
+  const handoff = handover === "seller_delivery" && (body.handoff === "leave" || body.handoff === "hand") ? body.handoff : null;
+  if (handover === "seller_delivery" && !handoff) return json({ error: "invalid_handoff" }, 400);
   const native = isNativeRequest(body);
 
   const mode = await stripeModeForParties(admin, [user.id, sellerId]);
@@ -183,10 +187,23 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     return json({ error: TRY_AGAIN }, 503);
   }
   const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null } | null;
+  // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
+  // too, so its page is closed first exactly as for a changed handover.
+  let slotChanged = false;
+  if (open && handover === "seller_delivery" && open.handover === "seller_delivery") {
+    const { data: held, error: heldErr } = await admin.from("declutter_seller_deliveries")
+      .select("slot_start").eq("order_id", open.id).maybeSingle();
+    if (heldErr) {
+      console.error(`[declutter-checkout] held slot read failed: ${heldErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const heldAt = (held as { slot_start?: string | null } | null)?.slot_start;
+    slotChanged = !heldAt || Date.parse(heldAt) !== Date.parse(slotStart!);
+  }
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
-    if (page.status === "open" && open.handover !== handover) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged)) {
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);
@@ -214,7 +231,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     }
   }
 
-  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart);
+  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff);
   if (refusal) return refusal;
 
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
@@ -230,7 +247,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       console.error(`[declutter-checkout] retire failed: ${retireErr.message}`);
       return json({ error: TRY_AGAIN }, 503);
     }
-    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart));
+    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff));
     if (refusal) return refusal;
   }
   const order = row!;

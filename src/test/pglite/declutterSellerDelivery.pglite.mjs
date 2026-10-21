@@ -142,8 +142,10 @@ const buy = (uid, n, cents) => me(uid, `SELECT public.declutter_buy_now('${I(n)}
 const setDrop = (buyer, seller, p = NEAR) =>
   svc(`SELECT public.declutter_set_delivery_dropoff('${buyer}', '${seller}', '500 Drop Rd, Baton Rouge, LA 70805', 'North Baton Rouge', ${p.lat}, ${p.lng})`);
 const offer = async (uid, seller) => one(await me(uid, `SELECT public.declutter_seller_delivery_offer('${seller}')`));
-const checkout = (uid, seller, handover, slotIso) =>
-  me(uid, `SELECT * FROM public.declutter_start_checkout('${seller}', '${handover}'${slotIso === undefined ? "" : `, '${slotIso}'`})`);
+const lit = (v) => (v === null ? "NULL" : `'${v}'`);
+// A seller delivery passes its time and the buyer's door choice ('leave' by default here).
+const checkout = (uid, seller, handover, slotIso, handoff = "leave") =>
+  me(uid, `SELECT * FROM public.declutter_start_checkout('${seller}', '${handover}'${slotIso === undefined ? "" : `, ${lit(slotIso)}, ${lit(handoff)}`})`);
 const order = async (id) => (await svc(`SELECT * FROM public.declutter_orders WHERE id = '${id}'`))[0];
 const sd = async (id) => (await svc(`SELECT * FROM public.declutter_seller_deliveries WHERE order_id = '${id}'`))?.[0];
 const markPaid = (o, tag) => svc(`SELECT public.declutter_mark_order_paid('${o?.order_id}', 'pi_sd_${tag}', ${o?.total_cents}, now(), 150)`);
@@ -158,7 +160,7 @@ ok(one(await svc(`SELECT audience FROM public.feature_switches WHERE key = 'decl
 const rules = one(await svc(`SELECT public.declutter_seller_delivery_rules()`));
 ok(rules?.rate_min_cents === 500 && rules.rate_max_cents === 15000 && rules.slot_minutes === 60 && rules.lead_hours === 24
   && rules.horizon_days === 14 && rules.per_slot === 1 && rules.radius_default_miles === 10
-  && JSON.stringify(rules.radius_choices_miles) === "[5,10,25,50]", "the [DEFAULT] rules: $5-$150, 5/10/25/50 mi (10), 1 h slots, 24 h to 14 days, 1 per slot");
+  && JSON.stringify(rules.radius_choices_miles) === "[5,10,25,50]", "the owner's rules (2026-10-22): $5-$150, 5/10/25/50 mi (10), 1 h slots, 24 h to 14 days, 1 per slot");
 ok(one(await svc(`SELECT public.declutter_buyer_fee_cents_seller_delivery(5000, 2000)`)) === 420,
   "the buyer's fee counts the rate: 5% of ($50 + $20) + 70c = $4.20");
 ok(refused(await me(SELLER, `SELECT public.declutter_my_seller_delivery()`), /feature_disabled/),
@@ -224,7 +226,9 @@ await me(SELLER, `SELECT public.declutter_set_seller_delivery(true, ${RATE}, 10)
 ok(refused(await me(OUTSIDER, `SELECT public.declutter_seller_delivery_offer('${SELLER}')`), /feature_disabled/), "an ordinary account gets no offer");
 
 // 4. Checkout with seller delivery: the slot, the rate, the fee, the hold.
-ok(refused(await checkout(BUYER, SELLER, "seller_delivery"), /slot_unavailable/), "no time picked: refused");
+ok(refused(await checkout(BUYER, SELLER, "seller_delivery", null), /slot_unavailable/), "no time picked: refused");
+ok(refused(await checkout(BUYER, SELLER, "seller_delivery", S1, null), /invalid_handoff/), "no door choice (leave it / hand it to me): refused");
+ok(refused(await checkout(BUYER, SELLER, "seller_delivery", S1, "porch"), /invalid_handoff/), "an unknown door choice: refused");
 ok(refused(await checkout(BUYER, SELLER, "seller_delivery", iso(Date.now() + 3600e3)), /slot_unavailable/), "a time 1 h from now (not open): refused");
 ok(refused(await me(OUTSIDER, `SELECT * FROM public.declutter_start_checkout('${SELLER}', 'seller_delivery', '${S1}')`), /feature_disabled|cart_empty/),
   "an ordinary account cannot check out with seller delivery");
@@ -237,11 +241,22 @@ const h1 = o1 && await sd(o1.order_id);
 ok(h1?.status === "held" && iso(h1.slot_start) === iso(S1) && iso(h1.slot_end) === iso(Date.parse(S1) + 3600e3)
   && Date.parse(h1.held_until) > Date.now() + 30 * 60e3 && Date.parse(h1.held_until) < Date.now() + 40 * 60e3,
   "the slot is HELD for the page's life (about 35 min), 1 hour long");
-ok(h1?.dropoff_address === "500 Drop Rd, Baton Rouge, LA 70805", "the drop-off is frozen with the order");
-const o1b = (await checkout(BUYER, SELLER, "seller_delivery", S1))?.[0];
-ok(!!o1 && o1b?.order_id === o1.order_id, "the same checkout again returns the same open order (idempotent)");
+ok(h1?.dropoff_address === "500 Drop Rd, Baton Rouge, LA 70805" && h1.handoff === "leave", "the drop-off and the buyer's door choice are frozen with the order");
+const o1bRaw = await checkout(BUYER, SELLER, "seller_delivery", S1, "hand");
+const o1b = o1bRaw?.[0];
+ok(!!o1 && o1b?.order_id === o1.order_id, `the same checkout again returns the same open order (idempotent)${o1b ? "" : `: ${JSON.stringify(o1bRaw)}`}`);
+ok((await sd(o1?.order_id))?.handoff === "hand", "a changed door choice is updated on the open order (no new order: no money moves)");
 const ofHeld = await offer(BUYER, SELLER);
 ok(!!S1 && ofHeld?.slots?.includes(S1) && iso(ofHeld.held_slot) === iso(S1), "the buyer still sees their own held time as open, and as held");
+// lh-money-escrow review #1: an order handed back with no page yet re-arms its hold (its new page lives 31 min from now).
+await svc(`UPDATE public.declutter_seller_deliveries SET held_until = now() + interval '1 minute' WHERE order_id = '${o1?.order_id}'`);
+await checkout(BUYER, SELLER, "seller_delivery", S1);
+ok(Date.parse((await sd(o1?.order_id))?.held_until) > Date.now() + 30 * 60e3, "no page attached yet: checking out again re-arms the hold");
+await svc(`UPDATE public.declutter_orders SET stripe_checkout_session_id = 'cs_test_sd1' WHERE id = '${o1?.order_id}'`);
+await svc(`UPDATE public.declutter_seller_deliveries SET held_until = now() + interval '5 minutes' WHERE order_id = '${o1?.order_id}'`);
+const o1page = (await checkout(BUYER, SELLER, "seller_delivery", S1))?.[0];
+ok(o1page?.checkout_session_id === "cs_test_sd1" && Date.parse((await sd(o1?.order_id))?.held_until) < Date.now() + 6 * 60e3,
+  "with a page attached, the hold is not stretched (the page dies first)");
 ok(refused(await svc(`UPDATE public.declutter_orders SET delivery_cents = 500 WHERE id = '${o1?.order_id}'`), /order_amounts_frozen/),
   "the rate is frozen on the order");
 ok(refused(await svc(`INSERT INTO public.declutter_orders (buyer_id, seller_id, handover, items_cents, premium_cents, tax_cents, delivery_cents, total_cents)
@@ -272,6 +287,8 @@ ok(one(pLate)?.result === "paid" && (await order(o1c?.order_id))?.status === "pa
 const dLate = await sd(o1c?.order_id);
 ok(dLate?.status === "needs_time" && dLate.slot_start === null, "its delivery needs a new time (the slot is the other buyer's)");
 ok(await notes(BUYER, "Pick a new delivery time") === 1, "and the buyer is told to pick a new time");
+ok(refused(await me(SELLER, `SELECT public.declutter_seller_cancel_delivery('${o1c?.order_id}')`), /not_reschedulable/),
+  "while the buyer re-picks a lost time, the seller cannot make it a seller-fault cancel (review #2: report a problem)");
 const p2 = await markPaid(o2, "o2");
 ok(one(p2)?.result === "paid" && (await sd(o2?.order_id))?.status === "booked", "a payment inside the hold books the slot");
 ok(await notes(SELLER, "Delivery booked") === 1, "the seller is told the time and area");
@@ -347,16 +364,48 @@ const ref4 = (await svc(`SELECT * FROM public.declutter_refunds WHERE order_id =
 ok(ref4?.reason === "seller_backed_out" && ref4.fee_policy === "full_seller_pays_fee" && ref4.refund_cents === 4000 + FEE(4000, 1500) + 1500,
   `seller cancels: the buyer gets all $${((ref4?.refund_cents ?? 0) / 100).toFixed(2)} back; the seller pays the card fee`);
 
+// 9b. The buyer cancels for their own reason (owner 2026-10-22): until 24 h before the slot,
+// everything back except the card fee; no strike; the items go back on sale; the slot is free.
+await item(7, SELLER, 1500);
+await buy(BUYER3, 7, 1500);
+await setDrop(BUYER3, SELLER, NEAR);
+const T7 = (await offer(BUYER3, SELLER))?.slots?.[6];
+const o7 = (await checkout(BUYER3, SELLER, "seller_delivery", T7))?.[0];
+await markPaid(o7, "o7");
+const strikesBefore7 = one(await svc(`SELECT count(*)::int FROM public.declutter_strikes WHERE user_id = '${BUYER3}'`));
+ok(refused(await me(SELLER, `SELECT public.declutter_buyer_cancel_delivery('${o7?.order_id}')`), /wrong_side/), "only the buyer uses the buyer's cancel");
+await svc(`UPDATE public.declutter_seller_deliveries SET slot_start = now() + interval '23 hours', slot_end = now() + interval '24 hours' WHERE order_id = '${o7?.order_id}'`);
+ok(refused(await me(BUYER3, `SELECT public.declutter_buyer_cancel_delivery('${o7?.order_id}')`), /cancel_window_closed/),
+  "less than 24 h before the delivery: no cancel (Report a problem only)");
+await svc(`UPDATE public.declutter_seller_deliveries SET slot_start = now() + interval '48 hours', slot_end = now() + interval '49 hours' WHERE order_id = '${o7?.order_id}'`);
+await me(BUYER3, `SELECT public.declutter_buyer_cancel_delivery('${o7?.order_id}')`);
+const r7 = await order(o7?.order_id);
+const ref7 = (await svc(`SELECT * FROM public.declutter_refunds WHERE order_id = '${o7?.order_id}'`))?.[0];
+ok(r7?.status === "refunded" && ref7?.reason === "buyer_cancelled" && ref7.fee_policy === "keep_card_fee"
+  && ref7.paid_cents === r7.total_cents && ref7.refund_cents === r7.total_cents - 150 && r7.delivery_cents === RATE,
+  `the buyer cancels 2 days ahead: $${((ref7?.refund_cents ?? 0) / 100).toFixed(2)} of $${((r7?.total_cents ?? 0) / 100).toFixed(2)} back (items + delivery, less the $1.50 card fee)`);
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_strikes WHERE user_id = '${BUYER3}'`)) === strikesBefore7, "no strike for the buyer");
+ok((await sd(o7?.order_id))?.status === "cancelled" && one(await svc(`SELECT status FROM public.declutter_items WHERE id = '${I(7)}'`)) === "live",
+  "the slot is free again and the item is back on sale");
+
 // 10. A new time: propose, accept, a time taken meanwhile, the cap.
 await item(5, SELLER2, 2500);
 await buy(BUYER2, 5, 2500);
 await setDrop(BUYER2, SELLER2, NEAR);
 const o5s = (await offer(BUYER2, SELLER2))?.slots ?? [];
-const o5 = (await checkout(BUYER2, SELLER2, "seller_delivery", o5s[0]))?.[0];
+const o5 = (await checkout(BUYER2, SELLER2, "seller_delivery", o5s[0], "hand"))?.[0];
 await markPaid(o5, "o5");
+ok(one(await me(SELLER2, `SELECT public.declutter_seller_delivery_booking('${o5?.order_id}')`))?.handoff === "hand"
+  && await notes(SELLER2, "Delivery booked") >= 1, "the seller sees the buyer wants it handed to them");
+ok(refused(await me(SELLER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'leave')`), /wrong_side/), "only the buyer changes the door choice");
+ok(one(await me(BUYER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'leave')`)) === "leave"
+  && await notes(SELLER2, "Delivery changed") === 1, "the buyer changes it after paying; the seller is told");
+await me(BUYER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'hand')`);
 ok(refused(await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${o5?.order_id}', '${iso(Date.now() + 3600e3)}')`), /slot_unavailable/),
   "a proposed time must be one of the seller's open times");
 ok(one(await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${o5?.order_id}', '${o5s[1]}')`))?.result === "proposed", "the buyer proposes a new time");
+await me(BUYER2, `SELECT public.declutter_propose_delivery_time('${o5?.order_id}', '${o5s[1]}')`);
+ok((await sd(o5?.order_id))?.buyer_proposals === 1, "a double tap on the same time uses one request, not two");
 ok(refused(await me(BUYER2, `SELECT public.declutter_answer_delivery_time('${o5?.order_id}', true)`), /wrong_side/), "the proposer cannot accept their own");
 ok(one(await me(SELLER2, `SELECT public.declutter_answer_delivery_time('${o5?.order_id}', true)`))?.result === "moved"
   && iso((await sd(o5?.order_id))?.slot_start) === iso(o5s[1]), "the seller accepts: the delivery moves");
@@ -380,10 +429,14 @@ ok(one(await me(BUYER, `SELECT public.declutter_propose_delivery_time('${o1c?.or
 
 // 11. The sweep: auto-pay 24 h after the photo; never the 7-day pickup no-show; reminders.
 await svc(`UPDATE public.declutter_seller_deliveries SET slot_start = now() - interval '30 hours', slot_end = now() - interval '29 hours', proposed_start = NULL, proposed_by = NULL WHERE order_id = '${o5?.order_id}'`);
-await svc(`UPDATE public.declutter_handovers SET set_out_photo_path = '${SELLER2}/declutter/handover/${o5?.order_id}/d.jpg', set_out_at = now() - interval '25 hours' WHERE order_id = '${o5?.order_id}'`);
+const handed5 = await me(SELLER2, `SELECT public.declutter_seller_delivered('${o5?.order_id}', NULL)`);
+ok(one(handed5)?.result === "delivered", `"Hand it to me": the seller marks it handed over without a photo${one(handed5) ? "" : `: ${JSON.stringify(handed5)}`}`);
+ok(refused(await me(BUYER2, `SELECT public.declutter_set_delivery_handoff('${o5?.order_id}', 'leave')`), /not_reschedulable/),
+  "after the seller's mark the door choice is fixed");
+await svc(`UPDATE public.declutter_seller_deliveries SET delivered_at = now() - interval '25 hours' WHERE order_id = '${o5?.order_id}'`);
 await svc(`UPDATE public.declutter_orders SET paid_at = now() - interval '8 days' WHERE id = '${o1c?.order_id}'`);
 const sw = one(await svc(`SELECT public.declutter_handover_sweep()`));
-ok((await order(o5?.order_id))?.status === "handed_over" && sw?.delivery_auto_paid === 1, "24 h after the 'Delivered' photo the sweep pays the seller");
+ok((await order(o5?.order_id))?.status === "handed_over" && sw?.delivery_auto_paid === 1, "24 h after the seller's mark (no photo needed when handed over) the sweep pays the seller");
 const pay5 = (await svc(`SELECT * FROM public.declutter_payouts WHERE order_id = '${o5?.order_id}'`))?.[0];
 ok(pay5?.delivery_cents === 1500 && pay5.debt_cents === 150 && pay5.amount_cents === 2500 + 1500 - 150,
   "auto-pay pays items + rate too, less the $1.50 card fee this seller owed from the cancel (the debt cap counts the rate)");
@@ -403,7 +456,9 @@ ok(await notes(BUYER, "Delivery coming up") === 2, "the buyer got exactly two re
 const memberFns = ["declutter_my_seller_delivery()", "declutter_set_seller_delivery(boolean,integer,integer)", "declutter_set_delivery_schedule(jsonb,date[])",
   "declutter_set_item_seller_delivery(uuid,boolean)", "declutter_seller_delivery_offer(uuid)", "declutter_seller_delivery_booking(uuid)",
   "declutter_seller_delivered(uuid,text)", "declutter_report_not_delivered(uuid)", "declutter_seller_cancel_delivery(uuid)",
-  "declutter_propose_delivery_time(uuid,timestamptz)", "declutter_answer_delivery_time(uuid,boolean)", "declutter_start_checkout(uuid,text,timestamptz)"];
+  "declutter_propose_delivery_time(uuid,timestamptz)", "declutter_answer_delivery_time(uuid,boolean)", "declutter_set_delivery_handoff(uuid,text)",
+  "declutter_buyer_cancel_delivery(uuid)",
+  "declutter_start_checkout(uuid,text,timestamptz,text)"];
 const internalFns = ["declutter_delivery_slot_starts(uuid,timestamptz,timestamptz)", "declutter_delivery_slot_used(uuid,timestamptz,uuid)",
   "declutter_delivery_open_slots(uuid,uuid)", "declutter_seller_delivery_check(uuid,uuid,uuid[])", "declutter_delivery_when(timestamptz)",
   "declutter_seller_delivery_on_order()", "declutter_seller_delivery_seed()"];

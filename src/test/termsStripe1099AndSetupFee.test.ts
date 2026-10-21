@@ -29,7 +29,16 @@ const terms = blankComments(
   readFileSync(resolve(__dirname, "../pages/info/legal/TermsSection.tsx"), "utf8"),
 );
 /** The Terms' visible words: JSX tags dropped, whitespace collapsed. */
-const words = terms.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
+function stripTags(src: string): string {
+  // Until nothing changes (CodeQL js/incomplete-multi-character-sanitization): one pass can leave a tag behind.
+  let out = src;
+  for (let prev = ""; prev !== out; ) {
+    prev = out;
+    out = out.replace(/<[^>]+>/g, "");
+  }
+  return out;
+}
+const words = stripTags(terms).replace(/\s+/g, " ");
 
 function feeModelRow(): string {
   const start = terms.indexOf('title="Fee model"');

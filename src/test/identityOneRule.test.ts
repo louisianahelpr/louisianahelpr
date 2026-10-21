@@ -70,6 +70,10 @@ const TS_ALLOWED: Record<string, string> = {
     "deploy-order fallback only: used when is_identity_verified answers PGRST202 (not deployed yet); the normal path is the rule",
   "supabase/functions/_shared/connectGateSync.ts :: stripe_identity_verified === true":
     "Stripe Connect sync: re-reads Stripe's own KYC facts for accounts whose cached Connect flags are not both true (Stripe's payout requirements, never bypassed)",
+  "supabase/functions/_shared/connectGateSync.ts :: stripe_identity_verified !== true":
+    "not a gate: stamps stripe_identity_verified_at only on the first transition into verified, so the column keeps the first date (2026-10-21)",
+  "supabase/functions/stripe-webhook/handlers/accountUpdated.ts :: stripe_identity_verified !== true":
+    "not a gate: the same first-date stamp on account.updated (identityVerifiedAtKeepsFirstDate)",
 };
 
 function sqlHits(): string[] {

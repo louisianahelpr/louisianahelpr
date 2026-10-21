@@ -166,7 +166,8 @@ export async function handleAccountUpdated(
         stripe_payouts_enabled: payoutsEnabled,
         // Stamp only on the transition INTO verified; clearing leaves the
         // historical timestamp alone rather than pretending it never happened.
-        ...(identityVerified ? { stripe_identity_verified_at: new Date().toISOString() } : {}),
+        // (2026-10-21) It said so but stamped on EVERY verified delivery; now only when it was not verified before.
+        ...(identityVerified && helperProfile.stripe_identity_verified !== true ? { stripe_identity_verified_at: new Date().toISOString() } : {}),
       })
       .eq("user_id", helperProfile.user_id)
       .eq("stripe_account_id", account.id)

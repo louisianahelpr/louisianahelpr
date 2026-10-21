@@ -19,6 +19,8 @@ import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
+import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
+import { needsIdentityCheck } from "@/lib/identityCheck";
 
 function greeting(d = new Date()) {
   const h = d.getHours();
@@ -101,6 +103,11 @@ function HomeDashboardScreen() {
           <div data-home-main className="flex flex-col gap-section min-w-0">
             {/* Board 143: a failed bank payout, first under the greeting; renders nothing unless one is open. */}
             <PayoutFailedCard />
+
+            {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
+            {needsIdentityCheck(profile) && (summary.counts.posted > 0 || summary.counts.working > 0) && (
+              <IdentityPromptCard idvStatus={profile?.idv_status} />
+            )}
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {

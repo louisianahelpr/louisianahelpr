@@ -20,6 +20,8 @@ const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = 
   { match: /^Maximum budget is \$/, copy: `A job can be up to ${formatDollarsWhole(MAX_JOB_BUDGET_DOLLARS)}. Split a bigger project into separate jobs.` },
   { match: /maximum of 5 open jobs at a time/, copy: "You can have up to 5 open jobs at a time. Close one, or wait for one to be booked, then try again." },
   { match: /^email_unconfirmed\b/, copy: "Confirm your email address first: open the link we emailed you, then try again." },
+  // 20261021081258: Stripe Identity before a post (the quote's job is a post); api.ts also opens the ID sheet.
+  { match: /^identity_required_to_post\b/, copy: "Verify your ID with Stripe first. It takes about 2 minutes, once; then book again." },
 ];
 
 /** The member-facing words for a quote RPC failure (or the escrow checkout's refusal). */

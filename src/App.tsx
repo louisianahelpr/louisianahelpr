@@ -88,6 +88,11 @@ const PermissionRationaleDialog = lazy(() =>
 const TermsReconsentDialog = lazy(() =>
   import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog }))
 );
+// The one Stripe Identity sheet (owner 2026-10-21): opened from any entry
+// point through openIdentityCheck(), and by /…?verify_id=1 and Stripe's return.
+const IdentityCheckHost = lazy(() =>
+  import("@/components/identity/IdentityCheckSheet").then((m) => ({ default: m.IdentityCheckHost }))
+);
 
 // Lazy load all pages including landing
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
@@ -542,6 +547,7 @@ const App = () => (
             <DesktopTopNav />
             <PermissionRationaleDialog />
             <TermsReconsentDialog />
+            <IdentityCheckHost />
           </Suspense>
           </SidePanelProvider>
           <SpeedInsightsRouted />

@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
 import { toast } from "sonner";
@@ -731,6 +732,15 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         jobData = retry.data;
         error = retry.error;
       }
+    }
+
+    // Stripe Identity before a post (20261021081258): open the one ID sheet,
+    // not an error toast. Nothing was written; the form keeps every field.
+    if (error && identityRefusal(error) === "post") {
+      openIdentityCheck("post");
+      setSaving(false);
+      submittingRef.current = false;
+      return;
     }
 
     if (error || !jobData) {

@@ -22,6 +22,7 @@ import { trackingProofCaption } from "./trackingProofCaption";
 import { report } from "@/lib/errorLogger";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
 import { BEFORE_PHOTO_GATE_REASON, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
@@ -1034,6 +1035,7 @@ export function JobTracking({
       if (arrivalErr) {
         const refusal = arrivalRefusalFromError(arrivalErr);
         hapticError();
+        if (identityRefusal(arrivalErr)) { openIdentityCheck("start"); setUpdating(false); return; } // Stripe Identity first (20261021081258)
         if (refusal) {
           // LEGACY ONLY — the live RPC raises none of these any more. A queued
           // request answered by the previous definition still can, and it
@@ -1219,17 +1221,12 @@ export function JobTracking({
 
     // ON THE WAY IS ONE TRANSACTION, NOT THREE WRITES.
     //
-    // This transition used to be three sequential client writes (tracking
-    // upsert, jobs.status = in_progress, jobs.helper_on_the_way_at) — a run
-    // interrupted after write #2 left status = in_progress with NO tracking
-    // row and NO departure stamp (proven live 2026-08-28, job db21c20d). The
-    // RPC does all three atomically, validates the caller is the confirmed
-    // helper server-side, and — because status + timestamp land in ONE jobs
-    // update — the notify trigger fires once instead of twice.
+    // It used to be three client writes (tracking upsert, jobs.status = in_progress, helper_on_the_way_at); a run
+    // interrupted after write #2 left in_progress with NO tracking row or departure stamp (live 2026-08-28, job
+    // db21c20d). The RPC does all three atomically, checks the caller is the confirmed helper, and (status + stamp in
+    // ONE jobs update) the notify trigger fires once instead of twice.
     //
-    // PGRST202 fallback: merge→deploy window for a brand-new RPC (same
-    // pattern as mark_helper_arrival above); the legacy sequence stays as
-    // the fallback body below.
+    // PGRST202 fallback: merge→deploy window for a brand-new RPC (as mark_helper_arrival above); legacy sequence below.
     let onTheWayAtomic = false;
     if (newStatus === "on_the_way") {
       const { error: otwErr } = await supabase.rpc("helper_mark_on_the_way", {
@@ -1240,6 +1237,9 @@ export function JobTracking({
       if (!otwErr) {
         onTheWayAtomic = true;
         setJobStamps((prev) => ({ ...prev, onTheWayAt: prev.onTheWayAt ?? now }));
+      } else if (identityRefusal(otwErr)) {
+        // Stripe Identity first (20261021081258): nothing was written; the ID sheet, not a toast.
+        hapticError(); openIdentityCheck("start"); setUpdating(false); setTracking(trackingBeforeWrite); return;
       } else if (otwErr.code !== "PGRST202") {
         report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
         hapticError();

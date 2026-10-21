@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { offerIdentityCheckAfterConfirm } from "@/lib/identityCheck";
 import { NudgeConfirmLink } from "@/components/job-card/NudgeConfirmLink";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -111,9 +112,7 @@ export function JobConfirmation({
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [localConfirmedAt, setLocalConfirmedAt] = useState<string | null>(null);
-  // A minute tick, so the "opens in" clock below actually counts. Without it
-  // the card renders once when the list mounts and then sits on a stale number
-  // for as long as the screen is open.
+  // A minute tick, so the "opens in" clock below actually counts (else it sits on a stale number).
   const [tick, setTick] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 60_000);
@@ -216,8 +215,7 @@ export function JobConfirmation({
       </>
     ) : null;
     if (hideNotYetOpen) return waitingPrimary;
-    // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the
-    // two DST days.
+    // The shared helper, not midnight minus 24h: that is 23:00 or 01:00 on the two DST days.
     const opensAt = new Date(opensMs);
     const minsUntilOpen = Math.max(0, Math.round((opensAt.getTime() - now.getTime()) / 60_000));
     const d = Math.floor(minsUntilOpen / 1440);
@@ -314,6 +312,7 @@ export function JobConfirmation({
       hapticSuccess();
       setLocalConfirmedAt(new Date().toISOString());
       onConfirm?.();
+      if (!isOwner) void offerIdentityCheckAfterConfirm(); // confirm, THEN Stripe Identity, then On the way
       // Notify the other party
       const { data: job, error: jobFetchErr } = await supabase.from("jobs").select("title, customer_id, helper_id").eq("id", jobId).single();
       if (jobFetchErr) {

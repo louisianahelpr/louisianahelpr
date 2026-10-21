@@ -1,11 +1,20 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
-import { helperTakeHomeDollars } from "@/lib/helperEarnings";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
+import { posterPaidDollars } from "@/lib/posterJobCost";
+
+/**
+ * One member's money, each fact from its own record (owner 2026-10-21: "$94
+ * moved" for a Helpr who had worked no job was false; his $100 was HELD on a
+ * job not yet done):
+ *  - paidOutCents  what Stripe actually transferred to them (payout_transfers, status paid);
+ *  - heldCents     their share of the budget held in escrow on jobs they are hired on and not yet paid out;
+ *  - chargedCents  what they were charged as the poster (posterPaidDollars on captured jobs).
+ */
+export interface MemberMoney { paidOutCents: number; heldCents: number; chargedCents: number }
 
 /**
  * Per-user supplemental data for the admin user list — ratings, strikes,
@@ -39,7 +48,10 @@ export function useAdminUserSummaries() {
   // is aria-busy until then, so nothing reads a half-filled row as final.
   const [summariesSettled, setSummariesSettled] = useState(false);
   // Per-user pay totals: earned (as helper) + spent (as poster)
+  // Money that really moved (paid out + charged), dollars: the money sort's key.
   const [paySummary, setPaySummary] = useState<Record<string, number>>({});
+  // `null` = NOT KNOWN (not loaded, or a read failed), never "no money"; see strikesSummary.
+  const [moneySummary, setMoneySummary] = useState<Record<string, MemberMoney> | null>(null);
   // Per-user rating summary: { avg, count }
   const [ratingSummary, setRatingSummary] = useState<Record<string, { avg: number; count: number }>>({});
   // Per-user completed jobs (helper or poster)
@@ -121,45 +133,58 @@ export function useAdminUserSummaries() {
 
   const loadPaySummary = async (userIds: string[]) => {
     if (userIds.length === 0) return;
-    // `payment_status IN (escrow, payout_pending, released)` is money that has
-    // MOVED — it includes escrow still held on jobs that are `open` or
-    // `in_progress` and may yet be cancelled or refunded. That is a legitimate
-    // thing for an operator to see, but it is NOT lifetime value, and pairing it
-    // with a jobs chip counting only `status = 'completed'` put two different
-    // denominators side by side in one row: the e2e helper (437de07d) has ONE
-    // completed job and FIVE money-bearing ones, so the row read "1 job · $479"
-    // — a figure four fifths of which is in-flight escrow on jobs nobody has
-    // finished. The chip is now labelled for what this query actually returns
-    // (see AdminUserRow), so the number and its noun agree.
-    const [{ data, error }, giftCardPaid] = await Promise.all([
+    const [{ data, error }, giftCardPaid, transfers, crew] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, status, payment_status")
+        .select("id, stripe_payment_intent_id, helper_id, customer_id, budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount, urgent_fee, is_group_job, helpers_needed, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, status, payment_status")
         .or(userIds.map((id) => `helper_id.eq.${id},customer_id.eq.${id}`).join(","))
         .in("payment_status", [...CAPTURED_PAYMENT_STATUSES]),
       loadGiftCardPaidJobIds(),
+      // What Stripe really sent each Helpr (admins read every transfer).
+      supabase.from("payout_transfers").select("helper_id, amount_cents, job_id").in("helper_id", userIds).eq("status", "paid"),
+      // Crew members: a crew job has no single helper_id (Q407); its roster names them.
+      supabase.from("group_job_helpers").select("helper_id, job_id, share_cents, jobs(budget, helpers_needed, payment_status, stripe_payment_intent_id)").in("helper_id", userIds),
     ]);
-    if (error) { console.error("[useAdminUserSummaries] loadPaySummary:", error); return; }
-    if (giftCardPaid.error) { console.error("[useAdminUserSummaries] loadPaySummary gift cards:", giftCardPaid.error); return; }
-    if (!data) return;
-    const totals: Record<string, number> = {};
+    const failed = error ?? giftCardPaid.error ?? transfers.error ?? crew.error;
+    if (failed || !data) {
+      if (failed) console.error("[useAdminUserSummaries] loadPaySummary:", failed);
+      setMoneySummary(null); // unknown, so no chip claims a total
+      return;
+    }
+    const money: Record<string, MemberMoney> = {};
+    const of = (id: string) => (money[id] ??= { paidOutCents: 0, heldCents: 0, chargedCents: 0 });
+    const paidJobs = new Set<string>();
+    for (const t of transfers.data ?? []) {
+      if (!t.helper_id) continue; // a redacted (deleted) Helpr's row names nobody here
+      of(t.helper_id).paidOutCents += Number(t.amount_cents) || 0;
+      if (t.job_id) paidJobs.add(`${t.job_id}:${t.helper_id}`);
+    }
     // Q233: a held status without a PaymentIntent is a row nobody charged,
     // unless a gift card paid it (Q443).
     for (const j of withGiftCardPaid(data, giftCardPaid.ids).filter(isCapturedPayment)) {
-      const budget = Number(j.budget) || 0;
-      if (j.helper_id && userIds.includes(j.helper_id)) {
-        // ONE take-home formula (helperEarnings.ts, Q765): roster split, the
-        // stamped fee on a released row, and the net urgent bonus. The fallback
-        // is the row's own stamped rate (legacy 10% only when unstamped);
-        // `??`-semantics keep a stamped 0% comped job at 0%.
-        totals[j.helper_id] = (totals[j.helper_id] || 0)
-          + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent));
+      if (j.helper_id && userIds.includes(j.helper_id) && !paidJobs.has(`${j.id}:${j.helper_id}`)) {
+        // Their budget share still owed to them: in escrow, or released but not
+        // yet transferred (money review: it must not vanish). Not a take-home promise.
+        of(j.helper_id).heldCents += Math.round((Number(j.budget) || 0) * 100);
       }
-      if (j.customer_id && userIds.includes(j.customer_id)) {
-        totals[j.customer_id] = (totals[j.customer_id] || 0)
-          + budget + (Number(j.customer_fee_amount) || 0) + (Number(j.sales_tax_amount) || 0);
+      // Charged = what a CARD paid: a gift-card job is left out (a gift may have
+      // paid some or all of it, and on a directed gift someone else did).
+      if (j.customer_id && userIds.includes(j.customer_id) && !giftCardPaid.ids.has(j.id)) {
+        of(j.customer_id).chargedCents += Math.round(posterPaidDollars(j) * 100);
       }
     }
+    for (const g of (crew.data ?? []) as { helper_id: string | null; job_id: string; share_cents: number | null; jobs: { budget: number | null; helpers_needed: number | null; payment_status: string | null; stripe_payment_intent_id: string | null } | null }[]) {
+      const j = g.jobs;
+      if (!g.helper_id || !j || paidJobs.has(`${g.job_id}:${g.helper_id}`)) continue;
+      if (!["escrow", "payout_pending", "released"].includes(j.payment_status ?? "") || !(j.stripe_payment_intent_id || giftCardPaid.ids.has(g.job_id))) continue;
+      // The share frozen in cents at hire is what the payout cron pays; the
+      // even split is only for rosters from before share_cents existed.
+      of(g.helper_id).heldCents += g.share_cents != null ? Number(g.share_cents)
+        : Math.round(((Number(j.budget) || 0) / (j.helpers_needed && j.helpers_needed > 0 ? j.helpers_needed : 1)) * 100);
+    }
+    const totals: Record<string, number> = {};
+    for (const [id, m] of Object.entries(money)) totals[id] = (m.paidOutCents + m.chargedCents) / 100;
+    setMoneySummary(money);
     setPaySummary(totals);
   };
 
@@ -301,6 +326,7 @@ export function useAdminUserSummaries() {
     strikesSummary,
     lastLoginSummary,
     paySummary,
+    moneySummary,
     ratingSummary,
     jobsCompletedSummary,
     openReportsSummary,

@@ -5,9 +5,10 @@
  * The admin JobsTab "Earnings" column hand-rolled `budget / N * (1 - fee%)`.
  * That dropped the urgent bonus, ignored the stamped platform_fee_amount on a
  * released row, and disagreed with what the helper's own Earnings page showed.
- * The admin pay summary (useAdminUserSummaries) and the admin analytics payout
- * totals (adminAnalyticsHelpers) had the same hand-rolled copy; all three now
- * call helperTakeHomeDollars.
+ * The admin analytics payout totals (adminAnalyticsHelpers) had the same
+ * hand-rolled copy; both now call helperTakeHomeDollars. (The admin pay summary,
+ * useAdminUserSummaries, no longer estimates take-home at all since 2026-10-21:
+ * it reads what payout_transfers says was paid, and what is held.)
  *
  * The inventory is every non-test .ts/.tsx under src/ except helperEarnings.ts
  * itself, scanned (comments blanked) for the two shapes a take-home takes by
@@ -20,8 +21,7 @@ import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { walkSource } from "./helpers/walkSource";
 
-// @mutate src/components/admin/userDetail/JobsTab.tsx | return helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)); | return (budget / 1) * (1 - helperFeePercentOrLegacy(j.helper_fee_percent) / 100);
-// @mutate src/components/admin/useAdminUserSummaries.ts | + helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)) | + Number(j.budget ?? 0) * (1 - helperFeePercentOrLegacy(j.helper_fee_percent) / 100)
+// @mutate src/components/admin/userDetail/JobsTab.tsx | return helperTakeHomeDollars(j, helperFeePercentOrLegacy(j.helper_fee_percent)); | return (Number(j.budget) / 1) * (1 - helperFeePercentOrLegacy(j.helper_fee_percent) / 100);
 
 const ROOT = resolve(__dirname, "../..");
 const SHAPE =
@@ -74,7 +74,6 @@ describe("helper take-home has one formula (Q765)", () => {
   it("the admin surfaces call helperTakeHomeDollars", () => {
     for (const f of [
       "src/components/admin/userDetail/JobsTab.tsx",
-      "src/components/admin/useAdminUserSummaries.ts",
       "src/components/admin/adminAnalytics/adminAnalyticsHelpers.ts",
     ]) {
       expect(readFileSync(resolve(ROOT, f), "utf8"), f).toMatch(/helperTakeHomeDollars\(/);

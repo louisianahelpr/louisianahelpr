@@ -1,3 +1,5 @@
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = (confirmApplyJob?.helpers_needed ?? 1) <= 1; |   const single = true;
+// @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -70,7 +72,7 @@ function expandMath() {
 describe("ApplyConfirmDialog", () => {
   it("renders nothing when open is false", () => {
     render(<ApplyConfirmDialog {...makeProps({ open: false })} />);
-    expect(screen.queryByText("Apply Now")).not.toBeInTheDocument();
+    expect(screen.queryByText("Apply at $100")).not.toBeInTheDocument();
   });
 
   it("leads with the take-home number, not the subtraction", () => {
@@ -80,7 +82,7 @@ describe("ApplyConfirmDialog", () => {
     // the helpr decides on last.
     render(<ApplyConfirmDialog {...makeProps()} />);
     expect(screen.getByText(/Fix the fence/)).toBeInTheDocument();
-    expect(screen.getByText("You earn")).toBeInTheDocument();
+    expect(screen.getByText("You take home")).toBeInTheDocument();
     expect(screen.getByText("$90")).toBeInTheDocument();
     // Collapsed by default: no itemised rows on arrival.
     expect(screen.queryByText("Take-home")).not.toBeInTheDocument();
@@ -94,7 +96,7 @@ describe("ApplyConfirmDialog", () => {
     expect(screen.getByText("Budget")).toBeInTheDocument();
     expect(screen.getByText("− 10% platform fee")).toBeInTheDocument();
     expect(screen.getByText("Take-home")).toBeInTheDocument();
-    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(screen.getByText("Budget").parentElement?.textContent).toContain("$100");
   });
 
   it("divides the budget across helpers for a group job", () => {
@@ -130,7 +132,7 @@ describe("ApplyConfirmDialog", () => {
 
   it("shows a generic prompt when no job is resolved", () => {
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: null })} />);
-    expect(screen.getByText("Apply for This Job")).toBeInTheDocument();
+    expect(screen.getByText("Apply for this job")).toBeInTheDocument();
   });
 
   it("calls setApplyMessage as the pitch is typed", () => {
@@ -145,7 +147,7 @@ describe("ApplyConfirmDialog", () => {
   it("submits via handleApplyConfirm when Apply Now is clicked", () => {
     const props = makeProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply at $100" }));
     expect(props.handleApplyConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -286,7 +288,7 @@ describe("ApplyConfirmDialog", () => {
       );
       // THE POINT: still applyable. A notice that disabled this would be the
       // opposite of the owner's decision.
-      expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Apply at $100" })).toBeEnabled();
     });
 
     it("stays silent on helper_unknown — a failed profile read is not news for this screen", () => {
@@ -326,7 +328,7 @@ describe("ApplyConfirmDialog contact filter", () => {
   it("blocks before sending and quotes the offending text", () => {
     const handleApplyConfirm = vi.fn();
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: PHONE_NOTE, handleApplyConfirm })} />);
-    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^apply (now|at \$)/i }));
     expect(handleApplyConfirm).not.toHaveBeenCalled();
     // Board 85 copy (2026-10-20): a phone number reads "Kept private for now".
     expect(screen.getByText(/Kept private for now/i)).toBeInTheDocument();
@@ -344,7 +346,7 @@ describe("ApplyConfirmDialog contact filter", () => {
         })}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: /apply now/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^apply (now|at \$)/i }));
     expect(handleApplyConfirm).toHaveBeenCalled();
   });
 });
@@ -384,11 +386,25 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     render(<ApplyConfirmDialog {...makeProps({ applyMessage: "Free Sunday." })} />);
     // Offline: the submit is refused with the critical offline toast, and nothing dismisses it yet.
     toastDismiss.mockClear();
-    fireEvent.click(screen.getByRole("button", { name: "Try Again" }));
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(toastDismiss).not.toHaveBeenCalledWith("apply-offline");
     setOnline(true);
     expect(toastDismiss).toHaveBeenCalledWith("apply-offline");
-    expect(screen.getByRole("button", { name: "Apply Now" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Apply at $100" })).toBeEnabled();
     cleanup();
+  });
+
+  // Board 58: what you apply to, said once at the top; the note addressed by first name; the button names the price.
+  it("board 58: the job card, 'Say hi to <first name>', the contact rule, and 'Apply at $X' (crew: 'Apply now')", () => {
+    const { unmount } = render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ posterName: "Travis Boudreaux" }) })} />);
+    const card = screen.getByTestId("apply-job-summary");
+    expect(card.textContent).toMatch(/Travis Boudreaux/);
+    expect(card.textContent).toMatch(/\$100/);
+    expect(screen.getByLabelText(/Say hi to Travis/)).toBeInTheDocument();
+    expect(screen.getByText(/can't be sent until you're hired/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Apply at $100" })).toBeInTheDocument();
+    unmount();
+    render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ budget: 200, is_group_job: true, helpers_needed: 4 }) })} />);
+    expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
   });
 });

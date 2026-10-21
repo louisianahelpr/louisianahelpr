@@ -780,7 +780,8 @@ export const FORMS: FormSpec[] = [
       await settle(page);
       await page.locator("#declutter-question").waitFor({ timeout: 20_000 });
     },
-    covers: ["src/components/declutter/DeclutterItemView.tsx"],
+    // Board 162 (builder3c): the Ask box moved from DeclutterItemView into DeclutterQuestions (same #declutter-question).
+    covers: ["src/components/declutter/DeclutterQuestions.tsx"],
   },
   {
     // Board 158 (builder3b, 2026-10-20): the seller's Manage sheet on the same live fixture item (the helper sells
@@ -885,6 +886,7 @@ export const GAPS: Record<string, string> = {
   "src/components/declutter/DeclutterWantedViews.tsx": "behind the 'declutter' + 'declutter_wanted' switches; text, price, radius and caps pinned by declutterWantedPriceHint.pglite.mjs and wanted.test.ts; FORMS sweep owed at testers",
   "src/components/declutter/DeclutterMoveView.tsx": "behind the 'declutter' AND 'declutter_moving_out' switches, and its RPCs are not on prod until 20261016053625 lands; server rules pinned by declutterMovingOut.pglite.mjs; FORMS sweep owed at testers",
   "src/components/declutter/DeclutterHandoverViews.tsx": "behind the OFF 'declutter' switch and a PAID order (live Stripe); server rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
+  "src/components/declutter/DeclutterReviewForm.tsx": "behind the 'declutter' switch and a HANDED-OVER order (live Stripe, none on the test accounts); stars 1-5, 1000-letter cap and the contact-leak refusal pinned server-side in declutter_leave_review (declutterSlice4.pglite.mjs); FORMS sweep owed at testers",
   "src/components/admin/settings/DeclutterProblemsCard.tsx": "admin-only, behind the OFF 'declutter' switch, needs an open problem on a PAID order; decide rules pinned by declutterSlice4.pglite.mjs; FORMS sweep owed at testers",
   // Rentals S1 (2026-10-15): every Rentals form renders the 404 until the hidden 'rentals' switch is on for the member,
   // and the switch is created OFF (20261017205605), so no URL sweep can reach them yet. Their server-side input rules

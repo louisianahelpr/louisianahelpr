@@ -4603,9 +4603,9 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
   display: flex; align-items: center; justify-content: center;
   font: 600 17px/1 Montserrat, system-ui, sans-serif; letter-spacing: -0.01em;
   color: hsl(var(--foreground));
-  background: hsl(var(--background) / 0.88);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  backdrop-filter: blur(20px) saturate(180%);
+  /* OPAQUE (lead 2026-10-20): at 0.88 + blur the page title and content showed
+     through on scroll (Declutter deliveries, Post a job at 375). */
+  background: hsl(var(--background));
   border-bottom: 0.5px solid hsl(var(--border));
   opacity: 0; pointer-events: none;
 }

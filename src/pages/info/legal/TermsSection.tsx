@@ -219,12 +219,12 @@ export const TermsContent = () => {
     <PolicySection
       icon={Camera}
       title="Photos from jobs"
-      subtitle="How we may share before and after photos, and how to say no"
+      subtitle="Before and after photos on our website, social media and ads"
       anchorId="photos-from-jobs"
     >
       <PolicyRowItem
         icon={Camera}
-        title="Photos from jobs"
+        title="How we may use them, and how to say no"
         body={
           <>
             <p data-terms-job-photos>

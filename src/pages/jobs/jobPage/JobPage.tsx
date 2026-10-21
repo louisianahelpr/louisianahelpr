@@ -17,6 +17,8 @@ import { Briefcase } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
+import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -59,7 +61,16 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterId = q.data?.job.customer_id ?? null;
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
   const posterFirst = (posterCard.data?.name ?? "").trim().split(/\s+/)[0] || null;
+  // Q571: offline with nothing loaded is not "this job isn't available" (a paused read is not loading).
+  const phase = useFeedPhase({ status: q.status, fetchStatus: q.fetchStatus });
 
+  if (phase === "offline-empty") {
+    return (
+      <AppPage title="Job" backTo="/jobs">
+        <OfflineEmptyState body="This job will load here as soon as you're back online." onRetry={() => void q.refetch()} />
+      </AppPage>
+    );
+  }
   if (q.isLoading) {
     return (
       <AppPage title="Job" backTo="/jobs">

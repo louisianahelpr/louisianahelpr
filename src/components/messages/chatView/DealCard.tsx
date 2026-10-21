@@ -182,7 +182,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
         <button
           type="button"
           onClick={open}
-          className="btn-grad-primary shrink-0 rounded-full min-h-[40px] px-4 font-sans font-semibold text-ds-13"
+          className="btn-grad-primary shrink-0 rounded-full min-h-11 px-4 font-sans font-semibold text-ds-13"
         >
           Open job
         </button>

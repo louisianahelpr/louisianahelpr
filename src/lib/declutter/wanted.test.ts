@@ -18,7 +18,7 @@ import {
   type WantedForm,
 } from "./wanted";
 
-const form = (over: Partial<WantedForm> = {}): WantedForm => ({ what: "crib", category: "baby_kids", maxPrice: "80", radius: 10, ...over });
+const form = (over: Partial<WantedForm> = {}): WantedForm => ({ what: "crib", category: "baby_kids", maxPrice: "80", radius: 10, public: true, ...over });
 
 describe("dollarsToCents", () => {
   it("reads whole dollars, cents and a leading $", () => {

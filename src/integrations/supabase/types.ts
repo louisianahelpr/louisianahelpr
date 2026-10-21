@@ -1701,6 +1701,7 @@ export type Database = {
           seller_id: string
           status: string
           updated_at: string
+          wanted_id: string | null
         }
         Insert: {
           amount_cents: number
@@ -1716,6 +1717,7 @@ export type Database = {
           seller_id: string
           status?: string
           updated_at?: string
+          wanted_id?: string | null
         }
         Update: {
           amount_cents?: number
@@ -1731,6 +1733,7 @@ export type Database = {
           seller_id?: string
           status?: string
           updated_at?: string
+          wanted_id?: string | null
         }
         Relationships: [
           {
@@ -2444,6 +2447,7 @@ export type Database = {
           id: string
           is_seed: boolean
           max_price_cents: number
+          public: boolean
           radius_miles: number
           status: string
           user_id: string
@@ -2459,6 +2463,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents: number
+          public?: boolean
           radius_miles: number
           status?: string
           user_id: string
@@ -2474,6 +2479,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           max_price_cents?: number
+          public?: boolean
           radius_miles?: number
           status?: string
           user_id?: string
@@ -11718,6 +11724,7 @@ export type Database = {
           p_lat: number
           p_lng: number
           p_max_price_cents: number
+          p_public?: boolean
           p_radius_miles: number
           p_what: string
         }
@@ -11920,6 +11927,7 @@ export type Database = {
           id: string
           matches: Json
           max_price_cents: number
+          public: boolean
           radius_miles: number
           status: string
           what: string
@@ -12139,6 +12147,10 @@ export type Database = {
         Args: { p_mode: string; p_order_id: string; p_until: string }
         Returns: undefined
       }
+      declutter_set_wanted_public: {
+        Args: { p_public: boolean; p_wanted_id: string }
+        Returns: boolean
+      }
       declutter_set_watch: {
         Args: { p_item_id: string; p_watch: boolean }
         Returns: string
@@ -12202,6 +12214,28 @@ export type Database = {
           stars: number
           tags: string[]
         }[]
+      }
+      declutter_first_l: { Args: { p_full_name: string }; Returns: string }
+      declutter_wanted_browse: {
+        Args: { p_lat: number; p_lng: number }
+        Returns: {
+          category: string
+          expires_at: string
+          id: string
+          max_price_cents: number
+          miles: number
+          poster_name: string
+          replied: boolean
+          what: string
+        }[]
+      }
+      declutter_wanted_reply: {
+        Args: { p_amount_cents: number; p_item_id: string; p_wanted_id: string }
+        Returns: string
+      }
+      declutter_wanted_snap_miles: {
+        Args: { p_lat: number; p_lng: number; w_lat: number; w_lng: number }
+        Returns: number
       }
       declutter_wanted_alert_block: {
         Args: { p_user: string }

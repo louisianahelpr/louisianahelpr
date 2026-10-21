@@ -49,6 +49,8 @@ const noTodos = vi.hoisted(() => ({ on: false }));
 const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));
 // Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
 vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
+// Board 189's first-job Home has its own reads (applications); this file is about the shell.
+vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),

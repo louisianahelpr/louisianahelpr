@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-21T07:59Z",
+  "measured_at": "2026-10-21T14:40Z",
   "issues": {
     "readable": true,
     "open": [
@@ -94,6 +94,34 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39438118542",
         "runTruncated": false
+      },
+      {
+        "number": 3487,
+        "title": "nightly-red: race-runner",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308871",
+        "runTruncated": false
+      },
+      {
+        "number": 3491,
+        "title": "nightly-red: ui-sweep",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39579166876",
+        "runTruncated": false
+      },
+      {
+        "number": 3505,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39605540043",
+        "runTruncated": false
+      },
+      {
+        "number": 3508,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39614308954",
+        "runTruncated": false
       }
     ]
   },
@@ -125,6 +153,14 @@
         "issue": 2353
       },
       {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
+      },
+      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -146,6 +182,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -205,6 +249,14 @@
         "issue": 3454
       },
       {
+        "fingerprint": "4c89303184fbafc9613e873aa811fa3c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: race-runner",
+        "issue": 3487
+      },
+      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -219,6 +271,14 @@
         "status": "open",
         "title": "functionsfetcherror: failed to send a request to the edge function",
         "issue": null
+      },
+      {
+        "fingerprint": "2e4f3e726722e14159d0b5cf50568f30",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: ui-sweep",
+        "issue": 3491
       },
       {
         "fingerprint": "5be6011a46f6328f224c01fc99b85e95",
@@ -427,6 +487,22 @@
         "status": "open",
         "title": "error: permission denied for function my_schedule_clashes",
         "issue": null
+      },
+      {
+        "fingerprint": "f2afa1349a3ae98138fd104f49431fcf",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/home · error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "d21db97e9f067cd021f5002d3341c443",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "notification log write failed: a skipped email left no record",
+        "issue": null
       }
     ]
   },
@@ -446,6 +522,10 @@
     "issue #3435": "Q1816",
     "issue #3454": "Q1816",
     "issue #3462": "Q1816",
+    "issue #3487": "Q1816",
+    "issue #3491": "Q1816",
+    "issue #3505": "Q1816",
+    "issue #3508": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -459,6 +539,7 @@
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
+    "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
@@ -471,6 +552,8 @@
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4b5ace7af165": "Q1596",
+    "ledger 4c89303184fb": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2300",
     "ledger 59e0e601cc69": "Q2295",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5be6011a46f6": "Q1816",
@@ -516,6 +599,7 @@
     "ledger d1585655d567": "Q1596",
     "ledger d1da98fd3fe3": "Q1596",
     "ledger d1f8391b44ec": "Q1631",
+    "ledger d21db97e9f06": "Q2302",
     "ledger d2ada3522c22": "Q1596",
     "ledger d3424c5d01ad": "Q1596",
     "ledger d5cc10e1fb86": "Q1596",
@@ -529,6 +613,8 @@
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
+    "ledger f22e3275d50d": "Q1816",
+    "ledger f2afa1349a3a": "Q2301",
     "ledger f3c752b3230f": "Q1596"
   }
 }

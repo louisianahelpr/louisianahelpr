@@ -127,6 +127,7 @@ function refundWordsInNotices(): Map<string, number> {
   return out;
 }
 
+// @mutate supabase/functions/void-cancelled-payments/index.ts |           key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents, keptCents: 0, |           key: `crew-share:${share.id}`, kind: "refund", amountCents: refundedCents, keptCents: 0,
 describe("Q1714: every refund path tells the person their money is back", () => {
   it("the inventory is read from source and its counts are exact", () => {
     // EXACT, both directions: a new site moves the number (2026-10-12).
@@ -134,7 +135,17 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // 16 since J4 Helpr at fault (2026-10-19): create-payment's two Helpr-fault full refunds are the other arm of
     // the dispute and general refund ternaries, so each reaches the same announceRefund as its partial twin.
     // 17 since Shops M3 (2026-10-19): _shared/shopRefunds.ts sends a shop_refunds row (REFUND_OWN_NOTICE).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(17);
+    // 18 since Q1915 (2026-10-21): void-cancelled-payments' Part D returnShareToPoster refunds a deleted crew
+    // member's fee share to the poster (payment_refunds source void_cancelled_payments_crew_share) and tells
+    // them through tellPosterMoneyBack under key refund:<id>, the same key charge.refunded claims, so one notice.
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(18);
+    {
+      const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
+      const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));
+      expect(fn).toMatch(/stripe\.refunds\.create\(/);
+      expect(fn).toMatch(/source: "void_cancelled_payments_crew_share"/);
+      expect(fn).toMatch(/await tellPosterMoneyBack\([^]*?key: `refund:\$\{refund\.id\}`, kind: "refund"/);
+    }
     expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(4); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);

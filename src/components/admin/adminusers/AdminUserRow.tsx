@@ -5,7 +5,7 @@
  * management screen. Extracted verbatim from AdminUsers.tsx —
  * behaviour-preserving structural refactor.
  */
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 import { memo } from "react";
 import { formatName } from "@/lib/utils";
 import UserAvatar from "@/components/UserAvatar";
@@ -159,8 +159,9 @@ const AdminUserRowBase = ({
             // (#1582) captured every row as "Good · Never logged in" because
             // both were read off maps that had not arrived yet.
             const neverLoggedIn = lastLoginSummary !== null && !lastLogin;
-            // The one identity rule (Stripe Identity, Connect, or an approved ID).
-            const hasIdv = isIdentityVerified({ connectIdentityVerified: p.stripe_identity_verified, idvStatus: p.idv_status });
+            // The "ID verified" badge: Stripe Identity or an approved ID, never
+            // payout setup (owner 2026-10-21); the Payout chip below is that.
+            const hasIdv = hasIdBadge(p.idv_status);
             const hasStripe = !!p.stripe_account_id;
             // Same legacy-role pattern as deniedCount above.
             const isHelper = (p as { role?: string }).role !== "customer";

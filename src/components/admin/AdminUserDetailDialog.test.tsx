@@ -152,9 +152,14 @@ describe("AdminUserDetailDialog", () => {
     expect(props.setDeleteProfile).toHaveBeenCalledWith(pendingProfile);
   });
 
+  it("keeps Manually Verify open for a payouts-only account: payout setup is not an ID check (owner 2026-10-21)", () => {
+    const payoutsOnly = { ...pendingProfile, stripe_identity_verified: true, idv_status: "not_started" } as typeof pendingProfile;
+    render(<AdminUserDetailDialog {...makeProps(payoutsOnly)} />);
+    expect(screen.getByRole("button", { name: /Manually Verify/ })).not.toBeDisabled();
+  });
+
   it.each([
     ["idv_status verified", { idv_status: "verified" }],
-    ["Stripe identity verified", { stripe_identity_verified: true }],
   ])("disables Manually Verify on an already-verified account: %s (Q234)", (_label, patch) => {
     const verified = { ...pendingProfile, ...patch } as typeof pendingProfile;
     const props = makeProps(verified);

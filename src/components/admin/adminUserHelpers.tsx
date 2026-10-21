@@ -32,25 +32,14 @@ export const statusBadge = (profile: Profile) => {
 // Shown for all users since IDV is required before accepting any job.
 export const stripeBadge = (profile: Profile) => {
   const s = profile.idv_status;
-  // An admin's manual approval is NOT Stripe's answer, and labelling it
-  // "Stripe Verified" was the exact conflation that got the old ID queue
-  // retired. Name who actually made the call.
-  if (profile.legacy_manual_review) {
-    return <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Admin Verified</Badge>;
-  }
-  // Same conflation one rung down, and it was live: prod has FOUR badged
-  // profiles, and only ONE of them carries `stripe_identity_verified`. The
-  // other three reached `idv_status = 'verified'` by some other route, so
-  // this badge told an operator "Stripe Verified" about three accounts Stripe
-  // has never returned a verdict on. Only claim Stripe when Stripe's own
-  // column says so; otherwise state the unified verdict —
-  // `identity_is_verified(idv_status, stripe_identity_verified)` is the OR of
-  // the two, and "ID Verified" is what that OR actually means.
-  if (profile.stripe_identity_verified) {
-    return <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />Stripe Verified</Badge>;
-  }
+  // "ID verified" is Stripe Identity's verdict only (owner 2026-10-21):
+  // idv_status = 'verified'. Payout setup (Connect's stripe_identity_verified)
+  // is NOT an ID check and never earns this badge. Admins still see the route
+  // (Q2201): an admin approval is named as such, never as Stripe's answer.
   if (s === "verified") {
-    return <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID Verified</Badge>;
+    return profile.legacy_manual_review
+      ? <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID verified by admin</Badge>
+      : <Badge className="bg-primary/10 text-primary border-primary/20 text-ds-10 gap-0.5"><ShieldCheck className="w-2.5 h-2.5" />ID verified by Stripe</Badge>;
   }
   // Only the values profiles_idv_status_check actually permits. "approved",
   // "requires_input" and "action_needed" were listed here and are all

@@ -16,7 +16,7 @@ import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 
 /** Both sides of each section, the spec v2 §11 wording. */
@@ -203,7 +203,7 @@ export function SettingsTab({
         {/* Board 120: the row shows what is true now (your email and how you
             sign in) instead of a list of what is inside; each part only when known. */}
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
-        {isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status }) && (
+        {hasIdBadge(profile?.idv_status) && (
           // Status only: ID checks start nowhere any more (owner 2026-10-01), so the row opens nothing.
           <Row testId="id" label="ID" sub="Verified" />
         )}

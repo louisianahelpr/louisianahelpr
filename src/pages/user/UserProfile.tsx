@@ -570,14 +570,12 @@ const UserProfile = () => {
                   repeatHirePercent: data?.repeatHirePercent ?? 0,
                   credentialTier,
                 }}
-                // Both the own-row flag AND the public `is_id_verified` column
-                // from get_safe_profiles — the direct select is RLS-blocked for
-                // every visitor, so the hook's flag alone is permanently false
-                // on someone else's profile.
+                // Own-row flag OR get_safe_profiles.is_id_verified (RLS blocks the direct select for visitors).
                 idVerified={
                   isIdVerified ||
                   (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true
                 }
+                payoutsSetUp={(profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true}
                 ladderProfile={tierProfile}
                 ladderStats={badgeStats}
                 credentials={profile as unknown as ComponentProps<typeof RecognitionRow>["credentials"]}

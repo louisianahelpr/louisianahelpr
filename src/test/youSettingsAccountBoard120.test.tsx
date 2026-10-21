@@ -54,9 +54,14 @@ describe("You › Settings › Your account, board 120", () => {
     expect(screen.queryByText(/pause/i)).toBeNull();
   });
 
-  it("shows ID · Verified only for a verified member", () => {
-    renderIt({ user_id: "u1", stripe_identity_verified: true } as Partial<Profile>);
+  it("shows ID · Verified only for a Stripe Identity verified member", () => {
+    renderIt({ user_id: "u1", idv_status: "verified" } as Partial<Profile>);
     expect(screen.getByText("ID")).toBeTruthy();
     expect(screen.getByText("Verified")).toBeTruthy();
+  });
+
+  it("payout setup alone does not show ID · Verified (owner 2026-10-21)", () => {
+    renderIt({ user_id: "u1", stripe_identity_verified: true, idv_status: "not_started" } as Partial<Profile>);
+    expect(screen.queryByText("Verified")).toBeNull();
   });
 });

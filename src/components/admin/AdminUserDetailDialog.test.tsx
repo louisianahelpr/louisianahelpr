@@ -93,12 +93,12 @@ describe("AdminUserDetailDialog", () => {
 
   it("renders nothing when viewProfile is null", () => {
     render(<AdminUserDetailDialog {...makeProps(null)} />);
-    expect(screen.queryByText("User Profile")).not.toBeInTheDocument();
+    expect(screen.queryByText("User profile")).not.toBeInTheDocument();
   });
 
   it("renders the header and all six tabs for a profile", () => {
     render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
-    expect(screen.getByText("User Profile")).toBeInTheDocument();
+    expect(screen.getByText("User profile")).toBeInTheDocument();
     // formatName abbreviates "Marie Beaumont" to "Marie B." in the header.
     expect(screen.getByText("Marie B.")).toBeInTheDocument();
     for (const tab of ["Actions", "Overview", "Jobs", "Reviews", "Docs", "Emails"]) {

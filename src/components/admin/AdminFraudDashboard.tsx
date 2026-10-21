@@ -299,7 +299,7 @@ const AdminFraudDashboard = () => {
       <Dialog open={!!resolveTarget} onOpenChange={(open) => { if (!open) setResolveTarget(null); }}>
         <DialogContent role="alertdialog">
           <DialogHero
-            title="Mark This Flag Resolved?"
+            title="Mark this flag resolved?"
           />
           {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.
               DialogHero has shown the title alone since the 2026-07-25 "one main

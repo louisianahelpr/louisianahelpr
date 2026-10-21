@@ -42,7 +42,7 @@ export const StatusOverrideDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Manual Status Override"
+          title="Manual status override"
         />
         <div className="space-y-3">
           <DialogBody>

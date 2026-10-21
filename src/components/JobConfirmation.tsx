@@ -361,7 +361,7 @@ export function JobConfirmation({
   const confirmDialog = (
     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
       <DialogContent>
-        <DialogHero title="Commit to This Job?" />
+        <DialogHero title="Commit to this job?" />
         <div className="space-y-3">
           <div
             className="rounded-ds-md p-3"

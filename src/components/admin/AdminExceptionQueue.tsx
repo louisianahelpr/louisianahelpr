@@ -355,7 +355,7 @@ const ExceptionQueueInner = () => {
       <Dialog open={!!resolveTarget} onOpenChange={(o) => !o && setResolveTarget(null)}>
         <DialogContent role="alertdialog">
           <DialogHero
-            title="Resolve Exception"
+            title="Resolve exception"
           />
           <Textarea
             aria-label="Resolution note"
@@ -379,7 +379,7 @@ const ExceptionQueueInner = () => {
       <Dialog open={bulkOpen} onOpenChange={(o) => !o && setBulkOpen(false)}>
         <DialogContent role="alertdialog">
           <DialogHero
-            title={`Resolve ${checkedIds.size} Exceptions`}
+            title={`Resolve ${checkedIds.size} exceptions`}
           />
           {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.
               DialogHero has shown the title alone since the 2026-07-25 "one main

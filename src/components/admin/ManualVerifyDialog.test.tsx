@@ -41,13 +41,13 @@ describe("ManualVerifyDialog", () => {
     const { container } = render(
       <ManualVerifyDialog profile={null} onClose={vi.fn()} />,
     );
-    expect(screen.queryByText(/Manually Verify/)).toBeNull();
+    expect(screen.queryByText(/Manually verify/)).toBeNull();
     expect(container.firstChild).toBeNull();
   });
 
   it("renders the user's name in the title", () => {
     render(<ManualVerifyDialog profile={sampleProfile} onClose={vi.fn()} />);
-    expect(screen.getByText(/Manually Verify Marie B\./)).toBeInTheDocument();
+    expect(screen.getByText(/Manually verify Marie B\./)).toBeInTheDocument();
     expect(screen.getByText(/logged in the admin audit log/i)).toBeInTheDocument();
   });
 

@@ -62,7 +62,7 @@ describe("DeleteUserDialog", () => {
     // Dialog itself should not be in the DOM — Radix renders it
     // via portal only when open. The query for the title text yields
     // null because the dialog never mounted.
-    expect(screen.queryByText(/Delete Account/)).toBeNull();
+    expect(screen.queryByText(/Delete account/)).toBeNull();
     expect(container.firstChild).toBeNull();
   });
 
@@ -70,7 +70,7 @@ describe("DeleteUserDialog", () => {
     render(
       <DeleteUserDialog profile={sampleProfile} onClose={vi.fn()} />,
     );
-    expect(screen.getByText(/Delete Account/)).toBeInTheDocument();
+    expect(screen.getByText(/Delete account/)).toBeInTheDocument();
     // formatName outputs "First L." for two-part names.
     expect(screen.getByText(/Lexi L\./)).toBeInTheDocument();
     expect(

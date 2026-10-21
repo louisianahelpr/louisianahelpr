@@ -70,7 +70,7 @@ export const RefundJobDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Refund Poster"
+          title="Refund poster"
         />
         <div className="space-y-3">
           <DialogBody>

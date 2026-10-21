@@ -399,7 +399,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
       <DialogContent role="alertdialog">
         <DialogHero
-          title="Save These Changes?"
+          title="Save these changes?"
         />
         <DialogFooter>
           <DialogSecondaryAction>Cancel</DialogSecondaryAction>
@@ -415,7 +415,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
     <Dialog open={showDiscard} onOpenChange={setShowDiscard}>
       <DialogContent role="alertdialog">
         <DialogHero
-          title="Discard Your Changes?"
+          title="Discard your changes?"
         />
         <DialogFooter>
           <DialogSecondaryAction>Cancel</DialogSecondaryAction>

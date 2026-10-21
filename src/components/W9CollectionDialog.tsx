@@ -78,7 +78,7 @@ const W9CollectionDialog = ({ open, onOpenChange, jobId, helperId, businessId, o
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Sign Your W-9"
+          title="Sign your W-9"
         />
         {/* Relocated OUT of DialogHero's `subtitle` (2026-07-25 "one main
             title": headers show a title and nothing else). Not dropped —

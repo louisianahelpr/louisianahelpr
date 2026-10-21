@@ -35,7 +35,7 @@ export const RemoveJobDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Remove Job"
+          title="Remove job"
         />
         <div className="space-y-3">
           <DialogBody>

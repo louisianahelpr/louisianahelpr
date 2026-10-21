@@ -54,6 +54,7 @@ import type { AwardBlockReason } from "@/lib/awardGate";
 
 const gateState: { loading: boolean; reason: AwardBlockReason | null; missing: ("payout_setup" | "stripe_id")[] } = { loading: false, reason: null, missing: [] };
 // Q1461: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false })); // no QueryClient here
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({
   useAcceptGate: () => gateState,

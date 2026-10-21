@@ -14,6 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
 import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
+import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/lib/jobProgress";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
@@ -24,8 +25,9 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
 export function JobTracker({ job, side }: { job: JobPageRow; side: "poster" | "helpr" | null }) {
+  const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
   if (!side) return null;
-  const progress = jobProgress(job, { viewer: side });
+  const progress = jobProgress(job, { viewer: side, rescheduled });
   if (progress.step === null && !progress.next) return null;
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">

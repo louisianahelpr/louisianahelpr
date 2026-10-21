@@ -450,6 +450,7 @@ export function JobTracking({
   jobLongitude,
   includePostingSteps = false,
   embedded = false,
+  rescheduled = false,
 }: {
   jobId: string;
   helperId: string | null;
@@ -543,6 +544,8 @@ export function JobTracking({
    *  tracker is a bordered card nested directly inside another one.
    *  `src/test/noNestedTrackerCard.test.ts` enforces this at every call site. */
   embedded?: boolean;
+  /** Moved by an accepted change (useJobRescheduled in the caller): the line names the new slot (owner, 2026-10-21). */
+  rescheduled?: boolean;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -1540,13 +1543,10 @@ export function JobTracking({
             helper_completed_at: jobStamps.helperCompletedAt,
             poster_completed_at: jobStamps.posterCompletedAt,
           },
-          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null },
+          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null, rescheduled },
         )}
       />
 
-      {/* Progress bar/fill-line REMOVED (owner, 2026-08-30) — the step icons
-          already convey progress on their own; a second bar duplicating the
-          same "how far along" signal directly beneath them was redundant. */}
 
       {/* Last update — directly below the step row (used to sit below the
           removed progress bar; the freshness stamp still closes the tracker

@@ -7,7 +7,6 @@ import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
 import { FormStep } from "./FormStep";
 import { CheckoutStepView } from "./CheckoutStepView";
-import { JOB_CATEGORY_GROUPS } from "@/lib/jobCategoryGroups";
 
 const PostJob = () => {
   usePageTitle("Post a Job — Helpr");
@@ -61,9 +60,9 @@ const PostJob = () => {
   // poster picks how to begin (start fresh / draft / template).
   // Each screen asks its own question under the bar (PostJobStepHeader), so
   // the bar just names the flow (sentence case, spec §2 Type).
-  // Screen 1b titles the bar with its group ("Home"), and the back arrow returns to the groups.
-  const group = form.step === "form" && form.formPage === 1 && form.categoryGroup ? JOB_CATEGORY_GROUPS.find((g) => g.id === form.categoryGroup) : null;
-  const header = { title: group ? group.label : "Post a job" };
+  // The bar reads "Post a job" on all 7 screens (owner 2026-10-21); screen 3's question names the group,
+  // and its back arrow still returns to the groups (handlePostJobBack).
+  const header = { title: "Post a job" };
 
   return (
     /* ONE shell, like every other in-app sub-screen (owner, 2026-08-30:

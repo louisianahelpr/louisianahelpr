@@ -487,7 +487,7 @@ test.describe.serial("marketplace chain", () => {
       await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeVisible({ timeout: 20_000 });
       await pp.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
       await journey.milestone(pp, "offer-sheet");
-      await pp.getByRole("button", { name: "Send Offer" }).click();
+      await pp.getByRole("button", { name: "Send offer" }).click();
       await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeHidden({ timeout: 20_000 });
       await assertHealthy(pp, "offer sent");
       await journey.milestone(pp, "offer-sent");

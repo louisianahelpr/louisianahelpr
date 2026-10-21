@@ -134,13 +134,13 @@ describe("the poster pays the job price only (F3)", () => {
     const base = makeForm();
     const form = { ...base, customerFeeAmount: 0, urgentCardFeeAmount: 0, isUrgent: true, urgentFeeNum: 15, totalCharge: Number(base.budgetNum) + 15 };
     render(<CheckoutStepView form={form as unknown as ReturnType<typeof usePostJobForm>} />);
-    expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
-    expect(screen.queryByText(/^Service Fee/)).toBeNull();
+    expect(screen.queryByText("Urgent bonus card fee")).toBeNull();
+    expect(screen.queryByText(/^Service fee/)).toBeNull();
     expect(screen.queryByText(/Goes to Helpr/)).toBeNull();
   });
 
   it("shows no card fee line on a job that is not urgent", () => {
     render(<CheckoutStepView form={makeForm()} />);
-    expect(screen.queryByText("Urgent Bonus Card Fee")).toBeNull();
+    expect(screen.queryByText("Urgent bonus card fee")).toBeNull();
   });
 });

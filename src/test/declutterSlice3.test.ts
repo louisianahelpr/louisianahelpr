@@ -18,11 +18,11 @@
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        SET current_price_cents = greatest(p.floor_price_cents, COALESCE(p.drop_stop_cents, p.floor_price_cents), |        SET current_price_cents = greatest(
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
- * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql |         AND NOT public.declutter_seller_hidden(seller_id)) |         AND true)
+ * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_premium := public.declutter_buyer_fee_cents(v_items); |   v_premium := greatest(round(v_items * 0.15)::integer, 100);
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -33,6 +33,15 @@ const MIG = blankSqlComments(readFileSync(join(MIG_DIR, FILE), "utf8"));
 const DEFS = effectiveDefs(MIG_DIR);
 const body = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "");
 const flat = (s: string) => s.replace(/\s+/g, " ");
+/** The newest CREATE POLICY of the declutter_items read policy, comment-blanked (any migration). */
+function newestItemsReadPolicy(): string {
+  let found = "";
+  for (const f of readdirSync(MIG_DIR).filter((n) => n.endsWith(".sql")).sort()) {
+    const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
+    for (const m of sql.matchAll(/CREATE\s+POLICY\s+"declutter items: seller or switched-on members read live"[\s\S]*?;/gi)) found = m[0];
+  }
+  return found;
+}
 
 const CLIENT_WRITES = ["declutter_make_offer", "declutter_respond_offer", "declutter_buy_now", "declutter_start_checkout", "declutter_seller_cancel_sale"];
 const CLIENT_READS = ["declutter_my_offers", "declutter_my_cart"];
@@ -125,7 +134,11 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
   });
 
   it("B36: a banned or 3-strike seller's listings are hidden from buyers", () => {
-    expect(flat(MIG)).toContain("AND NOT public.declutter_seller_hidden(seller_id))");
+    // Q1852 (20261021142959): the NEWEST items read policy tests the server-kept column, never a
+    // client-executable helper (declutter_seller_hidden is revoked from members).
+    const policy = newestItemsReadPolicy();
+    expect(policy).toContain("AND NOT seller_hidden");
+    expect(policy).not.toContain("declutter_seller_hidden(");
     expect(flat(body("declutter_lock_buyable_item"))).toContain("OR public.declutter_seller_out(o_seller_id) OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN RAISE EXCEPTION 'item_not_found'");
     // The policy helper answers only for a member with a live listing (no ban/strike oracle for any id).
     expect(flat(body("declutter_seller_hidden"))).toContain("WHERE i.seller_id = p_seller AND i.status IN ('live', 'reserved')) AND public.declutter_seller_out(p_seller);");

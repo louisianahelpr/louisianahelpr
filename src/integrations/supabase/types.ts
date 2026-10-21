@@ -1611,6 +1611,7 @@ export type Database = {
           price_dropped_at: string | null
           relist_count: number
           sale_mode: string
+          seller_hidden: boolean
           seller_id: string
           status: string
           submitted_at: string | null
@@ -1639,6 +1640,7 @@ export type Database = {
           price_dropped_at?: string | null
           relist_count?: number
           sale_mode?: string
+          seller_hidden?: boolean
           seller_id: string
           status?: string
           submitted_at?: string | null
@@ -1667,6 +1669,7 @@ export type Database = {
           price_dropped_at?: string | null
           relist_count?: number
           sale_mode?: string
+          seller_hidden?: boolean
           seller_id?: string
           status?: string
           submitted_at?: string | null

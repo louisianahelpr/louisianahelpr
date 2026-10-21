@@ -1075,6 +1075,9 @@ describe("Popup grammar — footer", () => {
       "Skip for now",
       // Board 180's tip step: declining a tip, nothing is cancelled.
       "No tip",
+      // Board 156's safety sheet: closing it says the person is safe; nothing
+      // is cancelled (Builder 5, 2026-10-21).
+      "I'm safe now",
       "Not Now",
       "Skip",
       "No Thanks",

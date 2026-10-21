@@ -627,6 +627,10 @@ export const RPC_ERROR_COPY = {
     question_not_found: DC.question_not_found,
     under_18: DC.under_18,
   },
+  // Q2278: the item page's questions read (20261021122157); the switch is its only refusal.
+  declutter_item_questions: {
+    feature_disabled: DC.feature_disabled,
+  },
   declutter_ask_question: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

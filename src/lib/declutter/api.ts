@@ -74,7 +74,6 @@ export interface DeclutterPhoto {
 export interface DeclutterQuestion {
   id: string;
   item_id: string;
-  asker_id: string;
   question: string;
   answer: string | null;
   answered_at: string | null;
@@ -225,15 +224,26 @@ export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> 
   return (rows ?? []) as DeclutterPhoto[];
 }
 
+/**
+ * Q2278: an item's questions, never who asked them (the page says "Asked by a neighbor"). Read through
+ * declutter_item_questions (20261021122157, SECURITY INVOKER: the table's row policy decides, as before). Until that
+ * migration is on prod (PGRST202 naming it), the same rows come from the table read, still without asker_id: members
+ * keep a grant on every other column once the asker column is withheld (ready/declutter-narrow-floor2).
+ */
 export async function fetchQuestions(itemId: string): Promise<DeclutterQuestion[]> {
-  const rows = unwrap(
-    await supabase
-      .from("declutter_questions")
-      .select("id, item_id, asker_id, question, answer, answered_at, created_at")
-      .eq("item_id", itemId)
-      .order("created_at", { ascending: true }),
-  );
-  return (rows ?? []) as DeclutterQuestion[];
+  const res = await supabase.rpc("declutter_item_questions", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_item_questions")) {
+    console.warn("[declutter] declutter_item_questions not deployed yet; reading the questions table");
+    const rows = unwrap(
+      await supabase
+        .from("declutter_questions")
+        .select("id, item_id, question, answer, answered_at, created_at")
+        .eq("item_id", itemId)
+        .order("created_at", { ascending: true }),
+    );
+    return (rows ?? []) as DeclutterQuestion[];
+  }
+  return (rpcData(res, (e) => rpcErrorMessage("declutter_item_questions", e)) ?? []) as DeclutterQuestion[];
 }
 
 export async function fetchWatching(userId: string): Promise<Set<string>> {

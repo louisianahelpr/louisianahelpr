@@ -124,7 +124,8 @@ describe("every pop-up title is sentence case", () => {
     // tree): +1 board 91 (Save this search). 175: +1 the Stripe Identity sheet
     // (2026-10-21, IdentityCheckSheet: "Verify your ID" and its states). 174:
     // -1 Q1680 (owner 2026-10-21): our W-9 form (W9CollectionDialog) is removed.
-    expect(all.length).toBe(174);
+    // 175: +1 the Declutter rework (board 117's "I have this" reply sheet).
+    expect(all.length).toBe(175);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

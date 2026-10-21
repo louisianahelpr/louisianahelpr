@@ -7,9 +7,9 @@
 --  2. WHO READS: signed-in members, through declutter_wanted_browse only (SECURITY DEFINER, both switches). The
 --     table grant and its "poster reads own" policy are unchanged: nobody reads another member's row directly.
 --  3. WHAT THEY SEE: the words (plain letters only, W8, and the contact-leak trigger), category, "up to", the poster
---     as First L., and the distance in whole miles from the post's point SNAPPED to 0.1 degree (a few miles), so
+--     as First L. (public.member_display_name, 20261021061341, the app's formatName rule: any whitespace splits), and the distance in whole miles from the post's point SNAPPED to 0.1 degree (a few miles), so
 --     probing many points cannot narrow the poster's area below that grid. Never area_lat/lng, an address or a user id.
---  4. EXCLUDED: your own posts, either-way blocks, posters who are out (banned, strikes) or hidden, private, closed
+--  4. EXCLUDED: your own posts, either-way blocks, posters who are out (banned, strikes), under 18 or hidden, private, closed
 --     or expired posts, and test (is_seed) posts from members the seed switch hides them from.
 --  5. A REPLY IS AN OFFER, no free text: declutter_wanted_reply(post, your LIVE offers-mode listing, price) with the
 --     price at most the Wanted max and at most the listing's price now. It inserts a declutter_offers row
@@ -197,22 +197,6 @@ $fn$;
 REVOKE ALL ON FUNCTION public.declutter_my_wanted() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_my_wanted() TO authenticated, service_role;
 
--- First L. from a profile name, "A neighbor" without one (the shape of the app's formatName).
-CREATE OR REPLACE FUNCTION public.declutter_first_l(p_full_name text)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-SET search_path TO 'public', 'pg_temp'
-AS $fn$
-  SELECT CASE
-    WHEN NULLIF(btrim(p_full_name), '') IS NULL THEN 'A neighbor'
-    WHEN position(' ' IN btrim(p_full_name)) = 0 THEN btrim(p_full_name)
-    ELSE split_part(btrim(p_full_name), ' ', 1) || ' ' || left(regexp_replace(btrim(p_full_name), '^.*\s', ''), 1) || '.'
-  END;
-$fn$;
-REVOKE ALL ON FUNCTION public.declutter_first_l(text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.declutter_first_l(text) TO authenticated, service_role;
-
 -- Whole miles between the reader's point and a post's point SNAPPED to 0.1 degree (never the stored point itself).
 CREATE OR REPLACE FUNCTION public.declutter_wanted_snap_miles(p_lat numeric, p_lng numeric, w_lat numeric, w_lng numeric)
 RETURNS integer
@@ -254,7 +238,7 @@ BEGIN
     RAISE EXCEPTION 'wanted_area_unknown' USING ERRCODE = '22023';
   END IF;
   RETURN QUERY
-    SELECT w.id, w.what, w.category, w.max_price_cents, public.declutter_first_l(pr.full_name),
+    SELECT w.id, w.what, w.category, w.max_price_cents, public.member_display_name(pr.full_name),
            public.declutter_wanted_snap_miles(v_lat, v_lng, w.area_lat, w.area_lng),
            w.expires_at,
            EXISTS (SELECT 1 FROM public.declutter_offers o WHERE o.wanted_id = w.id AND o.seller_id = v_uid)
@@ -267,6 +251,7 @@ BEGIN
        AND pr.anonymized_at IS NULL
        AND NOT public.are_users_blocked(v_uid, w.user_id)
        AND NOT public.declutter_member_out(w.user_id)
+       AND NOT public.member_under_18(w.user_id)
        AND NOT public.declutter_seller_hidden(w.user_id)
        AND (w.is_seed IS NOT TRUE OR NOT (SELECT public.seed_hidden_from_caller()))
        AND public.declutter_wanted_snap_miles(v_lat, v_lng, w.area_lat, w.area_lng) <= w.radius_miles
@@ -301,7 +286,7 @@ BEGIN
   END IF;
   -- Item first, then the post (the offer paths lock item -> offer; nothing else locks a post then an item).
   SELECT it.id, it.seller_id, it.status, it.sale_mode, it.current_price_cents, it.title, it.is_seed INTO i
-    FROM public.declutter_items it WHERE it.id = p_item_id FOR UPDATE;
+    FROM public.declutter_items it WHERE it.id = p_item_id AND it.seller_id = v_uid FOR UPDATE;
   IF i.id IS NULL OR i.seller_id IS DISTINCT FROM v_uid THEN
     RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
   END IF;
@@ -310,6 +295,7 @@ BEGIN
   IF w.id IS NULL OR NOT w.public OR w.status <> 'open' OR w.expires_at <= now() OR w.user_id = v_uid
      OR public.are_users_blocked(v_uid, w.user_id)
      OR public.declutter_member_out(w.user_id)
+     OR public.member_under_18(w.user_id)
      OR public.declutter_seller_hidden(w.user_id)
      OR (w.is_seed IS TRUE AND (SELECT public.seed_hidden_from_caller())) THEN
     RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'P0002';

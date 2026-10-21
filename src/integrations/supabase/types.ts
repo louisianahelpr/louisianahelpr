@@ -12316,7 +12316,6 @@ export type Database = {
           tags: string[]
         }[]
       }
-      declutter_first_l: { Args: { p_full_name: string }; Returns: string }
       declutter_wanted_browse: {
         Args: { p_lat: number; p_lng: number }
         Returns: {

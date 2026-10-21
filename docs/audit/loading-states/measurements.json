@@ -29268,6 +29268,19 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/tips/test",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 3,
+        "ended": "empty"
+      },
+      "finalUrl": "/tips/test",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
+      "requests": 25
     }
   ],
   "merged": [

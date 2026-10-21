@@ -66,6 +66,9 @@ const INTENDED_LINK_CHANGES = new Set([
   "20261011161100_team_thread_direct_messages.sql::notify_message_recipient",
   // Q194: '/earnings' (a retired redirect) -> '/profile?tab=earnings'.
   `${Q194}::notify_helper_on_tip`,
+  // Board 181 (owner 2026-10-21): the tip notice opens the tip's own moment,
+  // '/tips/' || NEW.id, instead of Money ('/profile?tab=earnings').
+  "20261021094843_tip_notice_names_the_tipper.sql::notify_helper_on_tip",
   `${Q194}::notify_on_payment_escrowed`,
   // Q310: the four referral-bonus links '/profile' -> '/profile?tab=referral'
   // (20260831232514 had made that change; 20260902014651 restated older text).

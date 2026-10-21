@@ -9,7 +9,7 @@ import {
   Gem,
   Clock,
 } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   Popover,
   PopoverContent,
@@ -32,7 +32,6 @@ import { ProfileBadge, PROFILE_BADGE_PILL } from "./ProfileBadge";
 import {
   ID_VERIFIED_DESCRIPTION,
   ID_VERIFIED_LABEL,
-  ID_VERIFIED_PILL_STYLE,
   IdVerifiedShield,
 } from "@/components/profile/IdVerifiedPill";
 
@@ -127,13 +126,20 @@ type BadgeSpec = {
   title?: string;
   icon: ReactNode;
   description: string;
-  className?: string;
-  style?: CSSProperties;
   /** Extra popover body (the ladder's "to reach …" list). */
   extra?: ReactNode;
 };
 
 type BadgeGroup = "helpr" | "account" | "poster";
+
+/**
+ * ONE chip for every badge on the row (spec v2 rebuild, audit 2026-10-21):
+ * white, the --line-strong border, ink label, olive icon. The per-badge
+ * peach/gold/purple/blue tints were a rainbow on the one screen that most
+ * needs to read as calm and trustworthy; badges are told apart by icon and
+ * name, like the four sections.
+ */
+const ONE_BADGE_CHIP = "border text-foreground [&_svg]:!text-primary";
 
 /** The caption printed above each group. This is the whole distinction. */
 const GROUP_LABEL: Record<BadgeGroup, string> = {
@@ -170,17 +176,6 @@ function milestoneSpec(milestone: CareerMilestone): BadgeSpec {
     label: milestone.label,
     icon: <MilestoneIcon name={milestone.icon} color={milestone.color} />,
     description: `Career milestone — ${milestone.description}.`,
-    // Alpha goes before the LAST paren. `.replace(")", …)` hits the FIRST
-    // one, which for a token colour — `hsl(var(--burnt-sienna))` — is var()'s
-    // own: `hsl(var(--burnt-sienna / 0.12))` is invalid, so the browser
-    // dropped the fill AND the border and "Neighborhood Pro" / "Elite Helpr"
-    // rendered as bare text beside their pill siblings (Q179, measured on
-    // /user/:id). Guard: src/test/colorAlphaNeverReplacesFirstParen.test.ts.
-    style: {
-      background: `${milestone.color.slice(0, -1)} / 0.12)`,
-      border: `0.5px solid ${milestone.color.slice(0, -1)} / 0.28)`,
-      color: "hsl(var(--foreground))",
-    },
   };
 }
 
@@ -214,14 +209,6 @@ function ladderSpec(
     title: `${meta.label} Helpr`,
     icon: <Icon strokeWidth={2.25} style={{ color: `hsl(var(${meta.colorVar}))` }} />,
     description: `Verification ladder — ${meta.description}`,
-    // Same fix as milestoneSpec: gold-warm as 11px/600 LABEL text on its own
-    // 12% tint measured 2.58:1 on "Top Rated" (a11y-prod, 2026-09-24). The
-    // label takes --foreground; the rung's colour stays in fill, border, icon.
-    style: {
-      background: `hsl(var(${meta.colorVar}) / 0.12)`,
-      color: "hsl(var(--foreground))",
-      border: `0.5px solid hsl(var(${meta.colorVar}) / 0.32)`,
-    },
     extra: (
       <>
         {next && (
@@ -281,7 +268,6 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
       group: "account",
       label: "Licensed & Insured",
       icon: <ShieldCheck className="verified-gold" />,
-      className: "tier-gold-elite",
       description:
         "Both a trade licence and a certificate of insurance are on file and have been checked by Helpr.",
     };
@@ -294,7 +280,6 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
       group: "account",
       label: which,
       icon: <BadgeCheck />,
-      className: "border bg-primary/10 text-primary border-primary/30",
       description:
         (licenseVerified
           ? "A trade licence is on file and has been checked by Helpr."
@@ -314,7 +299,6 @@ function credentialSpec(credentials: CredentialFields): BadgeSpec | null {
       group: "account",
       label,
       icon: <Clock />,
-      className: "border bg-muted/50 text-muted-foreground border-border",
       description:
         "A credential has been submitted and is waiting for Helpr to review it. Nothing is verified yet.",
     };
@@ -442,12 +426,6 @@ export const RecognitionRow = ({
       icon: <ShieldCheck />,
       description:
         "A paid background screening was completed and cleared. Earned by ordering a background check from Profile.",
-      className: "border",
-      style: {
-        background: "hsl(var(--sage) / 0.16)",
-        color: "hsl(var(--success-ink))",
-        borderColor: "hsl(var(--sage) / 0.4)",
-      },
     });
   }
 
@@ -460,7 +438,6 @@ export const RecognitionRow = ({
       label: ID_VERIFIED_LABEL,
       icon: <IdVerifiedShield />,
       description: ID_VERIFIED_DESCRIPTION,
-      style: ID_VERIFIED_PILL_STYLE,
     });
   }
 
@@ -512,8 +489,10 @@ export const RecognitionRow = ({
                 title={spec.title}
                 icon={spec.icon}
                 description={spec.description}
-                className={spec.className}
-                style={spec.style}
+                className={ONE_BADGE_CHIP}
+                // Inline, not bg-card: the T2 card rule (index.css) clears a
+                // .bg-card border to transparent, so the chip lost its edge.
+                style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))" }}
               >
                 {spec.extra}
               </ProfileBadge>

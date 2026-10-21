@@ -20,7 +20,7 @@ import {
   formatRecordDate,
   type HomeHistoryDocumentInput,
 } from "@/lib/homeHistoryDocument";
-import { categoryColors, categoryLabels } from "@/components/job-card/activityConstants";
+import { categoryLabels } from "@/components/job-card/activityConstants";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -212,11 +212,12 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
       const profiles = unwrap(profilesRes) as { user_id: string; full_name: string | null }[];
       // Your own name in full; every other member as "Marcus T." (owner 2026-10-21: we never show a
       // member's last name, only its first letter; this reverses the earlier full-name record).
-      // A missing name says so rather than inventing "Someone".
+      // A member with no name on file is "a Helpr" (spec v2 rebuild 2026-10-21:
+      // "done by Name not on file" read as a data error on a permanent record).
       const profileMap = new Map(
         profiles.map((p) => [
           p.user_id,
-          p.user_id === userId ? (p.full_name ?? "").trim() || "Name not on file" : formatName(p.full_name, "Name not on file"),
+          p.user_id === userId ? (p.full_name ?? "").trim() || "Name not on file" : formatName(p.full_name, "a Helpr"),
         ]),
       );
 
@@ -224,7 +225,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
         ...j,
         ownerName: profileMap.get(userId) ?? null,
         helperNames: (idsByJob.get(j.id) ?? []).map(
-          (id) => profileMap.get(id) ?? "Name not on file",
+          (id) => profileMap.get(id) ?? "a Helpr",
         ),
       })) as CompletedJobWithHelper[];
     },
@@ -379,12 +380,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
               onClick={() => { void handleShare(); }}
               disabled={isSharing}
               aria-busy={isSharing}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-ds-lg py-3.5 px-5 text-ds-14 font-semibold active:scale-[0.99] transition-all disabled:opacity-60"
-              style={{
-                background: "hsl(var(--bark) / 0.10)",
-                border: "1px solid hsl(var(--bark) / 0.30)",
-                color: "hsl(var(--bark))",
-              }}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-full min-h-12 py-3 px-5 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all disabled:opacity-60"
             >
               {isSharing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -436,7 +432,6 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                 {jobs.map((job) => {
                   const Icon = getCategoryIcon(job.category);
                   const cat = job.category ?? "other";
-                  const colors = categoryColors[cat] ?? categoryColors["other"];
                   const label = categoryLabels[cat] ?? "Other";
 
                   return (
@@ -468,19 +463,19 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                           (fill/border/shadow); the geometry classes below are
                           unchanged. */}
                       <div
-                        className="doc-card rounded-ds-lg p-4 space-y-2.5"
+                        className="rounded-[20px] border border-border bg-card p-4 space-y-2.5"
                       >
                         {/* Top row: category badge + title */}
                         <div className="flex items-start gap-2.5">
                           <div
-                            className={`shrink-0 w-9 h-9 rounded-ds-md flex items-center justify-center ${colors.badge} border`}
+                            className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary"
                           >
                             <Icon className="w-4 h-4" />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
                               <span
-                                className={`inline-flex items-center text-ds-10 font-semibold rounded-full px-2 py-0.5 border ${colors.badge}`}
+                                className="inline-flex items-center text-ds-12 font-semibold text-primary"
                               >
                                 {label}
                               </span>
@@ -491,7 +486,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                             {job.helperNames.length > 0 && (
                               <p className="text-ds-11 text-muted-foreground mt-0.5">
                                 done by{" "}
-                                <span className="font-semibold" style={{ color: "hsl(var(--bark))" }}>
+                                <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                                   {formatHelperList(job.helperNames)}
                                 </span>
                               </p>
@@ -524,7 +519,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                               figure here reads as the listing price, which is
                               exactly the thing it no longer is. */}
                           {posterPaidDollars(job) > 0 && (
-                            <span className="inline-flex items-center gap-1 text-ds-11 font-medium tabular-nums" style={{ color: "hsl(var(--bark))" }}>
+                            <span className="inline-flex items-center gap-1 text-ds-11 font-medium tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}>
                               ${formatPriceExact(posterPaidDollars(job))}
                               <span className="font-normal text-muted-foreground">paid</span>
                             </span>

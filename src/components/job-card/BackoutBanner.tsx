@@ -12,11 +12,26 @@ import { userFacingError } from "@/lib/userFacingError";
  * expanded, until Got It; the card stays in Needs You until then.
  */
 export function BackoutBanner({ job }: { job: object | null | undefined }) {
-  const notice = (job as { backout_notice?: BackoutNotice } | null)?.backout_notice;
-  return notice ? <BackoutBannerBody notice={notice} /> : null;
+  const j = job as { backout_notice?: BackoutNotice; payment_status?: string | null } | null;
+  const notice = j?.backout_notice;
+  return notice ? <BackoutBannerBody notice={notice} moneyHeld={j?.payment_status === "escrow"} /> : null;
 }
 
-function BackoutBannerBody({ notice }: { notice: BackoutNotice }) {
+/**
+ * Board 144 (copy only): when the Helpr cancels a paid job, say where the
+ * money is. The helper_cancelled notice is written by the record_backout_notice
+ * trigger on any reopen of a confirmed job (helper_cancel_booking,
+ * helper_abort_job, report_helper_no_show, settle_one_off_jobs_for_banned_account,
+ * block_user_and_settle), and every one of those leaves payment_status alone
+ * (lh-money-escrow review, 2026-10-21). Shown only while the job's payment
+ * really is held (`escrow`), read live from the job.
+ */
+export function backoutMoneyLine(kind: BackoutNotice["backout_kind"], moneyHeld: boolean): string | null {
+  return kind === "helper_cancelled" && moneyHeld ? "Your payment stays held for whoever you hire next." : null;
+}
+
+function BackoutBannerBody({ notice, moneyHeld }: { notice: BackoutNotice; moneyHeld: boolean }) {
+  const moneyLine = backoutMoneyLine(notice.backout_kind, moneyHeld);
   const queryClient = useQueryClient();
   const [busy, setBusy] = useState(false);
   return (
@@ -30,6 +45,9 @@ function BackoutBannerBody({ notice }: { notice: BackoutNotice }) {
       <AlertTriangle className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--destructive-ink))" }} aria-hidden />
       <p className="flex-1 min-w-0 text-ds-12 font-semibold" style={{ color: "hsl(var(--destructive-ink))" }}>
         {backoutBannerText(notice)}
+        {moneyLine ? (
+          <span className="block mt-0.5 font-medium" style={{ color: "hsl(var(--accent-ink))" }}>{moneyLine}</span>
+        ) : null}
       </p>
       <Button
         size="sm"

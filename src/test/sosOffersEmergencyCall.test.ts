@@ -9,8 +9,9 @@
  * note that mentions 911 does not count), and must say that sharing does not
  * alert emergency services.
  */
-// @mutate src/components/SosShareButton.tsx | <a href="tel:911" aria-label="Call 911"> | <a href="#" aria-label="Call 911">
+// @mutate src/components/SosShareButton.tsx | href="tel:911" | href="#"
 // @mutate src/components/SosShareButton.tsx | It does not alert us or emergency services. | Help is on the way.
+// @mutate src/components/SosShareButton.tsx | title="Talk to Helpr" | title="Talk to Helpr Safety"
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -53,3 +54,25 @@ describe("TS-007: every SOS control offers the emergency number", () => {
     },
   );
 });
+
+/**
+ * Board 156 (truth rule, spec v2 §1.5): the "Are you safe?" sheet promises only
+ * what the app does. There is no live-location feed to a safety team, no
+ * "Helpr Safety" desk, no pause of the other person and no instant answer; a
+ * share sends ONE position to the person you pick. Copy that names any of
+ * those is a promise nobody keeps, on the screen someone opens when afraid.
+ */
+describe("board 156: the safety sheet promises only what exists", () => {
+  const code = blankComments(readFileSync(join(SRC, "components", "SosShareButton.tsx"), "utf8"));
+  const strings = [...code.matchAll(/"([^"\\]*)"|>([^<>{}]+)</g)].map((m) => (m[1] ?? m[2] ?? "").trim()).filter(Boolean);
+
+  it("reads its own copy", () => {
+    expect(strings.length).toBeGreaterThan(10);
+    expect(strings).toContain("Are you safe?");
+  });
+
+  it.each([/Helpr Safety/i, /live location/i, /paused by/i, /right away|reply now|, now\b/i])("no string matches %s", (re) => {
+    expect(strings.filter((s) => re.test(s))).toEqual([]);
+  });
+});
+

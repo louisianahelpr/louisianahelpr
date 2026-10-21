@@ -1,6 +1,7 @@
 import { Dialog, DialogDestructiveAction, DialogSecondaryAction, DialogContent, DialogDescription, DialogFooter, DialogHero } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { AlertTriangle, Check, Loader2, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
+import { useInRouterContext, useLocation } from "react-router-dom";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
 
@@ -28,7 +29,7 @@ interface DeleteAccountDialogProps {
    * recorded against a hash of their email so it survives the account
    * (20260903014600_ban_survives_self_deletion.sql). The whole argument for
    * RetentionSummary below is that a delete dialog which misdescribes the
-   * delete is a trust defect; a suspended user pressing Delete Forever in the
+   * delete is a trust defect; a suspended user pressing "Delete my account" in the
    * belief that it clears their suspension would be exactly that defect, so
    * the caller that has the context adds the line.
    *
@@ -42,6 +43,65 @@ interface DeleteAccountDialogProps {
 // thumb-typing on iPhone isn't punishment, long enough that nobody
 // hits Delete forever by accident.
 const CONFIRM_PHRASE = "DELETE";
+
+/**
+ * Board 120, "Before you go": what happens, in the order a person needs it.
+ *
+ * TRUTH (verified 2026-10-21 against supabase/functions/delete-own-account and
+ * _shared/accountPurge.ts `findActiveWork`): the server REFUSES the delete
+ * (409) while the member has a job that is accepted, in progress, in revision
+ * or disputed, a job whose money is in escrow or payout_pending, a running
+ * repeating job, a Declutter cart line waiting or paid, a Helpr task or task
+ * payout in flight, or a Shops order in progress. So nothing that is held or
+ * still on its way to the member can be lost by deleting. The old callout said
+ * "Pending payouts will be forfeited ... Cash out from Earnings first", which
+ * no code does: a pending payout blocks the delete instead, and the purge never
+ * touches the member's payout account (it cancels only the membership
+ * subscription). Board 120's "Coming to you $X · held $Y" banner and "Pause
+ * instead" are left out: the first could only ever read $0 here (any held or
+ * pending money refuses the delete), and pausing an account does not exist.
+ *
+ * Keep in sync with LIVE_STATUS_FILTER / findActiveWork. Guard:
+ * src/test/deleteAccountCopyMatchesServer.test.ts.
+ */
+const WHAT_HAPPENS = [
+  "Open work finishes first. You can't delete while a job is booked, in progress or disputed, a sale or order is underway, or a job's payment is held or waiting to be paid out.",
+  "If you have a membership, it stops billing.",
+] as const;
+
+// Only where Settings is reachable: /account-banned and /complete-profile
+// open this dialog too, and ProtectedRoute keeps those members out of
+// /profile (lh-money-escrow review, 2026-10-21).
+const DOWNLOAD_LINE = "You can download your data first, from Settings.";
+
+function WhatHappens() {
+  const inRouter = useInRouterContext();
+  return inRouter ? <WhatHappensRouted /> : <WhatHappensList lines={WHAT_HAPPENS} />;
+}
+
+function WhatHappensRouted() {
+  const { pathname } = useLocation();
+  const lines = pathname.startsWith("/profile") ? [...WHAT_HAPPENS, DOWNLOAD_LINE] : WHAT_HAPPENS;
+  return <WhatHappensList lines={lines} />;
+}
+
+function WhatHappensList({ lines }: { lines: readonly string[] }) {
+  return (
+    <ul
+      className="my-1 space-y-2 rounded-2xl px-4 py-3"
+      // Inline, not `bg-card`: the T2 card rule makes every .bg-card border
+      // transparent (!important).
+      style={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+    >
+      {lines.map((line) => (
+        <li key={line} className="flex items-start gap-2 text-ds-13 leading-snug text-foreground">
+          <Check aria-hidden="true" className="w-4 h-4 shrink-0 mt-[2px]" style={{ color: "hsl(var(--bark))" }} />
+          <span>{line}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
  * What the deletion actually does — erased on the left, kept on the right.
@@ -84,8 +144,7 @@ function RetentionSummary({ extraKeptItems }: { extraKeptItems?: string[] }) {
     "Reviews other people left about you",
     "Jobs you posted that nobody applied to and that took no payment",
     // Referral credit is real spendable value and it does not survive the
-    // account, so the person deciding deserves to know before they decide —
-    // same reason the callout above names the forfeited payouts.
+    // account, so the person deciding deserves to know before they decide.
     "Any referral credit you haven't spent",
   ];
   const kept = [
@@ -158,7 +217,7 @@ export function DeleteAccountDialog({
 }: DeleteAccountDialogProps) {
   // Delegate, and nothing else. This used to also run
   // `setDeleteConfirmText(""); setDeleteStep(1)` on every close — harmless
-  // while "close" only ever meant "cancelled", but "Delete Forever" is wrapped
+  // while "close" only ever meant "cancelled", but "Delete my account" is wrapped
   // in `DialogPrimitive.Close` by dialog.tsx (every action inside a
   // `role="alertdialog"` is), so a successful delete ALSO fires this. It would
   // rewind the dialog to step 1 while the request was in flight, flashing
@@ -215,36 +274,29 @@ export function DeleteAccountDialog({
       <BrandConfirmDialog
         open={open}
         onOpenChange={handleOpenChange}
-        title="Delete your Helpr account?"
-        description="This can't be undone. Here's exactly what happens."
-        callout={{
-          icon: AlertTriangle,
-          // Two money consequences, both of which the user can act on BEFORE
-          // confirming. The membership clause is here because deletion now
-          // actually cancels the Stripe subscription (it never used to — a
-          // deleted account kept billing), and a charge stopping is exactly
-          // the kind of thing a person should not discover from their bank.
-          text: "Pending payouts will be forfeited and your membership stops billing. Cash out from Earnings first.",
-        }}
+        title="Before you go"
+        description="Here's what happens."
+        // Olive, not alert: Continue deletes nothing. The ONE alert button in
+        // the flow (and in the app, spec v2 §9.26) is step 2's delete.
         primaryLabel="Continue"
-        primaryTone="sienna"
+        primaryTone="bark"
         primaryHaptic="warning"
         onPrimary={(e) => { e.preventDefault(); setDeleteStep(2); }}
         secondaryLabel="Cancel"
       >
+        <WhatHappens />
         <RetentionSummary extraKeptItems={extraKeptItems} />
       </BrandConfirmDialog>
     );
   }
 
-  // Step 2 keeps its own shell because it needs an inline input and
-  // the title includes a sienna AlertTriangle icon — slightly outside
-  // the BrandConfirmDialog contract.
+  // Step 2 keeps its own shell because it needs an inline input, which sits
+  // outside the BrandConfirmDialog contract.
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent role="alertdialog">
         <DialogHero
-          title={<><AlertTriangle className="w-5 h-5" /> Final confirmation</>}
+          title="Delete account"
         />
         {/* The field used to carry the only instruction — a placeholder that
             vanishes the moment you start typing, with nothing above it saying
@@ -273,16 +325,15 @@ export function DeleteAccountDialog({
           >
             Back
           </DialogSecondaryAction>
-          {/* The shared destructive treatment, not a hand-copied sienna style
-              block. This is the same button step 1 renders through
-              BrandConfirmDialog's `primaryTone="sienna"`, so the two steps of
-              one flow must not be painted by two different code paths. */}
+          {/* The shared destructive treatment (the --alert fill), not a
+              hand-copied style block: the one alert button in the flow
+              (spec v2 §9.26, board 120). */}
           <DialogDestructiveAction
             disabled={deleteConfirmText !== CONFIRM_PHRASE || deletingAccount}
             onClick={() => { void hapticError(); onDelete(); }}
           >
             {deletingAccount ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-            Delete Forever
+            Delete my account
           </DialogDestructiveAction>
         </DialogFooter>
       </DialogContent>

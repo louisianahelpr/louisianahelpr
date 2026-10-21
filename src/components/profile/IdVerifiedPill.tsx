@@ -32,11 +32,16 @@ export const ID_VERIFIED_PILL_STYLE: CSSProperties = {
   color: "hsl(var(--gold-ink))",
 };
 
-/** Owner, 2026-10-08: "there is no such thing as ID verified, only Stripe ID verified". */
-export const ID_VERIFIED_LABEL = "Stripe ID verified";
+/**
+ * Owner, 2026-10-21 (pop-up, Q2201; supersedes the 2026-10-08 "only Stripe ID
+ * verified" pin): ONE neutral "ID verified" whichever route verified the ID,
+ * Stripe Identity or an admin's hand approval. Only admins see the route
+ * (adminUserHelpers: "ID verified by Stripe" / "ID verified by admin").
+ */
+export const ID_VERIFIED_LABEL = "ID verified";
 
 export const ID_VERIFIED_DESCRIPTION =
-  "A government ID was checked by Stripe Identity and matched this member. Earned by completing ID verification in Profile.";
+  "A government ID was checked and matched this member. Earned by completing ID verification in Profile.";
 
 /**
  * "Payouts set up" (owner, 2026-10-21): Stripe Connect payout setup is done

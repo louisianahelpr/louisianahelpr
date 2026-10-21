@@ -547,7 +547,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   {data.identityVerified ? (
                     <>
                       This record was generated from Helpr&rsquo;s job history on {today}. This
-                      member&rsquo;s identity was verified by Stripe.
+                      member&rsquo;s ID was verified.
                     </>
                   ) : (
                     <>

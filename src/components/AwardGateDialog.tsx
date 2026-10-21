@@ -14,6 +14,7 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
@@ -106,7 +107,7 @@ export function AwardGateDialog({
         <div className="space-y-2 py-1">
           <RequirementRow label="Payout account connected" met={!payoutMissing} />
           <RequirementRow
-            label="Photo ID and selfie checked by Stripe"
+            label={ID_VERIFIED_LABEL}
             met={!idMissing}
             action={payoutMissing && idMissing ? { label: "Verify", onClick: openIdCheck } : undefined}
           />

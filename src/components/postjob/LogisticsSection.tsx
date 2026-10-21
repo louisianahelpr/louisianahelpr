@@ -286,7 +286,7 @@ export function LogisticsSection({
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
-        <Label id="date-label">{isRecurring ? "Start Date" : "Date Needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label id="date-label">{isRecurring ? "Start date" : "Date needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
         <DatePickerField
           id="date"
           inline

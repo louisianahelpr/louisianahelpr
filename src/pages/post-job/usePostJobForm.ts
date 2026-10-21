@@ -7,7 +7,7 @@ import { defaultRequirePhotoProof } from "@/lib/photoProofDefaults";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { EntryPanel, Step } from "./postJobFormTypes";
-import type { JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { JOB_CATEGORY_GROUPS, jobCategoryGroupOf, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { useJobMediaUpload } from "./useJobMediaUpload";
 import { useJobSubmit } from "./useJobSubmit";
 import { useJobEntry } from "./useJobEntry";
@@ -513,7 +513,12 @@ export function usePostJobForm() {
       setCategoryGroup(null);
     } else if (step === "form" && formPage > 1) {
       // Back steps through the form's screens; entered data stays (state
-      // lives here, every screen stays mounted).
+      // lives here, every screen stays mounted). Back from Details (4 of 7) is the picked
+      // category's group (3 of 7), unless that group has one category ("Something else": 2 of 7).
+      if (formPage === 2) {
+        const g = jobCategoryGroupOf(category);
+        setCategoryGroup(g && (JOB_CATEGORY_GROUPS.find((x) => x.id === g)?.items.length ?? 0) > 1 ? g : null);
+      }
       setFormPage((p) => p - 1);
     } else if (step === "checkout") {
       // Back from screen 5 (checkout) is screen 4, When and where.

@@ -321,7 +321,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     // birthday question, 8d44b5aab). Same two originals as the wheel's: a stop
     // with nothing painted, and Tab moving the chosen value (2026-09-12: two
     // presses moved the wheel's year 2008 -> 1906).
-    const calendar = page.getByRole("group", { name: /Date Needed|Start Date/ });
+    const calendar = page.getByRole("group", { name: /Date needed|Start date/i });
     await expect(calendar.locator("td[data-day]").first(), "the Date Needed calendar never mounted (lazy chunk)").toBeAttached({ timeout: 30_000 });
     const chosen = () => calendar.locator('td[aria-selected="true"]').evaluateAll((tds) => tds.map((td) => td.getAttribute("data-day")));
     const before = await chosen();

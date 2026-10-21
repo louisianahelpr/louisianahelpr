@@ -23,6 +23,7 @@
  */
 import { execFileSync } from "node:child_process";
 import { logsQueryUrl } from "./lib/supabaseLogs.mjs";
+import { ROBOT_EVENT_SQL } from "./lib/analyticsFreshness.mjs";
 
 export const GROUP = "targets (SLOs)";
 
@@ -114,9 +115,10 @@ function pageLoadSql(platformFilter) {
   return `SELECT count(*)::int AS n,
       percentile_cont(0.95) WITHIN GROUP (ORDER BY (properties->>'load_ms')::numeric) AS p95_ms,
       percentile_cont(0.5) WITHIN GROUP (ORDER BY (properties->>'load_ms')::numeric) AS p50_ms
-    FROM public.analytics_events
+    FROM public.analytics_events e
     WHERE event = 'page_load' AND ${platformFilter} AND created_at > now() - interval '7 days'
-      AND (properties->>'load_ms') ~ '^[0-9]+$'`;
+      AND (properties->>'load_ms') ~ '^[0-9]+$'
+      AND NOT ${ROBOT_EVENT_SQL}`; // Q2112: a robot's page load is not a real user's
 }
 
 export const SQL = {

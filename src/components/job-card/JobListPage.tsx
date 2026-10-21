@@ -47,6 +47,7 @@ import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
+import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
@@ -421,7 +422,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   );
 
   return (
-    <>
+    <RefundsSwitchProvider>{/* Board 141: the refund_requests switch, read once for every card below. */}
       {/* ONE BOX on the desktop website (owner: "merge into 1"). The header
           used to be the scaffold's own floating title card, so the screen was
           two stacked liquid-glass boxes with a gap between them saying one
@@ -637,7 +638,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
           />
         </Suspense>
       )}
-    </>
+    </RefundsSwitchProvider>
   );
 };
 

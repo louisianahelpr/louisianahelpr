@@ -9,6 +9,7 @@ import { RotateCcw, RefreshCw, Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
 import { ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
+import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
 import { CountdownRows, posterOfferClocks } from "./postedJobCard/posterOfferClocks";
 import { JobTracking } from "@/components/JobTracking";
 import { PosterStatusStrip } from "./postedJobCard/PosterStatusStrip";
@@ -724,6 +725,8 @@ function PostedJobCardInner({
                 </div>
               )}
               <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={isExpanded} hideAsk />
+              {/* Board 141 (Q2272): this poster's refund request and the Helpr's answer. */}
+              <RefundRequestPanel job={job} userId={userId} otherName={job.helper_id ? helperNames[job.helper_id] : null} feeFallbackPercent={null} expanded={isExpanded} />
               {/* Actions */}
               <PostedJobActions
                 job={job}

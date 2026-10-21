@@ -637,6 +637,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/banReview.ts";`,
   );
 
+  // Refund-request hold (board 141, Q2272): `_shared/refundRequestHold.ts` has
+  // ZERO imports, so the REAL liveness rule and lookup run inside the money
+  // crons and the release button.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/refundRequestHold\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/refundRequestHold.ts";`,
+  );
+
   // Payout-hold Stripe freeze (Q1221): `_shared/payoutFreeze.ts` imports only
   // caughtMessage, so the REAL state machine runs inside
   // payout-hold-stripe-sync; only Stripe and the database are doubles.

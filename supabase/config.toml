@@ -224,6 +224,15 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # listing-photo-purge (Q2211): pg_cron posts `Bearer <service_role_key>`; verifyCronSecret checks it.
   [functions.listing-photo-purge]
     verify_jwt = false
+  # refund-request-sweep (board 141, Q2272): pg_cron posts `Bearer <service_role_key>`; verifyCronSecret checks it.
+  [functions.refund-request-sweep]
+    verify_jwt = false
+  # execute-dispute-split: an admin JWT (verified in the handler with
+  # auth.getUser + has_role) or, from refund-request-sweep, the exact service
+  # key (sb_secret_*, not a JWT), which settles only a split the two parties
+  # agreed (refund_agreement_for_dispute). The handler checks both itself.
+  [functions.execute-dispute-split]
+    verify_jwt = false
   # declutter-money: pg_cron posts `Bearer <service_role_key>`; the function
   # checks it itself with verifyCronSecret.
   [functions.declutter-money]

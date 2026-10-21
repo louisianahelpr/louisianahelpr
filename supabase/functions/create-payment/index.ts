@@ -46,6 +46,7 @@ import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundP
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
+import { isRefundRequestHoldRefusal, REFUND_REQUEST_RELEASE_MESSAGE } from "../_shared/refundRequestHold.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
@@ -1601,6 +1602,12 @@ serve(async (req) => {
           // it never says whose account is under review.
           if (/\bban_review_open\b/.test(String(updateError.message ?? ""))) {
             throw new PublicError(BAN_REVIEW_RELEASE_MESSAGE);
+          }
+          // Board 141 (Q2272): a live refund request on this job holds its
+          // money (trg_refuse_payout_pending_while_refund_requested) until the
+          // Helpr answers, the dispute is filed, or the agreed split runs.
+          if (isRefundRequestHoldRefusal(String(updateError.message ?? ""))) {
+            throw new PublicError(REFUND_REQUEST_RELEASE_MESSAGE);
           }
           throw new PublicError("Failed to update the job status — please try again");
         }

@@ -13,6 +13,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
+import { loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -354,9 +355,25 @@ serve(async (req) => {
       defects.record(`ban review read: ${banReview.message}`);
     }
 
+    // ── Board 141 (Q2272): a live refund request holds the job ─────────────
+    // A poster asked the Helpr for money back and it is not settled (open,
+    // declined awaiting its dispute, or agreed and not yet split): the job is
+    // not completed or paid this run. The database refuses the flip too
+    // (refuse_payout_pending_while_refund_requested); this read makes it an
+    // outcome rather than a refused write. Fails closed: unread, none released.
+    const refundHeld = await loadRefundHeldJobs(supabaseAdmin, (jobs || []).map((j) => j.id));
+    if (!refundHeld.ok) {
+      console.error("[auto-release-payment] refund request read failed; nothing released this run:", refundHeld.message);
+      defects.record(`refund request read: ${refundHeld.message}`);
+    }
+
     for (const job of (jobs || [])) {
       if (!banReview.ok || frozenByBanReview(banReview, job)) {
         results.push({ job_id: job.id, status: "ban_review", skipped: true });
+        continue;
+      }
+      if (!refundHeld.ok || refundHeld.jobs.has(job.id)) {
+        results.push({ job_id: job.id, status: "refund_requested", skipped: true });
         continue;
       }
       // ── Step 0: Gift card detection ──

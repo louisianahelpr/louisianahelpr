@@ -123,6 +123,8 @@
     "supabase/functions/_shared/productTiers.ts",
     "supabase/functions/_shared/helperEarnings.ts",
     "supabase/functions/_shared/money.ts",
+    // Board 141 (Q2272): src/test/edge/refundRequestHold.test.ts reads the REAL liveness rule.
+    "supabase/functions/_shared/refundRequestHold.ts",
     "supabase/functions/_shared/cancellationFee.ts",
     "supabase/functions/_shared/crewShares.ts",
     "supabase/functions/_shared/confirmDeadline.ts",

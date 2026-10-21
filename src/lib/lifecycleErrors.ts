@@ -36,6 +36,10 @@ export const BEFORE_PHOTO_GATE_REASON =
   'Tap "Before photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
 
 const LIFECYCLE_REASONS: Record<string, string> = {
+  // Board 141: a cancel, back-out or no-show report while a refund request on
+  // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
+  refund_request_live:
+    "There's a refund request on this job. Answer it, or withdraw it if you asked, before you change the booking.",
   // report_helper_no_show
   job_not_funded:
     "You can report a no-show once the job's payment is secured. This one isn't funded yet.",

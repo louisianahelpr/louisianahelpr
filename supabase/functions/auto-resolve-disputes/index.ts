@@ -40,6 +40,14 @@ const REMINDER_WINDOW_HOURS = 24;
  */
 const STUCK_SPLIT_MINUTES = 60;
 
+/**
+ * How long a refund the two parties agreed (board 141, decided_via
+ * 'agreement') may wait for refund-request-sweep's first hand-out before it
+ * counts as stuck: the sweep runs every 10 minutes, so 90 leaves room for a
+ * missed run or two without paging anyone.
+ */
+const AGREEMENT_HANDOUT_MINUTES = 90;
+
 /** Bound every sweep read — a runaway page is a silent partial sweep. */
 const SWEEP_LIMIT = 500;
 
@@ -876,7 +884,7 @@ serve(async (req) => {
       const stuckCutoff = Date.now() - STUCK_SPLIT_MINUTES * 60 * 1000;
       const { data: claimed, error: stuckErr } = await supabase
         .from("disputes")
-        .select("id, job_id, execution_status, execution_started_at, execution_error")
+        .select("id, job_id, execution_status, execution_started_at, execution_error, decided_via, decided_at")
         // DECIDED rows only (round-5 review, MEDIUM-2): a dispute superseded by
         // rpc_supersede_dispute_decision keeps its execution record as history,
         // and without this every supersede raised a permanent stuck-split alarm.
@@ -901,6 +909,14 @@ serve(async (req) => {
         // stamp on a claimed row is MORE alarming than an old one, so it counts
         // as stuck rather than being skipped.
         const aged = (claimed ?? []).filter((row) => {
+          // Board 141: a refund the two parties AGREED is queued for the
+          // refund-request-sweep (every 10 minutes, retried 30 minutes apart),
+          // so a fresh, never-claimed agreement is not stuck yet (lh-money-escrow
+          // review, #5). Past the window it is judged like any other split.
+          if (row.decided_via === "agreement" && row.execution_status === "pending" && !row.execution_started_at) {
+            const decidedAt = Date.parse(String(row.decided_at ?? ""));
+            if (Number.isFinite(decidedAt) && decidedAt > Date.now() - AGREEMENT_HANDOUT_MINUTES * 60 * 1000) return false;
+          }
           const startedAt = row.execution_started_at as string | null;
           if (!startedAt) return true;
           const t = Date.parse(startedAt);

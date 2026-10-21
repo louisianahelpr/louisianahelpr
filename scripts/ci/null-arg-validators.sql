@@ -124,6 +124,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('quote_job_offered_to_quoter',   'classify', 'labels a job as booked from an agreed quote and offered to that quoter (20261018155222): the hire trigger acts on it and the direct-offer notice stands aside; no access decision (EXECUTE revoked from clients), and a NULL job or helper is false'),
   ('is_seed_email',                 'classify', 'labels an address as a seed account'),
+  ('refund_request_is_live',        'classify', 'labels a refund_requests row live (open, declined awaiting its dispute, or agreed and unsettled; 20261021102943); no access decision (EXECUTE revoked from clients), called only on rows whose status is NOT NULL, and a NULL status is false'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
   ('saved_search_category_matches', 'classify', 'labels a new job as matching a saved search''s category or its group (20261021072206); a NULL search category is the "any category" search and matches by design; no access decision (EXECUTE is service_role only; the alert trigger still applies every visibility gate)'),

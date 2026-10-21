@@ -18,7 +18,7 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
 import { lazy, Suspense, useState } from "react";
-import { CheckCircle2, ChevronLeft, RotateCcw, X, Upload, AlertTriangle } from "lucide-react";
+import { ChevronLeft, X, Upload, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
@@ -36,6 +36,7 @@ import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
 import { PhotoProofGroup } from "@/components/PhotoProof";
 import { backgroundImport } from "@/lib/chunkReload";
+import { formatPriceExact } from "@/lib/format";
 
 // Rentals: the tenant's "Was it fixed?" answer, for a job posted from a repair
 // request. Loaded only when the sheet opens (off /posts' shared chunk) and
@@ -64,6 +65,12 @@ interface CompletionChoiceSheetProps {
    *  only rendered once status was already `completed`, i.e. after approval. */
   proofBeforeUrls?: string[];
   proofAfterUrls?: string[];
+  /**
+   * Board 65: the job price this confirm releases, in dollars. Passed only for
+   * a one-Helpr job with no urgent bonus, where the job price IS what the
+   * release pays out from; otherwise the sheet names no number.
+   */
+  jobPrice?: number | null;
   onClose: () => void;
   /** Called when the poster approves (path A) — parent runs the full
    *  complete-job flow (status transition + CompletionPrompts). */
@@ -80,6 +87,8 @@ export function CompletionChoiceSheet({
   userId,
   proofBeforeUrls = [],
   proofAfterUrls = [],
+  jobPrice = null,
+  jobTitle,
   onClose,
   onConfirm,
   onRevisionSubmitted,
@@ -248,15 +257,13 @@ export function CompletionChoiceSheet({
       <SheetContent side="bottom">
         {mode === "choice" ? (
           <>
-            <SheetHero title="How Did It Go?" />
+            {/* Board 65: the Helpr's name, never he/she; the decision with its evidence on screen. */}
+            <SheetHero title={`${helperName} says it's done`} />
 
             {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
               <div className="space-y-1.5 mb-3">
-                <p
-                  className="font-sans leading-snug text-ds-12"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  {helperName}'s proof photos — the work you're about to pay for.
+                <p className="font-sans leading-snug text-ds-12 text-muted-foreground">
+                  {helperName}'s photos of the work.
                 </p>
                 <PhotoProofGroup
                   jobId={jobId}
@@ -268,74 +275,28 @@ export function CompletionChoiceSheet({
             )}
 
             <div className="space-y-3">
-              {/* Path A — release payment */}
-              <button
-                type="button"
-                onClick={handleConfirm}
-                className="w-full text-left rounded-ds-md p-4 transition-all active:scale-[0.985]"
-                style={{
-                  background: "hsl(var(--bark) / 0.07)",
-                  border: "1px solid hsl(var(--bark) / 0.22)",
-                  boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.50)",
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
-                  >
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p
-                      className="font-display font-bold leading-tight text-ds-16"
-                      style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-                    >
-                      All Done — Looks Great!
-                    </p>
-                    <p
-                      className="font-sans mt-0.5 text-ds-12"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      Release Payment to {helperName}
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Path B — request revision */}
+              {jobTitle && (
+                <p className="rounded-2xl border border-border bg-card p-4 font-sans text-ds-16 font-bold leading-snug">{jobTitle}</p>
+              )}
+              {/* A money note (spec §3): tint + rust, the job price only (never the Helpr's take-home). */}
+              <p className="rounded-ds-md p-3.5 font-sans text-ds-13 leading-snug" style={{ background: "hsl(var(--burnt-sienna) / 0.08)", color: "hsl(var(--sienna-ink))" }}>
+                When you confirm,{" "}
+                {jobPrice ? <>the <strong className="tabular-nums">${formatPriceExact(jobPrice)}</strong> job price is</> : "your payment is"}{" "}
+                released to {helperName}. If something isn't right, tell {helperName} first. The money stays held.
+              </p>
+              {/* Full width on the phone (board 65): the shell's commit button sizes to its label. */}
+              <div className="flex flex-col [&>button]:w-full">
+                <SheetPrimaryAction onClick={handleConfirm}>
+                  {jobPrice ? `Confirm and release $${formatPriceExact(jobPrice)}` : "Confirm and release"}
+                </SheetPrimaryAction>
+              </div>
               <button
                 type="button"
                 onClick={() => setMode("revision")}
-                className="w-full text-left rounded-ds-md p-4 transition-all active:scale-[0.985]"
-                style={{
-                  background: "hsl(var(--amber-tint) / 0.07)",
-                  border: "1px solid hsl(var(--amber-tint) / 0.22)",
-                  boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.50)",
-                }}
+                className="w-full min-h-11 font-sans text-ds-15 font-semibold"
+                style={{ color: "hsl(var(--bark))" }}
               >
-                <div className="flex items-start gap-3">
-                  <div
-                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                    style={{ background: "hsl(var(--amber-tint) / 0.15)", color: "hsl(var(--amber-ink))" }}
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p
-                      className="font-display font-bold leading-tight text-ds-16"
-                      style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-                    >
-                      I Need Something Fixed First
-                    </p>
-                    <p
-                      className="font-sans mt-0.5 text-ds-12"
-                      style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    >
-                      Request a Revision — Payment Stays Held
-                    </p>
-                  </div>
-                </div>
+                Something's not right
               </button>
             </div>
 

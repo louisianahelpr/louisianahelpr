@@ -330,6 +330,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
             userId={userId}
             proofBeforeUrls={job.proof_before_urls || []}
             proofAfterUrls={job.proof_after_urls || []}
+            jobPrice={!job.is_group_job && !(job.urgent_fee && job.urgent_fee > 0) ? job.budget : null}
             onClose={() => setCompletionSheetOpen(false)}
             onConfirm={() => onComplete(job.id)}
             onRevisionSubmitted={onActionComplete}

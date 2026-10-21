@@ -90,12 +90,12 @@ describe("Rentals: the release decision shows the tenant's 'Was it fixed?' answe
     expect(screen.getByText(/Still drips at night/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "See the request" }).getAttribute("href")).toBe("/rentals/requests/req-1");
     // The release choice is still there: the answer informs, it never blocks.
-    expect(screen.getByText("How Did It Go?")).toBeTruthy();
+    expect(screen.getByText(/says it's done$/)).toBeTruthy();
     // Drawn BELOW both choices: it appears late, and drawn above it pushed
     // "Release Payment" into the place "Request a Revision" had just held
     // (lh-money-escrow review of 3674fa1e4 #1).
     const box = screen.getByText("Your tenant says it's NOT fixed");
-    for (const choice of ["All Done — Looks Great!", "I Need Something Fixed First"]) {
+    for (const choice of [/^Confirm and release/, "Something's not right"]) {
       expect(screen.getByText(choice).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING, `the answer sits above "${choice}"`).toBeTruthy();
     }
   });
@@ -127,7 +127,7 @@ describe("Rentals: the release decision shows the tenant's 'Was it fixed?' answe
   it("with the 'rentals' switch off it never asks and shows nothing", async () => {
     server.switchOn = false;
     sheet(LANDLORD);
-    await screen.findByText("How Did It Go?");
+    await screen.findByText(/says it's done$/);
     await new Promise((r) => setTimeout(r, 30));
     expect(server.reads).toBe(0);
     expect(screen.queryByText(/Your tenant says/)).toBeNull();

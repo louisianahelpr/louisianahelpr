@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DatePickerField } from "@/components/DatePickerField";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -57,7 +58,8 @@ import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { AREA_ADDRESS_RE } from "./DeclutterSellView";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
-const input = "w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm";
+// The shared field look (DatePickerField / Input): one height and radius on this page (board 164).
+const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
 /** The 404 unless 'declutter_moving_out' is on too (DeclutterGate checks 'declutter'). */
 export function MovingOutGate({ children, skeleton }: { children: ReactNode; skeleton: ReactNode }) {
@@ -273,6 +275,8 @@ export default function MoveFlow() {
 
   return (
     <AppPage title="Moving out" backTo="/declutter?view=selling">
+      {/* Board 164: the moment headline (spec v2 §1.2: Bodoni for flow headlines). */}
+      <p className="font-moment text-ds-32 leading-tight" data-move-hero="">Everything goes</p>
       <p className="text-sm text-muted-foreground">
         Photograph each room. The photo tool lists what it sees, you set the prices, and everything goes up together as one moving sale on your profile.
       </p>
@@ -287,7 +291,7 @@ export default function MoveFlow() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-date">Move-out date</label>
-            <input id="move-date" type="date" className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm" value={date} min={today} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField id="move-date" value={date} min={today} onChange={setDate} placeholder="Pick a date" />
           </div>
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-area">Area buyers see</label>

@@ -9,11 +9,13 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
+
 
 const firstName = (posterName: string) => (posterName === "A neighbor" ? "them" : posterName.split(" ")[0]);
 const money = "font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]";
@@ -54,7 +56,8 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
               <p className="text-ds-12 font-semibold uppercase tracking-wide text-[hsl(var(--sage-ink))]">Wanted</p>
               <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{post.what}</p>
               <p className="text-ds-13 text-muted-foreground">
-                {post.poster_name} · up to <span className={money}>{formatPrice(post.max_price_cents)}</span> · about {post.miles} mi away
+                {/* The server already shortens (member_display_name); its own "A neighbor" fallback is a label: formatName keeps it as is. */}
+                {formatName(post.poster_name === "A neighbor" ? null : post.poster_name)} · up to <span className={money}>{formatPrice(post.max_price_cents)}</span> · about {post.miles} mi away
               </p>
             </div>
             {mine.isLoading ? null : listings.length === 0 ? (
@@ -118,7 +121,7 @@ export function WantedNearSection({ at, userId }: { at: { lat: number; lng: numb
             <div className="min-w-0 flex-1">
               <p className="truncate text-ds-15 font-semibold" title={w.what}>{w.what}</p>
               <p className="text-ds-13 text-muted-foreground">
-                Up to <span className={money}>{formatPrice(w.max_price_cents)}</span> · {w.poster_name} · {w.miles} mi
+                Up to <span className={money}>{formatPrice(w.max_price_cents)}</span> · {formatName(w.poster_name === "A neighbor" ? null : w.poster_name)} · {w.miles} mi
               </p>
             </div>
             {w.replied ? (

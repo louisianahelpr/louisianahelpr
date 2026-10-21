@@ -3,7 +3,8 @@
 // @mutate src/config/featureSwitches.ts |   "come_back_emails",\n] as const; |   "come_back_emails",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 // @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
-// @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
+// @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
+// @mutate supabase/migrations/20261021135921_come_back_emails_on_for_everyone.sql |         AND a.target_id = 'come_back_emails'); |         AND a.target_id = 'other');
 /**
  * Hidden feature switches (owner decision 2026-10-11; migration
  * 20261012031120): the registry is public.feature_switches, created by
@@ -33,6 +34,7 @@ import os from "node:os";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { readdirSync } from "./helpers/trackedFiles";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { FEATURE_SWITCH_KEYS, SERVER_ONLY_FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 
 const ROOT = path.resolve(__dirname, "../..");
@@ -71,9 +73,26 @@ function literal(expr: string): string | null {
 
 interface InsertFinding { file: string; problem: string }
 
-export function readRegistryFromMigrations(dir = MIG_DIR): { keys: Set<string>; problems: InsertFinding[]; inserts: number } {
+/**
+ * The owner-approved exceptions to "no migration turns a switch on for
+ * everyone", by migration file -> the one switch it may turn on. EXACT both
+ * ways: each entry must be used by exactly one UPDATE in that file, naming
+ * that key, and guarded so a replay never overrides an admin's later choice
+ * (NOT EXISTS an admin_audit_log row for the switch).
+ *   - come_back_emails: owner 2026-10-21 (Q2299, issue #3498), "turn it ON as
+ *     written", asked for as a migration through the lead.
+ */
+export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
+  "20261021135921_come_back_emails_on_for_everyone.sql": "come_back_emails",
+};
+
+export function readRegistryFromMigrations(
+  dir = MIG_DIR,
+  approved: Readonly<Record<string, string>> = OWNER_APPROVED_GO_LIVE,
+): { keys: Set<string>; problems: InsertFinding[]; inserts: number; goLiveUsed: string[] } {
   const keys = new Set<string>();
   const problems: InsertFinding[] = [];
+  const goLiveUsed: string[] = [];
   let inserts = 0;
   for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
     const sql = blankSqlComments(fs.readFileSync(path.join(dir, file), "utf8"));
@@ -106,14 +125,20 @@ export function readRegistryFromMigrations(dir = MIG_DIR): { keys: Set<string>; 
       }
     }
     for (const m of sql.matchAll(/UPDATE\s+(?:public\.)?feature_switches\b([\s\S]*?);/gi)) {
-      if (/'everyone'/i.test(m[1])) problems.push({ file, problem: "a migration UPDATEs a switch to 'everyone'; going live is an admin's audited flip" });
+      if (!/'everyone'/i.test(m[1])) continue;
+      const key = approved[file];
+      const namesKey = key !== undefined && new RegExp(`\\bWHERE\\s+key\\s*=\\s*'${key}'`, "i").test(m[1]);
+      const guarded = key !== undefined
+        && new RegExp(`NOT\\s+EXISTS\\s*\\([\\s\\S]*admin_audit_log[\\s\\S]*target_id\\s*=\\s*'${key}'`, "i").test(m[1]);
+      if (namesKey && guarded && !goLiveUsed.includes(file)) goLiveUsed.push(file);
+      else problems.push({ file, problem: "a migration UPDATEs a switch to 'everyone'; going live is an admin's audited flip" });
     }
     for (const m of sql.matchAll(/DELETE\s+FROM\s+(?:public\.)?feature_switches\s+WHERE\s+key\s*(?:=\s*('(?:[^']|'')*')|IN\s*\(([^)]*)\))/gi)) {
       const list = m[1] ? [m[1]] : splitTop(m[2], ",");
       for (const v of list) { const k = literal(v); if (k) keys.delete(k); }
     }
   }
-  return { keys, problems, inserts };
+  return { keys, problems, inserts, goLiveUsed };
 }
 
 export function readUseFeatureKeys(srcDir = path.join(ROOT, "src")): { keys: Set<string>; nonLiteral: string[]; calls: number } {
@@ -147,11 +172,17 @@ export function readUseFeatureKeys(srcDir = path.join(ROOT, "src")): { keys: Set
 const sorted = (s: Iterable<string>) => [...s].sort();
 
 /** Keys a migration (comments blanked) reads with feature_enabled_for_user('<key>', ...). */
+/**
+ * Keys read by feature_enabled_for_user('<key>', ...) in the function bodies
+ * the database RUNS: the newest definition of each function
+ * (effectiveDefs), not every copy a later migration replaced (the come-back
+ * claim is restated by 20261021135832).
+ */
 function readServerSwitchReads(dir = MIG_DIR): Set<string> {
   const keys = new Set<string>();
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql"))) {
-    const sql = blankSqlComments(fs.readFileSync(path.join(dir, file), "utf8"));
-    for (const m of sql.matchAll(/feature_enabled_for_user\s*\(\s*'([a-z][a-z0-9_]*)'/gi)) keys.add(m[1]);
+  for (const def of effectiveDefs(dir).values()) {
+    const body = blankSqlComments(def.stmt);
+    for (const m of body.matchAll(/feature_enabled_for_user\s*\(\s*'([a-z][a-z0-9_]*)'/gi)) keys.add(m[1]);
   }
   return keys;
 }
@@ -168,6 +199,11 @@ describe("hidden feature switches: registry", () => {
 
   it("(a) no migration creates a switch on for everyone, or overwrites an audience", () => {
     expect(reg.problems).toEqual([]);
+  });
+
+  it("(a) the owner-approved go-live migrations are exactly the listed ones, each used once", () => {
+    expect(Object.keys(OWNER_APPROVED_GO_LIVE).length).toBeGreaterThan(0);
+    expect(sorted(reg.goLiveUsed)).toEqual(sorted(Object.keys(OWNER_APPROVED_GO_LIVE)));
   });
 
   it("(b) every useFeature argument is a string literal", () => {
@@ -188,6 +224,20 @@ describe("hidden feature switches: registry", () => {
       expect(used.keys.has(key), `${key} is server-only but read by useFeature`).toBe(false);
       expect(sqlReads.has(key), `${key} is server-only but no migration reads feature_enabled_for_user('${key}', ...)`).toBe(true);
     }
+  });
+
+  it("an approved go-live must name its key and keep the replay guard (synthetic)", () => {
+    const tmp = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "fs-live-"));
+    fs.writeFileSync(path.join(tmp, "1_ok.sql"),
+      "UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'k1' AND NOT EXISTS (SELECT 1 FROM public.admin_audit_log a WHERE a.target_id = 'k1');\n");
+    fs.writeFileSync(path.join(tmp, "2_unguarded.sql"),
+      "UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'k2';\n");
+    fs.writeFileSync(path.join(tmp, "3_other_key.sql"),
+      "UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'k9' AND NOT EXISTS (SELECT 1 FROM public.admin_audit_log a WHERE a.target_id = 'k9');\n");
+    const r = readRegistryFromMigrations(tmp, { "1_ok.sql": "k1", "2_unguarded.sql": "k2", "3_other_key.sql": "k3" });
+    fs.rmSync(tmp, { recursive: true });
+    expect(r.goLiveUsed).toEqual(["1_ok.sql"]);
+    expect(r.problems.map((p) => p.file)).toEqual(["2_unguarded.sql", "3_other_key.sql"]);
   });
 
   it("the parser catches a planted 'everyone' creation and a DO UPDATE (synthetic)", () => {

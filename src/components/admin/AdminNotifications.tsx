@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Bell, Mail, Smartphone, AlertTriangle, Users, Briefcase, DollarSign, Star, ShieldAlert, Megaphone, Navigation, CheckCircle2, Receipt } from "lucide-react";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { unwrapMutation } from "@/lib/mutationResult";
+import { promotionsEmailOn } from "@/lib/promotionsEmail";
 
 type NotifPrefs = {
   id: string;
@@ -30,7 +31,8 @@ type NotifPrefs = {
   email_messages: boolean;
   email_payments: boolean;
   email_reviews: boolean;
-  email_promotions: boolean;
+  /** null = never chosen (20261021135832, Q2299); shown through promotionsEmailOn. */
+  email_promotions: boolean | null;
   email_system_alerts: boolean;
   new_offers: boolean;
   email_new_offers: boolean;
@@ -137,6 +139,8 @@ const NOTIFICATION_GROUPS = [
 const AdminNotifications = () => {
   const [prefs, setPrefs] = useState<NotifPrefs | null>(null);
   const [loading, setLoading] = useState(true);
+  // The sign-up email box: what a never-chosen Promotions email switch shows.
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   useEffect(() => {
     loadPrefs();
@@ -145,6 +149,12 @@ const AdminNotifications = () => {
   const loadPrefs = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+
+    // Display only (src/lib/promotionsEmail.ts): a failed read shows a
+    // never-chosen Promotions email as off; logged, nothing is written.
+    const consentRead = await supabase.from("profiles").select("marketing_consent").eq("user_id", user.id).maybeSingle();
+    if (consentRead.error) console.error("[AdminNotifications] loadConsent:", consentRead.error);
+    setMarketingConsent(consentRead.data?.marketing_consent === true);
 
     // maybeSingle(), NOT single(). `single()` asks PostgREST for
     // `application/vnd.pgrst.object+json`, and a zero-row result under that
@@ -352,7 +362,11 @@ const AdminNotifications = () => {
                 </Label>
                 <Switch
                   id={`email-${group.emailKey}`}
-                  checked={prefs[group.emailKey] && allEmailOn}
+                  checked={
+                    (group.emailKey === "email_promotions"
+                      ? promotionsEmailOn(prefs.email_promotions, marketingConsent)
+                      : prefs[group.emailKey] === true) && allEmailOn
+                  }
                   disabled={!allEmailOn}
                   onCheckedChange={(v) => updatePref(group.emailKey, v)}
                 />

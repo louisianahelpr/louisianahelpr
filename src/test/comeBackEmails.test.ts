@@ -10,19 +10,21 @@
  * the claim, the grants, at most two emails, the cron, and the copy rules.
  *
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql | VALUES ('come_back_emails', 'off', | VALUES ('come_back_emails', 'testers',
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql | REVOKE ALL ON FUNCTION public.claim_come_back_emails(integer, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.claim_come_back_emails(integer, integer) FROM PUBLIC;
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | REVOKE ALL ON FUNCTION public.claim_come_back_emails(integer, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.claim_come_back_emails(integer, integer) FROM PUBLIC;
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | np.email_promotions IS FALSE OR | np.email_promotions IS NOT TRUE OR
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql | REVOKE ALL ON TABLE public.come_back_email_sends FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.come_back_email_sends FROM PUBLIC;
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql |   email_step smallint NOT NULL CHECK (email_step IN (1, 2)), |   email_step smallint NOT NULL,
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND p.marketing_consent IS TRUE |        AND true
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND NOT EXISTS (SELECT 1 FROM public.suppressed_emails s WHERE lower(s.email) = lower(p.email)) |        AND true
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) |        AND true
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND p.is_seed IS NOT TRUE |        AND true
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND lower(u.email) = lower(p.email) |        AND true
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql |     ON CONFLICT ON CONSTRAINT come_back_email_sends_pkey DO NOTHING |     ON CONFLICT ON CONSTRAINT come_back_email_sends_pkey DO UPDATE SET claimed_at = now()
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND p.marketing_consent IS TRUE |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND NOT EXISTS (SELECT 1 FROM public.suppressed_emails s WHERE lower(s.email) = lower(p.email)) |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND p.is_seed IS NOT TRUE |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND lower(u.email) = lower(p.email) |        AND true
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |     ON CONFLICT ON CONSTRAINT come_back_email_sends_pkey DO NOTHING |     ON CONFLICT ON CONSTRAINT come_back_email_sends_pkey DO UPDATE SET claimed_at = now()
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql | '/functions/v1/come-back-emails', | '/functions/v1/come-back-emails-x',
  * @mutate supabase/migrations/20261021113827_come_back_emails.sql | VALUES ('come-back-emails', interval '20 hours', | VALUES ('come-back-emails', interval '16 hours',
- * @mutate supabase/migrations/20261021113827_come_back_emails.sql | c.email_step = 1 AND c.queued_at <= now() | c.email_step = 1 AND c.claimed_at <= now()
+ * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | c.email_step = 1 AND c.queued_at <= now() | c.email_step = 1 AND c.claimed_at <= now()
  * @mutate supabase/functions/_shared/comeBackEmail.ts |     subject: "One last note from Louisiana Helpr", |     subject: "One Last Note From Louisiana Helpr",
  * @mutate supabase/functions/_shared/comeBackEmail.ts | Thank you for that." | Thank you for that!"
  * @mutate supabase/functions/_shared/comeBackEmail.ts | This is my last note, I promise." | I'll be in touch."
@@ -98,7 +100,13 @@ describe("come-back emails: database layer", () => {
   });
 
   it("the claim is service_role only, SECURITY DEFINER with an empty search_path", () => {
-    expect(all).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.claim_come_back_emails\(integer,\s*integer\)\s+FROM\s+PUBLIC,\s*anon,\s*authenticated\s*;/i);
+    // Every migration that (re)defines the claim restates the REVOKE by role
+    // name, so no single file's copy can be the one that leaves it open.
+    const definers = files.filter(({ sql }) => /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.claim_come_back_emails\s*\(/i.test(sql));
+    expect(definers.length).toBeGreaterThan(1);
+    for (const { f, sql } of definers) {
+      expect(sql, f).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.claim_come_back_emails\(integer,\s*integer\)\s+FROM\s+PUBLIC,\s*anon,\s*authenticated\s*;/i);
+    }
     expect(all).not.toMatch(/GRANT\s+[^;]*ON\s+FUNCTION\s+public\.claim_come_back_emails\([^)]*\)\s+TO\s+[^;]*\b(?:anon|authenticated|PUBLIC)\b/i);
     expect(newestBody("claim_come_back_emails")).toMatch(/SECURITY\s+DEFINER[\s\S]*SET\s+search_path\s*=\s*''/i);
   });
@@ -116,7 +124,9 @@ describe("come-back emails: database layer", () => {
     for (const cond of [
       /p\.email_verified\s+IS\s+TRUE/i,
       /p\.marketing_consent\s+IS\s+TRUE/i,
-      /np\.email_promotions\s+IS\s+NOT\s+TRUE\s+OR\s+np\.email_enabled\s+IS\s+FALSE/i,
+      // Q2299 (owner 2026-10-21): only an EXPLICIT Promotions-off stops it;
+      // NULL is never chosen and the sign-up box decides.
+      /np\.email_promotions\s+IS\s+FALSE\s+OR\s+np\.email_enabled\s+IS\s+FALSE/i,
       /p\.is_seed\s+IS\s+NOT\s+TRUE/i,
       /p\.anonymized_at\s+IS\s+NULL/i,
       /p\.ban_status\s*=\s*'active'/i,

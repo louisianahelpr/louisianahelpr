@@ -48,8 +48,12 @@ const corsHeaders = {
 // that gap knowingly open (see the constant note in `_shared/resend.ts`).
 // Every one of them:
 //   • is gated on EXPLICIT consent — `profiles.marketing_consent` (the signup
-//     opt-in box) AND `notification_preferences.email_promotions`. Both reads
-//     fail CLOSED. This is STRICTER than the pre-deletion code, which gated
+//     opt-in box) — and skips a member whose
+//     `notification_preferences.email_promotions` is an explicit `false` (they
+//     turned Promotions off, or an unsubscribe link did). Owner, 2026-10-21
+//     (Q2299): the sign-up box ALONE is enough for these emails, so a NULL
+//     ("never chosen", the column default since 20261021135832) does not stop
+//     them. Both reads fail CLOSED. This is STRICTER than the pre-deletion code, which gated
 //     drip steps 1–3 on neither: it mailed promotional content to every
 //     verified approved profile, including the people who left the opt-in box
 //     unticked. `marketing_consent` DEFAULTS TO FALSE (migration
@@ -262,7 +266,10 @@ serve(async (_req) => {
     // ─── Load commercial opt-outs ─────────────────────────────────
     // `notification_preferences.email_promotions = false` is the in-app
     // Promotions toggle AND what `email-unsubscribe` writes on a one-click
-    // opt-out. Only the COMMERCIAL loops consult it.
+    // opt-out. Only the COMMERCIAL loops consult it. NULL is "never chosen"
+    // (20261021135832) and is NOT an opt-out: for the welcome drip and the
+    // win-back the sign-up box alone decides (owner, 2026-10-21, Q2299). The
+    // `=== false` below is that rule; `!== true` would mail nobody again.
     //
     // Fail closed for the same reason the suppression read does: a dropped
     // error here yields an EMPTY opt-out set, and every person who
@@ -316,6 +323,42 @@ serve(async (_req) => {
         .filter((p) => p.email_promotions === false || p.email_enabled === false)
         .map((p) => p.user_id),
     )
+
+    // ─── Come-back emails claimed in the last 20 hours (Q2299) ────
+    // claim_come_back_emails (20261021113827) skips a member this cron mailed
+    // in the last 20 hours (profiles.last_drip_at). This is the other half:
+    // the drip and the win-back skip a member who was claimed for a come-back
+    // email in the last 20 hours, so two commercial emails never land on the
+    // same day (lh-silent-failure review of the come-back emails, finding 6).
+    // Read from the claim row rather than by stamping last_drip_at from the
+    // claim: that stamp would bump profiles.updated_at, the win-back's own
+    // inactivity clock. Fails closed like the consent lists above: an unsent
+    // email is retried tomorrow, a second one the same day is not undone.
+    // claimed_at, not queued_at, on purpose: a claim the come-back sender has
+    // not queued yet (or released) still holds the drip back for 20 hours,
+    // which can only send less (lh-silent-failure review, finding 5).
+    const comeBackSince = new Date(Date.now() - 20 * 60 * 60 * 1000).toISOString()
+    const comeBackScan = await scanAll<{ user_id: string }>(
+      'come_back_email_sends',
+      (countOpt) =>
+        supabase
+          .from('come_back_email_sends')
+          .select('user_id', countOpt)
+          .gte('claimed_at', comeBackSince)
+          .order('user_id', { ascending: true }),
+    )
+    if (comeBackScan.error || !comeBackScan.complete) {
+      const why = comeBackScan.error?.message ?? comeBackScan.shortfall
+      console.error('[engagement-automations] recent come-back emails unavailable:', why)
+      return new Response(
+        JSON.stringify({
+          error: 'Recent come-back email list unavailable — aborted before sending.',
+          details: why,
+        }),
+        { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+    const comeBackRecently = new Set(comeBackScan.rows.map((r) => r.user_id))
 
     const now = new Date()
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString()
@@ -419,7 +462,14 @@ serve(async (_req) => {
       .eq('email_verified', true)
       // The signup opt-in. NEW versus the pre-deletion code, which gated the
       // drip on nothing of the sort — see the header note.
-      .eq('marketing_consent', true),
+      .eq('marketing_consent', true)
+      // Not a seed, anonymised (deleted) or banned account: the same people
+      // claim_come_back_emails leaves out. These two loops reached nobody
+      // until Q2299 let the sign-up box alone decide (lh-authz-rls review,
+      // 2026-10-21, finding 2).
+      .eq('is_seed', false)
+      .is('anonymized_at', null)
+      .eq('ban_status', 'active'),
     )
     // Fail loud rather than treating a read failure OR a truncated read as
     // "nobody qualifies": a silent empty result here is indistinguishable from
@@ -430,6 +480,7 @@ serve(async (_req) => {
     for (const user of dripScan.rows) {
       if (suppressedSet.has((user.email || '').toLowerCase())) continue
       if (promoOptedOut.has(user.user_id)) continue
+      if (comeBackRecently.has(user.user_id)) continue
 
       const signupDate = new Date(user.created_at)
       const daysSinceSignup = (now.getTime() - signupDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -508,7 +559,11 @@ serve(async (_req) => {
         // "New jobs are open in your area." is unambiguously promotional, so it
         // requires the signup marketing opt-in and a verified address.
         .eq('email_verified', true)
-        .eq('marketing_consent', true),
+        .eq('marketing_consent', true)
+        // Same exclusions as the drip above (Q2299 review).
+        .eq('is_seed', false)
+        .is('anonymized_at', null)
+        .eq('ban_status', 'active'),
     )
     const inactiveDefect = scanDefect('win-back recipient query', inactiveScan)
     if (inactiveDefect) results.errors.push(inactiveDefect)
@@ -516,6 +571,7 @@ serve(async (_req) => {
     for (const user of inactiveScan.rows) {
       if (suppressedSet.has((user.email || '').toLowerCase())) continue
       if (promoOptedOut.has(user.user_id)) continue
+      if (comeBackRecently.has(user.user_id)) continue
 
       // Only send re-engagement once every 14 days
       if (user.last_drip_at) {

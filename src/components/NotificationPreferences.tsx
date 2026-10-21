@@ -4,7 +4,6 @@ import { Fragment, useEffect, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
-import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { hapticError, hapticLight } from "@/lib/haptics";
@@ -16,6 +15,8 @@ import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Prefs } from "./notificationPreferences/types";
 import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constants";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { promotionsEmailOn } from "@/lib/promotionsEmail";
+import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 
 /** One delivery channel's outcome, as reported by `create-notification`. */
 type TestChannel = {
@@ -78,58 +79,6 @@ const emailSkipCopy = (ch: TestChannel): string => {
   }
 };
 
-// One slot = one switch column cell. Renders a skeleton pill while the
-// initial fetch is in flight (instead of an invisible-but-technically-
-// there switch behind opacity-0, which is what made the toggles look
-// "unresponsive" during the blank load period), and — once loaded —
-// an inline spinner scoped to THIS switch while it's the one being
-// saved, rather than one global spinner floating in an unrelated spot.
-//
-// MODULE-LEVEL on purpose. This used to be declared inside
-// NotificationPreferences' render body, which makes it a brand-new component
-// type on every render: React cannot match the old <SwitchSlot> to the new
-// one, so it unmounts every switch and mounts fresh ones each time state
-// changes. Toggling a switch sets state twice (optimistic value, then the
-// saving spinner), so the very switch the user was on was destroyed and
-// rebuilt — and the browser dropped focus to <body> (audit, 2026-09-12:
-// "focus drops to body after toggling the push master switch").
-// `loaded` and `savingKey` therefore arrive as props instead of closures.
-const SwitchSlot = ({
-  checked, onCheckedChange, disabled, ariaLabel, savingId, title, loaded, savingKey,
-}: {
-  checked: boolean; onCheckedChange: () => void; disabled: boolean; ariaLabel: string; savingId: string; title?: string;
-  loaded: boolean; savingKey: string | null;
-}) => (
-  <div className="w-[51px] flex justify-center relative" title={title}>
-    {loaded ? (
-      <>
-        <Switch checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} aria-label={ariaLabel} />
-        {savingKey === savingId && (
-          <Loader2
-            className="w-3 h-3 animate-spin absolute -top-1.5 -right-0.5 z-10 pointer-events-none"
-            style={{ color: "hsl(var(--olivewood))" }}
-            aria-label="Saving"
-          />
-        )}
-      </>
-    ) : (
-      /* Same silhouette as the real control — track AND thumb, at the
-         off position — so the column reads as "switches, not ready yet"
-         rather than a row of flat grey lozenges. The knobless pill this
-         replaced looked like a broken control on a slow connection: on a
-         throttled load the whole column sat as uniform grey blobs for
-         seconds, and nothing about a blob says "switch". */
-      <div
-        className="h-[31px] w-[51px] rounded-full animate-pulse border-2 border-transparent flex items-center"
-        style={{ background: "hsl(var(--ink-deep) / 0.18)" }}
-        aria-hidden
-      >
-        <div className="h-[27px] w-[27px] rounded-full bg-white/70" />
-      </div>
-    )}
-  </div>
-);
-
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
   // Tracks WHICH toggle is in flight (not just whether *something* is
@@ -160,6 +109,10 @@ const NotificationPreferences = () => {
   // only a LOADED row that lacks the column proves we're mid-deploy-gap, and
   // then we strip the key from writes so the upsert can't PGRST204 on it.
   const [savedHelperColumn, setSavedHelperColumn] = useState(true);
+  // The sign-up email box (profiles.marketing_consent). It decides what the
+  // Promotions EMAIL switch shows while the member has never chosen
+  // (email_promotions NULL, Q2299): see src/lib/promotionsEmail.ts.
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   // READ AUTH FROM THE SHARED SNAPSHOT, NOT A ONE-SHOT SAMPLE.
   //
@@ -209,7 +162,7 @@ const NotificationPreferences = () => {
       // fire them together instead of one-after-another. Sequential
       // awaits here were the main contributor to the long blank period
       // before the toggles hydrated (two round-trips instead of one).
-      const [{ count: tokenCount }, { data, error }] = await Promise.all([
+      const [{ count: tokenCount }, { data, error }, consentRead] = await Promise.all([
         // Push tokens count — head:true so we only get the count, not rows.
         supabase
           .from("push_tokens")
@@ -220,9 +173,21 @@ const NotificationPreferences = () => {
           .select("*")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("marketing_consent")
+          .eq("user_id", user.id)
+          .maybeSingle(),
       ]);
       if (cancelled) return;
       setPushTokenCount(tokenCount ?? 0);
+      // Display only: a failed read shows a never-chosen Promotions switch as
+      // off, and pressing it then writes an explicit ON, which is still the
+      // member's own choice. Logged, not toasted: nothing is lost.
+      if (consentRead.error) {
+        console.error("[NotificationPreferences] failed to load the sign-up email choice:", consentRead.error);
+      }
+      setMarketingConsent(consentRead.data?.marketing_consent === true);
       // No row yet is expected (defaults apply); a real query failure is not.
       if (error) {
         console.error("[NotificationPreferences] failed to load preferences:", error);
@@ -268,16 +233,33 @@ const NotificationPreferences = () => {
   // Both writers below send the WHOLE prefs object, so both have to drop
   // `email_enabled` while the column is still deploying (see
   // `emailMasterColumn`). One place, so the two paths cannot diverge.
-  const writable = (p: Prefs): Partial<Prefs> => {
+  //
+  // `email_promotions` is written ONLY by a press on its own switch (Q2299).
+  // It is the one consent column with a never-chosen NULL, and the whole-row
+  // write would otherwise send whatever this screen holds for it: after a
+  // failed load that is defaultPrefs' NULL, which would silently erase a
+  // member's Promotions-off and restart the welcome and come-back emails
+  // (lh-silent-failure review, 2026-10-21, finding 1).
+  const writable = (p: Prefs, pressed?: keyof Prefs): Partial<Prefs> => {
     const payload: Partial<Prefs> = { ...p };
     if (!emailMasterColumn) delete payload.email_enabled;
     if (!savedHelperColumn) delete payload.saved_helper_availability;
+    if (pressed !== "email_promotions") delete payload.email_promotions;
     return payload;
   };
 
+  // What a switch shows. Promotions email alone can be never chosen (NULL),
+  // and then shows what the senders do (src/lib/promotionsEmail.ts).
+  const shownOn = (key: keyof Prefs): boolean =>
+    key === "email_promotions"
+      ? promotionsEmailOn(prefs.email_promotions, marketingConsent)
+      : prefs[key] === true;
+
   const toggle = async (key: keyof Prefs) => {
     if (!userId) return;
-    const newVal = !prefs[key];
+    // The opposite of what the switch SHOWS, so the first press on a
+    // never-chosen Promotions email is an explicit choice either way.
+    const newVal = !shownOn(key);
     const updated = { ...prefs, [key]: newVal };
 
     // No write-through mirroring any more. `job_applications` used to be
@@ -294,7 +276,7 @@ const NotificationPreferences = () => {
 
     const { error } = await supabase
       .from("notification_preferences")
-      .upsert({ user_id: userId, ...writable(updated) }, { onConflict: "user_id" });
+      .upsert({ user_id: userId, ...writable(updated, key) }, { onConflict: "user_id" });
 
     setSavingKey(null);
     if (error) {
@@ -470,7 +452,6 @@ const NotificationPreferences = () => {
       setSendingTest(false);
     }
   };
-
 
   // A normal card, not a flex child. It used to be `flex-1 min-h-0 ... flex
   // flex-col`, which only works inside a height-constrained flex column — and
@@ -739,7 +720,7 @@ const NotificationPreferences = () => {
         <Fragment key={item.key}>
         <div
           className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${
-            prefs.push_enabled || (emailMasterEnabled && prefs[item.emailKey]) ? "" : "opacity-85"
+            prefs.push_enabled || (emailMasterEnabled && shownOn(item.emailKey)) ? "" : "opacity-85"
           } ${saving ? "opacity-80 cursor-wait" : ""}`}
           style={{
             borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -766,7 +747,7 @@ const NotificationPreferences = () => {
             <SwitchSlot
               loaded={loaded}
               savingKey={savingKey}
-              checked={prefs[item.key] && prefs.push_enabled}
+              checked={prefs[item.key] === true && prefs.push_enabled}
               onCheckedChange={() => toggle(item.key)}
               disabled={!loaded || !prefs.push_enabled}
               ariaLabel={`${item.label} push`}
@@ -781,7 +762,7 @@ const NotificationPreferences = () => {
             <SwitchSlot
               loaded={loaded}
               savingKey={savingKey}
-              checked={prefs[item.emailKey] && emailMasterEnabled}
+              checked={shownOn(item.emailKey) && emailMasterEnabled}
               onCheckedChange={() => toggle(item.emailKey)}
               disabled={!loaded || !emailMasterEnabled}
               ariaLabel={`${item.label} email`}

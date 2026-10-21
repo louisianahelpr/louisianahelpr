@@ -128,8 +128,15 @@ async function findProfile(
   return ci.data ?? null
 }
 
-/** What a promotions unsubscribe turned off, kept so its resubscribe can undo exactly that. */
-type PromotionsBefore = { marketing_consent: boolean; email_promotions: boolean }
+/**
+ * What a promotions unsubscribe turned off, kept so its resubscribe can undo
+ * exactly that. email_promotions is three-valued since 20261021135832 (Q2299):
+ * null = never chosen (the sign-up box decides the welcome and come-back
+ * emails), true = turned on, false = turned off. A null is restored as null,
+ * never as true: true would also opt the member into marketing blasts, which
+ * need an explicit true.
+ */
+type PromotionsBefore = { marketing_consent: boolean; email_promotions: boolean | null }
 
 /**
  * The upsert both directions share. Upsert, not update: `notification_preferences`
@@ -142,7 +149,7 @@ async function writeEmailPromotions(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   userId: string,
-  on: boolean,
+  on: boolean | null,
 ): Promise<void> {
   const { data: prefs, error: prefsError } = await supabase
     .from('notification_preferences')
@@ -152,19 +159,23 @@ async function writeEmailPromotions(
   if (!prefs || prefs.length === 0) throw new Error('email_promotions write matched no row')
 }
 
-/** The member's email_promotions as every sender reads it: a missing row is ON. */
+/**
+ * The member's email_promotions: true, false, or null (never chosen). A
+ * missing row reads as true, because send-marketing-blast reads a missing row
+ * as on (every account has a row since 20260903012715).
+ */
 async function readEmailPromotions(
   // deno-lint-ignore no-explicit-any
   supabase: any,
   userId: string,
-): Promise<boolean> {
+): Promise<boolean | null> {
   const { data, error } = await supabase
     .from('notification_preferences')
     .select('email_promotions')
     .eq('user_id', userId)
     .maybeSingle()
   if (error) throw new Error(`email_promotions read failed: ${error.message}`)
-  return data ? data.email_promotions !== false : true
+  return data ? (data.email_promotions ?? null) : true
 }
 
 /**
@@ -223,7 +234,7 @@ async function setCommercialConsent(
           marketing_consent: profile.marketing_consent === true,
           email_promotions: await readEmailPromotions(supabase, userId),
         }
-        const somethingOn = record.marketing_consent || record.email_promotions
+        const somethingOn = record.marketing_consent || record.email_promotions === true
         if (!saved) {
           const { error: recordError } = await supabase
             .from('profiles')
@@ -277,7 +288,12 @@ async function setCommercialConsent(
     .select('user_id')
   if (restoreError) throw new Error(`marketing_consent restore failed: ${restoreError.message}`)
   if (!restored || restored.length === 0) throw new Error('marketing_consent restore matched no profile row')
-  if (untouched && saved.email_promotions === true) await writeEmailPromotions(supabase, userId, true)
+  // Restore exactly: true stays true, a never-chosen null goes back to null
+  // (the sign-up box decides again), and a false stays the false the
+  // unsubscribe left.
+  if (untouched && saved.email_promotions !== false) {
+    await writeEmailPromotions(supabase, userId, saved.email_promotions === true ? true : null)
+  }
 }
 
 /**

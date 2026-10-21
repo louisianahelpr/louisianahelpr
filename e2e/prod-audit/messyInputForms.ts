@@ -980,6 +980,7 @@ export const GAPS: Record<string, string> = {
   "src/components/postjob/detailsSection/VideoScope.tsx": "file input only",
   "src/components/profile/profileEditForm/RecentWorkSection.tsx": "file input only",
   "src/components/NotificationPreferences.tsx": "switches only",
+  "src/components/notificationPreferences/SwitchSlot.tsx": "switches only (the Notifications screen's switch cell, moved out of NotificationPreferences.tsx)",
   "src/components/profile/TwoFactorCard.tsx": "6-digit code field appears only after a real authenticator enrolment; not swept on the shared accounts (would enrol 2FA on them)",
   "src/components/feedback/NpsPrompt.tsx": "appears on a 30-day cadence after a completed job; not reachable on demand",
   "src/components/ResponseDeadlineDialog.tsx": "select only (response window)",

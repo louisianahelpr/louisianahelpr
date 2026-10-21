@@ -28,6 +28,13 @@
  * Runs the REAL function source through the edge harness, including the real
  * `_shared/paginate.ts` and `_shared/cron-result.ts`.
  */
+// @mutate supabase/functions/engagement-automations/index.ts |         .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |         .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
+// @mutate supabase/functions/engagement-automations/index.ts |       if (comeBackRecently.has(user.user_id)) continue\n\n      const signupDate |       const signupDate
+// @mutate supabase/functions/engagement-automations/index.ts |       if (comeBackRecently.has(user.user_id)) continue\n\n      // Only send re-engagement |       // Only send re-engagement
+// @mutate supabase/functions/engagement-automations/index.ts |     if (comeBackScan.error \|\| !comeBackScan.complete) { |     if (false) {
+// @mutate supabase/functions/engagement-automations/index.ts |           .gte('claimed_at', comeBackSince) |           .gte('claimed_at', new Date(0).toISOString())
+// @mutate supabase/functions/engagement-automations/index.ts |       .eq('is_seed', false)\n      .is('anonymized_at', null)\n      .eq('ban_status', 'active'),\n    ) |     )
+// @mutate supabase/functions/engagement-automations/index.ts |         .eq('is_seed', false)\n        .is('anonymized_at', null)\n        .eq('ban_status', 'active'),\n    ) |     )
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -212,6 +219,99 @@ describe("engagement-automations edge function", () => {
 
     expect(res.status).toBe(200);
     expect(b.drip).toBe(0);
+    expect(queued()).toHaveLength(0);
+  });
+
+  // Q2299 (owner, 2026-10-21): the sign-up box ALONE is enough for the
+  // welcome drip and the win-back. email_promotions NULL is "never chosen"
+  // (20261021135832) and is not an opt-out; only an explicit false is.
+  it("mails a box-ticked member whose Promotions email was never chosen (NULL)", async () => {
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    scenario.reads.notification_preferences = {
+      rows: [{ user_id: "user-1", email_promotions: null, email_enabled: true }],
+    };
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.drip).toBe(1);
+    expect(queued()).toHaveLength(1);
+  });
+
+  it("does not drip a member claimed for a come-back email in the last 20 hours (never two the same day)", async () => {
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    scenario.reads.come_back_email_sends = { rows: [{ user_id: "user-1" }] };
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.drip).toBe(0);
+    expect(queued()).toHaveLength(0);
+    const read = (scenario.readQueries ?? []).find((q) => q.table === "come_back_email_sends");
+    const since = read?.filters.find((f) => f.op === "gte" && f.column === "claimed_at")?.value as string | undefined;
+    expect(since, "reads only the claims of the last 20 hours").toBeDefined();
+    const hours = (Date.now() - new Date(since!).getTime()) / 3_600_000;
+    expect(hours).toBeGreaterThan(19.9);
+    expect(hours).toBeLessThan(20.1);
+
+    // Control: without the claim the same member IS dripped.
+    scenario.reads.come_back_email_sends = { rows: [] };
+    const again = await body(await fn.fetch(cronRequest(fn)));
+    expect(again.drip).toBe(1);
+  });
+
+  it("the welcome drip and the win-back leave out seed, anonymised and banned accounts (the come-back claim's exclusions)", async () => {
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    await fn.fetch(cronRequest(fn));
+    const cohorts = (scenario.readQueries ?? []).filter(
+      (q) => q.table === "profiles" && /marketing_consent|last_drip_at/.test(q.cols ?? "") && (q.filters ?? []).some((f) => f.column === "marketing_consent"),
+    );
+    expect(cohorts.length).toBeGreaterThanOrEqual(2);
+    for (const q of cohorts) {
+      const has = (op: string, column: string, value: unknown) =>
+        q.filters.some((f) => f.op === op && f.column === column && f.value === value);
+      expect(has("eq", "is_seed", false), `${q.cols}: is_seed`).toBe(true);
+      expect(has("is", "anonymized_at", null), `${q.cols}: anonymized_at`).toBe(true);
+      expect(has("eq", "ban_status", "active"), `${q.cols}: ban_status`).toBe(true);
+    }
+  });
+
+  it("does not send the win-back to a member claimed for a come-back email in the last 20 hours", async () => {
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    // Nobody due a drip step; one member due the win-back.
+    scenario.reads.profiles!.selectOverrides![0].result = { rows: [] };
+    scenario.reads.profiles!.selectOverrides!.push({
+      includes: "email, last_drip_at",
+      result: { rows: [{ user_id: "user-2", full_name: "Lee", email: "lee@example.com", last_drip_at: null }] },
+    });
+    scenario.reads.come_back_email_sends = { rows: [{ user_id: "user-2" }] };
+
+    let res = await fn.fetch(cronRequest(fn));
+    let b = await body(res);
+    expect(res.status).toBe(200);
+    expect(b.reEngagement).toBe(0);
+    expect(queued()).toHaveLength(0);
+
+    // Control: without the claim the same member IS sent the win-back.
+    scenario.reads.come_back_email_sends = { rows: [] };
+    res = await fn.fetch(cronRequest(fn));
+    b = await body(res);
+    expect(b.reEngagement).toBe(1);
+  });
+
+  it("ABORTS 503 when the recent come-back list cannot be read — nothing is mailed", async () => {
+    const fn = await loadConfigured();
+    seedOneDripRecipient();
+    scenario.reads.come_back_email_sends = { error: { message: "permission denied" } };
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(503);
     expect(queued()).toHaveLength(0);
   });
 

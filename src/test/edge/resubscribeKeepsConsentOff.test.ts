@@ -33,11 +33,13 @@
  */
 // @mutate supabase/functions/email-unsubscribe/index.ts |   if (!saved) return\n |   if (!saved) { await writeEmailPromotions(supabase, userId, true); return }\n
 // @mutate supabase/functions/email-unsubscribe/index.ts |       ? { marketing_consent: saved.marketing_consent === true, promotions_before_unsubscribe: null } |       ? { marketing_consent: true, promotions_before_unsubscribe: null }
-// @mutate supabase/functions/email-unsubscribe/index.ts |   if (untouched && saved.email_promotions === true) await writeEmailPromotions(supabase, userId, true) |   if (untouched) await writeEmailPromotions(supabase, userId, true)
+// @mutate supabase/functions/email-unsubscribe/index.ts |   if (untouched && saved.email_promotions !== false) { |   if (untouched) {
+// @mutate supabase/functions/email-unsubscribe/index.ts | saved.email_promotions === true ? true : null) | true)
+// @mutate supabase/functions/email-unsubscribe/index.ts |         const somethingOn = record.marketing_consent \|\| record.email_promotions === true |         const somethingOn = record.marketing_consent \|\| record.email_promotions !== false
 // @mutate supabase/functions/email-unsubscribe/index.ts |         } else if (somethingOn) { |         } else if (false) {
 // @mutate supabase/functions/email-unsubscribe/index.ts |         if (!saved) { |         if (true) {
 // @mutate supabase/functions/email-unsubscribe/index.ts |           marketing_consent: profile.marketing_consent === true, |           marketing_consent: true,
-// @mutate supabase/functions/email-unsubscribe/index.ts |   return data ? data.email_promotions !== false : true |   return true
+// @mutate supabase/functions/email-unsubscribe/index.ts |   return data ? (data.email_promotions ?? null) : true |   return data ? data.email_promotions !== false : true
 // @mutate supabase/functions/email-unsubscribe/index.ts |   if (readError) throw new Error(`consent read failed: ${readError.message}`) |   if (readError) return
 // @mutate supabase/functions/email-unsubscribe/index.ts |       console.error('[email-unsubscribe] consent read failed; opting out without a record:', readError.message) |       throw new Error(readError.message)
 // @mutate supabase/functions/email-unsubscribe/index.ts |   const untouched = profile.marketing_consent === false && (await readEmailPromotions(supabase, userId)) === false |   const untouched = true
@@ -61,16 +63,18 @@ const MEMBER = "member-1";
 const link: UnsubscribeLink = { e: "member@example.com", sig: "ok-promotions", list: "promotions" };
 
 type Profile = { user_id: string; marketing_consent: boolean; promotions_before_unsubscribe: unknown };
-type Prefs = { user_id: string; email_promotions: boolean };
+type Prefs = { user_id: string; email_promotions: boolean | null };
 
 /** The member's rows, kept in step with every write the function makes. */
 let profile: Profile;
 let prefs: Prefs | null;
 let seen = 0;
 
-function seed(p: { consent: boolean; promotions: boolean | null; saved?: unknown }) {
+/** promotions: null = no preferences row; "never-chosen" = a row whose email_promotions is NULL (Q2299). */
+function seed(p: { consent: boolean; promotions: boolean | null | "never-chosen"; saved?: unknown }) {
   profile = { user_id: MEMBER, marketing_consent: p.consent, promotions_before_unsubscribe: p.saved ?? null };
-  prefs = p.promotions === null ? null : { user_id: MEMBER, email_promotions: p.promotions };
+  prefs = p.promotions === null ? null
+    : { user_id: MEMBER, email_promotions: p.promotions === "never-chosen" ? null : p.promotions };
   publish();
 }
 
@@ -138,6 +142,38 @@ describe("resubscribe undoes only what the unsubscribe turned off", () => {
     await tap("unsubscribe");
     await tap("resubscribe");
     expect(state()).toEqual({ consent: true, promotions: true });
+  });
+
+  it("agreed, Promotions never chosen (NULL, Q2299): the record keeps the NULL and the undo puts NULL back, never true", async () => {
+    // true would also opt the member into marketing blasts, which need an
+    // explicit true; NULL lets the sign-up box decide the welcome and
+    // come-back emails again, exactly as before the link.
+    seed({ consent: true, promotions: "never-chosen" });
+    await tap("unsubscribe");
+    expect(state(), "the opt-out turns both off").toEqual({ consent: false, promotions: false });
+    expect(profile.promotions_before_unsubscribe).toEqual({ marketing_consent: true, email_promotions: null });
+    await tap("resubscribe");
+    expect(state()).toEqual({ consent: true, promotions: null });
+    const listWrites = scenario.writes.filter((w) => w.table === "notification_preferences").map((w) => (w.payload as Prefs).email_promotions);
+    expect(listWrites).toEqual([false, null]);
+  });
+
+  it("a never-chosen NULL is not 'turned back on': a second unsubscribe keeps the first record", async () => {
+    // Consent withdrawn by the first link, Promotions NULL (a row the first
+    // link's upsert created, which the Q2299 backfill reads as never chosen):
+    // nothing commercial is on, so the record made when both were on stays.
+    seed({ consent: false, promotions: "never-chosen", saved: { marketing_consent: true, email_promotions: true } });
+    await tap("unsubscribe");
+    expect(profile.promotions_before_unsubscribe).toEqual({ marketing_consent: true, email_promotions: true });
+  });
+
+  it("never agreed, Promotions never chosen: the undo restores neither", async () => {
+    seed({ consent: false, promotions: "never-chosen" });
+    await tap("unsubscribe");
+    expect(profile.promotions_before_unsubscribe).toEqual({ marketing_consent: false, email_promotions: null });
+    await tap("resubscribe");
+    expect(consentWrittenTrue()).toBe(false);
+    expect(state().consent).toBe(false);
   });
 
   it("agreed, but promotions turned off in Settings: the undo leaves promotions off", async () => {

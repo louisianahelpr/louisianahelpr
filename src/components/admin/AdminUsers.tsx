@@ -112,6 +112,7 @@ const AdminUsers = () => {
     strikesSummary,
     lastLoginSummary,
     paySummary,
+    moneySummary,
     ratingSummary,
     jobsCompletedSummary,
     openReportsSummary,
@@ -498,7 +499,7 @@ const AdminUsers = () => {
               strikesSummary={strikesSummary}
               ratingSummary={ratingSummary}
               jobsCompletedSummary={jobsCompletedSummary}
-              paySummary={paySummary}
+              moneySummary={moneySummary}
               openReportsSummary={openReportsSummary}
               lastLoginSummary={lastLoginSummary}
               onOpen={openProfile}

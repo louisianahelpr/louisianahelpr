@@ -52,7 +52,7 @@ const row = (maps: { strikes: Record<string, number> | null; logins: Record<stri
         strikesSummary={maps.strikes}
         ratingSummary={{}}
         jobsCompletedSummary={{}}
-        paySummary={{}}
+        moneySummary={{}}
         openReportsSummary={{}}
         lastLoginSummary={maps.logins}
         onOpen={() => {}}

@@ -5,6 +5,7 @@
  * management screen. Extracted verbatim from AdminUsers.tsx —
  * behaviour-preserving structural refactor.
  */
+import type { MemberMoney } from "@/components/admin/useAdminUserSummaries";
 import { hasIdBadge } from "@/lib/awardGate";
 import { memo } from "react";
 import { formatName } from "@/lib/utils";
@@ -39,12 +40,19 @@ interface AdminUserRowProps {
   strikesSummary: Record<string, number> | null;
   ratingSummary: Record<string, { avg: number; count: number }>;
   jobsCompletedSummary: Record<string, number>;
-  paySummary: Record<string, number>;
+  /** Per member: paid out, held, charged (useAdminUserSummaries' MemberMoney). */
+  moneySummary: Record<string, MemberMoney> | null;
   openReportsSummary: Record<string, number>;
   /** null = not loaded yet (or the read failed): no "Never logged in" claim. */
   lastLoginSummary: Record<string, string> | null;
   onOpen: (p: Profile) => void;
 }
+
+/** Whole dollars, "$1.2k" from a thousand: a chip, not a ledger line. */
+const moneyShort = (cents: number) => {
+  const d = cents / 100;
+  return d >= 1000 ? `$${(d / 1000).toFixed(1)}k` : `$${Math.round(d)}`;
+};
 
 const AdminUserRowBase = ({
   p,
@@ -53,7 +61,7 @@ const AdminUserRowBase = ({
   strikesSummary,
   ratingSummary,
   jobsCompletedSummary,
-  paySummary,
+  moneySummary,
   openReportsSummary,
   lastLoginSummary,
   onOpen,
@@ -153,7 +161,7 @@ const AdminUserRowBase = ({
             const strikes = strikesSummary?.[p.user_id] || 0;
             const rating = ratingSummary[p.user_id];
             const jobsDone = jobsCompletedSummary[p.user_id] || 0;
-            const ltv = paySummary[p.user_id] || 0;
+            const money = moneySummary?.[p.user_id];
             const openReports = openReportsSummary[p.user_id] || 0;
             // Absence is only a fact once the map has loaded. Run 36069319716
             // (#1582) captured every row as "Good · Never logged in" because
@@ -226,28 +234,17 @@ const AdminUserRowBase = ({
                   "Jobs with status 'completed', as Helpr or poster.",
                 )}
 
-                {/* Money that has MOVED through this account — spent as poster,
-                    earned as helper. This is NOT lifetime value: loadPaySummary
-                    takes payment_status IN (escrow, payout_pending, released),
-                    which includes escrow still held on jobs that are open or
-                    in_progress. It rendered as a bare "$479" with no noun, next
-                    to a completions chip, so the row asserted a settled lifetime
-                    figure it had never computed. "moved" is the word that is
-                    true of every row this query returns.
-                    No DollarSign icon: every OTHER chip in this row pairs its
-                    icon with a value that names its own unit, so the glyph is
-                    decoration there. Here the icon was doing the "$"'s job —
-                    rendering "$ 450", a gap through the middle of the figure. A
-                    currency symbol is typography; it goes in the text node with
-                    the digits. */}
-                {ltv > 0 && chip(
-                  "ltv",
-                  <span className="tabular-nums">
-                    ${ltv >= 1000 ? `${(ltv / 1000).toFixed(1)}k` : Math.round(ltv)} moved
-                  </span>,
-                  undefined,
-                  "Budget plus fees on every job with money in escrow, pending payout, or released — includes escrow still held on jobs nobody has finished.",
-                )}
+                {/* Money, each fact from its own record (owner 2026-10-21: "$94
+                    moved" for a Helpr who had worked no job was false; his
+                    $100 was HELD on a job not yet done). Paid out = Stripe
+                    transfers; held = their share not yet transferred to them;
+                    charged = what a card paid as the poster. None of them, no chip. */}
+                {money && money.paidOutCents > 0 && chip("paid-out", <span className="tabular-nums">{moneyShort(money.paidOutCents)} paid out</span>, undefined,
+                  "What Stripe transferred to them for jobs (payout_transfers, paid).")}
+                {money && money.heldCents > 0 && chip("held", <span className="tabular-nums">{moneyShort(money.heldCents)} held</span>, undefined,
+                  "Their share of job budgets not yet transferred to them: in escrow, or released and waiting on the transfer (escrow may still be refunded). Crew shares included.")}
+                {money && money.chargedCents > 0 && chip("charged", <span className="tabular-nums">{moneyShort(money.chargedCents)} charged</span>, undefined,
+                  "What their card was charged as the poster: job, fees, urgent bonus, tax and setup fee. Jobs a gift card touched are left out.")}
 
                 {/* Parish — moderation/location signal */}
                 {parish && chip(

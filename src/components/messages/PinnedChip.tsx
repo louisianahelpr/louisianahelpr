@@ -14,8 +14,9 @@ export function PinnedChip() {
       data-testid="pinned-chip"
       className="inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0"
       style={{
-        background: "hsl(var(--burnt-sienna) / 0.9)",
-        boxShadow: "0 1px 3px hsl(var(--burnt-sienna) / 0.45)",
+        // Olive, not rust: a pin is an action state, and rust is money only
+        // (spec v2 §1.1).
+        background: "hsl(var(--bark))",
       }}
     >
       <Pin className="w-2.5 h-2.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.4} aria-hidden />

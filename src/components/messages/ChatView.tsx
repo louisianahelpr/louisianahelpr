@@ -28,6 +28,7 @@ import {
   resolveLastOwnMessageId,
 } from "./chatView/chatViewHelpers";
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
+import { DealCard } from "./chatView/DealCard";
 
 /**
  * The centred reading column for the safety banner and the message scroller.
@@ -395,10 +396,8 @@ export function ChatView({
               phrasing-only and cannot legally hold a heading. So the heading
               is carried separately and silently. Embedded (desktop split) the
               page already has its one <h1> from PageScaffold. */}
-          {!embedded && (
-            <h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
-              Conversation with {activeConvo.otherUserName}
-            </h1>
+          {!embedded && (<h1 ref={headingRef} tabIndex={-1} className="sr-only focus:outline-none">
+              Conversation with {activeConvo.otherUserName}</h1>
           )}
 
           {/* THE SAFETY BANNER SITS DIRECTLY UNDER THE HEADER, FULL WIDTH
@@ -413,6 +412,7 @@ export function ChatView({
               below it is only ever there until it is dismissed. Guarded by
               src/test/chatThreadNoDeadBandAboveMessages.test.tsx and
               ChatView.layout.test.tsx. */}
+          {!isTeam && userId && <DealCard convo={activeConvo} userId={userId} />}
           {!bannerDismissed && !isTeam && (
             <div data-off-platform-note className="w-full mt-3 shrink-0 rounded-md bg-muted border border-border px-2.5 py-1.5 relative flex items-start gap-1.5 pr-11">
               <AlertTriangle className="w-3 h-3 text-foreground mt-[3px] shrink-0" />

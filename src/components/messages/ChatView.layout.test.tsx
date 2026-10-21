@@ -36,6 +36,8 @@ vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
 // The poster's application-note card reads applications; its own spec is
 // src/test/chatShowsApplicationNote.test.tsx.
 vi.mock("./chatView/ApplicationNoteCard", () => ({ ApplicationNoteCard: () => null }));
+// The pinned deal card (board 2) reads Supabase through React Query; this file measures layout only.
+vi.mock("./chatView/DealCard", () => ({ DealCard: () => null }));
 vi.mock("./useMessageReactions", () => ({
   useMessageReactions: () => ({ reactions: new Map(), react: vi.fn() }),
 }));

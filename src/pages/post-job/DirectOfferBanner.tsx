@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { X, UserCheck } from "lucide-react";
 import { OFFER_RESPONSE_WINDOWS, offerWindowLabel } from "@/lib/offerResponseWindow";
+import { formatName } from "@/lib/utils";
 
 interface DirectOfferBannerProps {
   offerToHelperName: string;
@@ -36,18 +37,22 @@ export function DirectOfferBanner({
   responseHours,
   onResponseHoursChange,
 }: DirectOfferBannerProps) {
-  const name = offerToHelperName || "your saved Helpr";
+  // "First L." (owner 2026-10-21: never a member's last name); formatName is
+  // a no-op on a name already in that form.
+  const name = formatName(offerToHelperName, "your saved Helpr");
   return (
-    <div className="rounded-ds-md border-2 border-primary/40 bg-primary/5 p-4 space-y-3">
+    // Spec v2 rebuild (audit 2026-10-21): the one card, sentence case. It was a
+    // thick olive-bordered tinted box titled "Direct Offer to …".
+    <div className="rounded-[20px] liquid-glass p-card space-y-3">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-          <UserCheck className="w-4 h-4 text-primary" />
+        <div className="w-10 h-10 rounded-full bg-[hsl(var(--bark)/0.12)] flex items-center justify-center shrink-0">
+          <UserCheck className="w-5 h-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0 break-words">
-          <p className="text-ds-13 font-semibold text-foreground">
-            Direct Offer to {name}
+          <p className="text-ds-15 font-semibold text-foreground">
+            Direct offer to {name}
           </p>
-          <p className="text-ds-11 text-muted-foreground">
+          <p className="text-ds-13 text-muted-foreground">
             They'll have {offerWindowLabel(responseHours)} to accept before this job
             opens to all Helprs.
           </p>
@@ -67,7 +72,7 @@ export function DirectOfferBanner({
       <div className="flex items-center gap-3">
         <Label
           htmlFor="direct-offer-window"
-          className="text-ds-11 text-muted-foreground shrink-0"
+          className="text-ds-13 text-muted-foreground shrink-0"
         >
           First look for
         </Label>
@@ -75,7 +80,7 @@ export function DirectOfferBanner({
           value={String(responseHours)}
           onValueChange={(v) => onResponseHoursChange(parseInt(v, 10))}
         >
-          <SelectTrigger id="direct-offer-window" className="h-10 flex-1 min-w-0">
+          <SelectTrigger id="direct-offer-window" className="h-11 flex-1 min-w-0 rounded-[14px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

@@ -1,14 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { FileText, ChevronRight, ChevronDown, RotateCcw } from "lucide-react";
+import { FileText, ChevronRight, RotateCcw } from "lucide-react";
 import { START_EMOJI } from "@/lib/categoryEmoji";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { sampleJobs } from "@/data/sampleJobs";
 import { usePostedBefore, useRecentPostedJobs } from "@/hooks/useRecentPostedJobs";
 import { track } from "@/lib/analytics";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
-import { categoryColors } from "@/components/job-card/activityConstants";
 import { AiJobBuilder } from "@/components/postjob/AiJobBuilder";
 import { OfferToSavedHelpr, useSavedHelpersLite } from "./OfferToSavedHelpr";
 import { OpenJobLimitNotice } from "./OpenJobLimitNotice";
@@ -144,7 +143,6 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // Step 0's chosen way to start lives on the form (usePostJobForm `entryPanel`), so the page's back
   // arrow returns to the four cards. `?start=ai` opens the AI builder there.
   const panel = form.entryPanel;
-  const [repostOpen, setRepostOpen] = useState(false);
 
   // Tap a Repost tile → reuse the existing `?rebook=<id>` deep-link the
   // form already handles, which prefills every field and skips the entry
@@ -243,6 +241,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
       templates: { q: "Pick a template", h: "Start from a common job, then edit anything." },
       offer: { q: "Pick a saved Helpr", h: "They get first refusal for a window you set, before it opens to everyone." },
       ai: { q: "Describe the job", h: "In your own words. AI fills in the form, and you check it." },
+      repost: { q: "Repost a recent job", h: "The quickest way to ask for the same help again." },
     }[panel];
     return (
       <div className="space-y-section">
@@ -260,18 +259,16 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     form.setFormPage(2);
                   }}
                   aria-label={`Use template: ${sample.title}`}
-                  className="w-full min-w-0 rounded-ds-md border border-border bg-card p-3 text-left transition-transform active:scale-[0.97]"
+                  className="w-full min-w-0 rounded-[20px] border border-border bg-card p-3 text-left transition-transform active:scale-[0.97]"
                 >
+                  {/* No "typical $45 · ~1 hr": that was a number typed into
+                      src/data/sampleJobs.ts, not one measured from jobs (truth
+                      rule, #54), so it is not shown. The emoji stays (owner
+                      2026-10-21: one emoji per way to start / category). */}
                   <span className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-base" aria-hidden>
                     {sample.icon}
                   </span>
                   <p className="font-sans text-ds-14 font-semibold leading-tight text-foreground">{sample.title}</p>
-                  <p className="mt-1 font-sans text-ds-11 tabular-nums text-muted-foreground">
-                    typical ${sample.typical_price} · ~
-                    {sample.typical_duration_minutes < 60
-                      ? `${sample.typical_duration_minutes} min`
-                      : `${Math.round((sample.typical_duration_minutes / 60) * 10) / 10} hr`}
-                  </p>
                 </button>
               ))}
             </div>
@@ -286,6 +283,34 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               </button>
             )}
           </>
+        )}
+        {panel === "repost" && !hasRecent && (
+          <p className="text-ds-14 text-muted-foreground">No recent jobs to repost yet.</p>
+        )}
+        {panel === "repost" && hasRecent && (
+          <ul className="space-y-2">
+            {recentPosted!.map((job) => (
+              <li key={job.id}>
+                <button
+                  type="button"
+                  onClick={() => handleRepost(job.id)}
+                  aria-label={`Repost ${job.title}`}
+                  className="flex w-full items-center gap-3 rounded-[20px] border border-border bg-card p-3 text-left transition-transform active:scale-[0.98]"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
+                    <CategoryIcon category={job.category} aria-hidden className="h-4 w-4" strokeWidth={2.25} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-sans text-ds-14 font-semibold leading-tight text-foreground">{job.title}</span>
+                    <span className="mt-0.5 block font-sans text-ds-12 tabular-nums text-muted-foreground">
+                      {shortRelativeDate(job.created_at)} · <span className="font-semibold text-[hsl(var(--accent-ink))]">${formatPrice(job.budget)}</span>
+                    </span>
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
         {panel === "offer" && <OfferToSavedHelpr open headless onOpenChange={(next) => form.setEntryPanel(next ? "offer" : null)} />}
         {panel === "ai" && (
@@ -345,55 +370,14 @@ export function EntryChoice({ form }: EntryChoiceProps) {
         )
       )}
 
-      {/* 6 — REPOST A RECENT TASK */}
-      {hasRecent && (
-        <div className="rounded-2xl border border-border bg-card p-card">
-          <button
-            type="button"
-            onClick={() => setRepostOpen((v) => !v)}
-            aria-expanded={repostOpen}
-            className="flex w-full items-center gap-4 text-left transition-transform active:scale-[0.99]"
-            style={{ minHeight: "72px" }}
-          >
-            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]" aria-hidden>
-              <RotateCcw className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block font-sans text-ds-17 font-bold text-foreground">Repost a recent job</span>
-              <span className="mt-0.5 block font-sans text-ds-13 text-muted-foreground">The quickest way to ask for the same help again.</span>
-            </span>
-            <ChevronDown className="h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-200" style={{ transform: repostOpen ? "rotate(180deg)" : undefined }} aria-hidden />
-          </button>
-          {repostOpen && (
-            <ul className="mt-3 space-y-2">
-              {recentPosted!.map((job) => {
-                const colors = categoryColors[job.category];
-                return (
-                  <li key={job.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleRepost(job.id)}
-                      aria-label={`Repost ${job.title}`}
-                      className="flex w-full items-center gap-3 rounded-ds-md border border-border bg-background p-2.5 text-left transition-transform active:scale-[0.98]"
-                    >
-                      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${colors?.dot ?? "bg-muted"}`}>
-                        <CategoryIcon category={job.category} aria-hidden className="h-4 w-4 text-white/90" strokeWidth={2.25} />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-sans text-ds-14 font-semibold leading-tight text-foreground">{job.title}</span>
-                        <span className="mt-0.5 block font-sans text-ds-11 tabular-nums text-muted-foreground">
-                          {shortRelativeDate(job.created_at)} · ${formatPrice(job.budget)}
-                        </span>
-                      </span>
-                      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </div>
-      )}
+      {/* 6 — REPOST A RECENT TASK: the same card and the same tap as the four
+          above (#54, audit 2026-10-21: it was the one accordion in a column of
+          rows that go straight on). The list opens in place of the cards, and
+          the page's back arrow returns here. */}
+      {hasRecent && startCard("repost", <RotateCcw className="h-5 w-5" />, "Repost a recent job", "The quickest way to ask for the same help again.", () => {
+        track("post_job_entry_choice", { choice: "repost_open" });
+        form.setEntryPanel("repost");
+      })}
     </div>
   );
 }

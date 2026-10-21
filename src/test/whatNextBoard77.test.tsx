@@ -6,7 +6,7 @@
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |         { key: "pick", label: `${who} picks a Helpr`, detail: "We'll let you know if you're picked", state: "now" }, |         { key: "pick", label: `${who} picks a Helpr`, detail: "We'll let you know if you're picked", state: "later" },
  * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const who = name ?? "The person who posted this job"; |   const who = "They";
  * @mutate src/components/whatNext/WhatNextSheet.tsx |         floor={!webDesktop} |         floor={false}
- * @mutate src/components/dashboard/ApplicationSentDialog.tsx |   const { takeHome } = useApplyTakeHome(job, platformFee); |   const takeHome = job.budget;
+ * @mutate src/components/dashboard/helprTakeHome.tsx |   const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings; |   const net = job.budget;
  * @mutate src/components/whatNext/WhatNextSheet.tsx |           event.preventDefault(); |
  * @mutate src/components/whatNext/WhatNextSheet.tsx | className={`bg-premium-page focus:outline-none | className={`focus:outline-none
  */
@@ -16,6 +16,7 @@ import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDia
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0 }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, profile: null, loading: false }) }));
 
 const sent = { jobId: "j1", title: "Fence repair", noteWithheld: false, posterName: "Travis Boudreaux", dateNeeded: "2037-10-31" };
 
@@ -60,15 +61,14 @@ describe("board 77: what next after applying", () => {
     expect(screen.getByRole("button", { name: "Got it" })).toBeTruthy();
   });
 
-  it("prints the posted price and the apply sheet's own take-home, in rust", () => {
+  it("prints the job price and the job page's take-home as one labelled pair, in rust (#62)", () => {
     // A flat-model job: 5% + 70c off $85 = $80.05, floored to whole dollars like the receipt.
     const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, category: "x", description: "", date_needed: "2037-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
     render(<ApplicationSentDialog sent={{ ...sent, job: job as never }} platformFee={10} onClose={() => {}} onView={() => {}} />);
     const steps = within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem");
-    expect(steps[3].textContent).toContain("Then $80 comes to you");
+    expect(steps[3].textContent).toContain("Job price $85 · You take home $80");
     const money = steps[3].querySelector("span.tabular-nums");
     expect(money?.className).toContain("--accent-ink");
-    expect(screen.getByTestId("what-next-sheet").textContent).toMatch(/Fence repair, posted at \$85/);
   });
 
   it("opens with focus on the sheet, not on a button", () => {

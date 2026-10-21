@@ -11,7 +11,7 @@
  * their item", declutter_items with the foundation's read policy, the hidden 'declutter' switch on for testers;
  * OUTSIDER is not a tester). The items policy here is the foundation's; prod's newest (20261020033623, the seed
  * boundary) only narrows it further, which an invoker function inherits as is.
- * Part 4 replays the column grant ready/declutter-narrow-floor2 brings (every column but asker_id) and shows the RPC
+ * The last part replays the column grant ready/declutter-narrow-floor2 brings (every column but asker_id) and shows the RPC
  * and the client's fallback read still work while asker_id is refused.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite.

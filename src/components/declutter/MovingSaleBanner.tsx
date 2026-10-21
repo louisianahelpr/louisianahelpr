@@ -8,17 +8,20 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Share2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { useFeature } from "@/hooks/useFeature";
-import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
+import { fetchPhotos, fetchWatching, photoPublicUrl, setWatch } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { fetchSellerMovingSale, louisianaToday, movingSaleLine } from "@/lib/declutter/movingSale";
+import { fetchSellerMovingSale, louisianaToday, movingSaleWhen } from "@/lib/declutter/movingSale";
 
 const SHOWN = 6;
 
@@ -30,6 +33,43 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
   const sale = useQuery({ queryKey: ["declutter", "moving-sale", sellerId], queryFn: () => fetchSellerMovingSale(sellerId), enabled: on });
   const ids = (sale.data?.items ?? []).map((i) => i.id);
   const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: on && ids.length > 0 });
+  // Q2269 "Follow sale" = watch every item in the sale: watchers already get the price-drop alert
+  // (declutter_price_drop_sweep), so no new notification. Not on your own sale, and only when signed in.
+  const { user } = useCurrentUser();
+  const qc = useQueryClient();
+  const canFollow = on && !!user && user.id !== sellerId;
+  const watching = useQuery({ queryKey: ["declutter", "watching", user?.id], queryFn: () => fetchWatching(user!.id), enabled: canFollow });
+  const following = ids.length > 0 && ids.every((id) => watching.data?.has(id));
+  const follow = useMutation({
+    // A few at a time; an item that sold (or is somehow your own) since the page loaded is skipped, never a stop
+    // (lh-authz-rls review of Q2269 #5). Any other refusal fails the whole follow.
+    mutationFn: async (next: boolean) => {
+      const todo = ids.filter((id) => (watching.data?.has(id) ?? false) !== next);
+      let skipped = 0;
+      for (let k = 0; k < todo.length; k += 4) {
+        await Promise.all(todo.slice(k, k + 4).map(async (id) => {
+          try {
+            await setWatch(id, next);
+          } catch (err) {
+            const code = (err as { message?: unknown })?.message;
+            if (code !== "item_not_found" && code !== "own_item" && code !== "item_not_available") throw err;
+            skipped++;
+          }
+        }));
+      }
+      return { done: todo.length - skipped, total: todo.length };
+    },
+    onSuccess: ({ done, total }, next) => {
+      if (!next) toast.success("Stopped watching the items in this sale.");
+      else if (done < total) toast.success(`Following ${done} of ${total} items. The others aren't for sale anymore.`);
+      else toast.success("Following. We'll tell you if their prices drop.");
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
+      void qc.invalidateQueries({ queryKey: ["declutter", "moving-sale", sellerId] });
+    },
+  });
   // Shown only once there is something to show: no loading or error frame
   // for a section most profiles never have (its absence is the empty state).
   if (!on || !sale.data || photos.isLoading) return null;
@@ -44,9 +84,9 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
       <div className="flex items-start gap-3">
         <Truck className="h-5 w-5 shrink-0 mt-1" aria-hidden />
         <div className="min-w-0">
-          <h2 id="moving-sale-title" className="text-ds-22 font-bold leading-snug">Moving sale</h2>
+          <h2 id="moving-sale-title" className="text-ds-22 font-bold leading-snug [overflow-wrap:anywhere]">{sale.data.saleName ?? "Moving sale"}</h2>
           <p className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">
-            {area ? `${area} · ` : ""}{movingSaleLine(sale.data.moveOutOn, sale.data.items.length, louisianaToday(), sale.data.more)}
+            {area ? `${area} · ` : ""}{movingSaleWhen(sale.data.startsOn, sale.data.moveOutOn, sale.data.items.length, louisianaToday(), sale.data.more)}
           </p>
         </div>
       </div>
@@ -78,7 +118,18 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
             {all ? "Show fewer" : `Show all ${sale.data.items.length}`}
           </button>
         )}
-        {/* Board 164's "Share sale": the seller's profile, where this sale lives. ("Follow sale" does not exist yet.) */}
+        {canFollow && (
+          <Button
+            type="button"
+            variant={following ? "outline" : "default"}
+            aria-pressed={following}
+            disabled={follow.isPending || watching.isLoading}
+            onClick={() => follow.mutate(!following)}
+          >
+            {following ? "Following" : "Follow sale"}
+          </Button>
+        )}
+        {/* Board 164's "Share sale": the seller's profile, where this sale lives. */}
         <Button
           type="button"
           variant="outline"
@@ -88,6 +139,11 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
           Share sale
         </Button>
       </div>
+      {canFollow && (
+        <p className="text-ds-13 text-muted-foreground" data-follow-note="">
+          Following watches the {sale.data.items.length === 1 ? "item" : `${sale.data.items.length} items`} here, so you're told if their prices drop. Items added later aren't included.
+        </p>
+      )}
     </section>
   );
 }

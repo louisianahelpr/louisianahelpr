@@ -8,6 +8,7 @@
  * is one declutter_publish_item call per item, the same as listing one item.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto } from "@/lib/declutter/photos";
@@ -173,6 +174,26 @@ export async function setMoveOutDate(moveOutOn: string | null): Promise<number> 
   if (error) rpcFail(error, rpcErrorMessage("declutter_set_move_out_date", error));
   // Zero is legitimate: nothing of the seller's is still in the moving sale.
   return typeof data === "number" ? data : 0;
+}
+
+/**
+ * Q2269: name the moving sale and say when it starts (both optional; blank clears). How many listings it was set on,
+ * or "not_deployed" while migration 20261021030654 has not reached prod.
+ */
+export async function setMovingSale(name: string, startsOn: string | null): Promise<number | "not_deployed"> {
+  const { data, error } = await supabase.rpc("declutter_set_moving_sale", { p_name: name, p_starts_on: startsOn as string });
+  if (error && isMissingRpcNamed(error, "declutter_set_moving_sale")) return "not_deployed";
+  if (error) rpcFail(error, rpcErrorMessage("declutter_set_moving_sale", error));
+  return typeof data === "number" ? data : 0;
+}
+
+/** Q2269: the seller's own saved sale name and start (drafts too), or null; null before the migration is live. */
+export async function fetchMyMovingSale(): Promise<{ saleName: string | null; startsOn: string | null } | null> {
+  const { data, error } = await supabase.rpc("declutter_my_moving_sale");
+  if (error && isMissingRpcNamed(error, "declutter_my_moving_sale")) return null;
+  if (error) rpcFail(error, rpcErrorMessage("declutter_my_moving_sale", error));
+  const row = ((data ?? []) as { sale_name: string | null; sale_starts_on: string | null }[])[0];
+  return row ? { saleName: row.sale_name, startsOn: row.sale_starts_on } : null;
 }
 
 export interface MoveItem {

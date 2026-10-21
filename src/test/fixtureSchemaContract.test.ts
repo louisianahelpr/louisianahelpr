@@ -348,6 +348,8 @@ describe("every fixture literal could be inserted", () => {
     // attributable to recurring_visit_payments, and a Stripe Identity `dob: { year, month, day }` to the alerts table.
     { file: "src/test/edge/shop-checkout.test.ts", keys: ["mode", "payment_intent", "payer_id", "status"] },
     { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
+    // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
+    { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

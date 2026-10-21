@@ -5964,6 +5964,7 @@ export type Database = {
           quiet_start: string | null
           reviews: boolean
           saved_helper_availability: boolean
+          saved_searches_paused: boolean
           system_alerts: boolean
           transit_updates: boolean
           updated_at: string
@@ -6000,6 +6001,7 @@ export type Database = {
           quiet_start?: string | null
           reviews?: boolean
           saved_helper_availability?: boolean
+          saved_searches_paused?: boolean
           system_alerts?: boolean
           transit_updates?: boolean
           updated_at?: string
@@ -6036,6 +6038,7 @@ export type Database = {
           quiet_start?: string | null
           reviews?: boolean
           saved_helper_availability?: boolean
+          saved_searches_paused?: boolean
           system_alerts?: boolean
           transit_updates?: boolean
           updated_at?: string
@@ -8602,50 +8605,91 @@ export type Database = {
           },
         ]
       }
+      saved_search_item_queue: {
+        Row: {
+          attempts: number
+          item_id: string
+          queued_at: string
+          retry_after: string | null
+        }
+        Insert: {
+          attempts?: number
+          item_id: string
+          queued_at?: string
+          retry_after?: string | null
+        }
+        Update: {
+          attempts?: number
+          item_id?: string
+          queued_at?: string
+          retry_after?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_search_item_queue_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_searches: {
         Row: {
           category: string | null
           created_at: string
           id: string
+          last_emailed_at: string | null
           last_notified_at: string | null
+          last_seen_at: string | null
           location_keyword: string | null
           max_budget: number | null
           min_budget: number | null
           name: string
+          notify_email: boolean
           notify_enabled: boolean
           parish: string | null
           query: string | null
           radius_miles: number | null
+          section: string
           user_id: string
         }
         Insert: {
           category?: string | null
           created_at?: string
           id?: string
+          last_emailed_at?: string | null
           last_notified_at?: string | null
+          last_seen_at?: string | null
           location_keyword?: string | null
           max_budget?: number | null
           min_budget?: number | null
           name: string
+          notify_email?: boolean
           notify_enabled?: boolean
           parish?: string | null
           query?: string | null
           radius_miles?: number | null
+          section?: string
           user_id: string
         }
         Update: {
           category?: string | null
           created_at?: string
           id?: string
+          last_emailed_at?: string | null
           last_notified_at?: string | null
+          last_seen_at?: string | null
           location_keyword?: string | null
           max_budget?: number | null
           min_budget?: number | null
           name?: string
+          notify_email?: boolean
           notify_enabled?: boolean
           parish?: string | null
           query?: string | null
           radius_miles?: number | null
+          section?: string
           user_id?: string
         }
         Relationships: []
@@ -12517,6 +12561,7 @@ export type Database = {
           p_search_name: string
           p_user_id: string
         }
+      deliver_saved_search_item_alerts: { Args: { p_item: string }; Returns: number }
         Returns: boolean
       }
       detect_stuck_payments: { Args: never; Returns: Json }
@@ -14595,6 +14640,13 @@ export type Database = {
       run_missed_cron_catch_up: { Args: never; Returns: Json }
       run_seed_purge: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
+      saved_search_new_counts: {
+        Args: never
+        Returns: {
+          new_count: number
+          search_id: string
+        }[]
+      }
       search_profiles_by_name: {
         Args: { query: string }
         Returns: {

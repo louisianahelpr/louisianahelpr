@@ -108,6 +108,8 @@ export const SEED_GATED_SURFACES = [
   // V-008 (2026-09-25): the trigger only queues; this is the one send path,
   // and it re-checks the seed gate at send time.
   { surface: "saved-search alerts (queued send)", object: "public.deliver_saved_search_alert" },
+  // Q2275 (20261021042132): Declutter saved-search alerts, sent from the same sweep, skip a test item.
+  { surface: "Declutter saved-search alerts (queued send)", object: "public.deliver_saved_search_item_alerts" },
   // Q225 (20260926041132): the parish-match alert queue's send path re-checks
   // the seed gate at send time, like the saved-search send above. Since
   // 20260926195608 (Q392) it asks through job_announceable_to (registered

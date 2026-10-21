@@ -15,7 +15,7 @@
  * `.is("parent_job_id", null)`.
  *
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL |     AND true
- * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
  * @mutate supabase/functions/instant-job-match/index.ts |       .is("parent_job_id", null) |       .limit(1000)
  * @mutate supabase/migrations/20261019042744_shops_public_page.sql |        AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) |        AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) AND NOT EXISTS (SELECT 1 FROM public.jobs)
  */
@@ -40,6 +40,8 @@ const NOT_JOB_SURFACES = new Map([
   // Shops slice 1 (20261017061155): hides a test account's SHOP while seeds are hidden; since
   // 20261019042744 (SH2b) through shop_state_ok, the one rule members and link visitors share.
   ["function:shop_state_ok", "gates a shop row, not a job"],
+  // Q2275 (20261021042132): Declutter saved-search alerts gate a test ITEM while seeds are hidden.
+  ["function:deliver_saved_search_item_alerts", "gates a Declutter item, not a job"],
 ]);
 const readsJobs = (code: string) => /\b(?:public\.)?jobs\b(?!_)/i.test(code);
 

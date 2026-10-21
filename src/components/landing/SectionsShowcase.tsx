@@ -7,40 +7,36 @@ import { goSignedInOr } from "./goSignedInOr";
 
 /**
  * The landing page below the hero (owner, 2026-10-19): one block per section
- * (what it does, why switch), the trust row, and one sign-up action (the hero's;
+ * (what it does, why it helps), the trust row, and one sign-up action (the hero's;
  * the close repeats it as a text link). A section whose switch is not open to
  * everyone says "coming soon", and so does every switched section until that
  * answer is in (fails closed, useSectionsOpen). An OPEN section's card links to
  * its Browse page (or sign-up, returning there, for a section behind sign-in).
  * Copy states only what the app does today; no fee or speed figures.
  */
-const COPY: Record<SectionKey, { what: string; why: string; instead: string }> = {
+const COPY: Record<SectionKey, { what: string; why: string }> = {
   jobs: {
     what: "Hire local help, or find work nearby.",
     why: "Local people apply to your job, and your payment is held until the work is done.",
-    instead: "Instead of Thumbtack, TaskRabbit or a Facebook group",
   },
   declutter: {
     what: "Sell what you no longer need to neighbors, or find a deal.",
     why: "Offers and checkout happen in the app, so there is no cash to count.",
-    instead: "Instead of Marketplace, OfferUp or Craigslist",
   },
   shops: {
     what: "Shop Louisiana makers and small businesses, or open your own shop.",
     why: "Your shop page, your orders and your payments live in one place.",
-    instead: "Instead of Etsy or a separate website",
   },
   homes: {
     what: "Find a place to rent, or list a home you own.",
     why: "Local rentals and the people who own them, in the same app you already use.",
-    instead: "Instead of Zillow or Apartments.com",
   },
 };
 
 const TRUST: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Headset, title: "Real human support", body: "A real person on our team answers when something goes wrong, in every section." },
   { icon: ShieldCheck, title: "ID-verified people", body: "Members verify their ID once, and it counts everywhere on Helpr." },
-  { icon: Lock, title: "Secure payments", body: "You pay through Helpr with Stripe and see the full price before you pay." },
+  { icon: Lock, title: "Secure payments", body: "You pay through Helpr and see the full price before you pay." },
 ];
 
 /**
@@ -110,7 +106,7 @@ export function SectionsShowcase() {
                 <li key={s.key} className="liquid-glass relative p-6 sm:p-7 flex flex-col gap-3" data-section={s.key} data-soon={soon ? "true" : "false"}>
                   {soon && (
                     <span className="absolute top-5 right-5 rounded-full px-2.5 py-1 text-ds-12 font-semibold bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))]">
-                      Coming soon
+                      Opening soon
                     </span>
                   )}
                   <span className="w-12 h-12 rounded-2xl bg-[hsl(var(--bark)/0.1)] text-[hsl(var(--bark))] flex items-center justify-center" aria-hidden>
@@ -119,7 +115,6 @@ export function SectionsShowcase() {
                   <h3 className="text-ds-22 font-bold tracking-tight text-foreground">{s.navLabel}</h3>
                   <p className="text-ds-17 font-semibold text-foreground leading-snug">{c.what}</p>
                   <p className="text-ds-15 text-muted-foreground leading-relaxed">{c.why}</p>
-                  <p className="text-ds-13 text-muted-foreground/90 mt-auto pt-1">{c.instead}.</p>
                   {!soon && (
                     <Link
                       to={link.to}

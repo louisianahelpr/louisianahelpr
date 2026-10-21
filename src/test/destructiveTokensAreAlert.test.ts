@@ -19,7 +19,7 @@
  * `--destructive-ink` (`text-destructive-ink`); `--destructive` is for fills.
  *
  * @mutate src/index.css |   --destructive:          var(--alert); |   --destructive:          19 74% 44%;
- * @mutate src/components/ui/FieldError.tsx | var(--destructive-ink) | var(--destructive)
+ * @mutate src/components/ui/FieldError.tsx |       style={{ color: "hsl(var(--destructive-ink))" }} |       style={{ color: "hsl(var(--destructive))" }}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

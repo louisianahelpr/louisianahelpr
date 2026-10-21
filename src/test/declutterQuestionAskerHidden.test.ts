@@ -8,7 +8,7 @@
  *
  * @mutate src/lib/declutter/api.ts |         .select("id, item_id, question, answer, answered_at, created_at") |         .select("id, item_id, asker_id, question, answer, answered_at, created_at")
  * @mutate supabase/migrations/20261021122157_declutter_item_questions.sql |     SELECT q.id, q.item_id, q.question, |     SELECT q.id, q.item_id, q.asker_id AS question,
- * @mutate supabase/migrations/20261021122157_declutter_item_questions.sql | SECURITY INVOKER | SECURITY DEFINER
+ * @mutate supabase/migrations/20261021122157_declutter_item_questions.sql | STABLE\nSECURITY INVOKER | STABLE\nSECURITY DEFINER
  * @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_item_questions", { p_item_id: itemId }); |   const res = { error: { code: "PGRST202" } } as never;
  */
 import { describe, expect, it } from "vitest";

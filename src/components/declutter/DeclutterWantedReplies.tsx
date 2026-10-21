@@ -78,7 +78,7 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                 <label htmlFor="wanted-reply-price" className="block text-ds-15 font-semibold">Your price</label>
                 <div className="flex h-12 items-center gap-1 rounded-2xl border border-input glass-field px-4 focus-within:ring-2 focus-within:ring-ring">
                   <span aria-hidden className={money}>$</span>
-                  <input id="wanted-reply-price" inputMode="decimal" className={`w-full min-w-0 bg-transparent outline-none ${money}`}
+                  <input id="wanted-reply-price" inputMode="decimal" className={`w-full min-w-0 bg-transparent outline-none focus-visible:outline-none focus-visible:ring-0 ${money}`}
                     value={price} onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ""))} />
                 </div>
                 <p className={`text-ds-13 ${tooHigh ? "text-destructive-ink" : "text-muted-foreground"}`} role={tooHigh ? "alert" : undefined}>

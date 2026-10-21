@@ -14,7 +14,7 @@
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC;
  * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
  * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   IF v_date IS NULL OR v_date < v_today THEN |   IF v_date IS NULL THEN
+ * @mutate supabase/migrations/20261021030654_declutter_moving_sale_name.sql |   IF v_date IS NULL OR v_date < v_today THEN |   IF v_date IS NULL THEN
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | VALUES ('declutter_moving_out', 'testers', | VALUES ('declutter_moving_out', 'everyone',
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const refused = await requireFeature(admin, "declutter_moving_out", user, corsHeaders); |   const refused = null;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |   const { error: gateErr } = await anon.rpc("declutter_assert_can_scan_room"); |   const gateErr = null as { message?: string } \| null;

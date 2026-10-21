@@ -11,7 +11,13 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 /** Files allowed rust, each for a money figure only. */
-const MONEY = new Set(["src/components/messages/chatView/DealCard.tsx"]);
+const MONEY = new Set([
+  "src/components/messages/chatView/DealCard.tsx",
+  // Board 181 (2026-10-21): the receipt's amounts, and the money-tone pill a
+  // tip / payment event wears (SystemEventRow's `money` branch only).
+  "src/components/messages/chatView/ChatReceiptCard.tsx",
+  "src/components/messages/chatView/SystemEventRow.tsx",
+]);
 
 describe("Messages: rust is money only", () => {
   it("no Messages component paints a rust token outside a price", () => {

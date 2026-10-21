@@ -813,6 +813,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Builder 1j (2026-10-21, board 191): the admin funnel's filters.
+  "src/components/admin/adminAnalytics/SectionFunnel.tsx": "no typed text: two fixed-option selects (7/30/90 days; a parish from the RPC's own list) and two section pills; it writes nothing (an admin-only read whose server refuses any other window)",
   // Builder 1h (2026-10-21, board 91, Q2275): saved searches.
   "src/components/savedSearches/SaveSearchSheet.tsx": "no typed text: the sheet saves the search already on screen (its name is built from it, capped at 60) with one email switch and optional section chips; the write is the member's own saved_searches row (RLS) and the 10-search cap is the server's",
   "src/pages/profile/SavedSearchesTab.tsx": "no typed text: switches (alerts, email, pause all) and Delete on the member's own rows; nothing a member types reaches it",

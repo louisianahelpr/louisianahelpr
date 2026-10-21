@@ -11233,6 +11233,10 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      admin_section_funnel: {
+        Args: { p_days?: number; p_parish?: string; p_section?: string }
+        Returns: Json
+      }
       admin_alert_close_rule: { Args: { p_title: string }; Returns: string }
       admin_alert_manual_close: { Args: { p_title: string }; Returns: boolean }
       admin_alert_ref: { Args: { p_sample_ref: Json }; Returns: Json }

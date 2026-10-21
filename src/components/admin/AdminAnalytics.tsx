@@ -25,6 +25,7 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { SignupLeadsCard } from "./adminAnalytics/SignupLeadsCard";
+import { SectionFunnel } from "./adminAnalytics/SectionFunnel";
 import { SectionLabel, SubscriberPieChart, RevenueLineChart, MonthlyJobsBarChart, ChartFallback } from "./adminAnalytics/analyticsLazy";
 
 /** Reads every non-seed profile, `PAGE_SIZE` rows at a time. An unbounded
@@ -110,7 +111,7 @@ async function loadAnalytics(): Promise<AnalyticsLoad> {
   };
 }
 
-const AdminAnalytics = () => {
+const AdminAnalyticsBody = () => {
   const [drillDown, setDrillDown] = useState<DrillDown>(null);
   const [drillLoading, setDrillLoading] = useState(false);
   const [drillUsers, setDrillUsers] = useState<DrillProfile[]>([]);
@@ -592,5 +593,8 @@ const AdminAnalytics = () => {
     </AdminViewShell>
   );
 };
+
+/** Board 191's funnel first, on its own read, so it shows whatever the rest of the page's loads do. */
+const AdminAnalytics = () => <AdminViewShell><SectionFunnel /><AdminAnalyticsBody /></AdminViewShell>;
 
 export default AdminAnalytics;

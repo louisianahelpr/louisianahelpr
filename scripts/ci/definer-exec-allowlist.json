@@ -37,6 +37,7 @@
     "admin_resolve_ban_evasion_match(uuid)": "client",
     "admin_reverse_violation(uuid, text, boolean)": "client",
     "admin_review_category_suggestion(uuid, boolean, text)": "client",
+    "admin_section_funnel(text, integer, text)": "reviewed 2026-10-21 (board 191): admin-only read (raises not_authorized unless has_role admin); counts real jobs/listings, returns aggregates only.",
     "admin_send_team_message(uuid, text, uuid)": "client",
     "admin_set_feature_switch(text, text)": "client",
     "admin_payout_release(text, uuid, text, boolean)": "reviewed 2026-10-19 (Q14): payout readiness (20261019070737): has_role(auth.uid(), 'admin') first, else admin_only; note and the no-transfer-outside-the-app confirmation ALWAYS required; moves ONE held_for_review payout/refund back to pending; audited.",

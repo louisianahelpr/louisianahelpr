@@ -145,7 +145,8 @@ describe("a budget is split by helpers_needed only on a group job", () => {
     // 11 since 2026-10-06: crewRefill.ts (Q1378 refill: free spots on a booked crew).
     // 12 since 2026-10-20: TipCostBreakdown.tsx (boards 35/36/180 Job done tip step, gated).
     // 13 since 2026-10-21: FirstJobHome.tsx crewSize (board 189 jobs near you, gated).
-    expect(all.length).toBe(13);
+    // 15 since 2026-10-21: TipMoment.tsx crew (board 181) and useAdminUserSummaries crew share fallback (admin money chips), both gated.
+    expect(all.length).toBe(15);
   });
 
   // Every shape the reviewer of 37ba1c1d0 showed the first extractor missed

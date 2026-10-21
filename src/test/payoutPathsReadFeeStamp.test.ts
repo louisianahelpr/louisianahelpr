@@ -221,6 +221,7 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/jobs/jobPage/useJobPage.ts",
       "src/pages/profile/HelprWrapped.tsx",
+      "src/pages/tips/TipMoment.tsx",
     ];
     expect(lists.map((l) => l.rel).sort()).toEqual(MEASURED_LISTS);
     const missing = lists

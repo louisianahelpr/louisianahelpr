@@ -362,10 +362,12 @@ serve(async (req) => {
 
     // ── 1. Every profile that holds a tier, or claims a Stripe link ──────────
     //
-    // `.or()` rather than two round trips: a row with a stale
-    // stripe_subscription_id and NO tier is drift too (a subscription that
-    // still bills against a profile whose access was cleared), and a
-    // tier-only query would never see it.
+    // `.or()` rather than two round trips: a row with a stripe_subscription_id
+    // and NO tier must be seen too (a subscription that still bills against a
+    // profile whose access was cleared). NOT drift on its own: the webhook keeps
+    // the id on past_due / unpaid on purpose (Stripe still retries; the member
+    // must keep a way to manage or cancel, lead 2026-10-21), and section 2c
+    // skips tier-less rows. Never "repair" such a row by clearing the id.
     let profileQuery = admin
       .from("profiles")
       .select(

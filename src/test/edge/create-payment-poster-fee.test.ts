@@ -59,6 +59,10 @@ function seed(opts: { budget?: number; category?: string; switchOn?: Switch; ext
   };
   scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
   scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }] };
+  // Q1905: the poster's own gift, bought LIVE, so it may pay for this real job
+  // (create-payment refuses a gift of another Stripe mode). Read only when a
+  // giftCardId is sent.
+  scenario.reads.gift_cards = { rows: [{ id: "gift-1", parent_credit_id: null, stripe_session_id: "cs_live_gift", recipient_id: POSTER.id }] };
   if (opts.switchOn === "error") {
     scenario.rpcErrors = { feature_enabled_for_user: { message: "switch read boom" } };
   } else {

@@ -26,7 +26,7 @@ import { leaveReview } from "@/lib/declutter/handover";
 import { fetchOrderOtherPerson } from "@/lib/declutter/reviews";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 
-export const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
+const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
 export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string; side: "buyer" | "seller"; userId: string }) {
   const qc = useQueryClient();

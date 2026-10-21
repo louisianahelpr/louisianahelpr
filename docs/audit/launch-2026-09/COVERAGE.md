@@ -76,10 +76,10 @@ each naming the lane accountable for it.
 | `?view=` variants | 26 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | Overlay surfaces | 177 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
 | Toast messages | 898 | `lh-copy-content` | COVERED |
-| Multi-step flows — confirmed | 28 | `lh-e2e-journeys` | COVERED |
+| Multi-step flows — confirmed | 30 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 19 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 43 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
-| Forms (submittable) | 74 | `lh-input-boundary` | COVERED |
+| Forms (submittable) | 72 | `lh-input-boundary` | COVERED |
 | Admin components (components/admin + pages/admin/Admin*) | 149 | `lh-admin-moderation` | COVERED |
 | Email templates | 20 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 18 | `lh-notifications` | COVERED |

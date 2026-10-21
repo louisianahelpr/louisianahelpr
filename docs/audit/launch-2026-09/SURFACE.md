@@ -21,10 +21,10 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 177 |
 | — of which hand-rolled, no dialog primitive | instance | 9 (across 8 files) |
 | Toast messages | **call site** | 898 (across 224 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 28 |
+| Multi-step flows — confirmed | flow | 30 |
 | Multi-step flows — probable | flow | 19 |
 | Back/next navigation only | flow | 43 |
-| Forms (submittable) | form | 74 |
+| Forms (submittable) | form | 72 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
@@ -71,8 +71,8 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 177 | 130 | agree within method (script counts every menu instance) |
-| Forms | 74 | ~38 | agree |
-| Confirmed multi-step flows | 28 | 9 | agree; the agent excluded section routers this script still counts |
+| Forms | 72 | ~38 | agree |
+| Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -368,6 +368,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/components/declutter/DeclutterSellView.tsx` | compare, nav-handler |
 | `src/components/job-card/jobStatusLine.ts` | compare |
 | `src/components/job-card/primaryPhotoAsk.ts` | compare |
+| `src/components/jobDone/JobDoneSummary.tsx` | step-array |
 | `src/components/profile/SubscriptionTab.tsx` | nav-handler, union-state |
 | `src/components/rentals/LeasePanel.tsx` | compare, nav-handler |
 | `src/components/rentals/listings/SavedHomes.tsx` | compare |
@@ -381,6 +382,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
+| `src/pages/jobs/jobPage/JobPageParts.tsx` | step-array |
 | `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
 | `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |
@@ -487,7 +489,6 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/RestrictApplicationsDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
-- [ ] `src/components/CompletionPrompts.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterItemView.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
@@ -517,7 +518,6 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/rentals/RentalVisitHelpr.tsx` (dialog/mutation)
 - [ ] `src/components/rentals/RentPanel.tsx` (form tag)
 - [ ] `src/components/ReportDialog.tsx` (dialog/mutation)
-- [ ] `src/components/reviewPanel/ReviewForm.tsx` (dialog/mutation)
 - [ ] `src/components/SavedSearches.tsx` (dialog/mutation)
 - [ ] `src/components/sections/SectionSearchRow.tsx` (form tag)
 - [ ] `src/components/shops/ShopDailyCap.tsx` (dialog/mutation)

@@ -388,6 +388,7 @@
   },
   "unscoped": {
     "choose_new_social_account(uuid)": "reviewed 2026-10-05 (Q446): the signed-out choice screen marks the pending one-account choice whose random id only the refused sign-in received; it reads and returns nothing about any person, and marking a row only lets that same Apple/Google identity create its account.",
+    "declutter_wanted_reply(uuid, uuid, integer)": "reviewed 2026-10-21 (Q1284): board 117 I-have-this reply; reads the caller only through public.declutter_assert_member(true), which refuses a NULL caller, locks only the caller own listing (seller_id = that uid) and refuses a blocked pair.",
     "declutter_relist_listing(uuid)": "reviewed 2026-10-20 (Q1284): board 158 manage-a-listing write; reads the caller only through public.declutter_assert_member(true), which refuses a NULL caller, and touches only the row WHERE seller_id = that uid FOR UPDATE.",
     "declutter_set_listing_drops(uuid, boolean)": "reviewed 2026-10-20 (Q1284): board 158 manage-a-listing write; reads the caller only through public.declutter_assert_member(true), which refuses a NULL caller, and touches only the row WHERE seller_id = that uid FOR UPDATE.",
     "declutter_set_listing_price(uuid, integer, integer)": "reviewed 2026-10-20 (Q1284): board 158 manage-a-listing write; reads the caller only through public.declutter_assert_member(true), which refuses a NULL caller, and touches only the row WHERE seller_id = that uid FOR UPDATE.",

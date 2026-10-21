@@ -160,9 +160,10 @@ const fetchCurrentUser = async (
   // on one round trip instead of two halves that blocking time.
   //
   // The admin-role query always runs (it is not gated behind `pathname ===
-  // "/admin"`): the Profile settings list uses `isAdmin` to decide whether to
-  // render the "Admin panel" row (it was the Dashboard app bar's Shield button
-  // until that bar was removed), and gating it meant the entry point was
+  // "/admin"`): the You list's "Admin" row (YouMenu, ADMIN_ROW) and the
+  // desktop rail's Admin group read `isAdmin` to decide whether to show the way
+  // in (it was the Dashboard app bar's Shield button until that bar was
+  // removed), and gating it meant the entry point was
   // permanently invisible on every other page, so admins had no way to
   // *reach* /admin in the first place.
   // The profile lookup is essential — if it fails, the caller SHOULD see an

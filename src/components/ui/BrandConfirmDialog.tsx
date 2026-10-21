@@ -140,7 +140,7 @@ export function BrandConfirmDialog({
         {/* NO per-dialog alignment. This confirm centred its title while the
             other ~147 popups in the app left-align theirs through the same
             Hero — and because BrandConfirmDialog is behind every confirm in
-            the product ("Log Out?", "Decline This Job?", "Delete account"),
+            the product ("Log Out?", "Decline this job?", "Delete account"),
             it was the difference the owner kept running into. One shell means
             one shell: the Hero owns the layout and no caller can override it.
             (Owner, more than once: "these pop ups need to share the same

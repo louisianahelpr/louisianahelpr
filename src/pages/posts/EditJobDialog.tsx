@@ -240,7 +240,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
           silently never saved anything the confirm dialog didn't first
           survive. */}
       <DialogContent>
-        <DialogHero title={title ? `"${title}"` : "Edit Job"} />
+        <DialogHero title={title ? `"${title}"` : "Edit job"} />
         <div className="space-y-5">
           {locked && (
             <DialogCallout icon={Lock}>

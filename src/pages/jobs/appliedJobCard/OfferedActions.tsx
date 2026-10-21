@@ -278,7 +278,7 @@ export function OfferedActions({ app, job, onHelperResponse, respondingHelperApp
       <BrandConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Decline This Job?"
+        title="Decline this job?"
         description="You applied for this one and the person who posted it picked you. Declining isn't a strike."
         callout={{
           // decline_job_offer files no strike (Q1281, 20261012184444).

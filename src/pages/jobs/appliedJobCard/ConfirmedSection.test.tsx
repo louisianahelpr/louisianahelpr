@@ -67,7 +67,7 @@ describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
   it("opens the same dialog wording the in-progress card uses", async () => {
     await renderSection();
     fireEvent.click(screen.getByRole("button", { name: /^Cancel Job — / }));
-    expect(screen.getByRole("heading", { name: "Cancel This Job?" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Cancel this job?" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cancel Job" })).toBeInTheDocument();
     // The dismiss stays "Cancel" — the popup grammar guard (dialogShell.test.ts).
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();

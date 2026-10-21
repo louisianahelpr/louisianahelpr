@@ -234,7 +234,7 @@ export function SosShareSheet({
           `.glass-modal` is THE popup surface. Shared `p-4 sm:p-5`, same ramp
           DialogContent uses. */}
       <SheetContent side="bottom">
-          <SheetHero title="Share Your Location" />
+          <SheetHero title="Share your location" />
           {/* THE EMERGENCY NUMBER (TS-007). Sharing a location reaches only the
               person the user picks; it alerts nobody else, so the sheet says
               so and puts 911 one tap away. A real `tel:` link, not a handler:

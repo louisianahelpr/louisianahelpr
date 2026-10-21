@@ -711,7 +711,7 @@ const AdminDisputes = () => {
       <BrandConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => { if (!open) setConfirm(null); }}
-        title={confirm?.action === "release" ? "Release Payment to Helpr?" : "Refund the Poster?"}
+        title={confirm?.action === "release" ? "Release payment to Helpr?" : "Refund the poster?"}
         description={
           confirm?.action === "release"
             // formatPriceExact, not raw interpolation: this dialog states the

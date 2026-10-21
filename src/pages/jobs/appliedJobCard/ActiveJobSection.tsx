@@ -350,7 +350,7 @@ export function ActiveJobSection({
       <BrandConfirmDialog
         open={abortOpen}
         onOpenChange={(next) => { if (!aborting) setAbortOpen(next); }}
-        title="Cancel This Job?"
+        title="Cancel this job?"
         description=""
         callout={{
           icon: CalendarX2,

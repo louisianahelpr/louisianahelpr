@@ -33,7 +33,7 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
             `pt-6 px-5`, `pt-3 px-4`). The shared `p-4 sm:p-5` on
             SheetContent is the same padding ramp DialogContent uses. */}
           <SheetContent side="bottom">
-        <SheetHero title="Create Your Free Account" />
+        <SheetHero title="Create your free account" />
         <div className="flex flex-col gap-3 mt-6">
           <Button
             size="lg"

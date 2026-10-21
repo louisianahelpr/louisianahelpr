@@ -455,7 +455,7 @@ export function PetForm({
       title={
         initialValues
           ? `Discard changes to ${initialValues.name}?`
-          : "Discard This Pet?"
+          : "Discard this pet?"
       }
       description={
         initialValues
@@ -492,7 +492,7 @@ export function PetForm({
                 letterSpacing: "-0.02em",
               }}
             >
-              {initialValues ? `Edit ${initialValues.name}` : "Add a Pet"}
+              {initialValues ? `Edit ${initialValues.name}` : "Add a pet"}
             </h2>
             <button
               type="button"
@@ -616,7 +616,7 @@ export function PetForm({
             "content-start",
           ].join(" ")}
         >
-          <DialogHero title={initialValues ? `Edit ${initialValues.name}` : "Add a Pet"} />
+          <DialogHero title={initialValues ? `Edit ${initialValues.name}` : "Add a pet"} />
           {formBody}
           <DialogFooter>
             <DialogPrimaryAction

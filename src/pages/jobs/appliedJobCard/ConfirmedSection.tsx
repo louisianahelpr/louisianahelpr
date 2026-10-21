@@ -228,7 +228,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
       <BrandConfirmDialog
         open={cancelOpen}
         onOpenChange={setCancelOpen}
-        title="Cancel This Job?"
+        title="Cancel this job?"
         description={`"${job.title}" reopens for other Helprs right away, and the person who posted it is told now — while there's still time to rebook.`}
         callout={{
           icon: CalendarX2,

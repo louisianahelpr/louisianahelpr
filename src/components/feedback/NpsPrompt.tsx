@@ -152,7 +152,7 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
           so it read as a different material from every dialog and every other
           sheet. */}
       <SheetContent side="bottom">
-        <SheetHero title="How Are We Doing?" />
+        <SheetHero title="How are we doing?" />
 
         <div className="mt-5 space-y-4">
           {/* 0..10 row. On narrow viewports the row stays one line because

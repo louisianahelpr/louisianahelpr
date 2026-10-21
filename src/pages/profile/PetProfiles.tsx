@@ -403,7 +403,7 @@ const PetProfiles = ({ onBack }: { onBack?: () => void }) => {
       <BrandConfirmDialog
         open={petToDelete !== null}
         onOpenChange={(open) => { if (!open) setPetToDelete(null); }}
-        title={petToDelete ? `Remove ${petToDelete.name}?` : "Remove Pet?"}
+        title={petToDelete ? `Remove ${petToDelete.name}?` : "Remove pet?"}
         description="This can't be undone."
         primaryLabel="Remove"
         primaryTone="sienna"

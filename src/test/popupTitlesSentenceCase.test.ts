@@ -12,20 +12,73 @@
  *
  * @mutate src/components/profile/AvatarCropDialog.tsx | "Position your photo" | "Position Your Photo"
  * @mutate src/components/PhotoProof.tsx | "After"} photos`} | "After"} Photos`}
+ * @mutate src/components/messages/ChatView.tsx | title="Edit message" | title="Edit Message"
+ * @mutate src/components/profile/EarningsTab.tsx | "Unlock instant cash out" | "Unlock Instant Cash Out"
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { blankComments } from "./helpers/blankNonCode";
 
-const files = execFileSync("git", ["grep", "-l", "<DialogHero", "--", "src"], { encoding: "utf8" })
-  .split("\n").filter((f) => f && !/\.test\./.test(f));
+/**
+ * Every popup or sheet TITLE primitive (lead 2026-10-21: DialogHero, then
+ * BrandConfirmDialog, SheetHero, WhatNextSheet, SignOutConfirmDialog and the
+ * sheets that take a `title`). Exact: a new primitive with a title prop is
+ * added here, and the inventory count below moves with it.
+ */
+const PRIMITIVES = ["DialogHero", "SheetHero", "BrandConfirmDialog", "WhatNextSheet", "SignOutConfirmDialog", "FilterSheet", "ChoiceSheet", "ProUpgradeSheet"];
 
-/** Every literal title= on a DialogHero, as written; `${…}` becomes a value marker. */
+const files = execFileSync("git", ["grep", "-lE", `<(${PRIMITIVES.join("|")})`, "--", "src"], { encoding: "utf8" })
+  .split("\n").filter((f) => f && /\.tsx$/.test(f) && !/\.test\./.test(f));
+
+/** The opening tag's attribute text, braces balanced (JSX values hold `>`). */
+function openingTags(src: string): { tag: string; attrs: string }[] {
+  const out: { tag: string; attrs: string }[] = [];
+  for (const m of src.matchAll(new RegExp(`<(${PRIMITIVES.join("|")})\\b`, "g"))) {
+    let depth = 0;
+    let i = m.index! + m[0].length;
+    for (; i < src.length; i++) {
+      const c = src[i];
+      if (c === "{") depth++;
+      else if (c === "}") depth--;
+      else if (c === ">" && depth === 0) break;
+    }
+    out.push({ tag: m[1], attrs: src.slice(m.index! + m[0].length, i) });
+  }
+  return out;
+}
+
+/** The value text of `title=` inside one opening tag: "x", {"x"}, {`x`} or {expr}. */
+function titleValue(attrs: string): string | null {
+  const m = /(?<![\w-])title=/.exec(attrs);
+  if (!m) return null;
+  let i = m.index + m[0].length;
+  if (attrs[i] === '"') return attrs.slice(i, attrs.indexOf('"', i + 1) + 1);
+  if (attrs[i] !== "{") return null;
+  let depth = 0;
+  const start = i;
+  for (; i < attrs.length; i++) {
+    if (attrs[i] === "{") depth++;
+    else if (attrs[i] === "}" && --depth === 0) break;
+  }
+  return attrs.slice(start, i + 1);
+}
+
+/**
+ * The words a title SHOWS: a plain literal, a template's literal parts, and in
+ * an expression the string BRANCHES (after ? : ?? ||), never the strings it
+ * compares against (`step === "confirmation"`). `${…}` becomes a value marker.
+ */
 function titles(src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(/<DialogHero\b([\s\S]*?)\btitle=(\{`([^`]*)`\}|"([^"]*)"|\{"([^"]*)"\})/g)) {
-    const raw = m[3] ?? m[4] ?? m[5] ?? "";
-    out.push(raw.replace(/\$\{[^}]*\}/g, "\u0001"));
+  for (const { attrs } of openingTags(src)) {
+    const v = titleValue(attrs);
+    if (!v) continue;
+    const lit = /^"([^"]*)"$/.exec(v) ?? /^\{"([^"]*)"\}$/.exec(v) ?? /^\{`([^`]*)`\}$/.exec(v);
+    const parts = lit
+      ? [lit[1]]
+      : [...v.matchAll(/(?:\?|:|\?\?|\|\|)\s*(?:"([^"]*)"|`([^`]*)`)/g)].map((x) => x[1] ?? x[2]);
+    for (const raw of parts) out.push(raw.replace(/\$\{[^}]*\}/g, "\u0001"));
   }
   return out;
 }
@@ -55,14 +108,14 @@ function sentenceCaseProblems(title: string): string[] {
 }
 
 describe("every pop-up title is sentence case", () => {
-  const all = files.flatMap((f) => titles(readFileSync(f, "utf8")).map((t) => ({ f, t })));
+  const all = files.flatMap((f) => titles(blankComments(readFileSync(f, "utf8"))).map((t) => ({ f, t })));
 
   it("reads every real title (exact inventory, both ways)", () => {
-    // 58 on 2026-10-21 (TRAIN29 rebased on TRAIN28): 59 on builder1g's base,
-    // minus ApplicationSentDialog, whose DialogHero became a WhatNextSheet
-    // `title=` in Builder 2f's s5. A new DialogHero title raises it, a deleted
-    // one lowers it, in the same commit.
-    expect(all.length).toBe(58);
+    // 162 on 2026-10-21 (builder1g): every title on DialogHero, SheetHero,
+    // BrandConfirmDialog, WhatNextSheet, SignOutConfirmDialog, FilterSheet,
+    // ChoiceSheet and ProUpgradeSheet (58 when only DialogHero was read). A new
+    // title raises it, a deleted one lowers it, in the same commit.
+    expect(all.length).toBe(162);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

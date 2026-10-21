@@ -130,7 +130,7 @@ export function AdminFrame({
       <SignOutConfirmDialog
         open={showLogoutDialog}
         onOpenChange={setShowLogoutDialog}
-        title="Sign Out?"
+        title="Sign out?"
         description="You'll need to sign back in next time. Your posts and messages stay safe."
         label="Sign Out"
         after={() => navigate("/")}

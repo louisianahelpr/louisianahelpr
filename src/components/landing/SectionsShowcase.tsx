@@ -136,23 +136,25 @@ export function SectionsShowcase() {
         {/* Owner 2026-10-21: ONE "Opening soon" line above the unopened cards, never a
             pill on each. The open cards come first; the line names the group, so it
             moves with the switches (fail closed: a section is "soon" until its answer
-            is in). At lg the four cards share one row, the open ones on the left. */}
+            is in). At lg the four cards share one row, the open ones on the left:
+            the line takes its own grid row above the unopened cards, so every
+            card top lines up (lead look, 2026-10-21). */}
         <div
-          className="grid grid-cols-1 lg:grid-cols-4 gap-4"
+          className={`grid grid-cols-1 lg:grid-cols-4 gap-4${soonCards.length > 0 ? " lg:[grid-template-rows:auto_1fr]" : ""}`}
           data-testid="landing-sections"
-          style={{ "--open-n": openCards.length, "--soon-n": soonCards.length } as React.CSSProperties}
+          style={{ "--open-n": openCards.length, "--soon-n": soonCards.length, "--soon-start": openCards.length + 1 } as React.CSSProperties}
         >
           <ul
-            className="grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--open-n),minmax(0,1fr))] lg:[grid-column:span_var(--open-n)]"
+            className={`grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--open-n),minmax(0,1fr))] lg:[grid-column:span_var(--open-n)]${soonCards.length > 0 ? " lg:row-start-2" : ""}`}
             aria-label="Open now"
           >
             {openCards.map((c) => c.card)}
           </ul>
           {soonCards.length > 0 && (
-            <div className="flex flex-col gap-3 min-w-0 lg:[grid-column:span_var(--soon-n)]">
+            <div className="mt-4 flex flex-col gap-3 min-w-0 lg:contents">
               <p
                 id="sections-soon"
-                className="text-ds-15 font-semibold"
+                className="text-ds-15 font-semibold lg:row-start-1 lg:[grid-column:var(--soon-start)/-1]"
                 style={{ color: "var(--lp-body)" }}
                 data-testid="landing-sections-soon"
               >
@@ -160,7 +162,7 @@ export function SectionsShowcase() {
               </p>
               <ul
                 aria-labelledby="sections-soon"
-                className="flex-1 grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--soon-n),minmax(0,1fr))]"
+                className="grid grid-cols-1 gap-4 md:[grid-template-columns:repeat(var(--soon-n),minmax(0,1fr))] lg:row-start-2 lg:[grid-column:var(--soon-start)/-1]"
               >
                 {soonCards.map((c) => c.card)}
               </ul>

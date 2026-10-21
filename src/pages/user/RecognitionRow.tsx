@@ -35,7 +35,6 @@ import {
   IdVerifiedShield,
   PAYOUTS_SET_UP_DESCRIPTION,
   PAYOUTS_SET_UP_LABEL,
-  PAYOUTS_SET_UP_PILL_STYLE,
   PayoutsSetUpIcon,
 } from "@/components/profile/IdVerifiedPill";
 
@@ -454,8 +453,8 @@ export const RecognitionRow = ({
       group: "account",
       label: PAYOUTS_SET_UP_LABEL,
       icon: <PayoutsSetUpIcon />,
+      // One chip look for every badge here (spec v2, rebuild 2026-10-21): no per-badge style.
       description: PAYOUTS_SET_UP_DESCRIPTION,
-      style: PAYOUTS_SET_UP_PILL_STYLE,
     });
   }
 

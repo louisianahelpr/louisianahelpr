@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 425,
-      "template": 98,
-      "dynamic": 427,
+      "literal": 424,
+      "template": 97,
+      "dynamic": 429,
       "jsx": 0
     }
   },
@@ -4189,7 +4189,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 262,
+      "line": 263,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4209,7 +4209,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 266,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4219,7 +4219,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 314,
+      "line": 315,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4229,7 +4229,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 318,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4239,7 +4239,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 323,
+      "line": 324,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4249,7 +4249,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 328,
+      "line": 329,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4259,7 +4259,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 388,
+      "line": 389,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4269,7 +4269,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 389,
+      "line": 390,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4279,17 +4279,27 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 399,
+      "line": 414,
       "kind": "toast.success",
       "title": {
-        "form": "literal",
-        "text": "Left on porch. The buyer is told."
+        "form": "dynamic",
+        "text": "r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : \"Left on porch. The buyer is told.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Left on porch. The buyer is told. ${r.noteProblem}"
+          },
+          {
+            "form": "literal",
+            "text": "Left on porch. The buyer is told."
+          }
+        ]
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 400,
+      "line": 415,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4299,7 +4309,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 401,
+      "line": 416,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4309,7 +4319,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 404,
+      "line": 419,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4319,7 +4329,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 455,
+      "line": 470,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4329,7 +4339,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 456,
+      "line": 471,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4339,7 +4349,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 492,
+      "line": 507,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4349,7 +4359,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 497,
+      "line": 512,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4709,25 +4719,43 @@
     },
     {
       "file": "src/components/declutter/DeclutterReviewForm.tsx",
-      "line": 42,
+      "line": 44,
       "kind": "toast.success",
       "title": {
-        "form": "template",
-        "text": "Thanks. ${REVIEW_SHOWS}",
-        "holes": {
-          "REVIEW_SHOWS": [
-            {
-              "form": "literal",
-              "text": "Reviews show once you both leave one, or after 14 days."
+        "form": "dynamic",
+        "text": "r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}",
+            "holes": {
+              "REVIEW_SHOWS": [
+                {
+                  "form": "literal",
+                  "text": "Reviews show once you both leave one, or after 14 days."
+                }
+              ]
             }
-          ]
-        }
+          },
+          {
+            "form": "template",
+            "text": "Thanks. ${REVIEW_SHOWS}",
+            "holes": {
+              "REVIEW_SHOWS": [
+                {
+                  "form": "literal",
+                  "text": "Reviews show once you both leave one, or after 14 days."
+                }
+              ]
+            }
+          }
+        ]
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterReviewForm.tsx",
-      "line": 51,
+      "line": 53,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

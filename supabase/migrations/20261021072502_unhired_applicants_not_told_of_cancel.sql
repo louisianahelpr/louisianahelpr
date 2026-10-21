@@ -21,6 +21,8 @@ DECLARE
   job_title TEXT;
   job_owner UUID;
   job_helper UUID;
+  job_offered UUID;
+  job_offer_status TEXT;
   v_user_id UUID;
   v_title TEXT;
   v_message TEXT;
@@ -29,7 +31,7 @@ DECLARE
   v_email_enabled BOOLEAN;
   v_profile RECORD;
 BEGIN
-  SELECT title, customer_id, helper_id INTO job_title, job_owner, job_helper FROM public.jobs WHERE id = NEW.job_id;
+  SELECT title, customer_id, helper_id, offered_to_helper_id, direct_offer_status INTO job_title, job_owner, job_helper, job_offered, job_offer_status FROM public.jobs WHERE id = NEW.job_id;
 
   -- Q1185: only a real application (born 'pending') is news to the poster. A
   -- row born 'accepted' is the record of an accept (respond_to_direct_offer's
@@ -90,7 +92,10 @@ BEGIN
     -- Owner, 2026-10-21: an applicant who was NOT hired or offered is not told the job was cancelled
     -- (no bell, push or email); their application reads "This job is no longer available" in the app.
     -- The offered Helpr (jobs.helper_id) is still told: they may be planning to show up.
-    IF NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper THEN
+    -- A pending direct offer counts as offered (lh-authz-rls review note 1): jobs.helper_id is NULL until
+    -- they accept, and poster_cancel_job tells only helper_id, so they would otherwise hear nothing.
+    IF NEW.closed_reason = 'job_cancelled' AND NEW.helper_id IS DISTINCT FROM job_helper
+       AND NOT COALESCE(NEW.helper_id = job_offered AND job_offer_status = 'pending', false) THEN
       RETURN NEW;
     END IF;
     v_user_id := NEW.helper_id;

@@ -46,6 +46,8 @@ const fx = vi.hoisted(() => {
   };
 });
 
+// Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
+vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 vi.mock("@/hooks/useCurrentUser", () => ({

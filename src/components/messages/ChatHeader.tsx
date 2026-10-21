@@ -10,7 +10,8 @@ import {
 import { OnlineIndicator } from "@/components/ChatPresence";
 import UserAvatar from "@/components/UserAvatar";
 import { jobStatusLabel } from "@/lib/statusLabels";
-import { useDealCardShown, usePersonFacts } from "./chatView/DealCard";
+import { useDealCardShown, useDealSafetyJob, usePersonFacts } from "./chatView/DealCard";
+import { SafetyShieldButton } from "@/components/SosShareButton";
 import { MESSAGE_STATUS_CHIP } from "./messageStatusChip";
 import { snoozeRemainingLabel } from "@/lib/threadMutes";
 import type { Conversation } from "./types";
@@ -81,6 +82,8 @@ export function ChatHeader({
   // header names the person instead (lead, 2026-10-21; board 2).
   const dealPinned = useDealCardShown(activeConvo);
   const personFacts = usePersonFacts(dealPinned ? activeConvo.otherUserId : null);
+  // Board 156: the round shield, only while the hired Helpr is on site.
+  const safetyJob = useDealSafetyJob(activeConvo);
   // Q262: messages.receiver_id is SET NULL when the other party deletes their
   // account, so the thread is keyed on no one (loadConversations).
   const otherDeleted = activeConvo.otherUserId === null;
@@ -247,6 +250,7 @@ export function ChatHeader({
       </button>
 
       <div className="flex items-center gap-0.5 shrink-0">
+      {safetyJob && <SafetyShieldButton job={safetyJob} />}
       {/* The standalone Flag "report user" shortcut was removed — it
           duplicated "Report User" in the ⋮ menu below, one and the same
           handler behind two icons in the same header. One entry point now. */}

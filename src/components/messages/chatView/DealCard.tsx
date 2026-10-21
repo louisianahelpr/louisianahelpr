@@ -25,7 +25,7 @@ import { dealStage, DEAL_STEPS, type DealJob } from "./dealStage";
  * never writes, so it can never offer a step the tracker would refuse.
  */
 const COLS =
-  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,has_active_dispute";
+  "id,title,category,date_needed,start_time,budget,status,helper_id,customer_id,payment_status,parish,helper_on_the_way_at,helper_arrived_at,helper_arrival_verified_at,poster_confirmed_arrival_at,poster_confirmed_working_at,helper_completed_at,poster_completed_at,has_active_dispute";
 
 type DealRow = DealJob & {
   id: string;
@@ -35,6 +35,7 @@ type DealRow = DealJob & {
   start_time: string | null;
   budget: number | null;
   parish: string | null;
+  poster_completed_at?: string | null;
 };
 
 function clock(t: string | null): string | null {
@@ -89,6 +90,31 @@ export function useDealCardShown(convo: Conversation): boolean {
   const { user } = useCurrentUser();
   const { data } = useDealCard(convo, user?.id ?? "");
   return !!data;
+}
+
+/**
+ * Board 156's chat-header shield: the deal job, only when this thread is
+ * between the poster and the HIRED Helpr (the two people SOS is for). A thread
+ * with a not-hired applicant, a team thread, or an unreadable job gives null,
+ * and `SafetyShieldButton` itself hides unless the Helpr is on site and the job
+ * is not done (`sosOffered`). Same query and key as the deal card: no extra read.
+ */
+export function useDealSafetyJob(convo: Conversation): (DealRow & { id: string }) | null {
+  const { user } = useCurrentUser();
+  const uid = user?.id ?? "";
+  const { data } = useDealCard(convo, uid);
+  const job = data?.job;
+  return job && isHiredPairThread(job, convo, uid) ? job : null;
+}
+
+/** True when this thread is the poster and the hired Helpr of `job`, read from the viewer's side. */
+export function isHiredPairThread(
+  job: { helper_id: string | null },
+  convo: Pick<Conversation, "viewerIsPoster" | "otherUserId">,
+  uid: string,
+): boolean {
+  if (!job.helper_id || !uid) return false;
+  return convo.viewerIsPoster ? job.helper_id === convo.otherUserId : job.helper_id === uid;
 }
 
 /**

@@ -43,6 +43,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   }),
 }));
 // Memberships switch OFF, the shipped state (roadmap F4/F4a).
+// Board 143's fees-owed line has its own read and test (moneyAndSafetyMounts, payoutProblems).
+vi.mock("@/components/money/FeesOwedLine", () => ({ FeesOwedLine: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 }));
 // Board 51: "Coming to you" is the ONE place the approved-not-sent money shows (the Earned card's

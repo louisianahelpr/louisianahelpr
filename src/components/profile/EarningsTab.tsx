@@ -47,6 +47,7 @@ import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
 import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -428,6 +429,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               }))}
             />
           )}
+
+          {/* Board 143 (lead 10-21): what Helpr takes from the next payout, read-only, just above the
+              setup-fee line, which is the other thing a next payout is less by; nothing when nothing is owed. */}
+          <FeesOwedLine />
 
           {/* The one-time payout setup fee (Q753), one line under the totals.
               It stood over the payouts list, which is gone (owner,

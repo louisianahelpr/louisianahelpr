@@ -328,9 +328,6 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // feature_enabled_for (Declutter, 20261014193955): the hidden-switch audience
     // check for the CALLER; it only narrows (switch off -> no live listing), and
     // the declutter_items policy spells the seller's own column out beside it.
-    // declutter_seller_hidden (Declutter slice 3, 20261014210518, B36): hides a
-    // banned / 3-strike seller's live listings from OTHER readers; it only
-    // narrows, and the seller's own column is spelled out beside it.
     // shop_publicly_visible (Shops, 20261017061155): a non-owner's view of a shop; only narrows (owner column spelled out beside it).
     // rentals_caller_is_active_tenant_of (Rentals S1, 20261017205605): is the
     // CALLER an active tenant of this property (no user argument); the
@@ -340,7 +337,7 @@ describe("export_my_data covers every user-keyed table (Q290)", () => {
     // seed_hidden_in_discovery (Declutter D1 seed boundary, 20261020033623): no argument; true while the launch
     // switch hides test accounts from a non-test CALLER. It only narrows (NOT is_seed OR NOT ...); the seller's own column is spelled out beside it.
     // @two-way src/test/dataExportCoversEveryUserTable.test.ts:stale KNOWN entry: no read policy calls it any more
-    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "declutter_seller_hidden", "feature_enabled_for", "has_role", "is_series_party", "rentals_caller_is_active_tenant_of", "rentals_tenancy_party", "seed_hidden_in_discovery", "seed_review_hidden", "shop_publicly_visible", "user_may_see_job_address"]);
+    const KNOWN = new Set(["are_users_blocked", "can_read_job_access_notes", "can_read_job_detail_change", "feature_enabled_for", "has_role", "is_series_party", "rentals_caller_is_active_tenant_of", "rentals_tenancy_party", "seed_hidden_in_discovery", "seed_review_hidden", "shop_publicly_visible", "user_may_see_job_address"]);
     const BUILTIN = new Set(["auth.uid", "auth.email", "auth.role", "lower", "now", "coalesce"]);
     const KEYWORD = /^(?:and|or|in|not|exists|using|check|where|any|all|select|from|on|as|case|when|then|else|end|is|null)$/i;
     const used = new Set<string>();

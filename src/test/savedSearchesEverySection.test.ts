@@ -94,10 +94,15 @@ describe("saved searches for every section (Q2275)", () => {
     expect(item.body).toContain("public.feature_enabled_for_user('declutter', s.user_id)");
     const policy = [...livePolicies("declutter_items").values()].find((p) => /FOR\s+SELECT/i.test(p) && /feature_enabled_for\('declutter'\)/.test(p));
     expect(policy, "no live declutter_items SELECT policy").toBeTruthy();
-    for (const clause of ["public.feature_enabled_for('declutter')", "NOT public.declutter_seller_hidden(", "public.seed_hidden_in_discovery()"]) {
+    for (const clause of ["public.feature_enabled_for('declutter')", "public.seed_hidden_in_discovery()"]) {
       expect(policy!, `the policy no longer says ${clause}`).toContain(clause);
       expect(counts.body, `${counts.file}: the count drops ${clause}`).toContain(clause);
     }
+    // Q1852 (20261021142959): the policy reads the server-kept declutter_items.seller_hidden column
+    // (= declutter_seller_out(seller_id)); the SECURITY DEFINER count may still ask the helper, which is
+    // the same answer for a live or reserved row. Either spelling counts; dropping both does not.
+    expect(policy!, "the policy no longer hides an out seller's listings").toContain("NOT seller_hidden");
+    expect(counts.body, `${counts.file}: the count drops the hidden-seller filter`).toMatch(/NOT (?:public\.declutter_seller_hidden\(|i\.seller_hidden\b)/);
     // Jobs count reads the Browse view, never the base table.
     expect(counts.body).toContain("FROM public.open_jobs_browse j");
     expect(counts.body).not.toMatch(/FROM public\.jobs\b/);

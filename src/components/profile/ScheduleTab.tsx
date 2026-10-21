@@ -16,7 +16,6 @@ import { report } from "@/lib/errorLogger";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { StatusBadge } from "@/components/StatusBadge";
-import { categoryColors } from "@/components/job-card/activityConstants";
 import { JobCardShell } from "@/components/job-card/JobCardShell";
 import { todayLocalISO, formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
@@ -216,7 +215,7 @@ const ScheduleCard = ({
         >
           <div aria-hidden className="flex items-center justify-between gap-3">
             <h4
-              className="job-card-title senior-clamp-2 font-display font-bold leading-snug truncate min-w-0 text-headline-card"
+              className="job-card-title senior-clamp-2 font-sans font-bold leading-snug truncate min-w-0 text-headline-card"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
               {job.title}
@@ -233,17 +232,16 @@ const ScheduleCard = ({
                 button would. Keyboard and AT reach that same navigation through
                 the overlay button, so this is a pointer-only duplicate. */}
             <span
-              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-ds-md text-center shrink-0 ml-3"
+              className="pointer-events-auto cursor-pointer inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-full text-center shrink-0 ml-3"
               title={amountTitle}
               onClick={() => navigate(to)}
-              style={{
-                background: "hsl(var(--bark) / 0.10)",
-                border: "0.5px solid hsl(var(--bark) / 0.28)",
-              }}
+              // Money is rust on the money tint (spec v2 §3 job card: "price
+              // pill (rust on money tint)"); it was olive, the action colour.
+              style={{ background: "hsl(var(--accent-ink) / 0.10)" }}
             >
               <span
                 className="font-sans leading-none tabular-nums text-ds-17"
-                style={{ fontWeight: 800, color: "hsl(var(--bark))", letterSpacing: "-0.02em" }}
+                style={{ fontWeight: 800, color: "hsl(var(--accent-ink))", letterSpacing: "-0.02em" }}
               >
                 <span style={{ fontSize: "0.82em", verticalAlign: "0.02em", marginRight: "0.5px" }}>$</span>
                 {amount}
@@ -571,7 +569,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
             </div>
             <div className="grid grid-cols-7 gap-0.5 mb-0.5 min-[1024px]:gap-1 min-[1024px]:mb-1">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                <div key={d} className="text-center font-sans uppercase py-0.5 text-ds-10 min-[1024px]:py-1 min-[1024px]:text-ds-11" style={{ color: "hsl(var(--burnt-sienna))", letterSpacing: "0.18em" }}>
+                <div key={d} className="text-center font-sans font-semibold py-0.5 text-ds-11 min-[1024px]:py-1 min-[1024px]:text-ds-12 text-muted-foreground">
                   {d}
                 </div>
               ))}
@@ -640,24 +638,15 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     }
                   >
                     {day}
-                    {/* Job dot(s) — one per DISTINCT category on this day (max
-                        3, since a day rarely stacks more than that), colored
-                        with the same per-category palette as the schedule
-                        list below, instead of one undifferentiated primary
-                        dot for every job regardless of type. */}
+                    {/* ONE olive dot for a day with work (spec v2 rebuild, audit
+                        2026-10-21: no per-category colours; sections and
+                        categories are told apart by icon and name, never by a
+                        rainbow of dots). The day's jobs are listed below it. */}
                     {hasJobs && (
-                      <span className="absolute bottom-1 min-[1024px]:bottom-2 flex items-center gap-0.5">
-                        {[...new Set(dayJobs.map((j) => j.category ?? "other"))]
-                          .slice(0, 3)
-                          .map((cat) => (
-                            <span
-                              key={cat}
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                isSelected ? "bg-primary-foreground" : (categoryColors[cat] || categoryColors.other).dot
-                              }`}
-                            />
-                          ))}
-                      </span>
+                      <span
+                        aria-hidden
+                        className={`absolute bottom-1 min-[1024px]:bottom-2 w-1.5 h-1.5 rounded-full ${isSelected ? "bg-primary-foreground" : "bg-primary"}`}
+                      />
                     )}
                   </button>
                 );
@@ -684,7 +673,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                   </span>
                   <span className="inline-flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary" aria-hidden />
-                    Job (dot color = job type)
+                    Has a job
                   </span>
                   {monthHasBlocked && (
                     <span className="inline-flex items-center gap-1.5">

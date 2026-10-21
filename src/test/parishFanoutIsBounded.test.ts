@@ -24,7 +24,7 @@
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at, retry_after) |     PERFORM 1; INSERT INTO public.parish_match_alert_queue_gone (user_id, job_id, notify_at, retry_after)
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates |   PERFORM public.deliver_parish_match_alert(NULL, NEW.id);\n  INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
- * @mutate supabase/migrations/20260927162805_q723_job_match_errors_retry_and_settle.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
+ * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

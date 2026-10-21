@@ -22,7 +22,7 @@
  */
 // @mutate src/hooks/useMembershipsOn.ts |   return on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP; |   return on;
 // @mutate src/components/profile/EarningsTab.tsx |   const membershipsOn = useMembershipsOn(); |   const membershipsOn = useFeature("memberships");
-// @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | (tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP) | tier !== "free"
+// @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | (holdsPaidPlan(profile?.subscription_tier, profile?.subscription_expires_at) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP) | holdsPaidPlan(profile?.subscription_tier, profile?.subscription_expires_at)
 // @mutate src/components/profile/SubscriptionTab.tsx |   if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return |   if (false) return
 // @mutate src/pages/info/HelpCenter.tsx | !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing") | true
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -48,14 +48,14 @@ describe("memberships are never shown or sold in the store app", () => {
 
   it("every membership surface reads useMembershipsOn (inventory floor)", () => {
     const readers = SOURCES.filter((f) => f !== HOOK && /\buseMembershipsOn\(\s*\)/.test(read(f)));
-    // Measured 2026-10-21: JobBoostDialog, AnalyticsUpgradePanel, EarningsTab,
-    // SubscriptionTab, useProfileLandingDerived, HelperAnalytics.
-    expect(readers.length).toBeGreaterThan(5);
+    // Measured 2026-10-21 (#23): five. AnalyticsUpgradePanel was deleted and the
+    // Profile row gates on holding a plan (holdsPaidPlan) instead of the switch.
+    expect(readers.length).toBe(5);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {
     const landing = read("src/components/profile/profileLanding/useProfileLandingDerived.tsx");
-    expect(landing).toMatch(/tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP/);
+    expect(landing).toMatch(/holdsPaidPlan\(profile\?\.subscription_tier, profile\?\.subscription_expires_at\) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP/);
     const tab = read("src/components/profile/SubscriptionTab.tsx");
     const early = tab.indexOf("if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return <MembershipsUnavailable");
     expect(early).toBeGreaterThan(-1);

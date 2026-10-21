@@ -42,7 +42,6 @@ import {
   type AnalyticsRange,
 } from "@/hooks/useHelperAnalytics";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { AnalyticsUpgradePanel } from "@/components/analytics/AnalyticsUpgradePanel";
 import { ApplicationsPanel } from "@/components/analytics/ApplicationsPanel";
 import { CategoryPanel } from "@/components/analytics/CategoryPanel";
 import { DemandPanel } from "@/components/analytics/DemandPanel";
@@ -202,11 +201,13 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         />,
       );
     }
+    // Owner 2026-10-21 (#23): Advanced analytics belong to plan holders, and
+    // nobody else is offered an upgrade. A member without one reads that plainly.
     return wrap(
-      <AnalyticsUpgradePanel
-        previewJobs={data.preview.jobs}
-        currentFeePercent={feeFallbackPercent}
-        windowLabel={windowLabel}
+      <EmptyState
+        icon={BarChart3}
+        title="Advanced analytics come with a plan"
+        body="Your earnings, jobs and payouts are all in Money."
       />,
     );
   }

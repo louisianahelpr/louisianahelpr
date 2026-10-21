@@ -137,8 +137,8 @@ export function ShowMoreApplicants({ total, shown, onMore }: { total: number; sh
   const left = total - shown;
   if (left <= 0) return null;
   return (
-    <button type="button" className="mx-auto block min-h-11 px-4 text-ds-14 font-semibold text-[hsl(var(--bark))]" onClick={onMore}>
+    <Button type="button" variant="ghost" className="mx-auto block" onClick={onMore}>
       Show {Math.min(10, left)} more
-    </button>
+    </Button>
   );
 }

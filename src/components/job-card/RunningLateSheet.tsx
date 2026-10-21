@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { chipStyles } from "@/components/dashboard/JobFilters";
@@ -88,9 +87,11 @@ export function RunningLateSheet({
           )}
         </div>
         <p className="mt-3 text-ds-13 text-muted-foreground">{first || "They"} get{first ? "s" : ""} a message right away with your new arrival time.</p>
-        <Button variant="primary" size="lg" className="mt-3 w-full rounded-full" disabled={sending} onClick={() => void send()}>
-          {sending ? "Sending…" : first ? `Tell ${first}` : "Send it"}
-        </Button>
+        <SheetFooter>
+          <SheetPrimaryAction disabled={sending} onClick={() => void send()}>
+            {sending ? "Sending…" : first ? `Tell ${first}` : "Send it"}
+          </SheetPrimaryAction>
+        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

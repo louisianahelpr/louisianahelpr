@@ -288,6 +288,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/process-email-queue/index.ts": "drains the queue the senders above fill",
   "supabase/functions/send-account-status-email/index.ts": "own account status",
   "supabase/functions/send-marketing-blast/index.ts": "admin-authored marketing",
+  "supabase/functions/come-back-emails/index.ts": "own-account nudge about the member's own sign-up; names no other person, and is_seed members and test accounts are never claimed",
   "supabase/functions/signup-lead-reminders/index.ts": "a sign-up lead with no account (so no seed subject): fixture, reserved and profiled addresses are never claimed",
   "supabase/functions/admin-update-email/index.ts": "own email changed by an admin",
   "supabase/functions/admin-user-actions/index.ts": "own verification / ID re-upload / password reset / formal warning",

@@ -26,7 +26,7 @@ function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const p = join(dir, name);
     if (statSync(p).isDirectory()) return walk(p);
-    return /\.(tsx|ts)$/.test(name) && !/\.test\.|\.d\.ts$/.test(name) ? [p] : [];
+    return /\.(tsx|ts)$/.test(name) && !name.includes(".test.") && !name.endsWith(".d.ts") ? [p] : [];
   });
 }
 

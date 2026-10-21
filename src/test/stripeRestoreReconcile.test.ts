@@ -23,6 +23,8 @@
  * @mutate scripts/lib/stripeRestoreReconcile.mjs |   if (pi?.id && Object.hasOwn(KNOWN_ONE_OFF_PIS, pi.id)) | if (false)
  */
 // @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "tip_hold_redrives", column: "transfer_id", orderBy: "tip_id" }, |     { table: "tip_hold_redrives", column: "transfer_id" },
+// @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_refunds", column: "stripe_refund_id" },\n |
+// @mutate scripts/lib/stripeRestoreReconcile.mjs |     { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" }, |     { table: "shop_hand_refunds", column: "stripe_payment_intent_id" },
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -111,6 +113,8 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
     "helpr_task_payouts.stripe_transfer_id": ["tr_DclHelprKept"],
     "shop_orders.stripe_payment_intent_id": ["pi_ShopKept"],
     "shop_payouts.stripe_transfer_id": ["tr_ShopKept"],
+    "shop_refunds.stripe_refund_id": ["re_ShopKept"],
+    "shop_hand_refunds.stripe_refund_id": ["pyr_ShopHandKept"],
   };
   const pi = (id: string) => ({ id, status: "succeeded", amount: 2500, created: 1790000000, metadata: { kind: "declutter_order" } });
 
@@ -122,11 +126,23 @@ describe("Declutter and Shops money is in the restore check (Q2230, before the D
       "declutter_delivery_refunds.stripe_payment_intent_id", "declutter_delivery_refunds.stripe_refund_ref",
       "declutter_payouts.stripe_transfer_id", "helpr_task_payouts.stripe_transfer_id",
       "shop_orders.stripe_payment_intent_id", "shop_payouts.stripe_transfer_id",
+      // Q2232: Shops refunds (M3, 20261019071055), by the app and by hand in Stripe.
+      "shop_refunds.stripe_payment_intent_id", "shop_refunds.stripe_refund_id",
+      "shop_hand_refunds.stripe_payment_intent_id", "shop_hand_refunds.stripe_refund_id",
     ]) {
       expect(matched, c).toContain(c);
       expect(c in NOT_MATCHED, `${c} is still excluded`).toBe(false);
     }
     expect(Object.values(DB_ID_COLUMNS).flat().filter((c) => c.table === "declutter_hand_refunds").map((c) => c.orderBy)).toEqual(["stripe_refund_id", "stripe_refund_id"]);
+    expect(Object.values(DB_ID_COLUMNS).flat().filter((c) => c.table === "shop_hand_refunds").map((c) => c.orderBy)).toEqual(["stripe_refund_id", "stripe_refund_id"]);
+  });
+
+  it("a Shops refund Stripe made after T with no row is MISSING; the app's and the hand-made kept ones match (Q2232)", () => {
+    const re = collectDbIds("refund", rows);
+    const refund = (id: string) => ({ id, status: "succeeded", amount: 2500, created: 1790000000, payment_intent: "pi_ShopKept" });
+    const gr = gradeKind("refund", [refund("re_ShopKept"), refund("pyr_ShopHandKept"), refund("re_ShopLost")], re.ids);
+    expect(gr.matched).toBe(2);
+    expect(gr.missing.map((m) => m.id)).toEqual(["re_ShopLost"]);
   });
 
   it("a Declutter PaymentIntent, refund or payout Stripe made after T with no row is MISSING; the kept ones match", () => {

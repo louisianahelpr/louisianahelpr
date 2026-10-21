@@ -55,6 +55,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // from two Declutter screens, the shared Helpr task module rode in
 // signed-in-shared and put /posts over its critical-path budget.
 import { PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
+import { DateTimeField } from "@/components/DateTimeField";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -268,8 +269,8 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
     <div className="space-y-2">
       {booked && <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (once each)" : "Pick a pickup time"}</label>
-      <div className="flex gap-2">
-        <input id={id} type="datetime-local" className={`${input} min-w-0`} value={value} onChange={(e) => setValue(e.target.value)} />
+      <div className="space-y-2">
+        <DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />
         <button
           type="button"
           className={booked ? btn : primary}
@@ -400,19 +401,28 @@ function PorchPanel({ order, userId, booking }: { order: PaidOrder; userId: stri
           <p className="text-sm">
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
           </p>
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             <button type="button" className={btn} disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</button>
-            <input aria-label="Out until" type="datetime-local" className={`${input} min-w-0`} value={until} onChange={(e) => setUntil(e.target.value)} />
+            <p className="text-ds-12 text-muted-foreground">Or until a time:</p>
+            <DateTimeField id={`dcl-out-${order.orderId}`} label="Out until" value={until} onChange={setUntil} />
             <button type="button" className={btn} disabled={timing.isPending || !localInputToIso(until)}
               onClick={() => timing.mutate({ mode: "until", iso: localInputToIso(until) })}>Out until then</button>
           </div>
         </>
       )}
-      <label htmlFor={fileId} className="block text-xs font-medium">
+      <label htmlFor={fileId} className="sr-only">
         {order.side === "seller" ? "Photo of the item on your porch (\"Left on porch\": needed before you can be paid automatically)" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller)"}
       </label>
-      <input id={fileId} type="file" accept="image/*" capture="environment" disabled={photo.isPending}
+      {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
+      <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) photo.mutate(f); e.target.value = ""; }} />
+      <button type="button" className={order.side === "seller" ? primary : btn} disabled={photo.isPending}
+        onClick={() => document.getElementById(fileId)?.click()}>
+        {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
+      </button>
+      <p className="text-ds-12 text-muted-foreground">
+        {order.side === "seller" ? "One photo where the buyer will find it. You need it before you can be paid automatically." : "Taken at the address. It tells the seller you have it, and pays them."}
+      </p>
     </div>
   );
 }

@@ -14,8 +14,11 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |             <DateTimeField id={`dcl-out-${order.orderId}`} label="Out until" value={until} onChange={setUntil} /> |             <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (handover === "porch" ? !!h?.set_out_at : booked) return 1; |   if (booked) return 1;
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           itemsCents={items} |           itemsCents={order.lines[0]?.total_cents ?? 0}
+import { readFileSync } from "node:fs";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -27,6 +30,12 @@ const state = {
   handover: null as Record<string, unknown> | null,
 };
 
+// The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
+vi.mock("@/components/DateTimeField", () => ({
+  DateTimeField: ({ id, value, onChange }: { id: string; value: string; onChange: (v: string) => void }) => (
+    <input id={id} value={value} onChange={(e) => onChange(e.target.value)} />
+  ),
+}));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "me" } }) }));
 vi.mock("@/lib/declutter/handover", () => ({
@@ -214,5 +223,16 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line({ order_status: "handed_over" })]);
     expect(await screen.findByRole("list", { name: "Step 4 of 4: Done" })).toBeInTheDocument();
     expect(screen.getByText("Handed over. The sale is final.")).toBeInTheDocument();
+  });
+
+  // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.
+  it("pickup times use the shared DateTimeField and the porch photo is a button, not a bare file box", () => {
+    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterDeliveryViews.tsx"]) {
+      const src = blankComments(readFileSync(f, "utf8"));
+      expect(src, f).not.toMatch(/type="datetime-local"/);
+      expect(src, f).toMatch(/<DateTimeField\b/);
+    }
+    const hv = blankComments(readFileSync("src/components/declutter/DeclutterHandoverViews.tsx", "utf8"));
+    expect(hv).toMatch(/Take the porch photo/);
   });
 });

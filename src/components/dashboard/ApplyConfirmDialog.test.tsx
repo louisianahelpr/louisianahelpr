@@ -1,4 +1,5 @@
 // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = (confirmApplyJob?.helpers_needed ?? 1) <= 1; |   const single = true;
+// @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           event.preventDefault(); |           void event;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, act } from "@testing-library/react";
@@ -86,7 +87,7 @@ describe("ApplyConfirmDialog", () => {
     // Collapsed by default: no itemised rows on arrival.
     expect(screen.queryByText("Take-home")).not.toBeInTheDocument();
     // …but the inputs are still named in words, so nothing is concealed.
-    expect(screen.getByText(/\$100 budget − 10% fee/)).toBeInTheDocument();
+    expect(screen.getByText(/\$100 budget − Helpr fee \(10%\)/)).toBeInTheDocument();
   });
 
   it("shows the itemised receipt on tap", () => {
@@ -402,5 +403,13 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     unmount();
     render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ budget: 200, is_group_job: true, helpers_needed: 4 }) })} />);
     expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
+  });
+
+  // Board 58 (lead): the sheet takes the initial focus, not the fee breakdown's disclosure.
+  it("board 58: opens with focus on the sheet, not on the fee disclosure", async () => {
+    render(<ApplyConfirmDialog {...makeProps()} />);
+    await new Promise((r) => setTimeout(r, 50));
+    expect(document.activeElement?.getAttribute("role")).toBe("dialog");
+    expect(document.activeElement?.getAttribute("aria-expanded")).toBeNull();
   });
 });

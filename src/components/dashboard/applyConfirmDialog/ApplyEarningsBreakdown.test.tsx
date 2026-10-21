@@ -51,7 +51,7 @@ describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => 
     // $100 budget − 10% = $90, − $2 one-time fee = $88, in the headline AND the Take-home row.
     expect(screen.getAllByText("$88")).toHaveLength(2);
     expect(screen.queryByText("$90")).not.toBeInTheDocument();
-    expect(screen.getByText(/one-time setup fee/i)).toBeInTheDocument();
+    expect(screen.getByText(/One-time setup fee \(first payout only\)/)).toBeInTheDocument();
     expect(screen.getByText("−$2")).toBeInTheDocument();
   });
 
@@ -75,7 +75,7 @@ describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => 
     profileMock.mockReturnValue({ onboarding_fee_paid: false });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown();
-    expect(screen.getByText(/one-time setup fee/i).textContent).not.toMatch(/helpr/i);
+    expect(screen.getByText(/One-time setup fee \(first payout only\)/).textContent).not.toMatch(/helpr/i);
   });
 });
 

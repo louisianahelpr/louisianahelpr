@@ -1,7 +1,9 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
-// @mutate src/config/featureSwitches.ts |   "price_guidance",\n] as const; |   "price_guidance",\n  "orphan_switch",\n] as const;
+// @mutate src/config/featureSwitches.ts |   "come_back_emails",\n] as const; |   "come_back_emails",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
+// @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
+// @mutate supabase/migrations/20261021113827_come_back_emails.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
 /**
  * Hidden feature switches (owner decision 2026-10-11; migration
  * 20261012031120): the registry is public.feature_switches, created by
@@ -19,6 +21,10 @@
  *     FEATURE_SWITCH_KEYS (src/config/featureSwitches.ts) == the keys passed to
  *     useFeature() across src. A useFeature call whose argument is not a string
  *     literal fails (it cannot be checked).
+ * (c) A switch with no screen (SERVER_ONLY_FEATURE_SWITCH_KEYS, e.g. the
+ *     come-back emails cron) is the one exception to "read by useFeature": it
+ *     is never read by useFeature and IS read by a migration's
+ *     feature_enabled_for_user('<key>', ...). Exact both ways too.
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -27,7 +33,7 @@ import os from "node:os";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
 import { readdirSync } from "./helpers/trackedFiles";
-import { FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
+import { FEATURE_SWITCH_KEYS, SERVER_ONLY_FEATURE_SWITCH_KEYS } from "@/config/featureSwitches";
 
 const ROOT = path.resolve(__dirname, "../..");
 const MIG_DIR = path.join(ROOT, "supabase/migrations");
@@ -140,6 +146,16 @@ export function readUseFeatureKeys(srcDir = path.join(ROOT, "src")): { keys: Set
 
 const sorted = (s: Iterable<string>) => [...s].sort();
 
+/** Keys a migration (comments blanked) reads with feature_enabled_for_user('<key>', ...). */
+function readServerSwitchReads(dir = MIG_DIR): Set<string> {
+  const keys = new Set<string>();
+  for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql"))) {
+    const sql = blankSqlComments(fs.readFileSync(path.join(dir, file), "utf8"));
+    for (const m of sql.matchAll(/feature_enabled_for_user\s*\(\s*'([a-z][a-z0-9_]*)'/gi)) keys.add(m[1]);
+  }
+  return keys;
+}
+
 describe("hidden feature switches: registry", () => {
   const reg = readRegistryFromMigrations();
   const used = readUseFeatureKeys();
@@ -158,9 +174,20 @@ describe("hidden feature switches: registry", () => {
     expect(used.nonLiteral).toEqual([]);
   });
 
-  it("(b) migrations' registry == FEATURE_SWITCH_KEYS == keys read by useFeature (exact both ways)", () => {
+  it("(b) migrations' registry == FEATURE_SWITCH_KEYS == keys read by useFeature + server-only keys (exact both ways)", () => {
     expect(sorted(FEATURE_SWITCH_KEYS)).toEqual(sorted(reg.keys));
-    expect(sorted(used.keys)).toEqual(sorted(reg.keys));
+    const serverOnly = new Set<string>(SERVER_ONLY_FEATURE_SWITCH_KEYS);
+    expect(sorted(used.keys)).toEqual(sorted([...reg.keys].filter((k) => !serverOnly.has(k))));
+  });
+
+  it("(c) a server-only switch is read by no useFeature and by a migration's feature_enabled_for_user", () => {
+    const sqlReads = readServerSwitchReads();
+    expect(SERVER_ONLY_FEATURE_SWITCH_KEYS.length).toBeGreaterThan(0);
+    for (const key of SERVER_ONLY_FEATURE_SWITCH_KEYS) {
+      expect(reg.keys.has(key), `${key} is created by a migration`).toBe(true);
+      expect(used.keys.has(key), `${key} is server-only but read by useFeature`).toBe(false);
+      expect(sqlReads.has(key), `${key} is server-only but no migration reads feature_enabled_for_user('${key}', ...)`).toBe(true);
+    }
   });
 
   it("the parser catches a planted 'everyone' creation and a DO UPDATE (synthetic)", () => {

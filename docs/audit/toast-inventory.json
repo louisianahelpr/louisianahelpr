@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 894,
+    "calls": 895,
     "files": 223,
-    "rendering": 779,
+    "rendering": 780,
     "suppressedByPolicy": 115,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 647,
+      "toast.error": 648,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 423,
       "template": 97,
-      "dynamic": 422,
+      "dynamic": 423,
       "jsx": 0
     }
   },
@@ -5898,7 +5898,17 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 126,
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't save that setting. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SettingsTab.tsx",
+      "line": 170,
       "kind": "toast",
       "title": {
         "form": "literal",

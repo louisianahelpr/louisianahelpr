@@ -48,6 +48,8 @@ const fx = vi.hoisted(() => {
 
 // Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
 vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
+// Board 189's first-job Home has its own reads (applications); not what this file is about.
+vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
 vi.mock("@/hooks/useCurrentUser", () => ({

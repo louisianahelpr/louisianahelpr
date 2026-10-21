@@ -3,34 +3,28 @@
  * Facebook Marketplace / OfferUp / Mercari): the swipeable gallery, then the
  * price, condition and title, the seller card, Buy now / Make an offer
  * (OfferPanel, with a bar above the dock on a phone), the details, pickup
- * (area + miles: rows 5, 27), and the public Q&A (row 35, through the
- * contact-leak filter server-side; messages open after checkout). Share and
+ * (area + miles: rows 5, 27), and the public Q&A (row 35, board 162:
+ * DeclutterQuestions; messages open after checkout). Share and
  * the watch heart (row 46) sit on the title row. Two columns from lg.
  */
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
-import { Button } from "@/components/ui/button";
-import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
 import {
-  answerQuestion,
-  askQuestion,
   fetchItem,
   fetchItemDropState,
   fetchManageState,
   fetchMyItemReview,
   fetchPhotos,
-  fetchQuestions,
   fetchWatching,
   photoPublicUrl,
   setWatch,
-  type DeclutterQuestion,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesBetween, milesLabel } from "@/lib/declutter/distance";
@@ -49,6 +43,7 @@ import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
+import { DeclutterQuestions } from "./DeclutterQuestions";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
@@ -74,62 +69,16 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function QuestionRow({ q, isSeller, itemId }: { q: DeclutterQuestion; isSeller: boolean; itemId: string }) {
-  const qc = useQueryClient();
-  const [answer, setAnswer] = useState("");
-  const send = useMutation({
-    mutationFn: () => answerQuestion(q.id, answer.trim()),
-    onSuccess: () => {
-      setAnswer("");
-      void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  return (
-    <li className="rounded-xl border border-border p-3 space-y-1">
-      <p className="text-sm font-medium [overflow-wrap:anywhere]">Q: {q.question}</p>
-      {q.answer ? (
-        <p className="text-sm text-muted-foreground [overflow-wrap:anywhere]">A: {q.answer}</p>
-      ) : isSeller ? (
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (answer.trim()) send.mutate();
-          }}
-        >
-          <label className="sr-only" htmlFor={`answer-${q.id}`}>Your answer</label>
-          <input
-            id={`answer-${q.id}`}
-            className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            value={answer}
-            maxLength={1000}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="Write an answer"
-          />
-          <Button type="submit" size="sm" disabled={send.isPending || !answer.trim()}>
-            Answer
-          </Button>
-        </form>
-      ) : (
-        <p className="text-xs text-muted-foreground">Not answered yet.</p>
-      )}
-    </li>
-  );
-}
-
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
-  const [question, setQuestion] = useState("");
   // A link whose id is not an item id at all can never load one: say so at
   // once instead of asking the server (and showing a skeleton) first.
   const validId = isItemId(itemId);
   const item = useQuery({ queryKey: ["declutter", "item", itemId], queryFn: () => fetchItem(itemId), enabled: validId });
   const photos = useQuery({ queryKey: ["declutter", "item-photos", itemId], queryFn: () => fetchPhotos([itemId]), enabled: validId });
-  const questions = useQuery({ queryKey: ["declutter", "questions", itemId], queryFn: () => fetchQuestions(itemId), enabled: validId });
   const watching = useQuery({
     queryKey: ["declutter", "watching", user?.id],
     queryFn: () => fetchWatching(user!.id),
@@ -157,15 +106,6 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const toggleWatch = useMutation({
     mutationFn: () => setWatch(itemId, !isWatching),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  const ask = useMutation({
-    mutationFn: () => askQuestion(itemId, question.trim()),
-    onSuccess: () => {
-      setQuestion("");
-      toast.success("Question posted. The seller's answer will show here.");
-      void qc.invalidateQueries({ queryKey: ["declutter", "questions", itemId] });
-    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
@@ -281,43 +221,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-xs text-muted-foreground">The exact address is shared after you pay.</p>
           </section>
 
-          <section className="space-y-2">
-            <h2 className="text-base font-semibold">Questions</h2>
-            <p className="text-xs text-muted-foreground">Everyone can see questions and answers. Keep phone numbers and payment apps out: messages open after checkout.</p>
-            {questions.isError ? (
-              <ErrorState variant="inline" title="We couldn't load the questions." body={declutterErrorMessage(questions.error)} onRetry={() => void questions.refetch()} />
-            ) : (questions.data ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No questions yet.</p>
-            ) : (
-              <ul className="space-y-2">
-                {(questions.data ?? []).map((q) => (
-                  <QuestionRow key={q.id} q={q} isSeller={isSeller} itemId={itemId} />
-                ))}
-              </ul>
-            )}
-            {canAct && (
-              <form
-                className="flex gap-2"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  if (question.trim().length >= 2) ask.mutate();
-                }}
-              >
-                <label className="sr-only" htmlFor="declutter-question">Ask the seller a question</label>
-                <input
-                  id="declutter-question"
-                  className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                  value={question}
-                  maxLength={500}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  placeholder="Ask the seller a question"
-                />
-                <Button type="submit" size="sm" disabled={ask.isPending || question.trim().length < 2}>
-                  Ask
-                </Button>
-              </form>
-            )}
-          </section>
+          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} />
         </div>
       </div>
       {!isSeller && (

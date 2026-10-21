@@ -62,7 +62,7 @@ import type { ProfileStatsShape, ReplyLatency } from "./types";
  * of four. Shared, so the two cannot drift apart again.
  */
 export const METRIC_CELL_FRAME =
-  "flex flex-col gap-0.5 rounded-ds-md px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center";
+  "flex flex-col gap-0.5 rounded-[20px] px-3 py-2.5 sm:py-3.5 min-w-0 min-h-[58px] justify-center";
 /** Two-up on a phone, one row of four from `sm` (see the note at the grid). */
 export const AT_A_GLANCE_GRID = "grid grid-cols-2 auto-rows-fr gap-2 sm:grid-cols-4";
 
@@ -83,12 +83,13 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
   const body = (
     <>
       <span className="flex items-center gap-1.5 min-w-0">
+        {/* Olive, not grey (spec v2 rebuild, audit 2026-10-21); the rating
+            star is filled, the one star the spec allows a person. */}
         <cell.icon
           className="w-3.5 h-3.5 shrink-0"
           style={{
-            color: cell.selected
-              ? "hsl(var(--parchment) / 0.75)"
-              : "hsl(var(--olivewood) / 0.55)",
+            color: cell.selected ? "hsl(var(--parchment))" : "hsl(var(--bark))",
+            ...(cell.key === "rating" && cell.value !== "New" ? { fill: "currentColor" } : {}),
           }}
         />
         <span
@@ -121,8 +122,7 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
   if (!interactive) {
     return (
       <div
-        className={cn(METRIC_CELL_FRAME, className)}
-        style={{ background: "hsl(var(--olivewood) / 0.05)" }}
+        className={cn(METRIC_CELL_FRAME, "bg-muted", className)}
       >
         {body}
       </div>
@@ -149,14 +149,7 @@ const MetricCell = ({ cell, className }: { cell: Cell; className?: string }) => 
           ? "btn-grad-primary"
           : "hover:brightness-[0.98] active:scale-[0.99]",
       )}
-      style={
-        cell.selected
-          ? {
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255,255,255,0.28), 0 6px 14px -6px hsl(var(--bark) / 0.5)",
-            }
-          : { background: "hsl(var(--olivewood) / 0.05)" }
-      }
+      style={cell.selected ? undefined : { background: "hsl(var(--muted))" }}
     >
       {body}
     </button>

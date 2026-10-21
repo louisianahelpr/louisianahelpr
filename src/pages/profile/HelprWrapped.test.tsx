@@ -105,7 +105,7 @@ describe("/wrapped tells the truth about a year", () => {
     // The tile was gated on `totalEarned === 0`, so anyone who both posts and
     // helps never saw their own spend.
     renderWrapped();
-    expect(await screen.findByText("invested in community")).toBeTruthy();
+    expect(await screen.findByText("spent on help")).toBeTruthy();
     expect(screen.getByText("$650")).toBeTruthy();
     // …alongside, not instead of, the earnings tile.
     expect(screen.getByText("earned")).toBeTruthy();
@@ -162,7 +162,7 @@ describe("/wrapped tells the truth about a year", () => {
     rows.posted = [{ id: "p3", budget: 180, category: "cleaning", helper_id: null, status: "open" }];
     renderWrapped();
     await screen.findByText("earned");
-    expect(screen.queryByText("invested in community")).toBeNull();
+    expect(screen.queryByText("spent on help")).toBeNull();
   });
 });
 

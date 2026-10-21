@@ -26,7 +26,7 @@ describe("RecognitionRow badge sizing", () => {
   it("sizes milestone icons the same as the ID verified icon", () => {
     renderRow();
     const idChip = screen.getByRole("button", { name: /ID verified/ });
-    const milestoneChip = screen.getByRole("button", { name: /First Job/ });
+    const milestoneChip = screen.getByRole("button", { name: /First job/ });
     const idIcon = idChip.querySelector("svg");
     const milestoneIcon = milestoneChip.querySelector("svg");
     expect(idIcon).not.toBeNull();

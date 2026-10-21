@@ -33,7 +33,7 @@ export const MIN_RATING_REVIEWS = 5;
 const CAREER_MILESTONES: CareerMilestone[] = [
   {
     id: "first_job",
-    label: "First Job",
+    label: "First job",
     description: "Completed your first job on Helpr",
     icon: "Star",
     color: "hsl(40 60% 55%)",
@@ -41,7 +41,7 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   },
   {
     id: "rising_star",
-    label: "Rising Star",
+    label: "Rising star",
     description: "5 jobs completed",
     icon: "TrendingUp",
     color: "hsl(40 70% 50%)",
@@ -57,7 +57,7 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   },
   {
     id: "neighborhood_pro",
-    label: "Neighborhood Pro",
+    label: "Neighborhood pro",
     description: "25 jobs completed",
     icon: "Award",
     // Olive, not rust: rust is money only (spec v2 §1.1).
@@ -66,7 +66,7 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   },
   {
     id: "community_pillar",
-    label: "Community Pillar",
+    label: "Community pillar",
     // Was "3+ repeat posters" over a rule that checks a PERCENTAGE — the
     // description now states the rule it sits on (VN-14).
     description: `50 jobs · 4.8+ rating from ${MIN_RATING_REVIEWS}+ reviews · 20%+ repeat hires`,
@@ -84,7 +84,7 @@ const CAREER_MILESTONES: CareerMilestone[] = [
   },
   {
     id: "licensed_pro",
-    label: "Licensed Pro",
+    label: "Licensed pro",
     description: "Verified license on file",
     icon: "BadgeCheck",
     color: "hsl(260 60% 55%)",

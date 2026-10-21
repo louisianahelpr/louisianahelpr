@@ -15,7 +15,7 @@
  * KNOWN_OLIVE_PRICES is EXACT and two-way: a fixed site must leave the list in
  * the same commit, and a new olive price fails.
  *
- * @mutate src/pages/profile/HomeHistory.tsx | font-medium tabular-nums" style={{ color: "hsl(var(--bark))" }}> | font-medium tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}>
+ * @mutate src/pages/profile/HomeHistory.tsx | font-medium tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}> | font-medium tabular-nums" style={{ color: "hsl(var(--bark))" }}>
  * @mutate src/pages/user/JobsList.tsx | <span className="text-ds-13 font-bold" style={{ color: "hsl(var(--accent-ink))" }}>${formatPrice(job.budget)}</span> | <span className="text-ds-13 font-bold text-primary">${formatPrice(job.budget)}</span>
  */
 import { describe, expect, it } from "vitest";
@@ -34,7 +34,6 @@ const KNOWN_OLIVE_PRICES = [
   "src/components/admin/AdminPayoutBatches.tsx",
   "src/components/postjob/RecurringSchedulePicker.tsx",
   "src/components/profile/MonthlyGoalCard.tsx",
-  "src/pages/profile/HomeHistory.tsx",
 ];
 
 function wrappingTag(src: string, at: number): string | null {

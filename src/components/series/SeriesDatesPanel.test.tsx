@@ -14,6 +14,7 @@
  * @mutate src/lib/seriesDates.ts | alreadyYours: r.already_yours ?? [], | alreadyYours: [],
  * @mutate src/lib/seriesDates.ts |       if (isNotDeployedYet(r.error)) return null; |       if (false) return null;
  */
+// @mutate src/components/series/SeriesDatesPanel.tsx |               <h4 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Visits</h4> |
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -190,6 +191,10 @@ describe("SeriesDatesPanel", () => {
     );
     renderPanel({ isPoster: true, userId: "poster-1" });
     fireEvent.click(await screen.findByRole("button", { name: /1 of 3 upcoming dates have a Helpr · 2 open/ }));
+    // Board 118 (restyle): a "Visits" list, each day with its real state under it, in sentence case.
+    expect(screen.getByText("Visits")).toBeInTheDocument();
+    expect(screen.getAllByText("Has a Helpr")).toHaveLength(1);
+    expect(screen.getAllByText("Open")).toHaveLength(2);
     fireEvent.click(await screen.findByRole("button", { name: "Offer dates" }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("offer_series_dates", { p_job_id: "p1", p_helper_id: "applicant-1" }));
     // ...and can message them first (owner, 2026-10-11): the job's thread with that applicant.

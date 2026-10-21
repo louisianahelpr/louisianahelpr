@@ -58,8 +58,16 @@ describe("J1: the poster sees the price they set on their own job", () => {
       .map((f) => ({ f: relative(REPO, f), src: blankComments(readSource(f) ?? "") }))
       .filter(({ src }) => /<JobPrice\b/.test(src));
     expect(files.length).toBeGreaterThan(500);
-    expect(sites.map((s) => s.f).sort()).toEqual(["src/components/dashboard/JobCard.tsx", "src/components/dashboard/JobDetailDialog.tsx"]);
+    // Sites whose jobs can never be the viewer's own, and why (each re-read when its feed changes).
+    const NEVER_OWN: Record<string, string> = {
+      "src/pages/home/homeDashboard/FirstJobHome.tsx":
+        "board 189 'Jobs near you' reads get_ranked_open_jobs, which filters j.customer_id <> auth.uid() (20261021062609), so the viewer never posted these; the Helpr take-home is right",
+    };
+    expect(sites.map((s) => s.f).sort()).toEqual(
+      ["src/components/dashboard/JobCard.tsx", "src/components/dashboard/JobDetailDialog.tsx", "src/pages/home/homeDashboard/FirstJobHome.tsx"].sort(),
+    );
     for (const { f, src } of sites) {
+      if (f in NEVER_OWN) continue;
       for (const m of src.matchAll(/<JobPrice\b[\s\S]*?\/>/g)) {
         const showBudget = /showBudget=\{([^}]*)\}/.exec(m[0])?.[1] ?? "";
         const decided = /customer_id/.test(showBudget) || (showBudget === "showBudget" && /const showBudget = [^;]*isOwnJob/.test(src) && /isOwnJob = [^;]*customer_id/.test(src));

@@ -2,6 +2,7 @@
  * The Declutter item card (Browse grid and the item page's "More from this
  * seller" / "Similar items" rows): one card for every list of items.
  */
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
@@ -40,6 +41,8 @@ export type CardTag = "drop" | "delivery";
 
 export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null }) {
   const away = milesLabel(miles, approximate);
+  // A photo that fails to load drops out, leaving the icon under it (never a blank tile).
+  const [photoFailed, setPhotoFailed] = useState(false);
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -47,10 +50,13 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="relative block aspect-square overflow-hidden rounded-2xl bg-photo-empty">
-        {photoPath ? (
-          <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" className="h-full w-full object-cover" />
-        ) : (
-          <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" />
+        {/* The category icon is ALWAYS the tile's ground (audit #32, 2026-10-21: a blank
+            sand tile read as a failed load). A real photo covers it; a photo still
+            loading, one that fails, or one with nothing opaque in it (prod's E2E
+            fixture photos are 1x1 transparent PNGs) shows the icon, never a blank box. */}
+        <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
+        {photoPath && !photoFailed && (
+          <img src={photoPublicUrl(photoPath)} alt="" loading="lazy" onError={() => setPhotoFailed(true)} className="relative h-full w-full object-cover" />
         )}
         {tag && (
           // Opaque card under the tint, so the tag reads the same on any photo.

@@ -23,7 +23,8 @@ import { DeclutterNotice } from "./declutterUi";
 /** /declutter: the section shell (top bar), the tab row, the search row and the first cards. */
 export function DeclutterHomeSkeleton() {
   return (
-    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add}>
+    // The Browse silhouette, so no "Search all sections" field: Browse draws its own search row.
+    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={false}>
       <Skeleton className="h-11 w-full rounded-full" aria-hidden />
       <DeclutterBrowseBones />
     </SectionScreen>

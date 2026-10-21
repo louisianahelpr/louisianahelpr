@@ -409,7 +409,8 @@ export default function RentalsHomeView() {
   const tabs = <SectionTabs label="Homes" tabs={HOMES_TABS} value={tab} onChange={setTab} />;
   if (tab === "browse") {
     return (
-      <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>
+      // ONE search on Browse (the listings' "City or ZIP" row), never Explore's above it (owner 2026-10-21).
+      <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add} globalSearch={false}>
         {tabs}
         <HomesBrowse />
       </SectionScreen>

@@ -16,6 +16,7 @@ export function SectionScreen({
   title,
   add,
   section,
+  globalSearch = true,
   children,
 }: {
   /** A section screen (not Home): draws Explore's section switcher under the top bar. */
@@ -23,6 +24,13 @@ export function SectionScreen({
   /** Omit on Home: the logo shows instead. */
   title?: string;
   add?: { label: string; path: string };
+  /**
+   * Explore's "Search all sections" field. ONE search per screen (owner
+   * 2026-10-21: two search bars stacked on Browse): a tab that draws its own
+   * section search (SectionSearchRow) passes false, and the global field shows
+   * only where there is no section search.
+   */
+  globalSearch?: boolean;
   children: ReactNode;
 }) {
   // D12 (Cowork audit 2026-10-20): the browser tab named the jobs-only landing
@@ -37,7 +45,9 @@ export function SectionScreen({
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] h-full overflow-y-auto px-3 -mx-3 pb-safe-nav">
           <AppTopBar title={title} add={add} explore={!!section} />
           {/* py-1 = the 4px gaps JobsSection's header gets from gap-1 (section-shell-alignment). */}
-          {section && <div className="py-1"><ExploreSearchEntry /></div>}
+          {section && globalSearch && <div className="py-1"><ExploreSearchEntry /></div>}
+          {/* Without the field, keep JobsSection's 4px bar-to-switcher gap. */}
+          {section && !globalSearch && <div className="h-1" aria-hidden />}
           {section && <ExploreSwitcher current={section} />}
           <div className="flex flex-col gap-4 pt-1 pb-6">{children}</div>
         </div>

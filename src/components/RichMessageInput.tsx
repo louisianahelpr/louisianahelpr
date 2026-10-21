@@ -466,7 +466,7 @@ export const RichMessageInput = ({
           placeholder={
             voice.isListening
               ? voice.interimText || "Listening…"
-              : "Type a message…"
+              : "Message" // short enough never to clip at 375 (audit #53)
           }
           enterKeyHint="send"
           autoCapitalize="sentences"

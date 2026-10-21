@@ -4,7 +4,7 @@ import {
   AlertTriangle, Bug, Gift,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn, MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import type { MenuItem, Profile } from "./types";
 import { ACCOUNT_MENU_GROUP, SECTION_TINT } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
@@ -23,7 +23,7 @@ export function useProfileLandingDerived({
   // Roadmap F4: memberships are off. The Membership row shows only while the
   // hidden "memberships" switch is on for this viewer, or for a member who
   // still holds a plan (so they can still see and manage it).
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   // The admin-panel shortcut used to be a Shield icon button in the Dashboard
   // app bar. Home no longer has an app bar, and /admin is an account-level
 
@@ -136,7 +136,9 @@ export function useProfileLandingDerived({
           desc: "Wallet, analytics, payout setup & tax exports",
           tint: SECTION_TINT.money,
         },
-        ...((membershipsOn || tier !== "free")
+        // A plan holder still sees the row on the web to manage it; the store app
+        // never shows memberships (useMembershipsOn).
+        ...((membershipsOn || (tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP))
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },

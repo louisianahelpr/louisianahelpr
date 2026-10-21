@@ -24,7 +24,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
 import type { EarningsTabProps } from "@/components/profile/earningsTab/types";
@@ -120,7 +120,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   // cash-out and Advanced Analytics are off for EVERYONE, plan holders
   // included, and nothing offers an upgrade: Cash Out is the standard payout
   // only. The instant-payout edge function refuses on the same switch.
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   const canUseInstantPayout = membershipsOn && profileHasPerk(
     profile?.subscription_tier,
     profile?.subscription_expires_at,

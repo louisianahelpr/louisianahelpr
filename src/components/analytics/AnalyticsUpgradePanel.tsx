@@ -31,7 +31,7 @@ import {
   type AnalyticsPreviewJob,
 } from "@/lib/helperAnalytics";
 import { helperPlatformFeeDollars } from "@/lib/helperEarnings";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 
 /** The cheapest tier whose perk row carries advancedAnalytics. */
 const UPGRADE_TIER: SubscriptionTier = "pro";
@@ -58,7 +58,7 @@ export function AnalyticsUpgradePanel({
   const navigate = useNavigate();
   // Roadmap F4: memberships are off; no "See plans" while the hidden
   // memberships switch is off for this viewer.
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   const target = TIER_PERKS[UPGRADE_TIER];
 
   // Their real commission over the window, beside the same jobs at Pro's rate.

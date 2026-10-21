@@ -25,7 +25,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -87,7 +87,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
   // Analytics is off for EVERYONE, plan holders included, and this page never
   // shows an upgrade offer. Its one entry point (Earnings) is hidden too; a
   // deep link lands on a plain note instead.
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   const navigate = useNavigate();
 
   // The commission to apply to a legacy row that predates the per-job

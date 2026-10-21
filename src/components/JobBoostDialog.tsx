@@ -20,7 +20,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { userFacingError } from "@/lib/userFacingError";
-import { useFeature } from "@/hooks/useFeature";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { runtimePlatform } from "@/lib/storePurchasePause";
 
 interface JobBoostDialogProps {
@@ -33,7 +33,7 @@ interface JobBoostDialogProps {
 export function JobBoostDialog({ jobId, open, onClose, onBoosted }: JobBoostDialogProps) {
   // Roadmap F4: memberships are off; the "See plans" link shows only while
   // the hidden memberships switch is on for this viewer.
-  const membershipsOn = useFeature("memberships");
+  const membershipsOn = useMembershipsOn();
   const [boosting, setBoosting] = useState(false);
   const { profile, refresh: refreshProfile } = useCurrentUser();
   // Price comes from the SAME rule the edge function charges by

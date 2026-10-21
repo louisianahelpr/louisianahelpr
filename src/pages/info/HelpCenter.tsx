@@ -7,6 +7,7 @@ import FaqRow from "@/components/marketing/FaqRow";
 // Help Center and the policy pages cannot drift into two support cards.
 import { PolicyFooter } from "@/pages/info/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
@@ -251,7 +252,9 @@ const HelpCenter = () => {
         <h2 id="faq-heading" className="sr-only">Frequently asked questions</h2>
         <div className="mx-auto page-measure space-y-section">
           <div className="space-y-3 sm:space-y-4">
-            {FAQ_SECTIONS.map((section) => (
+            {/* The store app never shows memberships (useMembershipsOn), so
+                their plans, prices and billing answers are left out there. */}
+            {FAQ_SECTIONS.filter((section) => !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing")).map((section) => (
               <TopicSection
                 key={section.topic}
                 section={section}

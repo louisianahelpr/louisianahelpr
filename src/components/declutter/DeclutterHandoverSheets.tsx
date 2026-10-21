@@ -12,10 +12,10 @@
  *    the buyer gives the buyer one new booking inside the 7-day pickup
  *    deadline, and a second miss cancels the sale with the item price
  *    refunded (not the buyer's fee) and a strike. The seller does not choose.
- * Truth calls: board 159's "Where exactly?" note is NOT built (the handover
- * row has no field for it: needs a migration). Names, never pronouns.
+ * Board 159's "Where exactly?" note (Q2266, migration 20261021023158): optional, sent with the photo, shown
+ * to the buyer under it (the buyer reads it only on a paid order). Names, never pronouns.
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Sheet,
@@ -51,10 +51,11 @@ export function PutItOutSheet({
   /** The buyer's first name, or "the buyer". */
   who: string;
   pending: boolean;
-  onSend: (file: File) => void;
+  onSend: (file: File, note: string) => void;
   onRetake: () => void;
   onClose: () => void;
 }) {
+  const [note, setNote] = useState("");
   const url = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   return (
@@ -67,10 +68,21 @@ export function PutItOutSheet({
             <img src={url} alt="Your porch photo" className="h-full w-full object-cover" />
           </div>
         )}
-        <p className="mt-2 text-ds-13 text-muted-foreground">{who === "the buyer" ? "The buyer" : who} sees this photo and is told it's out.</p>
+        <label htmlFor="porch-note" className="mt-3 block text-ds-15 font-semibold">
+          Where exactly? <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <input
+          id="porch-note"
+          className="mt-1 h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15"
+          maxLength={200}
+          value={note}
+          placeholder="Left side of the porch, by the swing"
+          onChange={(e) => setNote(e.target.value)}
+        />
+        <p className="mt-2 text-ds-13 text-muted-foreground">{who === "the buyer" ? "The buyer" : who} sees this photo and your note, and is told it's out.</p>
         <SheetFooter>
           <SheetSecondaryAction onClick={onRetake} disabled={pending}>Retake</SheetSecondaryAction>
-          <SheetPrimaryAction onClick={() => file && onSend(file)} disabled={pending || !file}>
+          <SheetPrimaryAction onClick={() => file && onSend(file, note.trim())} disabled={pending || !file}>
             {pending ? "Sending…" : "Send photo · it's out"}
           </SheetPrimaryAction>
         </SheetFooter>
@@ -95,7 +107,9 @@ function PorchPhotoThumb({ orderId }: { orderId: string }) {
       <div className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-muted">
         {url.data && <img src={url.data} alt="Where the item was left" className="h-full w-full object-cover" />}
       </div>
-      <figcaption className="text-ds-13 text-muted-foreground">The porch photo from {time(h.data.set_out_at)}</figcaption>
+      <figcaption className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">
+        The porch photo from {time(h.data.set_out_at)}{h.data.set_out_note ? ` · "${h.data.set_out_note}"` : ""}
+      </figcaption>
     </figure>
   );
 }

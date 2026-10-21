@@ -51,6 +51,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   sellerPickedUp: async (...a: unknown[]) => { state.calls.push(["seller_picked_up", ...a]); return { result: "handed_over" }; },
   setPorchTime: async (...a: unknown[]) => { state.calls.push(["porch_time", ...a]); },
   porchPhoto: async (...a: unknown[]) => { state.calls.push(["porch_photo", ...a]); return { result: "set_out" }; },
+  porchNote: async (...a: unknown[]) => { state.calls.push(["porch_note", ...a]); return a[1]; },
   uploadHandoverPhoto: async () => "me/declutter/handover/o1/x.jpg",
   reportNoShow: async (...a: unknown[]) => { state.calls.push(["no_show", ...a]); return { result: "rebook_offered" }; },
   reportProblem: async (...a: unknown[]) => { state.calls.push(["problem", ...a]); return "p1"; },
@@ -256,10 +257,12 @@ describe("Declutter slice 4: paid-order cards", () => {
 
 /**
  * Boards 159 + 160 (Builder 3c): the handover moments are sheets.
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate(f); } | if (f) photo.mutate(f);
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The sale is cancelled and you get everything back, including the buyer's fee.</li> | <li>The sale is cancelled.</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
+ * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
  */
 describe("boards 159 + 160: handover sheets", () => {
   beforeEach(() => {
@@ -279,10 +282,27 @@ describe("boards 159 + 160: handover sheets", () => {
     expect(within(sheet).getByText("Take one photo of it where Dana will find it. That photo is the handover.")).toBeInTheDocument();
     expect(within(sheet).getByRole("img", { name: "Your porch photo" })).toBeInTheDocument();
     expect(state.calls).toEqual([]);
-    // No "Where exactly?" note: the handover row has no field for it yet.
-    expect(within(sheet).queryByText(/Where exactly/)).toBeNull();
+    // Q2266: the optional "Where exactly?" note goes with the photo.
+    fireEvent.change(within(sheet).getByLabelText(/Where exactly\?/), { target: { value: "  Left side, by the swing " } });
     fireEvent.click(within(sheet).getByRole("button", { name: "Send photo · it's out" }));
-    await waitFor(() => expect(state.calls.some((c) => c[0] === "porch_photo")).toBe(true));
+    await waitFor(() => expect(state.calls).toContainEqual(["porch_note", "o1", "Left side, by the swing"]));
+    expect(state.calls.findIndex((c) => c[0] === "porch_photo")).toBeLessThan(state.calls.findIndex((c) => c[0] === "porch_note"));
+  });
+
+  it("Q2266 retake: a photo sent with no note still clears the old note (lh-authz-rls review #1)", async () => {
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (r.result === "set_out" && order.side === "seller") { | if (r.result === "set_out" && note) {
+    state.bookings = [slot(-60)];
+    show([line({ handover: "porch", my_side: "seller" })]);
+    fireEvent.change(await screen.findByLabelText(/Photo of the item on your porch/), { target: { files: [new File(["x"], "porch.jpg", { type: "image/jpeg" })] } });
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Send photo · it's out" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["porch_note", "o1", ""]));
+  });
+
+  it("Q2266 buyer: the seller's note shows under the porch photo", async () => {
+    state.bookings = [slot(-60)];
+    state.handover = { set_out_at: "2026-10-20T17:12:00Z", set_out_photo_path: "s1/declutter/handover/o1/p.jpg", set_out_note: "Left side, by the swing" };
+    show([line({ handover: "porch" })]);
+    expect(await screen.findByText('"Left side, by the swing"')).toBeInTheDocument();
   });
 
   it("159 buyer: 'Something's not right' closes the sheet and opens the problem form, nothing confirmed", async () => {

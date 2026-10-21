@@ -117,6 +117,8 @@ export function PorchOutPhoto({ orderId, side }: { orderId: string; side: "buyer
       <div className="aspect-[4/3] w-full max-w-[320px] overflow-hidden rounded-2xl bg-photo-empty">
         {url.data && <img src={url.data} alt="Where the item was left" className="h-full w-full object-cover" />}
       </div>
+      {/* Q2266: the seller's "Where exactly?" note, under the photo for both sides. */}
+      {h.data.set_out_note && <p className="text-ds-14 [overflow-wrap:anywhere]" data-porch-note="">"{h.data.set_out_note}"</p>}
       <figcaption className="text-ds-13 text-muted-foreground">
         {side === "buyer"
           ? "This photo shows where it is. Something wrong? Report it before you take your pickup photo."

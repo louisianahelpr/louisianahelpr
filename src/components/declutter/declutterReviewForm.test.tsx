@@ -3,13 +3,15 @@
  * other person ("How was buying from Lexi?" / "selling to Tommy?"), stars are
  * olive, the words are optional, and the note states the LIVE reveal rule
  * (both reviewed, or 14 days: declutter_visible_reviews), never the board's 7.
- * No quick chips: the server stores only stars and a comment.
+ * Quick tags (Q2265): this side's fixed list as chips; the chosen ones go with the review.
  *
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days."; | const REVIEW_SHOWS = "Reviews show once you both leave one, or after 7 days.";
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | How was {side === "buyer" ? "buying from" : "selling to"} {who}? | How was {side === "buyer" ? "buying from" : "selling to"} them?
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | ${n <= stars ? "fill-primary text-primary" : "text-muted-foreground"} | ${n <= stars ? "fill-accent text-accent" : "text-muted-foreground"}
- * @mutate src/components/declutter/DeclutterReviewForm.tsx | leaveReview(orderId, args.stars, args.comment) | leaveReview(orderId, 5, args.comment)
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | leaveReview(orderId, args.stars, args.comment, args.tags) | leaveReview(orderId, 5, args.comment, args.tags)
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |       if ((err as { message?: unknown })?.message === "already_reviewed") { |       if (false) {
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | {REVIEW_TAGS[side].map(([tag, label]) => { | {REVIEW_TAGS.buyer.map(([tag, label]) => {
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | onClick={() => send.mutate({ stars, comment: comment.trim() \|\| null, tags })} | onClick={() => send.mutate({ stars, comment: comment.trim() \|\| null, tags: [] })}
  * @mutate src/lib/declutter/reviews.ts |   if (row.buyer_id === myId) return row.seller_id ?? null; |   if (row.buyer_id === myId) return row.buyer_id ?? null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -21,9 +23,11 @@ const state = {
   names: { "u-lexi": "Lexi Landry", "u-tommy": "Tommy Guidry" } as Record<string, string | null>,
   calls: [] as unknown[][],
   fail: null as string | null,
+  dropTags: false,
 };
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({ toast: toasts }));
 vi.mock("@/components/UserAvatar", () => ({ default: ({ name }: { name: string }) => <span data-avatar="">{name}</span> }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -37,7 +41,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   leaveReview: async (...a: unknown[]) => {
     state.calls.push(a);
     if (state.fail) throw new Error(state.fail);
-    return "r1";
+    return { id: "r1", tagsDropped: state.dropTags };
   },
 }));
 
@@ -61,16 +65,24 @@ beforeEach(() => {
   state.order = { buyer_id: "me", seller_id: "u-lexi" };
   state.calls = [];
   state.fail = null;
+  state.dropTags = false;
+  toasts.success.mockClear();
 });
 
 describe("board 163: reviews after a sale", () => {
-  it("buyer: names the seller, olive stars, optional words, the live 14-day rule, and no chips", async () => {
+  it("buyer: names the seller, olive stars, the buyer's quick tags, optional words, the live 14-day rule", async () => {
     renderIt("buyer");
     const sheet = await openSheet();
     expect(await within(sheet).findByText("How was buying from Lexi?")).toBeInTheDocument();
     expect(within(sheet).getByText("Reviews show once you both leave one, or after 14 days.")).toBeInTheDocument();
     expect(within(sheet).getByPlaceholderText("Shown on their profile")).toBeInTheDocument();
-    expect(within(sheet).queryByText("As described")).toBeNull();
+    // The buyer's list, never the seller's.
+    expect(within(sheet).getAllByRole("button", { pressed: false }).map((b) => b.textContent)).toEqual(["As described", "Easy pickup", "Friendly", "Fair price"]);
+    expect(within(sheet).queryByText("Paid fast")).toBeNull();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Easy pickup" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "As described" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "As described" }));
+    expect(within(sheet).getByRole("button", { name: "Easy pickup" })).toHaveAttribute("aria-pressed", "true");
     const send = within(sheet).getByRole("button", { name: "Send review" });
     expect(send).toBeDisabled();
     fireEvent.click(within(sheet).getByRole("radio", { name: "4 stars" }));
@@ -79,7 +91,7 @@ describe("board 163: reviews after a sale", () => {
     for (const s of lit) expect(s.getAttribute("class")).not.toMatch(/accent|amber|sienna/);
     fireEvent.change(within(sheet).getByLabelText(/A few words/), { target: { value: "  Easy pickup.  " } });
     fireEvent.click(send);
-    await waitFor(() => expect(state.calls).toEqual([["o1", 4, "Easy pickup."]]));
+    await waitFor(() => expect(state.calls).toEqual([["o1", 4, "Easy pickup.", ["easy_pickup"]]]));
     expect(await screen.findByText(/Review sent\./)).toBeInTheDocument();
   });
 
@@ -88,9 +100,11 @@ describe("board 163: reviews after a sale", () => {
     renderIt("seller");
     const sheet = await openSheet();
     expect(await within(sheet).findByText("How was selling to Tommy?")).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Paid fast" })).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "As described" })).toBeNull();
     fireEvent.click(within(sheet).getByRole("radio", { name: "5 stars" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
-    await waitFor(() => expect(state.calls).toEqual([["o1", 5, null]]));
+    await waitFor(() => expect(state.calls).toEqual([["o1", 5, null, []]]));
   });
 
   it("no name on the profile: 'the seller', never a pronoun", async () => {
@@ -98,6 +112,17 @@ describe("board 163: reviews after a sale", () => {
     renderIt("buyer");
     const sheet = await openSheet();
     expect(await within(sheet).findByText("How was buying from the seller?")).toBeInTheDocument();
+  });
+
+  it("before the tags migration is live: the review is sent and the member is told the tags weren't", async () => {
+    // @mutate src/components/declutter/DeclutterReviewForm.tsx | toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`); | toast.success(`Thanks. ${REVIEW_SHOWS}`);
+    state.dropTags = true;
+    renderIt("buyer");
+    const sheet = await openSheet();
+    fireEvent.click(within(sheet).getByRole("radio", { name: "5 stars" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Friendly" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
+    await waitFor(() => expect(toasts.success).toHaveBeenCalledWith(expect.stringContaining("Your tags couldn't be saved yet.")));
   });
 
   it("already reviewed elsewhere: the card stops offering it", async () => {

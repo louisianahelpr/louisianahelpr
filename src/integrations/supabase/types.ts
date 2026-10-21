@@ -1387,6 +1387,7 @@ export type Database = {
           picked_up_photo_path: string | null
           set_out_at: string | null
           set_out_photo_path: string | null
+          set_out_note: string | null
           wrong_attempts: number
         }
         Insert: {
@@ -1400,6 +1401,7 @@ export type Database = {
           picked_up_photo_path?: string | null
           set_out_at?: string | null
           set_out_photo_path?: string | null
+          set_out_note?: string | null
           wrong_attempts?: number
         }
         Update: {
@@ -1413,6 +1415,7 @@ export type Database = {
           picked_up_photo_path?: string | null
           set_out_at?: string | null
           set_out_photo_path?: string | null
+          set_out_note?: string | null
           wrong_attempts?: number
         }
         Relationships: [
@@ -2217,6 +2220,7 @@ export type Database = {
           reviewer_id: string | null
           reviewer_side: string
           stars: number
+          tags: string[]
         }
         Insert: {
           comment?: string | null
@@ -2228,6 +2232,7 @@ export type Database = {
           reviewer_id?: string | null
           reviewer_side: string
           stars: number
+          tags?: string[]
         }
         Update: {
           comment?: string | null
@@ -2239,6 +2244,7 @@ export type Database = {
           reviewer_id?: string | null
           reviewer_side?: string
           stars?: number
+          tags?: string[]
         }
         Relationships: [
           {
@@ -11770,7 +11776,12 @@ export type Database = {
         }[]
       }
       declutter_leave_review: {
-        Args: { p_comment: string; p_order_id: string; p_stars: number }
+        Args: {
+          p_comment: string
+          p_order_id: string
+          p_stars: number
+          p_tags?: string[]
+        }
         Returns: string
       }
       declutter_link_haul_away: {
@@ -11941,6 +11952,10 @@ export type Database = {
         }[]
       }
       declutter_pick_drop_stop: { Args: { p_floor: number }; Returns: number }
+      declutter_porch_note: {
+        Args: { p_note: string; p_order_id: string }
+        Returns: string
+      }
       declutter_porch_photo: {
         Args: {
           p_lat: number
@@ -12052,6 +12067,7 @@ export type Database = {
         Args: { p_buyer: string; p_order_id: string; p_session_id: string }
         Returns: boolean
       }
+      declutter_review_tags_for: { Args: { p_side: string }; Returns: string[] }
       declutter_road_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       declutter_save_card: {
         Args: {
@@ -12165,6 +12181,7 @@ export type Database = {
           id: string
           reviewer_side: string
           stars: number
+          tags: string[]
         }[]
       }
       declutter_wanted_alert_block: {

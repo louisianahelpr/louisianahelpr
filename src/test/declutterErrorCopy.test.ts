@@ -42,6 +42,8 @@ const DECLUTTER_FILES = [
   "20261018183715_declutter_handover_no_qr_no_code.sql",
   // Board 158, manage a listing: invalid_price, price_above_listed, invalid_input (and the paused status).
   "20261020064354_declutter_manage_listing.sql",
+  "20261021023158_declutter_porch_note.sql",
+  "20261021023530_declutter_review_tags.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.

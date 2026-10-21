@@ -13,6 +13,8 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useRef, useState } from "react";
+import { Check } from "lucide-react";
+import { StepTracker } from "@/components/tracker/StepTracker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -50,6 +52,10 @@ const SIZE_WORDS: Record<TaskSize, string> = {
   large: "Large (needs a truck)",
   xl: "Extra large (truck and two people)",
 };
+
+const DELIVERY_STEPS = ["Booked", "Picked up", "Delivered"] as const;
+const DELIVERY_STEP: Partial<Record<TaskView["status"], number>> = { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 };
+const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -137,10 +143,32 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
     line = "This delivery was closed.";
   }
   const canConfirm = side === "buyer" && (v.status === "picked_up" || v.status === "delivered");
+  // Board 76: the one tracker, Booked -> Picked up -> Delivered, once a Helpr has it.
+  const at = DELIVERY_STEP[v.status];
+  // Each real step, with its own time, as a centred progress note (spec §3 status bubbles).
+  const events = [
+    v.accepted_at && { key: "a", text: `${who} took the delivery`, at: v.accepted_at },
+    v.picked_up_at && { key: "p", text: `${who} picked it up from the seller`, at: v.picked_up_at },
+    v.delivered_at && { key: "d", text: `${who} left it at the drop-off`, at: v.delivered_at },
+  ].filter(Boolean) as { key: string; text: string; at: string }[];
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="space-y-0.5">
+        <p className="text-ds-15 font-semibold line-clamp-2" title={v.title}>{v.title}</p>
+        <p className="text-ds-13 text-muted-foreground">{v.pickup_area} to {v.dropoff_area} · {SIZE_WORDS[v.size]}</p>
+      </div>
+      {at !== undefined && <StepTracker steps={DELIVERY_STEPS} at={at} />}
       <p className="text-sm">{line}</p>
-      <p className="text-xs text-muted-foreground">To {v.dropoff_area} · {SIZE_WORDS[v.size]}</p>
+      {events.length > 0 && (
+        <ul className="flex flex-col items-center gap-1.5" aria-label="What happened">
+          {events.map((e) => (
+            <li key={e.key} className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-ds-12 text-foreground">
+              <Check className="h-3.5 w-3.5 text-primary" aria-hidden />
+              {e.text} · {clock(e.at)}
+            </li>
+          ))}
+        </ul>
+      )}
       <TaskPhotos view={v} />
       {canConfirm && (
         <button type="button" className={primary} disabled={gotIt.isPending}
@@ -205,7 +233,12 @@ function VehicleForm({ userId }: { userId: string }) {
   );
 }
 
-/** One open delivery a Helpr can take: pick a pickup time inside the seller's times. */
+/**
+ * One open delivery a Helpr can take (board 50, spec §9.14): what it is, the
+ * pickup -> drop-off route as AREAS only, what is being carried, the take-home
+ * after the Helpr fee, then a pickup time inside the seller's times and
+ * "Accept delivery". Every figure is the task row's (helpr_tasks_open_near).
+ */
 function OpenTaskRow({ t }: { t: OpenTask }) {
   const qc = useQueryClient();
   const [slot, setSlot] = useState("");
@@ -215,20 +248,53 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const id = `helpr-slot-${t.task_id}`;
+  const miles = (n: number) => `about ${n} ${n === 1 ? "mile" : "miles"}`;
   return (
-    <li className="rounded-2xl border border-border bg-card p-4 space-y-2">
-      <p className="font-semibold truncate" title={t.title}>{t.title}</p>
-      <p className="text-sm">{t.pickup_area} to {t.dropoff_area} · about {t.trip_miles} {t.trip_miles === 1 ? "mile" : "miles"}</p>
-      <p className="text-sm text-muted-foreground">
-        {SIZE_WORDS[t.size]}{t.miles_to_pickup !== null ? ` · pickup about ${t.miles_to_pickup} ${t.miles_to_pickup === 1 ? "mile" : "miles"} from you` : ""}
-      </p>
-      <p className="text-sm font-medium">You get {formatPrice(t.take_home_cents)} <span className="font-normal text-muted-foreground">(after the 5% + 70¢ fee)</span></p>
-      <label htmlFor={id} className="block text-xs font-medium">Pickup time (inside the seller's pickup times, by {when(t.latest_pickup_at)})</label>
-      <div className="flex gap-2">
-        <input id={id} type="datetime-local" className={`${input} min-w-0`} value={slot} onChange={(e) => setSlot(e.target.value)} />
-        <button type="button" className={`${primary} shrink-0`} disabled={take.isPending || !localInputToIso(slot)}
+    <li className="rounded-2xl border border-border bg-card p-4 space-y-4">
+      <div className="space-y-1">
+        <p className="text-ds-12 font-semibold text-primary">Helpr delivery</p>
+        <p className="text-ds-17 font-bold leading-snug line-clamp-2" title={t.title}>{t.title}</p>
+        <p className="text-ds-13 text-muted-foreground">Pick up by {when(t.latest_pickup_at)}</p>
+      </div>
+      <ol className="space-y-3" aria-label="Route">
+        <li className="relative flex gap-3">
+          <span aria-hidden className="mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-primary" />
+          <span aria-hidden className="absolute left-[5px] top-5 h-[calc(100%+0.25rem)] w-0.5 bg-border" />
+          <div className="min-w-0">
+            <p className="text-ds-15 font-semibold">Pick up in {t.pickup_area}</p>
+            <p className="text-ds-13 text-muted-foreground">
+              From the seller{t.miles_to_pickup !== null ? ` · ${miles(t.miles_to_pickup)} from you` : ""}
+            </p>
+          </div>
+        </li>
+        <li className="flex gap-3">
+          <span aria-hidden className="mt-1 h-3 w-3 shrink-0 rounded-full bg-primary" />
+          <div className="min-w-0">
+            <p className="text-ds-15 font-semibold">Drop off near {t.dropoff_area}</p>
+            <p className="text-ds-13 text-muted-foreground">To the buyer · {miles(t.trip_miles)}</p>
+          </div>
+        </li>
+      </ol>
+      <div className="space-y-0.5">
+        <p className="text-ds-13 font-semibold">What you're carrying</p>
+        <p className="text-ds-13 text-muted-foreground">{SIZE_WORDS[t.size]}</p>
+      </div>
+      <div className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.08)] p-3 space-y-1">
+        <p className="flex items-baseline justify-between gap-3">
+          <span className="text-ds-15 font-semibold">You take home</span>
+          <span className="text-ds-22 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(t.take_home_cents)}</span>
+        </p>
+        <p className="text-ds-12 text-muted-foreground">
+          After the Helpr's fee (5% + 70¢). Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.
+        </p>
+      </div>
+      <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
+      <div className="space-y-2">
+        <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {when(t.latest_pickup_at)})</label>
+        <input id={id} type="datetime-local" className={input} value={slot} onChange={(e) => setSlot(e.target.value)} />
+        <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !localInputToIso(slot)}
           onClick={() => { const iso = localInputToIso(slot); if (iso) take.mutate(iso); }}>
-          Take it
+          Accept delivery
         </button>
       </div>
     </li>

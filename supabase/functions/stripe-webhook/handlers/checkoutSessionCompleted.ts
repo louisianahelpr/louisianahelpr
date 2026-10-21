@@ -22,6 +22,7 @@ import {
   subscriptionLinkage,
 } from "../../_shared/subscriptionLinkage.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { memberDisplayNameOf } from "../../_shared/memberDisplayName.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
@@ -334,7 +335,7 @@ async function settleCheckoutSession(
         const tipId = (tipRows ?? [])[0]?.id as string | undefined;
         if (tipId && tipPi) {
           const back = await holdBackPaidTip(stripe, supabase, {
-            tipId, helperId: String(tipHelperId), paymentIntentId: tipPi, jobId: String(tipJobId),
+            tipId, helperId: String(tipHelperId), paymentIntentId: tipPi, jobId: String(tipJobId), tipperId: String(tipperId),
           });
           // Not `back.kind === …`: the Q343 metadata guard reads any `kind ===` here as session metadata.
           const holdBackKind: string = back.kind;
@@ -349,11 +350,13 @@ async function settleCheckoutSession(
         logStep("Tip marked as paid", { jobId: tipJobId, tipper: tipperId });
         // Notify the helper — only on the delivery that actually captured the tip.
         if (tipHelperId) {
+          // Owner 2026-10-21: say who, as "First L." (the tipper is known: it is their session).
+          const tipperName = await memberDisplayNameOf(supabase, String(tipperId), String(tipHelperId), "Someone");
           await insertNotifications(supabase, {
             user_id: tipHelperId,
             job_id: tipJobId,
             title: "You received a tip!",
-            message: `Someone tipped you for a completed job. Thanks for the great work!`,
+            message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
             type: "payment",
             link: "/profile?tab=earnings",
           });

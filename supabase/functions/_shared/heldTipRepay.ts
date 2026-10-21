@@ -32,6 +32,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
+import { memberDisplayNameOf } from "../_shared/memberDisplayName.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 type Db = { from: (t: string) => any };
@@ -104,13 +105,17 @@ async function markReversed(supabase: Db, tipId: string, reversalId: string): Pr
   });
 }
 
-/** The Helpr keeps a tip whose hold was released before it was pulled back: tell them. */
-async function notifyKept(supabase: Db, helperId: string, jobId: string | null): Promise<void> {
+/**
+ * Tell the Helpr a held tip reached them: kept (the hold was released before it was pulled back) or
+ * re-paid. Owner 2026-10-21: say who tipped, as "First L." (one notice text for every path).
+ */
+async function notifyKept(supabase: Db, helperId: string, jobId: string | null, tipperId: string | null): Promise<void> {
+  const tipperName = await memberDisplayNameOf(supabase, tipperId, helperId, "Someone");
   await insertNotifications(supabase, {
     user_id: helperId,
     ...(jobId ? { job_id: jobId } : {}),
     title: "You received a tip!",
-    message: "Someone tipped you for a completed job. Thanks for the great work!",
+    message: `${tipperName} tipped you for a completed job. Thanks for the great work!`,
     type: "payment",
     link: "/profile?tab=earnings",
   });
@@ -125,7 +130,7 @@ async function notifyKept(supabase: Db, helperId: string, jobId: string | null):
 export async function holdBackPaidTip(
   stripe: Stripe,
   supabase: Db,
-  args: { tipId: string; helperId: string; paymentIntentId: string; jobId: string },
+  args: { tipId: string; helperId: string; paymentIntentId: string; jobId: string; tipperId?: string | null },
 ): Promise<HoldBackResult> {
   const hold = await checkPayoutHold(supabase, args.helperId);
   if (hold.kind === "error") throw new Error(`payout hold read failed for a paid tip ${args.tipId}: ${hold.message}`);
@@ -155,7 +160,7 @@ export async function holdBackPaidTip(
       .eq("tip_id", args.tipId).eq("status", "owed").select("tip_id");
     // Second review of Q1222: the delivery that wrote 'owed' told nobody, so
     // the Helpr is told here, once (the row moves to 'kept' once).
-    if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId);
+    if (k && k.length > 0) await notifyKept(supabase, args.helperId, args.jobId, args.tipperId ?? null);
     return { kind: "kept" };
   }
 
@@ -283,8 +288,8 @@ export async function redriveHeldTips(
             .eq("tip_id", r.tip_id).eq("status", "owed").select("tip_id");
           if (k && k.length) {
             out.kept++;
-            const { data: tipRow } = await supabase.from("tips").select("job_id").eq("id", r.tip_id).maybeSingle();
-            await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null);
+            const { data: tipRow } = await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
+            await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
           }
           continue;
         }
@@ -360,7 +365,7 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     else await ageAlert(r, now, "the Helpr has no payout account to send it to");
     return false; // waits; retried next run
   }
-  const { data: tipRow } = await supabase.from("tips").select("job_id").eq("id", r.tip_id).maybeSingle();
+  const { data: tipRow } = await supabase.from("tips").select("job_id, tipper_id").eq("id", r.tip_id).maybeSingle();
   const group = `tip_${r.tip_id}`;
   let transfer: Stripe.Transfer | undefined;
   try {
@@ -423,14 +428,8 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     out.defects.push(`tip ${r.tip_id} re-paid (${transfer.id}) but the row was not marked: ${doneErr?.message ?? "matched 0 rows"}`);
     return false;
   }
-  await insertNotifications(supabase, {
-    user_id: r.helper_id,
-    ...(tipRow?.job_id ? { job_id: tipRow.job_id } : {}),
-    title: "You received a tip!",
-    message: "Someone tipped you for a completed job. Thanks for the great work!",
-    type: "payment",
-    link: "/profile?tab=earnings",
-  });
+  // The same notice as a kept tip (it was insertNotifications with the same row, inline).
+  await notifyKept(supabase, r.helper_id, (tipRow?.job_id as string | undefined) ?? null, (tipRow?.tipper_id as string | undefined) ?? null);
   return true;
 }
 

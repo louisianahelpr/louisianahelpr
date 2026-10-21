@@ -141,7 +141,7 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   wrapped: [{ h: 333 }],
   // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out
   // (375, poster-e2e, 2026-10-20).
-  settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 295 }, { h: 378 }, { h: 58 }],
+  settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 397 }, { h: 378 }, { h: 58 }],
 };
 
 /** Avatar circles a screenful-reserve tab draws in its first card. */

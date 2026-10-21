@@ -1,11 +1,12 @@
 import { Link } from "react-router-dom";
 import {
   Building2, Wallet, Crown, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
-  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users,
+  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
+import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
@@ -192,6 +193,36 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)}.</p>
             <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)}.</p>
             <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
+          </>
+        }
+      />
+    </PolicySection>
+
+    {/* Owner 2026-10-20: job photos on social media, with an opt-out (profiles.share_job_photos,
+        job_photos_shareable). The setting is named by its exact label (termsJobPhotosClause). */}
+    <PolicySection
+      icon={Camera}
+      title="Photos from jobs"
+      subtitle="How we may share before and after photos, and how to say no"
+      anchorId="photos-from-jobs"
+    >
+      <PolicyRowItem
+        icon={Camera}
+        title="Photos from jobs"
+        body={
+          <>
+            <p data-terms-job-photos>
+              When you upload before and after photos for a job, you give Louisiana Helpr permission to use them to show
+              what Helprs do: on our website, on social media and in ads, for free and without paying you, for as long as
+              Helpr runs. We crop or blur faces, house numbers, street signs, license plates and anything else that shows
+              where you live, and we never name you or your Helpr without asking first.
+            </p>
+            <p>A job&apos;s photos are only used when BOTH the poster and the Helpr allow it.</p>
+            <p>
+              Don&apos;t want your photos used? Turn off &ldquo;{SHARE_JOB_PHOTOS_LABEL}&rdquo; in{" "}
+              <Link to="/profile?tab=settings" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Settings</Link>.
+              It stops future posts; it can&apos;t pull posts already shared.
+            </p>
           </>
         }
       />

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { ChevronRight } from "lucide-react";
@@ -13,6 +13,10 @@ import { useProfileLandingDerived } from "@/components/profile/profileLanding/us
 import type { MenuItem, Profile } from "@/components/profile/profileLanding/types";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
+import { supabase } from "@/integrations/supabase/client";
+import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -59,6 +63,46 @@ function Row({ label, sub, onClick, right, testId }: { label: string; sub?: stri
     </button>
   ) : (
     <div data-settings-row={testId} className={cls}>{body}</div>
+  );
+}
+
+/**
+ * "Let Helpr share my job photos": profiles.share_job_photos (default on; the
+ * member's own row). A job's photos are used only when the poster AND every
+ * Helpr on it leave this on (job_photos_shareable, 20261021001940). The write is
+ * checked (`.select` + unwrapMutation); a refused write puts the switch back.
+ */
+function ShareJobPhotosRow({ profile }: { profile: Profile | null }) {
+  const { refresh } = useCurrentUser();
+  const [on, setOn] = useState<boolean>(profile?.share_job_photos ?? true);
+  const [saving, setSaving] = useState(false);
+  // The profile can arrive (or refresh) after first paint: follow it unless a write is in flight.
+  const stored = profile?.share_job_photos;
+  useEffect(() => { if (!saving && typeof stored === "boolean") setOn(stored); }, [stored, saving]);
+  if (!profile) return null;
+  const change = async (next: boolean) => {
+    setOn(next);
+    setSaving(true);
+    try {
+      unwrapMutation(
+        await supabase.from("profiles").update({ share_job_photos: next }).eq("user_id", profile.user_id).select("user_id"),
+        { action: next ? "let Helpr share your job photos" : "stop Helpr sharing your job photos", context: { userId: profile.user_id } },
+      );
+      void refresh();
+    } catch (err) {
+      setOn(!next);
+      toast.error(mutationErrorMessage(err, "Couldn't save that setting. Please try again."));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <Row
+      testId="share-job-photos"
+      label={SHARE_JOB_PHOTOS_LABEL}
+      sub="Before and after photos may show what Helprs do. Faces and addresses are hidden."
+      right={<Switch checked={on} disabled={saving} onCheckedChange={(v) => void change(v)} aria-label={SHARE_JOB_PHOTOS_LABEL} />}
+    />
   );
 }
 
@@ -144,6 +188,7 @@ export function SettingsTab({
         <Row testId="security" label={TAB_TITLES.security} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
         {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
         <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
+        <ShareJobPhotosRow profile={profile} />
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
       </Group>
 

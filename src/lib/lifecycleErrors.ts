@@ -44,6 +44,8 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   already_reported: "You have already reported this Helpr as a no-show for this job.",
   // Q2291: the server's Louisiana-only address rule (jobs_address_in_louisiana).
   job_address_not_louisiana: "Helpr is in Louisiana only for now. Use a Louisiana address.",
+  // Board 66/172 slice 4: the category is locked once people have applied.
+  category_locked_after_applications: "People have applied to this kind of work, so the category stays. Post a new job for different work.",
   no_helper_assigned: "No Helpr has been assigned to this job yet.",
   not_authorized: "Only the person who posted this job can do that.",
   job_not_found: "We couldn't find that job.",

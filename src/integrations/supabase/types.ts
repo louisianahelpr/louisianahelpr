@@ -4938,6 +4938,7 @@ export type Database = {
           is_seed: boolean
           is_urgent: boolean | null
           late_cancellation: boolean | null
+          last_edit_notice_at: string | null
           latitude: number | null
           location: string | null
           longitude: number | null
@@ -5059,6 +5060,7 @@ export type Database = {
           is_seed?: boolean
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
+          last_edit_notice_at?: string | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
@@ -5180,6 +5182,7 @@ export type Database = {
           is_seed?: boolean
           is_urgent?: boolean | null
           late_cancellation?: boolean | null
+          last_edit_notice_at?: string | null
           latitude?: number | null
           location?: string | null
           longitude?: number | null
@@ -12861,6 +12864,7 @@ export type Database = {
           is_seed: boolean
           is_urgent: boolean | null
           late_cancellation: boolean | null
+          last_edit_notice_at: string | null
           latitude: number | null
           location: string | null
           longitude: number | null
@@ -13007,6 +13011,7 @@ export type Database = {
           is_seed: boolean
           is_urgent: boolean | null
           late_cancellation: boolean | null
+          last_edit_notice_at: string | null
           latitude: number | null
           location: string | null
           longitude: number | null

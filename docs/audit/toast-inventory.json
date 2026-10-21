@@ -10478,7 +10478,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 111,
+      "line": 130,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10488,11 +10488,11 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 171,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "mutationErrorMessage(err, \"We couldn't save your changes — please try again.\")"
+        "text": "lifecycleErrorMessage(err) ?? mutationErrorMessage(err, \"We couldn't save your changes — please try again.\")"
       },
       "renders": true
     },

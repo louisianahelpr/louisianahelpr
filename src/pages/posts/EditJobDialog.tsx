@@ -3,6 +3,7 @@ import { Switch } from "@/components/ui/switch";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
 import { supabase } from "@/integrations/supabase/client";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import type { Database, TablesUpdate } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -75,6 +76,24 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   const savedAccess = useJobAccessNote(job?.id, !!job) ?? "";
   const [requirePhotoProof, setRequirePhotoProof] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Board 66/172 slice 4: once anyone has applied, the category stays (the server refuses the change,
+  // category_locked_after_applications). Read here only to grey the picker and say why; a failed read leaves the
+  // picker open and the server still holds the rule, so the error is deliberately not surfaced.
+  const [hasApplicants, setHasApplicants] = useState(false);
+  useEffect(() => {
+    if (!job?.id || job.helper_id) return;
+    let live = true;
+    try {
+      void Promise.resolve(
+        supabase.from("applications").select("id", { count: "exact", head: true }).eq("job_id", job.id),
+      ).then((res) => {
+        if (live && res && !res.error) setHasApplicants((res.count ?? 0) > 0);
+      }).catch(() => {});
+    } catch {
+      // Best-effort read (see above): the server holds the rule either way.
+    }
+    return () => { live = false; };
+  }, [job?.id, job?.helper_id]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [showDiscard, setShowDiscard] = useState(false);
 
@@ -168,7 +187,7 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       onClose();
     } catch (err) {
       hapticError();
-      toast.error(mutationErrorMessage(err, "We couldn't save your changes — please try again."));
+      toast.error(lifecycleErrorMessage(err) ?? mutationErrorMessage(err, "We couldn't save your changes — please try again."));
     } finally {
       setSaving(false);
     }
@@ -269,13 +288,18 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
             </div>
             <div className="space-y-1.5">
               <Label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Category</Label>
-              <Select value={category} onValueChange={setCategory} disabled={hasHelper}>
+              <Select value={category} onValueChange={setCategory} disabled={hasHelper || hasApplicants}>
                 <SelectTrigger aria-label="Category"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {categories.map((c) => <SelectItem key={c.value} value={c.value} disabled={crossesTaxClass(c.value)}>{c.label}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {funded && !hasHelper && (
+              {hasApplicants && !hasHelper && (
+                <p className="text-ds-12 text-muted-foreground" data-testid="category-applicants-lock-hint">
+                  People have applied to this kind of work, so the category stays. Applicants are told when you change the date, time, place or details.
+                </p>
+              )}
+              {funded && !hasHelper && !hasApplicants && (
                 <p className="text-ds-12 text-muted-foreground" data-testid="category-tax-lock-hint">
                   Sales tax was set by this category when you paid, so some categories are unavailable.
                 </p>

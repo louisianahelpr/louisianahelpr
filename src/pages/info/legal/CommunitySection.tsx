@@ -62,7 +62,7 @@ export const CommunityContent = () => (
         // that guard matches "Nth strike" + a consequence on one line, and this
         // sentence says neither.
         "Strikes ladder up to a 7-day restriction while an admin reviews — a permanent ban is never automatic. Fraud, harassment, off-platform payments, and identity fraud skip the ladder and go straight to an admin.",
-        "Helprs are independent contractors — taxes are your responsibility. We send 1099s when thresholds are met.",
+        "Helprs are independent contractors — taxes are your responsibility. Stripe issues the 1099-K when federal thresholds are met.",
       ]}
     />
 

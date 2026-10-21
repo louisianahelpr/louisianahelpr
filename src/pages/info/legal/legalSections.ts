@@ -36,7 +36,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 // actually edited.
 export const LAST_UPDATED: Record<TabKey, string> = {
   terms: "Oct 2026",
-  community: "Jun 2026",
+  community: "Oct 2026", // 2026-10-21: the 1099 line made true (Stripe issues the 1099-K)
   privacy: "Oct 2026",
 };
 

@@ -55,8 +55,8 @@ export function usePostJobForm() {
   // Declutter's "Sell it for me" (`sellForMe`, src/lib/declutter/sellForMe.ts).
   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) || searchParams.get("rebook") || searchParams.get("offerTo") || searchParams.get("declutterOrder") || searchParams.get("maintenance") || searchParams.get("turnover") || searchParams.get("haulAway"));
   const [step, setStep] = useState<Step>(skipEntry ? "form" : "entry");
-  // Which of the form's four screens is showing (1 What, 2 Details, 3 Price,
-  // 4 When and where; screen 5 is the checkout step). Boards 23/44/3/45/46.
+  // Which form PAGE is showing: 1 the groups / a group's categories (screens 2-3 of 7), 2 Details (4),
+  // 3 Price (5), 4 When and where (6); Review (7) is the checkout step. Numbers: postJobScreens.ts.
   const [formPage, setFormPage] = useState(1);
   // Step 0's chosen way to start, shown in place of the four cards (owner 2026-10-21: "tapping goes
   // straight on"). `?start=ai` (the create sheet's "Or just describe the job") opens the AI builder.
@@ -521,7 +521,7 @@ export function usePostJobForm() {
       }
       setFormPage((p) => p - 1);
     } else if (step === "checkout") {
-      // Back from screen 5 (checkout) is screen 4, When and where.
+      // Back from Review (7 of 7, the checkout step) is When and where (6 of 7).
       setFormPage(4);
       setStep("form");
       // Scroll to top so the user lands on Details (not mid-form) to edit.

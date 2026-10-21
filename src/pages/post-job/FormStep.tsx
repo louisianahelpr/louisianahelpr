@@ -99,7 +99,7 @@ export function FormStep({ form }: FormStepProps) {
   }
 
   // ONE QUESTION PER SCREEN (boards 23, 44, 3, 45, 46): What, Details, Price,
-  // When and where; the checkout step is screen 5. Every screen stays mounted
+  // When and where; the checkout step is Review (7 of 7, postJobScreens.ts). Every page stays mounted
   // (hidden when not showing) so nothing typed is lost and the quote form's
   // ref still answers on screen 4. The page lives in usePostJobForm so the
   // header's back arrow steps back through it.
@@ -228,7 +228,7 @@ export function FormStep({ form }: FormStepProps) {
         }}
         className="space-y-4"
       >
-        {/* SCREEN 1: WHAT (board 23) */}
+        {/* PAGE 1: WHAT, screens 2 and 3 of 7 (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
           {openGroup ? (
             <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." />
@@ -249,7 +249,7 @@ export function FormStep({ form }: FormStepProps) {
           />
         </div>
 
-        {/* SCREEN 2: DETAILS (board 44) */}
+        {/* PAGE 2: DETAILS, screen 4 of 7 (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
           <PostJobStepHeader screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." />
           <DetailsSection
@@ -278,7 +278,7 @@ export function FormStep({ form }: FormStepProps) {
         </div>
 
 
-        {/* SCREEN 3: PRICE (board 3), or the quote window with "Get quotes" picked */}
+        {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
           <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} />
           {quotesShape && quotes.settled && (
@@ -314,7 +314,7 @@ export function FormStep({ form }: FormStepProps) {
           )}
         </div>
 
-        {/* SCREEN 4: WHEN AND WHERE (board 45) */}
+        {/* PAGE 4: WHEN AND WHERE, screen 6 of 7 (board 45) */}
         <div data-form-page="4" hidden={page !== 4} className="space-y-section">
           <PostJobStepHeader screen="where" question="When and where?" helper="Helprs see the area now and your street address after you hire." />
           <LogisticsSection

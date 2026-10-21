@@ -29,7 +29,10 @@ import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
 
 /** Hand-written PGRST202 comparisons still in app code (Q2190 burns these down). EXACT, both ways. */
-const RAW_PGRST202_SITES = 58;
+// 59 since boards 66/172 slice 2 (2026-10-21): CancellationDialog asks poster_cancel_job the old way when the
+// deployed function predates p_expected_fee_cents. That PGRST202 names poster_cancel_job in its hint (it exists with
+// other parameters), the one case isMissingRpcNamed rightly refuses, so it stays a raw comparison until 130723 is live.
+const RAW_PGRST202_SITES = 59;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

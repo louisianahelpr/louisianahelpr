@@ -1,5 +1,26 @@
 import { formatPriceExact } from "@/lib/format";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
+import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { isPosterFeeJob } from "@/lib/posterJobFee";
+
+/**
+ * Whether a poster's cancel refund is "what you paid, less the card-processing
+ * fee Stripe keeps" (true) or "the budget, less the service fee you paid at
+ * checkout" (false). A flat-model job (F3) charged the job price only, and a
+ * poster-fee job keeps only the card cost on a cancel (Q2082 (b)). A LEGACY
+ * job moved to the flat Helpr fee after it was paid for (owner 2026-10-21,
+ * 20261021142508) carries the flat Helpr stamp but its poster still paid a
+ * service fee at checkout, which the cancel keeps (void-cancelled-payments,
+ * customer_fee_amount), so it keeps the service-fee copy.
+ */
+export function cancelRefundIsLessCardFee(
+  feeStamp: FlatFeeStamp | null | undefined,
+  posterFee: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null | undefined,
+): boolean {
+  if (!isFlatFeeJob(feeStamp)) return false;
+  if (isPosterFeeJob(posterFee)) return true;
+  return !(Number(posterFee?.customer_fee_amount ?? 0) > 0);
+}
 
 /**
  * Whether a gift card paid toward this job, read right after the cancel:

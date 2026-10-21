@@ -109,7 +109,7 @@ describe("CancellationDialog fee breakdown", () => {
   // Q1842: a flat-model job (F3) was charged the job price only, so the
   // "service fee isn't refundable" copy is false for it; its refund is the
   // payment less Stripe's card-processing fee. A legacy job keeps the old copy.
-  // @mutate src/components/CancellationDialog.tsx |   const flatModel = isFlatFeeJob(feeStamp); |   const flatModel = false;
+  // @mutate src/components/CancellationDialog.tsx |   const flatModel = cancelRefundIsLessCardFee(feeStamp, posterFee); |   const flatModel = false;
   it("a flat-model job's refund copy names the card-processing fee, not a service fee", () => {
     render(
       <CancellationDialog

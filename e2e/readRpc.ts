@@ -51,6 +51,22 @@ export const READ_RPCS_BY_NAME = new Set([
   "rentals_my_identity",
   "shops_browse",
   "shops_my_shop_id",
+  // press-every-control 39376366289 (2026-10-20, nightly-red #2353): aborted
+  // as "writes" of the control that opened their page. Each verified
+  // pg_proc.provolatile = 's' on prod 2026-10-21 (Builder 5).
+  "admin_gift_card_paid_job_ids",
+  "admin_last_activity",
+  "admin_last_logins",
+  "admin_stalled_job_queue",
+  "admin_support_queue",
+  "declutter_haul_away_state",
+  "declutter_my_cart",
+  "declutter_my_offers",
+  "declutter_seller_moving_sale",
+  "has_pre_verification_wipe",
+  "poster_crew_block_fee_cents",
+  "rentals_browse_listings",
+  "rentals_my_ended_deposits",
 ]);
 
 /** True for a Supabase RPC POST a write firewall may let through as a read. */

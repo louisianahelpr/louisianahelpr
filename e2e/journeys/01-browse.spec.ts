@@ -136,7 +136,8 @@ test(guestTitle, async ({ browser, request, journey }) => {
     // tap goes to sign-up carrying the job, so the job opens after signing in.
     await page.getByRole("heading", { level: 2 }).first().click();
     await expect(page, "tapping a job as a guest did not prompt sign-up").toHaveURL(/\/signup\?redirect=%2Fjobs%2F[0-9a-f-]{36}/, { timeout: 30_000 });
-    await expect(page.getByRole("heading", { name: /create account/i })).toBeVisible({ timeout: 20_000 });
+    // Board 55 (owner 10-20): the sign-up heading is "Create your account".
+    await expect(page.getByRole("heading", { name: /create (your )?account/i })).toBeVisible({ timeout: 20_000 });
     await assertHealthy(page, "guest sign-up prompt");
     await journey.milestone(page, "guest-signup-prompt");
   });

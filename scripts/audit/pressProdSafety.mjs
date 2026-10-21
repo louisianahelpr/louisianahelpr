@@ -384,6 +384,16 @@ export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|g
 export function isCommitControl(meta = {}) {
   return typeof meta.commit === "string" && meta.commit.length > 0;
 }
+/**
+ * OPENING A NOTIFICATION IS A WRITE (nightly-red #2353, press-every-control
+ * 39376366289: 714 aborted PATCH /rest/v1/notifications). Tapping a row in the
+ * bell panel marks it read before it navigates, so the row is a mutating
+ * control: it goes through the mutation gate like any other, never ungated.
+ */
+export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /;
+export function isNotificationOpen({ label = "" }) {
+  return NOTIFICATION_OPEN_RX.test(label);
+}
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
 }
@@ -1005,6 +1015,9 @@ function isAllowedAuthRequest(method, u) {
  */
 export const PRESS_READ_FUNCTIONS = {
   "calculate-tax": "stateless tax quote, no account, customer or charge (STRIPE_WRITE_EXEMPT); fires on page load",
+  // 39376366289 "Go to Earnings": accounts.retrieve, balance.retrieve and
+  // payouts.list on the member's own account, and nothing else (no DB write).
+  "stripe-payouts": "reads the member's payout account, balance and last 20 payouts; writes nothing",
 };
 
 /**
@@ -1016,6 +1029,9 @@ export const PRESS_READ_FUNCTIONS = {
 export const PRESS_SIDE_EFFECT_WRITES = {
   "/rest/v1/error_logs": "the app's own error reporter (src/lib/errorLogger.ts); the sweep reads console errors itself",
   "/rest/v1/rpc/record_job_view": "INSERT job_views ON CONFLICT DO NOTHING when a job's detail opens",
+  // 39376366289: "Log In", "Create an Account", "Continue" each logged a
+  // funnel event (src/lib/analytics) as a side effect of navigating.
+  "/rest/v1/analytics_events": "the app's own funnel event on a navigation tap (src/lib/analytics); never the press's purpose",
   "/rest/v1/rpc/record_profile_view": "INSERT profile_views (hourly bucket) when a profile opens",
   "/functions/v1/check-pro-subscription":
     "the Home dashboard's background Pro-tier revalidation (src/hooks/useDashboardData.ts): it writes profiles only when Stripe's subscription state differs from the column; press-every-control 39225521269 leg 1 aborted it on 4 presses that landed on /home",

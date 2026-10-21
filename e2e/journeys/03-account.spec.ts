@@ -65,9 +65,32 @@ async function resolvingUrl(request: Parameters<typeof getSession>[0], url: stri
   return r?.ok() ? url : null;
 }
 
+/**
+ * Where each account screen is reached after the You redesign (board 18 / 52,
+ * nightly-red #2436): the You landing lists sections, Money, Alerts, Settings
+ * and Help; "Edit profile" and the notification settings are rows in Settings,
+ * and the Jobs screens (Availability, Saved Helprs) are rows in Jobs settings
+ * (/jobs/settings, JOBS_SETTINGS_GROUPS). The journey taps through each, as a
+ * member would.
+ */
+const SCREEN_ROUTE: Record<string, { from: "settings" | "jobs-settings" }> = {
+  "Edit Profile": { from: "settings" },
+  Notifications: { from: "settings" },
+  Availability: { from: "jobs-settings" },
+  "Saved Helprs": { from: "jobs-settings" },
+};
+
 async function openFromProfile(page: Page, name: RegExp, heading: string) {
-  await page.goto("/profile");
-  await expect(page.getByRole("button", { name: "Log Out" }), "the profile page never finished loading").toBeVisible({ timeout: 45_000 });
+  const route = SCREEN_ROUTE[heading];
+  if (!route) throw new Error(`openFromProfile: no route recorded for "${heading}"`);
+  if (route.from === "settings") {
+    await page.goto("/profile");
+    await expect(page.getByRole("button", { name: "Log Out" }), "the profile page never finished loading").toBeVisible({ timeout: 45_000 });
+    await page.getByRole("button", { name: /^Settings/ }).filter({ visible: true }).first().click();
+    await expect(page.getByRole("heading", { name: "Settings", level: 1 })).toBeVisible({ timeout: 30_000 });
+  } else {
+    await page.goto("/jobs/settings");
+  }
   await page.getByRole("button", { name }).filter({ visible: true }).first().click();
   await expect(page.getByRole("heading", { name: heading, level: 1 })).toBeVisible({ timeout: 30_000 });
   await assertHealthy(page, heading);
@@ -117,7 +140,7 @@ test(j7, async ({ browser, request, journey }) => {
   });
 
   await test.step("edit a profile field and see it on the profile", async () => {
-    await openFromProfile(hp, /^Edit profile$|^Edit$/, "Edit Profile");
+    await openFromProfile(hp, /^Edit profile/i, "Edit Profile");
     const about = hp.getByRole("textbox", { name: "About you" });
     await about.fill(`${seedBio ?? ""} ${journeyMarker(RUN)}`.trim());
     const save = hp.getByRole("button", { name: "Save changes" });
@@ -160,7 +183,11 @@ test(j7, async ({ browser, request, journey }) => {
     await expect
       .poll(async () => (await readProfile(request, helper)).bio ?? "", { timeout: 30_000, message: "Save changes did not write the bio" })
       .toContain(`Journey ${RUN}.`);
+    // The bio is on the member's public profile (the You landing is a menu
+    // since board 18): open it the way a member does, from the You card.
     await hp.goto("/profile");
+    await hp.getByRole("button", { name: "View my public profile" }).filter({ visible: true }).first().click();
+    await expect(hp, "View my public profile did not open the public profile").toHaveURL(new RegExp(`/user/${helper.user.id}`), { timeout: 30_000 });
     await expect(hp.getByText(`Journey ${RUN}.`), "the edited bio is not on the profile").toBeVisible({ timeout: 30_000 });
     await assertHealthy(hp, "profile after edit");
     await journey.milestone(hp, "profile-edited");
@@ -177,7 +204,7 @@ test(j7, async ({ browser, request, journey }) => {
       px[i] = (x * 255) / 600; px[i + 1] = (y * 255) / 600; px[i + 2] = ((x ^ y) & 0xff);
     }
     await sharp(px, { raw: { width: 600, height: 600, channels: 3 } }).png().toFile(file);
-    await openFromProfile(hp, /^Edit profile$|^Edit$/, "Edit Profile");
+    await openFromProfile(hp, /^Edit profile/i, "Edit Profile");
     await hp.locator("input[type=file][accept*='image']").first().setInputFiles(file);
     const crop = hp.getByRole("dialog").filter({ hasText: "Position Your Photo" });
     await expect(crop, "choosing a photo did not open the crop dialog").toBeVisible({ timeout: 20_000 });
@@ -420,6 +447,11 @@ test(j7, async ({ browser, request, journey }) => {
   });
 
   await test.step("poster saves a search from Browse, sees it, deletes it", async () => {
+    // Two pages drive this journey; the helper's was used last. A background
+    // page gets no animation frames, so Playwright's "stable" check on the
+    // Filters sheet's chip never completes (measured locally 2026-10-21: the
+    // click waits 20s with the chip static; nightly-red #2436). Front first.
+    await pp.bringToFront();
     await pp.goto("/jobs"); // the feed (Jobs > Browse) since 2026-10-19, Q2205
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
@@ -428,7 +460,9 @@ test(j7, async ({ browser, request, journey }) => {
       await pp.getByRole("button", { name: "Filters" }).first().click();
     }
     await pp.getByRole("dialog").getByRole("button", { name: /Saved searches/i }).click();
-    const dialog = pp.getByRole("dialog").filter({ hasText: /Saved searches/i });
+    // By NAME: the Filters sheet also holds a "Saved searches" row, so a text
+    // filter matched both dialogs (strict-mode violation, nightly-red 2436).
+    const dialog = pp.getByRole("dialog", { name: /^Saved searches$/i });
     await expect(dialog).toBeVisible({ timeout: 20_000 });
     const name = `Journey ${RUN}`;
     await dialog.getByPlaceholder("e.g. Lawn care under $200").fill(name);

@@ -69,7 +69,8 @@ function appWrites(): { tables: Set<string>; functions: Set<string>; rpcs: Set<s
       const tail = src.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 400).split(";")[0];
       if (/^\s*\.(insert|update|upsert|delete)\(/.test(tail)) tables.add(m[1]);
     }
-    for (const m of src.matchAll(/functions\.invoke\(\s*"([a-z0-9-]+)"/g)) functions.add(m[1]);
+    // A typed call (`invoke<T>("fn")`) is a call too (useEarningsData's stripe-payouts).
+    for (const m of src.matchAll(/functions\.invoke(?:<[^>()]*>)?\(\s*"([a-z0-9-]+)"/g)) functions.add(m[1]);
     for (const m of src.matchAll(/\.rpc\(\s*"([a-z0-9_]+)"/g)) rpcs.add(m[1]);
   }
   return { tables, functions, rpcs };
@@ -166,6 +167,8 @@ describe("the press sweep's network gate aborts every write an ungated press set
       if (rpc) expect(rpcs.has(rpc), `side effect ${path} is called nowhere`).toBe(true);
       else if (fn) expect(functions.has(fn), `side effect ${path} is invoked nowhere in src/`).toBe(true);
       else if (table === "error_logs") expect(readFileSync(resolve(ROOT, "src/lib/errorLogger.ts"), "utf8")).toMatch(/from\("error_logs"\)\.insert/);
+      // The funnel writer posts rows through postRows, not .from().insert (src/lib/analytics.ts).
+      else if (table === "analytics_events") expect(readFileSync(resolve(ROOT, "src/lib/analytics.ts"), "utf8")).toMatch(/postRows\(\s*"analytics_events"/);
       else expect(table && tables.has(table), `side effect ${path} is written nowhere`).toBe(true);
     }
   });

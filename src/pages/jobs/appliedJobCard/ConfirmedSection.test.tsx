@@ -1,9 +1,9 @@
 /**
  * VN-18 (owner, 2026-09-14): the back-out shown after the Helpr confirms and
- * before On the Way is labelled "Cancel Job". The confirmed-but-not-started
+ * before On the way is labelled "Cancel job". The confirmed-but-not-started
  * card (status 'accepted' + helper_confirmed_at) renders THIS section, and it
- * still said "Can't Make It" / "Cancel This Booking?" / "Cancel My Booking"
- * while the in-progress card (ActiveJobSection) said "Cancel Job" — one exit,
+ * still said "Can't make it" / "Cancel This Booking?" / "Cancel My Booking"
+ * while the in-progress card (ActiveJobSection) said "Cancel job" — one exit,
  * two names, depending on a status the Helpr cannot see.
  */
 import { describe, it, expect, vi } from "vitest";
@@ -56,19 +56,19 @@ const renderSection = async () => {
   return r;
 };
 
-describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
-  it("labels the chip Cancel Job, never Can't Make It", async () => {
+describe("ConfirmedSection back-out is 'Cancel job' (VN-18)", () => {
+  it("labels the chip Cancel job, never Can't make it", async () => {
     await renderSection();
-    const chip = screen.getByRole("button", { name: /^Cancel Job — / });
-    expect(chip).toHaveTextContent("Cancel Job");
+    const chip = screen.getByRole("button", { name: /^Cancel job — / });
+    expect(chip).toHaveTextContent("Cancel job");
     expect(screen.queryByText(/can[’']t make it/i)).toBeNull();
   });
 
   it("opens the same dialog wording the in-progress card uses", async () => {
     await renderSection();
-    fireEvent.click(screen.getByRole("button", { name: /^Cancel Job — / }));
+    fireEvent.click(screen.getByRole("button", { name: /^Cancel job — / }));
     expect(screen.getByRole("heading", { name: "Cancel This Job?" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel Job" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cancel job" })).toBeInTheDocument();
     // The dismiss stays "Cancel" — the popup grammar guard (dialogShell.test.ts).
     expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
     expect(screen.queryByText(/booking/i)).toBeNull();
@@ -79,7 +79,7 @@ describe("ConfirmedSection back-out is 'Cancel Job' (VN-18)", () => {
 // (job_already_started). Same clock as the RPC: start = date_needed +
 // COALESCE(start_time,'00:00') in America/Chicago. Proven RED before the
 // hasJobStarted guard — the chip rendered in the refused window.
-describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
+describe("ConfirmedSection hides Cancel job once the start has passed", () => {
   const renderWith = async (patch: Partial<Job>) => {
     const r = withClient(
       <ConfirmedSection
@@ -95,21 +95,21 @@ describe("ConfirmedSection hides Cancel Job once the start has passed", () => {
 
   it("hides the chip for a job whose scheduled start is in the past", async () => {
     await renderWith({ date_needed: "2020-01-01", start_time: "09:00" });
-    expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Cancel job/ })).toBeNull();
   });
 
   it("hides the chip for a null-start (flexible) job on a past day (RPC treats null as midnight)", async () => {
     await renderWith({ date_needed: "2020-01-01", start_time: null });
-    expect(screen.queryByRole("button", { name: /^Cancel Job/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Cancel job/ })).toBeNull();
   });
 
   it("still offers the chip for a clearly future job", async () => {
     await renderWith({ date_needed: "2099-01-01", start_time: "09:00" });
-    expect(screen.getByRole("button", { name: /^Cancel Job/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Cancel job/ })).toBeInTheDocument();
   });
 });
 
 // Two production lines carry this file: the VN-18 label, and the start-time
 // gate that stops the app offering a cancel helper_cancel_booking would refuse.
 // @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | const startPassed = hasJobStarted(job.date_needed, job.start_time); | const startPassed = false;
-// @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | label="Cancel Job" | label="Can't Make It"
+// @mutate src/pages/jobs/appliedJobCard/ConfirmedSection.tsx | label="Cancel job" | label="Can't make it"

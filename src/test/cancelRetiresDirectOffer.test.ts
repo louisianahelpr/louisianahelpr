@@ -4,7 +4,7 @@
  *
  * WHAT WAS BROKEN (read live 2026-10-17): poster_cancel_job set status
  * 'cancelled' and left direct_offer_status 'pending'. The offered Helpr's
- * /jobs showed a cancelled job with a countdown and Accept Job, and at the
+ * /jobs showed a cancelled job with a countdown and Accept job, and at the
  * deadline expire_pending_direct_offers told the poster their cancelled job
  * "is now open to everyone".
  *

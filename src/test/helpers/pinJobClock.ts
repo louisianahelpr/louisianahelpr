@@ -6,7 +6,7 @@ import { vi } from "vitest";
  *
  * WHY. On the real clock such a fixture is hour-dependent. "Start today at
  * 23:59" means "later today" for 1,439 minutes a day and NOW for the last one:
- * from 23:59 to midnight Central the start has arrived, Cancel Job is no
+ * from 23:59 to midnight Central the start has arrived, Cancel job is no
  * longer offered, and a card that should show four controls shows three. It
  * went red twice at exactly 04:59Z (23:59 CDT): jobRowControlSameness on PR
  * #1996 (run 36817413591), which pinned its own clock, and then its sibling

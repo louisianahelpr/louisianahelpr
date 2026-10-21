@@ -456,7 +456,7 @@ export function CompletionChoiceSheet({
                   onClick={handleRevisionSubmit}
                   disabled={submitting || !description.trim()}
                 >
-                  {submitting ? "Sending…" : "Send Revision Request"}
+                  {submitting ? "Sending…" : "Send revision request"}
                 </SheetPrimaryAction>
               </SheetFooter>
             </div>

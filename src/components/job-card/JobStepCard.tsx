@@ -132,7 +132,7 @@ const MORE_ORDER: readonly string[] = [
  *      that is the whole point. Its CONTENT stays here; a button that acts on
  *      it goes in the row.
  *   3. `notice`  — passive status ABOUT that ask or about the wait: countdowns,
- *      "Marked Complete", deadlines. Never a control. It sits under the ask
+ *      "Marked complete", deadlines. Never a control. It sits under the ask
  *      because on every state that has both (revision) the deadline is a
  *      property of the ask, not a preface to it.
  *   4. THE PERSON TILE — who is on the other end of this job (the Helpr on
@@ -172,6 +172,7 @@ export function JobStepCard({
   notice,
   ask,
   primary,
+  primaryChipKey,
   actions,
   soloChipKey,
   footnote,
@@ -192,6 +193,8 @@ export function JobStepCard({
   /** The step's own primary, used only when no nested control (the tracker's
    *  CTA, the day-of confirmation, the revision's accept) has claimed the slot. */
   primary?: ReactNode;
+  /** The key of the chip `primary` stands for: dropped from the row while `primary` shows. */
+  primaryChipKey?: string;
   /** Chips for the row, beside the primary. Falsy entries are dropped. */
   actions?: ReactNode[];
   /** The React key of the chip that stays when only ONE fits (phone width);
@@ -206,7 +209,17 @@ export function JobStepCard({
   escape?: ReactNode;
   dialogs?: ReactNode;
 }) {
-  const allChips = (actions ?? []).filter(Boolean);
+  const [claims, setClaims] = useState(0);
+  const claimPrimary = useCallback(() => {
+    setClaims((c) => c + 1);
+    return () => setClaims((c) => c - 1);
+  }, []);
+  const ownPrimary = claims === 0 && hasRenderable(primary) ? primary : null;
+  // The chip the step's own primary stands for ("Message Yusef" is the Message chip) leaves the row
+  // while that primary shows, so the same action is never offered twice; it comes back with a claim.
+  const allChips = (actions ?? []).filter(Boolean).filter(
+    (c) => !(ownPrimary && primaryChipKey && isValidElement(c) && c.key === primaryChipKey),
+  );
   const isMoreOnly = (_c: ReactNode) => true;
   // Chips pinned inside `More` never compete for a row slot; the row sees one
   // extra slot for the `More` control itself instead.
@@ -228,14 +241,7 @@ export function JobStepCard({
   // props because every note arrives by PORTAL, from a component that is not
   // this one's child in the React tree that owns the prop.
   const [noteFilled, setNoteFilled] = useState(false);
-  const [claims, setClaims] = useState(0);
-  const claimPrimary = useCallback(() => {
-    setClaims((c) => c + 1);
-    return () => setClaims((c) => c - 1);
-  }, []);
   const hosts = useMemo(() => ({ primaryHost, noteHost, claimPrimary }), [primaryHost, noteHost, claimPrimary]);
-
-  const ownPrimary = claims === 0 && hasRenderable(primary) ? primary : null;
 
   // ── Label or icon-only, and whether the row has anything in it at all ──
   // Read from the DOM, not from props: a chip or primary element can render

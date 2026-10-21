@@ -2,7 +2,7 @@
  * Owner, 2026-10-08 (Q1570, pop-up "Both must tap confirm"; job 28f8cff5 went
  * On My Way with no confirmation from either side): an accept inside the
  * day-before window used to count as the Helpr's confirm, so the tracker
- * offered "I'm On My Way" without anyone tapping anything.
+ * offered "I'm on my way" without anyone tapping anything.
  *
  * The class: only the Helpr's own day-before tap counts, on the card, on the
  * tracker's Confirmed step, and on the server (helper_mark_on_the_way refuses

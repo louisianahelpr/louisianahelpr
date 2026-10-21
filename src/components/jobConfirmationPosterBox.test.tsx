@@ -9,7 +9,7 @@ import { render, screen } from "@testing-library/react";
  * Two holes, both rendering, both in this shared component:
  *
  *   1. `if (helperOnTheWayAt) return null` ran for BOTH sides, so the moment
- *      the Helpr tapped "I'm On My Way" the poster's confirm-offer control —
+ *      the Helpr tapped "I'm on my way" the poster's confirm-offer control —
  *      and the read-back of whether they had ever confirmed — vanished for
  *      good, confirmed or not. The Helpr setting off does not answer the
  *      POSTER's question; their stamp is a different column.
@@ -74,27 +74,20 @@ describe("the poster's confirmation survives the Helpr setting off", () => {
     render(poster());
     // Before the fix this component returned null outright and the poster's
     // card showed nothing at all where the confirmation had been.
-    expect(screen.getByRole("button", { name: /I'm Still On/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /I'm still on/i })).toBeTruthy();
   });
 
-  it("once the poster has confirmed, the button is their NEXT step, greyed out until it's time (owner, 2026-10-08)", () => {
+  // Owner, 2026-10-21 (supersedes 2026-10-08's greyed next step): once the poster has confirmed there is no
+  // button at all, only the line saying what happens next; never a disabled future step.
+  it("once the poster has confirmed, no greyed future step: the line says what happens next", () => {
     render(poster({ posterConfirmedAt: "2026-09-19T13:00:00Z" }));
-    const done = screen.getByRole("button", { name: /Confirm They've Arrived/i }) as HTMLButtonElement;
-    expect(done.disabled, "the next step waits for its time; it is not tappable yet").toBe(true);
+    expect(screen.queryByRole("button", { name: /Confirm they've arrived/i })).toBeNull();
+    expect(screen.queryByText(/turns on once/)).toBeNull();
     // No "You: Confirmed / Helpr: Confirmed" chips and no "Confirmed <time>" receipt.
     expect(screen.queryByText(/You: (Confirmed|Pending)/)).toBeNull();
     expect(screen.queryByText(/Helpr: (Confirmed|Pending)/)).toBeNull();
     // …and it must not still be inviting the tap it has already had.
-    expect(screen.queryByRole("button", { name: /I'm Still On/i })).toBeNull();
-  });
-
-  it("does not wear the glossy primary once it is a statement rather than an action", () => {
-    render(poster({ posterConfirmedAt: "2026-09-19T13:00:00Z" }));
-    const done = screen.getByRole("button", { name: /Confirm They've Arrived/i });
-    expect(
-      done.classList.contains("btn-grad-primary"),
-      "a done box in the live CTA's surface reads as a broken button, not a finished one",
-    ).toBe(false);
+    expect(screen.queryByRole("button", { name: /I'm still on/i })).toBeNull();
   });
 });
 
@@ -138,10 +131,8 @@ describe("the HELPER's branch is unchanged", () => {
  * the notification fan-out are not covered by this file. */
 
 // THE LINE THE OWNER REPORTED. `&& !isOwner` is the whole fix: without it the
-// Helpr tapping "I'm On My Way" deletes the poster's confirm-offer control and
+// Helpr tapping "I'm on my way" deletes the poster's confirm-offer control and
 // its read-back, confirmed or not.
 // @mutate src/components/JobConfirmation.tsx | if (helperOnTheWayAt && !isOwner) return null; | if (helperOnTheWayAt) return null;
-// …and the TONE half of the same rule: the done box must not wear the live
-// CTA's gloss, or "you already did this" reads as a broken button.
-// @mutate src/components/JobConfirmation.tsx | variant="outline" | variant="primary"
-// @mutate src/components/JobConfirmation.tsx | <MapPin className="w-3.5 h-3.5 mr-1" />\n        Confirm They've Arrived | <MapPin className="w-3.5 h-3.5 mr-1" />\n        Confirmed
+// …and no greyed future step once the poster has confirmed (owner, 2026-10-21): putting one back is red.
+// @mutate src/components/JobConfirmation.tsx |     ) : null\n    /* Poster confirmed: no greyed "Confirm they've arrived" here either |     ) : isOwner ? <Button disabled>Confirm they've arrived</Button> : null\n    /* Poster confirmed: no greyed "Confirm they've arrived" here either

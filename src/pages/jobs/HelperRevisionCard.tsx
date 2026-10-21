@@ -41,9 +41,9 @@ interface HelperRevisionCardProps {
    * Whether the helper has ACCEPTED the revision, reported upward on every
    * load and on the accept tap.
    *
-   * "Mark Fixed" is the parent's control but it is this card's state that
+   * "Mark fixed" is the parent's control but it is this card's state that
    * decides whether it may exist: showing both at once was the competing pair
-   * the owner named ("Mark Fixed appears ONLY after they have accepted"), and
+   * the owner named ("Mark fixed appears ONLY after they have accepted"), and
    * the acceptance flag lives here because this is the component that reads
    * `job_revisions.status`.
    */
@@ -186,7 +186,7 @@ export function HelperRevisionCard({
       // eventually re-reads it, and under load that has taken 10s+, during
       // which the button read "I'll Fix It" again as if nothing had happened.
       setRevision((r) => (r ? { ...r, status: "accepted" } : r));
-      confirmConsequential("Got it — the person who posted this job knows you'll fix it. Tap Mark Fixed when it's done.");
+      confirmConsequential("Got it — the person who posted this job knows you'll fix it. Tap Mark fixed when it's done.");
       onAccepted();
     } catch (err: unknown) {
       hapticError();
@@ -298,7 +298,7 @@ export function HelperRevisionCard({
           so it renders in the card's single action row beside Message — in the
           row's dark green, the one primary surface every step shares — while
           this amber box keeps the request itself. Once accepted there is no
-          control left to draw here: the row's next primary is "Mark Fixed",
+          control left to draw here: the row's next primary is "Mark fixed",
           which RevisionStep offers from exactly that moment (and the accept
           tap already confirmed with a toast). The "On it" receipt below is
           the out-of-card rendering only. */}

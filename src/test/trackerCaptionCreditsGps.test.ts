@@ -2,7 +2,7 @@
  * Owner, 2026-10-08 (Q1573, job 28f8cff5): "my location actually was shared".
  * A GPS-verified arrival that the poster also confirmed read "Arrival confirmed
  * by the person who posted it · no location shared": the poster's confirm
- * outranked GPS in the arrival state, and Start Working clears the tracker's
+ * outranked GPS in the arrival state, and Start working clears the tracker's
  * live position.
  *
  * The class: once the server verified the arrival's location, the caption

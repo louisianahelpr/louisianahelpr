@@ -17,7 +17,7 @@
  *   - HELPER_WAIT's offer and confirm_booking lines (the collapsed strip).
  * None of them may say confirm.
  *
- * @mutate src/pages/jobs/appliedJobCard/crewAcceptCopy.ts | button: "Accept My Spot", | button: "Confirm My Spot",
+ * @mutate src/pages/jobs/appliedJobCard/crewAcceptCopy.ts | button: "Accept my spot", | button: "Confirm My Spot",
  * @mutate src/lib/lifecycleErrors.ts | "Accept this job first, then mark yourself on the way." | "Confirm this booking first, then mark yourself on the way."
  * @mutate src/pages/jobs/appliedJobCard/CrewMemberSection.tsx | label={busy ? "…" : CREW_ACCEPT_COPY.button} | label={busy ? "…" : "Confirm My Spot"}
  */
@@ -61,11 +61,11 @@ describe("the Helpr's accept step never says confirm (Q1523)", () => {
       readFileSync(join(process.cwd(), "src/pages/jobs/appliedJobCard/CrewMemberSection.tsx"), "utf8"),
     );
     // Every string literal in the component (comments blanked) that says confirm
-    // must be a poster-side step it names ("Confirm They Arrived"), not the accept.
+    // must be a poster-side step it names ("Confirm they've arrived"), not the accept.
     // Sentences only (a space inside): the step key "confirm" is an id, not copy.
     const literals = [...src.matchAll(/"((?:\\.|[^"\\\n])*)"|`((?:\\.|[^`\\])*)`/g)].map((m) => m[1] ?? m[2]);
     const confirmWords = literals.filter(
-      (l) => / /.test(l) && CONFIRM.test(l) && !/Confirm They Arrived/.test(l),
+      (l) => / /.test(l) && CONFIRM.test(l) && !/Confirm they've arrived/.test(l),
     );
     expect(confirmWords).toEqual([]);
     expect(src).toContain("CREW_ACCEPT_COPY.button");

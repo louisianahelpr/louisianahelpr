@@ -159,7 +159,7 @@ const openActivityCard = async (page: Page, tab: "/jobs" | "/posts", job: { id: 
 //
 // A step whose action row is full parks the rest behind its "More" overflow
 // (JobActionRow.tsx `data-job-step-overflow`) — measured on prod 2026-09-23:
-// the confirmed card shows Directions · More · I'm On My Way, with Cancel Job
+// the confirmed card shows Directions · More · I'm on my way, with Cancel job
 // inside More. So: the chip if it is on the row, else open the overflow first.
 const pressChipForField = async (page: Page, name: RegExp, opts: { field?: boolean } = {}) => {
   const chip = page.getByRole("button", { name }).filter({ visible: true }).first();
@@ -236,7 +236,7 @@ const openDisputeDialog = async (page: Page) => {
 };
 
 /**
- * The helper's expanded Active-Job card offers exactly one of "Cancel Job"
+ * The helper's expanded Active-Job card offers exactly one of "Cancel job"
  * (reveals ActiveJobSection's own abort-reason textarea) or "Report a
  * Problem" (opens the same DisputeDialog as above) — never both, they are the
  * complement of each other over the job's tracker sub-status
@@ -245,7 +245,7 @@ const openDisputeDialog = async (page: Page) => {
  */
 //
 // The field this FormSpec covers is ActiveJobSection's OWN abort-reason box,
-// which only the Cancel Job confirm holds — so it opens on a job the helper
+// which only the Cancel job confirm holds — so it opens on a job the helper
 // has confirmed and not yet left for (`helperConfirmedJob`), never on the
 // Report-a-problem side, whose field belongs to DisputeDialog (the
 // activity-dispute-dialog spec). The old version pressed "whichever is
@@ -256,13 +256,13 @@ const openActiveJobSection = async (page: Page) => {
   const job = fixtureOrThrow("helperConfirmedJob", "job the helper confirmed but has not left for");
   await openActivityCard(page, "/jobs", job);
   // Unanchored: inside the overflow sheet the same control is named
-  // "Cancel Job — Cancel this job? …" (label + ariaLabel).
+  // "Cancel job — Cancel this job? …" (label + ariaLabel).
   await pressChipForField(page, /cancel this job\?/i);
 };
 
 /**
- * The helper's expanded Disputed card offers "Respond to Dispute"/"Add Your
- * Side" (a textarea) to whichever side did NOT file, and "Withdraw Dispute"
+ * The helper's expanded Disputed card offers "Respond to dispute"/"Add Your
+ * Side" (a textarea) to whichever side did NOT file, and "Withdraw dispute"
  * (a confirm, no typed field) to whichever side DID (DisputedSection.tsx:
  * `canRespond`/`canWithdraw`). The standing disputed job's opener is not
  * pinned by the fixture picker, so press Respond when it is offered and fall

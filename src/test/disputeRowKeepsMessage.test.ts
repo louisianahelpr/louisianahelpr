@@ -2,7 +2,7 @@
  * GUARD Q1082 (owner 2026-10-05, pop-up: "Message always visible" on dispute
  * rows). The row collapses from the middle, and Message sat in the middle of
  * both dispute rows (poster: Escalate, Photos, Timeline, Message, Contact
- * Admin; Helpr: Contact Admin, Message, Timeline, Photos), so at 320 it went
+ * Admin; Helpr: Contact admin, Message, Timeline, Photos), so at 320 it went
  * into More first. A row that names a survivor (`soloChipKey`) now keeps it on
  * screen at EVERY width, and both dispute rows name Message.
  */

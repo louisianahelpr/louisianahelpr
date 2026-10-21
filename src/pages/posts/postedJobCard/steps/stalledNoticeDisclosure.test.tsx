@@ -164,7 +164,7 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
     // behind "Why?" now (see the reveal test below).
     expect(container.textContent ?? "").not.toContain(STALLED_APPROVE_DISABLED_REASON);
     // The instruction and the escalation promise are NOT on the card.
-    expect(container.textContent ?? "").not.toMatch(/Mark Job Complete/);
+    expect(container.textContent ?? "").not.toMatch(/Mark job complete/);
     expect(container.textContent ?? "").not.toMatch(/our team steps in/i);
   });
 
@@ -197,7 +197,7 @@ describe("the stalled note is one sentence, and the rest is one tap away", () =>
     // Same job, still legitimately running (its scheduled day is not over).
     draw(stalledJob({ date_needed: TODAY }));
     expect(screen.queryByRole("button", { name: /^Why\?/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Working Confirmed/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Working confirmed/i })).toBeTruthy();
   });
 
   it("and it never appears once either side has marked the job done", () => {

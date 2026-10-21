@@ -200,7 +200,7 @@ export async function waitForNoModal(timeoutMs = 120_000, stepMs = 500): Promise
  * Calls `onOpen` once, the moment a modal opens (Q1504, seen on prod
  * 2026-10-12 at 375: the nudge was already up on /posts when a job card's
  * Cancel dialog opened, and it stayed over the dialog for its 12 s, on top of
- * the policy text and, scrolled, the Keep / Cancel Job buttons). Waiting
+ * the policy text and, scrolled, the Keep / Cancel job buttons). Waiting
  * before showing covers a dialog that is already open; this covers one that
  * opens after. Returns the stop function.
  */

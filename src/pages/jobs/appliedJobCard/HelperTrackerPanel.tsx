@@ -27,11 +27,11 @@ import type { AppliedApp, Job } from "../../../components/job-card/activityConst
  *
  * The card used to stack two glass panels that were the same thing said twice:
  *
- *   1. the tracker — the step rail (Offered / Accepted / Confirmed / On the Way
- *      / Arrived) with a full-width green "On the Way" button under it, and
+ *   1. the tracker — the step rail (Offered / Accepted / Confirmed / On the way
+ *      / Arrived) with a full-width green "On the way" button under it, and
  *   2. a detached card below it — "Still on for this one?", the date a third
  *      time, two status chips ("You: Pending" / "Poster: Confirmed"), and a
- *      SECOND full-width green button, "I'm Still On".
+ *      SECOND full-width green button, "I'm still on".
  *
  * "Confirmed" is a STEP IN THE RAIL, and the day-of tap is how that step gets
  * completed — so it belongs at that step, not in a second card underneath
@@ -101,11 +101,11 @@ export function HelperTrackerPanel({
   /* Midnight of the job's day in the JOB's zone (America/Chicago), through the
      SAME helper JobConfirmation measures its window with. This used
      `parseLocalDate` — the VIEWER's zone — so on any device not set to Central
-     the gate below and the "I'm Still On" window it mirrors ended at different
+     the gate below and the "I'm still on" window it mirrors ended at different
      instants. On a UTC device (CI) the gate dropped at 19:00 Central on the job
-     day while JobConfirmation kept offering "I'm Still On" until midnight, and
+     day while JobConfirmation kept offering "I'm still on" until midnight, and
      with the start inside the tracker's 2h unlock the card rendered TWO
-     primaries, "I'm On My Way" and "I'm Still On" (nightly-red, 2026-09-23
+     primaries, "I'm on my way" and "I'm still on" (nightly-red, 2026-09-23
      04:18Z). West of Central the opposite: the gate outlived the control that
      releases it, leaving no primary at all. Guard:
      src/pages/jobs/helperTrackerPrimarySweep.tz.test.tsx. */
@@ -163,7 +163,7 @@ export function HelperTrackerPanel({
     <div className="space-y-2">
       {/* `isHelper={!gateActive}`: while the Confirmed step is outstanding this
           panel owns the helper's controls, so the tracker draws the rail only
-          and cannot offer "I'm On My Way" out of order. The two side effects
+          and cannot offer "I'm on my way" out of order. The two side effects
           behind that flag are inert here — the position watcher only runs on an
           `on_the_way` tracking row, and the "work has started" notify only on a
           helper tap — both of which are strictly after this state. */}
@@ -179,7 +179,7 @@ export function HelperTrackerPanel({
         jobDateNeeded={job.date_needed}
         jobStartTime={job.start_time}
         jobStatus={job.status}
-        // The Done CTA (then "Request My Payout", now "Mark Job Complete") rendered ENABLED while the button
+        // The Done CTA (then "Request My Payout", now "Mark job complete") rendered ENABLED while the button
         // below it sat DISABLED reading "Upload before & after photos first" —
         // same rule, and the one that LOOKED pressable was the one that failed
         // on tap. Hand it what this card already knows so the two agree before
@@ -207,16 +207,16 @@ export function HelperTrackerPanel({
       />
 
       {gateActive ? (
-        /* The ONE primary while the step is open: "I'm Still On". It portals
+        /* The ONE primary while the step is open: "I'm still on". It portals
            into the step card's single action row (owner, 2026-09-14, VN-21 —
            one row, primary first, the chips beside it), with its "Confirm by …"
            deadline on the line above that row.
 
-           The disabled "I'm On My Way" preview that used to sit under it, with
+           The disabled "I'm on my way" preview that used to sit under it, with
            "Confirm you're still on to unlock this" above, is GONE with the
            stacked layout: in a single row it was a second primary-shaped
            button next to the real one, which is the two-primaries shape the
-           shell refuses. Nothing is lost — "I'm On My Way" takes the same slot
+           shell refuses. Nothing is lost — "I'm on my way" takes the same slot
            the moment the confirmation lands, and the rail above still shows
            Confirmed as the current step. */
         confirmation

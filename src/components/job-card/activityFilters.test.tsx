@@ -147,7 +147,7 @@ describe("Activity — whose move is it", () => {
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "in_progress" }))).toBe("needs_you");
   });
 
-  it("puts a dispute in Needs you — the card carries Respond to Dispute", () => {
+  it("puts a dispute in Needs you — the card carries Respond to dispute", () => {
     expect(appliedActivityBucket(app({ status: "accepted", jobStatus: "disputed" }))).toBe("needs_you");
   });
 

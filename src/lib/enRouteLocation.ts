@@ -4,7 +4,7 @@ import { report } from "@/lib/errorLogger";
 
 /**
  * EN-ROUTE LOCATION WATCH — the one place that knows how to follow a helper
- * from "I'm On My Way" to "I've Arrived", on every platform, honestly.
+ * from "I'm on my way" to "I've arrived", on every platform, honestly.
  *
  * THE PROBLEM THIS REPLACES. JobTracking used to run
  * `setInterval(pushPosition, 45_000)` — a JavaScript timer inside the
@@ -165,7 +165,7 @@ export type EnRouteWatchOptions = {
 /**
  * Start following the helper. Returns synchronously with a handle whose
  * `stop()` is always safe to call, including before the async start has
- * settled — a helper who taps "On My Way" and "I've Arrived" in quick
+ * settled — a helper who taps "On My Way" and "I've arrived" in quick
  * succession must not leave a watch running.
  */
 export function startEnRouteWatch({ onPosition, onMode }: EnRouteWatchOptions): EnRouteWatchHandle {

@@ -478,7 +478,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
     {
       key: "arrival-claimed",
       describe:
-        "accepted, helper CLAIMED arrival but no verification and no poster vouch — the Confirm Arrival gate, amber 'Awaiting confirmation' caption",
+        "accepted, helper CLAIMED arrival but no verification and no poster vouch — the Confirm they've arrived gate, amber 'Awaiting confirmation' caption",
       job: {
         helper_id: HELPER_ID,
         helper_confirmed_at: ISO(-HOURS(6)),
@@ -501,7 +501,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
     {
       key: "arrival-claimed",
       describe:
-        "in_progress, arrival CLAIMED only (helper_arrived_at set, helper_arrival_verified_at null, poster_confirmed_arrival_at null) — Confirm They Arrived visible, tracker capped at Arrived",
+        "in_progress, arrival CLAIMED only (helper_arrived_at set, helper_arrival_verified_at null, poster_confirmed_arrival_at null) — Confirm they've arrived visible, tracker capped at Arrived",
       job: {
         helper_id: HELPER_ID,
         helper_confirmed_at: ISO(-DAYS(1)),
@@ -640,7 +640,7 @@ const POSTER_SUBSTATES: Record<JobStatus, SubState[]> = {
     {
       key: "no-helper",
       describe:
-        "completed with NO helper_id (auto-expired / closed out) — 'Re-Post' instead of 'Hire Again'",
+        "completed with NO helper_id (auto-expired / closed out) — 'Re-Post' instead of 'Hire again'",
       job: { ...completedStamps(), payment_status: null },
     },
   ],
@@ -865,7 +865,7 @@ const APPLIED_STATES: AppliedState[] = [
     key: "confirmed-gate-active",
     derived: "isConfirmed",
     describe:
-      "confirmed booking more than 24h out — HelperTrackerPanel's gateActive branch: inline JobConfirmation (its 'opens in' clock; inside 24h its 'I'm Still On' leads the one action row). No disabled 'I'm On My Way' preview since VN-21",
+      "confirmed booking more than 24h out — HelperTrackerPanel's gateActive branch: inline JobConfirmation (its 'opens in' clock; inside 24h its 'I'm still on' leads the one action row). No disabled 'I'm on my way' preview since VN-21",
     job: { status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(8)), date_needed: DATE_ONLY(DAYS(3)) },
     application: { status: "accepted" },
   },
@@ -886,7 +886,7 @@ const APPLIED_STATES: AppliedState[] = [
   {
     key: "active-arrival-none",
     derived: "isActive",
-    describe: "in_progress, on the way, nothing claimed — tracker current step = On the Way",
+    describe: "in_progress, on the way, nothing claimed — tracker current step = On the way",
     job: {
       status: "in_progress",
       helper_id: HELPER_ID,
@@ -917,7 +917,7 @@ const APPLIED_STATES: AppliedState[] = [
     key: "active-arrival-verified",
     derived: "isActive",
     describe:
-      "in_progress, arrival VERIFIED but not poster-confirmed — the CTA stays blocked and its reason names the poster's Confirm They Arrived (VN-33: GPS AND poster); the pair with the cell above is the claimed/verified axis",
+      "in_progress, arrival VERIFIED but not poster-confirmed — the CTA stays blocked and its reason names the poster's Confirm they've arrived (VN-33: GPS AND poster); the pair with the cell above is the claimed/verified axis",
     job: {
       status: "in_progress",
       helper_id: HELPER_ID,
@@ -1002,7 +1002,7 @@ const APPLIED_STATES: AppliedState[] = [
   {
     key: "revision-fixed",
     derived: "isActive (revision_requested)",
-    describe: "revision_requested with the fix submitted — Mark Fixed gone, acceptance countdown running",
+    describe: "revision_requested with the fix submitted — Mark fixed gone, acceptance countdown running",
     job: {
       status: "revision_requested",
       helper_id: HELPER_ID,
@@ -1352,7 +1352,7 @@ function trackerCells(): StateCell[] {
     { key: "assigned", describe: "current step = Offered", job: { status: "accepted", helper_id: HELPER_ID, date_needed: DATE_ONLY(DAYS(1)) } },
     { key: "confirmed", describe: "current step = Accepted", job: { status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(6)), date_needed: DATE_ONLY(DAYS(1)) } },
     { key: "job-confirmed", describe: "current step = Confirmed (day-of confirmation stamped)", job: { status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), date_needed: DATE_ONLY(0) } },
-    { key: "on-the-way", describe: "current step = On the Way", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
+    { key: "on-the-way", describe: "current step = On the way", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "arrived-claimed", describe: "current step = Arrived, arrival CLAIMED — amber 'Awaiting confirmation' caption", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "arrived-verified", describe: "arrival VERIFIED, poster not yet — 'Awaiting confirmation' rail caption; 'Arrival GPS-verified' in the status line (VN-20); rail stays at Arrived until the poster confirms (VN-33)", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), helper_arrival_verified_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
     { key: "arrived-poster-confirmed", describe: "arrival CONFIRMED by the poster — no rail caption; 'Arrival confirmed by the person who posted it' in the status line (VN-20)", job: { status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_dayof_confirmed_at: ISO(-HOURS(3)), helper_on_the_way_at: ISO(-HOURS(2)), helper_arrived_at: ISO(-HOURS(1)), poster_confirmed_arrival_at: ISO(-HOURS(1)), date_needed: DATE_ONLY(0) } },
@@ -1544,8 +1544,8 @@ function dialogCells(): StateCell[] {
       id: "dialog-helper-cancel-job-accepted",
       route: "/jobs?filter=all",
       describe:
-        "Helper-side 'Cancel Job' confirm on a confirmed booking (status 'accepted' + helper_confirmed_at) — the money-consequence copy. Was 'Can't Make It'; renamed to match the in-progress card (owner, 2026-09-14, VN-18).",
-      open: ["card", "Cancel Job"],
+        "Helper-side 'Cancel job' confirm on a confirmed booking (status 'accepted' + helper_confirmed_at) — the money-consequence copy. Was 'Can't make it'; renamed to match the in-progress card (owner, 2026-09-14, VN-18).",
+      open: ["card", "Cancel job"],
       fixture: {
         job: { ...BASE_JOB, status: "accepted", helper_id: HELPER_ID, helper_confirmed_at: ISO(-HOURS(8)), date_needed: DATE_ONLY(DAYS(1)) } as CellFixture["job"],
         application: { ...BASE_APPLICATION, status: "accepted" } as CellFixture["application"],
@@ -1555,8 +1555,8 @@ function dialogCells(): StateCell[] {
       id: "dialog-helper-cancel-job",
       route: "/jobs?filter=all",
       describe:
-        "Helper-side 'Cancel Job' confirm on a confirmed in-progress job BEFORE 'I'm On My Way' — the only window the back-out exists (owner, 2026-09-14, VN-18). Once on the way / arrived there is no Cancel Job chip at all.",
-      open: ["card", "Cancel Job"],
+        "Helper-side 'Cancel job' confirm on a confirmed in-progress job BEFORE 'I'm on my way' — the only window the back-out exists (owner, 2026-09-14, VN-18). Once on the way / arrived there is no Cancel job chip at all.",
+      open: ["card", "Cancel job"],
       fixture: {
         job: { ...BASE_JOB, status: "in_progress", helper_id: HELPER_ID, helper_confirmed_at: ISO(-DAYS(1)), helper_arrived_at: null, helper_on_the_way_at: null, date_needed: DATE_ONLY(0) } as CellFixture["job"],
         application: { ...BASE_APPLICATION, status: "accepted" } as CellFixture["application"],

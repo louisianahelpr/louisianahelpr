@@ -178,7 +178,7 @@ const makeApp = (job: Job) =>
 // ===========================================================================
 describe("Posts card: the gate reason renders ABOVE the action row", () => {
   /* Q1400 (owner, 2026-10-07): the poster's card no longer draws a disabled
-     "Confirm They Arrived" with "You'll be able to confirm this once your
+     "Confirm they've arrived" with "You'll be able to confirm this once your
      Helpr is at the job." under it, so no real poster state produces that
      gate line any more. The HOST rule (below the row, centred) is driven at
      the poster shell instead, and the step itself is checked to draw neither
@@ -220,13 +220,13 @@ describe("Posts card: the gate reason renders ABOVE the action row", () => {
 
   it("Q1568 (supersedes Q1400): on the way, a greyed arrival box with its line under the row", () => {
     wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(1), helper_arrived_at: null }))} />);
-    expect((screen.getByRole("button", { name: /Confirm They Arrived/ }) as HTMLButtonElement).disabled).toBe(true);
+    expect((screen.getByRole("button", { name: /Confirm they've arrived/ }) as HTMLButtonElement).disabled).toBe(true);
     expect(noteHost().textContent).toMatch(/turns on once your Helpr says they've arrived/);
   });
 
   it("Q1400 can fail: once the Helpr has arrived the box is drawn", () => {
     wrap(<InProgressStep {...posterCtx(makeJob({ helper_on_the_way_at: ago(2), helper_arrived_at: ago(1) }))} />);
-    expect(screen.getByRole("button", { name: /Confirm They Arrived/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Confirm they've arrived/ })).toBeEnabled();
   });
 
   it("the consequence line ('Approve to release payment…') is also below the row", () => {

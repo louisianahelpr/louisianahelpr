@@ -84,7 +84,7 @@ test.describe("two-role lifecycle", () => {
     /* EXPAND THE CARD. The collapsed card carries only its status strip — the
        screenshot showed the seeded job first under Scheduled, reading
        "You're confirmed", with no control on it at all. `JobConfirmation`
-       (and so "I'm Still On") renders in the EXPANDED body, so the deep link
+       (and so "I'm still on") renders in the EXPANDED body, so the deep link
        gets the reader to the card and this opens it.
        Clicked by the card's own title rather than anywhere on the card: a tap
        on the body can hit the location chip, which is its own defect the owner
@@ -94,7 +94,7 @@ test.describe("two-role lifecycle", () => {
       timeout: 30_000,
     });
     await card.getByRole("heading").first().click();
-    const stillOn = helper.getByRole("button", { name: /I'm Still On/i });
+    const stillOn = helper.getByRole("button", { name: /I'm still on/i });
     await expect(stillOn, "day-of confirm card must be visible inside the 24h window").toBeVisible({ timeout: 15_000 });
     await stillOn.click();
     await helper.getByRole("button", { name: /Yes, I Confirm/i }).click();

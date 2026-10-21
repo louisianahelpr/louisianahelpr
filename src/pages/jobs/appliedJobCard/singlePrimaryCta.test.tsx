@@ -11,7 +11,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
  *
  * 1808 unit tests were green while a revision-state card stacked THREE
  * completion CTAs — the tracker's "Done", the revision card's "I'll Fix It",
- * and "Mark Fixed" — because every one of those tests asserted props and
+ * and "Mark fixed" — because every one of those tests asserted props and
  * branches, never the coherence of what actually rendered together. This file
  * asserts the rendered output: across every state the helper's active card can
  * be in, at most one glossy/primary CTA is on screen at a time.
@@ -196,7 +196,7 @@ const CASES: Array<{
     name: "arrived, work underway",
     job: makeJob({ status: "in_progress" }),
     // FIXED (VN-21, owner 2026-09-14). This state used to render TWO glossy
-    // "Mark Job Complete" CTAs — the tracker's next-step Done and the
+    // "Mark job complete" CTAs — the tracker's next-step Done and the
     // section's PayoutPrimary — and was pinned here at `knownDefect: 2`. The
     // one-row shell now lets the tracker's CTA claim the row's primary slot
     // and the step's own PayoutPrimary stands down, so the invariant applies.
@@ -231,10 +231,10 @@ const CASES: Array<{
 /**
  * The sanctioned exit, and its replacement.
  *
- * Owner, 2026-09-14 (VN-18): the back-out is labelled "Cancel Job" and exists
- * ONLY after the helper has confirmed and BEFORE "I'm On My Way". Once on the
+ * Owner, 2026-09-14 (VN-18): the back-out is labelled "Cancel job" and exists
+ * ONLY after the helper has confirmed and BEFORE "I'm on my way". Once on the
  * way, arrived or working there is no back-out at all. Removing a CONTROL must
- * not remove the PATH, so every state that lacks Cancel Job gains "Report a
+ * not remove the PATH, so every state that lacks Cancel job gains "Report a
  * Problem" — and (VN-19) that is a danger chip IN the action row beside
  * Message, not a link under it. Complements: no state may have both, and no
  * live state may have neither.
@@ -252,7 +252,7 @@ describe("helper active card — exactly one way out of a live job", () => {
   const exitIn = (c: HTMLElement) => {
     const more = c.querySelector<HTMLElement>("[data-job-step-overflow]");
     if (more && !document.querySelector('[role="dialog"][aria-label="More actions for this job"]')) fireEvent.click(more);
-    return [...document.body.querySelectorAll("button")].find((b) => /Cancel Job/i.test(b.textContent || ""));
+    return [...document.body.querySelectorAll("button")].find((b) => /Cancel job/i.test(b.textContent || ""));
   };
   const confirmedNotOnTheWay = makeJob({
     status: "in_progress",
@@ -261,11 +261,11 @@ describe("helper active card — exactly one way out of a live job", () => {
     poster_confirmed_working_at: null,
   });
 
-  it("confirmed, before On the Way: Cancel Job is the exit, and Report a Problem is not offered", async () => {
+  it("confirmed, before On the way: Cancel job is the exit, and Report a Problem is not offered", async () => {
     const { container } = renderSection(confirmedNotOnTheWay, "job_confirmed");
     await act(async () => { await Promise.resolve(); });
     const exit = exitIn(container);
-    expect(exit, "the pre-on-the-way Cancel Job disappeared").toBeTruthy();
+    expect(exit, "the pre-on-the-way Cancel job disappeared").toBeTruthy();
     expect(exit!.hasAttribute("data-job-action-chip")).toBe(true);
     expect(reportIn(container), "Report a Problem is duplicating an exit that already exists").toBeUndefined();
     expect(
@@ -278,7 +278,7 @@ describe("helper active card — exactly one way out of a live job", () => {
     ["on the way", CASES[0].job, "on_the_way"],
     ["working", CASES[1].job, "working"],
   ] as const) {
-    it(`${name}: no Cancel Job, and Report a Problem is inside More, in Message's row`, async () => {
+    it(`${name}: no Cancel job, and Report a Problem is inside More, in Message's row`, async () => {
       const { container } = renderSection(job, tracking);
       await act(async () => { await Promise.resolve(); });
       expect(exitIn(container), `a job that is ${name} still offers the back-out`).toBeUndefined();
@@ -329,7 +329,7 @@ describe("helper active card — at most one primary CTA per state", () => {
   it("revision_requested offers 'I'll Fix It' and NOT the tracker's Done", async () => {
     // The exact three-CTA stack found live: the tracker's next step was "Done"
     // while the revision card offered "I'll Fix It" and the section offered
-    // "Mark Fixed". The revision flow owns completion here.
+    // "Mark fixed". The revision flow owns completion here.
     const { container } = renderSection(CASES[3].job);
     expect(await screen.findByRole("button", { name: /I'll Fix It/i })).toBeInTheDocument();
     expect(
@@ -339,30 +339,30 @@ describe("helper active card — at most one primary CTA per state", () => {
     expect(primaryCtas(container)).toEqual(["I'll Fix It"]);
   });
 
-  it("'Mark Fixed' does not exist until the revision is accepted", async () => {
-    // Owner, 2026-09-11: "Mark Fixed appears ONLY after they have accepted the
+  it("'Mark fixed' does not exist until the revision is accepted", async () => {
+    // Owner, 2026-09-11: "Mark fixed appears ONLY after they have accepted the
     // revision (not before — today both show at once, which is why it reads as
     // competing)". Accept-the-work and declare-it-done are sequential steps,
     // and offering them simultaneously invited the second before the first.
     const { container } = renderSection(CASES[3].job);
     await act(async () => { await Promise.resolve(); });
     const markFixed = () =>
-      [...container.querySelectorAll("button")].find((b) => /Mark Fixed/i.test(b.textContent || ""));
-    expect(markFixed(), "'Mark Fixed' is showing on a revision nobody has accepted yet").toBeUndefined();
+      [...container.querySelectorAll("button")].find((b) => /Mark fixed/i.test(b.textContent || ""));
+    expect(markFixed(), "'Mark fixed' is showing on a revision nobody has accepted yet").toBeUndefined();
 
     // …and it must arrive once they accept, or the way out of a revision is gone.
     const fixIt = await screen.findByRole("button", { name: /I'll Fix It/i });
     await act(async () => { fixIt.click(); await Promise.resolve(); });
     const btn = markFixed();
-    expect(btn, "the 'Mark Fixed' escape from an accepted revision never appeared").toBeTruthy();
+    expect(btn, "the 'Mark fixed' escape from an accepted revision never appeared").toBeTruthy();
     // DELIBERATELY CHANGED (owner, 2026-09-14, VN-21: one row, the primary in
-    // the dark green). This used to assert Mark Fixed stayed an outline,
+    // the dark green). This used to assert Mark fixed stayed an outline,
     // because the revision card's own "On it" receipt kept the gloss after the
     // accept and two glossy buttons would have been on the card. In the step
     // card the accept renders in the row and is GONE once accepted, so Mark
     // Fixed takes the row's primary slot — and is the only glossy CTA.
-    expect(btn!.closest("[data-job-step-primary]"), "'Mark Fixed' is not the row's primary").not.toBeNull();
-    expect(primaryCtas(container), "two glossy CTAs is the bug this file guards").toEqual(["Mark Fixed"]);
+    expect(btn!.closest("[data-job-step-primary]"), "'Mark fixed' is not the row's primary").not.toBeNull();
+    expect(primaryCtas(container), "two glossy CTAs is the bug this file guards").toEqual(["Mark fixed"]);
   });
 
   it("the revision card no longer draws its own 'Discuss' twin of Message", async () => {
@@ -388,6 +388,6 @@ describe("helper active card — at most one primary CTA per state", () => {
 });
 
 // Shown able to fail: the upper bound on the sanctioned exit (owner VN-18 —
-// Cancel Job exists only BEFORE "I`m On My Way"). Drop `!onTheWay` and a helper
+// Cancel job exists only BEFORE "I`m On My Way"). Drop `!onTheWay` and a helper
 // who is on the way, arrived or working is offered the back-out again.
 // @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx | const showExit = !aborted && hasConfirmed && !onTheWay; | const showExit = !aborted && hasConfirmed;

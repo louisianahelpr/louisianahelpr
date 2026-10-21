@@ -3,7 +3,7 @@
  * deadline, in every layer.
  *
  * THE BUG. The owner's rule (docs/JOB-LIFECYCLE.md, approved 2026-10-08): the
- * "Confirm You'll Be at the Job" button turns on at midnight the day before
+ * "Confirm you'll be at the job" button turns on at midnight the day before
  * (greyed with "turns on ..." until then), and the answer is owed until 2 hours
  * before the START, when sweep_confirm_reminders_and_repost (SQL) reposts the
  * job. JobConfirmation printed that and the SQL enforced it, but

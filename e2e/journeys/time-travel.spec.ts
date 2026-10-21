@@ -510,7 +510,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
    * money moves, no strike (nobody cancels a hired job), and the app reads the
    * row exactly as it would read one the webhook wrote.
    */
-  test("confirm window: the Helpr's day-before 'I'm Still On' opens, counts down, then is past due", async ({
+  test("confirm window: the Helpr's day-before 'I'm still on' opens, counts down, then is past due", async ({
     browser,
     request,
     journey,
@@ -578,8 +578,8 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     const hoursLeft = (at: Date) => Math.max(1, Math.round((deadline.getTime() - at.getTime()) / 3_600_000));
     // The Helpr's tracker renders JobConfirmation's `inline` variant
     // (HelperTrackerPanel), whose control is HELPER_CONFIRM_LABEL in
-    // src/components/JobConfirmation.tsx; "I'm Still On" is the poster's.
-    const HELPER_CONFIRM = "Confirm You'll Be at the Job";
+    // src/components/JobConfirmation.tsx; "I'm still on" is the poster's.
+    const HELPER_CONFIRM = "Confirm you'll be at the job";
     // Before the window opens the Helpr's primary is this SAME button, greyed,
     // saying when it turns on (docs/JOB-LIFECYCLE.md step 4, owner 2026-10-08);
     // from midnight the day before it is live (step 5). So "before-open" asserts

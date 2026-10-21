@@ -25,7 +25,7 @@ import { RENTALS_ERROR_COPY as RC } from "./rentals/errorCopy";
  * THE ONE SENTENCE FOR THE BEFORE-PHOTO GATE ON "START WORKING".
  *
  * Exported because two surfaces say it and they must not drift: the client's
- * disabled "Start Working" reason (JobTracking), and the copy for
+ * disabled "Start working" reason (JobTracking), and the copy for
  * `tracker_requires_before_photo`, which is what
  * `enforce_job_tracking_arrival_gate()` raises when a write reaches the server
  * anyway (20260919195158). It NAMES THE CONTROL that clears it — the "Before
@@ -33,7 +33,7 @@ import { RENTALS_ERROR_COPY as RC } from "./rentals/errorCopy";
  * reason does not say what to press is the defect, not the gate.
  */
 export const BEFORE_PHOTO_GATE_REASON =
-  'Tap "Before Photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
+  'Tap "Before photo" and add one before you start working — it\'s the record of how the job looked when you got there.';
 
 const LIFECYCLE_REASONS: Record<string, string> = {
   // report_helper_no_show
@@ -78,12 +78,12 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // did not verify it, and then the poster's tap is the blocker.
   // enforce_helper_completion_gates — the Helpr's completion write.
   completion_requires_confirmed_arrival:
-    "The person who posted this job has to tap \"Confirm They Arrived\" before you can mark it complete.",
+    "The person who posted this job has to tap \"Confirm they've arrived\" before you can mark it complete.",
   // enforce_job_tracking_arrival_gate — the tracker's next step.
   tracker_requires_arrival:
-    "The person who posted this job has to tap \"Confirm They Arrived\" before you can start working.",
+    "The person who posted this job has to tap \"Confirm they've arrived\" before you can start working.",
   // enforce_poster_working_confirm_order, 20261008203441 (Q1571).
-  working_confirm_before_working: "Your Helpr hasn't tapped Start Working yet — you can confirm once they do.",
+  working_confirm_before_working: "Your Helpr hasn't tapped Start working yet — you can confirm once they do.",
   // enforce_job_tracking_arrival_gate — the Before photo, migration
   // 20260919195158 (owner, 2026-09-19: "if a before photo is required they
   // can't press the working button until its done"). A DISTINCT code from
@@ -91,13 +91,13 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // different people's controls, and a Helpr shown the arrival sentence for a
   // missing photo would go and pester the poster for a tap that changes
   // nothing. Same string on both sides of the wire — the client's disabled
-  // "Start Working" renders BEFORE_PHOTO_GATE_REASON, so the sentence the
+  // "Start working" renders BEFORE_PHOTO_GATE_REASON, so the sentence the
   // Helpr reads before the tap and the one the server sends if they get past
   // it cannot drift.
   tracker_requires_before_photo: BEFORE_PHOTO_GATE_REASON,
   tracker_requires_completion: "Mark the job complete first.",
   tracker_not_assigned_helper: "Only the Helpr assigned to this job can update its tracker.",
-  // enforce_jobs_arrival_integrity — the poster's "Confirm They Arrived".
+  // enforce_jobs_arrival_integrity — the poster's "Confirm they've arrived".
   // Since 20260919155016 a Helpr's check-in always stamps helper_arrived_at, so
   // this is reachable only by confirming a job whose Helpr has not tapped
   // Arrived at all.
@@ -230,13 +230,13 @@ export const RPC_ERROR_COPY = {
     // (enforce_group_member_completion_gates), which this inventory does not
     // follow; their copy is CREW_DONE_GATE_COPY in src/lib/crewLifecycle.ts.
   },
-  // GroupJobHelpers — the poster's per-member "Confirm They Arrived".
+  // GroupJobHelpers — the poster's per-member "Confirm they've arrived".
   rpc_poster_confirm_member_arrival: {
     not_authenticated: "Sign in again to confirm an arrival.",
     not_the_poster: "Only the person who posted this job can confirm a Helpr arrived.",
     job_not_active: "This job isn't active any more, so arrivals can't be confirmed.",
     not_on_this_crew: "That Helpr isn't on this crew any more. Pull to refresh.",
-    arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've Arrived.",
+    arrival_confirm_before_arrival: "That Helpr hasn't checked in yet. You can confirm once they tap I've arrived.",
   },
   // useOfferHandlers — responding to a direct offer.
   respond_to_direct_offer: {
@@ -362,11 +362,11 @@ export const RPC_ERROR_COPY = {
     // Q706: an offer the Helpr has not accepted is declined, not cancelled.
     offer_not_accepted: "You haven't accepted this offer yet, so there's no booking to cancel. Decline the offer instead.",
   },
-  // ActiveJobSection — Cancel Job once work is underway.
+  // ActiveJobSection — Cancel job once work is underway.
   helper_abort_job: {
     not_abortable: "This job has already moved on — pull to refresh and take another look.",
     // Raised by open_dispute_as (via rpc_open_dispute) when the job was
-    // marked complete in the moment before this Cancel Job landed. Done is
+    // marked complete in the moment before this Cancel job landed. Done is
     // final (owner, 2026-09-14): say what happened, no support detour.
     job_already_completed: "This job was just marked complete, so it can't be cancelled.",
     // Also open_dispute_as: a reason that ends in a colon reads as empty.
@@ -378,18 +378,18 @@ export const RPC_ERROR_COPY = {
     dispute_already_decided: "An admin has already decided this dispute and its payment is being settled, so it can't be reopened. Refresh to see the decision — if that looks wrong, contact support.",
     dispute_payment_being_cancelled: "This job's payment is being cancelled and refunded, so it can't be disputed. Refresh to see where it stands — if that looks wrong, contact support.",
     dispute_evidence_invalid_url: "A photo couldn't be attached to this dispute. Remove it and try again.",
-    // rpc_open_dispute's Q1244 cooldown (20261005062746): Cancel Job files through it.
+    // rpc_open_dispute's Q1244 cooldown (20261005062746): Cancel job files through it.
     dispute_refile_cooldown: "You withdrew a dispute on this job recently. Wait before filing again: 10 minutes after your first withdrawal, an hour after the second, a full day after that. Or message the other party.",
   },
-  // JobTracking — "I'm On My Way" and arrival check-in.
+  // JobTracking — "I'm on my way" and arrival check-in.
   helper_mark_on_the_way: {
     job_not_found: JOB_GONE,
     not_the_assigned_helper: NO_LONGER_BOOKED_STATUS,
     job_not_active: JOB_NOT_ACTIVE_STATUS,
     helper_not_confirmed: "Accept this job first, then mark yourself on the way.",
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
-    helper_not_dayof_confirmed: "Tap \"Confirm You'll Be at the Job\" first, then you can head out.",
-    on_the_way_too_early: "I'm On My Way turns on 2 hours before the job starts.",
+    helper_not_dayof_confirmed: "Tap \"Confirm you'll be at the job\" first, then you can head out.",
+    on_the_way_too_early: "I'm on my way turns on 2 hours before the job starts.",
   },
   nudge_confirm: {
     job_not_found: JOB_GONE,
@@ -449,7 +449,7 @@ export const RPC_ERROR_COPY = {
       "Your Helpr has already marked arrived on this job, so it can't be reported as a no-show.",
     // VN-33(b): their location was recorded near the job in the last 12h.
     helper_near_miss_pending:
-      "Your Helpr checked in near the job, but a little way from its map pin. If they're there, tap Confirm They Arrived. If not, contact support.",
+      "Your Helpr checked in near the job, but a little way from its map pin. If they're there, tap Confirm they've arrived. If not, contact support.",
   },
   // DisputeDialog.
   rpc_open_dispute: {

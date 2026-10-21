@@ -7,13 +7,13 @@
  * so a locator scoped to the card cannot see a chip in it, open or shut.
  * Measured 2026-09-26 (e2e-journeys probe runs 36212737517 / 36213134702,
  * wip/vac1797-probe-journeys): the poster's Done card of the marketplace
- * journey (it carries proof photos, so its row is Photos · More · Hire Again)
+ * journey (it carries proof photos, so its row is Photos · More · Hire again)
  * had its review row in `reviews` (02:34:06Z), and its "Reviewed" chip was in
  * the More panel next to "Tip" — `card.getByRole("button", { name:
  * /^Reviewed\b/ })` counted 0 while the page had it.
  *
  * Again 2026-10-17 (e2e-journeys 39020810698, chromium): the poster's booked
- * card at 390px is More + "I'm Still On" (one row = More + the primary), so
+ * card at 390px is More + "I'm still on" (one row = More + the primary), so
  * "Message Helpr" sat in the More panel and `pp.getByRole("button", { name:
  * "Message Helpr" })` timed out. Moved here from 02-marketplace.spec.ts so
  * every journey file looks a chip up the same way.

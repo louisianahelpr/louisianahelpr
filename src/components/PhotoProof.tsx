@@ -596,7 +596,7 @@ export const PhotoProofGroup = ({
  * the row in their screenshot. This is the same uploader and the same dialog,
  * drawn as the row's own control.
  *
- * `label` names WHICH photo ("Before Photo" / "After Photo"), which is what
+ * `label` names WHICH photo ("Before photo" / "After photo"), which is what
  * keeps it from reading as a duplicate of the neutral `Photos` chip beside it
  * on the disputed card — that one OPENS the gallery of photos already taken
  * (`PhotoProofDialog`), this one ADDS the one that is missing. Two controls,

@@ -117,13 +117,13 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
          "Confirmed" step. See HelperTrackerPanel — the confirmation used to be
          a second glass card BELOW the tracker with its own green primary, so
          the card offered two full-width green buttons at once and the wrong
-         one ("On the Way") was reachable first.
+         one ("On the way") was reachable first.
 
          It still leads the section, which is the ordering the owner set
          ("confirmation needs to go before job starts because that comes
          first") — the confirmation is now simply inside the tracker rather
-         than stacked above or below it. Its button ("I'm Still On", then the
-         tracker's "I'm On My Way") is the row's primary and portals into it. */
+         than stacked above or below it. Its button ("I'm still on", then the
+         tracker's "I'm on my way") is the row's primary and portals into it. */
       header={<HelperTrackerPanel app={app} job={job} userId={userId} initialTracking={initialTracking} onCantMakeIt={() => setCancelOpen(true)} hideConfirmNotYetOpen />}
       notice={
         <>
@@ -152,10 +152,10 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
          primary leading). The shell lays them out and drops them to icon-only
          when four buttons do not fit with labels.
 
-         "Cancel Job" is the exit, not a link: it opens the same
+         "Cancel job" is the exit, not a link: it opens the same
           reliability-ladder confirm the underlined link used to. Labelled
-          "Cancel Job" (owner, 2026-09-14, VN-18: the back-out shown after the
-          Helpr confirms and before On the Way says "Cancel Job") — the same
+          "Cancel job" (owner, 2026-09-14, VN-18: the back-out shown after the
+          Helpr confirms and before On the way says "Cancel job") — the same
           words ActiveJobSection's chip and dialog use for that window, so the
           accepted and in-progress cards cannot name one exit two ways. `danger` is
           the tone every sanctioned-exit control in these rows already wears
@@ -194,7 +194,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
               <JobActionChip
                 key="cancel"
                 icon={CalendarX2}
-                label="Cancel Job"
+                label="Cancel job"
                 ariaLabel="Cancel this job? See what happens if you cancel now"
                 tone="danger"
                 onClick={() => setCancelOpen(true)}
@@ -244,7 +244,7 @@ export function ConfirmedSection({ app, job, userId, initialTracking, navigate }
           // replace.
           text: `Cancelling a job you committed to counts as a reliability strike — ${RELIABILITY_LADDER_SENTENCE}.`,
         }}
-        primaryLabel={cancelling ? "Cancelling…" : "Cancel Job"}
+        primaryLabel={cancelling ? "Cancelling…" : "Cancel job"}
         primaryTone="sienna"
         primaryDisabled={cancelling}
         onPrimary={() => void handleCancelBooking()}

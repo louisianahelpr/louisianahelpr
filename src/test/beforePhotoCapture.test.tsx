@@ -23,14 +23,14 @@ import type { ReactElement } from "react";
  * `jobs.require_photo_proof` so a no-photos job shows no control at all.
  *
  * ── PART 2: WHAT THE GATE ACTUALLY IS, AND WHAT IT IS NOT ───────────────────
- * "Mark Job Complete" IS gated on the full requirement — `JobTracking`'s
+ * "Mark job complete" IS gated on the full requirement — `JobTracking`'s
  * `needsProof`, rendered as a disabled primary with `requiredProof().reason`
  * in the row's note. That half is correct and this file pins it.
  *
  * "START WORKING" IS NOW GATED TOO — AND THE SERVER GATED IT FIRST.
  *
  * THE HISTORY, KEPT BECAUSE THE ORDER IS THE POINT. Until 2026-09-19 this file
- * pinned the OPPOSITE: Start Working was deliberately ungated, because the
+ * pinned the OPPOSITE: Start working was deliberately ungated, because the
  * server was the oracle and the server did not enforce a before-photo on this
  * transition. Verified read-only against prod `fncmgoasalhdgfwzhsqa` that
  * morning — `job_tracking` carried exactly one non-internal trigger,
@@ -60,7 +60,7 @@ import type { ReactElement } from "react";
  * on tap with a toast, and JobTracking's own note on it says the control that
  * LOOKED pressable was the worse half of the pair to get wrong. So this is a
  * render-time disabled state with the reason on the line above the row, and
- * the reason NAMES the "Before Photo" chip sitting beside it in the row.
+ * the reason NAMES the "Before photo" chip sitting beside it in the row.
  *
  * (That sentence said "one control to its left" until 2026-09-19, when the
  * owner pinned the chip order: "before and after photos should be to the left
@@ -82,14 +82,14 @@ import type { ReactElement } from "react";
 // nothing for a one-Helpr job, so removing it SURVIVED a local vacuity run.)
 // @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" mode="primary" /> | null
 // @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
-// The third takes the BEFORE-photo half of the gate off Start Working — the
+// The third takes the BEFORE-photo half of the gate off Start working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once
 // 20260919195158 put it in the database. Since photo-first (owner 2026-10-08,
-// Q1562) the step row does not render Start Working at all while the before
+// Q1562) the step row does not render Start working at all while the before
 // photo is owed (`photoIsPrimary`), so the old mutation (dropping
 // `needsBeforePhoto` from the button's `disabled`) changed nothing this row
 // shows and SURVIVED (vacuity push run 38181478413). The gate the row really
-// applies is `photoIsPrimary`; putting Start Working back must turn this red.
+// applies is `photoIsPrimary`; putting Start working back must turn this red.
 // @mutate src/components/JobTracking.tsx | const photoIsPrimary = needsBeforePhoto \|\| needsProof; | const photoIsPrimary = needsProof;
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() } }));
@@ -249,29 +249,29 @@ const primary = (container: HTMLElement) => {
 };
 
 describe("the photo capture is a control IN the action row", () => {
-  it("on site, before photo owed: the PRIMARY is Take Before Photo (owner, 2026-10-08: photo first)", async () => {
+  it("on site, before photo owed: the PRIMARY is Take Before photo (owner, 2026-10-08: photo first)", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Take Before Photo/);
+    expect(cta?.textContent?.trim()).toMatch(/Take Before photo/);
     expect(cta?.disabled).toBeFalsy();
-    // Start Working is not drawn until the photo is in.
-    expect(within(row(container)).queryByRole("button", { name: /Start Working/ })).toBeNull();
+    // Start working is not drawn until the photo is in.
+    expect(within(row(container)).queryByRole("button", { name: /Start working/ })).toBeNull();
     expect(container.textContent).not.toMatch(/Add a before photo/);
   });
-  it("working, after photo owed: the PRIMARY is Take After Photo", async () => {
+  it("working, after photo owed: the PRIMARY is Take After photo", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
-    expect(primary(container)?.textContent?.trim()).toMatch(/Take After Photo/);
-    expect(within(row(container)).queryByRole("button", { name: /Mark Job Complete/ })).toBeNull();
+    expect(primary(container)?.textContent?.trim()).toMatch(/Take After photo/);
+    expect(within(row(container)).queryByRole("button", { name: /Mark job complete/ })).toBeNull();
   });
   it("the capture control is NAMED for which photo, so it cannot read as the Photos gallery chip", async () => {
     const { container } = await renderStep(makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }), "arrived");
     const names = [...row(container).querySelectorAll("button, a[href]")].map(
       (b) => (b.getAttribute("aria-label") || b.textContent || "").trim(),
     );
-    expect(names.some((n) => /Before Photo\b/.test(n))).toBe(true);
+    expect(names.some((n) => /Before photo\b/.test(n))).toBe(true);
     expect(names.some((n) => /^Photos\b/.test(n))).toBe(false);
   });
   it("no control at all when the poster does not require photos", async () => {
@@ -295,23 +295,23 @@ describe("the photo capture is a control IN the action row", () => {
 });
 
 describe("the completion gate, and the one that is the SERVER's to add", () => {
-  it("a missing proof photo replaces Mark Job Complete with the photo itself (photo first, owner 2026-10-08)", async () => {
+  it("a missing proof photo replaces Mark job complete with the photo itself (photo first, owner 2026-10-08)", async () => {
     const { container } = await renderStep(makeJob({ proof_after_urls: [] }), "working");
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take After Photo/);
+    expect(cta?.textContent?.trim(), "the working step's primary").toMatch(/Take After photo/);
     // The gate is still the server's (enforce_helper_completion_gates); the card
     // simply never offers the refused tap.
     expect(requiredProof({ require_photo_proof: true }).reason.length).toBeGreaterThan(0);
   });
-  it("Mark Job Complete is ENABLED once both photos exist", async () => {
+  it("Mark job complete is ENABLED once both photos exist", async () => {
     const { container } = await renderStep(makeJob({}), "working");
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Mark Job Complete/);
+    expect(cta?.textContent?.trim()).toMatch(/Mark job complete/);
     expect(cta?.disabled, "the gate is refusing a job whose proof is complete").toBe(false);
   });
 
   /**
-   * THE INTERLOCK. The client may only disable Start Working while the
+   * THE INTERLOCK. The client may only disable Start working while the
    * DATABASE refuses the same write, so the flag that turns the block on is
    * itself checked against the migration set. Read from the latest migration
    * that defines the trigger function, not from a name — a rename that loses
@@ -346,44 +346,44 @@ describe("the completion gate, and the one that is the SERVER's to add", () => {
     );
     // A DISTINCT code: reusing tracker_requires_arrival would send the Helpr to
     // pester the poster for a tap that clears nothing.
-    expect(sql).not.toMatch(/tracker_requires_before_photo'[^\n]*\n[^\n]*Confirm They Arrived/);
+    expect(sql).not.toMatch(/tracker_requires_before_photo'[^\n]*\n[^\n]*Confirm they've arrived/);
     // And the code has words at the surface that renders it.
     expect(LIFECYCLE_COPY, "tracker_requires_before_photo has no copy in lifecycleErrors.ts").toContain(
       "tracker_requires_before_photo",
     );
   });
 
-  it("Start Working is not offered while the before photo is missing; Take Before Photo is", async () => {
+  it("Start working is not offered while the before photo is missing; Take Before photo is", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take Before Photo/);
+    expect(cta?.textContent?.trim(), "the on-site step's primary").toMatch(/Take Before photo/);
     expect(
-      within(row(container)).queryByRole("button", { name: /Start Working/ }),
-      "Start Working is on the row while the before photo is still owed",
+      within(row(container)).queryByRole("button", { name: /Start working/ }),
+      "Start working is on the row while the before photo is still owed",
     ).toBeNull();
     expect(START_WORKING_IS_SERVER_GATED, "the server must still refuse working without the photo").toBe(true);
-    expect(BEFORE_PHOTO_GATE_REASON, "the reason no longer names the control").toContain("Before Photo");
+    expect(BEFORE_PHOTO_GATE_REASON, "the reason no longer names the control").toContain("Before photo");
   });
-  it("adding the before photo clears it — Start Working is ENABLED", async () => {
+  it("adding the before photo clears it — Start working is ENABLED", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: ["before.jpg"], poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Start Working/);
+    expect(cta?.textContent?.trim()).toMatch(/Start working/);
     expect(cta?.disabled, "the gate is refusing a job whose before photo exists").toBe(false);
   });
 
-  it("a job the poster marked as needing no photos is UNAFFECTED — Start Working is ENABLED", async () => {
+  it("a job the poster marked as needing no photos is UNAFFECTED — Start working is ENABLED", async () => {
     const { container } = await renderStep(
       makeJob({ proof_before_urls: [], require_photo_proof: false, poster_confirmed_working_at: null }),
       "arrived",
     );
     const cta = primary(container);
-    expect(cta?.textContent?.trim()).toMatch(/Start Working/);
+    expect(cta?.textContent?.trim()).toMatch(/Start working/);
     expect(
       cta?.disabled,
       "requiredProof({ require_photo_proof: false }).before is false — this job has no before photo to owe",

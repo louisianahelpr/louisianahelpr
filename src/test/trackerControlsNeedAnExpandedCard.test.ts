@@ -4,15 +4,15 @@
  * `JobCardShell` renders every job card COLLAPSED. A collapsed card is a
  * summary — category, heading, price, location chip, one status sentence — and
  * it contains no tracker at all. `JobTracking`'s rung buttons ("I'm On My
- * Way", "I've Arrived", "Start Working", "Mark Job Complete") and
+ * Way", "I've arrived", "Start working", "Mark job complete") and
  * `PhotoProofCaptureChip`'s photo asks only exist once the card is open.
  *
  * THE DAY THIS COST, 2026-09-22. The full money loop against production — the
  * highest-stakes check in this repo — waited 30 seconds for
- * `^Before Photo — add the before photo for this job$` on a funded, hired,
+ * `^Before photo — add the before photo for this job$` on a funded, hired,
  * in-progress job, then failed with "the card never asked for the before
  * photo". The failure artefact showed the card's ENTIRE accessible content as
- * `button "Expand Job Details"`, the heading, `$22`, the location chip and
+ * `button "Expand job details"`, the heading, `$22`, the location chip and
  * `paragraph: Needs You — Finish and mark it done`. Nothing had gone wrong with
  * the product. The card was simply shut, and the spec never opened it.
  *
@@ -33,7 +33,7 @@
  * progress"` row that `JobTracking.tsx` renders (its step rail) — the same
  * thing `02-marketplace.spec.ts`'s `card()` helper waits on to prove a card
  * opened. Checking for the gesture instead (a heading click, the sr-only
- * "Expand Job Details" button) would pass a spec that clicks and never
+ * "Expand job details" button) would pass a spec that clicks and never
  * confirms, which is the bug.
  */
 
@@ -65,7 +65,7 @@ function trackerControlNames(): string[] {
   const names = new Set<string>();
 
   // The rung labels, as the component writes them.
-  for (const m of tracking.matchAll(/"(I'm On My Way|I've Arrived|Start Working|Mark Job Complete)"/g)) {
+  for (const m of tracking.matchAll(/"(I'm on my way|I've arrived|Start working|Mark job complete)"/g)) {
     names.add(m[1]);
   }
 
@@ -119,7 +119,7 @@ describe("tracker controls are only reachable on an expanded card", () => {
         "funded, hired job.\n\n" +
         "Open the card the way e2e/journeys/02-marketplace.spec.ts does: click the card's level-2 " +
         'heading, then wait for `getByRole("group", { name: /Job progress/ })`. Do not assert on the ' +
-        'sr-only "Expand Job Details" button — its accessible name flips to "Collapse Job Details".\n\n' +
+        'sr-only "Expand job details" button — its accessible name flips to "Collapse job details".\n\n' +
         offenders.join("\n"),
     ).toEqual([]);
   });

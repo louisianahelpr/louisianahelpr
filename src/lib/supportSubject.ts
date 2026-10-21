@@ -1,5 +1,5 @@
 /**
- * The `?subject=` a job's "Contact Admin" chip hands to /support.
+ * The `?subject=` a job's "Contact admin" chip hands to /support.
  *
  * It used to be `Dispute on job <uuid>`, chosen so the URL carries nothing
  * personal. Right instinct, wrong noun: the person then landed on a form whose

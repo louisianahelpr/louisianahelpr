@@ -1,4 +1,4 @@
-// arrival-confirm-reminder — nudges a poster to tap "Confirm They Arrived", then
+// arrival-confirm-reminder — nudges a poster to tap "Confirm they've arrived", then
 // escalates to admin (VN-33, owner 2026-09-14: "Nudge, then escalate").
 //
 // Since 20260919155016 (owner, 2026-09-19) the poster's confirmation is the ONLY
@@ -190,7 +190,7 @@ serve(async (req) => {
           await notifyUser(
             job.customer_id!,
             "Is your Helpr at the door?",
-            `"${job.title}" — they checked in ${job.helper_arrival_near_miss_ft ?? "some"} ft from the map pin. If they're there, tap Confirm They Arrived, or report a problem.`,
+            `"${job.title}" — they checked in ${job.helper_arrival_near_miss_ft ?? "some"} ft from the map pin. If they're there, tap Confirm they've arrived, or report a problem.`,
             posterLink,
             "job_updates",
             job.id,
@@ -200,7 +200,7 @@ serve(async (req) => {
             job.customer_id!,
             stage === "first" ? "Your Helpr is at the job" : "Please confirm your Helpr arrived",
             stage === "first"
-              ? `"${job.title}" — tap Confirm They Arrived so they can start work.`
+              ? `"${job.title}" — tap Confirm they've arrived so they can start work.`
               : `"${job.title}" — your Helpr has been waiting 2 hours. Confirm they arrived, or report a problem.`,
             posterLink,
             "job_updates",

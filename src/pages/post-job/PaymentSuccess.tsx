@@ -33,6 +33,7 @@ import { MaterialsPanel } from "@/components/postjob/MaterialsPanel";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { shareNative } from "@/lib/nativeShare";
 import { PaymentLifecycleSteps, lifecycleStepFor } from "@/components/postjob/PaymentLifecycleSteps";
+import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import {
   paymentHeading,
   paymentPageTitle,
@@ -299,7 +300,7 @@ const PaymentSuccess = () => {
         }
         const { data, error } = await supabase
           .from("jobs")
-          .select("budget, category, payment_status, customer_id, status, offered_to_helper_id")
+          .select("budget, category, payment_status, customer_id, status")
           .eq("id", resolvedJobId)
           .maybeSingle();
         if (cancelled) return;
@@ -328,7 +329,8 @@ const PaymentSuccess = () => {
         if (typeof data.category === "string") setCategory(data.category);
         // Q1788: the stepper and the primary follow the job's real stage.
         setJobStatus(typeof data.status === "string" ? data.status : null);
-        setDirectOffer(!!data.offered_to_helper_id);
+        // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
+        void fetchJobOfferTargets([resolvedJobId]).then((m) => { if (!cancelled) setDirectOffer(m.has(resolvedJobId)); });
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {

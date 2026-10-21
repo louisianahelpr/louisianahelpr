@@ -17,7 +17,7 @@ import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDia
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0 }));
 
-const sent = { jobId: "j1", title: "Fence repair", noteWithheld: false, posterName: "Travis Boudreaux", dateNeeded: "2026-10-31" };
+const sent = { jobId: "j1", title: "Fence repair", noteWithheld: false, posterName: "Travis Boudreaux", dateNeeded: "2037-10-31" };
 
 describe("board 77: what next after applying", () => {
   it("names the poster, marks the wait as Now and dates the job", () => {
@@ -62,7 +62,7 @@ describe("board 77: what next after applying", () => {
 
   it("prints the posted price and the apply sheet's own take-home, in rust", () => {
     // A flat-model job: 5% + 70c off $85 = $80.05, floored to whole dollars like the receipt.
-    const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, category: "x", description: "", date_needed: "2026-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
+    const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, category: "x", description: "", date_needed: "2037-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
     render(<ApplicationSentDialog sent={{ ...sent, job: job as never }} platformFee={10} onClose={() => {}} onView={() => {}} />);
     const steps = within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem");
     expect(steps[3].textContent).toContain("Then $80 comes to you");

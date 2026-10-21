@@ -10,6 +10,7 @@
  * declutterErrorMessage(err).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isStorageObjectPath } from "@/lib/storagePath";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
@@ -171,6 +172,8 @@ export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
 
 /** A short-lived link to a handover photo (the two sides and admins may read it). */
 export async function handoverPhotoUrl(path: string): Promise<string | null> {
+  // Sign only a storage path, never a URL or anything else a row might hold (signedUrlOnlyForStoragePaths).
+  if (!isStorageObjectPath(path)) return null;
   const { data, error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).createSignedUrl(path, 600);
   if (error) {
     console.warn("[declutter] handover photo link failed", error.message);

@@ -159,7 +159,7 @@ export function DeclutterQuestions({
 
   return (
     <section className="space-y-3" aria-labelledby="declutter-questions">
-      <h2 id="declutter-questions" className="text-ds-13 font-semibold uppercase tracking-wider text-muted-foreground">
+      <h2 id="declutter-questions" className="text-base font-semibold">
         Questions{list.length > 0 ? ` · ${list.length}` : ""}
       </h2>
       {questions.isError ? (

@@ -143,7 +143,7 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
 // doesn't belong there, so it's a no-nav page, not an auth tab route.
 // "/post-job": a flow, start to pay, so no dock and no "+" over it (owner 2026-10-21); the page's own
 // back arrow is the way out. The desktop rail is a separate surface (desktopNavRoutes.ts) and stays.
-export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/admin", "/post-job"];
+export const noNavPages = ["/login", "/signup", "/signup-pending", "/forgot-password", "/reset-password", "/admin", "/post-job", "/declutter/sell"];
 
 // Map each tab root to sub-routes that belong to its stack.
 // Tapping the tab while inside one of these returns the user to the tab root.

@@ -273,6 +273,8 @@ export default function MoveFlow() {
     }
   }
 
+  const stepNo = moveStepNumber(rows.length > 0, ready.length > 0 && !photos.isError);
+
   return (
     <AppPage title="Moving out" backTo="/declutter?view=selling">
       {/* Board 164: the moment headline (spec v2 §1.2: Bodoni for flow headlines). */}
@@ -287,7 +289,9 @@ export default function MoveFlow() {
         </DeclutterNotice>
       )}
 
-      <Section id="move-when" title="1. Your move">
+      {/* The numbers count only the sections on screen (audit #30: they skipped 1, 2, 4, 6 while "Check"
+          and "List" were hidden). */}
+      <Section id="move-when" title={`${stepNo("when")}. Your move`}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="min-w-0">
             <label className="block text-sm font-medium" htmlFor="move-date">Move-out date</label>
@@ -310,7 +314,7 @@ export default function MoveFlow() {
         )}
       </Section>
 
-      <Section id="move-rooms" title="2. Photograph a room">
+      <Section id="move-rooms" title={`${stepNo("rooms")}. Photograph a room`}>
         <p className="text-xs text-muted-foreground">
           Up to {MOVE_ROOM_PHOTOS_MAX} photos of one room at a time. They're only used to find the items. They aren't saved or shown to buyers.
         </p>
@@ -321,7 +325,7 @@ export default function MoveFlow() {
       </Section>
 
       {rows.length > 0 && (
-        <Section id="move-check" title={`3. Check each item (${kept.length} of ${rows.length} kept)`}>
+        <Section id="move-check" title={`${stepNo("check")}. Check each item (${kept.length} of ${rows.length} kept)`}>
           <p className="text-xs text-muted-foreground">
             Untick anything you're keeping. Give each item a price. Leave the lowest price blank to keep the price as it is; fill it in and the price drops 5% each evening until it gets there.
           </p>
@@ -366,7 +370,7 @@ export default function MoveFlow() {
         </Section>
       )}
 
-      <Section id="move-items" title="4. Your moving-sale items">
+      <Section id="move-items" title={`${stepNo("items")}. Your moving-sale items`}>
         {moveItems.isError || photos.isError ? (
           <ErrorState
             variant="inline"
@@ -422,7 +426,7 @@ export default function MoveFlow() {
       </Section>
 
       {ready.length > 0 && !photos.isError && (
-        <Section id="move-list" title={`5. List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}>
+        <Section id="move-list" title={`${stepNo("list")}. List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}>
           <h3 className="text-sm font-semibold">Your usual pickup times</h3>
           <p className="text-xs text-muted-foreground">Buyers pick one of these times. They apply to all your listings.</p>
           {savedWindows.isError ? (
@@ -454,7 +458,7 @@ export default function MoveFlow() {
         </Section>
       )}
 
-      <Section id="move-day" title="6. Moving day">
+      <Section id="move-day" title={`${stepNo("day")}. Moving day`}>
         <p className="text-sm text-muted-foreground">
           Need a hand carrying things out, or a truck for whatever doesn't sell? Hire a Helpr for the job.
         </p>
@@ -482,4 +486,10 @@ export default function MoveFlow() {
       </Section>
     </AppPage>
   );
+}
+
+/** The moving-out steps on screen, in order; a section's number is its place here (audit #30). */
+export function moveStepNumber(showCheck: boolean, showList: boolean): (key: string) => number {
+  const shown = ["when", "rooms", showCheck && "check", "items", showList && "list", "day"].filter(Boolean);
+  return (key: string) => shown.indexOf(key) + 1;
 }

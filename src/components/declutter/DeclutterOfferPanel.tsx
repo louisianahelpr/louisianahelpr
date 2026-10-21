@@ -234,9 +234,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     <section ref={panel} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label="Buy or make an offer">
       {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
       <div ref={buttons} className="grid gap-2 sm:grid-cols-2">
+        {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
+            and Buy now steps back to an outline. */}
         <Button
           type="button"
           size="wrap"
+          variant={showCardStep ? "outline" : undefined}
           className="w-full rounded-full"
           disabled={buy.isPending || card.isLoading}
           aria-busy={card.isLoading || undefined}

@@ -1,8 +1,8 @@
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { HelprMark } from "@/components/HelprMark";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Home, ArrowLeft } from "lucide-react";
+import { Signpost } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { report } from "@/lib/errorLogger";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import PublicLayout from "@/components/marketing/PublicLayout";
@@ -23,7 +23,8 @@ import { setNotFoundPathname } from "@/hooks/useAppShellViewport";
  * public route with bespoke chrome, so a wrong URL made the site look like
  * it had changed identity at the worst possible moment for trust.
  *
- * The branded 404 hero, Go back and Back to Home are unchanged.
+ * The body is the shared EmptyState (spec v2, 2026-10-21): "Go home" is the
+ * one primary button, "Go back" a text link under it.
  *
  * On NATIVE, PublicLayout renders AppShell instead of the marketing chrome
  * (no App Store footer inside the app), so the in-app 404 is unaffected.
@@ -32,7 +33,7 @@ const NotFound = () => {
   // The SPA serves unknown paths with a 200 status, so the 404 page must
   // be explicitly non-indexable to keep junk URLs out of search results.
   usePageMeta({
-    title: "Page Not Found — Helpr",
+    title: "Page not found — Helpr",
     description: "The page you're looking for doesn't exist or has been moved.",
     robots: "noindex",
   });
@@ -61,60 +62,42 @@ const NotFound = () => {
     // page-warmth + mesh-gradient-global are NOT repeated here: PublicLayout
     // already paints both, and stacking a second mesh over the first doubled
     // the gradient's opacity.
+    //
+    // Spec v2 rebuild (audit 2026-10-21, old-design list): the 404 is the ONE
+    // empty-state layout (shared EmptyState: circle + olive line icon, title,
+    // one muted sentence, one primary button), not a bespoke "Helpr · LA"
+    // wordmark over a giant "404" with two Title Case buttons. "Go back" is a
+    // plain text link under the one primary button. The title says "Page not
+    // found" in the body so e2e/errorScreens.ts's 404 pattern sees the screen.
     <PublicLayout>
-      <div className="flex items-center justify-center px-5 py-16 sm:py-24 lg:py-28">
-        <div className="text-center space-y-7 max-w-md">
-          {/* The shared wordmark, not a hand-rolled one. This used to spell
-              "Helpr · LA" in italic Bodoni, which made the 404 the only screen
-              in the app whose brand mark was set in the display face — the
-              landing hero, the footer and every header set it in Montserrat
-              through HelprMark. Emblem hidden: the Navbar directly above
-              already carries the wrought-iron H. */}
-          <div className="flex justify-center">
-            <HelprMark to="/" size="lg" hideEmblem />
-          </div>
-
-          <div className="space-y-3">
-            {/* mt-3: the gap the hidden eyebrow span used to give it as a
-                space-y-3 sibling (Q1129), kept so nothing moves. */}
-            <h1
-              className="font-display font-bold leading-none mt-3"
-              style={{
-                fontSize: "clamp(4rem, 10vw + 1rem, 7rem)",
-                color: "hsl(var(--ink-deep))",
-                letterSpacing: "-0.045em",
-              }}
-            >
-              404
-            </h1>
-            <p className="font-sans text-ds-17" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              This page doesn't exist or has been moved.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-3">
-            <Button
-              variant="outline"
-              className="rounded-ds-md"
-              // A bare history.back() is a no-op on a cold deep-link / direct
-              // landing where this 404 is the first history entry — fall back
-              // to home so the button always does something.
-              onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Go back
-            </Button>
-            <Button
-              asChild
-              variant="primary"
-              className="rounded-ds-md"
-            >
-              <Link to="/">
-                <Home className="h-4 w-4 mr-2" />
-                Back to Home
-              </Link>
-            </Button>
-          </div>
+      <div className="flex justify-center px-5 py-12 sm:py-20" data-testid="not-found">
+        <div className="w-full max-w-[440px] flex">
+          {/* The page's one h1 for assistive tech; EmptyState's title is a <p>. */}
+          <h1 className="sr-only">Error 404</h1>
+          <EmptyState
+            variant="inline"
+            icon={Signpost}
+            title="Page not found"
+            body="This page doesn't exist or has moved. The link may be old."
+            action={
+              <div className="flex flex-col items-center gap-3 w-full">
+                <Button asChild variant="primary" size="lg" className="w-full max-w-[280px] rounded-full">
+                  <Link to="/">Go home</Link>
+                </Button>
+                <button
+                  type="button"
+                  className="min-h-[44px] px-3 text-ds-14 font-bold"
+                  style={{ color: "hsl(var(--bark))" }}
+                  // A bare history.back() is a no-op on a cold deep-link / direct
+                  // landing where this 404 is the first history entry — fall back
+                  // to home so the link always does something.
+                  onClick={() => (window.history.length <= 1 ? navigate("/") : window.history.back())}
+                >
+                  Go back
+                </button>
+              </div>
+            }
+          />
         </div>
       </div>
     </PublicLayout>

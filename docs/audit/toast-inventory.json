@@ -8343,7 +8343,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 140,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8806,7 +8806,7 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 75,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8816,7 +8816,7 @@
     },
     {
       "file": "src/pages/auth/ForgotPassword.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8896,7 +8896,7 @@
     },
     {
       "file": "src/pages/auth/ResetPassword.tsx",
-      "line": 174,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8996,7 +8996,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 176,
+      "line": 177,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9006,7 +9006,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 181,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "literal",

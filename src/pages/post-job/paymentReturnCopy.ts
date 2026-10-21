@@ -43,8 +43,8 @@ export function paymentHeading(state: ConfirmState, live: boolean): string {
 
 export function unknownPaymentBody(reason: UnknownReason): string {
   return reason === "no-reference"
-    ? "We don't have a reference for this payment, so we can't tell you whether it went through. Please don't pay again — open My Posts to check the job's payment status, or contact support and we'll look it up for you."
+    ? "We don't have a reference for this payment, so we can't tell you whether it went through. Please don't pay again — open your posted jobs to check the job's payment status, or contact support and we'll look it up for you."
     : reason === "pending"
-      ? "Your payment hasn't been confirmed on our side yet. It usually lands within a minute. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't confirmed in a few minutes."
-      : "We couldn't reach our records to check this payment. That does not mean it failed — we simply can't tell you either way right now. Please don't pay again — open My Posts to see this job's payment status, and contact support if it still isn't clear.";
+      ? "Your payment hasn't been confirmed on our side yet. It usually lands within a minute. Please don't pay again — open your posted jobs to see this job's payment status, and contact support if it still isn't confirmed in a few minutes."
+      : "We couldn't reach our records to check this payment. That does not mean it failed — we simply can't tell you either way right now. Please don't pay again — open your posted jobs to see this job's payment status, and contact support if it still isn't clear.";
 }

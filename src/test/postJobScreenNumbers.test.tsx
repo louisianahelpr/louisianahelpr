@@ -7,6 +7,7 @@
  * @mutate src/pages/post-job/FormStep.tsx | <PostJobStepHeader screen="where" | <PostJobStepHeader screen="price"
  * @mutate src/pages/post-job/EntryChoice.tsx |                     form.setFormPage(2);\n                  }} |                   }}
  * @mutate src/components/postjob/PostJobStepHeader.tsx |   const step = screenNumber(screen); |   const step = 1;
+ * @mutate src/pages/post-job/PostJob.tsx |   const header = { title: "Post a job" }; |   const header = { title: form.categoryGroup ? "Home" : "Post a job" };
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -53,6 +54,13 @@ describe("Post a Job screen numbers (owner 2026-10-21)", () => {
       expect(bar.children.length).toBe(7);
       unmount();
     });
+  });
+
+  it("the top bar reads 'Post a job' on every screen (owner 2026-10-21); screen 3's question names the group", () => {
+    const page = read("src/pages/post-job/PostJob.tsx");
+    expect(page).toContain('const header = { title: "Post a job" };');
+    expect(page).toMatch(/<AppPage title=\{header\.title\}/);
+    expect(page).not.toMatch(/title:\s*[^"\n]*\?/);
   });
 
   it("form pages map to their screens; templates and AI land on Details (4 of 7)", () => {

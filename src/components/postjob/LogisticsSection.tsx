@@ -49,7 +49,7 @@ const RECURRING_ENABLED = true;
 /** "Repeats", not "Recurring" — it names what the poster is doing rather than
  *  the billing category. */
 const JOB_TYPE_OPTIONS: SegmentedOption<"once" | "recurring" | "group">[] = [
-  { value: "once", label: "One-Time" },
+  { value: "once", label: "One-time" },
   ...(RECURRING_ENABLED ? ([{ value: "recurring", label: "Repeats" }] as const) : []),
   ...(GROUP_JOBS_ENABLED ? ([{ value: "group", label: "Group" }] as const) : []),
 ];

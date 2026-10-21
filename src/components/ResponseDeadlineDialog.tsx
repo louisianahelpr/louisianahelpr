@@ -17,6 +17,12 @@ import { toast } from "sonner";
 import { RELIABILITY_LADDER_RUNGS } from "@/lib/reliabilityLadder";
 import { userFacingError } from "@/lib/userFacingError";
 import { offerResponseDeadline, JOB_STARTS_TOO_SOON_COPY } from "@/lib/offerDeadline";
+import { UserAvatar } from "@/components/UserAvatar";
+import { formatJobDate } from "@/lib/dateUtils";
+import { jobStartTimeLabel } from "@/lib/jobDate";
+import { formatPriceExact } from "@/lib/format";
+import { STAR_ON_CLS } from "@/lib/starColor";
+import { BadgeCheck, Star } from "lucide-react";
 
 type Props = {
   open: boolean;
@@ -26,7 +32,19 @@ type Props = {
   /** The job being hired into. The answer-by time never runs past its start
    *  (server rule, accept_application 20261005184940), so the line under the
    *  picker says so when the start comes first. */
-  job?: { date_needed?: string | null; start_time?: string | null } | null;
+  job?: {
+    date_needed?: string | null;
+    start_time?: string | null;
+    title?: string | null;
+    budget?: number | null;
+    is_group_job?: boolean | null;
+    urgent_fee?: number | null;
+    is_flexible_schedule?: boolean | null;
+    recurrence_days?: number[] | null;
+    payment_status?: string | null;
+  } | null;
+  /** Board 29: who is being hired, as the applicant card already has it (no new read). */
+  helper?: { userId?: string | null; avatarUrl?: string | null; idVerified?: boolean | null; avgRating?: number | null; reviewCount?: number | null } | null;
 };
 
 const deadlineOptions = [
@@ -39,7 +57,17 @@ const deadlineOptions = [
   { value: "48", label: "48 hours" },
 ];
 
-export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job }: Props) => {
+export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job, helper }: Props) => {
+  const first = helperName.trim().split(/\s+/)[0] || helperName;
+  // The job price shown only when it is the whole charge for this Helpr: not a crew (split) and no
+  // urgent bonus on top (truth rule: never a number that isn't what was paid for this hire).
+  const price = job && !job.is_group_job && !(Number(job.urgent_fee) > 0) && Number(job.budget) > 0 ? Number(job.budget) : null;
+  // A series charges its first visit at post and each later visit before it comes (charge-recurring-visits).
+  const series = !!job?.recurrence_days?.length;
+  // Only a funded job can be hired into (trg_job_funded_before_award); the note claims payment only then.
+  const funded = !job?.payment_status || ["escrow", "payout_pending", "released"].includes(job.payment_status);
+  const them = first === "Helpr" ? "your Helpr" : first;
+  const when = job?.date_needed ? [formatJobDate(job.date_needed), jobStartTimeLabel(job.start_time, job.is_flexible_schedule)].filter(Boolean).join(" · ") : null;
   const [hours, setHours] = useState("24");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -113,7 +141,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
       <ViolationDialog violations={violations} onOpenChange={(o) => { if (!o) setViolations(null); }} />
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
-        <DialogHero title="Set a response deadline" />
+        <DialogHero title={`Hire ${them}`} />
         <div className="space-y-4">
           {/* Lede in the same serif-italic olivewood every other money/offer
               dialog opens with (TipDialog, InstantPayoutDialog). This dialog
@@ -121,6 +149,51 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               through DialogBody rather than restating the tokens, which is
               how it had drifted to olivewood/0.85 while the confirm sheet
               beside it used /0.8. */}
+          {/* Board 29: the job and the Helpr, then what was paid. Charged at post (owner 2026-10-21,
+              friction 2), so hiring charges nothing new: the note says so, the amount in rust. */}
+          {(job?.title || when) && (
+            <div className="rounded-ds-md border border-border bg-card p-3">
+              {job?.title && <p className="font-sans text-ds-15 font-bold text-foreground">{job.title}</p>}
+              {when && <p className="font-sans text-ds-13 text-muted-foreground">{when}</p>}
+              <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
+                <UserAvatar userId={helper?.userId} src={helper?.avatarUrl} name={helperName} pixelSize={40} aria-hidden className="h-10 w-10 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-sans text-ds-15 font-semibold text-foreground">{helperName}</p>
+                  <p className="flex flex-wrap items-center gap-x-2 font-sans text-ds-12 text-muted-foreground">
+                    {helper?.idVerified && (
+                      <span className="inline-flex items-center gap-1"><BadgeCheck className="h-3.5 w-3.5 text-primary" aria-hidden />ID verified</span>
+                    )}
+                    {Number(helper?.reviewCount) > 0 && Number(helper?.avgRating) > 0 && (
+                      <span className="inline-flex items-center gap-1 tabular-nums">
+                        <Star className={`h-3.5 w-3.5 ${STAR_ON_CLS}`} aria-hidden />
+                        {Number(helper!.avgRating).toFixed(1)} · {helper!.reviewCount} {helper!.reviewCount === 1 ? "review" : "reviews"}
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          {funded && (
+          <p className="rounded-ds-md px-3 py-2 font-sans text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-hire-no-new-charge="">
+            {/* lh-money-escrow review 2026-10-21: say the JOB PRICE was paid (the card also paid the fee, a
+                gift may have paid part), a series' first visit only, and a crew member's share. */}
+            {series ? (
+              <>
+                The first visit{price !== null ? <>, <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceExact(price)}</strong>,</> : null} was paid when you posted it, so nothing new is charged now. Each later visit is charged before it comes.
+              </>
+            ) : price !== null ? (
+              <>
+                The job price, <strong className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceExact(price)}</strong>, was paid when you posted it, so nothing new is charged now.
+              </>
+            ) : (
+              <>The job was paid for when you posted it, so nothing new is charged now.</>
+            )}{" "}
+            {job?.is_group_job
+              ? `Helpr holds the money and pays each Helpr on the crew their share after the job is done.`
+              : `Helpr holds the money and releases it to ${them} after the job is done.`}
+          </p>
+          )}
           <DialogBody>
             <p>
               How long should <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>{helperName}</span> have to accept or decline this job?
@@ -175,21 +248,16 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             />
           </div>
 
-          {/* The one notice block, painted the way InstantPayoutDialog paints
-              its notice: a burnt-sienna wash and hairline, not `bg-muted/50`.
+          {/* The policy notice: neutral (lead 2026-10-21: rust is for money only; this is a rule, not an amount).
               The icon is the lucide stroke glyph the rest of the app uses —
               this was the last raw ⚠️ emoji standing in for one. */}
           <div
-            className="rounded-ds-sm p-3"
-            style={{
-              background: "hsl(var(--burnt-sienna) / 0.08)",
-              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            }}
+            className="rounded-ds-sm border border-border bg-muted/40 p-3"
           >
             <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               <span
                 className="inline-flex items-center gap-1.5 font-semibold align-[-2px]"
-                style={{ color: "hsl(var(--burnt-sienna))" }}
+                style={{ color: "hsl(var(--ink-deep))" }}
               >
                 <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
                 Denial policy:
@@ -205,22 +273,17 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               ))}
             </ul>
           </div>
-          {/* Inline failure block — same burnt-sienna wash + hairline as the
-              denial-policy notice above, so a refusal reads in the dialog's
-              own visual language instead of a toast lost behind it. */}
+          {/* Inline failure block in the destructive tokens (text on --destructive-ink), so a refusal
+              reads in the dialog instead of a toast lost behind it. */}
           {errorMessage && (
             <div
               role="alert"
-              className="rounded-ds-sm p-3"
-              style={{
-                background: "hsl(var(--burnt-sienna) / 0.08)",
-                border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-              }}
+              className="rounded-ds-sm border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.06)] p-3"
             >
               <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
                 <span
                   className="inline-flex items-center gap-1.5 font-semibold align-[-2px]"
-                  style={{ color: "hsl(var(--burnt-sienna))" }}
+                  style={{ color: "hsl(var(--destructive-ink))" }}
                 >
                   <TriangleAlert aria-hidden className="w-3.5 h-3.5 shrink-0" />
                   Couldn't send:
@@ -233,7 +296,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
         <DialogFooter>
           <DialogSecondaryAction onClick={handleClose} disabled={submitting}>Cancel</DialogSecondaryAction>
           <DialogPrimaryAction onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Sending…" : "Send Offer"}
+            {submitting ? "Sending…" : "Send offer"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

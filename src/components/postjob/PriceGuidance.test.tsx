@@ -1,6 +1,6 @@
 /**
  * Board 190: price guidance on the price screen. Every number is real or hidden: no range from the server
- * (fewer than 30 real jobs), the switch off, or a failed read shows nothing at all.
+ * (below the floor set 2026-10-21: 30 real jobs from 3 posters), the switch off, or a failed read shows nothing at all.
  * @mutate src/components/postjob/PriceGuidance.tsx |       if (!r \|\| r.low_dollars == null \|\| r.high_dollars == null \|\| !(r.sample_count > 0)) return null; |       if (!r) return null;
  * @mutate src/components/postjob/PriceGuidance.tsx |   const below = budget > 0 && budget < g.low && kept !== budget; |   const below = false;
  */

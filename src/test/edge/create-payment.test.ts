@@ -65,6 +65,15 @@ function testModeUnderLiveKey(kind: string, id: string) {
   );
 }
 
+/**
+ * Q1905: the poster's own gift, bought LIVE (a real buyer), so it may pay for
+ * these real jobs (create-payment refuses a gift of another Stripe mode). The
+ * mock returns these rows for any gift id.
+ */
+function seedLiveGift(s: SupabaseScenario, ownerId: string = POSTER.id) {
+  s.reads.gift_cards = { rows: [{ id: "gift-1", parent_credit_id: null, stripe_session_id: "cs_live_gift", recipient_id: ownerId }] };
+}
+
 /** Seed an authenticated user + a happy customer.list (no Stripe create). */
 function seedAuth(s: SupabaseScenario, user: typeof POSTER) {
   s.authUser = user;
@@ -700,6 +709,7 @@ describe("create-payment edge function", () => {
     describe("gift-card shortfall checkout saves the card when asked (Q734)", () => {
       const seedGiftShortfall = () => {
         seedAuth(scenario, POSTER);
+        seedLiveGift(scenario);
         scenario.reads.jobs = {
           rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid" }],
         };
@@ -1196,6 +1206,7 @@ describe("create-payment edge function", () => {
             payment_status: "abandoned", stripe_session_id: "cs_prev" }],
         };
         scenario.rpc.redeem_gift_card = { outcome: "partial", difference_cents: 4000 };
+        seedLiveGift(scenario);
         const { body } = await escrow({ giftCardId: "gc-1" });
         expect(body.error).toMatch(/doesn't match the quote you agreed/);
         expect((scenario.rpcCalls ?? []).some((c) => c.name === "redeem_gift_card")).toBe(false);
@@ -1393,6 +1404,7 @@ describe("create-payment edge function", () => {
             rows: [],
           }];
           scenario.rpc.redeem_gift_card = { outcome: "settled" };
+          seedLiveGift(scenario);
           const fn = await load();
           const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-cc", giftCardId } }));
           const body = await json(res);

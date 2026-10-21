@@ -61,6 +61,7 @@ import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
 import {
+  giftCardStripeMode,
   jobMoneyMode,
   readJobParties,
   sessionIdMode,
@@ -484,6 +485,33 @@ serve(async (req) => {
       // A gift pays first and any rest is one card/bank checkout: Pay in 4
       // (9% + 70c) never prices a gift-funded job.
       if (payInFour && giftCardId) throw new PublicError("Pay in 4 can't be combined with a gift card. Choose card or bank instead.");
+      // Q1905 (owner 2026-10-21): a gift bought with real money never pays
+      // for a test job. A real buyer's gift stays LIVE even when its recipient
+      // is a test account (Q1750), and a test job pays out on the TEST key, so
+      // the live money would sit in the platform's balance with nobody paid.
+      // Both ways (lh-money-escrow review of Q1905 #1): a sandbox gift never
+      // pays for a real job either (a leftover or restored credit of an
+      // account later un-enrolled would otherwise fund a live payout). Checked
+      // before anything is stamped or redeemed; a gift whose mode cannot be
+      // read is refused too.
+      if (giftCardId) {
+        const gift = await giftCardStripeMode(supabaseAdmin, String(giftCardId), user.id);
+        if (!gift.ok || gift.mode !== stripeMode) {
+          console.warn(`[create-payment] gift ${giftCardId} (${gift.ok ? gift.mode : gift.reason}) refused on ${stripeMode} job ${jobId}`);
+          throw new PublicError(
+            gift.ok
+              ? gift.mode === "live"
+                ? "A gift card bought with real money can't pay for a test job. Pay with a card instead."
+                : "A test gift card can't pay for a real job. Pay with a card instead."
+              : gift.reason === "unreadable"
+                ? "Could not check this gift card. Please try again."
+                : gift.reason === "not_yours"
+                  // redeem_gift_card's own wording for someone else's gift.
+                  ? "This gift is not yours to redeem"
+                  : "This gift card can't be used here. Contact support.",
+          );
+        }
+      }
       // A series charges every later visit to a saved card, and Pay in 4 saves
       // none (the same test charge-recurring-visits uses to find a series parent).
       if (payInFour && job.recurrence_days != null) throw new PublicError("Pay in 4 isn't available for a repeating job. Choose card or bank instead.");

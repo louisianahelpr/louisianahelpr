@@ -543,3 +543,49 @@ export function createStripeModeResolver<S>(
     },
   };
 }
+
+/**
+ * The Stripe mode of the money behind a gift card credit (docs/OPEN.md Q1905,
+ * owner 2026-10-21: a real gift card can not pay for a test job).
+ *
+ * A gift's mode is the mode of the checkout that bought it: the root of its
+ * tree (the donation row) holds that checkout's id, cs_live_ or cs_test_. A
+ * sent credit, a leftover after a partial spend, or a credit restored from a
+ * cancelled job points at its parent (parent_credit_id) and carries no
+ * session of its own, so the walk goes up until a row names a mode.
+ *
+ * The credit itself must be the caller's (its recipient_id), read on the
+ * first hop, so a caller cannot probe any gift id's existence or mode
+ * (lh-money-escrow review of Q1905 #4); redeem_gift_card checks it again.
+ * Not a mode: "unreadable" (a failed read: try again), "not_yours", or
+ * "no_mode" (a broken chain or a tree that names no mode). Callers refuse
+ * every one of them (fail closed).
+ */
+export type GiftCardModeAnswer =
+  | { ok: true; mode: StripeMode }
+  | { ok: false; reason: "unreadable" | "not_yours" | "no_mode" };
+
+export async function giftCardStripeMode(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  creditId: string,
+  callerId: string,
+): Promise<GiftCardModeAnswer> {
+  let id: string | null = creditId;
+  // A gift tree is shallow (donation, sent, leftover or restore); this bounds a cycle.
+  for (let hop = 0; id && hop < 20; hop++) {
+    const { data, error } = await db
+      .from("gift_cards")
+      .select("id, parent_credit_id, stripe_session_id, recipient_id")
+      .eq("id", id)
+      .maybeSingle();
+    const row = data as { parent_credit_id?: string | null; stripe_session_id?: string | null; recipient_id?: string | null } | null;
+    if (error) return { ok: false, reason: "unreadable" };
+    if (!row) return { ok: false, reason: hop === 0 ? "not_yours" : "no_mode" };
+    if (hop === 0 && row.recipient_id !== callerId) return { ok: false, reason: "not_yours" };
+    const mode = sessionIdMode(row.stripe_session_id);
+    if (mode) return { ok: true, mode };
+    id = typeof row.parent_credit_id === "string" && row.parent_credit_id.length > 0 ? row.parent_credit_id : null;
+  }
+  return { ok: false, reason: "no_mode" };
+}

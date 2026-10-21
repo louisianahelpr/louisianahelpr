@@ -12163,6 +12163,7 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_refresh_seller_hidden: { Args: { p_seller: string }; Returns: undefined }
       declutter_refund_answer: { Args: { p_refund_id: string }; Returns: Json }
       declutter_refund_executed: {
         Args: {
@@ -12234,6 +12235,7 @@ export type Database = {
       }
       declutter_seller_cancel_sale: { Args: { p_item_id: string }; Returns: number }
       declutter_seller_hidden: { Args: { p_seller: string }; Returns: boolean }
+      declutter_seller_hidden_sweep: { Args: never; Returns: Json }
       declutter_seller_moving_sale: {
         Args: { p_seller_id: string }
         Returns: {

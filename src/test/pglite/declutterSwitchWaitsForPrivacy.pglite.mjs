@@ -55,9 +55,11 @@ const audience = async (key) => (await svc(`SELECT audience FROM public.feature_
 const flip = (key, to) => me(ADMIN, `SELECT public.admin_set_feature_switch('${key}', '${to}') AS a`);
 
 // --- while members can still read the other side
+const auditRows = async () => (await svc(`SELECT count(*)::int AS n FROM public.admin_audit_log WHERE target_type = 'feature_switch'`))[0]?.n;
+const auditBefore = await auditRows();
 const viaAdmin = await flip("declutter", "everyone");
 ok(refused(viaAdmin), `[fix] G1: the admin switch screen cannot open 'declutter' to everyone (${viaAdmin.error ?? "it went through"})`);
-ok((await audience("declutter")) === "testers", "[fix] G2: and nothing changed");
+ok((await audience("declutter")) === "testers" && (await auditRows()) === auditBefore, "[fix] G2: and nothing changed (audience, and no admin_audit_log row)");
 ok(refused(await flip("declutter_wanted", "everyone")), "[fix] G3: nor 'declutter_wanted'");
 ok(refused(await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'declutter'`)), "[fix] G4: nor a direct UPDATE (service role, a migration)");
 ok(Array.isArray(await flip("declutter", "off")) && (await audience("declutter")) === "off", "[keep] G5: off is never refused");
@@ -65,6 +67,18 @@ ok(Array.isArray(await flip("declutter", "testers")) && (await audience("declutt
 ok(Array.isArray(await flip("switch_canary", "everyone")) && (await audience("switch_canary")) === "everyone", "[keep] G7: another switch still opens to everyone");
 const msg = refused(viaAdmin) ? viaAdmin.error : "";
 ok(msg.length > 0 && msg.length < 280 && !/declutter_offers|asker_id|_/.test(msg), "[fix] G8: the admin reads plain words (under 280 characters, no table names), so userFacingError shows them");
+
+// --- a key rename onto an open row is checked too (re-review note 1)
+ok(refused(await svc(`UPDATE public.feature_switches SET key = 'declutter_wanted' WHERE key = 'switch_canary'`)), "[fix] G12: renaming an open switch to 'declutter_wanted' is refused");
+
+// --- a column-list grant on the offers counts (re-review note 2)
+await db.exec(`REVOKE SELECT ON public.declutter_offers FROM anon, authenticated; REVOKE SELECT ON public.declutter_offer_events FROM anon, authenticated;
+  GRANT SELECT (id, buyer_id) ON public.declutter_offers TO authenticated;
+  REVOKE SELECT ON public.declutter_questions FROM anon, authenticated;
+  GRANT SELECT (id, item_id, question, answer, answered_at, removed_at, created_at) ON public.declutter_questions TO authenticated;`);
+ok(refused(await flip("declutter", "everyone")), "[fix] G13: with only a column grant on declutter_offers (buyer_id) left, the flip is still refused");
+// Back to the state the next check needs: no offers read at all, questions readable in full again.
+await db.exec(`REVOKE SELECT (id, buyer_id) ON public.declutter_offers FROM authenticated; GRANT SELECT ON public.declutter_questions TO authenticated;`);
 
 // --- each read alone still blocks
 await db.exec(`REVOKE SELECT ON public.declutter_offers FROM anon, authenticated; REVOKE SELECT ON public.declutter_offer_events FROM anon, authenticated;`);

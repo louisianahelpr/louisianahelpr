@@ -27,13 +27,14 @@ function walk(dir: string, out: string[] = []): string[] {
 describe("a lead's Resubscribe undoes only a link unsubscribe (Q2161)", () => {
   it("email-unsubscribe is the only writer of signup_leads.unsubscribed_at", () => {
     const writers: string[] = [];
-    for (const root of ["src", "supabase/functions", "supabase/migrations"]) {
-      for (const f of walk(join(ROOT, root))) {
-        const s = readFileSync(f, "utf8");
-        if (!/signup_leads/.test(s)) continue;
-        // A JS write (`unsubscribed_at:` in an update/upsert/insert object) or a SQL one (`SET ... unsubscribed_at =`).
-        if (/unsubscribed_at\s*:/.test(s) || /SET[^;]*\bunsubscribed_at\s*=/i.test(s)) writers.push(relative(ROOT, f));
-      }
+    const files = ["src", "supabase/functions", "supabase/migrations"].flatMap((root) => walk(join(ROOT, root)));
+    // Floor: 2965 files walked on 2026-10-21.
+    expect(files.length).toBeGreaterThan(2700);
+    for (const f of files) {
+      const s = readFileSync(f, "utf8");
+      if (!/signup_leads/.test(s)) continue;
+      // A JS write (`unsubscribed_at:` in an update/upsert/insert object) or a SQL one (`SET ... unsubscribed_at =`).
+      if (/unsubscribed_at\s*:/.test(s) || /SET[^;]*\bunsubscribed_at\s*=/i.test(s)) writers.push(relative(ROOT, f));
     }
     expect(writers).toEqual(["supabase/functions/email-unsubscribe/index.ts"]);
   });

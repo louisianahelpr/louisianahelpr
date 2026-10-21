@@ -75,7 +75,10 @@ describe("status colour comes from statusColors.ts", () => {
 
     const offenders: string[] = [];
     const allowedHits = new Map<string, number>();
-    for (const file of sourceFiles()) {
+    const files = sourceFiles();
+    // Floor: 1531 non-test .ts/.tsx files under src/ on 2026-10-21.
+    expect(files.length).toBeGreaterThan(1400);
+    for (const file of files) {
       stripComments(repoFile(file))
         .split("\n")
         .forEach((line, i) => {

@@ -32,6 +32,8 @@ describe("the paid-tier badge needs memberships on", () => {
     const files = execFileSync("git", ["grep", "-l", "tierBadgeStyle(", "--", "src"], { encoding: "utf8" })
       .split("\n")
       .filter((f) => f && /\.tsx?$/.test(f) && !/\.test\./.test(f));
+    // Floor: 2 files name tierBadgeStyle( on 2026-10-21.
+    expect(files.length).toBeGreaterThan(1);
     const callers = files.filter((f) => /\btierBadgeStyle\(/.test(blankComments(readFileSync(f, "utf8")).replace(/export function tierBadgeStyle\(/, "")));
     expect(callers.filter((f) => f !== "src/hooks/usePaidTierBadge.ts")).toEqual([]);
     expect(readFileSync("src/hooks/usePaidTierBadge.ts", "utf8")).toContain("(on ? tierBadgeStyle(tier) : null)");

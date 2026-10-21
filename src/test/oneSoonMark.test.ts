@@ -20,6 +20,10 @@ const FILES = [
 ];
 
 describe("one Soon mark", () => {
+  it("walks every listing (floor: 5 files on 2026-10-21)", () => {
+    expect(FILES.length).toBeGreaterThan(4);
+  });
+
   it.each(FILES)("%s draws SoonPill and no hand-made soon label", (f) => {
     const s = blankComments(readFileSync(join(ROOT, f), "utf8"));
     expect(s).toMatch(/<SoonPill\b/);

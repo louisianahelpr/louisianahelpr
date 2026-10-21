@@ -163,7 +163,7 @@ export function ActionsTab({
             <MessageSquareWarning className="w-4 h-4 mr-1.5 text-accent" /> Formal Warning
           </Button>
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => setResetPwProfile(viewProfile)}>
-            <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset Password
+            <KeyRound className="w-4 h-4 mr-1.5 text-primary" /> Reset password
           </Button>
           <Button variant="outline" size="sm" className="h-9 justify-start" onClick={() => viewHistoryFor(viewProfile)}>
             <History className="w-4 h-4 mr-1.5" /> View History

@@ -84,7 +84,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
             Cancel
           </DialogSecondaryAction>
           <DialogPrimaryAction onClick={submit} disabled={busy}>
-            {busy ? "Sending…" : "Send Reset Link"}
+            {busy ? "Sending…" : "Send reset link"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

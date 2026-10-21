@@ -140,7 +140,7 @@ describe("AdminUserDetailDialog", () => {
     render(<AdminUserDetailDialog {...props} />);
     fireEvent.click(screen.getByRole("button", { name: /Manually Verify/ }));
     fireEvent.click(screen.getByRole("button", { name: /Formal Warning/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Reset Password/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Reset password/ }));
     fireEvent.click(screen.getByRole("button", { name: /View History/ }));
     fireEvent.click(screen.getByRole("button", { name: /Suspend \/ Ban/ }));
     fireEvent.click(screen.getByRole("button", { name: /Delete Account/ }));

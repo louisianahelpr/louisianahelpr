@@ -119,7 +119,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
       <EmptyState
         variant="inline"
         icon={BarChart3}
-        title="Advanced Analytics is off for now"
+        title="Advanced analytics is off for now"
         body="Your earnings, fees and payouts are all on the Earnings tab."
         action={
           <button

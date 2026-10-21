@@ -176,7 +176,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             </li>
             <li>
               <Link to="/help" className="link-standard">
-                Help Center
+                Help center
               </Link>
             </li>
           </ul>

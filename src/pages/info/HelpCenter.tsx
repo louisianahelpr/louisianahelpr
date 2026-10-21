@@ -205,7 +205,7 @@ const HelpCenter = () => {
     // 2026-08-30: "this should be 1 component not 3" — the masthead heading
     // ("Quick answers.") is gone for the same reason: a second title next to
     // PageHeader's own "Help Center" repeated the page's own name).
-    <PublicHeaderPage title="Help Center" width="public" bottomPaddingClassName="pb-12 md:pb-16 lg:pb-24">
+    <PublicHeaderPage title="Help center" width="public" bottomPaddingClassName="pb-12 md:pb-16 lg:pb-24">
       <section
         id="faq"
         aria-labelledby="faq-heading"

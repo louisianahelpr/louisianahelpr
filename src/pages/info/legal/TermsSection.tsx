@@ -6,6 +6,7 @@ import {
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
+import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import {
@@ -32,6 +33,21 @@ import { legalFmtMo } from "./legalSections";
 // monthly-equivalent (yearly ÷ 12), so a year on annual saves
 // 12 × (1 − annual/monthly) months — 2.0 on every paid tier today. Re-price a
 // tier and this sentence restates itself instead of quietly going stale.
+/**
+ * THE POSTER PAYS NOTHING ON TOP (owner 2026-10-20: the Terms describe the
+ * current flat model). Read from the checkout's own fee functions at the
+ * DEFAULT switch state (jobs_poster_fee off): if that ever charges a poster
+ * fee, this sentence stops claiming none (termsPosterPaysNothing guards it).
+ * If jobs_poster_fee is switched on for everyone, the Terms must change first
+ * (Q2264): the fallback below is a guard, not a complete Terms text (the Helpr
+ * fee lines would also be wrong on the poster-fee model).
+ */
+const POSTER_FEE_ON_DEFAULT_CENTS = serviceFeeCentsFor(jobFeeModelFor({ switchOn: false }), 10_000, false);
+const POSTER_PAYS_SENTENCE =
+  POSTER_FEE_ON_DEFAULT_CENTS === 0
+    ? "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and the one-time account setup fee."
+    : "The poster pays the job price plus the service fee shown at checkout, before they pay.";
+
 const ANNUAL_MONTHS_SAVED = (() => {
   const monthly = TIER_PERKS.pro.price ?? 0;
   const annualMonthly = TIER_PERKS.pro.annualPrice ?? 0;
@@ -55,7 +71,7 @@ export const TermsContent = () => {
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `Posting a job has no platform fee: the poster pays the job budget plus a service fee that only covers card processing. The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay, the same on every plan, and it covers card processing) is deducted from their payout.`,
+        `${POSTER_PAYS_SENTENCE} The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay, the same on every plan, and it covers card processing) is deducted from their payout.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -125,11 +141,11 @@ export const TermsContent = () => {
         title="Fee model"
         body={
           <>
-            <p><strong className="text-foreground">Service fee (covers card processing):</strong> added at checkout when you post a job. It equals the card-processing cost of that payment and nothing more; there is no platform fee for posting, on any plan.</p>
+            <p><strong className="text-foreground">Posting a job:</strong> {POSTER_PAYS_SENTENCE}</p>
             <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each Helpr's pay, deducted from the payout, the same on every plan; it covers card processing. A job paid for before October 15, 2026 keeps the fee it was paid under. Every payout is rounded down to the whole dollar.</p>
 
-            <p><strong className="text-foreground">Total platform take:</strong> the Helpr fee above. The service fee goes to card processing.</p>
-            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. The whole bonus goes to the Helpr (split among the crew on a group job); its card-processing fee is paid by the poster, added on top and shown before they pay, and is never taken from the bonus.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the Helpr fee above.</p>
+            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the Helpr fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.
                 They were the only two fee statements that lived ONLY there, so
@@ -327,7 +343,7 @@ export const TermsContent = () => {
         icon={Users}
         title="Job posters"
         body={
-          <p>You pay the agreed job fee plus any applicable sales tax. Louisiana taxes only enumerated services (LA R.S. 47:301(14)), so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
+          <p>You pay the agreed job price plus any applicable sales tax (and, on your first paid job, the one-time account setup fee). Louisiana taxes only enumerated services (LA R.S. 47:301(14)), so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
         }
       />
       <PolicyRowItem

@@ -32,7 +32,8 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     delivery_not_done: DC.delivery_not_done,
     feature_disabled: DC.feature_disabled,
     // ID once (20261020044552): taking a delivery is the Helpr's accept.
-    helper_identity_unverified: "Verify your ID to take this delivery. You only do it once, in Settings under Payments.",
+    // The gate is Stripe's ID check at payout setup (stripe_identity_verified), not a separate ID screen.
+    helper_identity_unverified: "Set up payouts first to take this delivery. Stripe confirms your ID once, in You › Money.",
     invalid_method: DC.invalid_method,
     invalid_payout: DC.invalid_payout,
     invalid_slot: DC.invalid_slot,

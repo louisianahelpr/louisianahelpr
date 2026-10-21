@@ -1,11 +1,12 @@
 // Boards 22/170: pick 2-3 applicants, compare side by side from real row facts, hire through the card's own handler.
 // @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx |   if (picked.length < 2) return null; |   if (picked.length < 1) return null;
 // @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx | : cur.length >= COMPARE_MAX ? cur : [...cur, id])); | : [...cur, id]));
+// @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {sortedApplications.slice(0, shown).map( | {sortedApplications.map(
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication} | <CompareBar apps={applications} ids={[]} clear={compare.clear} onHire={onAcceptApplication}
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
-import { CompareBar, CompareCheck, useApplicantCompare } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantCompare";
+import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "@/pages/posts/postedJobs/applicantsPanel/ApplicantCompare";
 import { blankComments } from "./helpers/blankNonCode";
 
 const app = (id: string, name: string, over: Record<string, unknown> = {}) =>
@@ -44,5 +45,20 @@ describe("boards 22/170: compare applicants", () => {
     const src = blankComments(readFileSync("src/pages/posts/postedJobs/ApplicantsPanel.tsx", "utf8"));
     expect(src).toMatch(/app\.status === "pending" && applications\.length > 1 && <CompareCheck/);
     expect(src).toMatch(/<CompareBar apps=\{applications\} ids=\{compare\.ids\}/);
+  });
+
+  // Board 173: long lists load 10 at a time, no infinite scroll on the poster side.
+  it("board 173: 'Show 10 more' under a long list, the remainder at the end, nothing once all show", () => {
+    const more = vi.fn();
+    const { rerender, container } = render(<ShowMoreApplicants total={50} shown={10} onMore={more} />);
+    fireEvent.click(screen.getByRole("button", { name: "Show 10 more" }));
+    expect(more).toHaveBeenCalled();
+    rerender(<ShowMoreApplicants total={50} shown={46} onMore={more} />);
+    expect(screen.getByRole("button", { name: "Show 4 more" })).toBeInTheDocument();
+    rerender(<ShowMoreApplicants total={50} shown={50} onMore={more} />);
+    expect(container.textContent).toBe("");
+    const src = blankComments(readFileSync("src/pages/posts/postedJobs/ApplicantsPanel.tsx", "utf8"));
+    expect(src).toMatch(/sortedApplications\.slice\(0, shown\)\.map\(/);
+    expect(src).toMatch(/useState\(10\)/);
   });
 });

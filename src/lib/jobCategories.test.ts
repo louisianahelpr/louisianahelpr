@@ -49,7 +49,7 @@ describe("job categories — single source of truth", () => {
 
   it("storm_prep resolves to ONE string everywhere", () => {
     const seen = new Set(Object.values(LABEL_CONSUMERS).map((t) => t.storm_prep));
-    expect([...seen]).toEqual(["Storm Prep"]);
+    expect([...seen]).toEqual(["Storm prep"]);
   });
 
   it("post-a-job offers exactly the categories the browse filter offers", () => {
@@ -67,12 +67,21 @@ describe("job categories — single source of truth", () => {
     expect(canonical[canonical.length - 1]).toBe("other");
   });
 
+  it("every category label is sentence case (audit #21): only its first letter is capital, acronyms aside", () => {
+    for (const [key, label] of Object.entries(JOB_CATEGORY_LABELS)) {
+      const words = label.split(/\s+/).slice(1).filter((w) => w !== "&" && w !== w.toUpperCase());
+      expect(words.filter((w) => /^[A-Z]/.test(w)), `${key}: "${label}"`).toEqual([]);
+    }
+  });
+
   it("jobCategoryLabel humanizes unknown input via formatCategory", () => {
-    expect(jobCategoryLabel("storm_prep")).toBe("Storm Prep");
+    expect(jobCategoryLabel("storm_prep")).toBe("Storm prep");
     expect(jobCategoryLabel("not_a_category")).toBe("Not a category");
   });
 });
 
 // Reinstates the "Storm Prep" vs "Storm" drift the four hand-maintained copies
 // had before this table existed.
-// @mutate src/lib/jobCategories.ts | storm_prep: "Storm Prep", | storm_prep: "Storm",
+// @mutate src/lib/jobCategories.ts | storm_prep: "Storm prep", | storm_prep: "Storm",
+// Audit #21: one SENTENCE-CASE label source. Title Case comes back red.
+// @mutate src/lib/jobCategories.ts | yard_work: "Yard work", | yard_work: "Yard Work",

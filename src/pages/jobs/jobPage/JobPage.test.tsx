@@ -14,6 +14,7 @@
  * - Tracker: four steps from jobs.status; none for a Helpr just browsing.
  * The data hook is stubbed (no Supabase mock): these check what each state renders.
  *
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
@@ -130,6 +131,17 @@ beforeEach(() => {
 });
 
 describe("job page, Helpr side (boards 42, 169)", () => {
+  // Audit #8: a job with no photo shows no placeholder band (it read as a maroon block); a real photo shows.
+  it("no photo, no band; a real photo, the gallery", () => {
+    state.job = row();
+    const { unmount } = renderPage();
+    expect(document.querySelector("[data-job-photos]")).toBeNull();
+    unmount();
+    state.job = row({ photos: ["https://example.test/a.jpg"] });
+    renderPage();
+    expect(document.querySelector("[data-job-photos]")).not.toBeNull();
+  });
+
   // Owner bug 2026-10-21: a member who already applied saw "Apply". Now: the applied state and View application.
   it("an applicant sees 'You applied · Waiting on Rhonda' and View application, never Apply", async () => {
     state.job = row();

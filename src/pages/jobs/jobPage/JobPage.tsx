@@ -89,6 +89,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   }
 
   const { job, party } = q.data;
+  const hasPhoto = (job.photos ?? []).some((u) => !!u);
   const isHired = !isPoster && !!job.helper_id && job.helper_id === userId;
   const category = sentenceCaseLabel(categoryLabels[job.category] ?? formatCategory(job.category));
   const group = groupLabel(job.category);
@@ -141,9 +142,12 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
       }
     >
       <div data-job-page="" className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-x-8 lg:gap-y-6">
-        <div className="lg:col-start-1 lg:row-start-1">
-          <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
-        </div>
+        {/* A real photo or nothing (audit #8): no coloured placeholder band standing in for one. */}
+        {hasPhoto && (
+          <div data-job-photos="" className="lg:col-start-1 lg:row-start-1">
+            <DeclutterGallery urls={job.photos ?? []} category={job.category} title={job.title} icon={job.category === "other" ? Briefcase : getCategoryIcon(job.category)} shape="banner" />
+          </div>
+        )}
 
         <section
           aria-label="Job summary"
@@ -176,7 +180,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
         )}
         {(job.description?.trim() || (!isPoster && job.customer_id)) && (
-          <div className="space-y-4 lg:col-start-1 lg:row-start-2">
+          <div className={`space-y-4 lg:col-start-1 ${hasPhoto ? "lg:row-start-2" : "lg:row-start-1"}`}>
             {job.description?.trim() && (
               <section aria-labelledby="job-page-details" className={`${CARD} p-4 lg:p-5`}>
                 <h2 id="job-page-details" className="text-ds-16 font-semibold">Details</h2>

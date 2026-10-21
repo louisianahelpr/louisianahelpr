@@ -20,20 +20,21 @@ import { formatCategory } from "./format";
  */
 export type JobCategory = Database["public"]["Enums"]["job_category"];
 
+/** Sentence case, the one label source for every category name (spec v2; audit #21, 2026-10-21). */
 export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   cleaning: "Cleaning",
-  yard_work: "Yard Work",
+  yard_work: "Yard work",
   handyman: "Handyman",
   moving: "Moving",
   errands: "Errands",
   // "Sell it for me" (owner 2026-10-19): a Helpr photographs and lists a
   // seller's Declutter items with them, in person. Untaxed like errands.
-  declutter_help: "Declutter Help",
+  declutter_help: "Declutter help",
   delivery: "Delivery",
-  pet_care: "Pet Care",
+  pet_care: "Pet care",
   assembly: "Assembly",
   painting: "Painting",
-  storm_prep: "Storm Prep",
+  storm_prep: "Storm prep",
   events: "Events",
   // Trades (owner decision T1, 2026-10-14): every common trade gets its own
   // category, and "Other" stays last as the escape hatch for anything else.
@@ -43,12 +44,12 @@ export const JOB_CATEGORY_LABELS: Record<JobCategory, string> = {
   roofing: "Roofing",
   welding: "Welding",
   carpentry: "Carpentry",
-  auto_repair: "Auto & Small Engine",
-  appliance_repair: "Appliance Repair",
-  flooring: "Flooring & Tile",
-  concrete_masonry: "Concrete & Masonry",
+  auto_repair: "Auto & small engine",
+  appliance_repair: "Appliance repair",
+  flooring: "Flooring & tile",
+  concrete_masonry: "Concrete & masonry",
   fencing: "Fencing",
-  pressure_washing: "Pressure Washing",
+  pressure_washing: "Pressure washing",
   other: "Other",
 };
 
@@ -61,13 +62,13 @@ export const JOB_CATEGORIES: ReadonlyArray<{ value: JobCategory; label: string }
 
 /**
  * The wording a category's SKILL chip uses on the profile editor (saved into
- * profiles.skills). "Moving" and "Events" get a nudge ("Moving Help" / "Event
+ * profiles.skills). "Moving" and "Events" get a nudge ("Moving help" / "Event
  * Help") since they describe a skill offered, not a job being posted. Mirrored
  * by supabase/functions/_shared/categorySkillMatch.ts SKILL_CHIP_LABELS, which
  * job-match scoring reads (Q1832; src/test/edge/instant-job-match.test.ts).
  */
 export function skillChipLabel(value: JobCategory): string {
-  return value === "moving" ? "Moving Help" : value === "events" ? "Event Help" : JOB_CATEGORY_LABELS[value];
+  return value === "moving" ? "Moving help" : value === "events" ? "Event help" : JOB_CATEGORY_LABELS[value];
 }
 
 /** Label for a category value, falling back to the raw value. */

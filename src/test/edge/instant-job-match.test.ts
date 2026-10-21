@@ -19,7 +19,7 @@
  * @mutate supabase/functions/instant-job-match/index.ts |       .not("customer_id", "is", null)\n |
  * @mutate supabase/functions/instant-job-match/index.ts | helperSkills.some((s: string) => skillMatchesCategory(s, jobCategory)) | helperSkills.some((s: string) => jobCategory.includes(s) \|\| s.includes(jobCategory))
  * @mutate supabase/functions/_shared/categorySkillMatch.ts |   return s.toLowerCase().replace(/[_&]/g, " ") |   return s.toLowerCase().replace(/[&]/g, " ")
- * @mutate supabase/functions/_shared/categorySkillMatch.ts |   events: "Event Help", |
+ * @mutate supabase/functions/_shared/categorySkillMatch.ts |   events: "Event help", |
  * @mutate supabase/functions/instant-job-match/index.ts |     addressOnly.delete("authorization"); |     addressOnly.has("authorization");
  * @mutate supabase/functions/instant-job-match/index.ts |     if (!isInternal) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000 |     if (false) {\n      const { allowed, retryAfter } = await checkRateLimit(req, {\n        windowMs: 10 * 60_000
  * @mutate supabase/functions/instant-job-match/index.ts |       if (mutedMatches.has(h.user_id)) continue; |

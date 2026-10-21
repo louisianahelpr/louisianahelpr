@@ -152,8 +152,8 @@ export function ActivityEmptyState({
   // "job", not "task" — the nav, the feed heading and the Messages empty
   // state all say job, and these four labels were the last holdouts.
   const ctaLabel = isCrossTabSuggestion
-    ? (isPosted ? "Browse Jobs" : "Post a Job")
-    : (isPosted ? "Post a Job" : "Browse Jobs");
+    ? (isPosted ? "Browse jobs" : "Post a job")
+    : (isPosted ? "Post a job" : "Browse jobs");
   const ctaTo = isCrossTabSuggestion
     ? (isPosted ? "/home" : "/post-job")
     : (isPosted ? "/post-job" : "/home");

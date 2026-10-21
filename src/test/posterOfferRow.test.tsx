@@ -73,7 +73,7 @@ describe("11. the date-change ask is a button left of Message", () => {
     expect(labels).toEqual(["Message", "Cancel"]);
   });
 
-  it("once accepted More holds Message | Ask for a new date or time | Cancel, and the ask opens the request form", async () => {
+  it("once accepted More holds Message | Ask for a new date or time | Cancel, and the ask opens the Change sheet", async () => {
     renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job);
     await openMore();
     const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
@@ -82,7 +82,8 @@ describe("11. the date-change ask is a button left of Message", () => {
     // Most important first (owner, 2026-10-08): Message, then the ask, then Cancel.
     expect(labels).toEqual(["Message", "Ask for a new date or time", "Cancel"]);
     fireEvent.click(screen.getByRole("button", { name: /Ask for a new date or time/ }));
-    expect(await screen.findByText(/New date or time for "clean"/)).toBeInTheDocument();
+    // Board 66: the ask opens the one Change sheet (new time by request, or cancel).
+    expect(await screen.findByText("Change this job")).toBeInTheDocument();
   });
 
   it("not on a crew or recurring job (the request covers one-time jobs only)", async () => {

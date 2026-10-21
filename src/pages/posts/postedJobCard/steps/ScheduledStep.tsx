@@ -5,7 +5,8 @@ import { JobActionChip } from "../../../../components/job-card/JobActionRow";
 import { PosterConfirmationPrimary } from "./PosterConfirmationPrimary";
 import { JobConfirmation } from "@/components/JobConfirmation";
 import { scheduleChangeAllowed } from "@/components/series/JobSeriesCardControls";
-import { ScheduleChangeAskDialog, usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
+import { usePendingScheduleChange } from "@/components/schedule/ScheduleChangeControl";
+import { ChangeJobSheet } from "@/components/schedule/ChangeJobSheet";
 import type { PosterStepCtx } from "./posterStepContract";
 
 /**
@@ -38,6 +39,7 @@ export function ScheduledStep({
   job,
   userId,
   navigate,
+  helperNames,
   onCancel,
   onConfirmArrival,
   onConfirmWorking,
@@ -128,14 +130,17 @@ export function ScheduledStep({
       ]}
       dialogs={
         canAsk && (
-          <ScheduleChangeAskDialog
+          // Board 66: one sheet, "Pick a new time" (the existing request RPC) or "Cancel the job" (the existing dialog).
+          <ChangeJobSheet
             open={askOpen}
             onOpenChange={setAskOpen}
             jobId={job.id}
             jobTitle={job.title}
+            helperName={(job.helper_id && helperNames[job.helper_id]) || "your Helpr"}
             userId={userId}
             dateNeeded={job.date_needed}
             startTime={job.start_time ?? null}
+            onCancelJob={() => onCancel(job)}
           />
         )
       }

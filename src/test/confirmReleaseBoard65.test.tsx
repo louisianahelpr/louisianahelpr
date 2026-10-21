@@ -50,7 +50,7 @@ describe("board 65: confirm and release", () => {
     show(null);
     expect(screen.getByRole("button", { name: "Confirm and release" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Something's not right" }));
-    expect(screen.getByText("What Needs to Be Fixed?")).toBeInTheDocument();
+    expect(screen.getByText("What needs to be fixed?")).toBeInTheDocument();
   });
 
   it("the card passes a price only for a one-Helpr job with no urgent bonus", () => {

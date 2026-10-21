@@ -639,8 +639,8 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
           pullBackState === "verified"
             ? `Remove your verified ${pullBackNoun}?`
             : pullBackState === "review"
-              ? "Take This Out of Review?"
-              : "Remove This Document?"
+              ? "Take this out of review?"
+              : "Remove this document?"
         }
         description={
           pullBackState === "verified"
@@ -819,7 +819,7 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
       <BrandConfirmDialog
         open={renameConfirm}
         onOpenChange={(open) => { if (!open) setRenameConfirm(false); }}
-        title="Send Your Badge Back to Review?"
+        title="Send your badge back to review?"
         description={
           trimmedName === ""
             ? "Your badge comes off your profile while we re-check your documents without a business name. It comes back once we've looked — usually within one business day."

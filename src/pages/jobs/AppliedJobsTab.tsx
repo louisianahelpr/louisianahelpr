@@ -379,7 +379,7 @@ export const AppliedJobsTab = ({
             no longer has) is gone: SheetContent's shared `p-4 sm:p-5` is the
             same padding ramp DialogContent uses. */}
         <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto">
-          <SheetHero title="Withdraw Application?" />
+          <SheetHero title="Withdraw application?" />
 
           <fieldset className="mt-5 space-y-1.5" disabled={!!withdrawingAppId}>
             {/* Quiet olivewood serif prompt, exactly like

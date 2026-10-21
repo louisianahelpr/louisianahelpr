@@ -524,7 +524,7 @@ const AdminPayoutBatches = () => {
       <BrandConfirmDialog
         open={confirmBulk}
         onOpenChange={(open) => { if (!open) setConfirmBulk(false); }}
-        title="Bulk Approve These Payouts?"
+        title="Bulk approve these payouts?"
         description={bulkPayoutDescription(selectedBatches)}
         primaryLabel={bulkPaying ? "Queuing…" : `Send ${selectedBatches.length}`}
         primaryTone="sienna"
@@ -542,7 +542,7 @@ const AdminPayoutBatches = () => {
       <BrandConfirmDialog
         open={!!confirmBatch}
         onOpenChange={(open) => { if (!open) setConfirmBatch(null); }}
-        title="Send This Payout?"
+        title="Send this payout?"
         description={
           confirmBatch
             ? singlePayoutDescription(confirmBatch)

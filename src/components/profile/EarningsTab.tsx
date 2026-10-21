@@ -548,7 +548,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
         // "Cash Out Instantly" (InstantPayoutDialog). Named for what the
         // sheet does (unlock), not the feature it gates, so the two are
         // distinguishable when read aloud.
-        title="Unlock Instant Cash Out"
+        title="Unlock instant cash out"
         body="Skip the 1–2 business day wait. Subscribed Helprs can route earnings to a debit card in about 30 minutes."
         perks={[
           "Instant payouts to debit card (~30 min)",

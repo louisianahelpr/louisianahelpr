@@ -291,7 +291,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
       <SignOutConfirmDialog
         open={signOutDialogOpen}
         onOpenChange={setSignOutDialogOpen}
-        title="Sign Out Everywhere?"
+        title="Sign out everywhere?"
         description="This signs out every device, including this one. You'll need to sign back in here."
         label="Sign out everywhere"
         primaryTone="sienna"

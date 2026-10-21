@@ -439,8 +439,8 @@ const AdminIDVReview = () => {
               confirming?.decision === "manual_verify"
                 ? `Approve ${confirming.row.full_name || confirming.row.email || "this Helpr"}?`
                 : confirming?.decision === "request_id_reupload"
-                  ? "Give Them Another Attempt?"
-                  : "Reject This Verification?"
+                  ? "Give them another attempt?"
+                  : "Reject this verification?"
             }
           />
           {/* WAS A `subtitle` PROP ON THE HERO — IT NEVER RENDERED.

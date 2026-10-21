@@ -410,7 +410,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
         title={
           connToRemove
             ? `Remove ${connToRemove.property_name || "this calendar"}?`
-            : "Remove This Calendar?"
+            : "Remove this calendar?"
         }
         description="Helpr will stop syncing it and won't draft any more cleaning jobs from it. Cleaning jobs already posted stay exactly as they are."
         callout={{

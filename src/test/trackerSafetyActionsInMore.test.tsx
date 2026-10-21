@@ -18,7 +18,7 @@
  *
  * The runtime half renders the shell with Report, SOS and Message: neither
  * safety action is a row control, both are in the `More` panel, and pressing
- * SOS there still opens the "Share Your Location" sheet — which lives with
+ * SOS there still opens the "Share your location" sheet — which lives with
  * the caller, because the panel unmounts its contents when it closes.
  *
  * @mutate src/components/job-card/JobStepCard.tsx | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute", "sos"]; | export const MORE_ONLY_CHIP_KEYS: readonly string[] = ["report", "dispute"];
@@ -148,7 +148,7 @@ describe("the shell: safety actions sit only inside More, and SOS still opens it
 
       // Tap 2: SOS. The panel closes (and unmounts) and the sheet still opens.
       fireEvent.click(within(panel).getByRole("button", { name: /^SOS/ }));
-      expect(screen.getByText("Share Your Location")).toBeTruthy();
+      expect(screen.getByText("Share your location")).toBeTruthy();
     });
   }
 });

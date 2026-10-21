@@ -17,8 +17,8 @@ interface SignOutConfirmDialogProps {
 }
 
 /**
- * The confirm-then-sign-out dialog (Profile "Log Out?", Admin "Sign Out?",
- * Security "Sign Out Everywhere?").
+ * The confirm-then-sign-out dialog (Profile "Log Out?", Admin "Sign out?",
+ * Security "Sign out everywhere?").
  *
  * Owner, 2026-10-09: "I pressed Log Out and nothing happened." The dialog used
  * to close on the press (BrandConfirmDialog's primary is a Dialog Close) while

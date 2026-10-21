@@ -342,7 +342,7 @@ export function CompletionChoiceSheet({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <div className="flex-1 min-w-0">
-                <SheetHero title="What Needs to Be Fixed?" />
+                <SheetHero title="What needs to be fixed?" />
               </div>
             </div>
             <p

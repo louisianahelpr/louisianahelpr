@@ -1,5 +1,5 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_PHRASE, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
@@ -59,9 +59,8 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // page cannot drift from what a Helpr is paid. The poster pays the job price
 // only; the Helpr pays 5% + 70c; a plan never changes it. (The tier ladder
 // that used to be quoted here, FEE_FLOOR, applies only to jobs paid for
-// before the change; the Terms still quote it until the owner approves new
-// wording.)
-const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
+// before the change; the Terms read the same phrase since 2026-10-20.)
+const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE;
 // What a Helpr is really sent on a $100 job: every transfer is floored to the
 // whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
 // floor the same way (floorPayoutDollars). lh-money-escrow review of

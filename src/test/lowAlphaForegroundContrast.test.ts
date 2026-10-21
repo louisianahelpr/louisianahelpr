@@ -131,7 +131,8 @@ describe("low-alpha foreground contrast", () => {
     expect(rows.length, "no alpha'd foreground declarations found at all").toBeGreaterThan(300);
   });
 
-  // @mutate src/components/profile/ReviewsTab.tsx | <span aria-hidden="true" className="mr-2">·</span> | <span aria-hidden="true" className="mr-2" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}>·</span>
+  // Board 179 moved the reviews tab's separator into the who line (reviewsTab/reviewsAboutYou.tsx), plain text in its line's ink.
+  // @mutate src/components/profile/reviewsTab/reviewsAboutYou.tsx | <span className="font-semibold"> · {row.relation}</span> | <span className="font-semibold" style={{ color: "hsl(var(--burnt-sienna) / 0.5)" }}> · {row.relation}</span>
   it("the four `·` separators inherit their line and clear AA", () => {
     // The original bug, named. `hsl(var(--burnt-sienna) / 0.5)` as a FOREGROUND
     // is the exact shape that failed; it must not come back anywhere.

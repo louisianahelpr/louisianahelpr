@@ -1,22 +1,8 @@
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
-/* The SHARED star row, not a third hand-rolled `Array.from({length: 5})` loop.
-   `reviewCard.tsx` is the one file allowed to draw a review's parts
-   (reviewCardOneDesign.test.tsx), and this tab was the renderer that file's
-   own header calls out as "not covered, deliberately, and reported instead".
-   The per-review row is now the shared one — same 3.5px glyph, same `--accent`
-   ink, and it gains the `role="img"` + "N of 5 stars" label this tab never
-   had, so a screen reader stops hearing five unnamed images.
-
-   NOT adopted here, and why: the rebuilt `/user/:id` card also puts the
-   reviewer's NAME above the stars and renders a `ReviewCategoryChip`. This
-   tab's rows carry no category at all — `useProfileReviews` selects
-   `jobs(id, title)` and never `category` — so the chip would render for
-   nobody. Closing that gap is a data change to a shared hook on a screen the
-   owner did not name; reported rather than guessed at. */
-import { ReviewStars } from "@/components/profile/reviewCard";
-import { formatTimestamp } from "@/lib/format";
+/* Board 179: each review's row is AboutYouRowCard (reviewsTab/reviewsAboutYou.tsx), which draws
+   its stars with the SHARED ReviewStars from reviewCard.tsx (reviewCardOneDesign.test.tsx). */
 import { EmptyState } from "@/components/ui/EmptyState";
 import { EmptyStateIllustration } from "@/components/empty-state/EmptyStateIllustration";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,6 +16,13 @@ import {
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { STAR_ON } from "@/lib/starColor";
+import {
+  AboutYouChips,
+  AboutYouRowCard,
+  aboutYouRows,
+  useDeclutterReviewsAboutYou,
+  type AboutYouFilter,
+} from "@/components/profile/reviewsTab/reviewsAboutYou";
 
 interface Review {
   rating: number;
@@ -37,6 +30,7 @@ interface Review {
   created_at: string;
   reviewerName: string;
   jobTitle: string;
+  side: "helpr" | "poster" | null;
 }
 
 interface ReviewsTabProps {
@@ -58,21 +52,25 @@ const sortOptions: { value: SortKey; label: string; icon: typeof Star }[] = [
   { value: "lowest", label: "Lowest first", icon: ArrowUpAZ },
 ];
 
-export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
+export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCount, onBack, onLoadMore, hasMore, loadingMore }: ReviewsTabProps) {
   const [sortBy, setSortBy] = useState<SortKey>("newest");
+  const [filter, setFilter] = useState<AboutYouFilter>("all");
+  // Board 179: Declutter reviews join the job reviews in ONE list. One loading gate for both
+  // reads, so the list never arrives in two waves; a failed Declutter read shows the job reviews.
+  const declutterQuery = useDeclutterReviewsAboutYou();
+  const loading = jobsLoading || declutterQuery.isLoading;
+  const allRows = useMemo(() => aboutYouRows(reviews, declutterQuery.data ?? []), [reviews, declutterQuery.data]);
   // One overall rating only (owner, 2026-08-30 for display, 2026-09-07 for
   // collection). The punctuality / quality / communication columns are gone.
 
   // Sort lives in the tab (not the parent) so flipping order is instant
   // without a re-fetch. Default newest matches the source query.
-  const sortedReviews = useMemo(() => {
-    const list = [...reviews];
+  const sortedRows = useMemo(() => {
+    const list = allRows.filter((r) => filter === "all" || r.side === filter);
     if (sortBy === "highest") return list.sort((a, b) => b.rating - a.rating);
     if (sortBy === "lowest") return list.sort((a, b) => a.rating - b.rating);
-    return list.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-  }, [reviews, sortBy]);
+    return list; // aboutYouRows is newest first
+  }, [allRows, filter, sortBy]);
 
   const activeSort = sortOptions.find((o) => o.value === sortBy) ?? sortOptions[0];
   const ActiveSortIcon = activeSort.icon;
@@ -199,7 +197,7 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
             </div>
           ))}
         </div>
-      )) : reviews.length === 0 ? (
+      )) : allRows.length === 0 ? (
         <EmptyState
           variant="inline"
           icon={Star}
@@ -245,7 +243,10 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
           {/* Sort pills — Newest by default, with Highest/Lowest for
               triage when the feed has volume (e.g. responding to the
               worst recent review). */}
-          <div className="flex items-center justify-end gap-2 px-1">
+          {/* Board 179: the side chips and the sort share one row; the chips scroll, the sort stays. */}
+          <div className="flex items-center gap-2">
+            <AboutYouChips rows={allRows} value={filter} onChange={setFilter} />
+          <div className="ml-auto shrink-0 flex items-center justify-end gap-2 px-1">
             <Popover>
               <PopoverTrigger asChild>
                 <button
@@ -294,81 +295,9 @@ export function ReviewsTab({ reviews, loading, avgRating, reviewCount, onBack, o
               </PopoverContent>
             </Popover>
           </div>
-          {sortedReviews.map((review) => (
-            /* Stable identity, not the array index — the list re-sorts, and an
-               index key makes React reuse the wrong row's DOM on re-sort. Rows
-               have no id, but created_at + reviewer is unique per review. */
-            <div key={`${review.created_at}-${review.reviewerName}`} data-review-row="" className="rounded-ds-md liquid-glass p-card space-y-2.5 transition-all hover:-translate-y-0.5 hover:shadow-md">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <ReviewStars rating={review.rating} />
-                  <span className="font-sans font-bold tabular-nums text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>
-                    {review.rating}/5
-                  </span>
-                </div>
-                <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  {formatTimestamp(review.created_at)}
-                </span>
-              </div>
-              {/* Per-category (Punctuality/Quality/Comms) breakdown removed
-                  from individual review rows (owner, 2026-08-30: one overall
-                  rating only). The MiniStars helper above is now unused by
-                  this component but left in place — it's not dead code, it's
-                  a small shared star-row renderer other reviewers of this
-                  file may reach for; remove separately if it stays unused. */}
-              {review.feedback && (
-                <p className="font-sans leading-relaxed text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>
-                  &ldquo;{review.feedback}&rdquo;
-                </p>
-              )}
-              {/* THE ATTRIBUTION LINE. Three flex children — "By NAME", a
-                  separator, and the job title — with no wrapping and no
-                  `min-w-0` was a ragged column at 375: the title took the room
-                  and "By Hallie H." was squeezed to its min-content width,
-                  breaking across THREE lines ("By" / "Hallie" / "H.") beside a
-                  two-line title, with the "·" stranded on a line of its own.
-
-                  Two fixes, and both are needed:
-                    `flex-wrap` + `gap-y`  — the row may take a second LINE
-                        rather than a second COLUMN, which is what turned one
-                        long title into a narrow squeeze on the name.
-                    `whitespace-nowrap` on the name, `min-w-0` on the title —
-                        which of the two absorbs the squeeze is now stated, not
-                        left to min-content. A person's name is the thing that
-                        must never be broken; a job title may wrap.
-
-                  The separator moved INSIDE the title so it can never be
-                  orphaned: wherever the title goes, its dot leads it. `mr-2`
-                  restores the 8px the row's `gap-x-2` used to put on that side,
-                  so the spacing is unchanged from before. */}
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 font-sans pt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                <span className="whitespace-nowrap">By <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{review.reviewerName}</span></span>
-                <span className="min-w-0 break-words">
-                  {/* No colour of its own — see EarningHistory.tsx, which was
-                      the first of these four to be fixed (92d448a8d). It was
-                      `hsl(var(--burnt-sienna) / 0.5)`: MEASURED on this route
-                      on the production build against prod data, 2026-09-20,
-                      2.33:1 in light and 2.15:1 in dark against a 4.5:1 AA
-                      requirement.
-
-                      `aria-hidden` does NOT clear this — axe's colour-contrast
-                      rule matches VISUAL visibility, not the accessibility
-                      tree, and this span already carried the attribute while
-                      failing. It stays because it is independently right (a
-                      screen reader announcing a bare "·" between a name and a
-                      job title is noise), but it is not the fix.
-
-                      Inheriting the line it punctuates (`--olivewood / 0.8`,
-                      7.14:1 light / 7.96:1 dark) removes a magic value instead
-                      of replacing it with another, and is the smallest change
-                      that clears AA: keeping sienna would have needed ~0.85
-                      alpha, a colour nobody chose. `mr-2` is untouched, so not
-                      one pixel moves — only the glyph's ink. */}
-                  <span aria-hidden="true" className="mr-2">·</span>
-                  {review.jobTitle}
-                </span>
-              </div>
-            </div>
+          </div>
+          {sortedRows.map((row) => (
+            <AboutYouRowCard key={row.key} row={row} />
           ))}
           {hasMore && (
             <Button

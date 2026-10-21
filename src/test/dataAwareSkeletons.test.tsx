@@ -8,7 +8,7 @@
 // @mutate src/components/profile/ProfileTabFallback.tsx | reviews: [{ h: 307 }], | reviews: [{ h: 86 }, { h: "fill" }],
 // @mutate src/components/profile/ProfileTabFallback.tsx | wrapped: [{ h: 333 }], | wrapped: [{ h: 744 }],
 // @mutate src/components/profile/ReviewsTab.tsx | {loading ? (reviewCount === 0 ? ( | {loading ? (false ? (
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, cleanup } from "@testing-library/react";
@@ -21,6 +21,12 @@ import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import GuestBrowseSkeleton from "@/components/GuestBrowseSkeleton";
 import { NOTIFICATION_ROWS, ProfileTabBodyReserve, TAB_SHAPES } from "@/components/profile/ProfileTabFallback";
 import { ReviewsTab } from "@/components/profile/ReviewsTab";
+
+// Board 179: ReviewsTab's own Declutter read; here only the job count's shape is under test.
+vi.mock("@/components/profile/reviewsTab/reviewsAboutYou", async (orig) => ({
+  ...(await orig<object>()),
+  useDeclutterReviewsAboutYou: () => ({ data: [], isLoading: false }),
+}));
 import { entryCardCount, ENTRY_BASE_CARD_COUNT } from "@/pages/post-job/EntryChoice";
 
 /**

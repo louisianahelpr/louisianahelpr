@@ -7,7 +7,8 @@
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  * The sweep's NEWEST body runs with every now() pointed at public._probe_now()
- * (src/test/pglite/lib/fixedClock.mjs), so each edge is tested 1 ms either side:
+ * (src/test/pglite/lib/fixedClock.mjs), so each edge is tested 1 ms either side
+ * (written and run 2026-10-21: 11 PASS):
  *   - the 24 h wait: a review that began exactly 24 h ago alerts, 24 h - 1 ms
  *     does not (the body skips `since > now() - 24 h`);
  *   - the once-a-day repeat: an alert sent 24 h - 1 ms ago blocks a new one,

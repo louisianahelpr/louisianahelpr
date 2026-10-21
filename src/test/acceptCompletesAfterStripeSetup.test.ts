@@ -15,21 +15,21 @@
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
-// @mutate supabase/migrations/20261003214350_direct_offer_accept_works_like_an_offer.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN

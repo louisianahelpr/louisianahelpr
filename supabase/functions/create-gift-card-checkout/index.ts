@@ -171,10 +171,12 @@ serve(async (req) => {
     const feeCents = posterCardCostFeeCents(amountCents);
     const chargeCents = amountCents + feeCents;
 
+    // Never the email's local part: the webhook shows this to the recipient (as "First L.", Q2292), and
+    // an address prefix is not a name. No name on file -> the webhook says "Someone".
     const donorName =
       (user.user_metadata?.full_name as string | undefined)?.trim() ||
       (user.user_metadata?.name as string | undefined)?.trim() ||
-      user.email.split("@")[0];
+      "";
 
     // ── Stripe mode (Q1750; lead decision 2026-10-15) ──
     // The BUYER's money decides. A real buyer pays LIVE whoever receives the

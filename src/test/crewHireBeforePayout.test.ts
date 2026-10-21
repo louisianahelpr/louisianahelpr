@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 
 const REPO = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(REPO, p), "utf8");
@@ -26,7 +26,13 @@ const fn = (name: string) => {
 // The migration that created crew_confirm_pending (20261007011530), found by the
 // newest definer of the roster gate it also restated, never pinned by name.
 const MIG = read(`supabase/migrations/${DEFS.get("enforce_group_roster_award_gate")!.file}`);
-const NEWEST_TRIGGER_SQL = read(`supabase/migrations/${DEFS.get("complete_pending_crew_confirms_on_setup")!.file}`);
+// The newest migration that (re)creates the trigger: since 20261021062140 (Q2292) restated the function
+// alone, the trigger's file and the function's newest file differ.
+const NEWEST_TRIGGER_SQL = read(
+  `supabase/migrations/${migrationFiles(join(REPO, "supabase", "migrations"))
+    .filter((f) => /CREATE TRIGGER trg_profiles_complete_pending_crew_confirms\b/.test(read(`supabase/migrations/${f}`)))
+    .pop()!}`,
+);
 const code = (s: string) => s.replace(/--.*$/gm, "");
 
 describe("a crew hire is an offer: the payout gate is at the member's Confirm", () => {

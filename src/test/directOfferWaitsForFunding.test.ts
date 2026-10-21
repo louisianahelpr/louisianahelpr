@@ -40,13 +40,13 @@
  * stands aside for a job booked from an agreed quote), so its @mutate lines
  * point there; the trigger, the list, the sweep and the clock stay on J's file.
  *
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | AND public.job_payment_is_funded(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
+ * @mutate supabase/migrations/20261021061341_member_display_name.sql | AND public.job_payment_is_funded(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AND public.job_payment_is_funded(j.payment_status) | AND true
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AND public.job_payment_is_funded(payment_status) | AND true
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs | AFTER INSERT OR UPDATE OF offered_to_helper_id ON public.jobs
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |      AND NEW.status::text = 'open' |      AND true
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | OR public.job_offer_cutoff(NEW.date_needed, NEW.start_time) > now()) | OR true)
+ * @mutate supabase/migrations/20261021061341_member_display_name.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job
+ * @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND NEW.status::text = 'open' |      AND true
+ * @mutate supabase/migrations/20261021061341_member_display_name.sql | OR public.job_offer_cutoff(NEW.date_needed, NEW.start_time) > now()) | OR true)
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | NEW.direct_offer_expires_at := LEAST( | NEW.direct_offer_expires_at := GREATEST(
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |      AND (OLD.payment_status IS NULL\n          OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed'))\n  THEN |   THEN
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   BEFORE UPDATE OF status ON public.jobs

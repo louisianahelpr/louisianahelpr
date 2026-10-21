@@ -13501,6 +13501,10 @@ export type Database = {
         Returns: number
       }
       mask_job_location: { Args: { loc: string }; Returns: string }
+      member_display_name: {
+        Args: { p_fallback?: string; p_full_name: string }
+        Returns: string
+      }
       member_under_18: { Args: { p_user_id: string }; Returns: boolean }
       message_violation_ladder: {
         Args: {

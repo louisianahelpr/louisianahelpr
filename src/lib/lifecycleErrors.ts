@@ -772,6 +772,8 @@ export const RPC_ERROR_COPY = {
     other_side_unavailable: DC.other_side_unavailable,
     under_18: DC.under_18,
   },
+  declutter_my_handover: {
+    item_not_found: DC.item_not_found,
   declutter_listing_manage_state: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,

@@ -30,6 +30,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/lib/proofPhotoStorage.ts:inFlight": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/proofPhotoStorage.ts:pending": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/pinnedConversations.ts:cache": { kind: "keyed-by-user-id" },
+  "src/components/job-card/helperStepRequest.ts:pending": { kind: "not-user-data", why: "a one-shot tap request (job id + step name) that expires after 10 s and is cleared the first time the tracker draws; nothing to leak to the next account" },
   "src/lib/pinnedConversations.ts:loadGen": { kind: "keyed-by-user-id" },
   "src/lib/archivedConversations.ts:cache": { kind: "keyed-by-user-id" },
   "src/lib/userBlocks.ts:blockReads": { kind: "keyed-by-user-id" },

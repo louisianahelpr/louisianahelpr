@@ -1,4 +1,4 @@
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = (confirmApplyJob?.helpers_needed ?? 1) <= 1; |   const single = true;
+// @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx |   const single = !confirmApplyJob?.is_group_job; |   const single = true;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           event.preventDefault(); |           void event;
 // @mutate src/components/dashboard/ApplyConfirmDialog.tsx |           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />} |
 import { describe, it, expect, vi } from "vitest";

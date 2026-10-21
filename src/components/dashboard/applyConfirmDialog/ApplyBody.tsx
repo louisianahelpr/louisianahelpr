@@ -218,8 +218,10 @@ export function ApplyBody({
   // Board 58: the button names the job's price, the same number the summary card shows. A crew job
   // is split between Helprs, so it says "Apply now" rather than a price no one Helpr gets.
   const posterFirst = confirmApplyJob?.posterName?.trim().split(/\s+/)[0] ?? "";
-  const single = (confirmApplyJob?.helpers_needed ?? 1) <= 1;
-  const applyLabel = confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${formatPrice(confirmApplyJob.budget)}` : "Apply now";
+  // A crew job (is_group_job) splits the price; helpers_needed alone is never read as a split (helpersNeededSplitIsGroupGated).
+  const single = !confirmApplyJob?.is_group_job;
+  // Only on the standalone sheet (board 58): inline on the job detail sheet the price chip sits right above.
+  const applyLabel = !hideEarnings && confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${formatPrice(confirmApplyJob.budget)}` : "Apply now";
 
   const handleConfirm = () => {
     if (underAge) return;

@@ -21,7 +21,7 @@ describe("board 187: running late", () => {
     render(<RunningLateSheet open onOpenChange={close} jobId="j1" posterId="p1" posterName="Lexi Lambert" userId="h1" onNeedNewTime={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "20 min" }));
     fireEvent.click(screen.getByRole("button", { name: "Tell Lexi" }));
-    await waitFor(() => expect(inserts.at(-1)).toMatchObject({ job_id: "j1", sender_id: "h1", receiver_id: "p1", content: runningLateMessage(20) }));
+    await waitFor(() => expect(inserts[inserts.length - 1]).toMatchObject({ job_id: "j1", sender_id: "h1", receiver_id: "p1", content: runningLateMessage(20) }));
     expect(runningLateMessage(20)).toBe("Running about 20 minutes late. Sorry for the wait.");
     await waitFor(() => expect(close).toHaveBeenCalledWith(false));
   });

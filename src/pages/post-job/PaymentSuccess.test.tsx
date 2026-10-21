@@ -11,6 +11,10 @@
  * here permanently rather than left to a sweep that only runs on demand.
  */
 // @mutate src/pages/post-job/PaymentSuccess.tsx |   const live = jobStatus === "open" && !alreadyReleased && !directOffer; |   const live = !alreadyReleased && !directOffer;
+// The offeree comes only from get_job_offer_targets (offeredHelperPrivacy), never a jobs select.
+let offerTargets = new Map<string, string>();
+vi.mock("@/lib/jobOfferTargets", () => ({ fetchJobOfferTargets: async () => offerTargets }));
+afterEach(() => { offerTargets = new Map(); });
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -91,6 +95,7 @@ function expectNoSuccessClaim() {
 
 describe("PaymentSuccess", () => {
   beforeEach(() => {
+    offerTargets = new Map();
     maybeSingle.mockClear();
     getUser.mockClear();
     navigateMock.mockReset();
@@ -399,8 +404,9 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
   });
 
   it("a paid direct offer to one Helpr is not 'live' (Helprs browsing cannot see it)", async () => {
+    offerTargets = new Map([[JOB_ID, "h1"]]);
     jobsLookup = {
-      data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open", offered_to_helper_id: "h1" },
+      data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open" },
       error: null,
     };
     renderAt();

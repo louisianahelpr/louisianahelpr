@@ -114,7 +114,7 @@ export function PorchOutPhoto({ orderId, side }: { orderId: string; side: "buyer
       <p className="text-sm font-semibold">
         {side === "buyer" ? "It's out" : "You put it out"} · {time(h.data.set_out_at)}
       </p>
-      <div className="aspect-[4/3] w-full max-w-[320px] overflow-hidden rounded-2xl bg-muted">
+      <div className="aspect-[4/3] w-full max-w-[320px] overflow-hidden rounded-2xl bg-photo-empty">
         {url.data && <img src={url.data} alt="Where the item was left" className="h-full w-full object-cover" />}
       </div>
       <figcaption className="text-ds-13 text-muted-foreground">

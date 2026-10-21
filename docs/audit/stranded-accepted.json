@@ -4914,6 +4914,12 @@
       "sha": "6d6c4e58e1dd514c57df0763495e268e57830bf1",
       "reason": "Landed on main as ce5351af90 (same subject, the gift + card late-cancel fee). Its 3 leftover lines in supabase/functions/void-cancelled-payments/index.ts and src/test/edge/void-cancelled-payments-gift-card-fee.test.ts are older wording that train M2 #3519 (1b6ecbb31b, the deleted crew member's share) rewrote.",
       "checked": "2026-10-21 (lander 4: content-checked against origin/main 7d9036465c with scripts/stranded-work.mjs; commits matched by subject)"
+    },
+    {
+      "id": "pr:3525",
+      "sha": "8b88d231581f12eef0430dbadeb1c10a71c5122f",
+      "reason": "Closed as superseded by train Q2 #3526: its jobs-20 and highb-notif-name-actor commits land there. Its board 141 commit (refund requests) went back to its builder after 7 CI reds and is ready/builder2h-jobs-141, carried by the next money train.",
+      "checked": "2026-10-21 (lander 4: content judged against origin/main c2f6390aad; commits matched by subject)"
     }
   ]
 }

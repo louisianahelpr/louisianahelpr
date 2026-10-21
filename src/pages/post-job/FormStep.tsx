@@ -150,7 +150,7 @@ export function FormStep({ form }: FormStepProps) {
   return (
     // Desktop (board 166): step rail left, the step centred (max 640px), the live
     // "What Helprs will see" card right. The phone is the one centred column.
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-6">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
       <PostJobStepRail step={page} onPick={setPage} />
       <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (

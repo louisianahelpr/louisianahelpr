@@ -61,6 +61,11 @@ export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
       <SheetContent
         side="bottom"
         className="grid grid-rows-[auto_minmax(0,1fr)] max-h-[92dvh] p-0"
+        // Board 58 (lead): initial focus goes to the sheet, not the fee breakdown's disclosure (a heavy ring at open).
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement | null)?.focus({ preventScroll: true });
+        }}
       >
         <div className="px-5 pt-5">
           <SheetHero title="Apply for this job" />

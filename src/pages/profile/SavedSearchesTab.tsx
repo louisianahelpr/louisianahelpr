@@ -137,13 +137,15 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
     navigate(resultsPath(s));
   };
 
+  // One gate: the rows, their "N new" and the pause switch arrive in one paint.
+  const loading = list.isLoading || counts.isLoading || paused.isLoading;
   const rows = list.data ?? [];
   const current = editing ? rows.find((r) => r.id === editing.id) ?? null : null;
 
   return (
     <ProfileTabBody data-testid="saved-searches-tab">
       <ProfileTabHeader title="Saved searches" onBack={onBack} />
-      {list.isLoading ? (
+      {loading ? (
         <ProfileTabBodyReserve tab="saved_searches" />
       ) : list.isError ? (
         <ErrorState variant="inline" title="We couldn't load your saved searches." onRetry={() => void list.refetch()} />
@@ -181,7 +183,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                 <span className="block font-sans font-semibold text-ds-15">Pause all alerts</span>
                 <span className="block font-sans text-ds-13 text-muted-foreground">Keep the searches, stop the alerts</span>
               </span>
-              <Switch checked={!!paused.data} disabled={paused.isLoading || pause.isPending} onCheckedChange={(v) => pause.mutate(v)} aria-label="Pause all alerts" data-testid="pause-all-alerts" />
+              <Switch checked={!!paused.data} disabled={paused.data === undefined || pause.isPending} onCheckedChange={(v) => pause.mutate(v)} aria-label="Pause all alerts" data-testid="pause-all-alerts" />
             </label>
           )}
         </>

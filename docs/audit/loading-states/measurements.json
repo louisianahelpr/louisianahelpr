@@ -28847,6 +28847,427 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
       "requests": 0
+    },
+    {
+      "url": "/profile?tab=saved_searches",
+      "persona": "customer",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2443,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=saved_searches",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1h-shell/tools/ls-out/customer_profile_tab_saved_searches.loading.png",
+      "loading": {
+        "found": 5,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 5,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 260
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 18,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 5,
+            "text": "Saved searches"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1h-shell/tools/ls-out/customer_profile_tab_saved_searches.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "testid:saved-searches-tab": {
+            "y": 0,
+            "h": 260.4
+          },
+          "div[data-testid=\"saved-searches-tab\"] > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:pause-all-alerts": {
+            "y": 212.2,
+            "h": 31
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 260.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 65,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 29,
+            "textLeaves": 6,
+            "media": 0,
+            "controls": 4,
+            "placeholders": 0,
+            "text": "Saved searchesYou get an alert when something new matches. Tap one to see results.SEED Storm prepAlerts off · under $400Pause all alertsKeep the searches, stop "
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 260
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 260.4
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 0.4,
+          "deltaContainerPx": 0,
+          "rows": [
+            4,
+            4
+          ],
+          "rowH": [
+            68,
+            65
+          ],
+          "deltaRowH": -3,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            4
+          ],
+          "textLeaves": [
+            1,
+            6
+          ],
+          "placeholderCount": 5,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0.4,
+      "worstDeltaRowH": -3,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "requests": 33
+    },
+    {
+      "url": "/profile?tab=saved_searches",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2445,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=saved_searches",
+      "loadingPng": "/Users/lexilombas/.lh-shots/builder1h-shell/tools/ls-out/helper_profile_tab_saved_searches.loading.png",
+      "loading": {
+        "found": 5,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 5,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 260
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 68,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 18,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 5,
+            "text": "Saved searches"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/builder1h-shell/tools/ls-out/helper_profile_tab_saved_searches.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "testid:saved-searches-tab": {
+            "y": 0,
+            "h": 260.4
+          },
+          "div[data-testid=\"saved-searches-tab\"] > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "testid:pause-all-alerts": {
+            "y": 212.2,
+            "h": 31
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 260.4
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 4,
+            "rowH": 65,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 29,
+            "textLeaves": 6,
+            "media": 0,
+            "controls": 4,
+            "placeholders": 0,
+            "text": "Saved searchesYou get an alert when something new matches. Tap one to see results.SEED Handyman near LafayetteAlerts off · within 25 mi · $100 and upPause all a"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 260
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 260.4
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 0.4,
+          "deltaContainerPx": 0,
+          "rows": [
+            4,
+            4
+          ],
+          "rowH": [
+            68,
+            65
+          ],
+          "deltaRowH": -3,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            4
+          ],
+          "textLeaves": [
+            1,
+            6
+          ],
+          "placeholderCount": 5,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0.4,
+      "worstDeltaRowH": -3,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 400 ()"
+      ],
+      "requests": 33
+    },
+    {
+      "url": "/profile?tab=saved_searches",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/login?redirect=%2Fprofile%3Ftab%3Dsaved_searches",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -29032,6 +29453,16 @@
         "customer /search",
         "helper /search",
         "anon /search"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-21T05:30:25.927Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "customer /profile?tab=saved_searches",
+        "helper /profile?tab=saved_searches",
+        "anon /profile?tab=saved_searches"
       ],
       "replaced": []
     }

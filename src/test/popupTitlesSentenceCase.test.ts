@@ -120,8 +120,9 @@ describe("every pop-up title is sentence case", () => {
     // boards 156/120/142 (2026-10-21): the dispute timeline's one "Timeline"
     // title became four states (Under review, Decision, Withdrawn, Dispute on
     // a failed load), and the delete dialog's and SOS sheet's titles changed
-    // in place.
-    expect(all.length).toBe(173);
+    // in place. 174 on TRAIN A (2026-10-21, measured by this test on the combined
+    // tree): +1 board 91 (Save this search).
+    expect(all.length).toBe(174);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -139,8 +139,10 @@ for (const variant of [
 
     const isDesktopWeb = variant.width >= 900;
 
-    // --- the top bar: title, then bell · profile on a phone ("+" · title on the desktop website) ---
-    const bar = page.getByTestId("app-top-bar");
+    // --- the top bar: title, then bell · profile on a phone; on the desktop website the
+    // title and "+" sit IN the global top bar, left of the bell and photo (ONE header row,
+    // owner 2026-10-21: PageTitleBar portals into DesktopTopNav's slot) ---
+    const bar = isDesktopWeb ? page.locator("[data-desktop-title-slot]") : page.getByTestId("app-top-bar");
     await expect(bar).toBeVisible();
     // Phone (2026-10-20, mock-up 6): the bar reads "Explore" and has no "+" (the bottom bar's
     // center "+" creates); the switcher under it names the section. Desktop keeps "Jobs" and its "+".
@@ -156,6 +158,13 @@ for (const variant of [
     if (isDesktopWeb) {
       await expect(bar.getByTestId("top-bar-bell"), `no second bell @ ${variant.tag}`).toHaveCount(0);
       await expect(bar.getByTestId("top-bar-profile"), `no avatar in the bar @ ${variant.tag}`).toHaveCount(0);
+      // ONE row: the title, the "+" and the header's photo share a line, "+" left of the photo.
+      const photo = (await page.getByTestId("desktop-top-profile").boundingBox())!;
+      const title = (await bar.getByRole("heading", { level: 1 }).boundingBox())!;
+      expect(Math.abs(title.y + title.height / 2 - (photo.y + photo.height / 2)), `the title is level with the photo @ ${variant.tag}`).toBeLessThan(8);
+      expect(Math.abs(add.y + add.height / 2 - (photo.y + photo.height / 2)), `the + is level with the photo @ ${variant.tag}`).toBeLessThan(8);
+      expect(add.x + add.width, `the + sits left of the photo @ ${variant.tag}`).toBeLessThanOrEqual(photo.x);
+      barBottom = Math.max(barBottom, photo.y + photo.height);
     } else {
       const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;
       const profile = (await bar.getByTestId("top-bar-profile").boundingBox())!;

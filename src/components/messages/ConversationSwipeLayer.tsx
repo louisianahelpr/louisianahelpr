@@ -69,20 +69,16 @@ export default function ConversationSwipeLayer({
           className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
           style={{
             scale: archiveScale,
-            /* Tint and border stay burnt-sienna; the LABEL and ICON above use
-               --danger-ink. A raw brand hue has no dark sibling, so on the dark
-               canvas these read rgb(212,103,53) over their own tint and
-               measured 3.5-3.7:1 at 10px — under AA, on the only thing telling
-               you what the swipe you are mid-way through will do. Same fix as
-               the SOS chip and the job feed's "Not interested". */
-            background: "hsl(var(--burnt-sienna) / 0.14)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.32)",
+            /* Neutral, not rust (rust is money only): archiving is
+               reversible. Ink is --foreground, legible on both canvases. */
+            background: "hsl(var(--olivewood) / 0.10)",
+            border: "0.5px solid hsl(var(--olivewood) / 0.28)",
           }}
         >
-          <Archive className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.4} />
+          <Archive className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--danger-ink))" }}
+            style={{ color: "hsl(var(--foreground))" }}
           >
             Archive
           </span>
@@ -100,18 +96,18 @@ export default function ConversationSwipeLayer({
           className="flex flex-col items-center gap-1 px-3 py-2 rounded-ds-md"
           style={{
             scale: pinScale,
-            background: "hsl(var(--burnt-sienna) / 0.18)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.42)",
+            background: "hsl(var(--bark) / 0.14)",
+            border: "0.5px solid hsl(var(--bark) / 0.36)",
           }}
         >
           {isPinned ? (
-            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.4} />
+            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
           ) : (
-            <Pin className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.4} />
+            <Pin className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
           )}
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
-            style={{ color: "hsl(var(--danger-ink))" }}
+            style={{ color: "hsl(var(--foreground))" }}
           >
             {isPinned ? "Unpin" : "Pin"}
           </span>

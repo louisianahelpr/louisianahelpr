@@ -286,7 +286,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood))" }} strokeWidth={2} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Your application's in. The person who posted it will reach out here if they're interested — you'll be able to reply as soon as they do.
           </p>

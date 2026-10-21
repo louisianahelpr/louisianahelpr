@@ -33,7 +33,7 @@ export function sentenceCaseProblems(text: string): string[] {
     }
     if (word.includes("\u0001") || !/^[A-Za-z]/.test(word)) {
       // A value LEADING the text (an icon, a count) does not start the sentence: "{icon} Download CSV".
-      if (bad.length || word === "" || word.replaceAll("\u0001", "") !== "" || !first) start = false;
+      if (bad.length || word === "" || word.split("\u0001").join("") !== "" || !first) start = false;
     } else if (start) {
       start = false;
     } else if (/^[A-Z]/.test(word) && !PROPER.has(word) && !ACRONYM.test(word)) {

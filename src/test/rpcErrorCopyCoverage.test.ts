@@ -60,6 +60,16 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Boards 184 / 188 (Builder 2f s6): both hooks call only while their switch
+  // reads on (useFeature gates `enabled`), and a refusal shows no words: the
+  // reach line / proof line is simply left out (useJobReach drops 42501 quietly;
+  // useApplicantCategoryCounts reports and returns null).
+  get_job_match_reach: {
+    feature_disabled: { reason: "no message exists at this site: useJobReach runs only while job_reach is on, and any error leaves the reach line out (a mid-session switch-off is expected and silent)." },
+  },
+  get_applicant_category_counts: {
+    feature_disabled: { reason: "no message exists at this site: useApplicantCategoryCounts runs only while applicant_proof is on, and any error leaves the proof line out." },
+  },
   // Dispute settlement RPCs (20260915034822). These codes ARE user-reachable,
   // but their copy is rendered by each caller's own dispute-copy path, not the
   // central RPC_ERROR_COPY / rpcErrorMessage: DisputedSection + PostedJobActions

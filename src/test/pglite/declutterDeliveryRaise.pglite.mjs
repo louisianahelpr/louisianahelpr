@@ -10,7 +10,8 @@
  *   NEW_MIGRATION=skip node src/test/pglite/declutterDeliveryRaise.pglite.mjs  # RED: the migration absent
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/declutterDeliveryRaise.pglite.mjs
  *
- * Proves: a PAID raise keeps the task open at the new pay (fee re-priced, stamp
+ * Proves: a PAID raise keeps the task open at the new pay (the Helpr gets the WHOLE raise: the fee
+ * stays on the original pay, owner 2026-10-22; stamp
  * written, window not restarted); the Helpr's payout is the raised pay minus the
  * fee and the payout queue names each raise's own charge; an unpaid, replaced
  * or wrong-amount page changes nothing on the task; a replayed webhook is a
@@ -184,9 +185,9 @@ ok(one(await paid(r2.raise_id, "cs_test_r2", "pi_raise_r2", r2.total_cents, `'${
 // 4. A PAID raise keeps the task open at the new pay; the window is not restarted.
 const a2 = one(await paid(r2.raise_id, "cs_test_r2", "pi_raise_r2", r2.total_cents));
 const T1b = await task(P1.task);
-ok(a2?.result === "applied" && T1b.status === "open" && T1b.pay_cents === D1 + 2000 && T1b.fee_cents === fee(D1 + 2000)
+ok(a2?.result === "applied" && T1b.status === "open" && T1b.pay_cents === D1 + 2000 && T1b.fee_cents === fee(D1)
   && T1b.raised_cents === 2000,
-  `a paid $20 raise: still open, pay ${D1} -> ${T1b.pay_cents}, fee re-priced 5% + 70c -> ${T1b.fee_cents}, stamped raised_cents`);
+  `a paid $20 raise: still open, pay ${D1} -> ${T1b.pay_cents}, the fee stays on the original pay (${fee(D1)}c, owner 2026-10-22) -> ${T1b.fee_cents}, stamped raised_cents`);
 ok(new Date(T1b.open_until).getTime() === new Date(T1.open_until).getTime(), "the open window is not restarted (refund rule, see the migration header)");
 ok((await raiseRow(r2.raise_id)).status === "applied" && (await raiseRow(r2.raise_id)).applied_at !== null, "the raise row is stamped applied");
 ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${BUYER}' AND title = 'Delivery pay raised'`)) === 1,
@@ -207,8 +208,8 @@ ok(st?.can_raise === true && st.raised_cents === 2000 && st.room_cents === 13000
   "the buyer reads their raises (applied and refunding), what is left to raise, and that they can raise");
 ok(refused(await me(BUYER3, `SELECT public.declutter_delivery_raise_status('${P1.order_id}')`), /item_not_found/),
   "another member reads nothing");
-ok(one(await me(HELPR, `SELECT take_home_cents FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P1.task}'`)) === D1 + 2000 - fee(D1 + 2000),
-  "an eligible Helpr sees the raised take-home pay");
+ok(one(await me(HELPR, `SELECT take_home_cents FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${P1.task}'`)) === D1 + 2000 - fee(D1),
+  "an eligible Helpr sees the raised take-home pay: the whole $20 raise on top");
 
 // 7. Taken: no more raises; the payout is the raised pay minus the fee, funded per charge.
 ok(one(await me(HELPR, `SELECT public.helpr_task_accept('${P1.task}', '${slot}')`))?.result === "accepted", "a Helpr takes it at the new pay");
@@ -219,8 +220,9 @@ await me(HELPR, `SELECT public.helpr_task_picked_up('${P1.task}', '${HELPR}/task
 await me(HELPR, `SELECT public.helpr_task_delivered('${P1.task}', '${HELPR}/task/${P1.task}/d.jpg', ${DROP.lat}, ${DROP.lng}, NULL)`);
 ok(one(await me(BUYER, `SELECT public.helpr_task_customer_confirm('${P1.task}')`))?.result === "handed_over", "delivered and confirmed");
 const hp = (await svc(`SELECT * FROM public.helpr_task_payouts WHERE task_id = '${P1.task}'`))[0];
-ok(hp?.pay_cents === D1 + 2000 && hp.fee_cents === fee(D1 + 2000) && hp.amount_cents === D1 + 2000 - fee(D1 + 2000),
-  `the Helpr's payout is the raised pay minus the fee: ${D1 + 2000} - ${fee(D1 + 2000)} = ${hp?.amount_cents}`);
+ok(hp?.pay_cents === D1 + 2000 && hp.fee_cents === fee(D1) && hp.amount_cents === D1 + 2000 - fee(D1)
+  && hp.amount_cents - (D1 - fee(D1)) === 2000,
+  `the Helpr's payout is the raised pay minus the ORIGINAL pay's fee: ${D1 + 2000} - ${fee(D1)} = ${hp?.amount_cents} (the $20 raise adds exactly $20)`);
 const due = (await svc(`SELECT * FROM public.helpr_task_payouts_due(10) WHERE task_id = '${P1.task}'`))[0];
 const parts = due?.raise_parts ?? [];
 ok(due?.payment_intent_id === "pi_order_1" && due.raised_cents === 2000 && parts.length === 1
@@ -305,7 +307,40 @@ ok(y1.answer?.result === "applied", "a raise is applied");
 const closed = await svc(`SELECT public.declutter_close_paid_order('${P5.order_id}', 'seller_backed_out', NULL, NULL, NULL)`);
 const Y1 = await raiseRow(y1.raise_id);
 ok(Array.isArray(closed) && (await task(P5.task)).status === "cancelled" && Y1.status === "refunding"
-  && Y1.refund_reason === "delivery_cancelled" && Y1.refund_cents === y1.total_cents, "the sale cancelled: the raise is refunded in full");
+  && Y1.refund_reason === "delivery_cancelled_seller" && Y1.refund_cents === y1.total_cents,
+  "the seller backed out: the raise is refunded in full, card fee included");
+const debt = (await svc(`SELECT * FROM public.declutter_seller_fee_debts WHERE raise_id = '${y1.raise_id}'`))[0];
+ok(debt?.seller_id === SELLER && debt.amount_cents === y1.card_fee_cents && debt.remaining_cents === y1.card_fee_cents && y1.card_fee_cents > 0,
+  `  and the raise's ${y1.card_fee_cents}c card fee is the SELLER's fee debt (owner 2026-10-21, row 60's rule)`);
+ok(one(await svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${SELLER}' AND title = 'A card fee comes out of your next payout'`)) === 1,
+  "  and the seller is told it comes out of the next payout");
+await svc(`UPDATE public.helpr_tasks SET status = status WHERE id = '${P5.task}'`);
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_seller_fee_debts WHERE raise_id = '${y1.raise_id}'`)) === 1,
+  "  once: one debt per raise");
+
+// 11a. The owner's lists (Q1929 ruling (a), 2026-10-21): ONE named constant each.
+ok(JSON.stringify(one(await svc("SELECT public.declutter_raise_card_fee_kept_reasons()")))
+   === JSON.stringify(["buyer_cancelled", "buyer_restarted_checkout", "buyer_no_show", "admin_buyer_fault"]),
+  "the card-fee-kept list is exactly the owner's four buyer-side reasons (admin_no_fault is not in it)");
+const Pn = await paidDelivery(8, BUYER, SELLER, 2500);
+const takeHome = async (t) => one(await me(HELPR, `SELECT take_home_cents FROM public.helpr_tasks_open_near(NULL, NULL, 50) WHERE task_id = '${t}'`));
+const thBefore = await takeHome(Pn.task);
+const feeBefore = (await task(Pn.task)).fee_cents;
+const n1 = await raiseAndPay(BUYER, Pn.order_id, 1000, "n1");
+const thAfter = await takeHome(Pn.task);
+ok(n1.answer?.result === "applied" && thAfter - thBefore === 1000 && (await task(Pn.task)).fee_cents === feeBefore,
+  `a $10 raise adds exactly $10 to the Helpr's take-home (${thBefore} -> ${thAfter}) and no fee (owner 2026-10-22)`);
+await svc(`SELECT public.declutter_close_paid_order('${Pn.order_id}', 'admin_no_fault', NULL, NULL, NULL)`);
+const N1 = await raiseRow(n1.raise_id);
+ok(N1.status === "refunding" && N1.refund_reason === "delivery_cancelled" && N1.refund_cents === n1.total_cents
+  && one(await svc(`SELECT count(*)::int FROM public.declutter_seller_fee_debts WHERE raise_id = '${n1.raise_id}'`)) === 0,
+  "an admin no-fault cancel: the buyer gets the raise AND its card fee back, and nobody is billed");
+const Pb = await paidDelivery(9, BUYER3, SELLER, 2500);
+const b1 = await raiseAndPay(BUYER3, Pb.order_id, 1000, "b1");
+await svc(`SELECT public.declutter_close_paid_order('${Pb.order_id}', 'buyer_no_show', NULL, NULL, NULL)`);
+const B1 = await raiseRow(b1.raise_id);
+ok(B1.status === "refunding" && B1.refund_reason === "delivery_cancelled_buyer" && B1.refund_cents === 1000,
+  "a buyer no-show: the raise comes back, its card fee is kept");
 
 // 11b. A sale cancelled for the buyer's own reason: the raise comes back minus its card fee (as the order's
 // refund keeps its own); a refund made by hand in Stripe on a raise's charge settles the raise.

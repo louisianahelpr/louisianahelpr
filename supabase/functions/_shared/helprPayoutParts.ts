@@ -6,8 +6,11 @@
 // charge (and all transfers from one charge together may not either). A raise
 // is its own charge, so the part of the payout the raise paid for is sent from
 // the raise's charge, and the rest from the order's charge, as before. Each
-// raise part is the raise itself; the Helpr's fee comes out of the order part
-// (the SQL caps raises at $150 a delivery, so the order part stays positive).
+// raise part is the WHOLE raise: the Helpr's fee is charged on the original
+// pay only (owner 2026-10-22: the Helpr gets the whole raise, no 5% + 70c on
+// it), so the order part is the original pay minus its fee and is never
+// negative. Raises are whole dollars, so a payout rounded down to the dollar
+// keeps every raise part whole and only the order part rounds.
 // A payout with no raise is ONE part, the whole amount, from the order's
 // charge: exactly what declutter-money sent before raises existed.
 //

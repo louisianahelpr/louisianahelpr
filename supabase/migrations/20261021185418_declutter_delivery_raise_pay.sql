@@ -15,10 +15,11 @@
 --      Stripe keeps, 2.9% + 30c, grossed up so the raise arrives whole).
 --   2. Only a PAID raise changes anything (declutter_delivery_raise_paid, the
 --      webhook's call). Under the order lock and then the task lock, a raise
---      on a task still OPEN for Helprs bumps helpr_tasks.pay_cents by the raise,
---      re-prices the Helpr's fee with the same rule the task was created with
---      (helpr_task_fee_cents: jobs' 5% + 70c, row 42) and stamps it
---      (helpr_tasks.raised_cents, the raise row 'applied'). The task stays open;
+--      on a task still OPEN for Helprs bumps helpr_tasks.pay_cents by the raise
+--      and stamps it (helpr_tasks.raised_cents, the raise row 'applied'). The
+--      Helpr gets the WHOLE raise (owner 2026-10-22, terms answer #4): the fee
+--      stays the task's rule on the ORIGINAL pay only (helpr_task_fee_cents of
+--      pay_cents - raised_cents: jobs' 5% + 70c, row 42), never on a raise. The task stays open;
 --      its open window is NOT restarted (see REFUND RULE). A raise paid on a
 --      task that is no longer waiting (taken, delivered, closed, cancelled, a
 --      problem open, the window passed), a replaced page, a wrong amount, or
@@ -51,12 +52,14 @@
 --      status, so every closing path is covered, and declutter-money's key is
 --      the raise id). Neither refund touches the other's charge.
 --      The card fee of a raise goes back too (the delivery we sold did not
---      happen, as B68 for the delivery fee), EXCEPT when the sale itself is
---      cancelled for the buyer's own reason or no one's fault: then the raise's
---      card fee is kept, as the order's refund keeps its own (owner 2026-10-14,
---      "never absorb any fee" except our own mistake; lh-money-escrow review).
---      A seller-fault cancel refunds the raise in full and the platform pays
---      its card fee (not billed to the seller: owner to confirm).
+--      happen, as B68 for the delivery fee), EXCEPT when the sale is cancelled
+--      for a buyer-side reason: then the raise's card fee is kept (OWNER
+--      2026-10-21, Q1929 ruling (a): buyer_cancelled, buyer_restarted_checkout,
+--      buyer_no_show and admin_buyer_fault keep it; admin_no_fault refunds it).
+--      That list is ONE named constant, declutter_raise_card_fee_kept_reasons().
+--      A SELLER-fault cancel refunds the raise in full AND bills the raise's card
+--      fee to the seller's Declutter fee debt, like row 60's card fee (OWNER
+--      2026-10-21): declutter_seller_fee_debts gains a raise_id source.
 --      Each raise transfer to the Helpr is recorded on its raise
 --      (payout_transfer_id); a refund made by hand in Stripe on a raise's
 --      charge settles that raise (declutter_delivery_raise_hand_refund).
@@ -104,9 +107,10 @@ CREATE TABLE IF NOT EXISTS public.declutter_delivery_raises (
   -- 'delivery_cancelled_buyer': the sale was cancelled for the buyer's own reason (or no one's
   -- fault), so the raise's card fee is kept, as declutter_record_refund keeps the order's
   -- (owner 2026-10-14: we never absorb a fee except our own mistake). CHECK _refund_amount.
+  -- 'delivery_cancelled_seller' refunds in full; the seller's fee debt carries the card fee instead.
   refund_reason text CHECK (refund_reason IS NULL OR refund_reason IN (
-    'no_helpr', 'delivery_cancelled', 'delivery_cancelled_buyer', 'delivery_failed', 'not_waiting', 'page_replaced',
-    'amount_mismatch', 'raise_limit')),
+    'no_helpr', 'delivery_cancelled', 'delivery_cancelled_buyer', 'delivery_cancelled_seller', 'delivery_failed',
+    'not_waiting', 'page_replaced', 'amount_mismatch', 'raise_limit')),
   refund_cents integer,
   stripe_refund_ref text,
   -- The transfer that paid this raise to the Helpr (the raise part of the task's ONE payout,
@@ -155,6 +159,34 @@ BEGIN
   END IF;
 END
 $do$;
+
+-- 2b. A seller-fault cancel bills the raise's card fee to the seller (owner 2026-10-21): the ONE fee-debt
+--     ledger (declutter_seller_fee_debts, consumed by declutter_consume_fee_debt from the seller's next
+--     payouts) gains a third source, the raise. Exactly one source per debt; one debt per raise.
+ALTER TABLE public.declutter_seller_fee_debts ADD COLUMN IF NOT EXISTS raise_id uuid;
+DO $do$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'declutter_fee_debts_raise_fkey') THEN
+    ALTER TABLE public.declutter_seller_fee_debts ADD CONSTRAINT declutter_fee_debts_raise_fkey
+      FOREIGN KEY (raise_id) REFERENCES public.declutter_delivery_raises(id) ON DELETE CASCADE;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'declutter_fee_debts_raise_once') THEN
+    ALTER TABLE public.declutter_seller_fee_debts ADD CONSTRAINT declutter_fee_debts_raise_once UNIQUE (raise_id);
+  END IF;
+  ALTER TABLE public.declutter_seller_fee_debts DROP CONSTRAINT IF EXISTS declutter_fee_debts_one_source;
+  -- Shops (20261019071055) added shop_refund_id; a database built without Shops has only the two.
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public'
+               AND table_name = 'declutter_seller_fee_debts' AND column_name = 'shop_refund_id') THEN
+    EXECUTE 'ALTER TABLE public.declutter_seller_fee_debts ADD CONSTRAINT declutter_fee_debts_one_source
+      CHECK (num_nonnulls(refund_id, shop_refund_id, raise_id) = 1)';
+  ELSE
+    ALTER TABLE public.declutter_seller_fee_debts ALTER COLUMN refund_id DROP NOT NULL;
+    EXECUTE 'ALTER TABLE public.declutter_seller_fee_debts ADD CONSTRAINT declutter_fee_debts_one_source
+      CHECK (num_nonnulls(refund_id, raise_id) = 1)';
+  END IF;
+END
+$do$;
+CREATE INDEX IF NOT EXISTS declutter_fee_debts_raise_idx ON public.declutter_seller_fee_debts (raise_id) WHERE raise_id IS NOT NULL;
 
 -- 3. The card fee on a raise: what Stripe keeps on the raise's own charge
 -- (2.9% + 30c, the rate declutter_card_fee_estimate and _shared/stripeFees.ts
@@ -344,7 +376,9 @@ BEGIN
   IF v_reason IS NULL THEN
     UPDATE public.helpr_tasks
        SET pay_cents = pay_cents + r.raise_cents,
-           fee_cents = public.helpr_task_fee_cents(pay_cents + r.raise_cents),
+           -- The Helpr gets the whole raise (owner 2026-10-22): the fee is on the ORIGINAL pay only
+           -- (the SET reads the row before this UPDATE: pay_cents - raised_cents is the original pay).
+           fee_cents = public.helpr_task_fee_cents(pay_cents - raised_cents),
            raised_cents = raised_cents + r.raise_cents,
            updated_at = now()
      WHERE id = t.id AND status = 'open';
@@ -362,7 +396,7 @@ BEGIN
              to_char(t.open_until AT TIME ZONE 'America/Chicago', 'Dy Mon FMDD at FMHH12:MI AM')),
       '/declutter?view=cart', NULL);
     RETURN jsonb_build_object('result', 'applied', 'raise_id', r.id, 'task_id', t.id,
-      'pay_cents', t.pay_cents + r.raise_cents, 'fee_cents', public.helpr_task_fee_cents(t.pay_cents + r.raise_cents));
+      'pay_cents', t.pay_cents + r.raise_cents, 'fee_cents', public.helpr_task_fee_cents(t.pay_cents - t.raised_cents));
   END IF;
   UPDATE public.declutter_delivery_raises
      SET status = 'refunding', stripe_payment_intent_id = p_payment_intent_id, paid_cents = p_amount_cents, paid_at = now(),
@@ -382,12 +416,40 @@ GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_paid(uuid, uuid, text,
 -- 6. A task that ends without its Helpr being paid refunds every applied
 -- raise, once (applied -> refunding happens once per row). At the table, so
 -- every closing path (the no-Helpr sweep, a cancelled sale, damage in
--- delivery, an admin decision) is covered by one rule. A sale cancelled for
--- the buyer's own reason (or no one's fault) keeps the raise's card fee, as
--- the order's own refund does: declutter_close_paid_order closes the task
--- with its refund reason as the note (helpr_task_close(task, 'cancelled',
--- p_reason)), and these are declutter_record_refund's keep_card_fee and
--- keep_buyer_fee reasons. Every other close is ours or the seller's: in full.
+-- delivery, an admin decision) is covered by one rule.
+-- declutter_close_paid_order closes the task with its refund reason as the note
+-- (helpr_task_close(task, 'cancelled', p_reason)). Who carries the raise's card fee:
+--   * a buyer-side reason (declutter_raise_card_fee_kept_reasons()): kept, the buyer gets the raise back;
+--   * a seller-fault reason (declutter_raise_seller_fault_reasons()): the buyer gets everything back and
+--     the card fee becomes the seller's Declutter fee debt (row 60's rule), one debt per raise;
+--   * anything else (no Helpr, damage in delivery, no one's fault, ours): everything back, we carry it.
+
+-- The two owner-ruled lists, each ONE named constant (OWNER 2026-10-21, Q1929 ruling (a), confirmed):
+-- a buyer no-show and an admin buyer-fault decision keep the raise's card fee like the buyer's own
+-- cancel; an admin no-fault decision refunds it. Change a list here and only here.
+CREATE OR REPLACE FUNCTION public.declutter_raise_card_fee_kept_reasons()
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE PARALLEL SAFE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT ARRAY['buyer_cancelled', 'buyer_restarted_checkout', 'buyer_no_show', 'admin_buyer_fault']::text[];
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_raise_card_fee_kept_reasons() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_raise_card_fee_kept_reasons() TO authenticated, service_role;
+
+-- declutter_record_refund's full_seller_pays_fee reasons (20261017060455).
+CREATE OR REPLACE FUNCTION public.declutter_raise_seller_fault_reasons()
+RETURNS text[]
+LANGUAGE sql
+IMMUTABLE PARALLEL SAFE
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT ARRAY['seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described']::text[];
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_raise_seller_fault_reasons() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_raise_seller_fault_reasons() TO authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.declutter_delivery_raises_on_task_close()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -396,32 +458,51 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_back integer;
+  v_billed integer;
   v_buyer uuid;
+  v_seller uuid;
   v_buyer_side boolean;
+  v_seller_side boolean;
 BEGIN
   IF NEW.source_kind <> 'declutter_delivery' OR NEW.status NOT IN ('unfilled', 'cancelled', 'failed')
      OR OLD.status IN ('unfilled', 'cancelled', 'failed') THEN
     RETURN NEW;
   END IF;
-  v_buyer_side := NEW.status = 'cancelled' AND COALESCE(NEW.close_note IN
-    ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'buyer_no_show', 'admin_buyer_fault'), false);
+  v_buyer_side := NEW.status = 'cancelled' AND COALESCE(NEW.close_note = ANY (public.declutter_raise_card_fee_kept_reasons()), false);
+  v_seller_side := NEW.status = 'cancelled' AND COALESCE(NEW.close_note = ANY (public.declutter_raise_seller_fault_reasons()), false);
+  SELECT o.buyer_id, o.seller_id INTO v_buyer, v_seller FROM public.declutter_orders o WHERE o.id = NEW.source_id;
   WITH back AS (
     UPDATE public.declutter_delivery_raises r
        SET status = 'refunding',
            refund_reason = CASE WHEN NEW.status = 'unfilled' THEN 'no_helpr' WHEN NEW.status = 'failed' THEN 'delivery_failed'
-                                WHEN v_buyer_side THEN 'delivery_cancelled_buyer' ELSE 'delivery_cancelled' END,
+                                WHEN v_buyer_side THEN 'delivery_cancelled_buyer'
+                                WHEN v_seller_side THEN 'delivery_cancelled_seller' ELSE 'delivery_cancelled' END,
            refund_cents = CASE WHEN v_buyer_side THEN r.paid_cents - r.card_fee_cents ELSE r.paid_cents END,
            refund_next_attempt_at = now(), updated_at = now()
      WHERE r.task_id = NEW.id AND r.status = 'applied'
-    RETURNING r.refund_cents)
-  SELECT sum(refund_cents)::integer INTO v_back FROM back;
+    RETURNING r.id, r.refund_cents, r.card_fee_cents),
+  billed AS (
+    -- Row 60's rule for the raise: the seller's fault, the seller's card fee (one debt per raise).
+    INSERT INTO public.declutter_seller_fee_debts (seller_id, raise_id, amount_cents, remaining_cents)
+    SELECT v_seller, b.id, b.card_fee_cents, b.card_fee_cents
+      FROM back b
+     WHERE v_seller_side AND v_seller IS NOT NULL AND b.card_fee_cents > 0
+    ON CONFLICT (raise_id) DO NOTHING
+    RETURNING amount_cents)
+  SELECT (SELECT sum(refund_cents)::integer FROM back), (SELECT sum(amount_cents)::integer FROM billed)
+    INTO v_back, v_billed;
   IF COALESCE(v_back, 0) > 0 THEN
-    SELECT o.buyer_id INTO v_buyer FROM public.declutter_orders o WHERE o.id = NEW.source_id;
     PERFORM public.declutter_notify(v_buyer, 'payment', 'Your raise is coming back',
       format(CASE WHEN v_buyer_side THEN 'The $%s you added to the delivery pay is coming back to your card (its card fee is not refunded).'
                   ELSE 'The $%s you paid to raise the delivery pay is coming back to your card.' END,
              to_char(v_back / 100.0, 'FM999990.00')),
       '/declutter?view=cart', NULL);
+  END IF;
+  IF COALESCE(v_billed, 0) > 0 THEN
+    PERFORM public.declutter_notify(v_seller, 'payment', 'A card fee comes out of your next payout',
+      format('The buyer had raised the delivery pay, and the sale was cancelled on your side, so the $%s card fee on that raise comes out of your next Declutter payout.',
+             to_char(v_billed / 100.0, 'FM999990.00')),
+      '/declutter?view=sales', NULL);
   END IF;
   RETURN NEW;
 END;

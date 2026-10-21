@@ -445,6 +445,11 @@ export async function recordDeclutterHandRefunds(
     if (raiseErr && (raiseErr as { code?: string }).code !== "PGRST202") {
       throw new Error(`declutter_delivery_raise_hand_refund failed for ${r.id}: ${raiseErr.message}`);
     }
+    // Only a known answer decides the path: a missing or unknown one is a defect, never "not a raise"
+    // (it used to skip the order's own hand-refund record). Throw, so Stripe redelivers.
+    if (!raiseErr && !["not_raise", "settled", "already", "recorded_other"].includes(String(raiseAnswer))) {
+      throw new Error(`declutter_delivery_raise_hand_refund gave no known answer for ${r.id}: ${JSON.stringify(raiseAnswer)}`);
+    }
     if (!raiseErr && raiseAnswer !== "not_raise") {
       logStep("Declutter raise refunded outside Declutter", { refund: r.id, result: raiseAnswer });
       if (raiseAnswer === "recorded_other") {

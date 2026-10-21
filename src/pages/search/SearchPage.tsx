@@ -36,7 +36,7 @@ const PER_SECTION = 3;
 const MAX_ROWS = 20;
 
 type JobHit = { id: string; title: string; category: string | null; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
-type ItemHit = { id: string; title: string; category: string | null; cover?: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
+type ItemHit = { id: string; title: string; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
   return useQuery({
@@ -75,11 +75,7 @@ function useItemHits(q: string, on: boolean) {
         .ilike("title", likePattern(q))
         .order("live_at", { ascending: false })
         .limit(MAX_ROWS);
-      const rows = (unwrap(res) ?? []) as ItemHit[];
-      // Declutter is photo-first: each row leads with its cover photo, read
-      // the way Browse's cards read it (first photo by position).
-      const cover = firstPhotos(await fetchPhotos(rows.map((r) => r.id)));
-      return { rows: rows.map((r) => ({ ...r, cover: cover.get(r.id) ?? null })), count: res.count ?? 0 };
+      return { rows: (unwrap(res) ?? []) as ItemHit[], count: res.count ?? 0 };
     },
   });
 }
@@ -164,6 +160,17 @@ export default function SearchPage() {
     setParams(next ? { [SEARCH_PARAM]: next } : {}, { replace: true });
   };
 
+  // Declutter is photo-first: each row leads with its cover photo, read the
+  // way Browse reads it (its own query, so a failed photo read leaves the
+  // placeholder and never hides the results).
+  const itemIds = (items.data?.rows ?? []).map((r) => r.id);
+  const photos = useQuery({
+    queryKey: ["search", "declutter-photos", itemIds],
+    enabled: itemIds.length > 0,
+    staleTime: 60_000,
+    queryFn: () => fetchPhotos(itemIds),
+  });
+  const cover = firstPhotos(photos.data ?? []);
   const jobCount = jobs.data?.count ?? 0;
   const itemCount = declutterOn ? items.data?.count ?? 0 : 0;
   const loading = !switchesSettled || jobs.isLoading || (declutterOn && items.isLoading);
@@ -236,7 +243,7 @@ export default function SearchPage() {
             {items.data!.rows.slice(0, section === "all" ? PER_SECTION : MAX_ROWS).map((it) => {
               const cents = it.current_price_cents ?? it.price_cents;
               return (
-                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={it.cover} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
+                <Row key={it.id} to={`/declutter/item/${it.id}`} title={it.title} sub={it.area_label} thumb={<Thumb photo={cover.get(it.id) ?? null} icon={categoryIcon(it.category)} seed={it.category} />} price={typeof cents === "number" ? `$${formatPrice(cents / 100)}` : null} />
               );
             })}
           </Group>

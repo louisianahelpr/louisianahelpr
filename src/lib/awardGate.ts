@@ -95,8 +95,9 @@ export interface AwardGateStatus {
 }
 
 /**
- * The identity verdict, for DISPLAY (badges, Work Record, admin). It gates
- * nothing since 2026-10-01 (migration 20261001222911).
+ * The identity verdict the hiring GATE reads (fetchAwardBlockReason below).
+ * Never a badge: the "ID verified" badge is {@link hasIdBadge}, Stripe Identity
+ * only (owner, 2026-10-21).
  *
  * TWO checks answer "do we know who this is", and either one counts:
  *
@@ -125,6 +126,18 @@ export function isIdentityVerified(source: {
   idvStatus?: string | null;
 }): boolean {
   return source.connectIdentityVerified === true || source.idvStatus === "verified";
+}
+
+/**
+ * The "ID verified" BADGE (owner, 2026-10-21): Stripe Identity's photo ID +
+ * selfie verdict, `profiles.idv_status = 'verified'`, and nothing else. Payout
+ * setup (Stripe Connect, `stripe_identity_verified` / `stripe_payouts_enabled`)
+ * is a separate fact with its own "Payouts set up" badge and never draws this
+ * one. The server says the same (get_safe_profiles.is_id_verified,
+ * migration 20261021074131). An admin-approved ID writes the same value (Q2201).
+ */
+export function hasIdBadge(idvStatus: string | null | undefined): boolean {
+  return idvStatus === "verified";
 }
 
 /**

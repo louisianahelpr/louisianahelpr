@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { Landmark, ShieldCheck } from "lucide-react";
 import type { CSSProperties } from "react";
 
 /**
@@ -37,6 +37,27 @@ export const ID_VERIFIED_LABEL = "Stripe ID verified";
 
 export const ID_VERIFIED_DESCRIPTION =
   "A government ID was checked by Stripe Identity and matched this member. Earned by completing ID verification in Profile.";
+
+/**
+ * "Payouts set up" (owner, 2026-10-21): Stripe Connect payout setup is done
+ * (`profiles.stripe_payouts_enabled`, published as get_safe_profiles.is_payout_ready).
+ * A separate fact from "ID verified" (Stripe Identity), with its own badge, so
+ * payout setup never reads as an ID check.
+ */
+export const PAYOUTS_SET_UP_LABEL = "Payouts set up";
+
+export const PAYOUTS_SET_UP_DESCRIPTION =
+  "This member set up payouts with Stripe, which checked their payment details.";
+
+export const PAYOUTS_SET_UP_PILL_STYLE: CSSProperties = {
+  background: "hsl(var(--sage) / 0.16)",
+  border: "0.5px solid hsl(var(--sage) / 0.4)",
+  color: "hsl(var(--success-ink))",
+};
+
+export const PayoutsSetUpIcon = ({ className }: { className?: string }) => (
+  <Landmark className={className} strokeWidth={2.25} aria-hidden />
+);
 
 /** The shield, at the one size and weight every surface draws it. */
 export const IdVerifiedShield = ({ className }: { className?: string }) => (

@@ -10926,7 +10926,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 271,
+      "line": 256,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10940,7 +10940,7 @@
     },
     {
       "file": "src/pages/profile/WorkRecord.tsx",
-      "line": 294,
+      "line": 279,
       "kind": "toast.error",
       "title": {
         "form": "literal",

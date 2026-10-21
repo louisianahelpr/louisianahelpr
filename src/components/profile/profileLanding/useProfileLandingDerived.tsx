@@ -9,7 +9,7 @@ import type { MenuItem, Profile } from "./types";
 import { ACCOUNT_MENU_GROUP, SECTION_TINT } from "./workMenuGroup";
 import { REPORT_BUG_TITLE, TAB_TITLES } from "@/pages/profile/types";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 
 interface UseProfileLandingDerivedArgs {
   profile: Profile | null;
@@ -57,23 +57,10 @@ export function useProfileLandingDerived({
   // unverified items are still nudged via the completion meter +
   // Credentials tab.
   const earnedBadges = ([
-    // EITHER Stripe verdict, which is what the server gate
-    // (`helper_award_block_reason`, migration 20260907013734) and the public
-    // badge (`get_safe_profiles.is_id_verified` = `idv_status = 'verified'`)
-    // both read.
-    //
-    // This used to be `stripe_identity_verified` alone, on the reasoning that
-    // `idv_status` was an unreviewed upload flag. It is not one any more — it
-    // is written by `stripe-idv-webhook` from a real document + selfie session.
-    // Reading only the Connect column made THIS the odd surface out: ten live
-    // profiles carried `idv_status = 'verified'` with the Connect flag false,
-    // so a poster saw a green "ID verified by Stripe" chip on the applicant
-    // card while the same person's own profile showed no badge at all.
+    // Stripe Identity only (owner 2026-10-21), the same bit the public badge
+    // reads (get_safe_profiles.is_id_verified). Payout setup is its own badge.
     {
-      ok: isIdentityVerified({
-        connectIdentityVerified: profile?.stripe_identity_verified,
-        idvStatus: profile?.idv_status,
-      }),
+      ok: hasIdBadge(profile?.idv_status),
       // The one form's wording (IdVerifiedPill.tsx, Q987); `id` makes the
       // header draw it as the gold pill rather than a generic chip.
       label: ID_VERIFIED_LABEL,

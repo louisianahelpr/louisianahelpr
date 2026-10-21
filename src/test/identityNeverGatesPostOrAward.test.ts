@@ -161,6 +161,7 @@ describe("client: posting and hiring never gate on identity; only the accept mir
     const code = blankComments(readFileSync(join(REPO, "src/lib/awardGate.ts"), "utf8"));
     const rest = code
       .replace(/export function isIdentityVerified\([\s\S]*?\n}\n/, "")
+      .replace(/export function hasIdBadge\([\s\S]*?\n}\n/, "")
       .replace(/export function acceptMissingFromProfile\([\s\S]*?\n}\n/, "");
     expect(code).toMatch(/export function acceptMissingFromProfile\([\s\S]*?isIdentityVerified\(/);
     expect(rest).not.toMatch(/idv_status|idvStatus|stripe_identity_verified|isIdentityVerified\(/);

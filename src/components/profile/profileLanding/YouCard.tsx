@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { UserAvatar } from "@/components/UserAvatar";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 import type { Profile } from "./types";
 import { PROFILE_NAME_HEADING_LEVEL } from "./headingContract";
 
@@ -42,10 +42,8 @@ export function YouCard({
   reviewCount: number;
 }) {
   const navigate = useNavigate();
-  const verified = isIdentityVerified({
-    connectIdentityVerified: profile?.stripe_identity_verified,
-    idvStatus: profile?.idv_status,
-  });
+  // Stripe Identity only (owner 2026-10-21); payout setup never draws the seal.
+  const verified = hasIdBadge(profile?.idv_status);
   const facts = youCardFacts(verified, avgRating, reviewCount);
   const Heading = `h${PROFILE_NAME_HEADING_LEVEL}` as "h2";
   const open = () => userId && navigate(`/user/${userId}`);

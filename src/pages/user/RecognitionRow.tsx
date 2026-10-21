@@ -34,6 +34,10 @@ import {
   ID_VERIFIED_LABEL,
   ID_VERIFIED_PILL_STYLE,
   IdVerifiedShield,
+  PAYOUTS_SET_UP_DESCRIPTION,
+  PAYOUTS_SET_UP_LABEL,
+  PAYOUTS_SET_UP_PILL_STYLE,
+  PayoutsSetUpIcon,
 } from "@/components/profile/IdVerifiedPill";
 
 /**
@@ -406,6 +410,8 @@ const VISIBLE_BADGE_CAP = 4;
 type Props = {
   milestoneStats: MilestoneStats;
   idVerified: boolean;
+  /** Stripe Connect payout setup done (get_safe_profiles.is_payout_ready). */
+  payoutsSetUp?: boolean;
   ladderProfile: HelperTierProfile | null;
   ladderStats: HelperTierStats | null;
   credentials: CredentialFields;
@@ -415,6 +421,7 @@ type Props = {
 export const RecognitionRow = ({
   milestoneStats,
   idVerified,
+  payoutsSetUp = false,
   ladderProfile,
   ladderStats,
   credentials,
@@ -461,6 +468,17 @@ export const RecognitionRow = ({
       icon: <IdVerifiedShield />,
       description: ID_VERIFIED_DESCRIPTION,
       style: ID_VERIFIED_PILL_STYLE,
+    });
+  }
+
+  if (payoutsSetUp) {
+    specs.push({
+      key: "payouts_set_up",
+      group: "account",
+      label: PAYOUTS_SET_UP_LABEL,
+      icon: <PayoutsSetUpIcon />,
+      description: PAYOUTS_SET_UP_DESCRIPTION,
+      style: PAYOUTS_SET_UP_PILL_STYLE,
     });
   }
 

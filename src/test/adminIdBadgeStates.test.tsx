@@ -30,7 +30,7 @@ const EXPECTED: Record<string, string> = {
   skipped: "Stripe ID Not Verified",
   pending: "Stripe Checking",
   processing: "Stripe Checking",
-  verified: "ID Verified",
+  verified: "ID verified by Stripe",
   failed: "Stripe Flagged",
   manual_review: "Stripe Flagged",
 };
@@ -49,6 +49,11 @@ describe("admin ID badge states", () => {
       expect(label({ idv_status: s }), `idv_status=${s}`).toContain(EXPECTED[s]);
     }
     expect(label({ idv_status: null })).toContain("Stripe ID Not Verified");
+  });
+
+  it("payout setup alone is not an ID check; an admin approval names the admin (owner 2026-10-21, Q2201)", () => {
+    expect(label({ idv_status: "not_started", stripe_identity_verified: true })).toContain("Stripe ID Not Verified");
+    expect(label({ idv_status: "verified", legacy_manual_review: true })).toContain("ID verified by admin");
   });
 
   it("never implies the user submitted an ID to us", () => {

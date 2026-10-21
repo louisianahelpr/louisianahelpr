@@ -175,7 +175,8 @@ export default function SearchPage() {
   const cover = firstPhotos(photos.data ?? []);
   const jobCount = jobs.data?.count ?? 0;
   const itemCount = declutterOn ? items.data?.count ?? 0 : 0;
-  const loading = !switchesSettled || jobs.isLoading || (declutterOn && items.isLoading);
+  // isPending, not isLoading: a read paused offline stays loading, never the empty state (Q571).
+  const loading = !switchesSettled || jobs.isPending || (declutterOn && items.isPending);
   const failed = jobs.isError || (declutterOn && items.isError);
   const qs = `${SEARCH_PARAM}=${encodeURIComponent(q)}`;
   const chips: { key: SearchSection; label: string; count?: number }[] = [

@@ -12,7 +12,7 @@
  *   shop). A section closed to the viewer is a greyed "Opening soon" row with
  *   no actions; it never routes into a closed section.
  * - Post a job keeps the under-18 gate. "Or just describe it" opens the AI job
- *   builder (/post-job?start=ai, which EntryChoice opens on).
+ *   builder (/post-job?start=ai, which step 0 opens on: usePostJobForm entryPanel).
  *
  * - Explore (HELPR-DESIGN-SPEC §3): /explore opens the section the member was
  *   last in, else their first open shown section; every section screen carries
@@ -32,7 +32,7 @@
  * @mutate src/components/create/CreateSheet.tsx | ...(movingOut ? [{ label: "Moving out sale", path: "/declutter/move" }] : []) | { label: "Moving out sale", path: "/declutter/move" }
  * @mutate src/components/create/CreateSheet.tsx | label: hasShop ? "Add a product or service" : "Open a shop" | label: "Open a shop"
  * @mutate src/components/create/CreateSheet.tsx | const DESCRIBE_IT_PATH = "/post-job?start=ai"; | const DESCRIBE_IT_PATH = "/post-job";
- * @mutate src/pages/post-job/EntryChoice.tsx |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
+ * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
@@ -231,7 +231,7 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     openSheet();
     fireEvent.click(screen.getByTestId("create-describe"));
     expect(where()).toBe("/post-job?start=ai");
-    expect(code("src/pages/post-job/EntryChoice.tsx")).toContain('searchParams.get("start") === "ai" ? "ai" : null');
+    expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('searchParams.get("start") === "ai" ? "ai" : null');
   });
 });
 

@@ -24,8 +24,9 @@ const SRC = read("src/pages/post-job/PostJob.tsx");
 describe("Post a Job: every step opens at its top", () => {
   it("a step change resets the shell's scroller AND AppPage's own column (keyed on form.step and form.formPage)", () => {
     // Keyed on the step AND the form's screen (formPage, boards 23/44/3/45):
-    // the four form screens share the "form" step, so each must reset too.
-    const effect = SRC.slice(SRC.indexOf("const lastStep = useRef(`${form.step}:${form.formPage}`)"), SRC.indexOf("}, [form.step, form.formPage]);"));
+    // the four form screens share the "form" step, so each must reset too; so do screen 1b (a group's
+    // categories) and step 0's opened ways to start (owner 2026-10-21).
+    const effect = SRC.slice(SRC.indexOf("const lastStep = useRef(`${form.step}:${form.formPage}:${form.categoryGroup}:${form.entryPanel}`)"), SRC.indexOf("}, [form.step, form.formPage, form.categoryGroup, form.entryPanel]);"));
     expect(effect.length).toBeGreaterThan(0);
     expect(effect).toMatch(/querySelectorAll<HTMLElement>\("\.app-shell-scroll, \[data-app-page-scroll\]"\)/);
     expect(effect).toMatch(/el\.scrollTop = 0;/);

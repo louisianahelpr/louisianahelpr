@@ -475,8 +475,8 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     const writes = watchWrites(page, /\/rest\/v1\/(jobs|rpc\/.*job)|functions\/v1\/.*(checkout|job)/);
     // Five screens (boards 23/44/3/45): pick a category on screen 1 to reach
     // the title on screen 2; the category search box is not the title.
+    await page.getByRole("button", { name: /^Home/ }).click();
     await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-    await page.getByRole("button", { name: /^Continue with/ }).click();
     const title = page.getByRole("textbox", { name: /job title/i });
     await expect(title, "screen 2 (title) never opened").toBeVisible({ timeout: 20_000 });
     await title.fill("      ");
@@ -640,8 +640,11 @@ test.describe("explore dialog-gated forms from real records", () => {
 
   if (legHas("explore-post-job")) scoped("post-job: every later step's fields (budget, logistics, address, checkout), never paying", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, { url: "/post-job", as: "poster", prepare: async (p) => {
-      const fresh = p.getByRole("button", { name: /start fresh/i });
+      const fresh = p.getByRole("button", { name: /start from scratch/i });
       if (await fresh.isVisible().catch(() => false)) await fresh.click();
+      // Screen 1 has no Continue (a category tap goes on): pick Home, then Cleaning.
+      await p.getByRole("button", { name: /^Home/ }).click().catch(() => {});
+      await p.getByRole("button", { name: "Cleaning", exact: true }).click().catch(() => {});
     } });
     const blocked = await writeFirewall(ctx);
     const hints = inventoryHints();
@@ -685,7 +688,6 @@ test.describe("explore dialog-gated forms from real records", () => {
         await page.getByRole("option").first().click({ timeout: 3_000 }).catch(() => {});
       }
       const pay = page.getByRole("button", { name: /^(pay|checkout|continue to payment|review & pay|post job)/i }).filter({ visible: true }).last();
-      // Screen 1's button names the category ("Continue with Cleaning", board 23).
       const next = page.getByRole("button", { name: /^(continue|next)( with .+)?$/i }).filter({ visible: true }).last();
       if ((await pay.count()) && !(await next.count())) {
         info.annotations.push({ type: "note", description: `stopped at the pay step after ${step} continues (never pressed)` });

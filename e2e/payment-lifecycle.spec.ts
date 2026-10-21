@@ -152,13 +152,13 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     // the app honours the returned checkout `url`. Trigger any submit path
     // that reaches checkout if the form is simple enough; otherwise the
     // interception + /payment-success render below still proves the hop.
-    // /post-job opens on an entry choice (Start Fresh / Use a Template / AI
+    // /post-job opens on an entry choice (Start from scratch / Use a template / AI
     // Job Builder) with no inputs of its own — the form is one tap further.
     // This assertion predates that screen and failed on every run after it
     // shipped while the product was fine (run 34169384242).
     // The route chunk and the auth restore both have to land before the entry
     // screen exists, so wait for it explicitly rather than racing a 5s peek.
-    const startFresh = page.getByRole("button", { name: /start fresh/i }).first();
+    const startFresh = page.getByRole("button", { name: /start from scratch/i }).first();
     await expect(startFresh.or(page.locator("input, textarea").first())).toBeVisible({
       timeout: 20_000,
     });

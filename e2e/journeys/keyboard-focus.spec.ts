@@ -265,7 +265,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
 
   await test.step("d. every control on the post-job form is named", async () => {
     await page.goto("/post-job");
-    await page.getByRole("button", { name: /start fresh/i }).first().click({ timeout: 60_000 });
+    await page.getByRole("button", { name: /start from scratch/i }).first().click({ timeout: 60_000 });
     await expect(page.locator("#require-photo-proof")).toBeVisible({ timeout: 30_000 });
     const controls = page.getByRole("switch").or(page.getByRole("checkbox")).or(page.getByRole("button"));
     const n = await controls.count();

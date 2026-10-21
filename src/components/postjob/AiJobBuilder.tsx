@@ -39,9 +39,11 @@ interface AiJobBuilderProps {
    *  one-open-at-a-time group; omit both and it manages its own. */
   open?: boolean;
   onOpenChange?: (next: boolean) => void;
+  /** Body only (prompt + button), no collapsible header row: Post a Job step 0's AI panel. */
+  headless?: boolean;
 }
 
-export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange }: AiJobBuilderProps) {
+export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange, headless = false }: AiJobBuilderProps) {
   const [prompt, setPrompt] = useState("");
   /**
    * Open state is CONTROLLED when the parent passes it, so this card can join
@@ -96,6 +98,41 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
     }
   };
 
+  const body = (
+        <div className={headless ? "space-y-2" : "space-y-2 mt-3"}>
+          {!headless && <div className="h-px bg-border/50" />}
+          <Textarea
+            aria-label="Describe your job"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
+            rows={3}
+            className="text-ds-13 mt-2"
+          />
+          <Button
+            variant="primary"
+            type="button"
+            onClick={generate}
+            disabled={loading}
+            size="sm"
+            className="w-full rounded-ds-md"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 mr-2" /> Fill in my job
+              </>
+            )}
+          </Button>
+        </div>
+  );
+  // Post a Job step 0 (owner 2026-10-21): the card the poster tapped is the heading, so the panel shows
+  // only the prompt and the button.
+  if (headless) return body;
+
   return (
     // Brand-aligned: liquid-glass surface (was dashed border + bg-muted/30),
     // Sparkles icon in a sienna-tinted circle, font-display title.
@@ -144,37 +181,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           aria-hidden
         />
       </button>
-      {open && (
-        <div className="space-y-2 mt-3">
-          <div className="h-px bg-border/50" />
-          <Textarea
-            aria-label="Describe your job"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
-            rows={3}
-            className="text-ds-13 mt-2"
-          />
-          <Button
-            variant="primary"
-            type="button"
-            onClick={generate}
-            disabled={loading}
-            size="sm"
-            className="w-full rounded-ds-md"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating…
-              </>
-            ) : (
-              <>
-                <Sparkles className="w-4 h-4 mr-2" /> Generate Job Posting
-              </>
-            )}
-          </Button>
-        </div>
-      )}
+      {open && body}
     </div>
   );
 }

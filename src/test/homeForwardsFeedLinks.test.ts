@@ -24,7 +24,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 
 /** Params Home (the dashboard) reads itself. */
-const HOME_OWN_PARAMS = ["customize"];
+const HOME_OWN_PARAMS = ["customize", "tour"]; // tour: FirstRun replays the coach marks (Help, 2026-10-20)
 
 const ROOT = process.cwd();
 function walk(dir: string, out: string[] = []): string[] {

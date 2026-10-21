@@ -78,7 +78,7 @@ const renderAt = (search = `?job_id=${JOB_ID}`) =>
   );
 
 /** Every phrasing on this screen that asserts the money is safely held. */
-const SUCCESS_CLAIMS = [/payment authorized/i, /held securely/i, /is held securely/i];
+const SUCCESS_CLAIMS = [/payment authorized/i, /your job is live/i, /held securely/i, /is held securely/i];
 
 function expectNoSuccessClaim() {
   for (const claim of SUCCESS_CLAIMS) {
@@ -242,7 +242,7 @@ describe("PaymentSuccess", () => {
     it("the poster still gets the claim for the same row", async () => {
       viewerId = POSTER;
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
       expect(screen.getByText("$10")).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /view applicants/i })).toBeInTheDocument();
     });
@@ -264,7 +264,7 @@ describe("PaymentSuccess", () => {
       localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unrelated draft" }));
       localStorage.setItem("helpr_draft_checkout_job", "40000000-0000-4000-8000-000000000004");
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
       expect(localStorage.getItem("helpr_draft_job")).toContain("Unrelated draft");
       expect(localStorage.getItem("helpr_draft_checkout_job")).toBe("40000000-0000-4000-8000-000000000004");
     });
@@ -272,7 +272,7 @@ describe("PaymentSuccess", () => {
     it("keeps a Post a Job draft that was never sent to Checkout (Q1873)", async () => {
       localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unsent draft" }));
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
       expect(localStorage.getItem("helpr_draft_job")).toContain("Unsent draft");
     });
 
@@ -283,7 +283,7 @@ describe("PaymentSuccess", () => {
       // drop itself, never satisfied by a first paint (waitForEmptyIsVacuous).
       expect(localStorage.getItem("helpr_draft_job")).toContain("Spent draft");
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
       await waitFor(() => expect(localStorage.getItem("helpr_draft_job") ?? "dropped").toBe("dropped"));
       expect(localStorage.getItem("helpr_draft_checkout_job")).toBeNull();
     });
@@ -291,7 +291,7 @@ describe("PaymentSuccess", () => {
     it("renders the success claim and the amount", async () => {
       renderAt();
       const heading = await screen.findByRole("heading", { level: 1 });
-      expect(heading).toHaveTextContent(/payment authorized/i);
+      expect(heading).toHaveTextContent(/your job is live/i);
       expect(screen.getByText("$120")).toBeInTheDocument();
     });
 
@@ -300,16 +300,16 @@ describe("PaymentSuccess", () => {
     // repeated the "held securely until you confirm" line and the Released step.
     it("says each thing once", async () => {
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
-      expect(screen.getAllByText(/payment authorized/i)).toHaveLength(1);
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
+      expect(screen.getAllByText(/your job is live/i)).toHaveLength(1);
       expect(screen.queryByText(/your money stays protected/i)).toBeNull();
       expect(screen.getAllByText(/held securely/i)).toHaveLength(1);
     });
-// @mutate src/pages/post-job/PaymentSuccess.tsx | <AuthShell hideBack hideHeader centerColumn | <AuthShell hideBack centerColumn eyebrow="Payment authorized"
+// @mutate src/pages/post-job/PaymentSuccess.tsx | <AuthShell hideBack hideHeader centerColumn | <AuthShell hideBack centerColumn eyebrow="Your job is live"
 
     it("offers the post-payment actions", async () => {
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
       expect(screen.getByRole("button", { name: /view applicants/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /^share job$/i })).toBeInTheDocument();
     });
@@ -320,7 +320,7 @@ describe("PaymentSuccess", () => {
         error: null,
       };
       renderAt();
-      await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+      await screen.findByRole("heading", { level: 1, name: /your job is live/i });
     });
 
     it("claims success for an ALREADY-RELEASED job, but with corrected copy (not the escrow sentence)", async () => {
@@ -339,7 +339,7 @@ describe("PaymentSuccess", () => {
       };
       renderAt();
       const heading = await screen.findByRole("heading", { level: 1 });
-      expect(heading).toHaveTextContent(/payment authorized/i);
+      expect(heading).toHaveTextContent(/your job is live/i);
       expect(screen.getByText(/already been released/i)).toBeInTheDocument();
       expect(screen.queryByText(/released when you confirm the work is done/i)).not.toBeInTheDocument();
     });
@@ -393,7 +393,7 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
       error: null,
     };
     renderAt();
-    await screen.findByRole("heading", { level: 1, name: /payment authorized/i });
+    await screen.findByRole("heading", { level: 1, name: /your job is live/i });
     const pill = screen.getByText(/you are here/i);
     expect(pill.parentElement?.textContent ?? "").toContain(step);
     expect(screen.getAllByText(/you are here/i)).toHaveLength(1);

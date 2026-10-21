@@ -12,7 +12,7 @@
  *     returns.
  * The spec itself (e2e/privacy/privacy-requests.spec.ts) must assert each of
  * those lists (loops over them), run assertDisposable fresh from the database
- * before "Delete Forever", and be run monthly by privacy-journey.yml, which
+ * before "Delete my account", and be run monthly by privacy-journey.yml, which
  * reports a red run to the ops alert ledger and the nightly-red issue.
  * assertDisposable is exercised here directly: it must refuse every shape of
  * real or shared account (fail closed).
@@ -93,11 +93,11 @@ describe("privacy journey covers every purge step (Q70)", () => {
     expect(SPEC).toMatch(/toEqual\(\[\.\.\.KNOWN_NOT_EXPORTED\]\.sort\(\)\)/);
   });
 
-  it("the spec re-checks the account is disposable, fresh, right before Delete Forever", () => {
-    const press = SPEC.indexOf('getByRole("button", { name: "Delete Forever" })');
+  it("the spec re-checks the account is disposable, fresh, right before Delete my account", () => {
+    const press = SPEC.indexOf('getByRole("button", { name: "Delete my account" })');
     const check = SPEC.lastIndexOf("await requireDisposable(request, userId);", press);
     expect(press).toBeGreaterThan(-1);
-    expect(check, "no requireDisposable before the Delete Forever press").toBeGreaterThan(-1);
+    expect(check, "no requireDisposable before the Delete my account press").toBeGreaterThan(-1);
     expect(SPEC.slice(check, press)).not.toMatch(/await page\.goto/);
   });
 

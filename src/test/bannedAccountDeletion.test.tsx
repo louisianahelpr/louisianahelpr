@@ -16,7 +16,7 @@
  *      edge function with the same confirmation phrase Profile sends.
  *   2. The dialog TELLS a banned user the ban survives. The retention
  *      (20260903014600) is invisible from the UI, and a suspended user
- *      pressing "Delete Forever" believing it clears their suspension is the
+ *      pressing "Delete my account" believing it clears their suspension is the
  *      exact trust defect RetentionSummary was written to prevent.
  *
  * @mutate src/pages/auth/AccountBanned.tsx | : "This suspension — it applies again if you sign up with this email before it ends", | : "Your data will be removed.",
@@ -153,7 +153,7 @@ describe("/account-banned — in-app account deletion", () => {
     fireEvent.click(await screen.findByRole("button", { name: /^continue$/i }));
 
     const input = await screen.findByLabelText(/type delete to confirm account deletion/i);
-    const confirm = screen.getByRole("button", { name: /delete forever/i });
+    const confirm = screen.getByRole("button", { name: /delete my account/i });
 
     // Guarded until the phrase matches exactly — the same gate Profile has.
     expect(confirm).toBeDisabled();
@@ -211,7 +211,7 @@ describe("/account-banned — in-app account deletion", () => {
     fireEvent.change(await screen.findByLabelText(/type delete to confirm/i), {
       target: { value: "DELETE" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /delete forever/i }));
+    fireEvent.click(screen.getByRole("button", { name: /delete my account/i }));
 
     await waitFor(() => expect(invoke).toHaveBeenCalled());
     // Confirmed, not blamed.
@@ -240,7 +240,7 @@ describe("/account-banned — in-app account deletion", () => {
     fireEvent.change(await screen.findByLabelText(/type delete to confirm/i), {
       target: { value: "DELETE" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /delete forever/i }));
+    fireEvent.click(screen.getByRole("button", { name: /delete my account/i }));
 
     await waitFor(() => expect(invoke).toHaveBeenCalled());
 

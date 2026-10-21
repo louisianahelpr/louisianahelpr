@@ -100,7 +100,6 @@ const NOT_EDITABLE: Record<string, string> = {
   platform_fee_percent: "fee; not re-priced from this dialog",
   sales_tax_rate: "tax; not re-priced from this dialog",
   sales_tax_amount: "tax; not re-priced from this dialog",
-  requires_w9: "derived from price at post time",
   credential_tier: "credential requirement, set at post time",
   department: "business department, set at post time",
   offered_to_helper_id: "direct-offer flow owns it",
@@ -127,7 +126,7 @@ describe("every field the post wizard writes is editable or excused (class)", ()
   );
 
   it("reads the whole wizard payload (inventory floor)", () => {
-    expect(wizard.length).toBeGreaterThanOrEqual(34); // 35 on 2026-10-02; 34 on 2026-10-12 (no-poster-fee: the wizard stopped writing platform_fee_amount)
+    expect(wizard.length).toBeGreaterThanOrEqual(33); // 35 on 2026-10-02; 34 on 2026-10-12 (no-poster-fee: the wizard stopped writing platform_fee_amount); 33 on 2026-10-21 (Q1680: requires_w9 removed)
     expect(edit).toContain("title");
   });
 

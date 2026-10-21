@@ -16,7 +16,7 @@ import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult"
 import { ONE_TIME_PASS_DAYS } from "@/lib/subscriptionTiers";
 import { tierConfig, TierIcon } from "@/components/profile/subscriptionTab/tierConfig";
 import { BILLING_OPTIONS, BILLING_PILL_STYLE } from "@/components/profile/subscriptionTab/billingPill";
-import { MembershipFeeNote, MembershipLegalLinks } from "@/components/profile/subscriptionTab/MembershipFootnotes";
+import { MembershipFeeNote, MembershipLegalLinks, MembershipsUnavailable } from "@/components/profile/subscriptionTab/MembershipFootnotes";
 import { renewalLabel } from "@/lib/subscriptionRenewalLabel";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { openAppleSubscriptions } from "@/lib/appleSubscriptions";
@@ -43,9 +43,8 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
   // quoted a different price depending on which surface you arrived at.
   const [billingInterval, setBillingInterval] = useState<"monthly" | "annual" | "one_time">("monthly");
   // Roadmap F4a (owner 2026-10-15): while memberships are off, nothing sells one.
-  // The row is hidden but /profile?tab=subscription is still a deep link, and on
-  // iOS Apple takes the money before verify-apple-iap grants, so the refusal
-  // sits here, before either payment path. create-pro-checkout uses the same switch.
+  // /profile?tab=subscription is still a deep link, so the refusal sits here,
+  // before either payment path. create-pro-checkout uses the same switch.
   const membershipsOn = useMembershipsOn();
   const [refreshing, setRefreshing] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -237,19 +236,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
     return tier.monthly;
   };
 
-  // The store app never shows the plans, even through the
-  // /profile?tab=subscription deep link (useMembershipsOn).
-  if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) {
-    return (
-      <ProfileTabBody>
-        <ProfileTabHeader title="Membership" onBack={onBack} />
-        <p className="text-ds-14 text-muted-foreground" data-testid="memberships-unavailable">
-          Memberships aren't available right now.
-        </p>
-      </ProfileTabBody>
-    );
-  }
-
+  if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return <MembershipsUnavailable onBack={onBack} />; // store app: never the plans (useMembershipsOn)
   return (
     /* `space-y-4` — the shell every other Profile tab uses. This one wrapped
        itself in `flex flex-col min-h-full gap-4 pb-4`, so Membership's title

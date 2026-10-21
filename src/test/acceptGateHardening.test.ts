@@ -36,9 +36,9 @@
 // Q1187, the gate.
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | IF TG_OP = 'UPDATE' AND current_setting('app.accept_rpc', true) IS DISTINCT FROM '1' THEN | IF false THEN
 // Q1187, the one writer of an accept.
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |   PERFORM set_config('app.accept_rpc', '1', true);\n  UPDATE public.jobs |   UPDATE public.jobs
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |   PERFORM set_config('app.accept_rpc', '0', true);\n  IF NOT v_done THEN |   IF NOT v_done THEN
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |   v_done := FOUND;\n  PERFORM set_config('app.accept_rpc', '0', true); |   PERFORM set_config('app.accept_rpc', '0', true);\n  v_done := FOUND;
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |   PERFORM set_config('app.accept_rpc', '1', true);\n  UPDATE public.jobs |   UPDATE public.jobs
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |   PERFORM set_config('app.accept_rpc', '0', true);\n  IF NOT v_done THEN |   IF NOT v_done THEN
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |   v_done := FOUND;\n  PERFORM set_config('app.accept_rpc', '0', true); |   PERFORM set_config('app.accept_rpc', '0', true);\n  v_done := FOUND;
 // Q1187, the app and the edge functions.
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } }); | await supabase.from("jobs").update({ helper_confirmed_at: new Date().toISOString() }).eq("id", app.job_id); report(acceptError, { tags: { source: "useOfferHandlers.acceptJobOffer" } });
 // @mutate supabase/functions/auto-expire-jobs/index.ts | .update({ status: "open", helper_id: null }) | .update({ status: "open", helper_id: null, helper_confirmed_at: new Date().toISOString() })
@@ -52,9 +52,9 @@
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |     RAISE EXCEPTION 'accept_required' USING ERRCODE = '42501';\n  END IF;\n\n  v_awarding := |     RAISE NOTICE 'accept_required';\n  END IF;\n\n  v_awarding :=
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) | AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |       v_name \|\| ' accepted your offer', |       'Offer update',
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |       v_name \|\| ' accepted your offer', |       'Offer update',
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time); |       END; BEGIN v_cap_ended := v_locked.response_deadline >= public.job_offer_cutoff(v_locked.date_needed, v_locked.start_time);
-// @mutate supabase/migrations/20261004001807_accept_stamp_needs_accept_rpc.sql |      AND public.job_payment_is_funded(payment_status::text)\n  RETURNING |      AND true\n  RETURNING
+// @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text)\n  RETURNING |      AND true\n  RETURNING
 import { describe, it, expect } from "vitest";
 import { join, relative } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

@@ -136,6 +136,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
+  // point at the REAL module and the name rule stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/memberDisplayName\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/memberDisplayName.ts";`,
+  );
+
   // Jobs flat fee (roadmap F3): `_shared/helprFlatFee.ts` has ZERO imports
   // (constants and pure functions), so the generated file points at the REAL
   // module and the flat-fee arithmetic stays under test.

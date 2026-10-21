@@ -28,6 +28,7 @@ import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
+import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -596,7 +597,8 @@ async function settleCheckoutSession(
   // session metadata set by create-gift-card-checkout.
   if (kind === "gift_card_purchase") {
     const donorId = (session.metadata as any)?.donor_id as string | undefined;
-    const donorName = ((session.metadata as any)?.donor_name as string | undefined)?.trim() || "Someone";
+    // The recipient is another member (or a friend by email): "First L.", never the donor's last name (Q2292).
+    const donorName = memberDisplayName((session.metadata as any)?.donor_name as string | undefined, "Someone");
     const recipientEmail = ((session.metadata as any)?.recipient_email as string | undefined)?.trim().toLowerCase();
     const amountCents = parseInt((session.metadata as any)?.amount_cents || "0", 10);
     const giftCategory = ((session.metadata as any)?.category as string | undefined) || "Any";

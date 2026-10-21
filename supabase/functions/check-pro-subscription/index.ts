@@ -7,6 +7,7 @@ import { tierDisplayName } from "../_shared/tierNames.ts";
 import { subscriptionCurrentPeriodEndISO } from "../_shared/stripeSubscriptionPeriod.ts";
 import { CLEARED_SUBSCRIPTION_LINKAGE, subscriptionLinkage } from "../_shared/subscriptionLinkage.ts";
 import { hasPerk } from "../_shared/tierPerks.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 
 const corsHeaders = {
@@ -155,7 +156,10 @@ serve(async (req) => {
           // excluded Plus, so a referrer whose referee bought the $15/mo plan
           // was paid nothing while a $10/mo Pro upgrade paid $10. Real money,
           // and invisible — nothing errors when a bonus is simply not minted.
-          if (hasPerk(tier, "referralUpgradeBonus")) {
+          // Q1848 (5), owner 2026-10-21: the $10 bonus is a paid-tier perk, so
+          // none while the 'memberships' switch is off for this member (fails
+          // closed: a failed switch read mints nothing).
+          if (hasPerk(tier, "referralUpgradeBonus") && (await featureEnabledForUser(supabaseAdmin, "memberships", { id: user.id }))) {
             const { data: referral } = await supabaseAdmin
               .from("referrals")
               .select("id, referrer_id, referral_code_id")

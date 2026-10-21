@@ -142,7 +142,7 @@ export const titlePlaceholders: Record<string, string> = {
   painting: "e.g. Paint a 12×12 bedroom, one coat",
   delivery: "e.g. Pick up a dresser and drop it off",
   pet_care: "e.g. Walk my dog twice a day this week",
-  assembly: "e.g. Assemble an IKEA wardrobe",
+  assembly: "e.g. Assemble a flat-pack wardrobe",
   storm_prep: "e.g. Board up windows before the storm",
   events: "e.g. Set up and break down a backyard party",
   electrical: "e.g. Replace two kitchen outlets",

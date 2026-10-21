@@ -14,6 +14,7 @@
 // generic word; "Facebook Marketplace" is listed.
 //
 // @mutate src/components/landing/SectionsShowcase.tsx |   jobs: "Hire local help, or find work nearby. Your payment is held until the work is done.", |   jobs: "Hire local help, like on Thumbtack.",
+// @mutate src/data/sampleJobs.ts |     title: "Assemble a flat-pack dresser", |     title: "Assemble an IKEA dresser",
 // @mutate index.html | "areaServed": { "@type": "State", "name": "Louisiana" }, | "areaServed": { "@type": "State", "name": "Louisiana" }, "description": "Like Craigslist",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,6 +28,9 @@ const COMPETITORS = [
   "Thumbtack", "TaskRabbit", "Craigslist", "OfferUp", "Mercari", "Zillow",
   "Apartments.com", "Nextdoor", "Etsy", "Angi", "Angie's List", "Care.com",
   "Rover", "Facebook Marketplace", "Poshmark", "Trulia", "Redfin",
+  // Retailers too (spec v2 rule 7, 2026-10-21: a post-a-job template said "Assemble an IKEA dresser").
+  "IKEA", "Wayfair", "Home Depot", "Lowe's", "Walmart",
+  // Not Amazon: the materials guide links to it through the owner's Amazon Associates account (src/lib/materialsGuide.ts).
 ];
 const PATTERN = new RegExp(
   `(^|[^A-Za-z0-9])(${COMPETITORS.map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![A-Za-z0-9])`,

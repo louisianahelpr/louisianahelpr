@@ -69,12 +69,12 @@ export const sampleJobs: SampleJob[] = [
     typical_duration_minutes: 180,
   },
   {
-    id: "ikea-dresser-assembly",
+    id: "flatpack-dresser-assembly",
     category: "assembly",
     icon: "🛠️",
-    title: "Assemble an IKEA dresser",
+    title: "Assemble a flat-pack dresser",
     description:
-      "Six-drawer Hemnes-style dresser, still in the box. Instructions are in the bag. I've got an electric screwdriver if it helps speed things up.",
+      "Six-drawer flat-pack dresser, still in the box. Instructions are in the bag. I've got an electric screwdriver if it helps speed things up.",
     typical_price: 55,
     typical_duration_minutes: 90,
   },

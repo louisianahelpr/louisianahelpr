@@ -19,7 +19,9 @@ import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
-// @mutate src/pages/user/RecognitionRow.tsx | background: `${milestone.color.slice(0, -1)} / 0.12)`, | background: milestone.color.replace(")", " / 0.12)"),
+// (Was RecognitionRow's milestone tint, deleted 2026-10-21 when every badge
+// became one chip; SubscriptionTab's pulse ring is the remaining splice.)
+// @mutate src/components/profile/SubscriptionTab.tsx | "--step-pulse-ring": `${accent.slice(0, -1)} / 0.45)`, | "--step-pulse-ring": accent.replace(")", " / 0.45)"),
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

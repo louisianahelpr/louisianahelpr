@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Gift, Loader2, Share2 } from "lucide-react";
+import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { supabase } from "@/integrations/supabase/client";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
@@ -69,7 +70,7 @@ async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<Wr
       .from("jobs")
       // `status` is selected so the MONEY figure below can be scoped to jobs
       // that actually happened. The row count stays every posted job.
-      .select("id, budget, category, helper_id, status")
+      .select("id, budget, category, helper_id, status, payment_status")
       .eq("customer_id", userId)
       .gte("created_at", yearStart)
       .lte("created_at", yearEnd),
@@ -143,13 +144,18 @@ async function fetchWrappedStats(userId: string, firstPayoutFee = 0): Promise<Wr
 
   if (coreErrors.length === 4) unwrap(postedRes); // all four failed: unwrap keeps the PostgREST code + HTTP status the retry policy reads (Q1182)
 
-  const posted = postedRes.data ?? [];
+  // The SAME rows the Posted list counts (truth rule, audit 2026-10-21: a
+  // poster saw "416 jobs posted" here while their Posted tab held a fraction
+  // of that). A never-paid job is a draft, not a posted job: it leaves the
+  // Posted list, its tab counts and Next up through `jobIsUnfundedDraft`, so
+  // it leaves this year too.
+  const posted = (postedRes.data ?? []).filter((j) => !jobIsUnfundedDraft(j));
   const completed = completedRes.data ?? [];
   const reviewsGiven = reviewsGivenRes.data ?? [];
   const reviewsReceived = reviewsReceivedRes.data ?? [];
 
-  // Total spent — COMPLETED posted jobs only. This renders as "invested in
-  // community", which is a claim about money that moved, so it cannot be
+  // Total spent — COMPLETED posted jobs only. This renders as "spent on
+  // help", which is a claim about money that moved, so it cannot be
   // summed over `open`, `cancelled`, `disputed` and `pending_approval` jobs
   // the way it used to be: a poster who listed four $200 jobs and cancelled
   // all four was told they had invested $800 in their neighbours. Every other
@@ -341,6 +347,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
         // to anyone, so ordinary rounding is right for it.
         value: `$${formatPriceFloor(stats.totalEarned)}`,
         label: "earned",
+        money: true,
       });
     }
     // Spend and earnings are INDEPENDENT facts. This used to read
@@ -353,7 +360,8 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
     if (stats.totalSpent > 0) {
       statCards.push({
         value: `$${formatPrice(stats.totalSpent)}`,
-        label: "invested in community",
+        label: "spent on help",
+        money: true,
       });
     }
     if (stats.uniquePeople > 0) {
@@ -413,28 +421,13 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           max-width inside Profile's. */}
       <div className="pb-2 flex flex-col items-center">
         <div
-          className="w-full max-w-[420px] rounded-ds-lg overflow-hidden"
-          style={{
-            background: "linear-gradient(135deg, hsl(var(--bark) / 0.08) 0%, hsl(var(--burnt-sienna) / 0.08) 100%)",
-            border: "0.5px solid hsl(var(--bark) / 0.18)",
-            boxShadow:
-              "inset 0 1px 1px 0 rgba(255,255,255,0.45), " +
-              "0 4px 24px -6px hsl(var(--olivewood) / 0.18), " +
-              "0 24px 48px -12px hsl(var(--olivewood) / 0.12)",
-          }}
+          // Spec v2 rebuild (audit 2026-10-21): the one card; no rust/olive
+          // gradient wash, no stacked shadows.
+          className="w-full max-w-[420px] rounded-[20px] border border-border bg-card overflow-hidden"
         >
           {/* Header band */}
-          <div
-            className="px-6 pt-8 pb-4 text-center"
-            style={{
-              backgroundImage:
-                "radial-gradient(80% 60% at 50% 0%, hsl(var(--burnt-sienna) / 0.10) 0%, transparent 100%)",
-            }}
-          >
-            <Gift
-              className="w-10 h-10 mx-auto mb-3"
-              style={{ color: "hsl(var(--burnt-sienna) / 0.75)" }}
-            />
+          <div className="px-6 pt-8 pb-4 text-center">
+            <Gift className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
             {/* The ProfileTabHeader above already names the year — it
                 renders the page's <h1> ("Your {SEASON.title}"). This card used
                 to repeat it ("Your {YEAR} on Helpr."), so two headings restated
@@ -443,18 +436,13 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                 the heading order still descends from the page title. Season-
                 neutral on purpose: it has to read correctly under both "Your
                 {YEAR} Wrapped" (December) and "Your {YEAR} so far". */}
+            {/* Bodoni: a celebration heading (spec v2 §1.2). */}
             <h2
-              className="text-ds-28 font-display font-bold leading-tight"
+              className="text-ds-28 font-display font-semibold leading-tight"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
               Here's how it added up.
             </h2>
-            <p
-              className="mt-1 font-sans text-ds-13"
-              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-            >
-              Louisiana Helpr Community
-            </p>
           </div>
 
           {/* Stats grid */}
@@ -529,9 +517,9 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
           {hasActivity && (
             <div className="px-5 pb-7 space-y-3">
               <Button
-                variant="primary" shimmer
+                variant="primary"
                 size="lg"
-                className="w-full squircle"
+                className="w-full rounded-full"
                 onClick={() => { void handleShare(); }}
                 disabled={isSharing}
                 aria-busy={isSharing}

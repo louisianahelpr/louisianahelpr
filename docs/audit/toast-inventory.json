@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 896,
-    "files": 225,
-    "rendering": 782,
-    "suppressedByPolicy": 114,
+    "calls": 898,
+    "files": 226,
+    "rendering": 783,
+    "suppressedByPolicy": 115,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 63,
-      "toast.error": 651,
+      "toast.error": 652,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 118,
+      "toast.success": 119,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
       "literal": 423,
       "template": 97,
-      "dynamic": 424,
+      "dynamic": 426,
       "jsx": 0
     }
   },
@@ -5048,6 +5048,36 @@
       "renders": true
     },
     {
+      "file": "src/components/job-card/RunningLateSheet.tsx",
+      "line": 58,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "first ? `${first} knows you're about ${minutes} minutes late.` : `Sent: about ${minutes} minutes late.`",
+        "branches": [
+          {
+            "form": "template",
+            "text": "${first} knows you're about ${minutes} minutes late."
+          },
+          {
+            "form": "template",
+            "text": "Sent: about ${minutes} minutes late."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/RunningLateSheet.tsx",
+      "line": 62,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"That didn't send. Check your connection and try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/job-card/activityActions/useApplicantsState.ts",
       "line": 126,
       "kind": "toast.error",
@@ -9301,7 +9331,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
-      "line": 69,
+      "line": 73,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9311,7 +9341,7 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ConfirmedSection.tsx",
-      "line": 86,
+      "line": 90,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -10844,7 +10874,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 126,
+      "line": 127,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10854,7 +10884,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 201,
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10864,7 +10894,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10874,7 +10904,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 210,
+      "line": 211,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10884,7 +10914,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10894,7 +10924,7 @@
     },
     {
       "file": "src/pages/quotes/SendQuotePage.tsx",
-      "line": 57,
+      "line": 58,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10908,7 +10938,7 @@
     },
     {
       "file": "src/pages/quotes/SendQuotePage.tsx",
-      "line": 61,
+      "line": 62,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10918,7 +10948,7 @@
     },
     {
       "file": "src/pages/quotes/SendQuotePage.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.info",
       "title": {
         "form": "template",
@@ -10928,7 +10958,7 @@
     },
     {
       "file": "src/pages/quotes/SendQuotePage.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

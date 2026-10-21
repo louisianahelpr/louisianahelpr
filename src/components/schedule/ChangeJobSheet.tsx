@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
-import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { formatJobDate } from "@/lib/dateUtils";
@@ -98,10 +98,8 @@ export function ChangeJobSheet({
               ))}
             </div>
             <TimePickerWheel value={time} onChange={setTime} ariaLabel="New start time" />
-            <Button
-              variant="primary"
-              size="lg"
-              className="w-full rounded-full text-ds-16"
+            <SheetFooter>
+            <SheetPrimaryAction
               disabled={busy || !date || unchanged}
               onClick={() =>
                 void act(async () => {
@@ -112,9 +110,11 @@ export function ChangeJobSheet({
               }
             >
               {busy ? "Sending…" : `Send new time to ${first}`}
-            </Button>
+            </SheetPrimaryAction>
+            </SheetFooter>
           </div>
         ) : (
+          <SheetFooter>
           <Button
             variant="outline"
             size="lg"
@@ -126,6 +126,7 @@ export function ChangeJobSheet({
           >
             See the cancellation and confirm
           </Button>
+          </SheetFooter>
         )}
       </SheetContent>
     </Sheet>

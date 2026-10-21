@@ -811,6 +811,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Builder 2f (2026-10-21, boards 22/170): the applicant compare tick.
+  "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": "one checkbox per applicant card ('Compare', at most three); no typed text, and it writes nothing (local state that opens a side-by-side sheet)",
   // Landing redesign (2026-10-20): the hero search.
   "src/components/landing/HeroSection.tsx": "signed-out only (the landing sends a signed-in visitor to /home, and this sweep signs in); the search writes nothing: it navigates to /browse?q= or /jobs?q= with the text whitespace-collapsed, trimmed and capped at 80 characters, URL-encoded by URLSearchParams (src/components/landing/heroSearch.ts, pinned by src/test/landingRedesign.test.tsx)",
   // Builder 3 (2026-10-20, boards 25/39): the Declutter Browse filter panel (phone sheet + desktop column).
@@ -835,6 +837,7 @@ export const GAPS: Record<string, string> = {
   // Quotes on jobs (2026-10-15): behind the hidden 'quotes' switch, created OFF on prod; the server refuses each field
   // (price CHECK whole dollars 10-1000, note 1-500, when 1-120, contact-leak trigger) as pinned by
   // src/test/pglite/jobQuotes.pglite.mjs. A FORMS sweep is owed once the switch reaches testers.
+  "src/components/quotes/QuotePriceStepper.tsx": "the Send a quote price (board 43), behind the 'quotes' switch (testers); the field strips every non-digit and caps at 5 digits, and submit_job_quote enforces the $10-$1,000 whole-dollar range (src/test/pglite/jobQuotes.pglite.mjs); FORMS sweep owed with SendQuotePage's",
   "src/pages/quotes/SendQuotePage.tsx": "behind the 'quotes' switch (off); price/note/when rules pinned by src/test/pglite/jobQuotes.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/quotes/QuoteAnswerControls.tsx": "behind the 'quotes' switch (off); the counter price/note are checked by respond_to_job_quote and the job_quotes CHECKs (jobQuotes.pglite.mjs); FORMS sweep owed once on for testers",
   "src/pages/quotes/QuoteRequestPage.tsx": "behind the 'quotes' switch (off); the own-price field is checked by switch_quote_request_to_set_price and jobs_budget_range (jobQuotes.pglite.mjs); FORMS sweep owed once on for testers",

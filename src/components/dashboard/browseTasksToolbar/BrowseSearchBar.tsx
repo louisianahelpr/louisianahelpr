@@ -175,7 +175,7 @@ export function BrowseSearchBar({
             clearRecentSearches();
             setRecent([]);
           }}
-          className="text-ds-10 text-muted-foreground hover:text-destructive btn-press"
+          className="text-ds-10 text-muted-foreground hover:text-destructive-ink btn-press"
         >
           Clear
         </button>

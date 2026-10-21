@@ -29,7 +29,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   const accentClasses = {
     primary: "bg-primary/10 text-primary",
     accent: "bg-accent/15 text-[hsl(var(--accent-ink))]",
-    destructive: "bg-destructive/10 text-destructive",
+    destructive: "bg-destructive/10 text-destructive-ink",
   }[accent];
 
   return (
@@ -57,7 +57,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
         {trend && (
           <span className={cn(
             "shrink-0 text-ds-10 sm:text-ds-11 font-semibold px-1.5 py-0.5 rounded-md flex items-center gap-0.5",
-            trend.up ? "text-primary bg-primary/10" : "text-destructive bg-destructive/10"
+            trend.up ? "text-primary bg-primary/10" : "text-destructive-ink bg-destructive/10"
           )}>
             {trend.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
             {trend.pct}%
@@ -72,7 +72,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           // measured 3.88:1 against the card — a fail for 16px text. The
           // alpha bought nothing but a contrast failure; bark at full
           // strength is the same hue, just legible. Same for destructive.
-          trend.up ? "text-primary" : "text-destructive",
+          trend.up ? "text-primary" : "text-destructive-ink",
         )}>
           {trend.up ? "+" : "−"}{trend.pct}% {compareLabel}
         </p>

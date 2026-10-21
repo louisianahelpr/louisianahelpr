@@ -95,7 +95,7 @@ export function PetRailRow({
         disabled={deletePending}
         aria-label={`Delete ${pet.name}`}
         className="shrink-0 w-9 h-9 rounded-ds-md inline-flex items-center justify-center transition-colors active:scale-[0.94] disabled:opacity-40 disabled:pointer-events-none hover:bg-[hsl(var(--destructive)/0.10)]"
-        style={{ color: "hsl(var(--destructive))" }}
+        style={{ color: "hsl(var(--destructive-ink))" }}
       >
         <Trash2 className="w-4 h-4" strokeWidth={2} />
       </button>

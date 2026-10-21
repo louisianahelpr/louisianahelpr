@@ -585,7 +585,7 @@ export function JobCardMetaRow({
                 className={`flex items-center gap-1 min-w-0 shrink-[100] overflow-hidden whitespace-nowrap${
                   // A city row at a phone width has no room left: the countdown drops, never the time.
                   fullAddress ? "" : " [@media(max-width:399px)]:hidden"
-                } ${expiringSoon ? "text-destructive font-medium" : ""}`}
+                } ${expiringSoon ? "text-destructive-ink font-medium" : ""}`}
               >
                 <Timer className="w-3 h-3 shrink-0" /> <span className="truncate">{text}</span>
               </span>

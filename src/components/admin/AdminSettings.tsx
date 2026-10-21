@@ -485,7 +485,7 @@ const AdminSettings = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-destructive hover:bg-destructive/10 shrink-0"
+                  className="text-destructive-ink hover:bg-destructive/10 shrink-0"
                   disabled={removing === admin.role_id || admin.user_id === selfId}
                   title={admin.user_id === selfId ? "You can't remove yourself — ask another admin." : undefined}
                   onClick={() => setConfirmRemove(admin)}

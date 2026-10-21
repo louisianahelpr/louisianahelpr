@@ -55,7 +55,7 @@ export const JobCountdown = ({ dateNeeded, startTime, label }: { dateNeeded: str
   const isCritical = totalMin < 120;
 
   const colorClasses = isCritical
-    ? "border-destructive/30 bg-destructive/10 text-destructive"
+    ? "border-destructive/30 bg-destructive/10 text-destructive-ink"
     : isUrgent
     ? "border-accent/30 bg-accent/10 text-[hsl(var(--accent-ink))]"
     : "border-primary/20 bg-primary/5 text-primary";

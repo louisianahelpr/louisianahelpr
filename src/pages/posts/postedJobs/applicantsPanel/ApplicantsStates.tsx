@@ -53,7 +53,7 @@ export function ApplicantsErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
       <ReportErrorScreen source="ApplicantsErrorState" title="Couldn't load applicants" />
-      <AlertCircle className="w-8 h-8 text-destructive" />
+      <AlertCircle className="w-8 h-8 text-destructive-ink" />
       <div className="space-y-1">
         <p className="font-semibold text-foreground text-ds-15">Couldn't load applicants</p>
         {/* Deliberately NOT "check your connection" — most failures here are

@@ -441,7 +441,7 @@ export function CheckoutStep({
               className="rounded-ds-md px-3 py-2 text-ds-12 leading-snug"
               style={{
                 background: "hsl(var(--destructive) / 0.08)",
-                color: "hsl(var(--destructive))",
+                color: "hsl(var(--destructive-ink))",
               }}
             >
               We couldn't apply your gift card to this job — it may already be

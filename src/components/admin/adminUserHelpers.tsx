@@ -20,8 +20,8 @@ export const isAwaitingEmail = (p: Profile) => !isVerifiedEmail(p);
 
 export const statusBadge = (profile: Profile) => {
   const banStatus = profile.ban_status || "active";
-  if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Permanently Banned</Badge>;
-  if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive text-ds-11">Temp Banned</Badge>;
+  if (banStatus === "permanently_banned") return <Badge className="bg-destructive/10 text-destructive-ink text-ds-11">Permanently Banned</Badge>;
+  if (banStatus === "temp_banned") return <Badge className="bg-destructive/10 text-destructive-ink text-ds-11">Temp Banned</Badge>;
   // "warned" status is intentionally not surfaced as a status badge — the strike chip
   // ("1st Strike", "Final Warning", etc.) already conveys this without duplication.
   if (!isVerifiedEmail(profile)) return <Badge className="bg-accent/20 text-[hsl(var(--accent-ink))] text-ds-11">Pending Email Verification</Badge>;

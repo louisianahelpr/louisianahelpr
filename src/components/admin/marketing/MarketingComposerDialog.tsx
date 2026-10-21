@@ -257,7 +257,7 @@ export function MarketingComposerDialog({ open, onOpenChange, row, onSaved }: Pr
               <span
                 className="text-ds-11 tabular-nums"
                 style={{
-                  color: overCaption ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground))",
+                  color: overCaption ? "hsl(var(--destructive-ink))" : "hsl(var(--muted-foreground))",
                 }}
               >
                 {caption.length.toLocaleString()}
@@ -284,7 +284,7 @@ export function MarketingComposerDialog({ open, onOpenChange, row, onSaved }: Pr
               <span
                 className="text-ds-11 tabular-nums"
                 style={{
-                  color: overTags ? "hsl(var(--destructive))" : "hsl(var(--muted-foreground))",
+                  color: overTags ? "hsl(var(--destructive-ink))" : "hsl(var(--muted-foreground))",
                 }}
               >
                 {hashtags.length}
@@ -432,7 +432,7 @@ export function MarketingComposerDialog({ open, onOpenChange, row, onSaved }: Pr
                   style={{
                     color:
                       issue.level === "blocking"
-                        ? "hsl(var(--destructive))"
+                        ? "hsl(var(--destructive-ink))"
                         : "hsl(var(--burnt-sienna))",
                   }}
                 >

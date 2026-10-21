@@ -113,7 +113,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
               showProgress: boolean,
             ) => {
               const palette = {
-                destructive: { ring: "border-destructive/40", icon: "text-destructive", title: "hsl(var(--destructive))", fill: "bg-destructive" },
+                destructive: { ring: "border-destructive/40", icon: "text-destructive-ink", title: "hsl(var(--destructive))", fill: "bg-destructive" },
                 /* Titles are darkened from L45% to L34/32%: at 45% the amber
                    "Strike N of 3" headline measured 2.63:1 on the card, under the 3:1
                    AA bar for large bold text. The hue is unchanged. */
@@ -190,7 +190,7 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                         /* `text-warning` (L53%) on a 10% tint measured 2.94:1 at 10px bold.
                            The darker same-hue value clears AA; --warning stays as-is because
                            it is correct for fills and icons, which have no text bar. */
-                        v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive"
+                        v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive-ink"
                         : "bg-warning/10 text-[hsl(33_35%_32%)] dark:text-[hsl(33_50%_78%)]"
                       }`}>
                         {v.action_taken.replace(/_/g, " ")}

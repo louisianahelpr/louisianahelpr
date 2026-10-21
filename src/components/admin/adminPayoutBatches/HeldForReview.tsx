@@ -121,7 +121,7 @@ export function HeldForReview() {
         These won't pay themselves. Check Stripe first. Release one once the cause is fixed, or pay it by hand and mark it settled.
       </p>
       {isLoading && <p className="text-xs text-muted-foreground" data-testid="held-loading">Loading…</p>}
-      {error && <p className="text-xs text-destructive" role="alert">{(error as { userMessage?: string }).userMessage ?? "Couldn't load the held payouts."}</p>}
+      {error && <p className="text-xs text-destructive-ink" role="alert">{(error as { userMessage?: string }).userMessage ?? "Couldn't load the held payouts."}</p>}
       {!isLoading && !error && (rows ?? []).length === 0 && <p className="text-xs text-muted-foreground">Nothing is held for review.</p>}
       <ul className="mt-2 space-y-2">
         {(rows ?? []).map((r) => (

@@ -93,7 +93,7 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
           options={WANTED_RADIUS_CHOICES.map((m) => ({ value: String(m), label: `${m} mi` }))}
         />
       </div>
-      {problem && <p className="text-sm text-destructive" role="alert">{problem}</p>}
+      {problem && <p className="text-sm text-destructive-ink" role="alert">{problem}</p>}
       <Button type="submit" disabled={post.isPending}>{post.isPending ? "Posting…" : "Post what I want"}</Button>
     </form>
   );

@@ -761,7 +761,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
             {expiryText && (
               <span data-testid="job-card-countdown-slot" className="flex-1 basis-0 min-w-0 h-[1.5em] overflow-hidden flex flex-wrap items-center gap-x-2">
                 <span aria-hidden className="w-0 h-[1.5em]" />
-                <span className={`shrink-0 flex items-center gap-x-2 whitespace-nowrap ${isExpiringSoon ? "text-destructive font-medium" : ""}`}>
+                <span className={`shrink-0 flex items-center gap-x-2 whitespace-nowrap ${isExpiringSoon ? "text-destructive-ink font-medium" : ""}`}>
                   <span className="opacity-30">·</span>
                   <span className="flex items-center gap-1">
                     <Timer className="w-2.5 h-2.5 shrink-0" />

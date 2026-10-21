@@ -240,7 +240,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
         contentClassName="space-y-4"
       >
       {failureCount > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-ds-md bg-destructive/10 border border-destructive/30 text-destructive text-ds-13">
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-ds-md bg-destructive/10 border border-destructive/30 text-destructive-ink text-ds-13">
           <AlertCircle className="w-4 h-4" />
           {failureCount} failed deliver{failureCount === 1 ? "y" : "ies"} on this page
         </div>

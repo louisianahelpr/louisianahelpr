@@ -123,7 +123,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
               </div>
               <button
                 onClick={() => setReportReviewId(r.id)}
-                className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                className="text-muted-foreground hover:text-destructive-ink transition-colors p-1"
                 aria-label="Report this review"
               >
                 <Flag className="w-3.5 h-3.5" />

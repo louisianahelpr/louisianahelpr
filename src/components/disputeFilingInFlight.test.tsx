@@ -103,3 +103,33 @@ describe("DisputeDialog — board 54 layout", () => {
     expect(screen.queryByRole("combobox")).toBeNull();
   });
 });
+
+// Lead 2026-10-21: the details hint is neutral until the member left the box
+// too short; only then does it turn --alert.
+// @mutate src/components/DisputeDialog.tsx | color: !detailsOk && detailsFlagged ? | color: !detailsOk ?
+describe("DisputeDialog — details hint", () => {
+  it("is neutral before typing and turns alert after a too-short blur", async () => {
+    render(<DisputeDialog jobId="job-1" side="poster" open onClose={() => {}} onDisputed={() => {}} />);
+    const hint = document.getElementById("dispute-details-requirement")!;
+    expect(hint.getAttribute("style")).not.toContain("--alert-ink");
+    const box = screen.getByRole("textbox");
+    fireEvent.change(box, { target: { value: "bad" } });
+    fireEvent.blur(box);
+    expect(document.getElementById("dispute-details-requirement")!.getAttribute("style")).toContain("--alert-ink");
+  });
+});
+
+// Lander review 2026-10-21: Cancel and Escape do nothing while filing.
+// @mutate src/components/DisputeDialog.tsx | if (!o && !submitting) onClose(); | if (!o) onClose();
+describe("DisputeDialog — no close while filing", () => {
+  it("Cancel is disabled and Escape is ignored once Send is pressed", async () => {
+    const onClose = vi.fn();
+    render(<DisputeDialog jobId="job-1" side="poster" open onClose={onClose} onDisputed={() => {}} />);
+    fireEvent.click(screen.getByRole("radio", { name: disputeReasonsFor("poster")[0].label }));
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "x".repeat(DISPUTE_DETAILS_MIN + 5) } });
+    await act(async () => { fireEvent.click(screen.getByRole("button", { name: /send to helpr/i })); });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Cancel" })).toHaveProperty("disabled", true));
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});

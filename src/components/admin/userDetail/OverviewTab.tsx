@@ -100,15 +100,15 @@ export function OverviewTab({ viewProfile, profileViolations }: OverviewTabProps
       {profileViolations.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-ds-11 sm:text-ds-13 font-semibold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-destructive" /> Violations ({profileViolations.length})
+            <AlertTriangle className="w-4 h-4 text-destructive-ink" /> Violations ({profileViolations.length})
           </h4>
           <div className="space-y-2 max-h-48 overflow-y-auto">
             {profileViolations.map((v) => (
               <div key={v.id} className="p-3 rounded-2xl bg-destructive/5 border border-destructive/20">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`text-ds-11 px-2 py-0.5 rounded-full font-medium ${
-                    v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive" :
-                    v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive" :
+                    v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive-ink" :
+                    v.action_taken === "temp_ban" ? "bg-destructive/10 text-destructive-ink" :
                     "bg-accent/20 text-[hsl(var(--accent-ink))]"
                   }`}>
                     {v.action_taken === "permanent_ban" ? "Perm Ban" : v.action_taken === "temp_ban" ? "Temp Ban" : "Warning"}

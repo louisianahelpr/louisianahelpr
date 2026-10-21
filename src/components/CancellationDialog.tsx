@@ -438,7 +438,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
 
           {/* Strike system — always visible */}
           <div className={`rounded-ds-md border p-4 space-y-3 ${hasHelper ? "border-destructive/30 bg-destructive/5" : "border-border bg-muted/20 opacity-60"}`}>
-            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive" : "text-muted-foreground"}`}>
+            <p className={`text-ds-11 font-semibold uppercase tracking-wide flex items-center gap-1.5 ${hasHelper ? "text-destructive-ink" : "text-muted-foreground"}`}>
               <ShieldAlert className="w-3.5 h-3.5" /> Strike System (applies when Helpr is selected)
             </p>
             <div className="space-y-2 text-ds-11 text-muted-foreground">
@@ -483,12 +483,12 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
             >
               <DollarSign
                 className="w-4 h-4 shrink-0 mt-0.5"
-                style={{ color: "hsl(var(--destructive))" }}
+                style={{ color: "hsl(var(--destructive-ink))" }}
               />
               <div>
                 <p
                   className="font-sans font-bold text-ds-13"
-                  style={{ color: "hsl(var(--destructive))", letterSpacing: "-0.01em" }}
+                  style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
                 >
                   A cancellation fee of ${formatPrice(cancellationFee)} applies
                 </p>

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 
 /**
  * RadioCardList: the ONE "pick one reason" list (spec v2 §1.3 "one of each";
@@ -26,20 +26,25 @@ export function RadioCardList({
   label: string;
   options: readonly RadioCardOption[];
   value: string;
-  onChange: (value: string) => void;
+  /** `via` says how: a tap ("click") or an arrow key ("key"). Callers fire
+   *  haptics on a tap only, never on every arrow step. */
+  onChange: (value: string, via: "click" | "key") => void;
 }) {
+  const listRef = useRef<HTMLDivElement>(null);
   const move = (from: number, step: number) => {
-    const next = options[(from + step + options.length) % options.length];
-    onChange(next.value);
-    // Focus follows the pick, as in a native radio group.
+    const at = (from + step + options.length) % options.length;
+    onChange(options[at].value, "key");
+    // Focus follows the pick, as in a native radio group. By index inside
+    // THIS list: no document-wide selector, so no escaping and no collision
+    // with another list on the page that shares a value.
     requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>(`[data-radio-card="${CSS.escape(next.value)}"]`)?.focus();
+      listRef.current?.querySelectorAll<HTMLElement>('[role="radio"]')[at]?.focus();
     });
   };
   const focusable = value && options.some((o) => o.value === value) ? value : options[0]?.value;
 
   return (
-    <div role="radiogroup" aria-label={label} className="space-y-2">
+    <div ref={listRef} role="radiogroup" aria-label={label} className="space-y-2">
       {options.map((o, i) => {
         const on = o.value === value;
         return (
@@ -48,9 +53,8 @@ export function RadioCardList({
             type="button"
             role="radio"
             aria-checked={on}
-            data-radio-card={o.value}
             tabIndex={o.value === focusable ? 0 : -1}
-            onClick={() => onChange(o.value)}
+            onClick={() => onChange(o.value, "click")}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown" || e.key === "ArrowRight") { e.preventDefault(); move(i, 1); }
               if (e.key === "ArrowUp" || e.key === "ArrowLeft") { e.preventDefault(); move(i, -1); }

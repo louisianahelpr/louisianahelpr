@@ -123,7 +123,7 @@ export function AdminMessageUserDialog({ profile, onClose }: AdminMessageUserDia
             autoFocus
           />
           {trimmed.length > MESSAGE_MAX_LENGTH * 0.9 && (
-            <p className={`text-ds-10 text-right ${tooLong ? "text-destructive" : "text-muted-foreground"}`}>
+            <p className={`text-ds-10 text-right ${tooLong ? "text-destructive-ink" : "text-muted-foreground"}`}>
               {trimmed.length.toLocaleString()} / {MESSAGE_MAX_LENGTH.toLocaleString()}
             </p>
           )}

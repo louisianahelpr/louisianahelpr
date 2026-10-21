@@ -62,7 +62,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
           )}
           <span
             className="text-ds-11 tabular-nums"
-            style={overLimit ? { color: "hsl(var(--destructive))" } : undefined}
+            style={overLimit ? { color: "hsl(var(--destructive-ink))" } : undefined}
           >
             {title.length}/{TITLE_MAX}
           </span>
@@ -83,7 +83,7 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
         />
       </div>
       {overLimit && (
-        <p id="title-too-long" className="text-ds-11" style={{ color: "hsl(var(--destructive))" }}>
+        <p id="title-too-long" className="text-ds-11" style={{ color: "hsl(var(--destructive-ink))" }}>
           Shorten this to {TITLE_MAX} characters — it's {title.length - TITLE_MAX} too long.
         </p>
       )}

@@ -888,7 +888,7 @@ const CompleteProfile = () => {
               variant="ghost"
               size="sm"
               onClick={deleteAccount.requestDelete}
-              className="w-full text-destructive hover:text-destructive"
+              className="w-full text-destructive-ink hover:text-destructive-ink"
             >
               <Trash2 className="w-4 h-4 mr-1" /> Delete Account
             </Button>

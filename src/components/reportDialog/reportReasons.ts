@@ -1,12 +1,9 @@
-import { AlertTriangle, Banknote, BadgeAlert, EyeOff, FileWarning, MoreHorizontal, ShieldAlert, Star, UserX } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
 export type ReportedType = "job" | "message" | "user" | "review" | "application";
 
 interface Reason {
   label: string;
-  Icon: LucideIcon;
 }
 
 /**
@@ -23,45 +20,45 @@ interface Reason {
  */
 export const REASONS: Record<ReportedType, readonly Reason[]> = {
   job: [
-    { label: "Spam or scam", Icon: AlertTriangle },
-    { label: "Misleading or fake listing", Icon: FileWarning },
-    { label: "Unsafe or illegal work", Icon: ShieldAlert },
-    { label: "Inappropriate content", Icon: EyeOff },
-    { label: "Payment requested off Helpr", Icon: Banknote },
-    { label: "Something else", Icon: MoreHorizontal },
+    { label: "Spam or scam" },
+    { label: "Misleading or fake listing" },
+    { label: "Unsafe or illegal work" },
+    { label: "Inappropriate content" },
+    { label: "Payment requested off Helpr" },
+    { label: "Something else" },
   ],
   message: [
-    { label: "Spam or scam", Icon: AlertTriangle },
-    { label: "Harassment or abuse", Icon: UserX },
-    { label: "Threats or violence", Icon: ShieldAlert },
-    { label: "Inappropriate content", Icon: EyeOff },
-    { label: "Payment requested off Helpr", Icon: Banknote },
-    { label: "Something else", Icon: MoreHorizontal },
+    { label: "Spam or scam" },
+    { label: "Harassment or abuse" },
+    { label: "Threats or violence" },
+    { label: "Inappropriate content" },
+    { label: "Payment requested off Helpr" },
+    { label: "Something else" },
   ],
   user: [
-    { label: "Fake profile or impersonation", Icon: BadgeAlert },
-    { label: "Spam or scam", Icon: AlertTriangle },
-    { label: "Harassment or abuse", Icon: UserX },
-    { label: "Unsafe or threatening behavior", Icon: ShieldAlert },
-    { label: "Inappropriate content", Icon: EyeOff },
-    { label: "Payment requested off Helpr", Icon: Banknote },
-    { label: "Something else", Icon: MoreHorizontal },
+    { label: "Fake profile or impersonation" },
+    { label: "Spam or scam" },
+    { label: "Harassment or abuse" },
+    { label: "Unsafe or threatening behavior" },
+    { label: "Inappropriate content" },
+    { label: "Payment requested off Helpr" },
+    { label: "Something else" },
   ],
   // Q366 (TS-006): an application is the first place a scam reaches a poster.
   application: [
-    { label: "Spam or scam", Icon: AlertTriangle },
-    { label: "Fake profile or impersonation", Icon: BadgeAlert },
-    { label: "Payment requested off Helpr", Icon: Banknote },
-    { label: "Harassment or abuse", Icon: UserX },
-    { label: "Inappropriate content", Icon: EyeOff },
-    { label: "Something else", Icon: MoreHorizontal },
+    { label: "Spam or scam" },
+    { label: "Fake profile or impersonation" },
+    { label: "Payment requested off Helpr" },
+    { label: "Harassment or abuse" },
+    { label: "Inappropriate content" },
+    { label: "Something else" },
   ],
   review: [
-    { label: "Fake or dishonest review", Icon: Star },
-    { label: "Harassment or abuse", Icon: UserX },
-    { label: "Inappropriate content", Icon: EyeOff },
-    { label: "Shares private information", Icon: BadgeAlert },
-    { label: "Something else", Icon: MoreHorizontal },
+    { label: "Fake or dishonest review" },
+    { label: "Harassment or abuse" },
+    { label: "Inappropriate content" },
+    { label: "Shares private information" },
+    { label: "Something else" },
   ],
 };
 

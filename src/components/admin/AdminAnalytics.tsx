@@ -343,7 +343,7 @@ const AdminAnalytics = () => {
 
       {lateCancelRevenue > 0 && (
         <AdminCard
-          title={<span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive" /> Late Cancellation Revenue</span>}
+          title={<span className="flex items-center gap-2"><XCircle className="w-4 h-4 text-destructive-ink" /> Late Cancellation Revenue</span>}
         >
           <p className="text-ds-24 font-bold text-foreground tabular-nums">${lateCancelRevenue.toFixed(2)}</p>
           <p className="text-ds-11 text-muted-foreground mt-1">
@@ -552,7 +552,7 @@ const AdminAnalytics = () => {
           <StatusRow icon={Briefcase} label="Posted" count={allJobs.length} color="text-muted-foreground" />
           <StatusRow icon={Activity} label="In Progress" count={activeJobs.length} color="text-primary" />
           <StatusRow icon={CheckCircle} label="Completed" count={completedJobs.length} color={toneTextClasses.success} />
-          <StatusRow icon={XCircle} label="Cancelled" count={cancelledJobs.length} color="text-destructive" />
+          <StatusRow icon={XCircle} label="Cancelled" count={cancelledJobs.length} color="text-destructive-ink" />
           <StatusRow icon={AlertTriangle} label="Disputed" count={disputedJobs.length} color={toneTextClasses.warning} />
         </AdminCard>
 

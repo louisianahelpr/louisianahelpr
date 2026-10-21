@@ -1,6 +1,6 @@
 // Board 166 (desktop Post a Job, step 1): the step rail, the group cards'
 // "what's in it" line, and the open group's olive outline (not a fill).
-// @mutate src/components/postjob/PostJobStepRail.tsx | {done && onPick ? ( | {false ? (
+// @mutate src/components/postjob/PostJobStepRail.tsx | {done && onPick && (canPick?.(key) ?? true) ? ( | {false ? (
 // @mutate src/components/postjob/JobCategoryGroups.tsx | i === 0 \|\| /^[A-Z]{2}/.test(it.label) | i === 0
 // @mutate src/components/postjob/JobCategoryGroups.tsx | ${opts.pressed ? "border-2 !border-primary" : "border border-border"} | ${opts.pressed ? "btn-grad-primary" : "border border-border"}
 import { describe, expect, it, vi } from "vitest";

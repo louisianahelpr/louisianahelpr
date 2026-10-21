@@ -160,8 +160,11 @@ async function settleOrder(
   const { data: orderRow, error: orderErr } = await supabase
     .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle();
   if (orderErr) throw new Error(`declutter order read failed: ${orderErr.message}`);
-  const parties = orderRow as { buyer_id?: string; seller_id?: string; handover?: string } | null;
-  if (parties && (parties.buyer_id !== meta.buyer_id || parties.seller_id !== meta.seller_id)) {
+  const parties = orderRow as { buyer_id?: string | null; seller_id?: string | null; handover?: string } | null;
+  // Q2307: a party deleted their account after this page opened (the order outlives them with the column NULL). The
+  // payment is refunded automatically and never applied (lh-money-escrow review 2026-10-21 #3).
+  const partyGone = !!parties && (parties.buyer_id == null || parties.seller_id == null);
+  if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id || parties.seller_id !== meta.seller_id)) {
     await postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
@@ -176,17 +179,24 @@ async function settleOrder(
   // B41: the payment's own time, signed by Stripe: the charge's time when
   // readable, else the event's (a redelivery keeps both).
   const paidAt = new Date((facts.chargedAt ?? event.created) * 1000).toISOString();
-  const { data, error } = await supabase.rpc("declutter_mark_order_paid", {
-    p_order_id: orderId,
-    p_payment_intent_id: paymentIntentId,
-    p_amount_cents: amount,
-    p_paid_at: paidAt,
-    p_card_fee_cents: fee,
-  });
-  if (error) throw new Error(`declutter_mark_order_paid failed: ${error.message}`);
+  const { data, error } = partyGone
+    ? await supabase.rpc("declutter_refund_party_gone", {
+      p_order_id: orderId,
+      p_payment_intent_id: paymentIntentId,
+      p_amount_cents: amount,
+      p_card_fee_cents: fee,
+    })
+    : await supabase.rpc("declutter_mark_order_paid", {
+      p_order_id: orderId,
+      p_payment_intent_id: paymentIntentId,
+      p_amount_cents: amount,
+      p_paid_at: paidAt,
+      p_card_fee_cents: fee,
+    });
+  if (error) throw new Error(`${partyGone ? "declutter_refund_party_gone" : "declutter_mark_order_paid"} failed: ${error.message}`);
   const answer = data as MarkPaidAnswer | null;
   if (!answer || typeof answer !== "object" || !("result" in answer)) {
-    throw new Error(`declutter_mark_order_paid gave no answer for order ${orderId}`);
+    throw new Error(`${partyGone ? "declutter_refund_party_gone" : "declutter_mark_order_paid"} gave no answer for order ${orderId}`);
   }
   logStep("Declutter order settled", { order: orderId, result: answer.result });
   if (answer.result === "paid") {

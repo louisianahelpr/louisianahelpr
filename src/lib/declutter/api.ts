@@ -560,10 +560,12 @@ export interface MyOffer {
 
 export interface CartLine {
   line_id: string;
-  item_id: string;
+  /** Null on a settled sale whose seller deleted their account (the listing went with them; Q2307). */
+  item_id: string | null;
   item_title: string;
   my_side: "buyer" | "seller";
-  seller_id: string;
+  /** Null on a settled sale whose seller deleted their account (read with the shared deleted-person label; Q2307). */
+  seller_id: string | null;
   price_cents: number;
   status: "in_cart" | "paid" | "missed" | "cancelled_by_seller";
   checkout_by: string;

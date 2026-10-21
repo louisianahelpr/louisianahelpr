@@ -606,22 +606,43 @@ async function findMoneyOwedToMember(admin: PurgeCapableClient, userId: string):
 
 /** A Declutter sale this member is a party to that is not settled yet (fail closed on a read error). */
 async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {
-  const lines: PostgrestLike<{ id: string }[]> = await admin
-    .from("declutter_cart_items")
-    .select("id")
-    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
-    .in("status", ["in_cart", "paid"])
-    .limit(1);
-  if (lines.error) {
-    // Before the Declutter migration is live the table does not exist: no sale can be in flight.
-    if (/does not exist|42P01|PGRST205/i.test(`${lines.error.code ?? ""} ${lines.error.message}`)) {
-      return { ok: true, active: false, detail: "declutter_cart_items absent" };
+  // A cart line stays 'paid' forever after its sale (there is no later line status), so a paid line is in flight
+  // only while its ORDER still holds the money (order status 'paid', before handover or refund). Counting every paid
+  // line blocked a buyer or seller from ever deleting their account after their first sale (Q2307, 2026-10-21).
+  // Once settled, the order and its lines outlive the account with the party SET NULL (20261021204947).
+  const checks: Array<{ label: string; build: () => PromiseLike<PostgrestLike<{ id: string }[]>> }> = [
+    { label: "waiting for checkout", build: () => admin
+      .from("declutter_cart_items").select("id")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .eq("status", "in_cart").limit(1) },
+    { label: "paid, money held until handover", build: () => admin
+      .from("declutter_cart_items").select("id, declutter_orders!inner(status)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`)
+      .eq("status", "paid").eq("declutter_orders.status", "paid").limit(1) },
+    // The seller's own payout still to go: it can only be sent to their account (seller_id is SET NULL with it).
+    { label: "seller payout owed", build: () => admin
+      .from("declutter_payouts").select("id")
+      .eq("seller_id", userId)
+      .in("status", ["pending", "failed", "held_for_review"]).limit(1) },
+    // A problem still open on one of their sales: an admin's decision refunds, pays or strikes a party, which needs
+    // both parties to still exist (a strike's user_id is NOT NULL).
+    { label: "problem being decided", build: () => admin
+      .from("declutter_problems").select("id, declutter_orders!inner(buyer_id, seller_id)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
+      .eq("status", "open").limit(1) },
+  ];
+  for (const c of checks) {
+    const lines = await c.build();
+    if (lines.error) {
+      // Only a MISSING TABLE (by code, never by message) means "nothing in flight": a missing column (42703) or a
+      // drifted relationship fails closed, and the next check still runs (lh-money-escrow review 2026-10-21 #4).
+      if (lines.error.code === "42P01" || lines.error.code === "PGRST205") continue;
+      console.error(`[accountPurge] Declutter check failed for ${userId}:`, lines.error.message);
+      return { ok: false, active: false, detail: lines.error.message };
     }
-    console.error(`[accountPurge] Declutter check failed for ${userId}:`, lines.error.message);
-    return { ok: false, active: false, detail: lines.error.message };
-  }
-  if (lines.data && lines.data.length > 0) {
-    return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id}`, reason: "declutter" };
+    if (lines.data && lines.data.length > 0) {
+      return { ok: true, active: true, detail: `declutter sale ${lines.data[0].id} (${c.label})`, reason: "declutter" };
+    }
   }
   // Slice 5, Helpr delivery (20261017055505): a Helpr who has taken a delivery
   // and not finished it holds someone's item, and a Helpr whose pay is still
@@ -1305,6 +1326,26 @@ async function removeMediaOfDeletedJobs(
 }
 
 /**
+ * Q2307: clear the member's own words and photos from the Declutter orders that outlive the account (the order and
+ * its money rows stay for the other side, the party column goes NULL with the auth user). Fails closed: a deletion
+ * never completes with the words still there. Not deployed yet (PGRST202) also stops the deletion, and is retried.
+ */
+async function scrubDeclutterSales(admin: PurgeCapableClient, userId: string, steps: PurgeStep[]): Promise<boolean> {
+  const { data, error }: PostgrestLike<Record<string, number>> = await admin.rpc("declutter_scrub_member", { p_user_id: userId });
+  if (error) {
+    console.error(`[accountPurge] declutter_scrub_member failed for ${userId}:`, error.message);
+    steps.push({ step: "declutter_scrub", ok: false, detail: `${error.code ?? "?"}: ${error.message}` });
+    return false;
+  }
+  if (!data || typeof data !== "object") {
+    steps.push({ step: "declutter_scrub", ok: false, detail: "declutter_scrub_member returned no report" });
+    return false;
+  }
+  steps.push({ step: "declutter_scrub", ok: true, detail: JSON.stringify(data) });
+  return true;
+}
+
+/**
  * Run every pre-deletion step. Call this immediately before
  * `auth.admin.deleteUser`; see `describeDeleteError` for the failure of that
  * final call.
@@ -1342,6 +1383,9 @@ export async function purgeAccount(
   // Read BEFORE the RPC: purge_user_data DELETES some of this user's jobs, and
   // afterwards nothing names them (see collectDeletableJobs).
   const deletableJobs = await collectDeletableJobs(admin, userId, steps);
+  // Q2307: the member's finished Declutter sales stay for the other side as "Former member", money only: their words
+  // and photos on those orders go first (declutter_scrub_member, 20261021204947). Part of the gate below.
+  const declutterScrubbed = await scrubDeclutterSales(admin, userId, steps);
   const db = await purgeDatabaseRows(admin, userId, steps);
   if (db.ok) await removeMediaOfDeletedJobs(admin, deletableJobs, steps);
   const stripeOk = steps.find((s) => s.step === "stripe")?.ok !== false;
@@ -1365,7 +1409,7 @@ export async function purgeAccount(
   // was banned, completing the deletion converts a suspension into a clean
   // slate with nothing left to reconstruct it from. It fails closed ONLY for
   // an account that is actually banned — see retainBanIfAny.
-  if (!storageOk || !db.ok || !stripeOk || !attachmentsOk || !banRetained) {
+  if (!storageOk || !db.ok || !stripeOk || !attachmentsOk || !banRetained || !declutterScrubbed) {
     return {
       ok: false,
       steps,

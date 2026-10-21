@@ -97,7 +97,7 @@
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | CREATE TRIGGER trg_zero_fee BEFORE INSERT ON public.declutter_refunds FOR EACH ROW EXECUTE FUNCTION public.declutter_zero_fee();\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_orders SET card_fee_cents = 0;\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
- * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_card_fee_cents: fee, |     p_card_fee_cents: 0,
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |       p_paid_at: paidAt,\n      p_card_fee_cents: fee, |       p_paid_at: paidAt,\n      p_card_fee_cents: 0,
  * @mutate supabase/functions/declutter-money/index.ts |           amount: r.refund_cents, |           amount: r.refund_cents,\n          ...({ amount: 0 }),
  * Re-review of a701ff757 (N-F the fee's source, N-H / N-G the row changed before the chain ends, N-J an edge write):
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const bt = typeof charge === "object" && charge ? charge.balance_transaction : null; |     const bt = { fee: 0 } as { fee: number };
@@ -272,7 +272,9 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "fee: typeof fee === \"number\" && Number.isInteger(fee) && fee >= 0 ? fee : null,",
         "const amount = session.amount_total;",
         "const facts = await chargeFacts(stripe, paymentIntentId, logStep); const fee = facts.fee;",
-        "const { data, error } = await supabase.rpc(\"declutter_mark_order_paid\", { p_order_id: orderId, p_payment_intent_id: paymentIntentId, p_amount_cents: amount, p_paid_at: paidAt, p_card_fee_cents: fee, });",
+        // Q2307: an order a party has left is refunded by declutter_refund_party_gone (order_closed, the platform carries
+        // the fee), any other order is decided by declutter_mark_order_paid; both answer through declutter_refund_answer.
+        "const { data, error } = partyGone ? await supabase.rpc(\"declutter_refund_party_gone\", { p_order_id: orderId, p_payment_intent_id: paymentIntentId, p_amount_cents: amount, p_card_fee_cents: fee, }) : await supabase.rpc(\"declutter_mark_order_paid\", { p_order_id: orderId, p_payment_intent_id: paymentIntentId, p_amount_cents: amount, p_paid_at: paidAt, p_card_fee_cents: fee, });",
         "const answer = data as MarkPaidAnswer | null;",
         "const refunded = await executeRefund(ctx, paymentIntentId, answer, orderId);",
         "refund: Extract<MarkPaidAnswer, { result: \"refund\" }>,",
@@ -319,6 +321,8 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
+  // Q2307: the same Stripe fee handed to declutter_refund_party_gone (an order a party has left), then to mark_order_paid.
+  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
@@ -441,6 +445,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status
       // lists only; diffed line by line by lander42, TRAIN25); the refund reasons and fee are unchanged.
       declutter_mark_order_paid: "20261020064354_declutter_manage_listing.sql 6628bdc8c4d63e60",
+      // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
+      // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
+      // payment that already paid a settled order answers already_paid (money re-review R1).
+      declutter_refund_party_gone: "20261021204947_declutter_sales_outlive_a_deleted_party.sql 59570f1f27aa5011",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
       declutter_order_refunds_recorded_cents: "20261017055505_declutter_helpr_delivery.sql 180fd5a89917ba6d",
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",

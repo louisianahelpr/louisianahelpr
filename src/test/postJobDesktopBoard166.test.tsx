@@ -11,16 +11,16 @@ import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 vi.mock("@/components/SuggestCategory", () => ({ SuggestCategory: () => null }));
 
 describe("board 166: the step rail", () => {
-  it("names the five screens, marks the current one, and reopens only a passed one", () => {
+  it("names the seven screens from the one list, marks the current one, and reopens only a passed form screen", () => {
     const onPick = vi.fn();
-    render(<PostJobStepRail step={3} onPick={onPick} />);
+    render(<PostJobStepRail screen="price" onPick={onPick} canPick={(s) => s === "groups" || s === "details"} />);
     const items = screen.getAllByRole("listitem");
-    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["1What", "2Details", "3Price", "4When and where", "5Review"].map((t, i) => (i < 2 ? t.slice(1) : t)));
+    expect(items.map((li) => li.textContent?.replace(/, done.*$/, ""))).toEqual(["How to start", "What", "Kind of job", "Details", "5Price", "6When and where", "7Review"]);
     expect(screen.getByText("Price").closest("[aria-current]")?.getAttribute("aria-current")).toBe("step");
     const back = screen.getAllByRole("button");
     expect(back).toHaveLength(2);
     fireEvent.click(back[1]);
-    expect(onPick).toHaveBeenCalledWith(2);
+    expect(onPick).toHaveBeenCalledWith("details");
   });
 });
 

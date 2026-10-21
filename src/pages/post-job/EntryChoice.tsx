@@ -200,7 +200,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
   // The question paints with the screen; only the cards wait for their data.
   const startHeader = (
     <div className="mb-3">
-      <PostJobStepHeader step={1} question="How do you want to start?" helper="Pick one. You can go back and change it." />
+      <PostJobStepHeader screen="start" question="How do you want to start?" helper="Pick one. You can go back and change it." />
     </div>
   );
   if (!entryReady) {
@@ -246,7 +246,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     }[panel];
     return (
       <div className="space-y-section">
-        <PostJobStepHeader step={1} question={head.q} helper={head.h} />
+        <PostJobStepHeader screen="start" question={head.q} helper={head.h} />
         {panel === "templates" && (
           <>
             <div className="grid grid-cols-2 gap-2.5">
@@ -254,7 +254,11 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                 <button
                   key={sample.id}
                   type="button"
-                  onClick={() => form.useTemplate(() => form.applyTemplateFields(sample))}
+                  onClick={() => {
+                    // A template fills category, title, description and price: it lands on Details (4 of 7).
+                    form.useTemplate(() => form.applyTemplateFields(sample));
+                    form.setFormPage(2);
+                  }}
                   aria-label={`Use template: ${sample.title}`}
                   className="w-full min-w-0 rounded-ds-md border border-border bg-card p-3 text-left transition-transform active:scale-[0.97]"
                 >
@@ -294,6 +298,8 @@ export function EntryChoice({ form }: EntryChoiceProps) {
               form.applyAiJob(job);
               form.setEntryPanel(null);
               form.setStep("form");
+              // The AI fills the details: it lands on Details (4 of 7).
+              form.setFormPage(2);
             }}
           />
         )}

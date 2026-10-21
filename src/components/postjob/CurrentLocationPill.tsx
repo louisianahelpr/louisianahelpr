@@ -303,7 +303,7 @@ export function CurrentLocationPill({ onResolved }: CurrentLocationPillProps) {
       ) : (
         <LocateFixed className="w-3.5 h-3.5" aria-hidden />
       )}
-      {loading ? "Locating…" : "Use My Location"}
+      {loading ? "Locating…" : "Use my location"}
     </button>
   );
 }

@@ -73,6 +73,24 @@ export function dropOutlook(item: BrowseItem, state: DropState | undefined, now:
   return { planned: true, tonight: chicagoDay(next.at) === chicagoDay(now) };
 }
 
+/** A whole-dollar or mile URL value, or null when absent or not a positive number. */
+function positive(v: string | null): number | null {
+  const n = v === null ? NaN : Number(v);
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : null;
+}
+
+/**
+ * Browse's starting state from the URL a saved search opens (Q2275:
+ * /declutter?q=&cat=&min=&max=&mi=, src/lib/savedSearches.ts resultsPath).
+ */
+export function browseStateFromParams(p: URLSearchParams): { query: string; filters: DeclutterFilters; maxMiles: number | null } {
+  return {
+    query: p.get("q") ?? "",
+    filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")) },
+    maxMiles: positive(p.get("mi")),
+  };
+}
+
 /** How many filters (beyond the sort) are on: the filter button's count dot. */
 export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null): number {
   return (

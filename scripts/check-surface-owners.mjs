@@ -133,6 +133,8 @@ const OWNERS = {
   "?tab=subscription": ["lh-subscriptions-credits"],
   "?tab=support": ["lh-copy-content"],
   "?tab=notifications": ["lh-notifications"],
+  // Q2275 (board 91): saved searches and their alerts (own rows, RLS).
+  "?tab=saved_searches": ["lh-notifications", "lh-authz-rls"],
   "?tab=warnings": ["lh-trust-safety", "lh-admin-moderation"],
   "?tab=credentials": ["lh-verification-credentials"],
   "?tab=saved_helpers": ["lh-trust-safety"],

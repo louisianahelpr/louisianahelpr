@@ -137,6 +137,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   str_settings: [{ h: 508, media: 1 }],
   auto_tip: [{ h: 527 }],
   saved_helpers: [{ h: 344, media: 1 }],
+  // Q2275 (board 91): intro line, the list, Pause all alerts (estimate until measured).
+  saved_searches: [{ h: 36 }, { h: 180 }, { h: 60 }],
   analytics: [{ h: 481 }],
   wrapped: [{ h: 333 }],
   // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out

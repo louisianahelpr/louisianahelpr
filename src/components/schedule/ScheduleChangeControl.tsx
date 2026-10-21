@@ -52,7 +52,7 @@ function useSettleScheduleChange(jobId: string, userId: string) {
   };
 }
 
-function useScheduleChangeAct(jobId: string, userId: string) {
+export function useScheduleChangeAct(jobId: string, userId: string) {
   const [busy, setBusy] = useState(false);
   const settle = useSettleScheduleChange(jobId, userId);
   // A string is a success; { warn } is an answer that changed nothing (expired,

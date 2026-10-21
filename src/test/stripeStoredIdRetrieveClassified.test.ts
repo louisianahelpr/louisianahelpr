@@ -171,6 +171,9 @@ const ABSENT =
 const EVENT =
   "an id taken from a Stripe webhook event, and stripe-webhook/index.ts hands each handler the client of the event's own mode (a live-endpoint event of the other mode is refused; a test-endpoint event runs on the test key, 2026-10-12), so it is of this key's mode";
 const PLATFORM = "reads the platform's own account/balance, not a stored id";
+/** Boards 66/172 slice 2: cancel_quote only shows a number; its local catch answers "unreadable" (no number), and the cancel's money moves later in void-cancelled-payments, whose retrieves are classified above. */
+const READ_ONLY_QUOTE =
+  "a read-only cancel quote: a test-mode id under the live key throws into the quote's own catch, which answers unreadable (no number shown); no money moves here (the cancel's refund runs in void-cancelled-payments, classified above)";
 
 /**
  * Q1251: a stored CONNECT ACCOUNT id. Stripe answers a sandbox account under
@@ -236,6 +239,8 @@ const EXEMPT: Record<string, string> = {
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#4": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#5": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(previousSessionId)#2": REREAD,
+  "create-payment/index.ts::stripe.checkout.sessions.retrieve(qJob.stripe_session_id)": READ_ONLY_QUOTE,
+  "create-payment/index.ts::stripe.paymentIntents.retrieve(qPiId)": READ_ONLY_QUOTE,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(row.stripe_session_id)": ABSENT,
   "create-payment/index.ts::stripe.paymentIntents.retrieve(captureResult.paymentIntentId)": REREAD,
   "create-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)": OUTER,

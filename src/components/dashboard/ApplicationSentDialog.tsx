@@ -40,7 +40,7 @@ export function ApplicationSentDialog({
   const job = sent?.job && Number(sent.job.budget) > 0 ? sent.job : null;
   const price = job && !job.is_group_job ? <>, posted at <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceExact(job.budget)}</span></> : null;
   const name = first(sent?.posterName);
-  const who = name ?? "The poster";
+  const who = name ?? "The person who posted this job";
   return (
     <WhatNextSheet
       open={!!sent}

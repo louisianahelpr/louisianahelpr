@@ -116,8 +116,9 @@ describe("every pop-up title is sentence case", () => {
     // ChoiceSheet and ProUpgradeSheet (58 when only DialogHero was read). A new
     // title raises it, a deleted one lowers it, in the same commit. 169 on the
     // combined tree: +7 titles from the trains merged after builder1g's base
-    // (measured by this test on the rebased TRAIN34).
-    expect(all.length).toBe(169);
+    // (measured by this test on the rebased TRAIN34). 170 with board 91's
+    // saved-search sheets (builder1h, measured on its rebased tree).
+    expect(all.length).toBe(170);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-21T16:07Z",
+  "measured_at": "2026-10-21T18:25Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39376366289",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39569997816",
         "runTruncated": false
       },
       {
@@ -151,7 +151,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 3505
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -175,14 +175,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -426,6 +418,14 @@
         "issue": null
       },
       {
+        "fingerprint": "905ec49763b55835fe7340b16107b79e",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: profile request timed out",
+        "issue": null
+      },
+      {
         "fingerprint": "a0597e872e21b8e38a6e743453dbb87a",
         "source_kind": "edge_slack",
         "source": "ops-alert:custom",
@@ -482,6 +482,30 @@
         "issue": null
       },
       {
+        "fingerprint": "5d96992ce6dab86bb8d91c145ffb55d0",
+        "source_kind": "sentry",
+        "source": "sentry:assets/IdentityCheckSheet",
+        "status": "open",
+        "title": "error: we couldn't start the id check",
+        "issue": null
+      },
+      {
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
+        "issue": null
+      },
+      {
         "fingerprint": "f2afa1349a3ae98138fd104f49431fcf",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -495,6 +519,14 @@
         "source": "ops-alert:custom",
         "status": "open",
         "title": "notification log write failed: a skipped email left no record",
+        "issue": null
+      },
+      {
+        "fingerprint": "1bebf5c8bc35773b8ce022e5a2172f5b",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http timeout: stuck-payment-check returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
         "issue": null
       }
     ]
@@ -528,6 +560,7 @@
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
+    "ledger 1bebf5c8bc35": "Q2319",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
@@ -535,6 +568,7 @@
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 379653db0e8d": "Q1596",
+    "ledger 384f33fc7d1b": "Q2318",
     "ledger 3a3460b71be7": "Q1816",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
@@ -550,6 +584,8 @@
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5be6011a46f6": "Q1816",
     "ledger 5d35922623b5": "Q1596",
+    "ledger 5d96992ce6da": "Q2316",
+    "ledger 5e6b09305057": "Q2317",
     "ledger 60298a019ea3": "Q1776",
     "ledger 60afeab5c360": "Q1596",
     "ledger 6205197429d4": "Q1816",
@@ -568,6 +604,7 @@
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8ad756b6da76": "Q1596",
     "ledger 8f84bf1e767f": "Q2294",
+    "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
     "ledger 9a2d993f43d7": "Q1596",

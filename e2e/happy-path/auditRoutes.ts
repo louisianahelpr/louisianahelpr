@@ -286,6 +286,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "quotes", url: "/quotes", redirectsTo: "/jobs?tab=posted" },
   { name: "quotes-request-missing", url: "/quotes/request/10000000-0000-4000-8000-00000000dead" },
   { name: "quotes-send-missing", url: "/quotes/send/10000000-0000-4000-8000-00000000dead" },
+  // Board 181: the tip moment (a missing tip renders its own "not paid yet" state).
+  { name: "tip-missing", url: "/tips/10000000-0000-4000-8000-00000000dead" },
   // Rentals S1 (hidden switch 'rentals', created OFF): RentalsGate renders the
   // NotFound page while it is off for the sweep account; the real screens once
   // testers include it. Either way the route is visited.

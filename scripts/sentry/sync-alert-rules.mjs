@@ -8,7 +8,9 @@
  *   SENTRY_ALERTS_TOKEN  token with Alerts read+write and Project read. Absent ->
  *                        a ::notice:: naming it, exit 0 (nothing to do yet).
  *   SENTRY_ORG           org slug (helpr-4m), SENTRY_PROJECT project slug (javascript)
- *   LH_SENTRY_API_BASE   default https://sentry.io (tests point it at a stub)
+ *   LH_SENTRY_API_BASE   default https://sentry.io; an override may only name a
+ *                        loopback stub (scripts/lib/apiBase.mjs), so the token
+ *                        is never sent to a host the environment names
  *   DRY_RUN=1            print the payloads; no network call at all
  *
  * Idempotent: lists every alert, matches by exact name, creates the missing,
@@ -18,6 +20,7 @@
  */
 import { pathToFileURL } from "node:url";
 import { RULES, buildPayload, planRules, verifyReadback } from "./alertRules.mjs";
+import { apiBase } from "../lib/apiBase.mjs";
 
 const env = process.env;
 const TOKEN_NAME = "SENTRY_ALERTS_TOKEN";
@@ -25,7 +28,7 @@ const DETECTOR_PLACEHOLDER = "<the project's issue_stream monitor id, read at ru
 
 function dryRun() {
   console.log(`DRY_RUN=1: ${RULES.length} alert payloads, environment production, email only. No API call made.`);
-  console.log(`Target: POST/PUT ${env.LH_SENTRY_API_BASE || "https://sentry.io"}/api/0/organizations/${env.SENTRY_ORG || "<SENTRY_ORG>"}/workflows/`);
+  console.log(`Target: POST/PUT ${sentryBase()}/api/0/organizations/${env.SENTRY_ORG || "<SENTRY_ORG>"}/workflows/`);
   for (const rule of RULES) {
     const payload = { ...buildPayload(rule, { detectorId: 0 }), detectorIds: [DETECTOR_PLACEHOLDER] };
     console.log(`\n# ${rule.doc} (${rule.tier}): ${rule.name}`);
@@ -34,10 +37,8 @@ function dryRun() {
   return 0;
 }
 
-function apiBase() {
-  const base = (env.LH_SENTRY_API_BASE || "https://sentry.io").replace(/\/+$/, "");
-  if (!/^https?:\/\//.test(base)) throw new Error(`LH_SENTRY_API_BASE must be an http(s) URL`);
-  return base;
+function sentryBase() {
+  return apiBase(env.LH_SENTRY_API_BASE, "https://sentry.io");
 }
 
 async function call(method, url, token, body) {
@@ -97,7 +98,7 @@ async function sync() {
     console.error(`::error::${TOKEN_NAME} is set but SENTRY_ORG or SENTRY_PROJECT is empty; both are needed to find the alerts.`);
     return 1;
   }
-  const base = apiBase();
+  const base = sentryBase();
   const orgPath = `${base}/api/0/organizations/${encodeURIComponent(org)}`;
 
   // The project's issue_stream monitor: every error issue in the project reaches the

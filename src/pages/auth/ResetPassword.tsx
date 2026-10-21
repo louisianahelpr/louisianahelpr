@@ -13,12 +13,12 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { describeWeakPassword, isWeakPasswordError, resetPasswordError } from "@/lib/authErrors";
 import {
-  passwordStrength,
   passwordProblem,
   unmetPasswordRules,
   PASSWORD_RULES,
   PASSWORD_MIN_LENGTH,
 } from "./signup/signupHelpers";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 // One password-rule chip of the live checklist. Module-level, not declared
 // inside the render body: a component declared inside another is a new type
@@ -327,37 +327,8 @@ const ResetPassword = () => {
                   <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
                 )}
               </div>
-              {/* Strength meter — same scoring AND the same three colours as
-                  the signup form so the bar reads consistently across both
-                  screens. Burnt-sienna for weak/fair, bark for good,
-                  --success-ink green for strong. Strong was `--primary`, which
-                  is `var(--bark)`, so it was indistinguishable from Good —
-                  see the note in SignupStep1.tsx. */}
-              {password.length > 0 && (() => {
-                const { score, label } = passwordStrength(password);
-                const barColor =
-                  score >= 4
-                    ? "hsl(var(--success-ink))"
-                    : score === 3
-                      ? "hsl(var(--bark))"
-                      : "hsl(var(--burnt-sienna))";
-                return (
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1 flex-1">
-                      {[1, 2, 3, 4].map((i) => (
-                        <span
-                          key={i}
-                          className="h-1 flex-1 rounded-full transition-colors"
-                          style={{ background: i <= score ? barColor : "hsl(var(--olivewood) / 0.15)" }}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-ds-11 font-sans w-10 text-right" style={{ color: barColor }}>
-                      {label}
-                    </span>
-                  </div>
-                );
-              })()}
+              {/* The one shared strength meter (also on Sign up step 1). */}
+              <PasswordStrengthMeter password={password} />
               {/* The rules, ALL of them, stated before submission and ticked
                   live — the same component the signup form renders, from the
                   same PASSWORD_RULES array. The line here used to be static

@@ -20,12 +20,12 @@ import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import {
   suggestEmailCorrection,
-  passwordStrength,
   PASSWORD_RULES,
   PASSWORD_MIN_LENGTH,
   unmetPasswordRules,
   passwordProblem,
 } from "./signupHelpers";
+import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 export interface SignupStep1Props {
   email: string;
@@ -248,38 +248,8 @@ export function SignupStep1({
               {password ? passwordProblem(password) : "Add a password"}
             </p>
           )}
-          {password.length > 0 && (() => {
-            // Strength meter — a quality nudge that sits above the hard
-            // requirement chips. Burnt-sienna for weak/fair, bark for good,
-            // green (--success-ink) for strong.
-            //
-            // Strong WAS `--primary`, and `--primary` is defined as
-            // `var(--bark)` — so "Good" and "Strong" painted the identical
-            // rgb(95,101,67) in light and the identical rgb(149,160,106) in
-            // dark. A four-segment meter whose top two states are byte-for-byte
-            // the same colour cannot tell you that you improved the password,
-            // which is the entire job of the top segment. The comment above
-            // always said "green"; the token simply was not one.
-            const { score, label } = passwordStrength(password);
-            const barColor =
-              score >= 4 ? "hsl(var(--success-ink))" : score === 3 ? "hsl(var(--bark))" : "hsl(var(--alert-ink))";
-            return (
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1 flex-1">
-                  {[1, 2, 3, 4].map((i) => (
-                    <span
-                      key={i}
-                      className="h-1 flex-1 rounded-full transition-colors"
-                      style={{ background: i <= score ? barColor : "hsl(var(--olivewood) / 0.15)" }}
-                    />
-                  ))}
-                </div>
-                <span className="text-ds-11 font-sans w-10 text-right" style={{ color: barColor }}>
-                  {label}
-                </span>
-              </div>
-            );
-          })()}
+          {/* The one shared strength meter (also on Reset password). */}
+          <PasswordStrengthMeter password={password} />
           {(() => {
             // Real-time checklist, rendered from PASSWORD_RULES rather than
             // from a hand-copied subset. It listed three of the five rules,

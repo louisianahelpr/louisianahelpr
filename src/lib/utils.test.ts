@@ -32,6 +32,14 @@ describe("formatName", () => {
   it("collapses multiple spaces between names", () => {
     expect(formatName("Lexi   Lombas")).toBe("Lexi L.");
   });
+
+  // The server now sends another member's name already shortened (20261021131322,
+  // display_name_for_viewer). Every installed client formats it again, so the short form must be a
+  // fixed point. Full parity with the SQL rule: src/test/pglite/memberNamesMaskedInResponses.pglite.mjs.
+  it("leaves an already-shortened name as it is", () => {
+    for (const s of ["Lexi L.", "Jean-Pierre C.", "Madonna", "élodie ñ."]) expect(formatName(s)).toBe(s);
+    for (const full of ["Lexi Lombas", "Mary Anne Beaumont", "Lexi\tLombas"]) expect(formatName(formatName(full))).toBe(formatName(full));
+  });
 });
 
 // `cn()` merges Tailwind classes. The bug this guards against was invisible in

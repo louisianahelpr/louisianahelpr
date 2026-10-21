@@ -131,7 +131,9 @@ export async function syncConnectGate(
         stripe_charges_enabled: nowCharges,
         stripe_payouts_enabled: nowPayouts,
         stripe_identity_verified: stripeIdentityVerified(account),
-        ...(stripeIdentityVerified(account)
+        // The FIRST time only (2026-10-21): every sync used to restamp "now", so the column read as the
+        // last check, not the day the member was verified (prod: two members verified 10-09 read 10-15/10-16).
+        ...(stripeIdentityVerified(account) && profile.stripe_identity_verified !== true
           ? { stripe_identity_verified_at: new Date().toISOString() }
           : {}),
       })

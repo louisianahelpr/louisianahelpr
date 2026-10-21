@@ -160,7 +160,7 @@ describe("Sell it for me: A, hire a Helpr", () => {
     const p = buildSellForMePrefill();
     expect(p.category).toBe("declutter_help");
     expect(JOB_CATEGORY_VALUES).toContain(p.category);
-    expect(JOB_CATEGORY_LABELS.declutter_help).toBe("Declutter Help");
+    expect(JOB_CATEGORY_LABELS.declutter_help).toBe("Declutter help");
     // public.jobs CHECKs (Q782): title <= 32, description <= 1000 code points.
     expect(Array.from(p.title).length).toBeLessThanOrEqual(32);
     expect(p.title).toBe("Photograph and list my items");

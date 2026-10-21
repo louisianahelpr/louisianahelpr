@@ -4,6 +4,8 @@
 // icon, blank label, or no color (real bugs we've shipped twice
 // before).
 
+// @mutate src/components/job-card/activityConstants.ts |   cleaning: ONE_CATEGORY_STYLE, |   cleaning: { badge: "x", title: "y", dot: "bg-[hsl(182_28%_44%)]" },
+// @mutate src/lib/categoryHues.ts |   cleaning: ONE_OLIVE, |   cleaning: "182 28% 44%",
 import { describe, it, expect } from "vitest";
 import {
   categoryIcons,
@@ -52,12 +54,12 @@ describe("category lookup tables — cross-table consistency", () => {
     expect(Object.keys(categoryHues).sort()).toEqual(Object.keys(categoryLabels).sort());
   });
 
-  it("every categoryColors.dot is the categoryHues triplet for that category", () => {
-    for (const [key, color] of Object.entries(categoryColors)) {
-      // Tailwind arbitrary values use `_` where CSS uses a space.
-      const expected = `bg-[hsl(${categoryHues[key].replace(/ /g, "_")})]`;
-      expect(color.dot, `${key}.dot drifted from categoryHues`).toBe(expected);
-    }
+  // Spec v2 §1 (audit #17, 2026-10-21): no per-category colours. Every category wears the one olive, on the
+  // cards (badge / title / dot) and the map (categoryHues), so a category is told apart by icon and name only.
+  it("every category wears the one olive, on cards and on the map", () => {
+    expect(new Set(Object.values(categoryColors).map((c) => `${c.badge}|${c.title}|${c.dot}`)).size).toBe(1);
+    expect(categoryColors.cleaning.dot).toBe("bg-primary");
+    expect(new Set(Object.values(categoryHues)).size).toBe(1);
   });
 
   it("categoryHue falls back to 'other' for an unknown category", () => {
@@ -99,4 +101,3 @@ describe("statusBadge", () => {
   });
 });
 
-// @mutate src/lib/categoryHues.ts | errands: "73 32% 40%", | errands: "73 32% 41%",

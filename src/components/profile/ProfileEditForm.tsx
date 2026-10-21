@@ -25,7 +25,7 @@ export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 // (src/lib/jobCategories.ts) so a Helpr's offered skills line up with the
 // categories jobs actually get posted under, minus "Other" (that's the
 // free-text field below the chips, not a chip itself). "Moving" and
-// "Events" get a small wording nudge ("Moving Help" / "Event Help") since
+// "Events" get a small wording nudge ("Moving help" / "Event help") since
 // these describe a *skill offered*, not a job category being posted.
 const SKILL_PRESETS: { value: JobCategory; label: string }[] = Object.entries(JOB_CATEGORY_LABELS)
   .filter(([value]) => value !== "other")

@@ -3,11 +3,11 @@
 // ZERO imports, so the edge functions and vitest both load the real module.
 //
 // profiles.skills is ONE comma-separated string of the LABELS ProfileEditForm's
-// skill chips save ("Yard Work", "Pet Care", "Auto & Small Engine", plus the
-// chip wording "Moving Help" / "Event Help"); older profiles may hold the raw
+// skill chips save ("Yard work", "Pet care", "Auto & small engine", plus the
+// chip wording "Moving help" / "Event help"); older profiles may hold the raw
 // enum value ("yard_work"). jobs.category is the job_category enum value.
 // instant-job-match compared the two with a bare substring test, and an
-// underscore value never contains a spaced label, so a "Yard Work" Helpr never
+// underscore value never contains a spaced label, so a "Yard work" Helpr never
 // scored the skill match on a yard_work job (single-word categories like
 // "plumbing" matched by luck).
 //
@@ -18,15 +18,15 @@
 
 export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   cleaning: "Cleaning",
-  yard_work: "Yard Work",
+  yard_work: "Yard work",
   handyman: "Handyman",
   moving: "Moving",
   errands: "Errands",
   delivery: "Delivery",
-  pet_care: "Pet Care",
+  pet_care: "Pet care",
   assembly: "Assembly",
   painting: "Painting",
-  storm_prep: "Storm Prep",
+  storm_prep: "Storm prep",
   events: "Events",
   electrical: "Electrical",
   plumbing: "Plumbing",
@@ -34,20 +34,20 @@ export const CATEGORY_LABELS: Readonly<Record<string, string>> = {
   roofing: "Roofing",
   welding: "Welding",
   carpentry: "Carpentry",
-  auto_repair: "Auto & Small Engine",
-  appliance_repair: "Appliance Repair",
-  flooring: "Flooring & Tile",
-  concrete_masonry: "Concrete & Masonry",
+  auto_repair: "Auto & small engine",
+  appliance_repair: "Appliance repair",
+  flooring: "Flooring & tile",
+  concrete_masonry: "Concrete & masonry",
   fencing: "Fencing",
-  pressure_washing: "Pressure Washing",
-  declutter_help: "Declutter Help",
+  pressure_washing: "Pressure washing",
+  declutter_help: "Declutter help",
   other: "Other",
 };
 
 /** The chip wording a skill is saved under when it differs from the category label. */
 export const SKILL_CHIP_LABELS: Readonly<Record<string, string>> = {
-  moving: "Moving Help",
-  events: "Event Help",
+  moving: "Moving help",
+  events: "Event help",
 };
 
 /** Lowercase, "_" and "&" to spaces, whitespace collapsed. */
@@ -65,7 +65,7 @@ function categoryTerms(category: string): string[] {
 
 /**
  * True when the saved skill names the category: either side contains the other
- * once both are normalized (so "Moving Help" names moving, "plumbing" names
+ * once both are normalized (so "Moving help" names moving, "plumbing" names
  * plumbing). An empty skill names nothing.
  */
 export function skillMatchesCategory(skill: string, category: string): boolean {

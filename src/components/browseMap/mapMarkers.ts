@@ -135,7 +135,9 @@ export function pinElement({
   where,
   onActivate,
 }: PinOptions): HTMLElement {
-  const color = categoryHue(category);
+  // One olive for every category (spec v2, audit #17), read from the THEME token so a dark map gets the
+  // lighter dark-mode olive (review note: the fixed light olive measured ~2.3:1 on dark tiles).
+  const color = resolveToken("--bark", categoryHue(category));
   const sienna = resolveToken("--burnt-sienna", "#A0613B");
   const parchment = resolveToken("--parchment", "#FAF8F5");
   const ring = isUrgent ? `stroke="${sienna}" stroke-width="2.5"` : "";

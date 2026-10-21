@@ -26,32 +26,39 @@
  * Adding a category: add it here, to `categoryLabels` + `categoryColors` in
  * activityConstants, and to `categoryIcons`. The tests enforce all three.
  */
+/**
+ * ONE colour for every category (spec v2 §1 "no section colours", audit #17, 2026-10-21): the deep olive
+ * (`--bark`, light). The keys stay: they are the canonical category list (the AI job builder's enum and the
+ * map are checked against them). A category is told apart by its icon and its name, never by a hue.
+ */
+const ONE_OLIVE = "70 20% 33%";
+
 export const categoryHues: Record<string, string> = {
-  cleaning: "182 28% 44%",
-  yard_work: "142 30% 40%",
-  moving: "34 44% 47%",
-  errands: "73 32% 40%",
-  handyman: "19 46% 49%",
-  painting: "330 40% 56%",
-  delivery: "214 30% 51%",
-  pet_care: "278 24% 57%",
-  assembly: "6 42% 53%",
-  storm_prep: "210 30% 47%",
-  events: "43 46% 46%",
-  electrical: "50 52% 46%",
-  plumbing: "200 40% 46%",
-  hvac: "165 32% 46%",
-  roofing: "352 30% 46%",
-  welding: "24 58% 46%",
-  carpentry: "30 30% 46%",
-  auto_repair: "222 18% 46%",
-  appliance_repair: "248 26% 46%",
-  flooring: "300 20% 46%",
-  concrete_masonry: "25 8% 46%",
-  fencing: "95 26% 46%",
-  pressure_washing: "188 44% 46%",
-  declutter_help: "120 22% 42%",
-  other: "40 10% 55%",
+  cleaning: ONE_OLIVE,
+  yard_work: ONE_OLIVE,
+  moving: ONE_OLIVE,
+  errands: ONE_OLIVE,
+  handyman: ONE_OLIVE,
+  painting: ONE_OLIVE,
+  delivery: ONE_OLIVE,
+  pet_care: ONE_OLIVE,
+  assembly: ONE_OLIVE,
+  storm_prep: ONE_OLIVE,
+  events: ONE_OLIVE,
+  electrical: ONE_OLIVE,
+  plumbing: ONE_OLIVE,
+  hvac: ONE_OLIVE,
+  roofing: ONE_OLIVE,
+  welding: ONE_OLIVE,
+  carpentry: ONE_OLIVE,
+  auto_repair: ONE_OLIVE,
+  appliance_repair: ONE_OLIVE,
+  flooring: ONE_OLIVE,
+  concrete_masonry: ONE_OLIVE,
+  fencing: ONE_OLIVE,
+  pressure_washing: ONE_OLIVE,
+  declutter_help: ONE_OLIVE,
+  other: ONE_OLIVE,
 };
 
 /**

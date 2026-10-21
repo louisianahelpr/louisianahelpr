@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
+import { categoryFilterMatches } from "@/lib/jobCategoryGroups";
 import { useSearchParams } from "react-router-dom";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import type { EnrichedJob } from "@/components/dashboard/types";
@@ -326,7 +327,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         const q = searchQuery.toLowerCase();
         if (!job.title.toLowerCase().includes(q) && !job.description.toLowerCase().includes(q)) return false;
       }
-      if (selectedCategory && job.category !== selectedCategory) return false;
+      // A group id (the filter sheet's 8 groups) or one legacy category value.
+      if (!categoryFilterMatches(selectedCategory, job.category)) return false;
       if (minBudget && job.budget < parseFloat(minBudget)) return false;
       if (maxBudget && job.budget > parseFloat(maxBudget)) return false;
       // "Nearby" radius. Three distinct cases, kept apart deliberately —

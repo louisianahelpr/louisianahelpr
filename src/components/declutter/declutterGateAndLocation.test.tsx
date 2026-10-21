@@ -29,6 +29,7 @@
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
+import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, within, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -62,9 +63,12 @@ vi.mock("@/components/AppPage", () => ({
   ),
 }));
 vi.mock("@/components/sections/SectionScreen", () => ({
-  SectionScreen: ({ title, children }: { title: string; children: React.ReactNode }) => (
+  // Honours globalSearch like the real one (default on), so a Browse that forgets to turn Explore's
+  // "Search all sections" off shows a second search here too.
+  SectionScreen: ({ title, children, globalSearch = true }: { title: string; children: React.ReactNode; globalSearch?: boolean }) => (
     <main>
       <h1>{title}</h1>
+      {globalSearch && <div role="search" data-testid="explore-search-entry" />}
       {children}
     </main>
   ),
@@ -289,7 +293,7 @@ describe("Declutter location ask", () => {
     expect(first.querySelector("[data-card-price]")!.className).toMatch(/text-\[hsl\(var\(--burnt-sienna\)\)\]/);
     expect(first.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" /> | {null}
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
@@ -311,11 +315,10 @@ describe("Declutter location ask", () => {
     delete dropStates.i1;
   });
 
-  it("category chips (lead 2026-10-19 tiles, board 25 chip style): one sideways row, one word each; a tap shows only that category and marks it, a second tap shows everything", async () => {
+  it("categories live ONLY in the filter sheet (owner 2026-10-21: no chip row under Search items); in the sheet a tap shows only that category and marks it, a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
-    // @mutate src/components/declutter/DeclutterChipRow.tsx | onClick={() => onChange({ ...filters, category: on ? null : key })} | onClick={() => onChange({ ...filters, category: key })}
-    // @mutate src/components/declutter/DeclutterChipRow.tsx | aria-pressed={on} | aria-pressed={false}
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterChipRow filters={filters} onChange={setFilters} showDrops={showDrops} />\n |
+    // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterBrowseBar query={query} | <div data-chip-row=""><button type="button">Kitchen</button></div>\n      <DeclutterBrowseBar query={query}
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -323,22 +326,68 @@ describe("Declutter location ask", () => {
     live.items = [item("i1", "Oak rocking chair", "furniture"), item("i2", "Stand mixer", "kitchen")];
     at("/declutter", <DeclutterPage />);
     await screen.findByText("Oak rocking chair");
-    const tiles = screen.getByRole("list", { name: "Categories" });
-    expect(within(tiles).getAllByRole("button").length).toBeGreaterThan(10);
-    const kitchen = within(tiles).getByRole("button", { name: "Kitchen" });
-    expect(within(tiles).getByRole("button", { name: "Decor" })).toBeInTheDocument();
+    // ONE search on Browse: "Search items" with its filters, never Explore's "Search all sections" above it.
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | add={sectionByKey("declutter").add} globalSearch={view !== "browse"}> | add={sectionByKey("declutter").add}>
+    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
+    expect(screen.getAllByRole("search")).toHaveLength(1);
+    // No chip row on the page: no category, porch-pickup or price-drop chip outside the sheet.
+    expect(document.querySelector("[data-chip-row], [data-category-tiles]")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Kitchen" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const sheet = await screen.findByRole("dialog");
+    const kitchen = within(sheet).getByRole("button", { name: "Kitchen" });
+    expect(within(sheet).getByRole("button", { name: "Decor" })).toBeInTheDocument();
+    expect(Object.keys(CATEGORY_WORD).filter((k) => within(sheet).queryByRole("button", { name: CATEGORY_WORD[k] })).length).toBeGreaterThan(10);
     fireEvent.click(kitchen);
     expect(kitchen).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("Oak rocking chair")).toBeNull();
     expect(screen.getByText("Stand mixer")).toBeInTheDocument();
-    fireEvent.click(within(tiles).getByRole("button", { name: "Toys" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Toys" }));
     expect(screen.getByText("Nothing in Toys right now.")).toBeInTheDocument();
-    const toys = within(tiles).getByRole("button", { name: "Toys" });
+    const toys = within(sheet).getByRole("button", { name: "Toys" });
     fireEvent.click(toys);
     expect(toys).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
     expect(screen.getByText("Stand mixer")).toBeInTheDocument();
     live.items = [];
+  });
+
+  it("desktop filters live in ONE place (audit #33): with the filter column open, the search row has no filter button and no sheet, and no 'Sort:' line repeats the column", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseBar.tsx |         onFilters={columnFilters ? undefined : () => setOpen(true)} |         onFilters={() => setOpen(true)}
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | onClearAll={clearAll} columnFilters={wide} /> | onClearAll={clearAll} />
+    const { DeclutterBrowseBar } = await import("./DeclutterBrowseBar");
+    const props = { query: "", onQuery: () => {}, filterCount: 0, panel: <p>panel</p>, shown: 3, onClearAll: () => {} };
+    const wide = render(<DeclutterBrowseBar {...props} columnFilters />);
+    expect(within(wide.container).getAllByRole("search")).toHaveLength(1);
+    expect(within(wide.container).queryByRole("button", { name: /Filters/ })).toBeNull();
+    wide.unmount();
+    const phone = render(<DeclutterBrowseBar {...props} />);
+    expect(within(phone.container).getByRole("button", { name: "Filters" })).toBeInTheDocument();
+    phone.unmount();
+    const { readFileSync } = await import("node:fs");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const view = blankComments(readFileSync(`${__dirname}/DeclutterHomeView.tsx`, "utf8"));
+    expect(view).toMatch(/onClearAll=\{clearAll\} columnFilters=\{wide\} \/>/);
+    expect(view).not.toMatch(/Sort:/);
+  });
+
+  it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoPath && !photoFailed && ( |         {photoPath && (
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />\n |
+    const { ItemCard } = await import("./DeclutterItemCard");
+    const item = {
+      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15,
+    } as never;
+    const r = render(<MemoryRouter><ItemCard item={item} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} /></MemoryRouter>);
+    const tile = r.container.querySelector("[data-item-card]")!;
+    // The photo is on top; the icon is already underneath it (a transparent or loading photo shows the icon).
+    expect(tile.querySelector("img")).not.toBeNull();
+    expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    fireEvent.error(tile.querySelector("img")!);
+    expect(tile.querySelector("img")).toBeNull();
+    expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    r.unmount();
   });
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {

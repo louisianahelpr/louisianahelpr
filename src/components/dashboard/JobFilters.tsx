@@ -8,10 +8,9 @@
  * surface, so the pill row and its popover machinery were removed and only
  * the reusable content blocks below survive.
  */
-import {
-  categoryLabels, categoryColors,
-} from "@/components/job-card/activityConstants";
-import { CategoryIcon } from "@/components/job/CategoryIcon";
+import { categoryLabels } from "@/components/job-card/activityConstants";
+import { JOB_CATEGORY_GROUPS, categoryFilterLabel, isJobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { GROUP_EMOJI } from "@/lib/categoryEmoji";
 import { hapticLight } from "@/lib/haptics";
 import { X } from "lucide-react";
 import { JOB_WHEN_OPTIONS } from "@/lib/jobWhenFilter";
@@ -124,32 +123,56 @@ export const SortContent = ({
   </div>
 );
 
+/**
+ * Category = the 8 GROUPS Post a job opens on (owner 2026-10-21: "show ONLY
+ * the 8 main groups, from the same shared list, in sentence case. No
+ * subcategories in the filter"), so the group a poster picks is the group a
+ * Helpr filters by. One list, JOB_CATEGORY_GROUPS, and the group emoji Post a
+ * job draws (GROUP_EMOJI). The stored value is the group id; the list, the map
+ * and the server count all widen it to the group's categories
+ * (categoryFilterMatches / categoriesForFilter).
+ *
+ * A single category still applied from before the groups (an old `?cat=`
+ * link, a saved search) shows as one lit chip with an x, the same pattern as
+ * When's legacy "Closes within", so an active filter is never invisible.
+ */
 export const CategoryContent = ({
   selectedCategory, setSelectedCategory, onSelect,
-}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => (
-  <div role="group" aria-label="Filter by category" className={chipRow}>
-    {Object.entries(categoryLabels).map(([key, label]) => {
-      const isActive = selectedCategory === key;
-      const titleColor = (categoryColors[key] || categoryColors.other).title;
-      return (
+}: { selectedCategory: string | null; setSelectedCategory: (v: string | null) => void; onSelect?: () => void }) => {
+  const legacy = selectedCategory && !isJobCategoryGroupId(selectedCategory) ? selectedCategory : null;
+  return (
+    <div role="group" aria-label="Filter by category" className={chipRow}>
+      {JOB_CATEGORY_GROUPS.map((g) => {
+        const isActive = selectedCategory === g.id;
+        return (
+          <button
+            type="button"
+            aria-pressed={isActive}
+            key={g.id}
+            data-category-group={g.id}
+            onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.id); onSelect?.(); }}
+            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+          >
+            <span aria-hidden className="text-ds-14 leading-none">{GROUP_EMOJI[g.id]}</span>
+            {g.label}
+          </button>
+        );
+      })}
+      {legacy && (
         <button
-          aria-pressed={isActive}
-          key={key}
-          onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : key); onSelect?.(); }}
-          className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
+          type="button"
+          aria-pressed
+          onClick={() => { hapticLight(); setSelectedCategory(null); onSelect?.(); }}
+          className={`${chipBase} ${chipActive}`}
         >
-          <CategoryIcon
-            category={key}
-            aria-hidden
-            className={`w-3.5 h-3.5 ${isActive ? "" : titleColor}`}
-            strokeWidth={2.25}
-          />
-          {label}
+          {categoryFilterLabel(legacy)}
+          <X className="w-3.5 h-3.5" aria-hidden />
+          <span className="sr-only">, remove</span>
         </button>
-      );
-    })}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
 const radiusOptions = [5, 10, 25, 50];
 // Five chips (Any + four radii) on one line at 375 (lead, board 24 r2): px-3, not px-4.

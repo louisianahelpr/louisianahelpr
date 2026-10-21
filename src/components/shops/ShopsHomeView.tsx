@@ -109,7 +109,8 @@ function ShopSettings() {
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   return (
-    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add}>
+    // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs (owner 2026-10-21).
+    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add} globalSearch={tab !== "browse"}>
       <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />

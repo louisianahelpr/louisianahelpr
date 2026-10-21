@@ -74,7 +74,6 @@ export interface DeclutterPhoto {
 export interface DeclutterQuestion {
   id: string;
   item_id: string;
-  asker_id: string;
   question: string;
   answer: string | null;
   answered_at: string | null;
@@ -229,7 +228,8 @@ export async function fetchQuestions(itemId: string): Promise<DeclutterQuestion[
   const rows = unwrap(
     await supabase
       .from("declutter_questions")
-      .select("id, item_id, asker_id, question, answer, answered_at, created_at")
+      // Q2278: never asker_id (members have no grant on it; the page says "Asked by a neighbor").
+      .select("id, item_id, question, answer, answered_at, created_at")
       .eq("item_id", itemId)
       .order("created_at", { ascending: true }),
   );

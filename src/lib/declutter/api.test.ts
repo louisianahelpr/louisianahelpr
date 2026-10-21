@@ -332,7 +332,7 @@ describe("reads", () => {
     expect(h.queries[0]).toEqual({
       table: "declutter_questions",
       ops: [
-        ["select", ["id, item_id, asker_id, question, answer, answered_at, created_at"]],
+        ["select", ["id, item_id, question, answer, answered_at, created_at"]],
         ["eq", ["item_id", "i1"]],
         ["order", ["created_at", { ascending: true }]],
       ],

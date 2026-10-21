@@ -20,7 +20,8 @@
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id FOR UPDATE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id;
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | VALUES ('quotes', 'off', | VALUES ('quotes', 'everyone',
- * @mutate supabase/migrations/20261015091114_job_quotes.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
+ * @mutate supabase/migrations/20261021015146_quote_booked_job_locks_crew_shape.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
+ * @mutate supabase/migrations/20261021015146_quote_booked_job_locks_crew_shape.sql |       NEW.helpers_needed, NEW.is_group_job, NEW.is_urgent) |       NEW.helpers_needed, OLD.is_group_job, NEW.is_urgent)
  * @mutate src/config/featureSwitches.ts |   "quotes",\n  // Declutter wanted posts | \n  // Declutter wanted posts
  */
 import { describe, expect, it } from "vitest";
@@ -98,6 +99,10 @@ describe("quotes on jobs: race locks, one payment path, the switch (Q1-Q8)", () 
     expect(lock).toMatch(/AND OLD\.helper_id IS NULL\s+AND EXISTS/);
     expect(lock).toMatch(/WHERE r\.job_id = OLD\.id AND r\.status IN \('agreed', 'cancelled'\)\) THEN\s+RAISE EXCEPTION 'quote_terms_locked'/);
     expect(migration).toMatch(/CREATE TRIGGER trg_lock_quote_booked_job_terms\s+BEFORE UPDATE OF budget,/);
+    // lh-authz-rls 2026-10-21: the agreed crew shape is locked too (20261021015146), in the tuple AND the trigger list.
+    expect(lock).toMatch(/NEW\.helpers_needed, NEW\.is_group_job, NEW\.is_urgent\)\s+IS DISTINCT FROM/);
+    const crew = blankSqlComments(readFileSync(resolve(DIR, "20261021015146_quote_booked_job_locks_crew_shape.sql"), "utf8"));
+    expect(crew).toMatch(/BEFORE UPDATE OF budget,[^;]*helpers_needed, is_group_job, is_urgent ON public\.jobs/);
   });
 
   it("quotes stay private: RLS on, no client write grant, the open list carries no price", () => {

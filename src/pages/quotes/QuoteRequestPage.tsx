@@ -215,18 +215,23 @@ function RequestView({ id }: { id: string }) {
     onError: (err) => toast.error(quoteErrorMessage(err)),
   });
 
-  if (reqs.isPending || quotes.isPending) return <p className="text-sm text-muted-foreground">Loading quotes…</p>;
-  if (reqs.isError || quotes.isError) {
+  if (reqs.isPending) return <p className="text-sm text-muted-foreground">Loading quotes…</p>;
+  if (reqs.isError) {
     return <ErrorState variant="inline" title="We couldn't load this request." onRetry={() => { void reqs.refetch(); void quotes.refetch(); }} />;
   }
   // The list loaded and this id is not in it (deleted, someone else's, or a mistyped link): that is a
-  // missing request, not a hiccup, and "Try again" could never fix it (nightly-red #2375).
+  // missing request, not a hiccup, and "Try again" could never fix it (nightly-red #2375). Decided
+  // BEFORE the quotes read, because get_quotes_for_request raises unknown_request for such an id.
   if (!request) {
     return (
       <QuotesNotice title="We can't find this quote request.">
         <p>It may have been cancelled, or the link is not yours. Your requests are under Jobs · Posted.</p>
       </QuotesNotice>
     );
+  }
+  if (quotes.isPending) return <p className="text-sm text-muted-foreground">Loading quotes…</p>;
+  if (quotes.isError) {
+    return <ErrorState variant="inline" title="We couldn't load this request." onRetry={() => { void quotes.refetch(); }} />;
   }
   const open = request.status === "open";
   const agreed = request.status === "agreed";

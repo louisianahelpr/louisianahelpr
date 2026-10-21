@@ -551,7 +551,7 @@ async function openCard(page: Page, jobId: string, jobTitle: string) {
   // found on it: e2e-journeys 39073227265 failed "No-Show is not offered" on a
   // shut card, and the before-start "not offered" check passed vacuously.
   const card = cardByTitle(page, jobTitle);
-  const progress = card.getByRole("group", { name: /Job progress/ });
+  const progress = card.locator("[data-job-progress]");
   if (!(await progress.isVisible().catch(() => false))) await card.getByRole("heading", { name: jobTitle, level: 2 }).click();
   await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 });
 }

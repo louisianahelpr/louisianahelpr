@@ -44,6 +44,10 @@ import { blankComments } from "./helpers/blankNonCode";
 // @two-way src/test/involuntarySignOutConfirmsLoss.test.ts:an entry is one occurrence, drop or fix it
 const ALLOWED = new Map<string, string>([
   [
+    "src/components/SosShareButton.tsx | (anonymous) | window.location.assign(SUPPORT_TALK_PATH)",
+    "the SOS sheet's 'Talk to Helpr' tap when the sheet renders outside the router: a voluntary tap to /support?topic=message (SUPPORT_TALK_PATH, a constant), never a session check (board 156, Builder 5 s1c)",
+  ],
+  [
     "src/hooks/useSessionTimeout.ts | (anonymous) | window.location.href = \"/login\"",
     "the 30-minute idle sign-out of a session that IS present, and not mounted at all (SessionManager.tsx, mounted by App.tsx; a test below keeps it unmounted while it is listed)",
   ],

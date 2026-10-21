@@ -496,7 +496,8 @@ describe("error copy", () => {
     const defs = effectiveDefs(dir);
     const quoteFns = new Set(
       readdirSync(dir)
-        .filter((f) => /quote/.test(f) && f.endsWith(".sql"))
+        // whole-word quote migrations only: 20261021130723_poster_cancel_checks_quoted_fee is the cancel, not a quote
+        .filter((f) => /_quotes?[_.]/.test(f) && f.endsWith(".sql"))
         .flatMap((f) => [...blankSqlComments(readFileSync(resolve(dir, f), "utf8")).matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.(\w+)\s*\(/gi)].map((m) => m[1].toLowerCase())),
     );
     expect(quoteFns.size).toBeGreaterThan(10);

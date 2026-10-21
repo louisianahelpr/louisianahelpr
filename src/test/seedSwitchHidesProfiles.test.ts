@@ -1,5 +1,5 @@
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |         OR NOT public.seed_review_hidden(reviewer_id, reviewee_id, job_id) |         OR true
-// @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |     AND (p.is_seed IS NOT TRUE OR NOT public.seed_hidden_in_discovery()) |     AND true
+// @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |     AND (p.is_seed IS NOT TRUE OR NOT public.seed_hidden_in_discovery()) |     AND true
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |      AND NOT COALESCE(public.has_role((SELECT auth.uid()), 'admin'::app_role), false) |      AND true
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql | REVOKE ALL ON FUNCTION public.seed_review_hidden(uuid, uuid, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.seed_review_hidden(uuid, uuid, uuid) FROM authenticated;
 // @mutate supabase/migrations/20261007033530_seed_switch_hides_test_profiles.sql |         WHERE me.user_id = p_user_id AND me.is_seed IS TRUE\n          AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = me.user_id) |         WHERE me.user_id = p_user_id AND me.is_seed IS TRUE

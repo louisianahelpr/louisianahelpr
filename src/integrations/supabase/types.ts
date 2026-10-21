@@ -12673,6 +12673,10 @@ export type Database = {
         Args: { p_helper: string; p_job_id: string }
         Returns: string
       }
+      display_name_for_viewer: {
+        Args: { p_full_name: string; p_owner_id: string }
+        Returns: string
+      }
       dispute_evidence_url_ok: {
         Args: { _job_id: string; _uploader: string; _url: string }
         Returns: boolean

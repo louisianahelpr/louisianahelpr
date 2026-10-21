@@ -4,7 +4,7 @@
  * definition of get_my_saved_helpers must filter blocks in both directions
  * (are_users_blocked is symmetric). Proven on PGlite 3x.
  *
- * @mutate supabase/migrations/20260924062150_saved_helpers_hide_blocked.sql | AND NOT public.are_users_blocked(fh.customer_id, fh.helper_id)  -- TS-011 block filter | -- (block filter removed)
+ * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | AND NOT public.are_users_blocked(fh.customer_id, fh.helper_id)  -- TS-011 block filter | -- (block filter removed)
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

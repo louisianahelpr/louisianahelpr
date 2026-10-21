@@ -9,6 +9,7 @@ import {
   type TemplateFacts,
 } from "../_shared/notification-templates.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { memberDisplayName } from "../_shared/memberDisplayName.ts";
 import { fetchFunction } from "../_shared/functionFetch.ts";
 
 const corsHeaders = {
@@ -343,7 +344,8 @@ serve(async (req) => {
           .eq("user_id", user.id)
           .maybeSingle();
         factReadError ??= e3;
-        facts.posterFirstName = (prof?.full_name ?? "").split(" ")[0] || null;
+        // First word of the "First L." form: a split on " " alone kept a tab- or no-break-space-joined surname.
+        facts.posterFirstName = memberDisplayName(prof?.full_name, "").split(" ")[0] || null;
       }
       if (needs.includes("noShow")) {
         const { data: v, error: e4 } = await adminClient

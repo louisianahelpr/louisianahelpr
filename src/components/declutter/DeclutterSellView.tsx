@@ -123,6 +123,9 @@ export default function SellFlow() {
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
   const [publishing, setPublishing] = useState(false);
+  // Audit #45: Continue is always a live button, so what a step still needs is said once it is tapped, beside it,
+  // not printed in advance under a button that looks ready (it read as a disabled future step).
+  const [triedStep, setTriedStep] = useState<number | null>(null);
   // Board 31a-158: which of the 5 steps is on screen.
   const [step, setStep] = useState(1);
   // Row 101: porch pickup is the default; the seller turns it off per item.
@@ -350,7 +353,7 @@ export default function SellFlow() {
   const stepProblem = sellStepProblem(step, form, photoTotal);
   const next = async () => {
     if (stepProblem) {
-      toast.error(stepProblem);
+      setTriedStep(step);
       return;
     }
     // Step 4 saves the draft (and uploads the photos held on the device), so step 5 lists a real draft.
@@ -552,7 +555,7 @@ export default function SellFlow() {
         </section>
       )}
 
-      {stepProblem && step < 5 && <p className="text-ds-13 text-muted-foreground" data-testid="sell-form-problem">{stepProblem}</p>}
+      {stepProblem && step < 5 && triedStep === step && <p role="alert" className="text-ds-13 font-semibold text-[hsl(var(--alert))]" data-testid="sell-form-problem">{stepProblem}</p>}
       {step === 3 && priceCents && (
         <p className="flex items-baseline justify-between text-ds-14 text-foreground" data-sell-keep="">
           You get if it sells today

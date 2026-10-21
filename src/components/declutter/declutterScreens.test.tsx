@@ -226,6 +226,9 @@ describe("Declutter screens", () => {
     fireEvent.click(buyNow);
     expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
+    // Audit #47: ONE filled primary at a time; while the card is asked for, Buy now steps back to an outline.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           variant={showCardStep ? "outline" : undefined} |           variant={undefined}
+    expect(document.querySelectorAll("[aria-label='Buy or make an offer'] button.btn-grad-primary").length).toBe(1);
     // Near the price: the actions come before the description, not at the bottom of the page.
     expect(buyNow.compareDocumentPosition(screen.getByText("Solid oak.")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // The seller card (owner 2026-10-19): name, stars only with reviews, joined date.

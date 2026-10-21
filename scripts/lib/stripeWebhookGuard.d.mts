@@ -14,6 +14,7 @@ export function gradeConfigCheckResponse(
   handlers: string[],
   url: string,
   testModeEvents?: string[] | null,
+  connectTypes?: string[],
 ): { failures: string[]; notes: string[] };
 /** Q1820: grade the TEST-mode webhook endpoints the config check returned. */
 export function gradeTestEndpoints(
@@ -26,6 +27,7 @@ export function gradeLiveEndpoints(
   list: { data?: WebhookEndpoint[] } | null | undefined,
   handlers: string[],
   url: string,
+  connectTypes?: string[],
 ): { failures: string[]; notes: string[] };
 
 export function endpointKey(u: unknown): string | null;

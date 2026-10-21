@@ -23,7 +23,7 @@
 --    live bodies of 20261021042132 with ONLY their category line changed to
 --    that rule. Their grants are restated as they were.
 --
--- Both helpers are plain IMMUTABLE SQL over their arguments (no table read,
+-- Both helpers are plain STABLE SQL (an enum-to-text cast is STABLE) over their arguments (no table read,
 -- not SECURITY DEFINER), called from the two definer functions; members never
 -- need them, so EXECUTE is revoked FROM PUBLIC, anon, authenticated.
 -- Replay-safe: CREATE OR REPLACE only.
@@ -31,7 +31,7 @@
 CREATE OR REPLACE FUNCTION public.job_category_group(p_category public.job_category)
 RETURNS text
 LANGUAGE sql
-IMMUTABLE
+STABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT CASE
@@ -51,7 +51,7 @@ GRANT EXECUTE ON FUNCTION public.job_category_group(public.job_category) TO serv
 CREATE OR REPLACE FUNCTION public.saved_search_category_matches(p_search_category text, p_category public.job_category)
 RETURNS boolean
 LANGUAGE sql
-IMMUTABLE
+STABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT p_search_category IS NULL

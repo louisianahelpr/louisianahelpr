@@ -290,7 +290,7 @@ describe("Declutter location ask", () => {
     expect(first.querySelector("[data-card-price]")!.className).toMatch(/text-\[hsl\(var\(--burnt-sienna\)\)\]/);
     expect(first.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-full w-full" /> | null
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" /> | {null}
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
@@ -347,6 +347,44 @@ describe("Declutter location ask", () => {
     expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
     expect(screen.getByText("Stand mixer")).toBeInTheDocument();
     live.items = [];
+  });
+
+  it("desktop filters live in ONE place (audit #33): with the filter column open, the search row has no filter button and no sheet, and no 'Sort:' line repeats the column", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseBar.tsx |         onFilters={columnFilters ? undefined : () => setOpen(true)} |         onFilters={() => setOpen(true)}
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | onClearAll={clearAll} columnFilters={wide} /> | onClearAll={clearAll} />
+    const { DeclutterBrowseBar } = await import("./DeclutterBrowseBar");
+    const props = { query: "", onQuery: () => {}, filterCount: 0, panel: <p>panel</p>, shown: 3, onClearAll: () => {} };
+    const wide = render(<DeclutterBrowseBar {...props} columnFilters />);
+    expect(within(wide.container).getAllByRole("search")).toHaveLength(1);
+    expect(within(wide.container).queryByRole("button", { name: /Filters/ })).toBeNull();
+    wide.unmount();
+    const phone = render(<DeclutterBrowseBar {...props} />);
+    expect(within(phone.container).getByRole("button", { name: "Filters" })).toBeInTheDocument();
+    phone.unmount();
+    const { readFileSync } = await import("node:fs");
+    const { blankComments } = await import("@/test/helpers/blankNonCode");
+    const view = blankComments(readFileSync(`${__dirname}/DeclutterHomeView.tsx`, "utf8"));
+    expect(view).toMatch(/onClearAll=\{clearAll\} columnFilters=\{wide\} \/>/);
+    expect(view).not.toMatch(/Sort:/);
+  });
+
+  it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |         {photoPath && !photoFailed && ( |         {photoPath && (
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />\n |
+    const { ItemCard } = await import("./DeclutterItemCard");
+    const item = {
+      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15,
+    } as never;
+    const r = render(<MemoryRouter><ItemCard item={item} photoPath="u2/declutter/i9/a.png" miles={null} approximate={false} /></MemoryRouter>);
+    const tile = r.container.querySelector("[data-item-card]")!;
+    // The photo is on top; the icon is already underneath it (a transparent or loading photo shows the icon).
+    expect(tile.querySelector("img")).not.toBeNull();
+    expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    fireEvent.error(tile.querySelector("img")!);
+    expect(tile.querySelector("img")).toBeNull();
+    expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    r.unmount();
   });
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {

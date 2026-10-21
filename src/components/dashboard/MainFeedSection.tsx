@@ -3,7 +3,7 @@ import { VirtualizedJobList } from "@/components/dashboard/VirtualizedJobList";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { JobFeedCard, type JobCardCommonProps } from "@/components/dashboard/feedCards";
-import { splitFartherAway } from "@/pages/home/fartherAwaySplit";
+import { QUIET_LINE, splitFartherAway } from "@/pages/home/fartherAwaySplit";
 
 // Moved out of BrowseTasksFeed.tsx unchanged (component-size ratchet, Q806).
 type PullToRefresh = ReturnType<typeof usePullToRefresh>;
@@ -41,15 +41,20 @@ export function MainFeedSection({
   /** Under the last card, above the dock clearance (the Browse end card). */
   footer?: ReactNode;
   /**
-   * Board 6: move jobs beyond 25 mi under a "Farther away" divider. Only
-   * under the default order with no distance filter: an explicit sort or a
-   * radius is the viewer's own order, and the split would override it.
+   * Board 6: move jobs beyond 25 mi under a "Farther away" divider, and when
+   * it is quiet near you (fewer than 5 within 25 mi) list the 25-50 mi jobs
+   * nearest first with their distance (fartherAwaySplit.ts). Only under the
+   * default order with no distance filter: an explicit sort or a radius is
+   * the viewer's own order, and the split would override it or widen it.
    */
   splitFarther?: boolean;
 }) {
   const { userLat, userLng } = common;
   const split = useMemo(
-    () => (splitFarther ? splitFartherAway(jobs, userLat, userLng) : { ordered: jobs, fartherFrom: null, label: null }),
+    () =>
+      splitFarther
+        ? splitFartherAway(jobs, userLat, userLng)
+        : { ordered: jobs, fartherFrom: null, label: null, quietFrom: null, distanceLabels: new Map<string, string>() },
     [jobs, splitFarther, userLat, userLng],
   );
   return (
@@ -77,6 +82,16 @@ export function MainFeedSection({
             onMouseLeave={() => setHoveredJobId?.(null)}
           >
             {i === split.fartherFrom && split.label && <FartherAwayDivider label={split.label} />}
+            {i === split.quietFrom && (
+              <p data-quiet-line="" className="pt-1 pb-2 text-ds-13 text-muted-foreground">
+                {QUIET_LINE}
+              </p>
+            )}
+            {split.distanceLabels.has(job.id) && (
+              <p data-away-label="" className="pb-1 text-ds-12 font-semibold text-muted-foreground">
+                {split.distanceLabels.get(job.id)}
+              </p>
+            )}
             <JobFeedCard job={job} index={i} hero={i === 0} recommended={job.id === recommendedBadgeId} common={common} />
           </div>
         )}

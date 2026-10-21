@@ -44,7 +44,7 @@ export function useSectionIsOn() {
  * Explore, then that tab. Phone only: the desktop rail already lists the
  * sections. Guard: src/test/centerCreateNav.test.tsx.
  *
- * Owner 2026-10-21: this row is the LIGHTER control (tone="quiet") so it never
+ * Owner 2026-10-21: this row is the LIGHTER control (the quiet tone) so it never
  * reads as a second olive pill over the section's own Browse/Posted/Working
  * switch. A section closed to the viewer says "Soon" ON its tab, muted; a tap
  * does nothing (no toast popping up elsewhere on the screen, no navigation).

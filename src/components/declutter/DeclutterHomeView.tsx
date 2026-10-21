@@ -43,7 +43,7 @@ import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { DeclutterFilterPanel } from "./DeclutterFilterPanel";
-import { NO_FILTERS, SORT_LABEL, activeFilterCount, applyBrowseFilters, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
+import { NO_FILTERS, activeFilterCount, applyBrowseFilters, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
 import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
@@ -166,12 +166,11 @@ function BrowseView({ userId }: { userId: string }) {
   const panel = (
     <DeclutterFilterPanel filters={filters} onChange={setFilters} maxMiles={maxMiles} onMaxMiles={setMaxMiles} ask={ask} showDrops={showDrops} />
   );
-  const sortWord = SORT_LABEL[!from && filters.sort === "closest" ? "newest" : filters.sort];
   return (
     // Board 39: on desktop the filters are a column on the right, not a sheet.
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8">
     <div className="min-w-0 space-y-4">
-      <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} panel={panel} shown={rows.length} onClearAll={clearAll} />
+      <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} panel={panel} shown={rows.length} onClearAll={clearAll} columnFilters={wide} />
       {/* No chip row under "Search items" (owner 2026-10-21): category, porch
           pickup and price drops live only in the filter sheet / desktop column
           (DeclutterFilterPanel). Guard: src/test/browseCategoryGroups.test.tsx. */}
@@ -181,9 +180,7 @@ function BrowseView({ userId }: { userId: string }) {
             {rows.length === 1 ? "1 item" : `${rows.length} items`}
             {from && maxMiles !== null ? ` within ${maxMiles} mi` : ""}
           </span>
-          <span>
-            Sort: <span className="font-semibold text-foreground">{sortWord}</span>
-          </span>
+          {/* No "Sort: ..." here (audit #33): the column beside it already shows the sort. */}
         </p>
       )}
       {itemsPhase === "offline-empty" ? (

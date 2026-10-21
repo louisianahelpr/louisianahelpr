@@ -126,7 +126,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                       data-testid="create-describe"
                       onClick={gate.gate("post", () => go(DESCRIBE_IT_PATH))}
                       {...gate.gatedProps("post")}
-                      className="btn-press min-h-11 -mb-2 inline-flex items-center gap-1.5 px-1 text-ds-13 font-semibold underline-offset-4 hover:underline"
+                      className="btn-press min-h-11 -mb-2 inline-flex items-center gap-1.5 px-1 text-ds-13 font-semibold"
                       style={{ color: "hsl(var(--bark))" }}
                     >
                       <Sparkles className="w-3.5 h-3.5 shrink-0" aria-hidden />

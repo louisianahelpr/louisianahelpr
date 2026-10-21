@@ -39,7 +39,8 @@ export function SectionSearchRow({
   /** Filters on; > 0 shows the count badge. */
   filterCount?: number;
   filtersOpen?: boolean;
-  onFilters: () => void;
+  /** Opens the filters. Omitted where the filters are already on screen (Declutter's desktop column): no button then. */
+  onFilters?: () => void;
   /** Overrides the button's name, e.g. "Filters, within 10 miles". */
   filtersLabel?: string;
   filtersButtonRef?: RefObject<HTMLButtonElement>;
@@ -74,7 +75,7 @@ export function SectionSearchRow({
           <X className="w-4 h-4" aria-hidden />
         </button>
       )}
-      <button
+      {onFilters && <button
         ref={filtersButtonRef}
         type="button"
         onClick={onFilters}
@@ -89,7 +90,7 @@ export function SectionSearchRow({
             {filterCount}
           </span>
         )}
-      </button>
+      </button>}
     </form>
   );
 }

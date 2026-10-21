@@ -48,6 +48,8 @@ vi.mock("@/components/job-card/CountdownRows", async (importOriginal) => ({
 vi.mock("@/components/series/JobSeriesCardControls", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/components/series/JobSeriesCardControls")>()),
   ScheduleChangeForJob: () => <div data-testid="schedule-change" />,
+  // Board 141: the expanded card renders the date/time change through JobRequestRows.
+  JobRequestRows: () => <div data-testid="schedule-change" />,
 }));
 vi.mock("../../components/job-card/JobCardMetaRow", () => ({ JobCardMetaRow: () => <div data-testid="meta" /> }));
 vi.mock("./postedJobCard/PostedJobApplicants", () => ({ PostedJobApplicants: () => null }));

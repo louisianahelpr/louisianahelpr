@@ -2677,9 +2677,12 @@ export type Database = {
       }
       disputes: {
         Row: {
+          agreed_helper_id: string | null
+          agreed_poster_id: string | null
           created_at: string
           decided_at: string | null
           decided_by: string | null
+          decided_via: string | null
           decision_text: string | null
           evidence_urls: string[]
           executed_at: string | null
@@ -2699,9 +2702,12 @@ export type Database = {
           status: string
         }
         Insert: {
+          agreed_helper_id?: string | null
+          agreed_poster_id?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decided_via?: string | null
           decision_text?: string | null
           evidence_urls?: string[]
           executed_at?: string | null
@@ -2721,9 +2727,12 @@ export type Database = {
           status?: string
         }
         Update: {
+          agreed_helper_id?: string | null
+          agreed_poster_id?: string | null
           created_at?: string
           decided_at?: string | null
           decided_by?: string | null
+          decided_via?: string | null
           decision_text?: string | null
           evidence_urls?: string[]
           executed_at?: string | null
@@ -7655,6 +7664,94 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      refund_requests: {
+        Row: {
+          amount_cents: number
+          answer_by: string
+          answered_at: string | null
+          answered_by: string | null
+          budget_cents: number
+          closed_reason: string | null
+          created_at: string
+          dispute_id: string | null
+          id: string
+          job_id: string
+          last_settle_at: string | null
+          reason: string
+          requester_id: string | null
+          responder_id: string | null
+          schedule_change_id: string | null
+          refund_scope: string
+          settle_attempts: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          answer_by: string
+          answered_at?: string | null
+          answered_by?: string | null
+          budget_cents: number
+          closed_reason?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          job_id: string
+          last_settle_at?: string | null
+          reason: string
+          requester_id?: string | null
+          responder_id?: string | null
+          schedule_change_id?: string | null
+          refund_scope: string
+          settle_attempts?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          answer_by?: string
+          answered_at?: string | null
+          answered_by?: string | null
+          budget_cents?: number
+          closed_reason?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          id?: string
+          job_id?: string
+          last_settle_at?: string | null
+          reason?: string
+          requester_id?: string | null
+          responder_id?: string | null
+          schedule_change_id?: string | null
+          refund_scope?: string
+          settle_attempts?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "refund_requests_dispute_id_fkey"
+            columns: ["dispute_id"]
+            isOneToOne: false
+            referencedRelation: "disputes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "refund_requests_schedule_change_id_fkey"
+            columns: ["schedule_change_id"]
+            isOneToOne: false
+            referencedRelation: "job_schedule_change_requests"
             referencedColumns: ["id"]
           },
         ]
@@ -14041,10 +14138,38 @@ export type Database = {
         }
         Returns: Json
       }
+      refund_agreement_for_dispute: {
+        Args: { p_dispute_id: string }
+        Returns: Json
+      }
+      refund_agreements_due: {
+        Args: { p_limit?: number }
+        Returns: {
+          dispute_id: string
+          job_id: string
+          request_id: string
+        }[]
+      }
+      refund_come_back_pending: { Args: { p_job_id: string }; Returns: boolean }
+      refund_party_held: { Args: { p_user: string }; Returns: boolean }
       refund_monthly_free_boost: {
         Args: { p_month: string; p_user_id: string }
         Returns: boolean
       }
+      refund_request_assert_job_open: {
+        Args: { p_job_id: string }
+        Returns: undefined
+      }
+      refund_request_dollars: { Args: { p_cents: number }; Returns: string }
+      refund_request_is_live: {
+        Args: { p_dispute_id: string; p_status: string }
+        Returns: boolean
+      }
+      refund_request_rush_back_cents: {
+        Args: { p_asked_cents: number; p_price_cents: number; p_rush_cents: number }
+        Returns: number
+      }
+      refund_requests_sweep: { Args: never; Returns: Json }
       release_dispute_settlement_claim: {
         Args: { _job_id: string; _token?: string }
         Returns: boolean
@@ -14698,6 +14823,15 @@ export type Database = {
         Args: { _dispute_id: string; _evidence_urls: string[] }
         Returns: string[]
       }
+      rpc_answer_refund_request: {
+        Args: {
+          p_answer: string
+          p_date?: string
+          p_request_id: string
+          p_start_time?: string
+        }
+        Returns: Json
+      }
       rpc_admin_end_recurring_series: {
         Args: { p_job_id: string; p_reason: string }
         Returns: Json
@@ -14758,6 +14892,15 @@ export type Database = {
         Args: { _evidence_urls: string[]; _job_id: string; _reason: string }
         Returns: string
       }
+      rpc_open_refund_request: {
+        Args: {
+          p_amount_cents: number
+          p_job_id: string
+          p_reason: string
+          p_scope: string
+        }
+        Returns: string
+      }
       rpc_poster_confirm_member_arrival: {
         Args: { _helper_id: string; _job_id: string }
         Returns: Json
@@ -14775,6 +14918,10 @@ export type Database = {
         Returns: string
       }
       rpc_withdraw_dispute: { Args: { _job_id: string }; Returns: undefined }
+      rpc_withdraw_refund_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
       run_missed_cron_catch_up: { Args: never; Returns: Json }
       run_seed_purge: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }

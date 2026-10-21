@@ -6,6 +6,7 @@ import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import { SHOPS_RPC_ERROR_COPY } from "@/lib/shops/rpcErrorCopy";
 import { HAUL_AWAY_RPC_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
+import { REFUND_RPC_ERROR_COPY } from "@/lib/refundRequests/errorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -272,7 +273,9 @@ const HELPR = HELPR_TASK_RPC_ERROR_COPY as CopyTable;
 const SHOPS = SHOPS_RPC_ERROR_COPY as CopyTable;
 // Declutter haul-away's RPCs keep theirs in their own lazily loaded module (src/lib/declutter/haulAwayErrors.ts, Q178).
 const HAUL = HAUL_AWAY_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL };
+// Board 141's two refund-request RPCs keep theirs beside the refund dialogs (src/lib/refundRequests/errorCopy.ts, Q178).
+const REFUND = REFUND_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
@@ -292,6 +295,16 @@ describe("the inventory still sees the world", () => {
     const names = Object.keys(HAUL_AWAY_RPC_ERROR_COPY);
     expect(names.length).toBeGreaterThan(2);
     expect(names.filter((n) => !/^declutter_.*haul_away/.test(n) || n in RPC_ERROR_COPY)).toEqual([]);
+  });
+
+  it("the refund table adds only the refund-request RPCs, none also in RPC_ERROR_COPY, each read by the inventory", () => {
+    const names = Object.keys(REFUND_RPC_ERROR_COPY);
+    expect(names.sort()).toEqual(["rpc_answer_refund_request", "rpc_open_refund_request", "rpc_withdraw_refund_request"]);
+    expect(names.filter((n) => n in RPC_ERROR_COPY)).toEqual([]);
+    // Both are called from src, and raise codes from the functions they call too.
+    expect(calls.has("rpc_open_refund_request") && calls.has("rpc_answer_refund_request")).toBe(true);
+    expect(inventory.get("rpc_open_refund_request")?.get("refund_request_crew_job")).toBe("refund_request_assert_job_open");
+    expect(inventory.get("rpc_answer_refund_request")?.get("schedule_change_clash")).toBe("request_job_schedule_change");
   });
 
   it("no RPC is called with a name the inventory cannot read", () => {

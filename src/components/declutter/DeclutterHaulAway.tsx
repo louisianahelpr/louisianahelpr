@@ -20,11 +20,21 @@ export function leftoversLine(titles: string[], shown = 3): string {
 }
 
 /**
+ * Owner, 2026-10-21 (Q2261): a paused listing must be relisted before a
+ * haul-away can take it. The server keeps refusing one (declutter_link_haul_away
+ * takes only 'live' or 'ended'; declutter_haul_away_state lists only those), so
+ * the screen says so: under each paused listing, and on the card when the seller
+ * has paused items it left out.
+ */
+const PAUSED_HAUL_AWAY_CARD_LINE = "Paused items can't be hauled away. Relist an item first to add it.";
+const PAUSED_HAUL_AWAY_ITEM_LINE = "Paused items can't be hauled away. Relist it first to add it to a haul-away.";
+
+/**
  * The one-tap card above the list (board 164, "Haul it away"): the items one
  * trip can take, where they go, and one button that opens Post a Job
  * pre-filled. The day and the price are set there, like any job.
  */
-export function HaulAwayCard({ group }: { group: HaulAwayRow[] }) {
+export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[]; pausedCount?: number }) {
   if (group.length === 0) return null;
   const n = group.length;
   return (
@@ -57,6 +67,11 @@ export function HaulAwayCard({ group }: { group: HaulAwayRow[] }) {
       <p className="text-ds-13 text-muted-foreground">
         Posted as a job: you pick the day and price, and pay like any job. Booking takes {n === 1 ? "it" : "them"} off sale.
       </p>
+      {pausedCount > 0 && (
+        <p className="text-ds-13 text-muted-foreground" data-haul-paused="">
+          {PAUSED_HAUL_AWAY_CARD_LINE}
+        </p>
+      )}
       <Button asChild className="w-full sm:w-auto">
         <Link to={haulAwayPostJobPath(group.map((r) => r.item_id))}>
           {n === 1 ? "Post a haul-away job" : `Post a haul-away job for ${n} items`}
@@ -91,9 +106,20 @@ export function HaulAwayItemActions({
   );
 }
 
-/** The haul-away line under one listing: hauled, booked, paying, not booked, or when it opens. */
-export function HaulAwayItemLine({ row }: { row: HaulAwayRow | undefined }) {
-  if (!row) return null;
+/**
+ * The haul-away line under one listing: hauled, booked, paying, not booked, or
+ * when it opens. A paused listing has no row (the server lists only items for
+ * sale or off sale), so its status says to relist it first (Q2261).
+ */
+export function HaulAwayItemLine({ row, itemStatus }: { row: HaulAwayRow | undefined; itemStatus?: string }) {
+  if (!row) {
+    if (itemStatus !== "paused") return null;
+    return (
+      <p className="text-xs text-muted-foreground" data-haul-state="paused">
+        {PAUSED_HAUL_AWAY_ITEM_LINE}
+      </p>
+    );
+  }
   if (row.state === "hauled") {
     return (
       <p className="text-xs text-muted-foreground" data-haul-state="hauled">

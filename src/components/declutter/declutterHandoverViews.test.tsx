@@ -57,6 +57,11 @@ vi.mock("@/lib/declutter/handover", () => ({
   leaveReview: async (...a: unknown[]) => { state.calls.push(["review", ...a]); return "r1"; },
 }));
 
+// Board 163: the review sheet has its own test (declutterReviewForm.test.tsx).
+vi.mock("./DeclutterReviewForm", () => ({
+  DeclutterReviewForm: ({ orderId, side, userId }: { orderId: string; side: string; userId: string }) => <p>Review {orderId} as the {side} ({userId})</p>,
+}));
+
 // Slice 5: the delivery card has its own test (declutterDeliveryViews.test.tsx).
 vi.mock("./DeclutterDeliveryViews", () => ({
   OrderDeliveryPanel: ({ taskId, side }: { taskId: string; side: string }) => <p>Delivery card {taskId} for the {side}</p>,
@@ -190,10 +195,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.payouts = [{ order_id: "o1", items_cents: 4000, debt_cents: 150, amount_cents: 3850, status: "succeeded", executed_at: null }];
     show([line({ my_side: "seller", order_status: "handed_over" })]);
     expect(await screen.findByText(/\$38\.50 \(\$40 minus \$1\.50 you owed\)/)).toBeInTheDocument();
-    expect(screen.getByText("Review the buyer")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("radio", { name: "5 stars" }));
-    fireEvent.click(screen.getByRole("button", { name: "Send review" }));
-    await waitFor(() => expect(state.calls).toContainEqual(["review", "o1", 5, null]));
+    expect(screen.getByText("Review o1 as the seller (me)")).toBeInTheDocument();
   });
 
   // Boards 71/72: the one tracker, where it stands, and the money note, from the real handover row.

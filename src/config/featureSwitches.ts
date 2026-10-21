@@ -82,7 +82,23 @@ export const FEATURE_SWITCH_KEYS = [
   // Board 190, price guidance (builder2f 2026-10-21): what most real completed jobs in a category paid, shown
   // only with 30+ jobs. Created 'testers' by 20261021054721; get_price_guidance refuses without it.
   "price_guidance",
+  // Come-back emails (owner yes 2026-10-21): a note from the founder to a member
+  // who signed up and never came back (about day 3, one more about day 10).
+  // Created OFF by 20261021113827. No screen: SERVER_ONLY below.
+  "come_back_emails",
 ] as const;
+
+/**
+ * Switches with no screen: nothing in the app shows or hides anything for
+ * them, so no useFeature() reads them. The server decides with
+ * public.feature_enabled_for_user(key, member) per member (a cron that mails
+ * members). Each is still in FEATURE_SWITCH_KEYS (the registry and Admin ->
+ * Settings list it like any other). EXACT both ways in
+ * src/test/featureSwitchRegistry.test.ts: a key here is never read by
+ * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
+ * ...); every other key is read by useFeature.
+ */
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

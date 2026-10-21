@@ -460,6 +460,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/testRecipient.ts";`,
   );
 
+  // Come-back emails: `_shared/comeBackEmail.ts` has ZERO imports (the copy
+  // and its template names), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/comeBackEmail\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/comeBackEmail.ts";`,
+  );
+
   // Tier display names: `_shared/tierNames.ts` has ZERO imports and is a plain
   // lookup table, so the generated file points at the REAL module. It is what
   // stops a lapse notification telling a member "Your pro pass ended" with the

@@ -542,6 +542,30 @@ export type Database = {
           },
         ]
       }
+      come_back_email_sends: {
+        Row: {
+          claimed_at: string
+          email_step: number
+          message_id: string | null
+          queued_at: string | null
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          email_step: number
+          message_id?: string | null
+          queued_at?: string | null
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          email_step?: number
+          message_id?: string | null
+          queued_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       crew_block_fees: {
         Row: {
           created_at: string
@@ -12469,6 +12493,14 @@ export type Database = {
         Returns: {
           email: string
           id: string
+        }[]
+      }
+      claim_come_back_emails: {
+        Args: { p_limit?: number; p_step: number }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
         }[]
       }
       cleanup_observability_tables: { Args: never; Returns: Json }

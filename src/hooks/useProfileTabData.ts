@@ -37,6 +37,8 @@ export type ProfileReview = {
   created_at: string;
   reviewerName: string;
   jobTitle: string;
+  /** Board 179: which side of the job this member was on; null when the job could not be read. */
+  side: "helpr" | "poster" | null;
 };
 
 export type ProfileViolation = {
@@ -173,7 +175,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const jobIds = [...new Set(data.map((r) => r.job_id))];
       const [profilesRes, jobsRes] = await Promise.all([
         supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-        supabase.from("jobs").select("id, title").in("id", jobIds),
+        supabase.from("jobs").select("id, title, customer_id").in("id", jobIds),
       ]);
       // Enrichment only — a failure here degrades names to "User" / titles to
       // "Job" rather than blanking the reviews, so it deliberately does NOT
@@ -188,6 +190,9 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       }
       const nameMap = new Map(profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || []);
       const jobMap = new Map(jobsRes.data?.map((j) => [j.id, j.title]) || []);
+      // Board 179: the member posted the job (customer_id) or worked it. A job whose poster
+      // deleted their account has customer_id null, and then this member was the Helpr.
+      const sideMap = new Map(jobsRes.data?.map((j) => [j.id, j.customer_id === id ? "poster" as const : "helpr" as const]) || []);
       return data.map((r) => ({
         rating: r.rating,
         feedback: r.feedback,
@@ -200,6 +205,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
         // (Q369); admin screens say ADMIN_DELETED_ACCOUNT_LABEL.
         reviewerName: r.reviewer_id ? nameMap.get(r.reviewer_id) || "a neighbor" : FORMER_MEMBER_LABEL,
         jobTitle: jobMap.get(r.job_id) || "a job",
+        side: sideMap.get(r.job_id) ?? null,
       }));
     },
   });

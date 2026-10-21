@@ -312,7 +312,7 @@ describe("Declutter slice 3 screens", () => {
       // The seller dropped the price to $22 below the buyer's $25 offer: accepting sells for $22.
       { ...OFFER, offer_id: "s1", current_price_cents: 2200, floor_price_cents: 1000, item_title: "Desk" },
       // The seller countered $30 to this buyer: their price $30, fee $2.20, $32.20 with pickup.
-      { ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp" },
+      { ...OFFER, offer_id: "b1", my_side: "buyer", awaiting: "buyer", amount_cents: 3000, floor_price_cents: null, item_title: "Lamp", counter_count: 1 },
     ];
     show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const takeCents = Math.min(o.amount_cents, o.current_price_cents); |   const takeCents = o.amount_cents;

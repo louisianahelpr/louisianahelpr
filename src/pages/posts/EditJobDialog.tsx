@@ -27,6 +27,7 @@ import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { categories, type Job } from "../../components/job-card/activityConstants";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { formatPriceExact } from "@/lib/format";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { isLaborTaxable } from "@/lib/salesTax";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
@@ -246,6 +247,14 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               The place and details are locked once a Helpr is booked. You can still update the access and parking notes here; your Helpr is told.
             </DialogCallout>
           )}
+          {/* Board 172 (owner 2026-10-21): the price is locked after posting, said here rather than left to guess. */}
+          <div className="flex items-start justify-between gap-3 rounded-ds-md border border-border px-3.5 py-3" data-edit-price-locked="">
+            <div className="min-w-0">
+              <p className="text-ds-14 font-semibold text-foreground">Price{typeof job.budget === "number" && job.budget > 0 ? <> · <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPriceExact(job.budget)}</span></> : null}</p>
+              <p className="text-ds-12 text-muted-foreground">Set when you paid. To change it, cancel and post again.</p>
+            </div>
+            <span className="inline-flex shrink-0 items-center gap-1 text-ds-12 font-semibold text-muted-foreground"><Lock className="h-3.5 w-3.5" aria-hidden />Locked</span>
+          </div>
 
           {/* ── The task — what it is ─────────────────────────────────── */}
           <section className="space-y-4">

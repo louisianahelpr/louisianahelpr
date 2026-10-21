@@ -130,6 +130,8 @@ const DeclutterMovePage = lazyWithPreload(() => import("./pages/declutter/Declut
 // Quotes on jobs (owner Q1-Q8): each page renders the 404 unless the hidden
 // 'quotes' switch is on for the member (QuotesGate).
 const QuoteRequestPage = lazyWithPreload(() => import("./pages/quotes/QuoteRequestPage"));
+// Board 181: the Helpr's "X tipped you" moment (the tip notification opens it).
+const TipMoment = lazyWithPreload(() => import("./pages/tips/TipMoment"));
 // The retired /quotes hub: a route like every other, loaded on demand (it resolves a quote notice's side at open time).
 const QuotesHubRedirect = lazyWithPreload(() => import("./components/quotes/QuotesHubRedirect"));
 const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage"));
@@ -266,6 +268,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/declutter/item/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterItemPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes" element={routeEl(<QuotesHubRedirect />)} />
       <Route path="/quotes/request/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><QuoteRequestPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/tips/:tipId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><TipMoment /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/quotes/send/:id" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><SendQuotePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/shops/mine" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ShopEditPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

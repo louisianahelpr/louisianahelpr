@@ -16,6 +16,8 @@
  * surface them in the thread.
  */
 
+import { type PosterChargedJob } from "@/lib/posterJobCost";
+import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 export type JobSystemEventKind =
   | "helper_on_the_way"
   | "helper_arrived"
@@ -23,7 +25,11 @@ export type JobSystemEventKind =
   | "poster_confirmed_completed"
   | "revision_requested"
   | "cancelled"
-  | "disputed";
+  | "disputed"
+  /** Board 181: a paid tip, a money pill ("Lexi tipped $13.50"). */
+  | "tipped"
+  /** Board 181: the payer's receipt for a finished job (job lines + tips). */
+  | "receipt";
 
 export interface JobSystemEvent {
   /** Stable id so the thread render can key on it (system-<kind>-<jobId>). */
@@ -33,6 +39,16 @@ export interface JobSystemEvent {
   /** Pre-rendered, voice-checked copy — kept here so the renderer stays
    *  a thin <div> with no branching on event kind. */
   label: string;
+  /** Money events (tipped, receipt) wear the money tint (spec v2 §3 status bubbles). */
+  money?: boolean;
+  /** The receipt's lines, for kind "receipt" only. */
+  receipt?: ChatReceipt;
+}
+
+/** One receipt, every line read from what was charged (posterJobCost, tipChargeBreakdown). */
+export interface ChatReceipt {
+  lines: { label: string; cents: number }[];
+  totalCents: number;
 }
 
 /**
@@ -139,5 +155,86 @@ export function deriveJobSystemEvents(
     });
   }
 
+  return out;
+}
+
+/** A paid tip on this job, as the tipper or the tipped Helpr may read it (tips RLS). */
+export interface PaidTip {
+  id: string;
+  amount: number;
+  created_at: string;
+  tipper_id: string;
+}
+
+/** What the payer was charged for this job (posterJobCost's columns). */
+export interface JobCharge extends PosterChargedJob {
+  status: string;
+  payment_status: string | null;
+  poster_completed_at: string | null;
+  customer_id: string | null;
+  /** Set on a poster-fee job: customer_fee_amount is then the service fee, not only card processing. */
+  poster_fee_flat_cents?: number | string | null;
+  /** A legacy tier service fee (e.g. 12%) was stamped here: customer_fee_amount is that fee. */
+  platform_fee_percent?: number | string | null;
+  /** The card charge; a job with none was not paid by card. */
+  stripe_payment_intent_id?: string | null;
+  /** A dispute may have refunded part of it without a refund on the row. */
+  disputed_at?: string | null;
+}
+
+/** Facts the receipt needs beyond the job row. */
+export interface ReceiptContext {
+  /** A gift card touched this job (or we could not tell): the card charge is not the price. */
+  giftOrUnknown: boolean;
+}
+
+const cents = (d: number | null | undefined) => (typeof d === "number" && Number.isFinite(d) ? Math.round(d * 100) : 0);
+
+/**
+ * Board 181: the money facts of a deal-room thread. A pill per paid tip
+ * ("Lexi tipped $13.50" / "You tipped $13.50"), and, for the person who paid,
+ * a receipt once the job is done and paid out: Job, Urgent bonus, Card
+ * processing, Tax, Setup fee, each tip and its card processing, Total. Every
+ * figure is a stamped column or the tip charge function, never re-derived.
+ * Nothing for a refunded or unpaid job (a receipt must not overstate).
+ */
+export function deriveMoneyEvents(
+  job: JobCharge | null | undefined,
+  tips: PaidTip[],
+  viewerId: string,
+  otherFirstName: string,
+  jobId: string,
+  ctx: ReceiptContext = { giftOrUnknown: true },
+): JobSystemEvent[] {
+  const out: JobSystemEvent[] = [];
+  for (const t of tips) {
+    const who = t.tipper_id === viewerId ? "You" : otherFirstName || "They";
+    out.push({ id: `system-tipped-${t.id}`, kind: "tipped", at: t.created_at, label: `${who} tipped $${(cents(t.amount) / 100).toFixed(2)}`, money: true });
+  }
+  if (!job || job.customer_id !== viewerId) return out;
+  if (job.status !== "completed" || !["released", "payout_pending"].includes(job.payment_status ?? "")) return out;
+  // Only a plain card-paid job whose charge stands (money review, board 181): a
+  // gift may have paid some or all of it, and a dispute may have refunded part
+  // without a refund on the row. Then the receipt would overstate; none is shown.
+  if (!job.stripe_payment_intent_id || job.disputed_at || ctx.giftOrUnknown) return out;
+  const lines: { label: string; cents: number }[] = [{ label: "Job", cents: cents(job.budget) }];
+  if (cents(job.urgent_fee) > 0) lines.push({ label: "Urgent bonus", cents: cents(job.urgent_fee) });
+  if (cents(job.customer_fee_amount) > 0) {
+    const serviceFee = job.poster_fee_flat_cents != null || Number(job.platform_fee_percent ?? 0) > 0;
+    lines.push({ label: serviceFee ? "Service fee" : "Card processing", cents: cents(job.customer_fee_amount) });
+  }
+  if (cents(job.sales_tax_amount) > 0) lines.push({ label: "Tax", cents: cents(job.sales_tax_amount) });
+  if (cents(job.onboarding_fee_amount) > 0) lines.push({ label: "Account setup fee", cents: cents(job.onboarding_fee_amount) });
+  for (const t of tips.filter((x) => x.tipper_id === viewerId)) {
+    const q = tipChargeBreakdown(cents(t.amount));
+    lines.push({ label: "Tip", cents: q.tipCents });
+    if (q.feeCents > 0) lines.push({ label: "Tip card processing", cents: q.feeCents });
+  }
+  const totalCents = lines.reduce((sum, l) => sum + l.cents, 0);
+  const lastTip = tips.reduce((m, t) => (t.created_at > m ? t.created_at : m), "");
+  const at = [job.poster_completed_at ?? "", lastTip].sort().pop() || job.poster_completed_at || new Date().toISOString();
+  // A moment after the last money fact, so the receipt reads under its pills.
+  const after = new Date(new Date(at).getTime() + 1000).toISOString();
+  out.push({ id: `system-receipt-${jobId}`, kind: "receipt", at: after, label: "Receipt", money: true, receipt: { lines, totalCents } });
   return out;
 }

@@ -37,11 +37,9 @@ const ROLE_NOUN = /(^|[^A-Za-z0-9_$./\\-])(posters?|customers?|helpers?)(?![A-Za
 const IDENTITY = /\bas an? (helpr|poster|customer|helper)s?\b/i;
 
 // @two-way src/test/sqlNotificationCopyRoleNeutral.test.ts:stale known role copy
-// function -> the finding still in it. notify_helper_on_tip is the tips lane's
-// (ME-006); reword it there.
-const KNOWN: Record<string, string[]> = {
-  notify_helper_on_tip: ["A poster left you a $"],
-};
+// function -> the finding still in it. Empty since board 181 (2026-10-21)
+// reworded notify_helper_on_tip to name the tipper.
+const KNOWN: Record<string, string[]> = {};
 
 function findings(): { producers: string[]; found: Record<string, string[]> } {
   const producers: string[] = [];

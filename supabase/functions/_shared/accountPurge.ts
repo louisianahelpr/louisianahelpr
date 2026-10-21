@@ -656,8 +656,8 @@ async function findLiveRefundRequest(admin: PurgeCapableClient, userId: string):
   return { ok: true, active: false };
 }
 
-/** A refund request still waiting: open, or declined with its dispute not filed yet. */
-export const REFUND_REQUEST_WAITING_FILTER = "status.eq.open,and(status.eq.declined,dispute_id.is.null)";
+/** A refund request still waiting: open, a come-back offer not yet settled (Q2300), or declined with its dispute not filed yet. */
+export const REFUND_REQUEST_WAITING_FILTER = "status.in.(open,finish_offered,coming_back),and(status.eq.declined,dispute_id.is.null)";
 
 /** A Declutter sale this member is a party to that is not settled yet (fail closed on a read error). */
 async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string): Promise<ActiveWorkResult> {

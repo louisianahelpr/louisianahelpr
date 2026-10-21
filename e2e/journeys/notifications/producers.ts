@@ -185,6 +185,10 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered:
       "Board 141 sweep (20261021102943): service-only, run by the refund-request-sweep cron on a request declined or unanswered for 2 days on an escrow-funded job (a paid live Stripe checkout, never made by a journey). The poster's 'Your refund request goes to Helpr' notice is proven in src/test/pglite/refundRequests.pglite.mjs (E3).",
   },
+  "sql:refund_agreements_due": {
+    uncovered:
+      "Board 141 held agreement (20261021102943): service-only, run by the refund-request-sweep cron on an agreed refund on an escrow-funded job (a paid live Stripe checkout, never made by a journey) whose poster or Helpr is banned, suspended, under a ban review or on a payout hold. Both parties' 'Your refund is waiting on Helpr' notice is proven in src/test/pglite/refundRequests.pglite.mjs (HD-notify).",
+  },
   "sql:request_job_schedule_change": { uncovered: GAP("request_job_schedule_change on a hired journey job (the other party answers with respond_job_schedule_change)") },
   "sql:respond_job_schedule_change": { uncovered: GAP("respond_job_schedule_change after the other party asks to move a hired journey job") },
   "sql:withdraw_job_schedule_change": { uncovered: GAP("withdraw_job_schedule_change after asking to move a hired journey job") },

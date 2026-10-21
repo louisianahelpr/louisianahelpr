@@ -113,7 +113,7 @@ describe("Refund request (the Helpr)", () => {
   const answer = (job = JOB) =>
     wrap(<RefundAnswerDialog open onOpenChange={() => {}} job={job} request={REQUEST} posterName="Lexi L." feeFallbackPercent={12} userId={HELPR} />);
 
-  it("Agree shows the refund and the take-home in money ink; no finish on a job under way", () => {
+  it("Agree shows the refund and the take-home in money ink; Come back and finish offered on a job under way (Q2300)", () => {
     answer();
     const agree = screen.getByRole("radio", { name: /Agree · refund \$20/ });
     // $40 - $20 = $20, less the free tier's 12% = $17.60, paid as $17.
@@ -121,7 +121,7 @@ describe("Refund request (the Helpr)", () => {
     for (const money of agree.querySelectorAll(".text-\\[hsl\\(var\\(--burnt-sienna\\)\\)\\]")) {
       expect(money.textContent).toMatch(/^\$\d/);
     }
-    expect(screen.queryByRole("radio", { name: /Come back and finish/ })).toBeNull();
+    expect(screen.getByRole("radio", { name: /Come back and finish/ })).toBeTruthy();
     expect(screen.getByRole("radio", { name: /I don't agree/ })).toBeTruthy();
     expect(screen.getByText(/Lexi asked for/)).toBeTruthy();
   });
@@ -137,6 +137,12 @@ describe("Refund request (the Helpr)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
     await waitFor(() => expect(rpc).toHaveBeenCalled());
     expect(rpc).toHaveBeenCalledWith("rpc_answer_refund_request", expect.objectContaining({ p_answer: "finish", p_date: later, p_request_id: REQUEST.id }));
+  });
+
+  it("no Come back and finish where the date/time request would refuse it (a job in revision), never a greyed choice", () => {
+    answer({ ...JOB, status: "revision_requested" });
+    expect(screen.queryByRole("radio", { name: /Come back and finish/ })).toBeNull();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
   });
 
   it("I don't agree sends that answer", async () => {

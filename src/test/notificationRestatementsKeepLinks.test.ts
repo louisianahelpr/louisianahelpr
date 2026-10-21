@@ -106,6 +106,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // both parties on the job (poster '/posts?job=<id>', Helpr '/jobs?job=<id>');
   // links only added, nothing gone.
   "20261005064336_schedule_clash_declines_with_notice.sql::respond_job_schedule_change",
+  // Board 141 (Q2300): a "Come back and finish" offer answered after it lapsed
+  // tells the Helpr who offered it, on the job ('/jobs?job=<id>', the link the
+  // ordinary expiry notice gives a Helpr); links only added, nothing gone.
+  "20261021102943_refund_requests.sql::respond_job_schedule_change",
   "20260927012240_group_crew_disputes.sql::rpc_escalate_dispute",
   // Q728: a crew's day-of, start and no-show reminders: the poster on
   // '/posts?job=<id>', each member on '/jobs?job=<id>' (nothing gone).

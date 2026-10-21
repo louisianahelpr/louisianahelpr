@@ -10,6 +10,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import {
   answerRefundRequest,
   canOfferToFinish,
+  latestComeBackDate,
   refundTakeHomeDollars,
   type RefundAnswer,
   type RefundJob,
@@ -57,7 +58,10 @@ export function RefundAnswerDialog({
   const first = firstNameOf(posterName);
   const takeHome = refundTakeHomeDollars(job, request, feeFallbackPercent);
   const finishOffered = canOfferToFinish(job);
-  const finishReady = answer !== "finish" || (!!date && !(date === job.date_needed && time === (job.start_time ?? "").slice(0, 5)));
+  const latestDate = latestComeBackDate();
+  const finishReady =
+    answer !== "finish" ||
+    (!!date && date <= latestDate && !(date === job.date_needed && time === (job.start_time ?? "").slice(0, 5)));
 
   const options: RadioCardOption[] = [
     {
@@ -130,7 +134,7 @@ export function RefundAnswerDialog({
             <div className="grid grid-cols-1 min-[380px]:grid-cols-2 gap-3">
               <label className="min-w-0 space-y-1 font-sans text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
                 <span className="block font-semibold">Date</span>
-                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={DATE_TIME_FIELD} />
+                <input type="date" value={date} max={latestDate} onChange={(e) => setDate(e.target.value)} className={DATE_TIME_FIELD} />
               </label>
               <label className="min-w-0 space-y-1 font-sans text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
                 <span className="block font-semibold">Start time</span>

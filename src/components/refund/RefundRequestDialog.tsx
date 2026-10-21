@@ -153,8 +153,10 @@ export function RefundRequestDialog({
           </div>
 
           <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
-            {first} can agree, offer to come back and finish, or say no and let Helpr decide. If {first} agrees, that share of
-            what you paid goes back to how you paid, less the card processing fee.
+            {first} can agree, offer to come back and finish, or say no and let Helpr decide.
+            {scope === "all"
+              ? ` If ${first} agrees, what you paid goes back to how you paid, less the card processing fee.`
+              : ` If ${first} agrees, exactly the amount you ask for goes back to how you paid.`}
           </p>
         </div>
         <DialogFooter>

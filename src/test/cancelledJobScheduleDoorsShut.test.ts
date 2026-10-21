@@ -23,7 +23,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 // Shown able to fail: each line alone reds this test.
 // @mutate supabase/migrations/20261018024950_poster_fee_job_schedule_locked.sql |           OR OLD.status::text = 'cancelled'\n |
-// @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |      OR v_job.status::text <> 'accepted'\n     OR v_job.date_needed IS DISTINCT FROM v_req.old_date |      OR v_job.date_needed IS DISTINCT FROM v_req.old_date
+// @mutate supabase/migrations/20261021102943_refund_requests.sql |      OR (v_job.status::text <> 'accepted' AND NOT (v_refund_id IS NOT NULL AND v_job.status::text = 'in_progress'))\n     OR v_job.date_needed IS DISTINCT FROM v_req.old_date |      OR v_job.date_needed IS DISTINCT FROM v_req.old_date
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (fn: string) => blankSqlComments(defs.get(fn)?.stmt ?? "").replace(/\s+/g, " ");
@@ -42,7 +42,9 @@ describe("Q417 (b): a cancelled job's date and start time cannot move", () => {
   it("respond_job_schedule_change expires a request unless the job is still accepted, before it writes the job", () => {
     const respond = body("respond_job_schedule_change");
     expect(respond.length).toBeGreaterThan(2000);
-    const expire = respond.search(/IF now\(\) >= v_req\.expires_at OR v_job\.status::text <> 'accepted'[^;]*THEN UPDATE public\.job_schedule_change_requests SET status = 'expired'/);
+    // Accepted jobs only, except (Q2300, owner 2026-10-21) a come-back offer
+    // answering a refund request on a job under way; a cancelled job never.
+    const expire = respond.search(/IF now\(\) >= v_req\.expires_at OR \(v_job\.status::text <> 'accepted' AND NOT \(v_refund_id IS NOT NULL AND v_job\.status::text = 'in_progress'\)\)[^;]*THEN UPDATE public\.job_schedule_change_requests SET status = 'expired'/);
     expect(expire, "the accepted-only expiry is gone").toBeGreaterThan(0);
     // Every write to the job's row comes after that refusal.
     const jobWrites = [...respond.matchAll(/UPDATE public\.jobs\b/g)].map((m) => m.index!);

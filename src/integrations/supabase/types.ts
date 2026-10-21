@@ -14134,6 +14134,8 @@ export type Database = {
           request_id: string
         }[]
       }
+      refund_come_back_pending: { Args: { p_job_id: string }; Returns: boolean }
+      refund_party_held: { Args: { p_user: string }; Returns: boolean }
       refund_monthly_free_boost: {
         Args: { p_month: string; p_user_id: string }
         Returns: boolean

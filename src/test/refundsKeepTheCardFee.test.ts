@@ -674,11 +674,15 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "generalSplit.refundCents",
     "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, })",
   ],
+  // Q2298 (owner, 2026-10-21): an agreed PART refund is EXACTLY the amount
+  // asked (agreement.amountCents). It still keeps the card fee: the split
+  // refuses one above refundableCents (posterBase.ceilingCents, the charge
+  // less its kept card fee), so the card fee is never what comes back.
   "poster_share": [
     "refundCents",
-    "refundCents = Math.max(0, Math.round(refundableCents * posterShare))",
+    "refundCents = exactAgreed && agreement !== null ? agreement.amountCents : Math.max(0, Math.round(refundableCents * posterShare))",
     "refundableCents = posterBase.ceilingCents",
-    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, taxCents: await chargeTaxCentsFor(stripe, pi), })",
+    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, taxCents: chargeTaxCents, })",
   ],
   "crew-dispute-refund-": [
     "refundCents",

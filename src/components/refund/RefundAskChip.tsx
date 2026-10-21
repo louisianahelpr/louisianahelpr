@@ -1,6 +1,6 @@
 import { HandCoins } from "lucide-react";
 import { JobActionChip } from "@/components/job-card/JobActionRow";
-import { isWaiting } from "@/lib/refundRequests";
+import { blocksNewAsk } from "@/lib/refundRequests";
 import { useRefundRequest } from "./refundParts";
 
 /**
@@ -13,7 +13,7 @@ import { useRefundRequest } from "./refundParts";
  */
 export function RefundAskChip({ jobId, onOpen }: { jobId: string; onOpen: () => void }) {
   const { data: latest, isSuccess } = useRefundRequest(jobId, true);
-  if (!isSuccess || (latest && isWaiting(latest))) return null;
+  if (!isSuccess || (latest && blocksNewAsk(latest))) return null;
   return (
     <JobActionChip
       icon={HandCoins}

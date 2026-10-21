@@ -33,6 +33,10 @@
  * @mutate supabase/functions/refund-request-sweep/index.ts |       if (res.status === 401 \|\| res.status === 403 \|\| res.status >= 500) { |       if (res.status >= 500) {
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |      AND r.answered_by = r.responder_id\n |
  * @mutate supabase/migrations/20261021102943_refund_requests.sql |      AND r.status = 'agreed'\n     AND r.answered_at IS NOT NULL | AND r.answered_at IS NOT NULL
+ * @mutate supabase/functions/execute-dispute-split/index.ts |   if (exactAgreed && refundCents > refundableCents) { |   if (false) {
+ * @mutate supabase/functions/execute-dispute-split/index.ts |     if (exactTaxCents === null \|\| exactTaxCents > 0) { |     if (exactTaxCents !== null && exactTaxCents > 0) {
+ * @mutate supabase/functions/execute-dispute-split/index.ts |     if (exactTaxCents === null \|\| exactTaxCents > 0) { |     if (exactTaxCents === null) {
+ * @mutate supabase/functions/execute-dispute-split/index.ts |   if (exactAgreed && agreement !== null && agreement.budgetCents !== Math.round(perHelperBudget * 100)) { |   if (false) {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,7 +45,7 @@ import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { blankComments, blankSqlComments } from "../helpers/blankNonCode";
 import { effectiveDefs } from "../helpers/effectiveFunctionDefs";
 
@@ -183,11 +187,10 @@ describe("execute-dispute-split: the service key moves money only on a recorded 
     expect(body.success).toBe(true);
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
-    // The refund is the poster's half of what was captured, less the kept
-    // card fee (_shared/refundAmount.ts), never the client's "$20".
+    // Q2298 (owner, 2026-10-21): EXACTLY the recorded amount ($20 of the
+    // $40 price), read from the server's proof, never a share of the charge.
     const refundAmount = (stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount;
-    expect(refundAmount).toBeLessThan(2200);
-    expect(refundAmount).toBeGreaterThan(0);
+    expect(refundAmount).toBe(2000);
     // Keyed on the dispute: Stripe replays rather than repeats a second run.
     expect((stripeMock.refunds.create.mock.calls[0][1] as { idempotencyKey: string }).idempotencyKey).toBe(`dispute-split-rf-${DISPUTE}`);
     const ledger = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "insert")?.payload as Record<string, unknown>;
@@ -197,6 +200,64 @@ describe("execute-dispute-split: the service key moves money only on a recorded 
     expect(audit?.action).toBe("execute_refund_agreement");
     expect(audit?.admin_id).toBeNull();
     expect(audit?.details).toMatchObject({ refund_request_id: REQUEST, agreed_poster_id: POSTER, agreed_helper_id: HELPR });
+  });
+});
+
+describe("execute-dispute-split: an agreed part refunds EXACTLY the amount asked (Q2298)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  it("the owner's example: $20 of a $40 job with a $10 rush fee refunds $20; the Helpr gets $20 + the rush fee less 12% of the price ($27)", async () => {
+    seedAgreed();
+    (scenario.reads.jobs.rows as Array<Record<string, unknown>>)[0].urgent_fee = 10;
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount_received: 5500, latest_charge: "ch_1" });
+    const res = await split();
+    expect(res.status).toBe(200);
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount).toBe(2000);
+    expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe(2700);
+  });
+
+  it("a TAXED charge moves nothing on the exact path (Q1998 unchecked): an admin settles it", async () => {
+    seedAgreed();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount_received: 4800, latest_charge: "ch_1",
+      amount_details: { tax: { total_tax_amount: 400 } },
+    });
+    const res = await split();
+    expect(res.status).toBe(409);
+    expect(stripeMoneyCalls()).toBe(0);
+  });
+
+  it("a tax read that fails counts as taxed: nothing moves", async () => {
+    seedAgreed();
+    stripeMock.checkout.sessions.list.mockRejectedValue(new Error("stripe down"));
+    const res = await split();
+    expect(res.status).toBe(409);
+    expect(stripeMoneyCalls()).toBe(0);
+  });
+
+  it("a recorded price that is not the job's price moves nothing", async () => {
+    seedAgreed();
+    (scenario.reads.jobs.rows as Array<Record<string, unknown>>)[0].budget = 45;
+    const res = await split();
+    expect(res.status).toBe(409);
+    expect(stripeMoneyCalls()).toBe(0);
+  });
+
+  it("more than the charge can return (after its kept card fee) moves nothing", async () => {
+    seedAgreed();
+    // $39.99 of a $40 price on a $40.00 charge: the Helpr's 1c rounds to $0,
+    // so the escrow cap (refund + Helpr <= captured) passes; only the
+    // refundable ceiling (captured less the kept card fee) refuses it.
+    scenario.rpc.refund_agreement_for_dispute = { ...PROOF, amount_cents: 3999 };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount_received: 4000, latest_charge: "ch_1" });
+    const res = await split();
+    expect(res.status).toBe(409);
+    expect(stripeMoneyCalls()).toBe(0);
   });
 });
 
@@ -286,6 +347,19 @@ describe("refund-request-sweep: hands the split only the agreements the database
     expect(res.status).toBe(200);
     expect(body.settled).toBe(0);
     expect(body.refused).toHaveLength(1);
+  });
+
+  it("a held party's agreement (banned, suspended, ban review, payout hold): the split is never asked, ops is paged", async () => {
+    scenario.rpc.refund_requests_sweep = { closed: 0, expired: 0, declined: 0, failed: 0, errors: [] };
+    scenario.rpc.refund_agreements_due = [{ ...DUE, held: true }];
+    const fetchMock = answer(200, { success: true });
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await sweep();
+    const body = await json(res);
+    expect(res.status).toBe(200);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(body.held_for_admin).toBe(1);
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Agreed refund held for an admin")).toBe(true);
   });
 
   it("a request the SQL sweep could not process is a defect", async () => {

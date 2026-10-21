@@ -93,6 +93,8 @@ export async function respondScheduleChange(requestId: string, accept: boolean):
   if (error) throw changeError(error, rpcErrorMessage("respond_job_schedule_change", error));
   const reply = (data as { status?: string; reason?: string } | null) ?? {};
   if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash";
+  // Q2300: a come-back offer (board 141) the poster declined goes on to Helpr.
+  if (reply.status === "declined" && reply.reason === "refund_escalated") return "declined:refund";
   // Why an answer found the request expired (20261008183640); the person who
   // asked is told the same by notification.
   if (reply.status === "expired" && reply.reason) return `expired:${reply.reason}`;

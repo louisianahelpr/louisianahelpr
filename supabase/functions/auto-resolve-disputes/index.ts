@@ -7,6 +7,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
+import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../_shared/refundRequestHold.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
@@ -978,6 +979,31 @@ serve(async (req) => {
                   if (heldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
                 }
                 stuck = stuck.filter((row) => !heldIds.has(row.id as string));
+              }
+            }
+
+            // ── Agreed refunds held for an admin (board 141) ───────────────
+            // refund_agreements_due never settles an agreement automatically
+            // when a party is banned, suspended, under a ban review or on a
+            // payout hold: it marks an untouched one REFUND_AGREEMENT_HELD_ERROR,
+            // the admin queue lists it unsettled, and the sweep paged ops once.
+            // Set aside here (body only) ONLY while a party is still held, as
+            // the payout-hold block above does; once the hold lifts it is stuck
+            // again and pages, so nobody forgets it. FAIL CLOSED: an unreadable
+            // check sets nothing aside.
+            const agreementCandidates = stuck.filter((row) =>
+              typeof row.execution_error === "string" && (row.execution_error as string).startsWith(REFUND_AGREEMENT_HELD_ERROR)
+            );
+            if (agreementCandidates.length) {
+              const stillHeld = await loadStillHeldAgreements(supabase, agreementCandidates.map((row) => row.id as string));
+              if (!stillHeld.ok) {
+                console.error("[auto-resolve-disputes] held-agreement read failed; every stuck split stays stuck:", stillHeld.message);
+                defects.record(`stuck split held-agreement read: ${stillHeld.message}`);
+              } else {
+                for (const row of stuck) {
+                  if (stillHeld.disputes.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+                }
+                stuck = stuck.filter((row) => !stillHeld.disputes.has(row.id as string));
               }
             }
 

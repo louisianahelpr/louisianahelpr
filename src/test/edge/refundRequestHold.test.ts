@@ -155,7 +155,8 @@ describe("isLiveRefundRequest is the SQL rule refund_request_is_live", () => {
     ["agreed, dispute unreadable", row({ status: "agreed", dispute_id: "d", disputes: null }), true],
     ["agreed, split executed", row({ status: "agreed", dispute_id: "d", disputes: embed("decided", "executed") }), false],
     ["agreed, decision superseded", row({ status: "agreed", dispute_id: "d", disputes: embed("superseded", "pending") }), false],
-    ["finish offered", row({ status: "finish_offered" }), false],
+    ["finish offered, the poster not answered yet (Q2300)", row({ status: "finish_offered" }), true],
+    ["coming back, not yet handed over", row({ status: "coming_back" }), true],
     ["expired (dispute filed)", row({ status: "expired", dispute_id: "d" }), false],
     ["closed", row({ status: "closed" }), false],
   ])("%s", (_name, r, live) => {

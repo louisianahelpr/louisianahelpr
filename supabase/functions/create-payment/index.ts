@@ -46,7 +46,7 @@ import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundP
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
-import { isRefundRequestHoldRefusal, REFUND_REQUEST_RELEASE_MESSAGE } from "../_shared/refundRequestHold.ts";
+import { COME_BACK_PENDING_MESSAGE, isRefundRequestHoldRefusal, refundComeBackPending, REFUND_REQUEST_RELEASE_MESSAGE } from "../_shared/refundRequestHold.ts";
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
@@ -1419,8 +1419,13 @@ serve(async (req) => {
       // helper_completed_at (a poster acting on their own job is not gated, and
       // neither is a re-confirmation of an already-stamped completion).
       // `select("*")` above already returns every column read here.
-      const isNewHelperCompletion = isHelper && !isPoster && !job.helper_completed_at;
-      if (isNewHelperCompletion) {
+      //
+      // The gates run on the row the write is decided from: here on the first
+      // read, and again on every re-read in the retry loop below, where a
+      // stamp cleared in between (a come-back accepted, refund_requests_sweep)
+      // makes the retry a NEW completion (lh-money-escrow re-review, 2026-10-21).
+      // deno-lint-ignore no-explicit-any
+      const newHelperCompletionGates = async (job: any) => {
         // 1. ARRIVAL MUST BE ESTABLISHED — and that takes BOTH (owner,
         //    2026-09-14, VN-33): the server verified the helper within 500ft
         //    when they marked arrived, AND the poster tapped "Confirm They
@@ -1441,7 +1446,18 @@ serve(async (req) => {
         if (!hasBeforeProof || !hasAfterProof) {
           throw new PublicError("Before & after photos are required — they're the proof that releases your payment.");
         }
-      }
+
+        // 2b. NOT BEFORE AN AGREED COME-BACK (board 141, Q2300; lh-money-escrow
+        //     re-review, 2026-10-21). The Helpr agreed to come back and finish
+        //     instead of a refund: no new done stamp until the agreed time.
+        //     trg_refuse_done_before_come_back judges the member's own write;
+        //     this write is the service role's, which that trigger lets
+        //     through, so it asks the same SQL rule here.
+        const comeBack = await refundComeBackPending(supabaseAdmin, jobId);
+        if (!comeBack.ok) throw new PublicError("We couldn't check this job right now, so it wasn't marked done. Try again in a minute.");
+        if (comeBack.pending) throw new PublicError(COME_BACK_PENDING_MESSAGE);
+      };
+      if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);
 
       // 3. MINIMUM JOB TIME — 30 minutes measured from when work actually
       //    started. The anchor was `helper_confirmed_at || updated_at`, which
@@ -1520,6 +1536,7 @@ serve(async (req) => {
                 : "Job is not in progress",
             );
           }
+          if (isHelper && !isPoster && !job.helper_completed_at) await newHelperCompletionGates(job);
         }
 
         updateFields = {};

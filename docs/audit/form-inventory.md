@@ -165,6 +165,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
+| `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
+| `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |
 | `src/components/rentals/RentalVisitHelpr.tsx` | input×1, date/calendar×1 | datetime-local |  | Visit time · Visit time to offer |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |

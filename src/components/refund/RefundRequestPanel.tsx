@@ -102,8 +102,16 @@ function RefundRequestPanelOpen({
   } else if (request.status === "agreed" && !settled) {
     line = asked ? (
       <>
-        {other} agreed to your refund: <Money cents={request.amount_cents} /> of the <Money cents={request.budget_cents} /> price. That share of
-        what you paid is on its way back to how you paid, less the card processing fee. Your receipt shows the exact amount.
+        {request.refund_scope === "all" ? (
+          <>
+            {other} agreed to refund all of it. What you paid is on its way back to how you paid, less the card processing fee.
+            Your receipt shows the exact amount.
+          </>
+        ) : (
+          <>
+            {other} agreed to your refund: <Money cents={request.amount_cents} /> is on its way back to how you paid.
+          </>
+        )}
       </>
     ) : (
       <>
@@ -124,9 +132,18 @@ function RefundRequestPanelOpen({
     );
   } else if (request.status === "finish_offered" && !settled) {
     line = asked ? (
-      <>{other} offered to come back and finish instead of a refund. Answer the new time on this job.</>
+      <>
+        {other} offered to come back and finish instead of a refund. Accept the new time on this job, or decline it and a real person
+        at Helpr will decide. The payment stays on hold until then.
+      </>
     ) : (
-      <>You offered to come back and finish instead of a refund.</>
+      <>You offered to come back and finish instead of a refund. The payment stays on hold until they answer.</>
+    );
+  } else if (request.status === "coming_back") {
+    line = asked ? (
+      <>You accepted. {other} is coming back to finish at the new time.</>
+    ) : (
+      <>They accepted. Come back at the new time, then mark the job done again.</>
     );
   }
   if (!line) return null;

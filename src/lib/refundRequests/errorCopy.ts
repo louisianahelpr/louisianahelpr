@@ -66,6 +66,7 @@ export const REFUND_RPC_ERROR_COPY = {
     refund_request_expired: "The 2 days to answer have passed, so Helpr will decide this one.",
     refund_request_stale: "The job's price changed after they asked, so this request can't be agreed. Refresh and check.",
     refund_request_needs_time: "Pick a day and time to come back and finish.",
+    refund_request_finish_too_far: "Pick a day within the next 7 days to come back and finish.",
   },
   rpc_withdraw_refund_request: {
     feature_disabled: COMMON.feature_disabled,

@@ -13,7 +13,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
-import { loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
+import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -198,8 +198,17 @@ serve(async (req) => {
         defects.record(`instant-release flag query: ${flagErr.message}`);
       } else {
         const flaggedSet = new Set((flagged || []).map((p) => p.user_id));
-        for (const j of recentDone) {
-          if (flaggedSet.has(j.customer_id)) {
+        // Board 141 (Q2300): never instantly after an agreed "Come back and
+        // finish"; those wait out the normal 24 hours. FAIL CLOSED: an
+        // unreadable check sends every candidate to the 24-hour path.
+        const flaggedJobs = recentDone.filter((j) => flaggedSet.has(j.customer_id));
+        const comeBack = await loadComeBackJobs(supabaseAdmin, flaggedJobs.map((j) => j.id));
+        if (!comeBack.ok) {
+          console.error("[auto-release-payment] come-back read failed; no instant release this run:", comeBack.message);
+          defects.record(`instant-release come-back read: ${comeBack.message}`);
+        } else {
+          for (const j of flaggedJobs) {
+            if (comeBack.jobs.has(j.id)) continue;
             instantIds.add(j.id);
             (jobs || []).push(j);
           }

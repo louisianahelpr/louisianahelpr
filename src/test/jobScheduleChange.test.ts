@@ -8,18 +8,18 @@
  * trigger chain, OLD STATE RED, chain 3x). This file pins the shape of the
  * NEWEST definitions so a later migration cannot drop a clause silently.
  *
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |   IF now() >= v_req.expires_at\n     OR v_job.status::text <> 'accepted' |   IF v_job.status::text <> 'accepted'
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |   IF v_uid IS DISTINCT FROM v_req.responder_id\n     OR v_uid IS DISTINCT FROM (CASE WHEN v_req.requested_by = v_job.customer_id THEN v_job.helper_id ELSE v_job.customer_id END) THEN |   IF v_uid IS NULL THEN
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |   IF now() >= v_req.expires_at\n     OR (v_job.status::text <> 'accepted' |   IF (v_job.status::text <> 'accepted'
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at) |     (v_job.id, v_uid, v_other, v_job.date_needed, v_job.start_time, p_date, p_start_time, v_starts_at + interval '30 days')
  * @mutate supabase/migrations/20260927012807_job_schedule_change_requests.sql |   ON public.job_schedule_change_requests (job_id) WHERE status = 'pending'; |   ON public.job_schedule_change_requests (job_id, id) WHERE status = 'pending';
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql | AND ((o.helper_id = v_job.helper_id\n             AND o.status::text | AND ((false\n             AND o.status::text
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql | IF FOUND THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined' | IF false THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined'
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |     RAISE EXCEPTION 'schedule_change_clash'; |     NULL;
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql | AND ((o.helper_id = v_job.helper_id\n             AND o.status::text | AND ((false\n             AND o.status::text
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql | IF FOUND THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined' | IF false THEN\n        UPDATE public.job_schedule_change_requests SET status = 'declined'
  * Q1262(2): the clash declines the request and tells the asker.
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |         UPDATE public.job_schedule_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id;\n        INSERT INTO public.notifications | UPDATE public.job_schedule_change_requests SET status = 'pending' WHERE false;\n        INSERT INTO public.notifications
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql |           'New date or time not possible', |           NULL,
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql | FOR SHARE OF o; | ;
- * @mutate supabase/migrations/20261015015604_schedule_change_uses_booking_rule.sql | AND ((o.helper_id = v_job.helper_id\n               AND o.status::text | AND ((false\n               AND o.status::text
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |         UPDATE public.job_schedule_change_requests SET status = 'declined', decided_at = now() WHERE id = v_req.id;\n        INSERT INTO public.notifications | UPDATE public.job_schedule_change_requests SET status = 'pending' WHERE false;\n        INSERT INTO public.notifications
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql |           'New date or time not possible', |           NULL,
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql | FOR SHARE OF o; | ;
+ * @mutate supabase/migrations/20261021102943_refund_requests.sql | AND ((o.helper_id = v_job.helper_id\n               AND o.status::text | AND ((false\n               AND o.status::text
  * @mutate supabase/migrations/20261007113957_booked_job_detail_change_request.sql |          AND current_setting('app.schedule_change_rpc', true) = '1' THEN |          AND true THEN
  */
 import { readFileSync } from "node:fs";
@@ -67,7 +67,9 @@ describe("a booked one-time job's date/time changes only by an accepted request 
   it("a request expires at the job's ORIGINAL start, and an expired one cannot be accepted", () => {
     expect(request).toMatch(/v_starts_at := \(v_job\.date_needed \+ COALESCE\(v_job\.start_time, '00:00'::time\)\) AT TIME ZONE 'America\/Chicago';/);
     expect(request).toMatch(/\(v_job\.id, v_uid, v_other, v_job\.date_needed, v_job\.start_time, p_date, p_start_time, v_starts_at\)/);
-    expect(respond).toMatch(/IF now\(\) >= v_req\.expires_at\s+OR v_job\.status::text <> 'accepted'/);
+    // Accepted jobs only, except (Q2300, owner 2026-10-21) a come-back offer
+    // answering a refund request, judged on a job under way too.
+    expect(respond).toMatch(/IF now\(\) >= v_req\.expires_at\s+OR \(v_job\.status::text <> 'accepted' AND NOT \(v_refund_id IS NOT NULL AND v_job\.status::text = 'in_progress'\)\)/);
   });
 
   it("one pending request per job", () => {

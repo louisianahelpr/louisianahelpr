@@ -19,7 +19,7 @@
  * Helpr asked (open, declined with its dispute not filed yet, or agreed and
  * not yet split), blocks it too; a settled one does not.
  * @mutate supabase/functions/_shared/accountPurge.ts |   if (!refund.ok \|\| refund.active) return refund; |   void refund;
- * @mutate supabase/functions/_shared/accountPurge.ts | export const REFUND_REQUEST_WAITING_FILTER = "status.eq.open,and(status.eq.declined,dispute_id.is.null)"; | export const REFUND_REQUEST_WAITING_FILTER = "status.eq.open";
+ * @mutate supabase/functions/_shared/accountPurge.ts | export const REFUND_REQUEST_WAITING_FILTER = "status.in.(open,finish_offered,coming_back),and(status.eq.declined,dispute_id.is.null)"; | export const REFUND_REQUEST_WAITING_FILTER = "status.in.(open),and(status.eq.declined,dispute_id.is.null)";
  * @mutate supabase/functions/_shared/accountPurge.ts |     .or("execution_status.is.null,execution_status.neq.executed", { referencedTable: "disputes" }) |     .or("execution_status.is.null,execution_status.neq.pending", { referencedTable: "disputes" })
  * @mutate supabase/functions/delete-own-account/index.ts |             : active.reason === "money_owed"\n            ? MONEY_OWED_BLOCKS_DELETION_MESSAGE\n | \n
  */
@@ -199,7 +199,9 @@ describe("Q2273: money owed to the member blocks deleting the account", () => {
     ["agreed, split failed (waiting on a retry)", { responder_id: ME, status: "agreed", dispute_id: "d1", disputes: embed("decided", "failed") }, true],
     ["agreed and split", { requester_id: ME, status: "agreed", dispute_id: "d1", disputes: embed("decided", "executed") }, false],
     ["declined with its dispute filed (the disputed job blocks on its own)", { requester_id: ME, status: "declined", dispute_id: "d1" }, false],
-    ["finished with an offer to come back", { responder_id: ME, status: "finish_offered", dispute_id: null }, false],
+    ["a come-back offer the poster has not answered (Q2300)", { responder_id: ME, status: "finish_offered", dispute_id: null }, true],
+    ["a come-back accepted, not yet handed over", { requester_id: ME, status: "coming_back", dispute_id: null }, true],
+    ["closed as coming back", { requester_id: ME, status: "closed", dispute_id: null }, false],
     ["another member's open request", { requester_id: OTHER, status: "open", dispute_id: null }, false],
   ])("Q2272: a refund request %s", async (_name, row, blocks) => {
     const r = await check({ refund_requests: [{ id: "rr1", ...row }] });

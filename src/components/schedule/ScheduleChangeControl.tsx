@@ -37,6 +37,7 @@ export function expiredMessage(status: string): string {
   if (status === "expired:new_time_passed") return "That new time had already started, so it couldn't be applied. The job keeps its original date and time, and they've been told.";
   if (status === "expired:job_started") return "The job's original start arrived before this was answered, so nothing changed. They've been told.";
   if (status === "expired:job_changed") return "The job changed after they asked, so nothing changed. They've been told.";
+  if (status === "expired:come_back_lapsed") return "That offer to come back wasn't accepted in time, so a real person at Helpr will decide the refund. They've been told.";
   return "That request has expired, so nothing changed.";
 }
 
@@ -229,6 +230,8 @@ export function ScheduleChangeControl({
               onClick={() =>
                 act(async () => {
                   const s = await respondScheduleChange(pending.id, false);
+                  // Q2300: declining a come-back offer sends the refund request on to Helpr.
+                  if (s === "declined:refund") return "Declined. A real person at Helpr will decide the refund.";
                   return s === "declined" ? "Declined. The original date and time stay." : { warn: expiredMessage(s) };
                 })
               }

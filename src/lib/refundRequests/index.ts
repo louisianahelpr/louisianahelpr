@@ -21,7 +21,7 @@ import { rpcErrorMessage } from "./errorCopy";
 
 export type RefundScope = "part" | "all";
 export type RefundAnswer = "agree" | "finish" | "decline";
-export type RefundStatus = "open" | "agreed" | "declined" | "finish_offered" | "expired" | "closed";
+export type RefundStatus = "open" | "agreed" | "declined" | "finish_offered" | "coming_back" | "expired" | "closed";
 
 export interface RefundRequest {
   id: string;
@@ -86,7 +86,7 @@ export function canAskForRefund(job: RefundJob, viewerId: string, latest: Refund
   if (job.is_group_job || job.parent_job_id || (job.recurrence_days?.length ?? 0) > 0) return false;
   if (job.status !== "in_progress" && job.status !== "revision_requested") return false;
   if (job.payment_status !== "escrow") return false;
-  return !latest || !isWaiting(latest);
+  return !latest || !blocksNewAsk(latest);
 }
 
 /** Open, or declined with its dispute not filed yet: the request still waits on something. */
@@ -95,16 +95,43 @@ export function isWaiting(r: RefundRequest): boolean {
 }
 
 /**
+ * A request the poster cannot ask again over: waiting, a come-back offer not
+ * yet settled (Q2300), or agreed (its money is being settled). The server
+ * refuses a second ask then too: refund_request_already_open while any
+ * request on the job is live (refund_request_is_live), or the decided
+ * dispute (refund_request_dispute_open).
+ */
+export function blocksNewAsk(r: RefundRequest): boolean {
+  return isWaiting(r) || r.status === "finish_offered" || r.status === "coming_back" || r.status === "agreed";
+}
+
+/**
  * Can the Helpr offer to come back and finish? The schedule-change request's
- * own rule (request_job_schedule_change): a booked one-time job not started
- * and not marked done, with its start still ahead. Hidden otherwise: offering
- * it there could only be refused.
+ * own rule (request_job_schedule_change): a one-time job either UNDER WAY
+ * (Q2300, owner 2026-10-21: only while answering this refund request, which
+ * is the only place this is asked), or booked, not started and not marked
+ * done, with its start still ahead. Hidden otherwise: offering it there could
+ * only be refused.
  */
 export function canOfferToFinish(job: RefundJob, now: Date = new Date()): boolean {
-  if (job.status !== "accepted" || job.helper_completed_at || !job.date_needed) return false;
   if (job.is_group_job || job.parent_job_id || (job.recurrence_days?.length ?? 0) > 0) return false;
+  if (job.status === "in_progress") return true;
+  if (job.status !== "accepted" || job.helper_completed_at || !job.date_needed) return false;
   const start = Date.parse(`${job.date_needed}T${(job.start_time ?? "00:00").slice(0, 5)}:00`);
   return Number.isFinite(start) && start > now.getTime();
+}
+
+/**
+ * The latest day a come-back may be offered for: 7 days from today in
+ * Louisiana (rpc_answer_refund_request refuses a later one with
+ * refund_request_finish_too_far). The request holds the payment while it
+ * waits, so it cannot be pushed out without limit.
+ */
+export const COME_BACK_MAX_DAYS = 7;
+export function latestComeBackDate(now: Date = new Date()): string {
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const [y, m, d] = today.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + COME_BACK_MAX_DAYS)).toISOString().slice(0, 10);
 }
 
 /** "$20" for whole dollars, "$20.50" otherwise (the server's own format). */
@@ -114,19 +141,21 @@ export function refundDollars(cents: number): string {
 }
 
 /**
- * What the Helpr keeps if they agree: their share of the price (the price less
- * the amount asked back) and the same share of any urgent bonus, after their
- * fee, rounded down to the whole dollar a payout really is. The SAME rule the
- * split pays by (execute-dispute-split: budget x share + urgent x share -
- * jobHelprCommissionDollars, roundPayoutDownCents), through the take-home
- * function every Helpr earnings screen uses; a disputed-style settlement never
- * takes the one-time setup fee (Q1272 (3)). Parity: src/test/refundRequestTakeHome.test.ts.
+ * What the Helpr keeps if they agree. Q2298 (owner, 2026-10-21): a part refund
+ * returns EXACTLY the amount asked, so the Helpr keeps the price less that
+ * amount and their whole urgent (rush) bonus, after their fee, rounded down to
+ * the whole dollar a payout really is; all of it leaves them nothing. The SAME
+ * rule the split pays by (execute-dispute-split's exact agreed path: price -
+ * amount + urgent - jobHelprCommissionDollars, roundPayoutDownCents), through
+ * the take-home function every Helpr earnings screen uses; a disputed-style
+ * settlement never takes the one-time setup fee (Q1272 (3)). Parity:
+ * src/test/refundRequestTakeHome.test.ts.
  */
 export function refundTakeHomeDollars(job: RefundJob, r: Pick<RefundRequest, "amount_cents" | "budget_cents">, feeFallbackPercent: number): number {
-  const helperShare = Math.max(0, (r.budget_cents - r.amount_cents) / r.budget_cents);
+  const part = r.amount_cents < r.budget_cents;
   const scaled: HelperEarningsJob = {
-    budget: (r.budget_cents - r.amount_cents) / 100,
-    urgent_fee: (job.urgent_fee ?? 0) * helperShare,
+    budget: Math.max(0, r.budget_cents - r.amount_cents) / 100,
+    urgent_fee: part ? (job.urgent_fee ?? 0) : 0,
     helper_fee_percent: job.helper_fee_percent ?? null,
     helper_fee_flat_cents: job.helper_fee_flat_cents ?? null,
     is_group_job: false,

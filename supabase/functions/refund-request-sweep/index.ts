@@ -5,6 +5,7 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 
 // Board 141, Jobs side (docs/OPEN.md Q2272; owner 2026-10-21: the money moves
 // AUTOMATICALLY when the other side agrees). Every 10 minutes
@@ -40,7 +41,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const SETTLE_LIMIT = 20;
 
 type SweepSummary = { closed?: number; expired?: number; declined?: number; failed?: number; errors?: string[] };
-type DueRow = { request_id: string; dispute_id: string; job_id: string };
+/** `held`: a party is banned, suspended, under a ban review or on a payout hold; the SQL already sent it to an admin. */
+type DueRow = { request_id: string; dispute_id: string; job_id: string; held?: boolean };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -74,10 +76,29 @@ serve(async (req) => {
     }
     const due = (dueData ?? []) as DueRow[];
     let settled = 0;
+    let heldForAdmin = 0;
     const refused: Array<{ dispute_id: string; status: number; error: string }> = [];
     for (const row of due) {
       if (!row || typeof row.dispute_id !== "string" || !UUID_RE.test(row.dispute_id)) {
         defects.record(`refund_agreements_due returned a row with no usable dispute id: ${JSON.stringify(row).slice(0, 200)}`);
+        continue;
+      }
+      // A banned, suspended or held party (lead, 2026-10-21): no money moves
+      // automatically. The SQL marked the decided dispute for an admin (the
+      // admin queue lists it unsettled) and will not hand it out again; this
+      // pages ops once, and the split is never asked.
+      if (row.held === true) {
+        heldForAdmin++;
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "warning",
+          title: "Agreed refund held for an admin",
+          message:
+            `A refund the poster and Helpr agreed on job ${row.job_id} was not settled automatically: one of them is banned, suspended, under a ban review or on a payout hold. ` +
+            "No automatic move was attempted. An admin settles it (Retry settlement) or supersedes it from the dispute page once that is resolved; auto-resolve-disputes pages again once the hold lifts.",
+          fields: { dispute_id: row.dispute_id, job_id: row.job_id, request_id: row.request_id },
+          oncePerDayKey: `refund-agreement-held:${row.dispute_id}`,
+        });
         continue;
       }
       let res: Response;
@@ -117,7 +138,7 @@ serve(async (req) => {
       refused.push({ dispute_id: row.dispute_id, status: res.status, error });
     }
 
-    return cronResult(FN, { ...counts(sweep), agreements_due: due.length, settled, refused }, defects.defects, corsHeaders);
+    return cronResult(FN, { ...counts(sweep), agreements_due: due.length, settled, held_for_admin: heldForAdmin, refused }, defects.defects, corsHeaders);
   } catch (e) {
     return cronError(FN, caughtMessage(e), corsHeaders);
   }

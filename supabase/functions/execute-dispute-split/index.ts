@@ -66,7 +66,7 @@ import { getHelperFeePercent, jobHelprCommissionDollars, DEFAULT_TIER_FEE_PERCEN
 import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -668,8 +668,28 @@ serve(async (req) => {
   );
 
   const perHelperBudget = Number(job.budget);
-  const helperBudgetShareDollars = perHelperBudget * helperShare;
-  const helperUrgentShareDollars = netUrgentFeeDollars(job.urgent_fee) * helperShare;
+  // Q2298 (owner, 2026-10-21): an agreed PART refund returns EXACTLY the
+  // amount asked ("asking $20 refunds $20"), not that share of everything
+  // charged. The poster gets amount_cents back; everything else is settled as
+  // a release of the price less that amount would be: the Helpr's share is
+  // the price less the amount, their urgent (rush) fee whole, less their fee;
+  // the card processing fee, service fee and sales tax stay with the kept part
+  // as they do on any release. An agreed ALL refund keeps the admin full-refund
+  // rule below (what was paid, less the card cost). Fails closed: a recorded
+  // price that is not the job's price, more than the charge can return, or a
+  // gift-funded job (how an exact amount divides between the card and the gift
+  // is not decided) moves nothing; an admin settles it.
+  const exactAgreed = agreement !== null && agreement.amountCents < agreement.budgetCents;
+  if (exactAgreed && agreement !== null && agreement.budgetCents !== Math.round(perHelperBudget * 100)) {
+    return await refuse({ error: "the agreed refund's price is not this job's price — nothing was moved; an admin settles it" }, 409);
+  }
+  if (exactAgreed && giftAppliedCents > 0) {
+    return await refuse({ error: "an agreed part refund on a gift-funded job is settled by an admin (how the amount divides between the card and the gift is not decided) — nothing was moved" }, 409);
+  }
+  const helperBudgetShareDollars = exactAgreed && agreement !== null
+    ? (agreement.budgetCents - agreement.amountCents) / 100
+    : perHelperBudget * helperShare;
+  const helperUrgentShareDollars = netUrgentFeeDollars(job.urgent_fee) * (exactAgreed ? 1 : helperShare);
   const platformFeeDollars = jobHelprCommissionDollars(job, helperBudgetShareDollars, helperFeePercent, helperUrgentShareDollars);
   const helperPayoutDollars =
     helperBudgetShareDollars + helperUrgentShareDollars - platformFeeDollars;
@@ -690,23 +710,41 @@ serve(async (req) => {
   // _shared/refundAmount.ts, exactly as admin_refund_dispute computes it: the
   // card cost only (Stripe's real fee, or customer_fee_amount on a job priced
   // with no service fee), never a legacy service fee from a poster who won.
+  const chargeTaxCents = await chargeTaxCentsFor(stripe, pi);
   const posterBase = refundToPayerCents({
     capturedCents,
     actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0,
     customerFeeCents: pi ? cardCostFeeCents(job) : 0,
     setupFeeCents: pi ? setupFeeKeptCents(job) : 0,
-    taxCents: await chargeTaxCentsFor(stripe, pi),
+    taxCents: chargeTaxCents,
   });
   const nonRefundableCents = posterBase.feeKeptCents;
   const refundableCents = posterBase.ceilingCents;
-  const refundCents = Math.max(0, Math.round(refundableCents * posterShare));
+  const refundCents = exactAgreed && agreement !== null
+    ? agreement.amountCents
+    : Math.max(0, Math.round(refundableCents * posterShare));
+  // A TAXED charge is not settled on the exact path yet (lh-money-escrow
+  // review of the Q2298 change): how Stripe Tax records a flat partial refund
+  // of an automatic_tax Checkout charge is unchecked (Q1998), so the tax the
+  // poster's receipt would state is not known. Fails closed, as for a gift:
+  // nothing moves and an admin settles it. A tax read that fails is treated
+  // as taxed (checkoutChargeTaxCents is null then, never a silent 0).
+  if (exactAgreed) {
+    const exactTaxCents = pi ? await checkoutChargeTaxCents(stripe, pi) : 0;
+    if (exactTaxCents === null || exactTaxCents > 0) {
+      return await refuse({ error: "an agreed part refund on a taxed charge is settled by an admin until Q1998 (how Stripe Tax records a flat partial refund) is checked — nothing was moved" }, 409);
+    }
+  }
+  if (exactAgreed && refundCents > refundableCents) {
+    return await refuse({ error: `the agreed refund (${refundCents}c) is more than this charge can return (${refundableCents}c) — nothing was moved; an admin settles it` }, 409);
+  }
 
   // Gift leg. Basis points, not dollars: the amount is computed inside
   // `restore_gift_card_for_job` from the applied value it alone knows, so the
   // formula lives in exactly one place. `Math.floor` mirrors that function's
   // integer division so this figure and the row it eventually writes agree to
   // the cent — and rounds toward the platform, never toward minting money.
-  const giftShareBps = Math.min(10000, Math.max(0, Math.round(posterShare * 10000)));
+  const giftShareBps = exactAgreed ? 0 : Math.min(10000, Math.max(0, Math.round(posterShare * 10000)));
   const giftRestoreCents = Math.floor((giftAppliedCents * giftShareBps) / 10000);
 
   if (helperCents === 0 && refundCents === 0 && giftRestoreCents === 0) {
@@ -1972,14 +2010,16 @@ serve(async (req) => {
   const helperDollars = movedHelperCents / 100;
   const refundDollars = refundCents / 100;
   if (job.helper_id && movedHelperCents > 0) {
+    const helperAmount = movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars);
     const { error: helperNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.helper_id,
       job_id: job.id,
-      // Board 141: an agreed refund is told as what it was, not a "dispute".
-      title: agreement ? "Refund settled — your share was sent" : "Dispute settled — your share was sent",
+      // Board 141: an agreement is told as what it was, not a "dispute". It is
+      // the Helpr's pay notice; the poster's refund notice is the one below.
+      title: agreement ? "Settled as you agreed — your share was sent" : "Dispute settled — your share was sent",
       message: agreement
-        ? `The refund you agreed to on "${job.title}" is settled. $${movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars)} is on its way to your bank.`
-        : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars)} is on its way to your bank.`,
+        ? `What you agreed on "${job.title}" is settled. $${helperAmount} is on its way to your bank.`
+        : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank.`,
       type: "payment",
       // `/profile?tab=earnings` is the earnings screen — `/earnings` and
       // `/analytics` both redirect here, and Dashboard reads no `tab` param.
@@ -2019,10 +2059,14 @@ serve(async (req) => {
         // receipt's total. A gift's share is not on the card at all.
         keptCents: Math.max(0, capturedCents - refundCents),
         // Q2082 (a): the poster's share of the tax kept on the kept card fee.
-        taxKeptCents: Math.round(posterBase.taxKeptCents * posterShare),
+        // Q2298: the exact path only ever settles an untaxed charge (a taxed
+        // one is refused above until Q1998), so no tax is kept on it.
+        taxKeptCents: exactAgreed ? 0 : Math.round(posterBase.taxKeptCents * posterShare),
         // The Helpr is named only when the decision gave them a share.
         // Q1674: a first job also keeps its one-time $2 setup fee; named last.
-        keptReason: setupFeeKeptReason(movedHelperCents > 0
+        keptReason: setupFeeKeptReason(exactAgreed
+          ? "the rest of what you paid: the Helpr's pay you agreed to and the fees"
+          : movedHelperCents > 0
           ? (agreement ? "the Helpr's share you agreed to and the card processing fee" : "the Helpr's share under the dispute decision and the card processing fee")
           : "the card processing fee, which can't be returned", setupFeeKeptCents(job)),
         recipientId: job.customer_id,
@@ -2047,7 +2091,7 @@ serve(async (req) => {
       // Gift only: no card refund, so no refund notice; the gift is the news.
       const { error: posterNoteErr } = await supabaseAdmin.from("notifications").insert({
         user_id: job.customer_id,
-        title: agreement ? "Refund settled — your gift is back" : "Dispute settled — your gift is back",
+        title: agreement ? "Settled as you agreed — your gift is back" : "Dispute settled — your gift is back",
         message: `${settled} ${posterHow}`,
         type: "payment",
         // The settled job. A resolved dispute leaves the job completed or

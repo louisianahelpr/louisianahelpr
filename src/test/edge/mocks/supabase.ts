@@ -293,6 +293,9 @@ function freshScenario(): SupabaseScenario {
       // Q137 seed boundary: `false` (a real subject) is the neutral answer; a
       // scenario ABOUT a seed subject sets `true` (or a function of the args).
       notification_crosses_seed_boundary: false,
+      // Board 141 (Q2300): no agreed come-back is pending on the job, the
+      // neutral answer; a scenario ABOUT one sets `true`.
+      refund_come_back_pending: false,
       // One wallet (Q2139): the claim keeps the customer it was offered (first
       // writer). A scenario about a lost race returns another id.
       claim_stripe_customer: (a?: unknown) => (a as { p_customer?: string } | undefined)?.p_customer ?? null,

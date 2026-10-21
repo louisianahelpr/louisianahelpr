@@ -40,6 +40,10 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
   refund_request_live:
     "There's a refund request on this job. Answer it, or withdraw it if you asked, before you change the booking.",
+  // Board 141 (Q2300): the Helpr agreed to come back and finish; marking it
+  // done waits for the agreed time (trg_refuse_done_before_come_back).
+  completion_before_come_back:
+    "You agreed to come back and finish this job. Mark it done once you have, from the agreed time.",
   // report_helper_no_show
   job_not_funded:
     "You can report a no-show once the job's payment is secured. This one isn't funded yet.",

@@ -96,12 +96,18 @@ await db.exec(`
     $f$ begin new.updated_at := now(); return new; end $f$;
   create function public.dispute_evidence_url_ok(text, uuid, uuid) returns boolean language sql stable as $f$ select false $f$;
   create function public.notify_ops_dispute_filed(uuid, text, text, uuid, boolean) returns void language sql as $f$ select $f$;
+  -- The account holds refund_party_held reads (prod-shaped columns).
+  create table public.payout_holds (helper_id uuid primary key, reason text not null, held_by uuid, held_at timestamptz default now(),
+    denied_reason text, denied_by uuid, denied_at timestamptz);
+  create table public.ban_settlement_queue (id uuid primary key default gen_random_uuid(), user_id uuid not null, matched_on text,
+    review_state text not null default 'open', created_at timestamptz default now());
 `);
 for (const n of [
   "member_display_name", "feature_enabled_for_user", "feature_enabled_for", "require_feature", "check_dispute_velocity",
   "open_dispute_as", "enforce_job_status_transition", "enforce_dispute_markers_server_owned",
   "enforce_job_completion_server_owned", "enforce_helper_completion_gates", "enforce_dispute_opener_column_whitelist",
-  "request_job_schedule_change",
+  "request_job_schedule_change", "respond_job_schedule_change", "notify_schedule_change_expired",
+  "enforce_completion_on_live_job", "rpc_helper_mark_done",
 ]) await db.exec(fn(n));
 await db.exec(`
   create trigger trg_enforce_job_status_transition before update of status on public.jobs
@@ -113,6 +119,8 @@ await db.exec(`
     for each row execute function public.enforce_helper_completion_gates();
   create trigger zz_jobs_completion_server_owned before insert or update of status, helper_completed_at on public.jobs
     for each row execute function public.enforce_job_completion_server_owned();
+  create trigger trg_completion_on_live_job before update of helper_completed_at on public.jobs
+    for each row execute function public.enforce_completion_on_live_job();
   create trigger trg_enforce_dispute_opener_column_whitelist before update on public.disputes
     for each row execute function public.enforce_dispute_opener_column_whitelist();
   create trigger trg_ban_gate_disputes_insert before insert on public.disputes
@@ -142,7 +150,24 @@ await db.exec(`
          ('${J(13)}', 'Ordinary Helpr',      40, '${P}', '${X}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
          ('${J(14)}', 'Back out after agree', 40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
          ('${J(15)}', 'Helpr changes',       40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
-         ('${J(16)}', 'Withdraw',            40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2);
+         ('${J(16)}', 'Withdraw',            40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(17)}', 'Come back accepted',  40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(18)}', 'Come back declined',  40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(19)}', 'Come back lapses',    40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(20)}', 'Held: payout hold',   40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(21)}', 'Held: poster banned', 40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(22)}', 'Held: ban review',    40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(23)}', 'Come back, dispute first', 40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(24)}', 'Come back answered late',  40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2),
+         ('${J(25)}', 'Held: half moved',    40, '${P}', '${A}', 'in_progress', 'escrow', current_date - 1, '10:00', false, 1, 2);
+  -- The Helpr marked jobs 17 and 23 done two hours ago (the payout clock is
+  -- running), after a first visit that passes every completion gate: arrival
+  -- confirmed, photos, three hours' work. Job 23's poster confirmed done too.
+  update public.jobs set helper_completed_at = now() - interval '2 hours',
+         poster_confirmed_arrival_at = now() - interval '5 hours', helper_arrived_at = now() - interval '5 hours',
+         proof_before_urls = '{before.jpg}', proof_after_urls = '{after.jpg}'
+   where id in ('${J(17)}', '${J(23)}');
+  update public.jobs set poster_completed_at = now() - interval '1 hour' where id = '${J(23)}';
   -- A sanctioned cancel as an RPC runs it: a definer function in the poster's session, under its own flag.
   create function public.test_poster_cancel(p_job uuid) returns void language plpgsql security definer set search_path = public as $f$
   begin
@@ -283,12 +308,18 @@ check("AG8: still no payout_pending while the agreement is unsettled", refusedWi
 r = await server(db, `select public.open_dispute_as('${J(1)}', '${P}', 'A complaint long enough to file', '{}')`);
 check("AG8b: no second dispute can be opened over the agreement", refusedWith(r, "dispute_already_decided"), r.err ?? "allowed");
 const pn = await db.query(`select message from public.notifications where user_id = '${P}' and job_id = '${J(1)}' and title = 'Refund agreed'`);
-check("AG9: the poster is told, by name, that the refund is on its way", pn.rows.length === 1 && pn.rows[0].message.startsWith("Jolie T. agreed to your refund on \"Assemble a bookshelf\": $20 of the $40 price"), JSON.stringify(pn.rows));
+// Q2298 (owner, 2026-10-21): a part refund returns EXACTLY the amount asked.
+check("AG9: the poster is told, by name, that exactly the $20 asked is on its way (no 'share of what you paid')",
+  pn.rows.length === 1 && pn.rows[0].message === "Jolie T. agreed to your refund on \"Assemble a bookshelf\": $20 is on its way back to how you paid.", JSON.stringify(pn.rows));
 
 // ── The proof of agreement ───────────────────────────────────────────────
 const proof = async (d) => (await service(db, `select public.refund_agreement_for_dispute(${d === null ? "NULL" : `'${d}'`}) as v`)).rows?.[0]?.v ?? null;
 const pr1 = await proof(d1?.id);
 check("P1: the recorded agreement is proven (poster, Helpr, amount)", pr1?.poster_id === P && pr1?.helper_id === A && pr1?.amount_cents === 2000, JSON.stringify(pr1));
+// Q2298: the split refunds the proof's amount_cents to the cent (execute-dispute-split's exact
+// agreed path, src/test/edge/refundAgreementGuard.test.ts); the proof carries exactly what was asked
+// and the price it was asked of, so a part ($20 < $40) is told apart from all of it.
+check("P1b: the proof is the server's own figures: 2000 asked of a 4000 price", pr1?.amount_cents === 2000 && pr1?.budget_cents === 4000, JSON.stringify(pr1));
 check("P2: a NULL dispute id proves nothing", (await proof(null)) === null);
 const adminDecided = (await db.query(`insert into public.disputes (job_id, opener_id, reason, status, decided_at, decision_text, payout_split, execution_status)
   values ('${J(12)}', '${P}', 'An admin decided this one', 'decided', now(), 'admin', '{"poster":0.5,"helper":0.5}', 'pending') returning id`)).rows[0].id;
@@ -337,6 +368,9 @@ check("D8: once executed the request is no longer live", live === false);
 r = await answer(A, q2?.id, "agree");
 const d2 = (await db.query(`select payout_split from public.disputes where job_id = '${J(2)}'`)).rows[0];
 check("AL1: all of it = poster 1 / Helpr 0", r.ok && Number(d2?.payout_split?.poster) === 1 && Number(d2?.payout_split?.helper) === 0, r.err ?? JSON.stringify(d2));
+const pn2 = await db.query(`select message from public.notifications where user_id = '${P}' and job_id = '${J(2)}' and title = 'Refund agreed'`);
+check("AL1b: all of it keeps the full-refund words (what was paid, less the card processing fee)",
+  pn2.rows.length === 1 && /agreed to refund all of "Hang shelves"\. What you paid is on its way back to how you paid, less the card processing fee\./.test(pn2.rows[0].message), JSON.stringify(pn2.rows));
 r = await service(db, `select * from public.refund_agreements_due(20)`);
 const j2 = (await db.query(`select status::text s from public.jobs where id = '${J(2)}'`)).rows[0];
 check("AL2: the hand-out cancels the job when all of it comes back", r.ok && j2.s === "cancelled", r.err ?? JSON.stringify(j2));
@@ -391,8 +425,112 @@ check("FN2: it sends the existing date/time request to the poster", r.ok && q8b.
   && sc?.responder_id === P && sc?.d === 5 && sc?.status === "pending", r.err ?? JSON.stringify({ s: q8b?.status, sc }));
 r = await open(P, J(11), "part", 1000);
 const q11 = await req(J(11));
+// Q2300, RED on today's rule: with request_job_schedule_change as main has it
+// (20261015015604), a come-back on a job already under way is refused.
+await db.exec(fn("request_job_schedule_change"));
 r = await answer(A, q11?.id, "finish", 5, "09:00");
-check("FN3: on a job already under way the schedule-change rule refuses (nothing recorded)", refusedWith(r, "schedule_change_not_booked") && (await req(J(11))).status === "open", r.err ?? "allowed");
+check("FN3-red: today's request_job_schedule_change refuses a come-back on a job under way", refusedWith(r, "schedule_change_not_booked") && (await req(J(11))).status === "open", r.err ?? "allowed");
+if (MODE !== "skip") await db.exec(readMigration(FIX_FILE)); // back to this migration's rule (a 4th apply: replay-safe)
+r = await answer(A, q11?.id, "finish", 5, "09:00");
+check("FN3: with it, a come-back on a job under way is offered", r.ok && (await req(J(11))).status === "finish_offered", r.err ?? "refused");
+
+// ── Q2300: come back and finish on a job under way, end to end ──────────────
+r = await open(P, J(17), "part", 1500);
+const q17 = await req(J(17));
+r = await as(db, "authenticated", A, `select public.request_job_schedule_change('${J(17)}', current_date + 5, '09:00') as v`);
+check("CB1: never a direct call: without the refund answer a job under way is still refused", refusedWith(r, "schedule_change_not_booked"), r.err ?? "allowed");
+r = await answer(A, q17?.id, "finish", 5, "09:00");
+const q17b = await req(J(17));
+const sc17 = (await db.query(`select id, status, responder_id, expires_at > now() + interval '23 hours' and expires_at <= now() + interval '1 day' ahead from public.job_schedule_change_requests where id = '${q17b?.schedule_change_id}'`)).rows[0];
+check("CB2: the Helpr offers a new time 5 days out; the poster has 1 day to answer it (never the passed original start, never the far new one)", r.ok && q17b.status === "finish_offered" && sc17?.status === "pending" && sc17?.responder_id === P && sc17?.ahead, r.err ?? JSON.stringify({ s: q17b?.status, sc17 }));
+r = await open(P, J(17), "part", 1000);
+check("CB2b: no second refund request while a come-back is offered (both reviews)", refusedWith(r, "refund_request_already_open"), r.err ?? "allowed");
+const generic = (await db.query(`select count(*)::int n from public.notifications where user_id = '${P}' and job_id = '${J(17)}' and title = 'New date or time requested'`)).rows[0].n;
+const offerNote = (await db.query(`select message from public.notifications where user_id = '${P}' and job_id = '${J(17)}' and title = 'Offer to come back and finish'`)).rows;
+check("CB3: one notice to the poster, with the time and what declining does", generic === 0 && offerNote.length === 1 && /decline it and a real person at Helpr will decide/.test(offerNote[0].message), JSON.stringify({ generic, offerNote }));
+r = await server(db, `update public.jobs set status = 'completed', payment_status = 'payout_pending' where id = '${J(17)}'`);
+check("CB4: no payout while the come-back waits on the poster", refusedWith(r, "refund_request_open"), r.err ?? "allowed");
+const respond = (uid, id, yes) => as(db, "authenticated", uid, `select public.respond_job_schedule_change('${id}', ${yes}) as v`);
+r = await respond(P, sc17?.id, true);
+const q17c = await req(J(17));
+const j17 = (await db.query(`select date_needed - current_date d, helper_completed_at is not null done from public.jobs where id = '${J(17)}'`)).rows[0];
+check("CB5: the poster accepts: the job moves to the new time, the request is coming back", r.ok && r.rows[0].v.status === "accepted" && q17c.status === "coming_back" && j17.d === 5, r.err ?? JSON.stringify({ s: q17c?.status, j17 }));
+r = await server(db, `update public.jobs set status = 'completed', payment_status = 'payout_pending' where id = '${J(17)}'`);
+check("CB6: still no payout until the sweep has cleared the earlier done", refusedWith(r, "refund_request_open"), r.err ?? "allowed");
+r = await open(P, J(17), "part", 1000);
+check("CB6b: no second refund request while it is coming back", refusedWith(r, "refund_request_already_open"), r.err ?? "allowed");
+r = await as(db, "authenticated", P, `update public.jobs set helper_completed_at = NULL where id = '${J(17)}'`);
+check("CB7: (why the sweep does it) no member session may clear a done stamp", refusedWith(r, "helper_completed_at_not_clearable"), r.err ?? "allowed");
+r = await service(db, `select public.refund_requests_sweep() as v`);
+const q17d = await req(J(17));
+const j17b = (await db.query(`select helper_completed_at is null cleared, status::text s from public.jobs where id = '${J(17)}'`)).rows[0];
+check("CB8: the sweep clears the earlier done (no payout clock until they mark it done again) and closes the request as coming back",
+  r.ok && q17d.status === "closed" && q17d.closed_reason === "coming_back" && j17b.cleared && j17b.s === "in_progress", r.err ?? JSON.stringify({ q: q17d?.status, j17b }));
+// lh-money-escrow review (must fix): the first visit's arrival, photos and
+// work time all still stand, so only this holds the Helpr to the agreed time.
+const markDone = (job) => as(db, "authenticated", A, `select public.rpc_helper_mark_done('${job}') as v`);
+r = await markDone(J(17));
+check("CB12: the Helpr cannot mark it done again before the agreed come-back time", refusedWith(r, "completion_before_come_back")
+  && (await db.query(`select helper_completed_at is null n from public.jobs where id = '${J(17)}'`)).rows[0].n, r.err ?? "allowed");
+r = await service(db, `select public.refund_come_back_pending('${J(17)}') as v`);
+check("CB12b: the one rule create-payment's release also asks says so (service role)", r.ok && r.rows[0].v === true, r.err ?? JSON.stringify(r.rows?.[0]));
+r = await as(db, "authenticated", A, `select public.refund_come_back_pending('${J(17)}') as v`);
+check("CB12c: a member cannot call it", !r.ok && /permission denied/.test(r.err), r.err ?? "allowed");
+await server(db, `update public.jobs set date_needed = current_date - 1 where id = '${J(17)}'`);
+r = await service(db, `select public.refund_come_back_pending('${J(17)}') as v`);
+check("CB12d: from the agreed time on it no longer holds", r.ok && r.rows[0].v === false, r.err ?? JSON.stringify(r.rows?.[0]));
+r = await markDone(J(17));
+check("CB13: from the agreed time on, they mark it done as usual", r.ok && r.rows[0].v.already_done === false, r.err ?? JSON.stringify(r.rows?.[0]));
+
+r = await open(P, J(18), "part", 1500);
+const q18 = await req(J(18));
+r = await answer(A, q18?.id, "finish", 8, "14:00");
+check("CB14: a come-back more than 7 days out is refused (owner 2026-10-21: it holds the payment while it waits)", refusedWith(r, "refund_request_finish_too_far") && (await req(J(18))).status === "open", r.err ?? "allowed");
+r = await answer(A, q18?.id, "finish", 5, "14:00");
+check("CB9a: offered on job 18", r.ok, r.err);
+r = await respond(P, (await req(J(18))).schedule_change_id, false);
+const q18b = await req(J(18));
+check("CB9: the poster declines the time: it goes on to Helpr (declined, said so)", r.ok && r.rows[0].v.reason === "refund_escalated" && q18b.status === "declined" && q18b.dispute_id === null, r.err ?? JSON.stringify(r.rows?.[0]));
+r = await service(db, `select public.refund_requests_sweep() as v`);
+const d18 = (await db.query(`select count(*)::int n from public.disputes where job_id = '${J(18)}' and status = 'open'`)).rows[0].n;
+check("CB10: the sweep opens the normal dispute", r.ok && d18 === 1 && (await req(J(18))).dispute_id, JSON.stringify(r.rows?.[0]?.v));
+
+r = await open(P, J(19), "part", 1500);
+const q19 = await req(J(19));
+r = await answer(A, q19?.id, "finish", 6, "17:00");
+check("CB11a: offered on job 19", r.ok, r.err);
+await db.exec(`update public.job_schedule_change_requests set expires_at = now() - interval '1 minute' where id = '${(await req(J(19))).schedule_change_id}'`);
+r = await service(db, `select public.refund_requests_sweep() as v`);
+const sc19 = (await db.query(`select status from public.job_schedule_change_requests where id = '${(await req(J(19))).schedule_change_id}'`)).rows[0];
+const d19 = (await db.query(`select count(*)::int n from public.disputes where job_id = '${J(19)}' and status = 'open'`)).rows[0].n;
+check("CB11: an unanswered come-back lapses and goes on to Helpr (a normal dispute)", r.ok && sc19.status === "expired" && d19 === 1, JSON.stringify({ sc19, d19 }));
+
+// The poster answers a come-back after it lapsed (lh-authz-rls review): said
+// as that, never "the original start arrived".
+r = await open(P, J(24), "part", 1500);
+r = await answer(A, (await req(J(24)))?.id, "finish", 4, "11:00");
+check("CB15a: offered on job 24", r.ok, r.err);
+await db.exec(`update public.job_schedule_change_requests set expires_at = now() - interval '1 minute' where id = '${(await req(J(24))).schedule_change_id}'`);
+r = await respond(P, (await req(J(24))).schedule_change_id, true);
+const n24 = (await db.query(`select title, message from public.notifications where user_id = '${A}' and job_id = '${J(24)}' and title in ('Offer to come back not answered in time', 'New date or time not applied')`)).rows;
+check("CB15: a late answer to a come-back: expired as come_back_lapsed, on to Helpr, the Helpr told so",
+  r.ok && r.rows[0].v.status === "expired" && r.rows[0].v.reason === "come_back_lapsed" && (await req(J(24))).status === "declined"
+  && n24.length === 1 && n24[0].title === "Offer to come back not answered in time" && /a real person at Helpr will decide the refund/.test(n24[0].message),
+  r.err ?? JSON.stringify({ v: r.rows?.[0]?.v, n24 }));
+
+// A dispute opened between the accept and the sweep (lh-money-escrow review):
+// the earlier done stamps still go, or a withdrawn dispute would pay at once.
+r = await open(P, J(23), "part", 1500);
+r = await answer(A, (await req(J(23)))?.id, "finish", 3, "16:00");
+r = await respond(P, (await req(J(23))).schedule_change_id, true);
+check("CB16a: accepted on job 23", r.ok && (await req(J(23))).status === "coming_back", r.err ?? JSON.stringify((await req(J(23)))?.status));
+r = await server(db, `select public.open_dispute_as('${J(23)}', '${P}', 'They never came back to finish the fence.', '{}'::text[])`);
+check("CB16b: a normal dispute opens before the sweep runs", r.ok, r.err);
+r = await service(db, `select public.refund_requests_sweep() as v`);
+const j23 = (await db.query(`select helper_completed_at is null h, poster_completed_at is null p from public.jobs where id = '${J(23)}'`)).rows[0];
+const q23 = await req(J(23));
+check("CB16: the sweep still clears both earlier done stamps and closes it as coming back", r.ok && j23.h && j23.p && q23.status === "closed" && q23.closed_reason === "coming_back",
+  r.err ?? JSON.stringify({ j23, s: q23?.status, c: q23?.closed_reason }));
 
 // ── Moved on before an answer ────────────────────────────────────────────
 await server(db, `update public.jobs set status = 'cancelled', payment_status = 'refunded' where id = '${J(11)}'`);
@@ -407,6 +545,58 @@ for (let i = 0; i < 3; i++) {
 }
 r = await open(P, J(12), "part", 1000);
 check("L1: at most 3 requests per job", refusedWith(r, "refund_request_limit"), r.err ?? "allowed");
+
+// ── A banned, suspended or held party: no automatic money (lead 2026-10-21) ──
+const agreeOn = async (job) => {
+  await open(P, job, "part", 2000);
+  const q = await req(job);
+  const a = await answer(A, q?.id, "agree");
+  if (!a.ok) throw new Error(`agree on ${job}: ${a.err}`);
+  return (await req(job)).dispute_id;
+};
+const heldCase = async (label, job, hold, release) => {
+  const d = await agreeOn(job);
+  await db.exec(hold);
+  const pr = await proof(d);
+  const due = await service(db, `select * from public.refund_agreements_due(50)`);
+  const mine = due.rows?.find((x) => x.dispute_id === d);
+  const dd = (await db.query(`select execution_status s, execution_error e from public.disputes where id = '${d}'`)).rows[0];
+  const rq = await req(job);
+  check(`HD-${label}: no proof, handed out only as held, sent to an admin (failed, held error), never again`,
+    pr === null && mine?.held === true && dd.s === "failed" && String(dd.e).startsWith("refund agreement held for admin review") && rq.settle_attempts === 3,
+    JSON.stringify({ pr, mine, dd, a: rq?.settle_attempts }));
+  const told = (await db.query(`select user_id::text u, link from public.notifications where job_id = '${job}' and title = 'Your refund is waiting on Helpr' order by link`)).rows;
+  check(`HD-notify-${label}: both parties are told it now waits on a person (not "on its way")`,
+    told.length === 2 && told.some((t) => t.u === P && t.link.startsWith("/posts")) && told.some((t) => t.u === A && t.link.startsWith("/jobs")), JSON.stringify(told));
+  await db.exec(release);
+  await db.exec(`update public.refund_requests set last_settle_at = now() - interval '31 minutes' where id = '${rq.id}'`);
+  const again = await service(db, `select * from public.refund_agreements_due(50)`);
+  check(`HD-${label}: once sent to an admin it is not handed out again, even when the hold lifts`, !again.rows?.some((x) => x.dispute_id === d), JSON.stringify(again.rows));
+};
+await heldCase("payout-hold", J(20), `insert into public.payout_holds (helper_id, reason) values ('${A}', 'review')`, `delete from public.payout_holds`);
+await heldCase("ban-review", J(22), `insert into public.ban_settlement_queue (user_id) values ('${A}')`, `update public.ban_settlement_queue set review_state = 'confirmed'`);
+await heldCase("poster-suspended", J(21), `update public.profiles set ban_status = 'temp_banned', auto_suspended_until = now() + interval '3 days' where user_id = '${P}'`,
+  `update public.profiles set ban_status = 'active', auto_suspended_until = null where user_id = '${P}'`);
+// An agreement an earlier attempt already started (lh-money-escrow review):
+// held, but its own error is kept, so it stays in the paged stuck set.
+{
+  const d = await agreeOn(J(25));
+  await db.exec(`update public.disputes set execution_status = 'failed', execution_started_at = now() - interval '2 hours',
+                   execution_transfer_id = 'tr_leg1', execution_error = 'refund leg failed after the transfer' where id = '${d}'`);
+  await db.exec(`insert into public.payout_holds (helper_id, reason) values ('${A}', 'review')`);
+  const due = await service(db, `select * from public.refund_agreements_due(50)`);
+  const dd = (await db.query(`select execution_status s, execution_error e from public.disputes where id = '${d}'`)).rows[0];
+  check("HD-started: a half-moved split is never relabelled held: its own error stays, so it keeps paging",
+    due.rows?.find((x) => x.dispute_id === d)?.held === true && dd.s === "failed" && dd.e === "refund leg failed after the transfer", JSON.stringify({ due: due.rows, dd }));
+  await db.exec(`delete from public.payout_holds`);
+}
+const heldFn = async (sql) => (await server(db, `select public.refund_party_held(${sql}) as v`)).rows?.[0]?.v;
+await db.exec(`update public.profiles set ban_status = 'temp_banned', auto_suspended_until = now() - interval '1 day' where user_id = '${X}'`);
+check("HD-lapsed: a lapsed suspension does not hold", (await heldFn(`'${X}'`)) === false);
+await db.exec(`update public.profiles set ban_status = 'permanently_banned' where user_id = '${X}'`);
+check("HD-banned: a banned member holds", (await heldFn(`'${X}'`)) === true);
+check("HD-null: an unknown member holds (fails safe)", (await heldFn("NULL")) === true);
+check("HD-clear: a member with nothing against them does not", (await heldFn(`'${B}'`)) === false);
 
 // ── No back-out, cancel or Helpr swap under a live request (money review #1) ─
 r = await open(P, J(14), "part", 1000);

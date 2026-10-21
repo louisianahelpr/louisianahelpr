@@ -1,7 +1,7 @@
 /**
  * BOARD 52, You › Settings (spec v2 §9.17): Look (color mode, bigger text and
  * buttons), Your sections (a switch per OPEN section; a closed section says
- * "Opening soon" and shows "Soon" instead of a switch, §1.8), Alerts, Your
+ * "Opening soon" and shows "Soon" instead of a switch, §1.8), Updates (Notifications, Saved searches), Your
  * account, then Log out. Reached from the You tab's Settings row, and a tab
  * opened from here backs out to Settings, not to the landing.
  *
@@ -49,7 +49,7 @@ describe("You › Settings, board 52", () => {
   it("groups in the board's order, then Log out", () => {
     renderSettings();
     const groups = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
-    expect(groups.slice(0, 4)).toEqual(["Look", "Your sections", "Alerts", "Your account"]);
+    expect(groups.slice(0, 4)).toEqual(["Look", "Your sections", "Updates", "Your account"]);
     expect(screen.getByText("Log out")).toBeTruthy();
   });
 

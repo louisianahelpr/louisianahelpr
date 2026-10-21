@@ -25,6 +25,7 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held) return null; |   if (!money.coming && !money.held) return <div data-home-money="empty" />;
  * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           label={heldWords(money.held).label} |           label="Held for you"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -127,7 +128,7 @@ describe("Held for you = what the card paid for hired jobs that wait on my confi
   it("Home reads the Spent half's own rows (one read, one key)", () => {
     const home = src("pages/home/homeDashboard/homeMoney.ts");
     expect(home).toMatch(/usePosterSpendData\(uid\)/);
-    expect(home).toMatch(/heldForYou\(spentRows\(spend\.data\.jobs, spend\.data\.refunds, spend\.data\.gifts, spend\.data\.tips, spend\.data\.blockFees\)\)/);
+    expect(home).toMatch(/const rows = spentRows\(spend\.data\.jobs, spend\.data\.refunds, spend\.data\.gifts, spend\.data\.tips, spend\.data\.blockFees\);\s*const h = heldForYou\(rows\);\s*const list = heldRows\(rows\);/);
     expect(src("components/profile/earningsTab/SpentSection.tsx")).toMatch(/usePosterSpendData\(user\?\.id\)/);
   });
 });
@@ -140,20 +141,22 @@ describe("the tiles (boards 7, 11)", () => {
     ({ cents: 9655, at: "2026-10-23T15:00:00Z", overdue: false, severalDates: false, hasPayoutAccount: true, ...over });
 
   it("both: rust amounts, the real wallet date, the job count", () => {
-    show({ coming: coming(), held: { cents: 4000, jobs: 1 } });
+    show({ coming: coming(), held: { cents: 4000, jobs: 1, only: { title: "Mow two lawns", helper: "Yusef H." } } });
     const comingTile = screen.getByRole("button", { name: /Coming to you/ });
     expect(comingTile.textContent).toContain("$96.55");
     expect(comingTile.textContent).toMatch(/Reaches your wallet Fri, Oct 23/);
-    const held = screen.getByRole("button", { name: /Held for you/ });
+    // Owner 2026-10-21: the poster's OWN payment, held for the Helpr; never "Held for you".
+    const held = screen.getByRole("button", { name: /^Held for Mow two lawns/ });
     expect(held.textContent).toContain("$40.00");
-    expect(held.textContent).toContain("Until you confirm 1 job");
+    expect(held.textContent).toContain("Paid to Yusef H. after you confirm it's done");
+    expect(document.body.textContent).not.toMatch(/Held for you/);
     for (const a of document.querySelectorAll("[data-money-amount]")) expect((a as HTMLElement).style.color).toBe("hsl(var(--accent-ink))");
   });
 
   it("no date on the rows: the rule, never a made-up date; two jobs read plural", () => {
-    show({ coming: coming({ cents: 4600, at: null }), held: { cents: 8000, jobs: 2 } });
+    show({ coming: coming({ cents: 4600, at: null }), held: { cents: 8000, jobs: 2, only: null } });
     expect(screen.getByRole("button", { name: /Coming to you/ }).textContent).toMatch(/Sent \d+ days after the job is marked done/);
-    expect(screen.getByRole("button", { name: /Held for you/ }).textContent).toContain("Until you confirm 2 jobs");
+    expect(screen.getByRole("button", { name: /^Held for 2 jobs/ }).textContent).toContain("Paid to each Helpr after you confirm their job is done");
   });
 
   it("never a false date: no payout account says so and opens payout setup; a passed date says not sent yet; several days say First", () => {
@@ -170,7 +173,7 @@ describe("the tiles (boards 7, 11)", () => {
   });
 
   it("a tile with nothing is not drawn, and with nothing at all there is no strip", () => {
-    show({ coming: null, held: { cents: 4000, jobs: 1 } });
+    show({ coming: null, held: { cents: 4000, jobs: 1, only: null } });
     expect(screen.queryByRole("button", { name: /Coming to you/ })).toBeNull();
     document.body.innerHTML = "";
     const { container } = show({ coming: null, held: null });

@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
+import { dismissComingSoonToasts } from "@/components/mobileNav/useSectionTabs";
 
 import { prefersReducedMotion, useReducedMotion } from "@/lib/accessibility";
 import { hapticLight } from "@/lib/haptics";
@@ -48,6 +49,8 @@ const ScrollToTop = () => {
   const navigationType = useNavigationType();
   const [visible, setVisible] = useState(false);
   const reducedMotion = useReducedMotion();
+  // A "coming soon" toast belongs to the screen that was tapped (owner 2026-10-21): any navigation clears it.
+  useEffect(() => { dismissComingSoonToasts(); }, [key]);
   // The AppShell scroll container currently being watched.
   const scrollerRef = useRef<HTMLElement | null>(null);
   // Last pathname we reset for. A query-only change (e.g. a URL-driven tab

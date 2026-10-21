@@ -1,6 +1,6 @@
 /**
  * BOARD 51's head (spec v2 §9.17): You › Money opens on two tiles, "Coming to
- * you" and "Held for you", the SAME component and the SAME reads as Home's
+ * you" and the held payment ("Held for <job>"), the SAME component and the SAME reads as Home's
  * money strip (HomeMoneyTiles over useHomeMoney), never a second copy. On the
  * Money tab a tile opens that page's own half instead of navigating to itself:
  * Held -> Spent; Coming -> Earned, or the payout account when there is none.
@@ -38,21 +38,21 @@ describe("You › Money opens on board 51's two tiles", () => {
     const opened: string[] = [];
     const { container } = render(
       <MemoryRouter>
-        <HomeMoneyTiles money={{ coming: COMING, held: { cents: 4000, jobs: 1 } }} placement="money" onOpen={(k) => opened.push(k)} />
+        <HomeMoneyTiles money={{ coming: COMING, held: { cents: 4000, jobs: 1, only: null } }} placement="money" onOpen={(k) => opened.push(k)} />
       </MemoryRouter>,
     );
     const strip = container.querySelector('[data-home-money="money"]') as HTMLElement;
     expect(strip.className).not.toMatch(/hidden/);
-    fireEvent.click(screen.getByRole("button", { name: /^Held for you/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^Held for 1 job/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Coming to you/ }));
     expect(opened).toEqual(["held", "coming"]);
     cleanup();
-    render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1 } }} placement="money" /></MemoryRouter>);
+    render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1, only: null } }} placement="money" /></MemoryRouter>);
     expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).toContain("col-span-2");
   });
 
   it("Home's desktop column keeps a lone tile at half width", () => {
-    render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1 } }} placement="side" /></MemoryRouter>);
+    render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1, only: null } }} placement="side" /></MemoryRouter>);
     expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).not.toContain("col-span-2");
   });
 });

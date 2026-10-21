@@ -22,10 +22,37 @@ export function useSectionTabs() {
   return sectionItems.map((s) => ({ ...s, on: on[s.feature] }));
 }
 
+/**
+ * ONE quiet line for every section not open yet (owner, 2026-10-21: no dead
+ * "Opening soon" cards): "Declutter, Shops and Homes are opening soon",
+ * "Homes is opening soon"; null when every section is open.
+ */
+export function openingSoonLine(labels: readonly string[]): string | null {
+  if (labels.length === 0) return null;
+  const names = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(", ")} and ${labels[labels.length - 1]}`;
+  return `${names} ${labels.length === 1 ? "is" : "are"} opening soon`;
+}
+
 /** The accessible name of a switched-off section: "Declutter, coming soon". */
 export const comingSoonLabel = (label: string) => `${label}, coming soon`;
 
+const shownComingSoon = new Set<string>();
+
 /** What a tap on a switched-off section does instead of navigating. */
 export function sayComingSoon(label: string) {
-  toast(`${label} is coming soon`, { id: `coming-soon-${label}` });
+  const id = `coming-soon-${label}`;
+  shownComingSoon.add(id);
+  toast(`${label} is coming soon`, { id });
+}
+
+/**
+ * A "coming soon" toast belongs to the screen that was tapped (owner,
+ * 2026-10-21: "Declutter is coming soon" showed on You › Money with no tap
+ * there). It is dismissed the moment the route changes, so it can never be
+ * seen on a screen where nobody tapped a section. Called on every pathname
+ * change by ScrollToTop (mounted once, app-wide).
+ */
+export function dismissComingSoonToasts() {
+  for (const id of shownComingSoon) toast.dismiss(id);
+  shownComingSoon.clear();
 }

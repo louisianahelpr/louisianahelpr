@@ -42,6 +42,8 @@ const LIFECYCLE_REASONS: Record<string, string> = {
   job_not_started:
     "It's not the scheduled start time yet — you can report a no-show once it passes.",
   already_reported: "You have already reported this Helpr as a no-show for this job.",
+  // Q2291: the server's Louisiana-only address rule (jobs_address_in_louisiana).
+  job_address_not_louisiana: "Helpr is in Louisiana only for now. Use a Louisiana address.",
   no_helper_assigned: "No Helpr has been assigned to this job yet.",
   not_authorized: "Only the person who posted this job can do that.",
   job_not_found: "We couldn't find that job.",

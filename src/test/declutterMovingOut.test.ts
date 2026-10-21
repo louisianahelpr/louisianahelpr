@@ -79,7 +79,8 @@ describe("Declutter moving-out mode (20261016053625)", () => {
     expect(flat(MIG)).toContain("ALTER TABLE public.declutter_item_private ADD COLUMN IF NOT EXISTS move_out_on date;");
     expect(MIG).not.toMatch(/ALTER TABLE public\.declutter_items ADD COLUMN IF NOT EXISTS move_out_on/);
     const r = flat(body("declutter_seller_moving_sale"));
-    expect(r).toContain("RETURNS TABLE(move_out_on date)");
+    // Q2269 (20261021030654) added the seller's sale name and start, both public by design; still no address.
+    expect(r).toContain("RETURNS TABLE(move_out_on date, sale_name text, sale_starts_on date)");
     expect(r).not.toMatch(/pickup_address/);
     expect(r).toContain("IF v_date IS NULL OR v_date < v_today THEN RETURN;");
     expect(r).toContain("public.declutter_seller_hidden(p_seller_id)");

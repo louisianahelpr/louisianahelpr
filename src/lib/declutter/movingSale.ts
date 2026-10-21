@@ -27,11 +27,25 @@ export function movingSaleLine(moveOutOn: string, count: number, today: string, 
   return `Moving out ${formatMoveDate(moveOutOn)}. ${items}.`;
 }
 
+/** "Oct 30 – Nov 1 · 2 items for sale" once the seller set a start date (Q2269); else movingSaleLine. */
+export function movingSaleWhen(startsOn: string | null, moveOutOn: string, count: number, today: string, more = false): string {
+  if (!startsOn) return movingSaleLine(moveOutOn, count, today, more);
+  const short = (d: string) => {
+    const [y, m, day] = d.split("-").map(Number);
+    return new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(y, m - 1, day)));
+  };
+  const items = more ? `${count}+ items for sale` : `${count} ${count === 1 ? "item" : "items"} for sale`;
+  return `${short(startsOn)} – ${short(moveOutOn)} · ${items}`;
+}
+
 const MOVING_SALE_READ_LIMIT = 100;
 
 export interface SellerMovingSale {
   /** The move-out date, YYYY-MM-DD. */
   moveOutOn: string;
+  /** Q2269: the seller's name for the sale and its start (YYYY-MM-DD); null when not set or not deployed. */
+  saleName: string | null;
+  startsOn: string | null;
   items: MoveItem[];
   more: boolean;
 }
@@ -45,7 +59,7 @@ export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMov
     if (words) e.userMessage = words;
     throw e;
   }
-  const sale = ((data ?? []) as { move_out_on: string }[])[0];
+  const sale = ((data ?? []) as { move_out_on: string; sale_name?: string | null; sale_starts_on?: string | null }[])[0];
   if (!sale) return null;
   const rows = (unwrap(
     await supabase
@@ -58,5 +72,5 @@ export async function fetchSellerMovingSale(sellerId: string): Promise<SellerMov
       .limit(MOVING_SALE_READ_LIMIT + 1),
   ) ?? []) as MoveItem[];
   if (rows.length === 0) return null;
-  return { moveOutOn: sale.move_out_on, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
+  return { moveOutOn: sale.move_out_on, saleName: sale.sale_name ?? null, startsOn: sale.sale_starts_on ?? null, items: rows.slice(0, MOVING_SALE_READ_LIMIT), more: rows.length > MOVING_SALE_READ_LIMIT };
 }

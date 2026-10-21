@@ -1,9 +1,8 @@
-/** Post a Job is five screens: What, Details, Price, When and where, Review. */
-const POST_JOB_STEP_COUNT = 5;
+import { POST_JOB_SCREEN_COUNT as POST_JOB_STEP_COUNT, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 interface Props {
-  /** 1-based screen number. */
-  step: number;
+  /** Which screen this is; its number comes from POST_JOB_SCREENS (one source). */
+  screen: PostJobScreen;
   /** The one question this screen asks (Bodoni: a flow question, spec §1.2). */
   question: string;
   /** One muted line under the question. */
@@ -11,10 +10,11 @@ interface Props {
 }
 
 /**
- * The head of every Post a Job screen (boards 23, 44, 3, 45, 46): a segmented
- * progress bar with "n of 5", then the screen's question and one helper line.
+ * The head of every Post a Job screen (boards 23, 44, 3, 45, 46; step 0 and 1b since 2026-10-21): a segmented
+ * progress bar with "n of 7", then the screen's question and one helper line.
  */
-export function PostJobStepHeader({ step, question, helper }: Props) {
+export function PostJobStepHeader({ screen, question, helper }: Props) {
+  const step = screenNumber(screen);
   return (
     <header className="space-y-4">
       {/* Desktop shows the step rail instead (board 166, PostJobStepRail). */}

@@ -1,7 +1,5 @@
 import { Check } from "lucide-react";
-
-/** The five Post a Job screens, in order (boards 23, 44, 3, 45, 46). */
-const STEPS = ["What", "Details", "Price", "When and where", "Review"] as const;
+import { POST_JOB_SCREENS, screenNumber, type PostJobScreen } from "./postJobScreens";
 
 /**
  * Board 166: on desktop the flow's steps sit in a rail on the left. The
@@ -9,11 +7,13 @@ const STEPS = ["What", "Details", "Price", "When and where", "Review"] as const;
  * what was typed, so going back loses nothing); a step ahead cannot be
  * skipped to. The phone keeps the segmented bar (PostJobStepHeader) instead.
  */
-export function PostJobStepRail({ step, onPick }: { step: number; onPick?: (n: number) => void }) {
+/** `canPick` says which passed screens can be reopened from here (form pages only). */
+export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobScreen; onPick?: (s: PostJobScreen) => void; canPick?: (s: PostJobScreen) => boolean }) {
+  const step = screenNumber(screen);
   return (
     <nav aria-label="Post a job steps" className="hidden lg:block sticky top-6">
       <ol className="space-y-1">
-        {STEPS.map((label, i) => {
+        {POST_JOB_SCREENS.map(({ key, rail: label }, i) => {
           const n = i + 1;
           const current = n === step;
           const done = n < step;
@@ -32,9 +32,9 @@ export function PostJobStepRail({ step, onPick }: { step: number; onPick?: (n: n
           );
           const row = `flex w-full items-center gap-3 rounded-full px-3 py-2 text-left ${current ? "bg-muted" : ""}`;
           return (
-            <li key={label}>
-              {done && onPick ? (
-                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(n)}>
+            <li key={key}>
+              {done && onPick && (canPick?.(key) ?? true) ? (
+                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(key)}>
                   {body}
                   <span className="sr-only">, done. Go back to this step</span>
                 </button>

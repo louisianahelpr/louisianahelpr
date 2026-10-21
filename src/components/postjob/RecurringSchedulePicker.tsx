@@ -223,7 +223,7 @@ export function RecurringSchedulePicker({
         </p>
       ) : dates.length === 0 ? (
         <p className="text-ds-11 text-muted-foreground">
-          Set &ldquo;Start Date&rdquo; just below and we&apos;ll show every visit.
+          Set &ldquo;Start date&rdquo; just below and we&apos;ll show every visit.
         </p>
       ) : (
         <div className="rounded-ds-md bg-primary/5 border border-primary/15 px-3 py-2.5 space-y-1">

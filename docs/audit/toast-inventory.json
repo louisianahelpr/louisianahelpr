@@ -10698,7 +10698,7 @@
     },
     {
       "file": "src/pages/profile/HomeHistory.tsx",
-      "line": 288,
+      "line": 291,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10960,7 +10960,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 127,
+      "line": 128,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10970,7 +10970,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 202,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10980,7 +10980,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 206,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10990,7 +10990,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 211,
+      "line": 212,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11000,7 +11000,7 @@
     },
     {
       "file": "src/pages/quotes/QuoteRequestPage.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

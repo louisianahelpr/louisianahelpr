@@ -47,25 +47,21 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
 
   return (
     <div
-      className="rounded-ds-md p-3 flex items-start gap-2"
-      style={{
-        background: "hsl(var(--gift-tint) / 0.08)",
-        border: "0.5px solid hsl(var(--gift-tint) / 0.2)",
-      }}
+      // Spec v2 rebuild (audit 2026-10-21): a hint row on --subtle with an
+      // olive link, not a green box (green is not in the palette).
+      className="rounded-[20px] bg-muted p-3 pl-4 flex items-start gap-2"
     >
       <div className="flex-1 min-w-0">
         <p
-          className="font-sans font-semibold text-ds-14"
-          style={{ color: "hsl(var(--success-ink))" }}
+          className="font-sans font-semibold text-ds-14 text-foreground"
         >
           {count} Helpr gift card{count > 1 ? "s" : ""} waiting for you
         </p>
         <p
-          className="font-sans text-ds-12 mt-0.5"
-          style={{ color: "hsl(var(--gift-green-soft))" }}
+          className="font-sans text-ds-13 mt-0.5 text-muted-foreground"
         >
           Ready to spend on your next job ·{" "}
-          <Link to="/profile?tab=gift_card" className="underline">
+          <Link to="/profile?tab=gift_card" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
             {count > 1 ? "See them" : "See it"}
           </Link>
         </p>
@@ -75,7 +71,7 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
         onClick={dismiss}
         aria-label="Dismiss"
         className="shrink-0 -mr-2 -my-2 w-11 h-11 inline-flex items-center justify-center ctl-exit ctl-tint active:bg-secondary/40 transition-colors"
-        style={{ color: "hsl(var(--success-ink))" }}
+        style={{ color: "hsl(var(--muted-foreground))" }}
       >
         <X className="w-4 h-4" aria-hidden="true" />
       </button>

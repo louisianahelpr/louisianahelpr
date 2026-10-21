@@ -126,11 +126,11 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               badge in the app now reads. */}
           {posterTierBadge && (
             <span
-              className="inline-flex items-center gap-1 text-ds-10 font-sans font-semibold uppercase"
-              style={{ color: posterTierBadge.color, letterSpacing: "0.06em" }}
+              className="inline-flex items-center gap-1 text-ds-12 font-sans font-semibold"
+              style={{ color: posterTierBadge.color }}
             >
               <posterTierBadge.icon className="w-3.5 h-3.5" strokeWidth={2.25} />
-              {tierDisplayName(job.posterSubscriptionTier)} Member
+              {tierDisplayName(job.posterSubscriptionTier)} member
             </span>
           )}
           {/* Poster-data trust signals via the reusable TrustRow component.

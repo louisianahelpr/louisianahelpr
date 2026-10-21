@@ -91,15 +91,14 @@ export function TrustRow({
     <div
       className={[
         "flex items-center gap-1.5 flex-wrap",
-        "text-ds-10 font-sans font-semibold uppercase",
+        // Sentence case (spec v2 rebuild, audit 2026-10-21): no tracked
+        // uppercase micro-labels in the quick view.
+        "text-ds-12 font-sans font-semibold",
         className ?? "",
       ]
         .filter(Boolean)
         .join(" ")}
-      style={{
-        color: "hsl(var(--olivewood) / 0.8)",
-        letterSpacing: "0.06em",
-      }}
+      style={{ color: "hsl(var(--muted-foreground))" }}
     >
       {chips.map((chip, i) => (
         <span key={i} className="inline-flex items-center gap-1.5">

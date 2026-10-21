@@ -148,7 +148,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             className="rounded-ds-md"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
+            Try again
           </Button>
         </div>
       );

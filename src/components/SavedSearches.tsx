@@ -470,7 +470,7 @@ export function SavedSearches({
                 className="mt-1 gap-1.5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
-                Try Again
+                Try again
               </Button>
             </div>
           ) : searches.length === 0 ? (

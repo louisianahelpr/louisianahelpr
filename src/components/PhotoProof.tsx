@@ -335,7 +335,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add Photo
+                      Add photo
                     </span>
                   </button>
                 ) : (
@@ -351,7 +351,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       className="font-sans font-semibold mt-1 text-ds-10"
                       style={{ color: "hsl(var(--bark))", letterSpacing: "0.04em" }}
                     >
-                      Add Photo
+                      Add photo
                     </span>
                     <input type="file" accept="image/*" multiple className="sr-only" onChange={handleSelect} />
                   </label>
@@ -384,7 +384,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
  *
  * Owner, 2026-09-19 (item 10): on a job card the before & after pictures are a
  * BUTTON on the same row as the other action buttons. A button needs something
- * to open, and what it opens is exactly what PhotoProofGroup's "View All"
+ * to open, and what it opens is exactly what PhotoProofGroup's "View all"
  * already opened — so the dialog is lifted out whole rather than written a
  * second time, and the group keeps using it. Nothing about the gallery itself
  * changes.
@@ -473,7 +473,7 @@ export const PhotoProofGroup = ({
   const hasAfter = afterUrls.length > 0;
   const [viewOpen, setViewOpen] = useState(false);
   // Only the three thumbnails this panel actually paints get a ticket; the
-  // rest are behind "View All", which signs its own.
+  // rest are behind "View all", which signs its own.
   const beforeSrcs = useProofPhotoUrls(beforeUrls.slice(0, 3));
   const afterSrcs = useProofPhotoUrls(afterUrls.slice(0, 3));
 
@@ -497,7 +497,7 @@ export const PhotoProofGroup = ({
       action={
         (hasBefore || hasAfter) ? (
           <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium shrink-0">
-            View All
+            View all
           </button>
         ) : undefined
       }
@@ -592,7 +592,7 @@ export const PhotoProofGroup = ({
  *
  * Owner, 2026-09-19: "before and after buttons should also be on the same
  * lines as the other buttons". The old PhotoProofStep — a titled panel with a
- * hint line and a full-width "Add Photo" button — was the block sitting ABOVE
+ * hint line and a full-width "Add photo" button — was the block sitting ABOVE
  * the row in their screenshot. This is the same uploader and the same dialog,
  * drawn as the row's own control.
  *

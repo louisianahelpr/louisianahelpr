@@ -150,7 +150,7 @@ function readOverflowingControls(): { text: string; sw: number; cw: number }[] {
     // VISUALLY HIDDEN (Tailwind `sr-only`: clip rect(0 0 0 0), 1px box) paints
     // nothing, so nothing of it can run past an edge on screen. Run 38689259675 (2026-10-15)
     // reported 116 of 169 rows from exactly these: App.tsx's "Skip to content"
-    // (sw124/cw1, every route), JobCardShell's "Expand Job Details" (cw44 from
+    // (sw124/cw1, every route), JobCardShell's "Expand job details" (cw44 from
     // the button's min touch size, still clipped to nothing) and
     // JobCardMetaRow's "Open <address> in Maps" (cw1). Each turns visible only
     // on focus, which is measured on its own below.

@@ -62,8 +62,8 @@ const NO_X: Record<string, string> = {
   // no ✕ to press yet; it filters nothing in place, it navigates on submit.
   // Q2242 (lead ruling, 2026-10-20): no ✕ — a submit box that navigates, not a live filter.
   "src/components/landing/HeroSection.tsx": "landing hero search: a submit box that navigates, not a live filter; no ✕ by decision (Q2242)",
-  // TRAIN24 (2026-10-20): J1's Post a Job screen 1 filters the category groups live with no ✕; open as Q2260.
-  "src/components/postjob/JobCategoryGroups.tsx": "Post a Job category search (J1 screen 1): live filter, no ✕ yet (Q2260)",
+  // TRAIN24 (2026-10-20): J1's Post a job screen 1 filters the category groups live with no ✕; open as Q2260.
+  "src/components/postjob/JobCategoryGroups.tsx": "Post a job category search (J1 screen 1): live filter, no ✕ yet (Q2260)",
 };
 
 /** ✕ files that render ONLY below the desktop breakpoint, so the press spec
@@ -184,7 +184,7 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-19 (shared section shell): -2, the Jobs, Declutter and Homes Browse rows became ONE
     // shared SectionSearchRow (Shops' new search uses it too): 3 files out, 1 in.
     // 2026-10-20: +1, the landing's hero search (HeroSection, on NO_X).
-    // 2026-10-20 (TRAIN24): +1, Post a Job's category search (JobCategoryGroups, on NO_X, Q2260).
+    // 2026-10-20 (TRAIN24): +1, Post a job's category search (JobCategoryGroups, on NO_X, Q2260).
     // 2026-10-21: +1, /search (board 89, SearchPage), a permanent field with a "Clear search" ✕.
     expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(14);
     expect(X_FILES, "files rendering a search ✕").toEqual([

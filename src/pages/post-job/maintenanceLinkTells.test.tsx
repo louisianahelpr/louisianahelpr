@@ -1,4 +1,4 @@
-// Rentals: when Post a Job's link to the maintenance request fails or is
+// Rentals: when Post a job's link to the maintenance request fails or is
 // refused, the landlord is told the job posted but is not linked, so the
 // tenant will not see it booked (lh-authz-rls review of ca8e149b9, nit #10;
 // before, useJobSubmit only reported it and showed nothing). Harness: the fake
@@ -258,7 +258,7 @@ beforeEach(() => {
   safeStorage.removeItem("helpr_last_job_submit");
 });
 
-describe("Rentals: Post a Job tells the landlord when the maintenance link fails", () => {
+describe("Rentals: Post a job tells the landlord when the maintenance link fails", () => {
   it("a linked post says nothing extra and goes on to pay", async () => {
     await post();
     expect(link.calls).toEqual([[REQUEST, "job-1"]]);

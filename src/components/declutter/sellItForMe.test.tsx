@@ -2,7 +2,7 @@
  * Declutter "Sell it for me" (owner order 2026-10-19 ~21Z): the entry, the
  * sheet's two choices, and the switch gates.
  *   - The entry shows only while the 'declutter' switch is on.
- *   - A: "Hire a local Helpr" opens Post a Job at ?sellForMe=1, which
+ *   - A: "Hire a local Helpr" opens Post a job at ?sellForMe=1, which
  *     pre-fills a Declutter Help job (category, a title that fits the 32-char
  *     cap, the template with the no-account line).
  *   - B: nearby shops in "Declutter and estate sale services" on the Shops
@@ -148,7 +148,7 @@ describe("Sell it for me: A, hire a Helpr", () => {
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
-  it("opens Post a Job pre-filled for a Declutter Help job", async () => {
+  it("opens Post a job pre-filled for a Declutter Help job", async () => {
     show();
     open();
     fireEvent.click(await screen.findByTestId("sell-for-me-hire-helpr"));
@@ -232,7 +232,7 @@ describe("Sell it for me: B, ask a local business", () => {
   });
 });
 
-describe("Post a Job reads ?sellForMe=1", () => {
+describe("Post a job reads ?sellForMe=1", () => {
   it("skips the entry screen and pre-fills category, title and description", async () => {
     const form = blankComments(readFileSync(join(process.cwd(), "src/pages/post-job/usePostJobForm.ts"), "utf8"));
     expect(form).toMatch(/const skipEntry = !!\(searchParams\.get\(SELL_FOR_ME_PARAM\) \|\|/);

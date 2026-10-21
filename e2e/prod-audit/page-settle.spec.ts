@@ -63,7 +63,7 @@ for (const width of WIDTHS) {
       const signedIn = r.personas.includes("customer") && r.personas.includes("helper");
       const ctx = await newUserContext(browser, signedIn ? session : null, { desktop: width === 1440 });
       await ctx.addInitScript(SETTLE_INIT, PLACEHOLDER_SEL);
-      // A RETURNING device: the account's Senior Mode flag is cached after
+      // A RETURNING device: the account's Senior mode flag is cached after
       // any visit (src/lib/simpleMode.ts), so the first paint is already the
       // right text size. Seeded from the live profile, not assumed. A device's
       // very FIRST visit still grows once when the profile lands; that case

@@ -262,11 +262,11 @@ describe("PaymentSuccess", () => {
       };
     });
 
-    // Q1873: paying for a quote job (or any job the kept Post a Job draft was
+    // Q1873: paying for a quote job (or any job the kept Post a job draft was
     // not sent to Checkout for) must not delete that unrelated draft.
     // @mutate src/pages/post-job/PaymentSuccess.tsx | if (resolvedJobId) dropDraftPaidAs(resolvedJobId); | void resolvedJobId;
     // @mutate src/hooks/useDraftJob.ts | if (safeStorage.getItem(DRAFT_CHECKOUT_JOB_KEY) !== paidJobId) return; | void paidJobId;
-    it("keeps a Post a Job draft that was sent to Checkout for a DIFFERENT job (Q1873)", async () => {
+    it("keeps a Post a job draft that was sent to Checkout for a DIFFERENT job (Q1873)", async () => {
       localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unrelated draft" }));
       localStorage.setItem("helpr_draft_checkout_job", "40000000-0000-4000-8000-000000000004");
       renderAt();
@@ -275,7 +275,7 @@ describe("PaymentSuccess", () => {
       expect(localStorage.getItem("helpr_draft_checkout_job")).toBe("40000000-0000-4000-8000-000000000004");
     });
 
-    it("keeps a Post a Job draft that was never sent to Checkout (Q1873)", async () => {
+    it("keeps a Post a job draft that was never sent to Checkout (Q1873)", async () => {
       localStorage.setItem("helpr_draft_job", JSON.stringify({ title: "Unsent draft" }));
       renderAt();
       await screen.findByRole("heading", { level: 1, name: /your job is live/i });

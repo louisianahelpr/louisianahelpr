@@ -35,7 +35,7 @@ export function OpenJobLimitNotice({ count = 5 }: { count?: number }) {
           className="inline-flex items-center mt-2 text-ds-11 font-semibold underline underline-offset-2 min-h-[32px]"
           style={{ color: "hsl(var(--destructive-ink))" }}
         >
-          Go to My Posts
+          Go to my posts
         </Link>
       </div>
     </div>

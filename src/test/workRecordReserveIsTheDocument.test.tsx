@@ -1,6 +1,6 @@
 /**
  * Owner, 2026-10-08: "loading state for work record is not correct". While its
- * data loaded, Work Record drew the generic two short cards; what arrives is
+ * data loaded, Work record drew the generic two short cards; what arrives is
  * ONE `.doc-card` letterhead. Both waits (the chunk's ProfileTabFallback and
  * the tab's own data wait) now draw WorkRecordReserve: the same sheet, with
  * the identity row's three labels and the Work Summary's four stat tiles.
@@ -22,7 +22,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, 
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { WORK_RECORD_ID_FIELD } from "@/components/profile/WorkRecordReserve";
 
-describe("Work Record waits in the shape of its document", () => {
+describe("Work record waits in the shape of its document", () => {
   it("the reserve for work_record is the letterhead sheet, not the generic cards", () => {
     const { container } = render(<ProfileTabBodyReserve tab="work_record" />);
     const sheet = screen.getByTestId("work-record-reserve");

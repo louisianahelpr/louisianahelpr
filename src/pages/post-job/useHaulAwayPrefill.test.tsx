@@ -1,5 +1,5 @@
 /**
- * Post a Job's Declutter haul-away prefill (docs/specs/declutter-haul-away.md;
+ * Post a job's Declutter haul-away prefill (docs/specs/declutter-haul-away.md;
  * lh-silent-failure review 2026-10-16 #6, #8, #9): `?haulAway=` fills a moving
  * job from the seller's listing(s) and hands back the item ids the submit links,
  * applies ONCE per link (a switch that reads off then on again must not

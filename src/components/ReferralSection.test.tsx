@@ -146,9 +146,9 @@ describe("ReferralSection — the gate on cashing out referral credit", () => {
     // Callers must stay SILENT on a refusal — the OS already showed the sheet,
     // so an extra error toast is noise the user did not earn.
     expect(toastError).not.toHaveBeenCalled();
-    // …and the button still offers the cash-out, not stuck on "Cashing Out".
+    // …and the button still offers the cash-out, not stuck on "Cashing out".
     expect(screen.getByRole("button", { name: "$10" })).toBeEnabled();
-    expect(screen.queryByText(/Cashing Out/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cashing out/)).not.toBeInTheDocument();
   });
 
   it("the OS prompt names the cash-out, not a generic 'confirm'", async () => {

@@ -1,5 +1,5 @@
 /**
- * Owner decision 2026-10-19: quotes live INSIDE Post a Job, Jobs, My Jobs and
+ * Owner decision 2026-10-19: quotes live INSIDE Post a job, Jobs, My Jobs and
  * Posts; the standalone /quotes hub retired. Screen tests for each new home,
  * all behind the unchanged 'quotes' switch:
  *   - old /quotes links redirect (poster view -> Posts, open requests -> the
@@ -160,7 +160,7 @@ describe("Jobs: open quote requests in the browse feed", () => {
   it("once quoted, it points to the quote on My Jobs", () => {
     render(<MemoryRouter><ul><OpenQuoteRequestRow r={{ ...OPEN, my_quote_id: "q1", my_quote_status: "pending" } as never} /></ul></MemoryRouter>);
     expect(screen.queryByRole("link", { name: "Send a quote" })).toBeNull();
-    expect(screen.getByRole("link", { name: "See it in My Jobs" })).toHaveAttribute("href", "/jobs?quotes=1");
+    expect(screen.getByRole("link", { name: "See it in my Jobs" })).toHaveAttribute("href", "/jobs?quotes=1");
   });
 });
 

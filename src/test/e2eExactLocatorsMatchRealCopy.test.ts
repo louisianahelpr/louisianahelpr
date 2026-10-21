@@ -8,7 +8,7 @@
  *
  * THE DAY THIS COST, 2026-09-21. The full money loop against production is the
  * highest-stakes check in this repo. It waited 30 seconds for a panel titled
- * "Add an after photo" with an "Add Photo" button. That panel is
+ * "Add an after photo" with an "Add photo" button. That panel is
  * `PhotoProofStep`, which has ZERO call sites in `src/` — the card renders
  * `PhotoProofCaptureChip`, labelled "After Photo". The failure read "the card
  * never asked for the after photo", which sounds exactly like a broken

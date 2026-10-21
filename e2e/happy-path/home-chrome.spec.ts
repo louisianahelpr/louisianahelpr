@@ -294,7 +294,7 @@ for (const width of [320, 375, 1440]) {
     // CTAs are visible, side by side, not collapsed behind a menu or an icon.
     // (Role is what moved; the accessible NAME did not need touching —
     // getByRole matches it case-insensitively, so "Log in" still matches the
-    // rendered "Log In".)
+    // rendered "Log in".)
     await expect(page.getByRole("link", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Get started" })).toBeVisible();
 

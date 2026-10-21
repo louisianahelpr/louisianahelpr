@@ -30,7 +30,7 @@ export function OpenQuoteRequestRow({ r }: { r: OpenQuoteRequest }) {
           <p className="text-sm font-medium text-foreground">
             You sent a quote.{" "}
             <Link to={QUOTE_HOMES.myQuotes} className="underline underline-offset-2">
-              See it in My Jobs
+              See it in my Jobs
             </Link>
           </p>
         ) : (

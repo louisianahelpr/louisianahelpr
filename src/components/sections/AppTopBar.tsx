@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
@@ -30,6 +30,7 @@ export function AppTopBar({
   add: sectionAdd,
   explore = false,
   showProfile = true,
+  settings,
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
@@ -44,6 +45,12 @@ export function AppTopBar({
   explore?: boolean;
   /** False on You itself (board 18): the bar keeps only the bell, since you are already on your profile. */
   showProfile?: boolean;
+  /**
+   * The section's settings, as a GEAR right of the "+" (owner, 2026-10-21: Jobs settings moved from a
+   * card at the foot of Posted / Working into the header). Same 44px control as the "+" and the bell,
+   * on phone and desktop.
+   */
+  settings?: { label: string; path: string };
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -54,7 +61,7 @@ export function AppTopBar({
   const add = phoneExplore ? undefined : sectionAdd;
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
-  if (isWebDesktop && !title && !add) return null;
+  if (isWebDesktop && !title && !add && !settings) return null;
   return (
     <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
       {title ? (
@@ -77,6 +84,19 @@ export function AppTopBar({
             className={TOP_BAR_ICON_CLASS}
           >
             <Plus aria-hidden />
+          </Button>
+        )}
+        {settings && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label={settings.label}
+            data-testid="section-settings"
+            onClick={() => navigate(settings.path)}
+            className={TOP_BAR_ICON_CLASS}
+          >
+            <Settings aria-hidden />
           </Button>
         )}
         {!isWebDesktop && (

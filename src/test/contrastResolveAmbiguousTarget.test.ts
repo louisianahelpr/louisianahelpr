@@ -1,7 +1,7 @@
 /**
  * axe's colour-contrast target is unique when axe SCANS, not when the sweep
  * RESOLVES it a moment later (a11y-webkit-prod run 39003252698, nightly-red
- * #2375): on /messages at desktop the rail's "Post a Job" button
+ * #2375): on /messages at desktop the rail's "Post a job" button
  * (DesktopSidebarNav, a radial-gradient fill, so axe says bgGradient) was the
  * only `.rounded-2xl`, axe named it `.rounded-2xl`, and then the lazily loaded
  * swipe trails mounted (ConversationSwipeLayer, two `.rounded-2xl` per
@@ -18,7 +18,7 @@ import { measureInPage } from "../../e2e/happy-path/contrastResolve";
 
 const BUTTON =
   '<button class="flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3" ' +
-  'style="background: radial-gradient(125% 125% at 32% 22%, rgb(110, 116, 80) 0%, rgb(85, 90, 60) 46%, rgb(60, 64, 42) 100%); color: rgb(245, 238, 222);">Post a Job</button>';
+  'style="background: radial-gradient(125% 125% at 32% 22%, rgb(110, 116, 80) 0%, rgb(85, 90, 60) 46%, rgb(60, 64, 42) 100%); color: rgb(245, 238, 222);">Post a job</button>';
 const TRAIL = '<div class="absolute inset-y-0 right-0 flex items-center justify-end pr-5 rounded-2xl" aria-hidden="true" style="opacity: 0;"><span>Archive</span></div>';
 
 function mount(): HTMLButtonElement {
@@ -54,7 +54,7 @@ describe("contrast resolver — a selector made ambiguous after axe scanned", ()
     expect(row.vanished).not.toBe(true);
     // Known answer: it measured the button, not a trail.
     expect(row.resolved, JSON.stringify(row)).toBe(true);
-    expect(row.text).toBe("Post a Job");
+    expect(row.text).toBe("Post a job");
   });
 
   it("resolves it from a truncated opening tag too (axe's ' ...>' form over 300 chars)", () => {

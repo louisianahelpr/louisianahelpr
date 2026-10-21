@@ -43,7 +43,7 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
               navigate("/signup");
             }}
           >
-            Create Free Account
+            Create free account
           </Button>
           <Button
             size="lg"
@@ -54,13 +54,13 @@ export const GateSheet = ({ open, onOpenChange }: GateSheetProps) => {
               navigate("/login");
             }}
           >
-            I Already Have an Account
+            I already have an account
           </Button>
           <button
             onClick={() => onOpenChange(false)}
             className="text-ds-11 text-muted-foreground py-2 hover:text-foreground transition-colors"
           >
-            Keep Browsing
+            Keep browsing
           </button>
         </div>
       </SheetContent>

@@ -59,7 +59,7 @@
  * box so completely that no surface pixel survives the glyph filter, and the
  * sampler then returns the glyph colour, i.e. 1:1. That is not a measurement,
  * and taking the higher of the two numbers turns it into silent agreement with
- * whatever the walk said — 14 "Post a Job" buttons came back "4.33:1 via both"
+ * whatever the walk said — 14 "Post a job" buttons came back "4.33:1 via both"
  * with the pixel column at 1.11. Hence the second stage in sampledBackdrops:
  * when the line boxes are degenerate, sample the element's own border box.
  *
@@ -329,7 +329,7 @@ export function measureInPage(input: {
     for (const r of rects) {
       // CLAMP, do not skip. Dropping any rect that pokes a pixel past the
       // image edge silently discarded the whole border-box stage for buttons
-      // near the viewport edge, which is how 14 "Post a Job" CTAs kept coming
+      // near the viewport edge, which is how 14 "Post a job" CTAs kept coming
       // back with a pixel column of 1.11 even after that stage was added. A
       // partially visible rect still measures the surface fine.
       const x0 = Math.max(0, Math.round((r.left + offX) * shot.scale));
@@ -388,7 +388,7 @@ export function measureInPage(input: {
    * filter, and stage 1 then returns the glyph colour and reads as 1:1. That
    * is not a measurement, and it is not harmless: it silently demoted every
    * `btn-grad-primary` CTA to the ancestor walk alone, which scores a gradient
-   * at its worst stop, and 14 "Post a Job" buttons were reported at 4.33:1
+   * at its worst stop, and 14 "Post a job" buttons were reported at 4.33:1
    * with the pixel column sitting at 1.11 — a number that means "I could not
    * see the background", dressed up as agreement.
    *

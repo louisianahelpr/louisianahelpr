@@ -79,7 +79,7 @@ const JobsSection = () => {
   // (Declutter, Shops, Homes). Guard: e2e/prod-audit/section-shell-alignment.spec.ts.
   const header = (
     <div className="flex flex-col gap-1">
-      <AppTopBar title={section.label} add={section.add} explore />
+      <AppTopBar title={section.label} add={section.add} explore settings={{ label: "Jobs settings", path: "/jobs/settings" }} />
       <ExploreSearchEntry />
       <ExploreSwitcher current="jobs" />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} />

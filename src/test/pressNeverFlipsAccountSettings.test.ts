@@ -8,14 +8,14 @@
  * (pressNeverFlipsAdminSettings.test.ts) to every persona.
  *
  * Proven from the API gateway's edge_logs on 2026-09-23: the Accessibility
- * tab's "Senior Mode" switch was pressed by press-every-control shard 4 as the
+ * tab's "Senior mode" switch was pressed by press-every-control shard 4 as the
  * customer and the helper — bare `PATCH /rest/v1/profiles?user_id=eq.<id>`
  * (the toggle's own write) from the runner's 127.0.0.1:4173 preview at
  * 05:55:47Z / 05:56:52Z (run 35822080143) and 09:06:10Z / 09:07:15Z (run
  * 35837735324), matching the run log's `[/profile?tab=accessibility customer]
  * pressed=10`. Shard 2's per-shard profile "restore" at 11:02Z then wrote
  * senior_mode from a snapshot taken mid-flip, and both shared accounts stayed
- * in Senior Mode: every later audit screenshot and journey rendered enlarged.
+ * in Senior mode: every later audit screenshot and journey rendered enlarged.
  *
  * Why the gate let it through: a non-admin switch never entered the mutating
  * branch at all, and /profile is a SELF route, where mutations are allowed
@@ -38,7 +38,7 @@ const isAccountSettingToggle = safety.isAccountSettingToggle as (a: Record<strin
 const mutationGate = safety.mutationGate as (a: Record<string, unknown>) => Promise<string | null>;
 const SKIP_ACCOUNT_SETTING = safety.SKIP_ACCOUNT_SETTING as string;
 
-/** The meta ENUMERATE produces for the Senior Mode switch runs 35822080143 / 35837735324 pressed. */
+/** The meta ENUMERATE produces for the Senior mode switch runs 35822080143 / 35837735324 pressed. */
 const SENIOR_MODE = { role: "switch", tag: "button", type: "button", inForm: false, rowText: "" };
 
 const gate = (persona: string, routeUrl: string, label: string, meta: Record<string, unknown>, urlOwned = { owned: false, shared: false }) =>
@@ -74,8 +74,8 @@ describe("the prod presser never flips an account setting on a shared test accou
   });
 
   it.each([
-    ["customer", "/profile?tab=accessibility", "Senior Mode", SENIOR_MODE],
-    ["helper", "/profile?tab=accessibility", "Senior Mode", SENIOR_MODE],
+    ["customer", "/profile?tab=accessibility", "Senior mode", SENIOR_MODE],
+    ["helper", "/profile?tab=accessibility", "Senior mode", SENIOR_MODE],
     ["helper", "/profile?tab=availability", "Available now", { role: "switch", tag: "button", type: "button", inForm: false, rowText: "" }],
     ["customer", "/profile?tab=notifications", "Job alerts", { role: "checkbox", tag: "button", type: "button", inForm: false, rowText: "" }],
     ["customer", "/auto-tip", "Auto-tip", { role: null, tag: "input", type: "checkbox", inForm: false, rowText: "" }],
@@ -89,7 +89,7 @@ describe("the prod presser never flips an account setting on a shared test accou
     const formBox = { role: "checkbox", tag: "button", type: "button", inForm: true, rowText: "" };
     expect(isAccountSettingToggle({ persona: "customer", meta: formBox, label: "Flexible date" })).toBe(false);
     expect(isAccountSettingToggle({ persona: "customer", meta: { role: "tab", tag: "button", inForm: false }, label: "Earnings" })).toBe(false);
-    expect(isAccountSettingToggle({ persona: "admin", meta: SENIOR_MODE, label: "Senior Mode" })).toBe(false);
+    expect(isAccountSettingToggle({ persona: "admin", meta: SENIOR_MODE, label: "Senior mode" })).toBe(false);
     await expect(gate("customer", "/jobs/abc", "Urgent", SENIOR_MODE, { owned: true, shared: false })).resolves.toBeNull();
   });
 

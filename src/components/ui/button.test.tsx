@@ -140,7 +140,7 @@ describe("Button", () => {
     });
 
     it("primary + shimmer (marketing CTA) keeps all 4 treatments", () => {
-      render(<Button variant="primary" shimmer>Get Started</Button>);
+      render(<Button variant="primary" shimmer>Get started</Button>);
       const cls = screen.getByRole("button").className;
       expectFilledElevation(cls);
       // Same gradient delivery as `default` — via .btn-grad-primary, see above.

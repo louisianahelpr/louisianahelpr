@@ -1,7 +1,7 @@
 // @mutate src/components/postjob/CheckoutStep.tsx | <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} /> | <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />{"Your Helpr receives $1 of this"}
 /**
  * Owner, 2026-09-24: "On payment break down remove your helpr earns… from this."
- * The poster's Payment Breakdown lists what THEY pay (budget, fee, tax, total).
+ * The poster's Payment breakdown lists what THEY pay (budget, fee, tax, total).
  * It no longer states what the Helpr receives, in any wording.
  */
 import { describe, it, expect } from "vitest";
@@ -10,7 +10,7 @@ import { join } from "node:path";
 
 const src = readFileSync(join(__dirname, "../components/postjob/CheckoutStep.tsx"), "utf8");
 
-describe("checkout Payment Breakdown has no Helpr-pay line", () => {
+describe("checkout Payment breakdown has no Helpr-pay line", () => {
   it("reads the real breakdown", () => {
     expect(src.length).toBeGreaterThan(10_000);
     expect(src).toContain("Job budget");

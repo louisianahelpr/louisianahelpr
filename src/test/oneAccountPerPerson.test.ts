@@ -154,10 +154,10 @@ describe("one account per person: a no-match social sign-in never silently creat
     // clears the choice so the next tap asks again.
     expect(buttons).toMatch(/\.catch\([\s\S]{0,500}failed\.current\(\)/);
     // A stale-download failure reloads the page before that catch runs, so the
-    // note for Log In is written BEFORE the download (seen in a browser,
-    // 2026-10-05) and Log In reads it.
+    // note for Log in is written BEFORE the download (seen in a browser,
+    // 2026-10-05) and Log in reads it.
     expect(buttons).toMatch(/markAccountChoiceRetry\(\);\s*import\("@\/components\/auth\/AccountChoiceDialog"\)/);
-    // ...and the buttons themselves read it, so Log In and Sign Up both say it.
+    // ...and the buttons themselves read it, so Log in and Sign Up both say it.
     expect(buttons).toMatch(/useState\(\(\) => peekAccountChoiceRetry\(\)\)/);
     expect(buttons).toMatch(/if \(retryNote\) clearAccountChoiceRetry\(\);/);
     expect(buttons).toMatch(/\{retryNote && \(/);

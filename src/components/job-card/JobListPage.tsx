@@ -50,7 +50,7 @@ import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
-import { JobsSettingsRow } from "./JobsSettingsRow";
+import { PAGE_COLUMN } from "@/lib/pageColumn";
 
 /** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
  *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,
@@ -465,7 +465,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             {/* A job whose bank payment is on its way is not a post (no bucket, no count); with nothing else posted its poster lands here (owner, 2026-10-17). */}
             {tab === "posted" && <PendingBankPayments jobs={postedJobs} className="mx-4 mt-3" />}
             <JobListQuotesSlot tab={tab} className="mx-4 mt-3" />
-            <JobsSettingsRow className="mx-4 mt-3" />
             {/* Empty state — a liquid-glass card that fills the panel and bleeds beneath the
                 dock (flat bottom, no hard edge), matching the Dashboard / Messages pattern. */}
             <ActivityEmptyState
@@ -492,9 +491,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
                Giving this wrapper the panel's full height lets the tab's
                end-of-list block take the slack with `mt-auto`/`flex-1` instead
                of the void taking it (`min-h-`, so a full list still grows). */
-            /* Desktop list column <= 960px, centred (spec §4.4); a live toast never covers a card (lead 10-20). */
+            /* The one page column (owner 2026-10-21: the list as wide as the Jobs header); a live toast never covers a card (lead 10-20). */
             <div
-              className="min-h-full flex flex-col w-full lg:mx-auto lg:max-w-[960px]"
+              className={`min-h-full flex flex-col ${PAGE_COLUMN}`}
               style={{ paddingBottom: `calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + ${toastClearance}px)` }}
             >
           <JobListQuotesSlot tab={tab} />{/* the member's quotes, behind the 'quotes' switch (owner 2026-10-19) */}
@@ -589,7 +588,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             </SectionBoundary>
             </Suspense>
           )}
-          <JobsSettingsRow className="mt-4" />
             </div>
           )}
           </PullToRefreshWrapper>

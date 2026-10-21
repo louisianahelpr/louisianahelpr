@@ -18,7 +18,7 @@
  * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |               {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised |               <button aria-label="Post a new job"><Plus /></button>\n              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
- * @mutate src/pages/jobs/JobsSection.tsx |       <AppTopBar title={section.label} add={section.add} explore /> |       <AppTopBar title={section.label} explore />
+ * @mutate src/pages/jobs/JobsSection.tsx |       <AppTopBar title={section.label} add={section.add} explore settings= |       <AppTopBar title={section.label} explore settings=
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -124,7 +124,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
       ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
       // Jobs & Posts' add action is the top bar's "+" (owner final decisions 2026-10-19).
-      ["src/pages/jobs/JobsSection.tsx", /<AppTopBar title=\{section\.label\} add=\{section\.add\} explore \/>/],
+      ["src/pages/jobs/JobsSection.tsx", /<AppTopBar title=\{section\.label\} add=\{section\.add\} explore settings=/],
     ];
     for (const [f, re] of pills) expect(code(f), f).toMatch(re);
     expect(pills.length).toBeGreaterThan(3);

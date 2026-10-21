@@ -1486,7 +1486,7 @@ export function ConversationList({
                   nothing at all. */}
               {inboxTab === "active" && allTabConversations.length > 0 && (
                 <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}>
-                  Show All ({allTabConversations.length})
+                  Show all ({allTabConversations.length})
                 </BarkPillButton>
               )}
             </div>
@@ -1603,7 +1603,7 @@ export function ConversationList({
                         "0 1px 2px hsl(var(--bark) / 0.10)",
                     }}
                   >
-                    Show All {filteredConversations.length} Conversations
+                    Show all {filteredConversations.length} conversations
                   </button>
                 </div>
               )}

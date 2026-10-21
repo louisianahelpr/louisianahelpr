@@ -20,7 +20,7 @@ import type { AppliedApp } from "@/components/job-card/activityConstants";
 
 const notice = (backout_kind: string, actor_name: string | null = "Lexi") => ({ id: "n", job_id: "j", backout_kind, actor_name });
 
-describe("a back-out keeps the card in Needs You until Got It", () => {
+describe("a back-out keeps the card in Needs You until Got it", () => {
   it("poster: a reopened job with no applicants would be Waiting; with the notice it is Needs You", () => {
     const job = { id: "j", status: "open", date_needed: "2099-01-01", expires_at: "2099-01-01T00:00:00Z" };
     expect(postedActivityBucket(job, 0)).toBe("waiting");
@@ -44,7 +44,7 @@ describe("a back-out keeps the card in Needs You until Got It", () => {
       expect(backoutNoticeApplies(kind, "cancelled")).toBe(false);
       expect(backoutNoticeApplies(kind, "completed")).toBe(false);
     }
-    // The cancel itself still tells the Helpr "Don't go." until Got It.
+    // The cancel itself still tells the Helpr "Don't go." until Got it.
     expect(backoutNoticeApplies("poster_cancelled", "cancelled")).toBe(true);
   });
 });

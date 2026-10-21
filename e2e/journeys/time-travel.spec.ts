@@ -303,7 +303,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     /*
      * AN UNPAID JOB SHOWS NOWHERE (owner, 2026-09-27): "Unpaid jobs should not
      * show in post anywhere. Even hidden." and "Finish paying should not even
-     * be a thing." (It was a "Finish Paying" draft row in Post a Job from
+     * be a thing." (It was a "Finish Paying" draft row in Post a job from
      * 2026-09-21, 8fdee80ca, until then.)
      *
      * This is the same unfunded fixture the countdown leg below had to stop using, and
@@ -311,7 +311,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      * takes that leg away. `jobIsUnfundedDraft` (src/components/job-card/
      * activityFilters.ts) drops payment_status unpaid/abandoned/failed, in
      * every status, out of `postedJobs` at the source — list AND tab counts —
-     * and Post a Job offers no row for it either. Every job this
+     * and Post a job offers no row for it either. Every job this
      * spec can create is in exactly that state and cannot leave it: the live
      * `enforce_jobs_insert_column_lock` forces `payment_status := 'unpaid'`
      * and `status := 'open'` on a poster INSERT, and `payment_status` is in
@@ -319,7 +319,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      *
      * Real clock, not a moved one: where a row is filed is not a time question.
      */
-    await test.step("an unfunded job shows neither in Post a Job nor in My Posts", async () => {
+    await test.step("an unfunded job shows neither in Post a job nor in My Posts", async () => {
       const { ctx, page } = await openAt(browser, request, CT, new Date());
       try {
         await page.goto("/post-job");
@@ -328,7 +328,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await expect(page.getByText("Start from scratch", { exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
         await expect(
           page.getByText(job.title),
-          "an unpaid job is offered in Post a Job — the owner removed Finish Paying (2026-09-27)",
+          "an unpaid job is offered in Post a job — the owner removed Finish Paying (2026-09-27)",
         ).toHaveCount(0);
         await step(journey, page, "unfunded-not-in-post-a-job");
 
@@ -510,7 +510,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
    * money moves, no strike (nobody cancels a hired job), and the app reads the
    * row exactly as it would read one the webhook wrote.
    */
-  test("confirm window: the Helpr's day-before 'I'm Still On' opens, counts down, then is past due", async ({
+  test("confirm window: the Helpr's day-before 'I'm still on' opens, counts down, then is past due", async ({
     browser,
     request,
     journey,
@@ -578,7 +578,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     const hoursLeft = (at: Date) => Math.max(1, Math.round((deadline.getTime() - at.getTime()) / 3_600_000));
     // The Helpr's tracker renders JobConfirmation's `inline` variant
     // (HelperTrackerPanel), whose control is HELPER_CONFIRM_LABEL in
-    // src/components/JobConfirmation.tsx; "I'm Still On" is the poster's.
+    // src/components/JobConfirmation.tsx; "I'm still on" is the poster's.
     const HELPER_CONFIRM = "Confirm You'll Be at the Job";
     // Before the window opens the Helpr's primary is this SAME button, greyed,
     // saying when it turns on (docs/JOB-LIFECYCLE.md step 4, owner 2026-10-08);

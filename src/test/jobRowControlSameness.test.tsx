@@ -295,7 +295,7 @@ const disputedHelper = (job: J) => () =>
 const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minControls: number }> = [
   // ── /jobs, Helpr — THE SCREENSHOT'S OWN ROW IS THE FIRST TWO ──────────
   {
-    name: "Jobs · Confirmed — Directions · Message · Cancel Job + I'm On My Way",
+    name: "Jobs · Confirmed — Directions · Message · Cancel job + I'm On My Way",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -313,9 +313,9 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
   },
   {
     // THE PRIMARY THAT COMES FROM A FOURTH FILE: JobConfirmation portals its
-    // "I'm Still On" into this row. It is the easiest one to miss and the
+    // "I'm still on" into this row. It is the easiest one to miss and the
     // easiest to let drift, because nothing in the job-card, posts or jobs folders draws it.
-    name: "Jobs · Confirmed, day-of confirmation owed — I'm Still On (portalled from JobConfirmation)",
+    name: "Jobs · Confirmed, day-of confirmation owed — I'm still on (portalled from JobConfirmation)",
     render: () =>
       wrap(
         <ConfirmedSection
@@ -333,7 +333,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 4,
   },
   {
-    name: "Jobs · On the Way — Directions · Message · Report a Problem + I've Arrived",
+    name: "Jobs · On the way — Directions · Message · Report a Problem + I've Arrived",
     render: active(makeJob({ helper_arrived_at: null, poster_confirmed_working_at: null }), "on_the_way"),
     minControls: 4,
   },
@@ -369,7 +369,7 @@ const CASES: Array<{ name: string; render: () => ReturnType<typeof render>; minC
     minControls: 3,
   },
   {
-    name: "Jobs · Revision — I'll Fix It + Message",
+    name: "Jobs · Revision — I'll fix it + Message",
     render: active(
       makeJob({
         status: "revision_requested", helper_completed_at: ago(5), revision_requested_at: ago(3),

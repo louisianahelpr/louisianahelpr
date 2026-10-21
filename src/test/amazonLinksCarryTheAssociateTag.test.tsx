@@ -1,7 +1,7 @@
 /**
  * Owner, 2026-10-08 ("should we do an affiliate amazon link so i would get
  * money back"; Associates ID louisianahelp-20): every Amazon "Shop" link in
- * You Might Need carries Helpr's tag, and the panel shows the Associates
+ * You might need carries Helpr's tag, and the panel shows the Associates
  * Program's required disclosure.
  *
  * @mutate src/components/postjob/MaterialsPanel.tsx | href={amazonAffiliateUrl(item.searchUrl)} | href={item.searchUrl}

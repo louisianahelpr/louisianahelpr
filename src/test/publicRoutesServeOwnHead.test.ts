@@ -45,7 +45,7 @@
 // @mutate vercel.json | "source": "/help", | "source": "/help-moved",
 // @mutate api/share.ts | if (route.kind === "page") { | if (route.kind === "page" && url.hostname === "never") {
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/support`, | canonical: SITE_ORIGIN,
-// @mutate src/lib/publicPageMeta.mjs | title: "Help Center — Helpr", | title: "Contact Support — Helpr",
+// @mutate src/lib/publicPageMeta.mjs | title: "Help Center — Helpr", | title: "Contact support — Helpr",
 // @mutate src/lib/publicPageMeta.mjs | canonical: `${SITE_ORIGIN}/legal?tab=privacy`, | canonical: `${SITE_ORIGIN}/legal?tab=privacy-policy`,
 // @mutate src/pages/info/HelpCenter.tsx | usePageMeta(PUBLIC_PAGE_META["/help"]); | usePageMeta({ ...PUBLIC_PAGE_META["/help"], canonical: "https://www.louisianahelpr.com/help" });
 // @mutate vercel.json | "source": "/forgot-password", | "source": "/forgot-password-moved",

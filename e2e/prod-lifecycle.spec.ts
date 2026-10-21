@@ -307,9 +307,9 @@ async function readJob(api: APIRequestContext, session: Session, jobId: string) 
  * The handle is the level-2 heading, and the proof is the `role="group"
  * aria-label="Job progress"` step rail (`JobTracking.tsx`). That is exactly how
  * `e2e/journeys/02-marketplace.spec.ts`'s `card()` helper does it — deliberately
- * the same mechanism rather than a second one. The sr-only "Expand Job Details"
+ * the same mechanism rather than a second one. The sr-only "Expand job details"
  * button is NOT used: it is a 1px clipped element whose accessible name flips to
- * "Collapse Job Details", which makes it awkward both to click and to assert on.
+ * "Collapse job details", which makes it awkward both to click and to assert on.
  *
  * Idempotent: called on an already-open card it does nothing, so the second
  * photo ask (which deliberately does not re-navigate) is free.
@@ -365,7 +365,7 @@ async function uploadProofThroughTheApp(
   // Scoped by the run id, which is unique per run and is part of the job
   // title. A previous run that died mid-loop can leave a SECOND in-progress
   // job on this same account carrying the same marker, and an unscoped
-  // "Add Photo" button would then be a coin flip between them.
+  // "Add photo" button would then be a coin flip between them.
   const card = page.locator("div.liquid-glass").filter({ hasText: runId }).first();
   await expect(
     card,
@@ -380,7 +380,7 @@ async function uploadProofThroughTheApp(
 
      What the 2026-09-22 failure artefact actually showed: the helper's
      /jobs had the job on the **Scheduled** tab, and the card's whole
-     accessible content was `button "Expand Job Details"`, the heading, `$22`,
+     accessible content was `button "Expand job details"`, the heading, `$22`,
      the location chip and `paragraph: Needs You — Finish and mark it done`.
      No tracker, no chip, nothing to press. The job is scheduled three days
      out, so `appliedActivityBucket` leaves it in Scheduled and
@@ -389,9 +389,9 @@ async function uploadProofThroughTheApp(
 
      Expanded exactly the way 02-marketplace's `card()` helper does it, rather
      than by a second mechanism: click the heading, and treat the `Job progress`
-     group as the proof that it opened. The sr-only "Expand Job Details" button
+     group as the proof that it opened. The sr-only "Expand job details" button
      is NOT used as the handle — it is a 1px clipped element whose accessible
-     name flips to "Collapse Job Details", which makes it both awkward to click
+     name flips to "Collapse job details", which makes it both awkward to click
      and awkward to assert on. */
   await openCard(card);
 
@@ -403,7 +403,7 @@ async function uploadProofThroughTheApp(
   // THIS LOCATOR HAS NOW GONE STALE TWICE, and the second time cost more than
   // the first. It waited for `^Before Photos$` until that redesign shipped;
   // then for a panel titled "Add a before photo" / "Add an after photo" with an
-  // "Add Photo" button. That panel is `PhotoProofStep`, which has ZERO call
+  // "Add photo" button. That panel is `PhotoProofStep`, which has ZERO call
   // sites in src/ — the card renders `PhotoProofCaptureChip` instead, whose
   // trigger is a Button carrying `aria-label="<label> — add the <type> photo
   // for this job"` with the label "Before Photo" / "After Photo".

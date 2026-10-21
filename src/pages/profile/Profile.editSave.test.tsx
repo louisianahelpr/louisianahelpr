@@ -3,7 +3,7 @@
  *
  * handleSave wrote the row but never moved the `profile` state that the form's
  * dirty check compares against. Measured live on the local build: "Saved" at
- * +0.7s, then "Save Changes" back at +3.7s, once the 1.8s confirmation cleared.
+ * +0.7s, then "Save changes" back at +3.7s, once the 1.8s confirmation cleared.
  * And editing a field back to its pre-save value showed no bar at all, so that
  * edit could not be saved.
  *
@@ -137,7 +137,7 @@ const renderEdit = () =>
     </QueryClientProvider>,
   );
 
-const saveBarButton = () => screen.queryByRole("button", { name: /Save Changes|Saving|Saved/ });
+const saveBarButton = () => screen.queryByRole("button", { name: /Save changes|Saving|Saved/ });
 
 beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -149,9 +149,9 @@ afterEach(() => {
 
 async function editAndSave(bio: string) {
   fireEvent.change(screen.getByLabelText("Bio"), { target: { value: bio } });
-  expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+  expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   await act(async () => {
-    fireEvent.click(screen.getByRole("button", { name: "Save Changes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
   });
   expect(screen.getByRole("button", { name: /Saved/ })).toBeInTheDocument();
   // The "Saved" confirmation clears after 1.8s — go well past it.
@@ -161,7 +161,7 @@ async function editAndSave(bio: string) {
 }
 
 describe("Edit Profile save bar after a successful save", () => {
-  it("renders nothing once Saved clears — it does not come back as Save Changes", async () => {
+  it("renders nothing once Saved clears — it does not come back as Save changes", async () => {
     renderEdit();
     expect(saveBarButton()).toBeNull();
     await editAndSave("Twenty years fixing fences, gates and decks around Acadiana.");
@@ -179,12 +179,12 @@ describe("Edit Profile save bar after a successful save", () => {
     renderEdit();
     await editAndSave("Twenty years fixing fences, gates and decks around Acadiana.");
     fireEvent.change(screen.getByLabelText("Bio"), { target: { value: PROFILE.bio } });
-    expect(screen.getByRole("button", { name: "Save Changes" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
   });
 });
 
 // PROVEN RED: not moving the dirty-check baseline after a save — the exact
-// defect (Saved at +0.7s, "Save Changes" back at +3.7s) — fails "renders
+// defect (Saved at +0.7s, "Save changes" back at +3.7s) — fails "renders
 // nothing once Saved clears".
 // BLIND TO: the real ProfileTabPanels. The panel is stubbed to the real
 // dirty predicate + real SaveBar, so a regression in the full form's own

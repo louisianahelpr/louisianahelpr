@@ -58,7 +58,7 @@ export function HelperPortfolio({ helperId }: { helperId: string }) {
   return (
     <div className="space-y-3">
       <h2 className="text-ds-17 font-display font-semibold text-foreground flex items-center gap-2">
-        <Camera className="w-5 h-5 text-primary" /> Work Portfolio
+        <Camera className="w-5 h-5 text-primary" /> Work portfolio
       </h2>
       <div className="grid grid-cols-2 gap-3">
         {items.map((item, idx) => (

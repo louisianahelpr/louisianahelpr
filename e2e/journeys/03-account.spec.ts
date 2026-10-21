@@ -29,9 +29,9 @@ import { clickOrSayWhatMoves } from "./clickDiagnostics";
  *
  * Everything changed is put back, by the same UI where the UI can, and by the
  * account's own REST session where it cannot (the previous avatar URL). What is
- * NEVER pressed on these shared accounts, deliberately: "Sign Out Everywhere"
+ * NEVER pressed on these shared accounts, deliberately: "Sign out Everywhere"
  * (would sign every other lane out), "Change email", "Reset" password (sends
- * mail and is a credential change), "Turn On" two-step, "Delete Account".
+ * mail and is a credential change), "Turn On" two-step, "Delete account".
  *
  * ── Shown able to fail ────────────────────────────────────────────────────
  * The mutation below is the silent-failure shape this journey's own notes call
@@ -120,10 +120,10 @@ test(j7, async ({ browser, request, journey }) => {
     await openFromProfile(hp, /^Edit profile$|^Edit$/, "Edit Profile");
     const about = hp.getByRole("textbox", { name: "About you" });
     await about.fill(`${seedBio ?? ""} ${journeyMarker(RUN)}`.trim());
-    const save = hp.getByRole("button", { name: "Save Changes" });
-    await expect(save, "the save bar never offered Save Changes after an edit").toBeEnabled({ timeout: 15_000 });
+    const save = hp.getByRole("button", { name: "Save changes" });
+    await expect(save, "the save bar never offered Save changes after an edit").toBeEnabled({ timeout: 15_000 });
     // Q1646 (WebKit): the dock was hidden for the pointer but its tab glyphs
-    // were still PAINTED over Save Changes, because their `transition-all`
+    // were still PAINTED over Save changes, because their `transition-all`
     // turned the inherited visibility change into a transition that stays
     // `visible` while it runs. Read every dock element's computed visibility
     // two frames after the bar showed (inside any 200ms transition, outside
@@ -155,10 +155,10 @@ test(j7, async ({ browser, request, journey }) => {
         what: top ? `${top.tagName.toLowerCase()}${nav ? ` inside nav[aria-label="${nav.getAttribute("aria-label")}"]` : ""}` : "nothing",
       };
     });
-    expect(hit.onButton, `a tap on Save Changes lands on ${hit.what}, not the button (Q1646)`).toBe(true);
+    expect(hit.onButton, `a tap on Save changes lands on ${hit.what}, not the button (Q1646)`).toBe(true);
     await save.click();
     await expect
-      .poll(async () => (await readProfile(request, helper)).bio ?? "", { timeout: 30_000, message: "Save Changes did not write the bio" })
+      .poll(async () => (await readProfile(request, helper)).bio ?? "", { timeout: 30_000, message: "Save changes did not write the bio" })
       .toContain(`Journey ${RUN}.`);
     await hp.goto("/profile");
     await expect(hp.getByText(`Journey ${RUN}.`), "the edited bio is not on the profile").toBeVisible({ timeout: 30_000 });
@@ -266,7 +266,7 @@ test(j7, async ({ browser, request, journey }) => {
         r.ok(),
       { timeout: 30_000 },
     );
-    await hp.getByRole("button", { name: "Save Availability" }).click();
+    await hp.getByRole("button", { name: "Save availability" }).click();
     await saved;
     await assertHealthy(hp, "availability saved");
     await hp.reload();
@@ -282,7 +282,7 @@ test(j7, async ({ browser, request, journey }) => {
         r.ok(),
       { timeout: 30_000 },
     );
-    await hp.getByRole("button", { name: "Save Availability" }).click();
+    await hp.getByRole("button", { name: "Save availability" }).click();
     await restored;
     await hp.reload();
     await expect(hp.getByRole("switch", { name: "Toggle Sunday" }), "Sunday was not restored").toHaveAttribute("aria-checked", String(wasOn), { timeout: 30_000 });

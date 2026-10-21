@@ -43,7 +43,7 @@ import { srFetch } from "../serviceRoleFetch";
  *           browser saves, and check every section, the profile and both jobs
  *           (the account has no applications or reviews to find), and that the
  *           seeded tables left out are exactly KNOWN_NOT_EXPORTED.
- *   delete  press Delete Account -> Continue -> type DELETE -> Delete my account,
+ *   delete  press Delete account -> Continue -> type DELETE -> Delete my account,
  *           exactly as a person does, and read the function's own step report.
  *   verify  each purge step BY NAME (EXPECTED_PURGE_STEPS), then the rows and
  *           objects themselves: auth user and profile gone, every identity
@@ -237,7 +237,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     });
     expect(up.ok(), `avatar upload: ${up.status()} ${await up.text()}`).toBe(true);
     // The profile gate (ProtectedRoute isProfileComplete) needs avatar_url, or
-    // /profile, where Delete Account lives, redirects to /complete-profile.
+    // /profile, where Delete account lives, redirects to /complete-profile.
     const avatarUrl = await confirmedAvatarUrl(request, avatarPath);
     await srWrite(request, "PATCH", "profiles", `user_id=eq.${userId}&is_seed=eq.true`, { avatar_url: avatarUrl });
     const docPath = `${userId}/credentials/privacy-journey-${Date.now()}.png`;
@@ -322,10 +322,10 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     expect(missing, "tables this account has rows in that the export omits (KNOWN_NOT_EXPORTED is exact)").toEqual([...KNOWN_NOT_EXPORTED].sort());
   });
 
-  await test.step("delete: Delete Account -> Continue -> DELETE -> Delete my account", async () => {
+  await test.step("delete: Delete account -> Continue -> DELETE -> Delete my account", async () => {
     await page.goto("/profile");
     await assertHealthy(page, "profile landing");
-    await page.getByRole("button", { name: "Delete Account" }).click();
+    await page.getByRole("button", { name: "Delete account" }).click();
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
     // Last check before the irreversible press: fresh from the database, fail closed.
@@ -398,7 +398,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
  * Q292: an account that never finished signup can still delete itself.
  *
  * ProtectedRoute's profile gate (isProfileComplete: name, avatar, DOB, phone,
- * city) bounces an incomplete account from /profile — where Delete Account
+ * city) bounces an incomplete account from /profile — where Delete account
  * lives — to /complete-profile. Structural for Sign in with Apple (no photo).
  * So /complete-profile itself must offer deletion (Apple 5.1.1(v), GDPR Art.
  * 17), through the same hook and dialog as every other entry point.
@@ -461,8 +461,8 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
           await page.setViewportSize({ width: 375, height: 812 });
           await page.screenshot({ path: "test-results/q292-complete-profile-375.png", fullPage: true });
         });
-        await test.step("delete from /complete-profile: Delete Account -> Continue -> DELETE -> Delete my account", async () => {
-          await page.getByRole("button", { name: "Delete Account" }).click();
+        await test.step("delete from /complete-profile: Delete account -> Continue -> DELETE -> Delete my account", async () => {
+          await page.getByRole("button", { name: "Delete account" }).click();
           await page.getByRole("button", { name: "Continue" }).click();
           await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
           await disposable();

@@ -56,7 +56,7 @@ export function SavedHelperCard({
     // axe `nested-interactive`, SERIOUS, one node per card (reproduced at 375
     // on /profile?tab=saved_helpers, two seeded cards → two nodes). A
     // `button` role's subtree is flattened into its own accessible name for
-    // assistive tech, so "Offer a Job", "Add a private note", "Remove from
+    // assistive tech, so "Offer a job", "Add a private note", "Remove from
     // saved" and the note textarea were swallowed into the card's label and
     // could not be reached or operated by name. `stopPropagation` cannot
     // touch that — the NESTING is the defect.
@@ -262,7 +262,7 @@ export function SavedHelperCard({
 
       {/* "Profile" button REMOVED (item 26, 2026-08-30) — the whole card
           now opens the profile, so a dedicated button duplicated the tap
-          target. Offer a Job stays a distinct primary action; Remove stays
+          target. Offer a job stays a distinct primary action; Remove stays
           isolated so a stray card tap can never fire it. */}
       {/* Three controls now share this row, so the primary CTA's own width is
           measured, not assumed. With the stock `size="sm"` padding it wants
@@ -289,7 +289,7 @@ export function SavedHelperCard({
           className="flex-1 md:flex-none md:!px-4 rounded-ds-md !px-2.5"
         >
           <Send className="w-3.5 h-3.5 mr-1.5 hidden min-[360px]:inline-block" />
-          Offer a Job
+          Offer a job
         </Button>
         {/* The note affordance — what used to own a whole row of its own. It
             is a per-card tertiary action, so it belongs beside the other two
@@ -307,7 +307,7 @@ export function SavedHelperCard({
             rail switches on while the grid is still two columns) and 294px at
             1280 (where it becomes three). Both leave the CTA under its 131px
             intrinsic once a label is in the row, so a label that appears at
-            any desktop breakpoint clips "Offer a Job" at the next one. Two
+            any desktop breakpoint clips "Offer a job" at the next one. Two
             icon actions flanking one labelled primary is the shape that holds
             at every width from 320 to 1920.
             `aria-label` + `title` carry the name (there is no visible label to

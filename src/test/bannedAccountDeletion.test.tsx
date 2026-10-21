@@ -5,7 +5,7 @@
  * 5.1.1(v)) and App Review may exercise the path. A banned user could not:
  * `ProtectedRoute` runs its ban gate on every protected route, so
  * /profile — the only screen carrying the delete control — redirected them
- * straight back to /account-banned. That screen offered Support, Rules and Sign Out and nothing else, so
+ * straight back to /account-banned. That screen offered Support, Rules and Sign out and nothing else, so
  * their only route to deletion was emailing a human.
  *
  * The API half pointed the other way: `delete-own-account` never read
@@ -104,7 +104,7 @@ describe("/account-banned — what sits around the card (owner, 2026-10-03)", ()
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
   });
 
-  it("keeps Sign Out: a banned account stays signed in (Q281), and on a shared computer it is the only way to end the session", async () => {
+  it("keeps Sign out: a banned account stays signed in (Q281), and on a shared computer it is the only way to end the session", async () => {
     renderScreen();
     expect(await screen.findByRole("button", { name: /sign out/i })).toBeInTheDocument();
   });

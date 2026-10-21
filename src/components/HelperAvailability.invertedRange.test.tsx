@@ -33,7 +33,7 @@ import { HelperAvailability } from "./HelperAvailability";
 describe("availability end must follow start (ST-002)", () => {
   it("the editor refuses an inverted available day and names it", async () => {
     render(<HelperAvailability userId="u-1" />);
-    const save = await waitFor(() => screen.getAllByRole("button", { name: "Save Availability" })[0]);
+    const save = await waitFor(() => screen.getAllByRole("button", { name: "Save availability" })[0]);
     fireEvent.click(save);
     await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/^Sunday: the end time/)));
     expect(rpc).not.toHaveBeenCalled();

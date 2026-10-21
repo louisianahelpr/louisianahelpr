@@ -9,7 +9,7 @@ import { readSource, walkSource } from "./helpers/walkSource";
  * Dialog and sheet overlays are `z-50` (src/components/ui/dialog.tsx, sheet.tsx).
  * StrikeBanner is `z-[59]` so it clears the fixed page chrome, which also put
  * it over every backdrop: on /account-banned the red "Account suspended" strip
- * rendered un-dimmed across the Delete Account dialog (Q300 owner-path run,
+ * rendered un-dimmed across the Delete account dialog (Q300 owner-path run,
  * ~/.lh-shots/q281/owner-path/4-after-delete.png).
  *
  * Inventory from source: every `fixed` element whose z-index is above 50 and

@@ -822,7 +822,7 @@ const NotificationPreferences = () => {
               className="font-sans font-semibold block text-ds-14 mb-0"
               style={{ color: "hsl(var(--ink-deep))" }}
             >
-              Saved Helpr Openings
+              Saved Helpr openings
             </Label>
             <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Get a nudge when a Helpr you've saved opens up new availability. Off by default.

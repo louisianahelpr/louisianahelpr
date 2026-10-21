@@ -1,6 +1,6 @@
 /**
  * The /quotes hub is retired (owner decision 2026-10-19: quotes live INSIDE
- * Post a Job, Jobs, My Jobs and Posts). No screen links to it: every link
+ * Post a job, Jobs, My Jobs and Posts). No screen links to it: every link
  * goes to its new home (QUOTE_HOMES, src/lib/quotes/homes.ts), and the route
  * itself is only QuotesHubRedirect, so old links (pushes, emails, notification
  * rows quote_notify_about already wrote as '/quotes' or '/quotes?user=<id>')

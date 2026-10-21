@@ -71,7 +71,7 @@ export function HelperRevisionCard({
 }: HelperRevisionCardProps) {
   const [revision, setRevision] = useState<RevisionRow | null>(null);
   const [accepting, setAccepting] = useState(false);
-  /** Inside the helper's step card, "I'll Fix It" is that card's primary and
+  /** Inside the helper's step card, "I'll fix it" is that card's primary and
    *  renders in its one action row (owner, 2026-09-14, VN-21). */
   const inStepRow = useInJobStepRow();
   /**
@@ -87,11 +87,11 @@ export function HelperRevisionCard({
   useEffect(() => {
     // Try to load from the formal table; fall back to the legacy note.
     // `pending` OR `accepted`, not pending alone. This read used to filter to
-    // pending only, so the moment the helper tapped "I'll Fix It" the accepted
+    // pending only, so the moment the helper tapped "I'll fix it" the accepted
     // row stopped matching, the next render fell through to the legacy
     // `jobs.revision_note` (which the poster's request also writes) and the
     // card came back as a brand-new pending request: same amber box, same
-    // live "I'll Fix It" button, and every further tap sent the poster another
+    // live "I'll fix it" button, and every further tap sent the poster another
     // "Helpr acknowledged the revision" notification without touching a row.
     // Measured 2026-09-07 on the [SWEEP] patio job: job_revisions.status was
     // `accepted` while the screen still offered to accept it.
@@ -184,7 +184,7 @@ export function HelperRevisionCard({
       hapticSuccess();
       // Flip the card's own copy of the row: the parent's refetch is what
       // eventually re-reads it, and under load that has taken 10s+, during
-      // which the button read "I'll Fix It" again as if nothing had happened.
+      // which the button read "I'll fix it" again as if nothing had happened.
       setRevision((r) => (r ? { ...r, status: "accepted" } : r));
       confirmConsequential("Got it — the person who posted this job knows you'll fix it. Tap Mark Fixed when it's done.");
       onAccepted();
@@ -307,7 +307,7 @@ export function HelperRevisionCard({
           <JobStepRowSlot slot="primary">
             <JobStepPrimaryButton
               icon={Wrench}
-              label={accepting ? "Acknowledged…" : "I'll Fix It"}
+              label={accepting ? "Acknowledged…" : "I'll fix it"}
               onClick={() => { void handleAccept(); }}
               disabled={accepting}
             />
@@ -330,7 +330,7 @@ export function HelperRevisionCard({
           }}
         >
           {acknowledged ? <Check className="w-3.5 h-3.5 mr-1" /> : <Wrench className="w-3.5 h-3.5 mr-1" />}
-          {acknowledged ? "On it" : accepting ? "Acknowledged…" : "I'll Fix It"}
+          {acknowledged ? "On it" : accepting ? "Acknowledged…" : "I'll fix it"}
         </Button>
       </div>
       )}

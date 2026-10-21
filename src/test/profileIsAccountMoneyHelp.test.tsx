@@ -2,7 +2,7 @@
  * PROFILE = ACCOUNT, MONEY, HELP; SECTION THINGS LIVE IN THEIR SECTION (owner,
  * 2026-10-19, PROMPT-LEAD "Global organization": "anything belonging to a
  * section lives in that section (not in Profile); Profile = account, money,
- * settings, help, grouped, short, Log Out clear and Delete Account quiet").
+ * settings, help, grouped, short, Log Out clear and Delete account quiet").
  * Lead decision the same day (option A): the Jobs rows live at /jobs/settings,
  * reached by a "Jobs settings" row at the foot of Jobs > Posted and Working.
  *
@@ -13,12 +13,12 @@
  *      Insured (Q2200), each opening its existing /profile?tab= page;
  *   3. the route exists (ranked above /jobs/:id), the row is at the foot of
  *      both lists (and on an empty list), and goes to /jobs/settings;
- *   4. Delete Account is a quiet text button, Log Out the clear pill.
+ *   4. Delete account is a quiet text button, Log Out the clear pill.
  *
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |       title: "Help", |       title: "Legal",
  * @mutate src/components/profile/profileLanding/jobsSettingsGroups.tsx |       { key: "credentials", label: TAB_TITLES.credentials, |       { key: "credentials-x", label: TAB_TITLES.credentials,
- * @mutate src/components/job-card/JobListPage.tsx |           <JobsSettingsRow className="mt-4" /> |
- * @mutate src/components/job-card/JobsSettingsRow.tsx |         onClick={() => navigate("/jobs/settings")} |         onClick={() => navigate("/profile")}
+ * @mutate src/pages/jobs/JobsSection.tsx |  settings={{ label: "Jobs settings", path: "/jobs/settings" }} | 
+ * @mutate src/components/sections/AppTopBar.tsx |             onClick={() => navigate(settings.path)} |             onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
  */
@@ -34,7 +34,10 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
 
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import { JOBS_SETTINGS_GROUPS } from "@/components/profile/profileLanding/jobsSettingsGroups";
-import { JobsSettingsRow } from "@/components/job-card/JobsSettingsRow";
+import { AppTopBar } from "@/components/sections/AppTopBar";
+
+vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }) }));
 
 afterEach(cleanup);
 const src = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
@@ -76,30 +79,34 @@ describe("Jobs settings", () => {
     expect(settings).toBeLessThan(app.indexOf('<Route path="/jobs/:id" element='));
   });
 
-  it("the row sits at the foot of the Posted / Working list and on an empty list", () => {
-    const list = src("src/components/job-card/JobListPage.tsx");
-    expect(list.match(/<JobsSettingsRow className="mt-4" \/>/g)?.length).toBe(1);
-    expect(list.match(/<JobsSettingsRow className="mx-4 mt-3" \/>/g)?.length).toBe(1);
+  it("Jobs settings is a gear in the Jobs header, right of the +, and no card is left at the foot of the list (owner 2026-10-21)", () => {
+    expect(src("src/pages/jobs/JobsSection.tsx")).toContain('settings={{ label: "Jobs settings", path: "/jobs/settings" }}');
+    expect(src("src/components/job-card/JobListPage.tsx")).not.toMatch(/JobsSettingsRow|Jobs settings/);
   });
 
-  it("the row opens /jobs/settings", () => {
+  it("the gear sits right of the +, is a 44px control, and opens /jobs/settings", () => {
     function Where() {
       return <output data-testid="where">{useLocation().pathname}</output>;
     }
     render(
       <MemoryRouter initialEntries={["/jobs?tab=posted"]}>
         <Routes>
-          <Route path="*" element={<><JobsSettingsRow /><Where /></>} />
+          <Route path="*" element={<><AppTopBar title="Jobs" add={{ label: "Post a job", path: "/post-job" }} settings={{ label: "Jobs settings", path: "/jobs/settings" }} /><Where /></>} />
         </Routes>
       </MemoryRouter>,
     );
-    fireEvent.click(screen.getByRole("button", { name: /Jobs settings/ }));
+    const add = screen.getByTestId("section-add");
+    const gear = screen.getByRole("button", { name: "Jobs settings" });
+    expect(add.compareDocumentPosition(gear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(gear.className).toBe(add.className);
+    expect(gear.className).toMatch(/\bh-11\b/);
+    fireEvent.click(gear);
     expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");
   });
 });
 
-describe("Log Out clear, Delete Account quiet", () => {
-  it("Delete Account is a small muted text button with no border or fill; Log Out keeps its bordered pill", () => {
+describe("Log Out clear, Delete account quiet", () => {
+  it("Delete account is a small muted text button with no border or fill; Log Out keeps its bordered pill", () => {
     // Board 18 (2026-10-20): both live in YouMenu under the four rows.
     const s = src("src/components/profile/profileLanding/YouMenu.tsx");
     const at = s.indexOf('data-testid="profile-delete-account"');

@@ -4,7 +4,7 @@
  *
  * WHY THIS RULE EXISTS
  * Owner, 2026-09-12, on /complete-profile: "buttons should be the same size".
- * "Enter App" rendered 49.5px directly above a 60px "Sign Out". The primary
+ * "Enter App" rendered 49.5px directly above a 60px "Sign out". The primary
  * carried a hand-written `min-h-[60px]`, which index.css's unlayered
  * `button { min-height: 44px }` silently beat. Every hand-set height is a
  * private sizing decision that the shared scale (button.tsx `size`: sm 44,

@@ -1,7 +1,7 @@
 /**
  * Cowork design audit 2026-10-20:
  *  J10: a typed search with no hits read "No jobs match your filters." with a
- *       "Clear Filters" button, though no filter was set.
+ *       "Clear filters" button, though no filter was set.
  *  J8:  the empty feed offered "Post Your First Job" to members who had posted,
  *       in Title Case.
  * The class: the Browse empty state names what is actually narrowing the feed
@@ -42,7 +42,7 @@ describe("J10: a search miss is named as a search", () => {
       const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
       expect(src, f).toMatch(/browseFilteredEmptyCopy\(/);
       expect(src, f).not.toMatch(/"No jobs match your filters\."/);
-      expect(src, f).not.toMatch(/>\s*Clear Filters\s*</);
+      expect(src, f).not.toMatch(/>\s*Clear filters\s*</);
     }
   });
 });

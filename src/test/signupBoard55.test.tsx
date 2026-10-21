@@ -44,7 +44,7 @@ describe("Create account matches board 55", () => {
     expect(step1).toContain(">Create your account</h1>");
     expect(step1).toContain('"One account to hire, help, buy and sell."');
     expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");
-    expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log In<|Did You Mean/);
+    expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);
   });
 
   it("label-only inputs (owner 2026-08-22): no placeholder text on any step-1 field", () => {

@@ -6,7 +6,7 @@
  * that fades to 74% alpha, and the `background` shorthand also resets the
  * colour underneath to transparent, so the primitive's opaque `bg-popover`
  * class was overridden and the open thread read straight through the Camera /
- * Photo Library / Files rows (screenshot at 375, 2026-10-17).
+ * Photo library / Files rows (screenshot at 375, 2026-10-17).
  *
  * The class: every Radix floating-content element (popover, dropdown, select,
  * hover card, context menu, menubar, tooltip) sits over arbitrary page content,

@@ -4,8 +4,8 @@
  * bell beside it, the same size and weight, in every section: a ghost icon
  * Button wearing the bar's one icon class, with no fill.
  *
- * @mutate src/components/sections/AppTopBar.tsx |             className={TOP_BAR_ICON_CLASS}\n | className="btn-press w-10 h-10 rounded-full btn-grad-primary flex items-center justify-center"\n
- * @mutate src/components/sections/AppTopBar.tsx |             variant="ghost" | variant="default"
+ * @mutate src/components/sections/AppTopBar.tsx |             data-testid="section-add"\n            onClick={isPost ? gate.gate("post", go) : go}\n            {...(isPost ? gate.gatedProps("post") : {})}\n            className={TOP_BAR_ICON_CLASS}\n |             data-testid="section-add"\n            onClick={isPost ? gate.gate("post", go) : go}\n            {...(isPost ? gate.gatedProps("post") : {})}\n            className="btn-press w-10 h-10 rounded-full btn-grad-primary flex items-center justify-center"\n
+ * @mutate src/components/sections/AppTopBar.tsx |             aria-label={add.label} |             aria-label={add.label} variant="default"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

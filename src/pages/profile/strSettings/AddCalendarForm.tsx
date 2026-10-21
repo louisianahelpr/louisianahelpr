@@ -286,7 +286,7 @@ export function AddCalendarForm({
             This is the page's one primary CTA; it now inherits the same gloss
             every other primary control in the app wears. */}
         {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-        {loading ? "Connecting…" : "Connect Calendar"}
+        {loading ? "Connecting…" : "Connect calendar"}
       </Button>
     </div>
   );

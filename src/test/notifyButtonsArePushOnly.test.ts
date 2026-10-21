@@ -1,5 +1,5 @@
 /**
- * CLASS GUARD (Q1313): every "Notify Me When Work Lands" button is PUSH ONLY and
+ * CLASS GUARD (Q1313): every "Notify me when work lands" button is PUSH ONLY and
  * every one goes the same place.
  *
  * Owner, 2026-10-05: the button is push only, no email list. Signed in it saves
@@ -49,7 +49,7 @@ function labelFiles(): string[] {
   return sourceFiles().filter((f) => LABEL.test(blankComments(read(f))));
 }
 
-describe("Notify Me When Work Lands is push only (Q1313)", () => {
+describe("Notify me when work lands is push only (Q1313)", () => {
   it("inventory: the three button surfaces are found (floor, so the scan cannot go empty)", () => {
     const found = labelFiles();
     expect(found.length).toBeGreaterThan(2);

@@ -165,10 +165,10 @@ export function awardBlockCopy(reason: AwardBlockReason): AwardBlockCopy {
       return {
         // Accept-first (owner, 2026-10-06/07, Q1399): the accept is never the
         // barrier; the job is fully theirs once payouts are set up.
-        title: "Set Up Payouts to Get Paid",
+        title: "Set up payouts to get paid",
         body:
           "Helpr pays through Stripe, so this job is fully yours once your payout account is set up. It takes about two minutes, and you only do it once.",
-        ctaLabel: "Set Up Payouts",
+        ctaLabel: "Set up payouts",
         collect: "eventually_due",
       };
     case "helper_identity_unverified":
@@ -236,7 +236,7 @@ export function helperApplyBlockNotice(
         headline: "You can apply and accept offers. Set up payouts to get paid.",
         body:
           "Helpr pays through Stripe. If you accept an offer first, the job becomes yours as soon as your payout account is set up. It takes about two minutes, once.",
-        ctaLabel: "Set Up Payouts",
+        ctaLabel: "Set up payouts",
         href: "/profile?tab=payment",
       };
     case "helper_identity_unverified":

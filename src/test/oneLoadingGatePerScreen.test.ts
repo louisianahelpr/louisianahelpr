@@ -2,7 +2,7 @@
 // lists come from two separate queries must not gate each list on its own
 // `isLoading`. Gated apart, the faster list paints first and the slower one
 // lands later: the page arrives in waves, which the prod page-settle audit
-// (e2e/prod-audit/page-settle.spec.ts) fails. The Gift Card tab did exactly
+// (e2e/prod-audit/page-settle.spec.ts) fails. The Gift card tab did exactly
 // this: "sent" (one request) painted at 700ms, the nine "sent to you" cards
 // (two requests) at 900ms, measured on prod in run 36766443019.
 //

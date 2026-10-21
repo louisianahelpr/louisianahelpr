@@ -1,5 +1,5 @@
 /**
- * Q1465: in Recently Deleted at 375 the "Restore" chip covered the end of a
+ * Q1465: in Recently deleted at 375 the "Restore" chip covered the end of a
  * long job line ("SEED Mow and edge a corner lot": "lot" sat behind it),
  * because the chip was absolutely positioned over the row. It is now the
  * row's `trailing` slot: a flex sibling of the text column, so the column
@@ -39,7 +39,7 @@ const convo = {
 
 afterEach(cleanup);
 
-describe("Q1465: Recently Deleted's Restore sits in the row's flow, never over the job line", () => {
+describe("Q1465: Recently deleted's Restore sits in the row's flow, never over the job line", () => {
   it("the trailing control is a flex child of the row frame, after the open-thread button", () => {
     render(
       <ConversationRow convo={convo} currentUserId="me" openConvo={() => {}} trailing={<button type="button">Restore</button>} />,

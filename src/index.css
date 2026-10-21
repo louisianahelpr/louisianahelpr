@@ -471,6 +471,9 @@
  * grounding. All values from the user-supplied moodboards.
  */
 :root {
+    /* The one signed-in page column width (src/lib/pageColumn.ts): the whole
+       app frame, as wide as Home and the Jobs header (owner 2026-10-21). */
+    --page-column-max: none;
   /* Tell the UA which palette its OWN widgets should use — scrollbars, native
      <select> popups, date/time inputs, autofill, form controls. Nothing
      declared this anywhere, so in dark mode every native control rendered
@@ -1887,6 +1890,14 @@ html.web-desktop.desktop-rail:not(.app-shell) #root:has(.app-shell-frame) {
   .page-measure {
     width: 100%;
     margin-inline: auto;
+  }
+
+  /* THE ONE PAGE COLUMN (owner 2026-10-21, src/lib/pageColumn.ts): every
+     signed-in page's column, at the one shared width. */
+  .page-column {
+    width: 100%;
+    margin-inline: auto;
+    max-width: var(--page-column-max);
   }
 
   .link-standard {

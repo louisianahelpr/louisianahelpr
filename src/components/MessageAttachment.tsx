@@ -249,7 +249,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
     // for that path came back 404 NoSuchKey — a batch sign for the same path
     // a few hundred ms later returned a URL. Storage's read-after-write is
     // not instantaneous, and a single failed sign used to be terminal: the
-    // sender saw "Couldn't Load Photo" on their own message until they
+    // sender saw "Couldn't load photo" on their own message until they
     // reloaded the chat, though the photo was fine. Three retries with a
     // growing pause cover the observed lag; a genuinely missing object still
     // falls through to the placeholder.
@@ -326,7 +326,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
               className="flex items-center justify-center w-48 h-32 font-sans text-ds-12"
               style={{ background: "hsl(var(--ivory-sand) / 0.5)", color: "hsl(var(--olivewood) / 0.8)" }}
             >
-              Couldn't Load Photo
+              Couldn't load photo
             </div>
           )}
         </button>

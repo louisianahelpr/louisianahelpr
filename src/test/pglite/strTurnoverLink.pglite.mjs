@@ -82,7 +82,7 @@ check("L1 the host links their imported turnover to the open job they posted", l
 await db.exec(`UPDATE public.jobs SET payment_status = 'escrow' WHERE id = '${JOB}'`);
 const l2 = await link(EV, JOB2);
 check("L2 a turnover linked to a FUNDED job is never re-pointed", l2.r === false && (await jobOf(EV)) === JOB, JSON.stringify(l2));
-// L6: Post a Job links, then the checkout could not start, and it deletes its orphan.
+// L6: Post a job links, then the checkout could not start, and it deletes its orphan.
 const l6link = await link(EV2, ORPHAN);
 let l6 = "";
 try { await db.exec(`DELETE FROM public.jobs WHERE id = '${ORPHAN}'`); } catch (e) { l6 = e.message; }

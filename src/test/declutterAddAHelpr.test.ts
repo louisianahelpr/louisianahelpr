@@ -1,7 +1,7 @@
 /**
  * GUARD: Declutter "Add a Helpr" (owner 2026-10-16; docs/specs/declutter-add-a-helpr.md).
  *
- * The add-on must stay an ordinary Helpr job: Post a Job opens pre-filled from
+ * The add-on must stay an ordinary Helpr job: Post a job opens pre-filled from
  * the paid order, the buyer pays through the normal job checkout, and only the
  * LINK is new. This checks every layer that makes that true:
  *   - SQL (20261017073146): both functions refuse without the hidden switch,
@@ -11,10 +11,10 @@
  *     prod-shaped world, red without the migration (`NEW_MIGRATION=skip`: 0/20, exit 1, measured 2026-10-16),
  *     and a second stage on the REAL Declutter schema with Helpr delivery applied
  *     (a paid delivery order is offered too).
- *   - Post a Job: `?declutterOrder=` skips the entry screen, pre-fills, and the
+ *   - Post a job: `?declutterOrder=` skips the entry screen, pre-fills, and the
  *     new job is linked right after it is created (useJobSubmit).
  *   - Declutter: the buyer's paid order card offers the three choices behind
- *     the switch, each opening Post a Job.
+ *     the switch, each opening Post a job.
  *   - No payment call: nothing in the feature calls a payment function.
  *   - A10 (owner, 2026-10-17): a seller-fault Declutter refund cancels the buyer's setup job with no fee and
  *     no strike (trg_declutter_refund_cancels_setup_jobs); void-cancelled-payments reads the marker, refunds
@@ -222,7 +222,7 @@ describe("Declutter Add a Helpr", () => {
     expect(proof).toContain('process.env.NEW_MIGRATION === "skip"');
   });
 
-  it("Post a Job opens the order pre-filled, skips the entry screen, and links the new job", () => {
+  it("Post a job opens the order pre-filled, skips the entry screen, and links the new job", () => {
     expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('|| searchParams.get("declutterOrder") ||');
     expect(code("src/pages/post-job/usePostJobForm.ts")).toContain('declutterOrderId: searchParams.get("declutterOrder"),');
     expect(code("src/pages/post-job/useJobFormEffects.ts")).toMatch(/searchParams\.get\("declutterOrder"\)[\s\S]*?fetchSetupHelpr\(orderId\)[\s\S]*?buildSetupJobPrefill\(/);
@@ -248,7 +248,7 @@ describe("Declutter Add a Helpr", () => {
     expect(submit).toMatch(/if \(!linkErr\) return;[\s\S]*?toast\.error\("Your job posted, but it isn't showing on your Declutter purchase"/);
   });
 
-  it("the buyer's paid order card offers the choices behind the switch, each opening Post a Job", () => {
+  it("the buyer's paid order card offers the choices behind the switch, each opening Post a job", () => {
     expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('{order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}');
     // Loaded with the buyer's order card only (Q178: off /posts' critical path).
     expect(code("src/components/declutter/DeclutterHandoverViews.tsx")).toContain('const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr")');

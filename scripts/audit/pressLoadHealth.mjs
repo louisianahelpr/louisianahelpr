@@ -41,7 +41,7 @@
  * (src/components/ui/skeleton.tsx) shimmers with `animate-[shimmer_…]`, NOT
  * `animate-pulse`; a settle that only looked for `animate-pulse` never waited
  * for it, so /profile?tab=earnings was pressed while EarningsPageSkeleton was
- * still up (run 36986080914: "More Insights" not found after reload).
+ * still up (run 36986080914: "More insights" not found after reload).
  * Guarded by src/test/pressSettleSeesSkeleton.test.tsx.
  */
 export const LOADING_SEL = '[aria-busy="true"], [class*="animate-pulse"], [class*="animate-[shimmer"]';

@@ -11,7 +11,7 @@
  * Stripe is LIVE (owner, 2026-10-01: "Skip it on live").
  *
  * Measured on press run 36784893957 (dispatched 2026-09-30T22:19Z): the
- * control "Set Up Payouts with Stripe" on /profile?tab=earnings was PASSED for
+ * control "Set up payouts with Stripe" on /profile?tab=earnings was PASSED for
  * both shared accounts, and its recorded outcome was
  *   customer: navigated → https://connect.stripe.com/setup/e/acct_1ULXMy3ISOxM8qBC/…
  *   helper:   navigated → https://connect.stripe.com/setup/e/acct_1ULXMw40YhFTkeRO/…
@@ -46,18 +46,18 @@ const live = async () => ({ mode: "live", detail: "cs_live_ probe" });
 
 /** Every visible label of a control that makes the app write to Stripe, and the file that renders it. */
 const STRIPE_WRITE_LABELS: Array<[label: string, source: string]> = [
-  ["Set Up Payouts with Stripe", "src/components/PayoutSetupForm.tsx"], // stripe-connect onboard → accounts.create (run 36784893957)
-  ["Complete Stripe Verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
-  ["Manage Payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
-  ["Set Up Payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard
+  ["Set up payouts with Stripe", "src/components/PayoutSetupForm.tsx"], // stripe-connect onboard → accounts.create (run 36784893957)
+  ["Complete Stripe verification", "src/components/PayoutSetupForm.tsx"], // update_onboarding → accountLinks.create
+  ["Manage payouts on Stripe", "src/components/PayoutSetupForm.tsx"], // dashboard → accounts.update + login link
+  ["Set up payouts", "src/lib/awardGate.ts"], // AwardGateDialog → onboard
   // Q896: these two had no label the gate knew. The trash icon had NO
   // accessible name (the harness saw "<button>", which no RX matches) and
-  // "Reset & Start Fresh" matched DESTRUCTIVE_RX but not PAYMENT_RX, so on
+  // "Reset & start fresh" matched DESTRUCTIVE_RX but not PAYMENT_RX, so on
   // /profile (SELF_ROUTE_RX) it was pressed. Only the network backstop stopped
   // delete_payout_method and reset (stripe.accounts.del) on live.
   ["Remove payout method", "src/components/PayoutSetupForm.tsx"], // delete_payout_method → deleteExternalAccount
-  ["Having Issues? Reset & Start Fresh", "src/components/PayoutSetupForm.tsx"], // opens the reset confirm
-  ["Reset & Start Fresh", "src/components/PayoutSetupForm.tsx"], // confirm → stripe-connect reset → accounts.del
+  ["Having issues? Reset & start fresh", "src/components/PayoutSetupForm.tsx"], // opens the reset confirm
+  ["Reset & start fresh", "src/components/PayoutSetupForm.tsx"], // confirm → stripe-connect reset → accounts.del
 ];
 
 describe("press never writes to Stripe while Stripe is live", () => {
@@ -82,7 +82,7 @@ describe("press never writes to Stripe while Stripe is live", () => {
   });
 
   it("read-only payout controls stay pressable (the fix does not shrink the inventory)", () => {
-    for (const label of ["Payouts", "Export Payouts CSV", "Turn on two-step verification"]) {
+    for (const label of ["Payouts", "Export payouts CSV", "Turn on two-step verification"]) {
       expect(PAYMENT_RX.test(label), label).toBe(false);
     }
   });

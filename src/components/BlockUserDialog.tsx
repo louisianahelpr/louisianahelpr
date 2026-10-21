@@ -156,13 +156,14 @@ export function BlockUserDialog({
                 <li>They won&apos;t be able to apply to your jobs or message you.</li>
                 <li>They won&apos;t be notified that you blocked them.</li>
                 {activeJobCount !== null && activeJobCount > 0 && (
-                  <li className="not-italic font-sans font-medium" style={{ color: "hsl(var(--burnt-sienna))" }}>
+                  // Plain words, not a red paragraph; only the money is rust (audit #51).
+                  <li className="not-italic font-sans font-medium text-foreground">
                     {activeJobCount} active job{activeJobCount === 1 ? "" : "s"} between you will be cancelled.{" "}
                     {isPosterOnAny ? (
                       estimatedFee > 0 ? (
                         <>
                           This counts as a late cancellation: about{" "}
-                          ${formatPriceExact(estimatedFee)} in cancellation fees will be
+                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> in cancellation fees will be
                           charged and paid to your Helpr, the rest of your escrow is
                           refunded, and a cancellation strike is recorded on your account.
                         </>
@@ -182,8 +183,8 @@ export function BlockUserDialog({
                 </ul>
               </DialogBody>
               <div className="space-y-1.5">
-                <label className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground block">
-                  Reason — optional, admin-only
+                <label className="text-ds-13 font-sans font-medium text-muted-foreground block">
+                  Reason (optional, only our team sees it)
                 </label>
                 <Textarea
                   aria-label="Block reason (optional, admin-only)"
@@ -247,7 +248,7 @@ export function BlockUserDialog({
                 Blocking…
               </>
             ) : (
-              "Just Block"
+              "Just block"
             )}
             </DialogSecondaryAction>
           ) : (
@@ -264,7 +265,7 @@ export function BlockUserDialog({
                   Blocking…
                 </>
               ) : (
-                "Just Block"
+                "Block"
               )}
             </DialogDestructiveAction>
           )}
@@ -283,7 +284,7 @@ export function BlockUserDialog({
                   Working…
                 </>
               ) : (
-                "Block and Report"
+                "Block and report"
               )}
             </DialogDestructiveAction>
           )}

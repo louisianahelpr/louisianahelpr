@@ -10,6 +10,14 @@
  * @mutate supabase/migrations/20261021122157_declutter_item_questions.sql |     SELECT q.id, q.item_id, q.question, |     SELECT q.id, q.item_id, q.asker_id AS question,
  * @mutate supabase/migrations/20261021122157_declutter_item_questions.sql | STABLE\nSECURITY INVOKER | STABLE\nSECURITY DEFINER
  * @mutate src/lib/declutter/api.ts |   const res = await supabase.rpc("declutter_item_questions", { p_item_id: itemId }); |   const res = { error: { code: "PGRST202" } } as never;
+ *
+ * The narrowing itself (ready/declutter-narrow-floor2, 20261021124810, with client_compat_floor() 2), replayed from
+ * every migration: members hold no table-level SELECT on declutter_questions and no column grant on asker_id, and no
+ * read of declutter_offers / declutter_offer_events (the Wanted poster's id on a reply, Q2267 / Q2274).
+ * @mutate supabase/migrations/20261021124810_declutter_narrow_member_reads.sql | REVOKE SELECT ON public.declutter_questions FROM anon, authenticated; | -- revoke removed
+ * @mutate supabase/migrations/20261021124810_declutter_narrow_member_reads.sql | GRANT SELECT (id, item_id, question, | GRANT SELECT (id, item_id, asker_id, question,
+ * @mutate supabase/migrations/20261021124810_declutter_narrow_member_reads.sql | REVOKE SELECT ON public.declutter_offers FROM anon, authenticated; | -- revoke removed
+ * @mutate supabase/migrations/20261021124810_declutter_narrow_member_reads.sql | REVOKE SELECT ON public.declutter_offer_events FROM anon, authenticated; | -- revoke removed
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -17,9 +25,13 @@ import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
+import { migrationFiles } from "./helpers/effectiveFunctionDefs";
+import { replayTablePrivileges } from "./helpers/tablePrivilegeReplay";
 
 const ROOT = resolve(__dirname, "../..");
 const MIG_DIR = resolve(ROOT, "supabase/migrations");
+
+const migrations = () => migrationFiles(MIG_DIR).map((name) => ({ name, sql: readFileSync(resolve(MIG_DIR, name), "utf8") }));
 
 const appSources = () =>
   trackedFiles("src")
@@ -56,5 +68,22 @@ describe("Q2278: the app never reads who asked a Declutter question", () => {
       expect(/from\("declutter_questions"\)\s*\.select\(\s*\)/.test(src), f).toBe(false);
     }
     expect(reads).toBeGreaterThan(0);
+  });
+
+  it("members read declutter_questions only through columns without asker_id (replayed from every migration)", () => {
+    const e = replayTablePrivileges(migrations(), "declutter_questions", "authenticated");
+    expect(e.table.has("SELECT")).toBe(false);
+    const cols = e.cols.get("SELECT")!;
+    expect(cols.size).toBeGreaterThan(4);
+    expect(cols.has("question")).toBe(true);
+    expect(cols.has("asker_id")).toBe(false);
+  });
+
+  it("members hold no read of declutter_offers / declutter_offer_events (the Wanted poster's id)", () => {
+    for (const t of ["declutter_offers", "declutter_offer_events"]) {
+      const e = replayTablePrivileges(migrations(), t, "authenticated");
+      expect(e.table.has("SELECT"), t).toBe(false);
+      expect([...(e.cols.get("SELECT") ?? [])], t).toEqual([]);
+    }
   });
 });

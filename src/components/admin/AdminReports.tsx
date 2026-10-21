@@ -633,7 +633,7 @@ const AdminReports = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="text-destructive hover:text-destructive"
+                        className="text-destructive-ink hover:text-destructive-ink"
                         onClick={() => setDeleteReviewTarget(report)}
                         disabled={updating === report.id}
                       >

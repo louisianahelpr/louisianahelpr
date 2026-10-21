@@ -69,7 +69,7 @@ export const JobDetailDialog = ({
               ) : (
                 <div className="rounded-ds-sm bg-destructive/5 border border-destructive/20 p-3 space-y-2">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
+                    <p className="text-ds-11 font-semibold text-destructive-ink flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5" /> Auto-flagged Issues
                     </p>
                     <Button size="sm" variant="outline" className="h-7 gap-1.5" onClick={() => onMarkFlagResolved(detailJob.id)}>
@@ -86,7 +86,7 @@ export const JobDetailDialog = ({
             {/* Removal info */}
             {detailJob.removal_reason && (
               <div className="rounded-ds-sm bg-destructive/10 border border-destructive/30 p-3">
-                <p className="text-ds-11 font-semibold text-destructive flex items-center gap-1.5">
+                <p className="text-ds-11 font-semibold text-destructive-ink flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" /> Removed by Admin
                 </p>
                 <p className="text-ds-13 text-foreground mt-1">{detailJob.removal_reason}</p>
@@ -228,7 +228,7 @@ export const JobDetailDialog = ({
                     variant="outline"
                     size="sm"
                     onClick={onOpenRefund}
-                    className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/5"
+                    className="gap-1.5 text-destructive-ink border-destructive/40 hover:bg-destructive/5"
                   >
                     <DollarSign className="w-3.5 h-3.5" /> Refund Poster
                   </Button>

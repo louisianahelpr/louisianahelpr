@@ -320,14 +320,14 @@ export function MessageBubble({
           <button
             type="button"
             onClick={() => m.clientId && retryMessage(m.clientId)}
-            className="flex items-center gap-1 text-destructive font-medium hover:underline"
+            className="flex items-center gap-1 text-destructive-ink font-medium hover:underline"
             title="Retry sending"
           >
             <RotateCw className="w-2.5 h-2.5" />
             {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Tap to Retry"}
           </button>
         ) : isRefused ? (
-          <span className="text-destructive font-medium">
+          <span className="text-destructive-ink font-medium">
             {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not Sent — Conversation Closed"}
           </span>
         ) : (
@@ -364,7 +364,7 @@ export function MessageBubble({
                 onClick={() => onDelete(m.id)}
                 // before:-inset-3 grows the tap target to 44px without
                 // changing the 20px visual footprint.
-                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive transition-opacity flex items-center justify-center w-5 h-5 rounded-full relative before:absolute before:-inset-3 before:content-['']"
+                className="ml-0.5 opacity-50 hover:opacity-100 hover:text-destructive-ink transition-opacity flex items-center justify-center w-5 h-5 rounded-full relative before:absolute before:-inset-3 before:content-['']"
                 title="Delete"
                 aria-label="Delete message"
               >

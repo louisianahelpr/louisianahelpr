@@ -337,7 +337,7 @@ const StalledJobRow = ({
             ${formatPriceExact(Number(row.budget ?? 0))} held · payment{" "}
             {row.payment_status ?? "unknown"} · job {row.status ?? "unknown"}
           </p>
-          <p className="text-ds-11 font-semibold text-destructive">{stuckLabel(row)}</p>
+          <p className="text-ds-11 font-semibold text-destructive-ink">{stuckLabel(row)}</p>
         </div>
 
         {/* The action, and the ONLY one. Not a money control — see the card

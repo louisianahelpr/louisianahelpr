@@ -159,7 +159,7 @@ export const DisputeCard = ({
             {/* The loudest thing on the card, because it is the only thing on
                 it that is still costing someone money. */}
             {unsettled && (
-              <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-semibold uppercase tracking-wide">
+              <span className="inline-flex items-center gap-1 text-ds-10 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive-ink font-semibold uppercase tracking-wide">
                 <AlertTriangle className="w-3 h-3" /> Unsettled
               </span>
             )}
@@ -237,7 +237,7 @@ export const DisputeCard = ({
               {/* A green tick on a case whose escrow never moved is the console
                   asserting a success that did not happen. */}
               {unsettled
-                ? <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                ? <AlertTriangle className="w-3.5 h-3.5 text-destructive-ink" />
                 : <CheckCircle2 className="w-3.5 h-3.5 text-primary" />} Decided
               <span className="ml-1 text-ds-10 text-muted-foreground">
                 · {new Date(record.decided_at).toLocaleString("en-US")}
@@ -280,7 +280,7 @@ export const DisputeCard = ({
               reconcile by hand and the retry that used to exist nowhere. */}
           {unsettled && (
             <div className="mt-2 rounded-ds-sm border border-destructive/30 bg-destructive/5 p-2.5 space-y-2">
-              <p className="text-ds-11 font-medium text-destructive">
+              <p className="text-ds-11 font-medium text-destructive-ink">
                 {unsettledReason(record)}
               </p>
               <p className="text-ds-10 text-muted-foreground tabular-nums break-all">
@@ -398,11 +398,11 @@ export const DisputeCard = ({
           <Button size="sm" variant="outline" className="w-full sm:w-auto" onClick={() => setConfirm({ job, action: "release" })} disabled={resolving === job.id}>
             <CheckCircle2 className="w-4 h-4 mr-1" /> Quick: Release to Helpr
           </Button>
-          <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
+          <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive-ink" onClick={() => setConfirm({ job, action: "refund" })} disabled={resolving === job.id}>
             <XCircle className="w-4 h-4 mr-1" /> Quick: Refund Poster
           </Button>
           {openHelprFault && (
-            <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive" onClick={() => openHelprFault(job)} disabled={resolving === job.id}>
+            <Button size="sm" variant="outline" className="w-full sm:w-auto text-destructive-ink" onClick={() => openHelprFault(job)} disabled={resolving === job.id}>
               <XCircle className="w-4 h-4 mr-1" /> Helpr at fault…
             </Button>
           )}

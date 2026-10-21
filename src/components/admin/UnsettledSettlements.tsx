@@ -124,7 +124,7 @@ export const UnsettledSettlements = () => {
               {r.decided_at ? ` · decided ${formatShortDate(r.decided_at)}` : ""}
             </p>
             {r.execution_error && (
-              <p className="text-ds-11 text-destructive">{r.execution_error}</p>
+              <p className="text-ds-11 text-destructive-ink">{r.execution_error}</p>
             )}
             <p className="text-ds-10 text-muted-foreground break-all">
               dispute {r.id} · job {r.job_id}

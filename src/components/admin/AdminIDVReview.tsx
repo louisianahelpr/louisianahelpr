@@ -103,7 +103,7 @@ function IdvStatusBadge({ failed, className }: { failed: boolean; className: str
     <Badge
       className={cn(
         failed
-          ? "bg-destructive/10 text-destructive border-destructive/20 text-ds-10 gap-0.5 shrink-0"
+          ? "bg-destructive/10 text-destructive-ink border-destructive/20 text-ds-10 gap-0.5 shrink-0"
           : "bg-accent/20 text-[hsl(var(--accent-ink))] border-accent/30 text-ds-10 gap-0.5 shrink-0",
         className,
       )}
@@ -414,7 +414,7 @@ const AdminIDVReview = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 min-w-max border-destructive/40 text-destructive hover:bg-destructive/10"
+                        className="flex-1 min-w-max border-destructive/40 text-destructive-ink hover:bg-destructive/10"
                         disabled={busy === r.user_id || bulkRunning}
                         onClick={() => {
                           setConfirming({ row: r, decision: "idv_reject" });

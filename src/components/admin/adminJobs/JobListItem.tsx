@@ -55,7 +55,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: 
     >
       {/* Title row — the whole width, two lines before it clamps. */}
       <div className="flex items-start gap-2">
-        {showFlagStyle && <AlertTriangle className="w-4 h-4 mt-0.5 text-destructive shrink-0" />}
+        {showFlagStyle && <AlertTriangle className="w-4 h-4 mt-0.5 text-destructive-ink shrink-0" />}
         {modFlags.length > 0 && isResolved && <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />}
         <p title={job.title} className="min-w-0 flex-1 font-semibold text-foreground leading-snug line-clamp-2">{job.title}</p>
         {job.is_seed && <TestTag />}
@@ -90,9 +90,9 @@ export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: 
       {showFlagStyle && (
         <div className="flex flex-wrap gap-1">
           {modFlags.slice(0, 2).map((f, i) => (
-            <span key={i} className="text-ds-10 bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">{f}</span>
+            <span key={i} className="text-ds-10 bg-destructive/10 text-destructive-ink px-1.5 py-0.5 rounded-full">{f}</span>
           ))}
-          {modFlags.length > 2 && <span className="text-ds-10 text-destructive">+{modFlags.length - 2} more</span>}
+          {modFlags.length > 2 && <span className="text-ds-10 text-destructive-ink">+{modFlags.length - 2} more</span>}
         </div>
       )}
 

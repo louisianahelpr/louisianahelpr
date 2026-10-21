@@ -253,7 +253,7 @@ const AdminNotifications = () => {
     void setMaster("email_enabled", enabled, "update email preferences");
 
   if (loading) return <p className="text-muted-foreground">Loading notification preferences…</p>;
-  if (!prefs) return <p className="text-destructive">We couldn't load notification preferences.</p>;
+  if (!prefs) return <p className="text-destructive-ink">We couldn't load notification preferences.</p>;
 
   // The master switches read their own column, not a derived "are all eleven
   // categories on". Derived state is what made the old master ambiguous: it

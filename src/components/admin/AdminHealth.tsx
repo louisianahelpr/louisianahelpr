@@ -177,7 +177,7 @@ const AdminHealth = () => {
       {!healthNeverLoaded && !healthLoading && adminPushTokenCount === 0 && (
         <div className="rounded-ds-md border-2 border-destructive/40 bg-destructive/10 p-4">
           <div className="flex items-start gap-3">
-            <Activity className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+            <Activity className="w-5 h-5 text-destructive-ink shrink-0 mt-0.5" />
             <div className="flex-1 space-y-1">
               <p className="text-ds-13 font-bold text-foreground">
                 ⚠️ No admin has registered a push token
@@ -265,7 +265,7 @@ const AdminHealth = () => {
           it; it re-reads exactly this card's data, so it is its header
           action. */}
       {healthStale && (
-        <p className="text-ds-12 font-medium text-destructive" role="status">
+        <p className="text-ds-12 font-medium text-destructive-ink" role="status">
           Couldn't refresh platform health. The numbers below are from {new Date(dataUpdatedAt).toLocaleTimeString()}.
         </p>
       )}
@@ -320,7 +320,7 @@ const AdminHealth = () => {
             <ShieldAlert className="w-4 h-4" /> Fraud Flags
           </span>
           <Reading pending={healthLoading} bone="h-6 w-32">
-            <p className={`text-ds-17 font-bold ${fraudCount > 0 ? "text-destructive" : "text-foreground"}`}>
+            <p className={`text-ds-17 font-bold ${fraudCount > 0 ? "text-destructive-ink" : "text-foreground"}`}>
               {fraudCount} unresolved
             </p>
           </Reading>
@@ -408,7 +408,7 @@ const AdminHealth = () => {
               // or > 0 jobs with < 1 helper per job.
               const noCoverage = p.openJobs > 0 && p.activeHelpers === 0;
               const undersupplied = p.openJobs > 0 && p.ratio !== null && p.ratio < 1;
-              const ratioCls = noCoverage ? "text-destructive font-semibold"
+              const ratioCls = noCoverage ? "text-destructive-ink font-semibold"
                 : undersupplied ? cn("font-semibold", toneTextClasses.warning)
                 : "text-foreground";
               return (
@@ -512,7 +512,7 @@ const AdminHealth = () => {
                 const pctCls = pct === null ? "text-muted-foreground"
                   : pct >= 70 ? cn("font-semibold", toneTextClasses.success)
                   : pct >= 40 ? cn("font-semibold", toneTextClasses.warning)
-                  : "text-destructive font-semibold";
+                  : "text-destructive-ink font-semibold";
                 return (
                   <div key={p.parish} className="grid grid-cols-12 gap-2 items-center rounded-ds-sm border border-border/60 bg-background/40 p-2 text-ds-13">
                     <div className="col-span-5 truncate text-foreground">{p.parish}</div>

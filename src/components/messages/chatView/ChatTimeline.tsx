@@ -145,7 +145,7 @@ export function ChatTimeline({
               border: "1px solid hsl(var(--destructive) / 0.2)",
             }}
           >
-            <AlertTriangle className="w-6 h-6" style={{ color: "hsl(var(--destructive))" }} strokeWidth={1.75} />
+            <AlertTriangle className="w-6 h-6" style={{ color: "hsl(var(--destructive-ink))" }} strokeWidth={1.75} />
           </div>
           <div className="space-y-1">
             <p

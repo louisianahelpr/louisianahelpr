@@ -13,7 +13,13 @@
  * on the dark card it measures about 2.3:1, so text paints `--alert-ink`, and
  * no source file may colour text with the bare `--alert`.
  *
+ * TEXT never reads the FILL (lander /code-review, 2026-10-21): ten components
+ * painted text with `hsl(var(--destructive))` inline or `text-destructive`,
+ * which in dark is the alert fill at about 2.3:1. Text goes through
+ * `--destructive-ink` (`text-destructive-ink`); `--destructive` is for fills.
+ *
  * @mutate src/index.css |   --destructive:          var(--alert); |   --destructive:          19 74% 44%;
+ * @mutate src/components/ui/FieldError.tsx | var(--destructive-ink) | var(--destructive)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -66,5 +72,28 @@ describe("destructive tokens are the alert tokens", () => {
       if (/(?:\bcolor:\s*"hsl\(var\(--alert\)\)"|text-\[hsl\(var\(--alert\)\)\])/.test(src)) offenders.push(f);
     }
     expect(offenders, "text painted with --alert (2.3:1 in dark); use --alert-ink").toEqual([]);
+  });
+
+  it("no TEXT reads the --destructive fill (className or inline colour)", () => {
+    const files = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })
+      .trim()
+      .split("\n")
+      .filter((f) => /\.tsx?$/.test(f) && !f.startsWith("src/test/") && !/\.test\./.test(f));
+    const offenders: string[] = [];
+    for (const f of files) {
+      let src: string;
+      try {
+        src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
+      } catch {
+        continue; // tracked but deleted in the working tree: nothing to scan
+      }
+      if (/(?<![\w-])text-destructive(?![\w-])/.test(src)) offenders.push(`${f}: text-destructive (use text-destructive-ink)`);
+      // Each `color:` value, up to the next property or the end of the object.
+      for (const m of src.matchAll(/(?<![\w-])color:([\s\S]*?)(?=\n\s*[\w"']+\s*:|}|$)/g)) {
+        if (/var\(--destructive\)/.test(m[1])) offenders.push(`${f}: color reads var(--destructive) (use --destructive-ink)`);
+      }
+    }
+    expect(files.length).toBeGreaterThan(500);
+    expect(offenders).toEqual([]);
   });
 });

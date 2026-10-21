@@ -1148,13 +1148,13 @@
   --surface-band: 20 12% 13%;
 }
 
-/* ── Dark-mode text-destructive brightness lift ──────────────────────
-   --destructive (6 60% 51%) was calibrated for white text ON a solid red fill
-   (4.64:1). At L=51% it reads 3.52–3.79:1 as text on near-black page canvas,
-   failing WCAG 2aa at 11–14px. Raising --destructive itself would break the
-   button-fill case. Override only the TEXT role in dark mode. */
-[data-theme="dark"] .text-destructive {
-  color: hsl(6 60% 62%);   /* ~5.0:1 on --parchment (220 14% 9%) */
+/* ── Destructive TEXT reads the ink, never the fill ──────────────────
+   --destructive is the --alert FILL (2.3:1 as text on the dark card). Text
+   uses `text-destructive-ink` (--destructive-ink = --alert-ink). This rule
+   only catches a stray `text-destructive` so it can never paint the fill as
+   text; guard src/test/destructiveTokensAreAlert.test.ts forbids new ones. */
+.text-destructive {
+  color: hsl(var(--alert-ink));
 }
 
 /* ── iOS-native color divergence ─────────────────────────────────────

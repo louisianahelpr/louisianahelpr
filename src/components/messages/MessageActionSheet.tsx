@@ -231,7 +231,7 @@ function ActionRow({
       onClick={onClick}
       className="flex items-center gap-3 px-3 py-3 rounded-ds-md min-h-[48px] text-left active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
       style={{
-        color: isDanger ? "hsl(var(--destructive))" : "hsl(var(--ink-deep))",
+        color: isDanger ? "hsl(var(--destructive-ink))" : "hsl(var(--ink-deep))",
       }}
     >
       <span
@@ -240,7 +240,7 @@ function ActionRow({
           background: isDanger
             ? "hsl(var(--destructive) / 0.08)"
             : "hsl(var(--bark) / 0.08)",
-          color: isDanger ? "hsl(var(--destructive))" : "hsl(var(--bark))",
+          color: isDanger ? "hsl(var(--destructive-ink))" : "hsl(var(--bark))",
         }}
       >
         {icon}

@@ -88,7 +88,7 @@ export function TwoFactorCard() {
               className="text-ds-11 font-sans mt-0.5"
               style={{
                 color: isError
-                  ? "hsl(var(--destructive))"
+                  ? "hsl(var(--destructive-ink))"
                   : "hsl(var(--olivewood) / 0.8)",
               }}
             >

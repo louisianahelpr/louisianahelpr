@@ -108,7 +108,7 @@ export function FeatureSwitchesCard() {
         <OfflineEmptyState body="The feature switches will show here once you're back online." onRetry={() => refetch()} />
       ) : phase === "error" ? (
         <div className="space-y-2">
-          <p className="text-ds-12 text-destructive">
+          <p className="text-ds-12 text-destructive-ink">
             {rpcErrorMessage("admin_list_feature_switches", error) ?? "Couldn't read the switches. Nothing is shown rather than a guess."}
           </p>
           <Button variant="outline" size="sm" onClick={() => refetch()}>Try again</Button>

@@ -279,7 +279,7 @@ const AccountBanned = () => {
           appeal CTAs above. Deletion is a real exit and it must be offered —
           but a suspended user's FIRST move should be the appeal, not the
           irreversible thing, so neither of these wears a filled treatment.
-          `text-destructive` distinguishes the permanent one from the
+          `text-destructive-ink` distinguishes the permanent one from the
           reversible one without promoting it. */}
       <div className="text-center mt-5 flex flex-col items-center gap-1">
         <Button
@@ -295,7 +295,7 @@ const AccountBanned = () => {
           variant="ghost"
           size="sm"
           onClick={deleteAccount.requestDelete}
-          className="text-destructive hover:text-destructive"
+          className="text-destructive-ink hover:text-destructive-ink"
         >
           <Trash2 className="w-4 h-4 mr-1" /> Delete Account
         </Button>

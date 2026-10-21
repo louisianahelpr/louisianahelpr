@@ -333,7 +333,7 @@ const AdminCredentialQueue = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                        className="flex-1 border-destructive/40 text-destructive-ink hover:bg-destructive/10"
                         disabled={busy === `${r.user_id}:license`}
                         onClick={() => {
                           setRejectTarget({ userId: r.user_id, credential: "license" });
@@ -383,7 +383,7 @@ const AdminCredentialQueue = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="flex-1 border-destructive/40 text-destructive hover:bg-destructive/10"
+                        className="flex-1 border-destructive/40 text-destructive-ink hover:bg-destructive/10"
                         disabled={busy === `${r.user_id}:insurance`}
                         onClick={() => {
                           setRejectTarget({ userId: r.user_id, credential: "insurance" });

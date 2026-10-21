@@ -359,7 +359,7 @@ export function BanDialog({ profile, onClose, onSuccess }: BanDialogProps) {
                       className={`p-2 rounded-ds-md border text-center text-ds-11 font-medium transition-colors ${
                         active
                           ? opt.id === "permanent"
-                            ? "border-destructive/60 bg-destructive/20 text-destructive"
+                            ? "border-destructive/60 bg-destructive/20 text-destructive-ink"
                             : "border-primary/50 bg-primary/10 text-primary"
                           : "border-border bg-card hover:bg-secondary/30"
                       }`}

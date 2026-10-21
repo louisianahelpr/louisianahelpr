@@ -22,7 +22,7 @@ export function FillRateReadFailed({ fetching, onRetry }: { fetching: boolean; o
 export function FillRateStaleNote({ stale, updatedAt }: { stale: boolean; updatedAt: number }) {
   if (!stale) return null;
   return (
-    <p className="text-ds-12 font-medium text-destructive" role="status">
+    <p className="text-ds-12 font-medium text-destructive-ink" role="status">
       Couldn't refresh fill rate. The numbers below are from {new Date(updatedAt).toLocaleTimeString()}.
     </p>
   );

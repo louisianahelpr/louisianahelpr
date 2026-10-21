@@ -24,7 +24,7 @@ export function OpenJobLimitNotice({ count = 5 }: { count?: number }) {
       role="alert"
     >
       <div className="flex-1 min-w-0">
-        <p className="text-ds-13 font-semibold" style={{ color: "hsl(var(--destructive))" }}>
+        <p className="text-ds-13 font-semibold" style={{ color: "hsl(var(--destructive-ink))" }}>
           You have {count} open jobs
         </p>
         <p className="text-ds-11 text-muted-foreground mt-0.5">
@@ -33,7 +33,7 @@ export function OpenJobLimitNotice({ count = 5 }: { count?: number }) {
         <Link
           to="/posts"
           className="inline-flex items-center mt-2 text-ds-11 font-semibold underline underline-offset-2 min-h-[32px]"
-          style={{ color: "hsl(var(--destructive))" }}
+          style={{ color: "hsl(var(--destructive-ink))" }}
         >
           Go to My Posts
         </Link>

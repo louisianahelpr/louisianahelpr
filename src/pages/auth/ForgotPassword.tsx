@@ -281,7 +281,7 @@ const ForgotPassword = () => {
                     />
                   )}
                 </div>
-                {/* text-destructive + the X glyph, matching SignupStep1 and
+                {/* text-destructive-ink + the X glyph, matching SignupStep1 and
                     ResetPassword's "Passwords don't match" line. This was the
                     one auth error message painted in burnt-sienna with no
                     icon — the same colour the screen uses for decorative

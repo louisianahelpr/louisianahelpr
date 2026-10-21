@@ -48,6 +48,6 @@ describe("Q1129: no page emits the dead eyebrow class", () => {
   });
 });
 
-// @mutate src/pages/info/NotFound.tsx |           <div className="space-y-3"> |           <div className="space-y-3"><span className="text-display-eyebrow">x</span>
+// @mutate src/pages/info/NotFound.tsx |         <div className="w-full max-w-[440px] flex"> |         <div className="w-full max-w-[440px] flex"><span className="text-display-eyebrow">x</span>
 // @mutate src/components/ui/EmptyState.tsx |           {title && ( |           <span className="text-display-eyebrow">x</span>{title && (
 // @mutate src/index.css | .scrollbar-hide::-webkit-scrollbar { | .text-display-eyebrow { display: none; } .scrollbar-hide::-webkit-scrollbar {

@@ -63,8 +63,8 @@ export function jobProgress(
   },
 ): JobProgressState {
   const poster = o.viewer === "poster";
-  const other = (o.otherFirst ?? "").trim() || (poster ? "Your Helpr" : "The poster");
-  const otherLow = (o.otherFirst ?? "").trim() || (poster ? "your Helpr" : "the poster");
+  const other = (o.otherFirst ?? "").trim() || (poster ? "Your Helpr" : "The person who posted it");
+  const otherLow = (o.otherFirst ?? "").trim() || (poster ? "your Helpr" : "the person who posted it");
   const held = job.payment_status === "escrow";
   const status = job.status ?? "";
   const now = (o.now ?? new Date()).getTime();

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 906,
+    "calls": 909,
     "files": 232,
-    "rendering": 788,
+    "rendering": 791,
     "suppressedByPolicy": 118,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 656,
+      "toast.error": 659,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 426,
+      "literal": 428,
       "template": 97,
-      "dynamic": 432,
+      "dynamic": 433,
       "jsx": 0
     }
   },
@@ -5984,7 +5984,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5994,7 +5994,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 184,
+      "line": 185,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7673,7 +7673,7 @@
     },
     {
       "file": "src/components/sections/CustomizeSheet.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -8404,15 +8404,15 @@
     },
     {
       "file": "src/hooks/useHelperMilestones.ts",
-      "line": 132,
+      "line": 134,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "m.title"
+        "text": "show.title"
       },
       "description": {
         "form": "dynamic",
-        "text": "m.description"
+        "text": "show.description"
       },
       "renders": true
     },
@@ -10598,7 +10598,7 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 170,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10608,15 +10608,55 @@
     },
     {
       "file": "src/pages/profile/AutoTip.tsx",
-      "line": 181,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Couldn't save these settings"
+        "text": "Couldn't save your tip amount"
       },
       "description": {
         "form": "literal",
         "text": "We couldn't reach your profile. Try again in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 252,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "You're signed out — sign in again to change this."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 262,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that change — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/AutoTip.tsx",
+      "line": 286,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "!amountOk ? \"Pick a tip amount first.\" : \"Fix the maximum per job first.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Pick a tip amount first."
+          },
+          {
+            "form": "literal",
+            "text": "Fix the maximum per job first."
+          }
+        ]
       },
       "renders": true
     },
@@ -11098,7 +11138,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 67,
+      "line": 66,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11108,7 +11148,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 70,
+      "line": 69,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11118,7 +11158,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 393,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11128,7 +11168,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 404,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11138,7 +11178,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 406,
+      "line": 400,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11148,7 +11188,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 421,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "literal",

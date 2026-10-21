@@ -17,6 +17,7 @@ import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
@@ -91,10 +92,20 @@ function HomeDashboardScreen() {
     <SectionScreen>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
         {/* The H logo sits in the top bar above this (owner, 2026-10-20 08:30Z: keep it on phone Home). */}
-        <div>
-          <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
-          <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
-        </div>
+        {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title
+            (spec v2: Home's greeting in the same slot as every title) and the date opens the page. */}
+        <PageTitleBar
+          moment
+          desktopGap={false}
+          title={first ? `${greeting()}, ${first}` : greeting()}
+          phone={
+            <div>
+              <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
+              <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
+            </div>
+          }
+        />
+        {isWebDesktop && <p className="text-ds-14 text-muted-foreground pt-5 -mb-2" data-home-date="">{today}</p>}
 
         {/* Board 11 (desktop): TWO columns under the greeting from 1280px (below that the left column is
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from

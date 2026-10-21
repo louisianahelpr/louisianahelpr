@@ -7,6 +7,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
+import { PageTitleBar } from "@/components/header/PageTitleBar";
 
 /** The top bar's icon controls, one size and weight: the section "+" and the bell. */
 const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
@@ -31,6 +32,7 @@ export function AppTopBar({
   explore = false,
   showProfile = true,
   settings,
+  desktopGap = true,
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
@@ -51,6 +53,8 @@ export function AppTopBar({
    * on phone and desktop.
    */
   settings?: { label: string; path: string };
+  /** False inside PageScaffold's title card (Jobs, Messages), which pads itself. */
+  desktopGap?: boolean;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
@@ -62,60 +66,74 @@ export function AppTopBar({
   const isPost = add?.path === "/post-job";
   const go = () => add && navigate(add.path);
   if (isWebDesktop && !title && !add && !settings) return null;
-  return (
-    <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
-      {title ? (
-        <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
-      ) : (
-        <HelprMark size="sm" emblemOnly to="/home" />
+  const actions = (add || settings) ? (
+    <>
+      {add && (
+        // The SAME control as the bell beside it: ghost icon Button, 44px,
+        // 22px glyph (NotificationPanel's triggerClassName below).
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={add.label}
+          data-testid="section-add"
+          onClick={isPost ? gate.gate("post", go) : go}
+          {...(isPost ? gate.gatedProps("post") : {})}
+          className={TOP_BAR_ICON_CLASS}
+        >
+          <Plus aria-hidden />
+        </Button>
       )}
-      <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
-        {add && (
-          // The SAME control as the bell beside it: ghost icon Button, 44px,
-          // 22px glyph (NotificationPanel's triggerClassName below).
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={add.label}
-            data-testid="section-add"
-            onClick={isPost ? gate.gate("post", go) : go}
-            {...(isPost ? gate.gatedProps("post") : {})}
-            className={TOP_BAR_ICON_CLASS}
-          >
-            <Plus aria-hidden />
-          </Button>
-        )}
-        {settings && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={settings.label}
-            data-testid="section-settings"
-            onClick={() => navigate(settings.path)}
-            className={TOP_BAR_ICON_CLASS}
-          >
-            <Settings aria-hidden />
-          </Button>
-        )}
-        {!isWebDesktop && (
-        <span data-testid="top-bar-bell">
-          <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
-        </span>
-        )}
-        {user && !isWebDesktop && showProfile && (
-          <button
-            type="button"
-            aria-label="Profile"
-            data-testid="top-bar-profile"
-            onClick={() => navigate("/profile")}
-            className="btn-press h-10 w-10 rounded-full flex items-center justify-center"
-          >
-            <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
-          </button>
-        )}
-      </div>
-    </header>
+      {settings && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={settings.label}
+          data-testid="section-settings"
+          onClick={() => navigate(settings.path)}
+          className={TOP_BAR_ICON_CLASS}
+        >
+          <Settings aria-hidden />
+        </Button>
+      )}
+    </>
+  ) : null;
+  // ONE header row (owner 2026-10-21): on the desktop website the title and the
+  // "+" / gear go into the global top bar beside the bell and photo.
+  return (
+    <PageTitleBar
+      title={title ?? ""}
+      actions={actions}
+      desktopGap={desktopGap}
+      phone={
+        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
+          {title ? (
+            <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
+          ) : (
+            <HelprMark size="sm" emblemOnly to="/home" />
+          )}
+          <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
+            {actions}
+            {!isWebDesktop && (
+            <span data-testid="top-bar-bell">
+              <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
+            </span>
+            )}
+            {user && !isWebDesktop && showProfile && (
+              <button
+                type="button"
+                aria-label="Profile"
+                data-testid="top-bar-profile"
+                onClick={() => navigate("/profile")}
+                className="btn-press h-10 w-10 rounded-full flex items-center justify-center"
+              >
+                <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
+              </button>
+            )}
+          </div>
+        </header>
+      }
+    />
   );
 }

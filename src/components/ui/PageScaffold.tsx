@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useHiddenAtMount } from "@/hooks/useHiddenAtMount";
 import AppShell from "@/components/AppShell";
 // The two-step title-card / panel material. Lives in its own module because
@@ -151,8 +152,11 @@ export function PageScaffold({
   void hiddenAtMount;
   const enterClass = "";
 
+  // ONE header row (2026-10-21): with the page title in the desktop bar, the card's
+  // first row is the page's controls, so it drops its top padding (the shell gap above stays).
+  const headerInBar = useHeaderInDesktopBar();
   const titleEl = !titleCard ? null : (
-    <div className={titleCardClass + enterClass} style={TITLE_CARD_STYLE}>
+    <div className={titleCardClass + enterClass} style={headerInBar ? { ...TITLE_CARD_STYLE, paddingTop: 0 } : TITLE_CARD_STYLE}>
       {titleCard}
     </div>
   );

@@ -4,6 +4,7 @@ import NotificationPanel from "@/components/NotificationPanel";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -60,6 +61,10 @@ const DesktopTopNav = () => {
       }}
     >
       <div className="w-full flex h-14 items-center justify-end gap-2 px-5 lg:px-6 xl:px-6">
+        {/* ONE header row (owner, 2026-10-21): the page's back arrow, title and
+            actions (PageTitleBar) are portaled here, left of the bell and photo,
+            so a page never adds a second row under this bar. */}
+        <div ref={registerDesktopTitleSlot} data-desktop-title-slot="" className="flex-1 min-w-0 flex items-center" />
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
           <NotificationPanel />
           {/* Board 11: bell, then the member's photo (opens You). */}

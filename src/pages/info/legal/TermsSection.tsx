@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
+import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
 import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
@@ -37,8 +38,6 @@ const ANNUAL_MONTHS_SAVED = (() => {
   return Math.round(12 * (1 - annualMonthly / monthly));
 })();
 
-/** The bottom of the fee ladder a reader can actually reach. */
-const FEE_FLOOR = TIER_PERKS.elite;
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => {
@@ -55,7 +54,7 @@ export const TermsContent = () => {
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `Posting a job has no platform fee: the poster pays the job budget plus a service fee that only covers card processing. The Helpr's platform fee (${FEE_FLOOR.platformFeePercent}–${TIER_PERKS.free.platformFeePercent}%, set by their own plan) is deducted from their payout.`,
+        `Posting a job has no platform fee: the poster pays the job budget plus a service fee that only covers card processing. The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay, the same on every plan, and it covers card processing) is deducted from their payout.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -126,9 +125,9 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Service fee (covers card processing):</strong> added at checkout when you post a job. It equals the card-processing cost of that payment and nothing more; there is no platform fee for posting, on any plan.</p>
-            <p><strong className="text-foreground">Helpr platform fee:</strong> deducted from payout by plan — {TIER_PERKS.free.platformFeePercent}% Free, {TIER_PERKS.basic.platformFeePercent}% {TIER_PERKS.basic.name}, {TIER_PERKS.pro.platformFeePercent}% {TIER_PERKS.pro.name}, {TIER_PERKS.plus.platformFeePercent}% {TIER_PERKS.plus.name}, {TIER_PERKS.elite.platformFeePercent}% {TIER_PERKS.elite.name}. Every payout is rounded down to the whole dollar.</p>
+            <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each Helpr's pay, deducted from the payout, the same on every plan; it covers card processing. A job paid for before October 15, 2026 keeps the fee it was paid under. Every payout is rounded down to the whole dollar.</p>
 
-            <p><strong className="text-foreground">Total platform take:</strong> the Helpr's plan-based fee. The service fee goes to card processing.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the Helpr fee above. The service fee goes to card processing.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. The whole bonus goes to the Helpr (split among the crew on a group job); its card-processing fee is paid by the poster, added on top and shown before they pay, and is never taken from the bonus.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.
@@ -186,11 +185,12 @@ export const TermsContent = () => {
         title="Tiers & pricing"
         body={
           <>
-            <p><strong className="text-foreground">Free:</strong> standard access at a {TIER_PERKS.free.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — reduced {TIER_PERKS.basic.platformFeePercent}% platform fee with instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)} — reduced {TIER_PERKS.pro.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)} — reduced {TIER_PERKS.plus.platformFeePercent}% platform fee.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)} — lowest {TIER_PERKS.elite.platformFeePercent}% platform fee.</p>
+            <p>No plan changes the fee on a job: every job carries the same {HELPR_FLAT_FEE_PHRASE} Helpr fee, whatever the plan.</p>
+            <p><strong className="text-foreground">Free:</strong> standard access.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)}.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)}.</p>
+            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)}.</p>
             <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
           </>
         }

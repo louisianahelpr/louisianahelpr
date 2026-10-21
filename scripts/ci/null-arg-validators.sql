@@ -177,7 +177,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shops_admin_check_registration','action',   'Shops slice 1: admin marks a Secretary of State number checked (writes; returns the new state)'),
   ('shops_admin_set_hidden',        'action',   'Shops slice 1: admin hides or shows a shop (writes; returns the new state)'),
   ('shops_set_follow',              'action',   'Shops slice 1: the caller follows or unfollows a shop (writes; returns the new state)'),
-  ('shops_set_paused',              'action',   'Shops slice 1: the caller pauses or reopens their own shop (writes; returns the new state)');
+  ('shops_set_paused',              'action',   'Shops slice 1: the caller pauses or reopens their own shop (writes; returns the new state)'),
+  ('sms_record_result',             'action',   'SMS alerts (20261021193738): service-only, records Twilio''s answer for a queued text (writes; TRUE = a queued row was updated)');
 
 -- Fixture ids (all 00000000-0000-4000-8140-*): A poster, B hired helper on a
 -- pro plan, D admin; J an open funded job (A posts, B hired, B applied);

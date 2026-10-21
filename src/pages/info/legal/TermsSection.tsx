@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Building2, Wallet, Crown, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
-  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera,
+  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera, MessageSquareText,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
@@ -102,6 +102,12 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">Liability:</strong> Helpr is a marketplace and is not responsible for the quality, safety, or legality of jobs performed.</p>
           </>
         }
+      />
+      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). */}
+      <PolicyRowItem
+        icon={MessageSquareText}
+        title="Text alerts"
+        body={<p>Text alerts are optional. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help, or contact admin@louisianahelpr.com (our support inbox). Carriers are not liable for delayed or undelivered messages.</p>}
       />
     </PolicySection>
 

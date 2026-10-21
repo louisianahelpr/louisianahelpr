@@ -101,6 +101,10 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   payout_transfers: { by: ["helper_id"] },
   payout_failures: { by: ["user_id"] },
   refund_requests: { by: ["requester_id", "responder_id", "answered_by"] },
+  // SMS alerts (20261021193738): the member's text consent, its events, and every text considered for them.
+  sms_consent: { by: ["user_id"] },
+  sms_consent_events: { by: ["user_id"] },
+  sms_messages: { by: ["user_id"] },
   crew_cancellation_fee_shares: { by: ["helper_id"] },
   // Q1390: the member's block fee (owed when a poster blocked them close to the start).
   crew_block_fees: { by: ["helper_id"] },

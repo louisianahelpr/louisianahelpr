@@ -12,7 +12,7 @@
  * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!posterFee.settled \|\| posterFee.on \|\| !feeKnown) return null; |   if (posterFee.on) return null;
  * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
  * @mutate src/components/quotes/QuotesSideBySide.tsx |   if (live.length < 2) return null; |   return null;
- * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
+ * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError) { |   if (reqs.isError \|\| quotes.isError) {
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`; | const requestReturnPath = (requestId: string) => `/post-job?r=${requestId}`;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | (agreed && (!request.job_id \|\| paid.data === "not_paid")) | (agreed && !request.job_id)
@@ -241,7 +241,8 @@ describe("board 115: quotes side by side", () => {
 describe("a missing quote request (nightly-red #2375)", () => {
   it("is a not-found message, never the load-error screen with Try again", async () => {
     state.rpc.get_my_quote_requests = [REQ];
-    state.rpc.get_quotes_for_request = [];
+    // As on prod: get_quotes_for_request raises unknown_request (P0002) for an id that is not the caller's.
+    state.rpc.get_quotes_for_request = new Error("unknown_request");
     at("/quotes/request/nope", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText("We can't find this quote request.")).toBeInTheDocument();
     expect(screen.queryByText("We couldn't load this request.")).toBeNull();

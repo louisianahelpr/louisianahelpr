@@ -7,6 +7,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { TIER_ORDER, TIER_PERK_MATRIX } from "../_shared/tierPerks.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 
 // The "Pro+" weekly report rides the Advanced Analytics perk. Derived from the
 // perk matrix, not a hand-kept list: a hardcoded ["pro","elite"] silently
@@ -118,10 +119,17 @@ serve(async (req) => {
     const weekAgoISO = weekAgo.toISOString();
 
     // Filter out expired subscriptions
-    const activeHelpers = helpers.filter(h => {
+    const inDate = helpers.filter(h => {
       if (!h.subscription_expires_at) return true;
       return new Date(h.subscription_expires_at) > now;
     });
+    // Q1848 (4), owner 2026-10-21: the report is a paid perk, so no report while
+    // the 'memberships' switch is off for this member. Fails closed (a failed
+    // switch read is "off": no report, logged by featureEnabledForUser).
+    const activeHelpers: HelperProfile[] = [];
+    for (const h of inDate) {
+      if (await featureEnabledForUser(supabase, "memberships", { id: h.user_id })) activeHelpers.push(h);
+    }
 
     // Q188: one report per helper per week, whoever invokes the function. A
     // manual re-run, a retry or a catch-up must not deliver a second copy, so

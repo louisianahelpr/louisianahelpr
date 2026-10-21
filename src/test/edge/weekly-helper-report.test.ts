@@ -27,6 +27,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
+// @mutate supabase/functions/weekly-helper-report/index.ts |       if (await featureEnabledForUser(supabase, "memberships", { id: h.user_id })) activeHelpers.push(h); |       activeHelpers.push(h);
 
 const CRON_SECRET = "cron-secret";
 
@@ -74,6 +75,8 @@ describe("weekly-helper-report edge function", () => {
     resetEnv();
     resetSupabaseMock();
     resetSharedMocks();
+    // Q1848: the report is a paid perk; memberships ON for this member is the neutral answer.
+    scenario.rpc.feature_enabled_for_user = true;
   });
 
   it("rejects a request without the cron bearer", async () => {
@@ -94,6 +97,22 @@ describe("weekly-helper-report edge function", () => {
     expect(b.sent).toBe(1);
     expect(b.defects).toBe(0);
     expect(reportWrites()).toHaveLength(1);
+  });
+
+  // Q1848 (owner 2026-10-21): no paid perk while the 'memberships' switch is off for the member.
+  it("sends no report to a tier holder while memberships are off for them", async () => {
+    const fn = await loadConfigured();
+    seedOneHelper();
+    scenario.rpc.feature_enabled_for_user = false;
+
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(b.sent ?? 0).toBe(0);
+    expect(reportWrites()).toHaveLength(0);
+    const ask = (scenario.rpcCalls ?? []).find((c) => c.name === "feature_enabled_for_user");
+    expect(ask?.args).toEqual({ p_key: "memberships", p_user_id: "helper-1" });
   });
 
   // Q188: a second invocation in the same week (manual re-run, retry,

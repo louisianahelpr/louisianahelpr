@@ -507,13 +507,12 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
         {/* Title + price share the top row — price chip is vertically
             centered against the title. The location/date/time meta spans
             the full card width below.
-            Truncates to ONE line (owner, 2026-08-30: match the My Posts
-            card's density — see PostedJobCard's JobCardTitleBar). This also
-            fixes the row-height-variance bug the previous 2-line reservation
-            was working around: every card now has exactly one title line, so
-            the virtualized feed's measureElement never has to reconcile a
-            short-vs-tall run of cards. `min-w-0` lets it shrink/truncate
-            inside the flex row at all. */}
+            Board 173 (spec v2 §9.33, owner-adopted 2026-10-20, replacing the
+            2026-08-30 one-line rule): a title wraps to two lines, then ends
+            in "…"; the text never shrinks. The virtualized feed measures each
+            row (measureElement), so a two-line card takes its real height.
+            `min-w-0` lets it shrink inside the flex row at all.
+            */}
         <div className={JOB_CARD_TITLE_ROW}>
           {/* h2, not h3: these cards sit DIRECTLY under the page <h1>
               ("Browse Jobs", "My Posts"), with no intervening section
@@ -521,7 +520,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               heading-order on 18 pages. The visual size is carried by
               `text-headline-card`, not by the tag, so nothing moves. */}
           <h2
-            className="job-card-title senior-clamp-2 text-headline-card flex-1 font-display font-bold text-foreground leading-tight truncate min-w-0"
+            className="job-card-title senior-clamp-2 text-headline-card flex-1 font-display font-bold text-foreground leading-tight line-clamp-2 break-words min-w-0"
             style={{
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",

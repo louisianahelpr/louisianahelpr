@@ -49,7 +49,9 @@ describe("Q1661: job-card titles follow the senior text scale", () => {
     for (const m of src.matchAll(/className=(?:"([^"]*)"|\{`([^`]*)`\})/g)) classStrings.push({ file, cls: m[1] ?? m[2] });
   }
   const words = (cls: string) => cls.split(/\s+/);
-  const titles = classStrings.filter(({ cls }) => words(cls).includes("text-headline-card") && words(cls).includes("truncate"));
+  // A card title is clamped: one line (`truncate`) or, since board 173 (2026-10-21), two lines then "…" (`line-clamp-2`).
+  const clamped = (cls: string) => words(cls).includes("truncate") || words(cls).includes("line-clamp-2");
+  const titles = classStrings.filter(({ cls }) => words(cls).includes("text-headline-card") && clamped(cls));
 
   it("the corner category tab keeps its one-line leading at the senior rung (else it sits on the title)", () => {
     const css = blankCssComments(read("src/index.css"));
@@ -73,7 +75,7 @@ describe("Q1661: job-card titles follow the senior text scale", () => {
 
   it("job-card-title is only on those titles (two-way)", () => {
     const tagged = classStrings.filter(({ cls }) => words(cls).includes("job-card-title"));
-    const stray = tagged.filter(({ cls }) => !(words(cls).includes("text-headline-card") && words(cls).includes("truncate")));
+    const stray = tagged.filter(({ cls }) => !(words(cls).includes("text-headline-card") && clamped(cls)));
     expect(stray.map((t) => `${t.file}: ${t.cls}`)).toEqual([]);
     expect(tagged.length).toBe(titles.length);
   });

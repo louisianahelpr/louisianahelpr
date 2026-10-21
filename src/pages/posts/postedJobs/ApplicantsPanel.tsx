@@ -5,7 +5,7 @@ import { formatName } from "@/lib/utils";
 import { applicantIdNote } from "@/lib/awardGate";
 import UserAvatar from "@/components/UserAvatar";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
-import { CompareBar, CompareCheck, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
+import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
@@ -127,6 +127,7 @@ export function ApplicantsPanel({
   }, [declineTarget, declineNote, declineReason, selectedJob, onDeclineApplication]);
 
   const compare = useApplicantCompare();
+  const [shown, setShown] = useState(10);
   const {
     applicantSort,
     setApplicantSort,
@@ -298,7 +299,7 @@ export function ApplicantsPanel({
                 )}
 
                 {/* Applicant cards */}
-                {sortedApplications.map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
+                {sortedApplications.slice(0, shown).map(({ app, signals, neighborCount, distanceBand, promotedByTier }) => {
                   const helperTier = (app.profiles?.subscription_tier ?? "free") as string;
                   // Derived from the shared badge table, so Plus gets the same
                   // halo as Pro instead of none at all (CC-019).
@@ -313,8 +314,7 @@ export function ApplicantsPanel({
 
                   return (
                     <div key={app.id}>
-                      {/* "Helpr Recommended" badge above the top pick */}
-                      {isTopPick && (
+                            {isTopPick && (
                         <div className="flex items-center gap-1.5 mb-1.5 pl-1">
                           <Sparkles className="w-3 h-3" style={{ color: "hsl(var(--burnt-sienna))" }} />
                           <span
@@ -355,12 +355,9 @@ export function ApplicantsPanel({
                           half of this card was mostly page showing through
                           and the boundary all but vanished.
 
-                          That token is fine where it is used everywhere ELSE:
-                          ~20 call sites, nearly all inside dialogs and sheets,
-                          where it composites over an opaque surface rather
-                          than the page. This card is one of the few that sits
-                          directly ON the page, which is why it is the one that
-                          disappears. So only this surface changes (not the shared token).
+                          That token is fine elsewhere (~20 sites, inside dialogs and sheets,
+                          over an opaque surface). This card is one of the few that sits
+                          directly ON the page; only this surface changes (not the shared token).
 
                           No `backdrop-filter`: nothing to blur behind an opaque fill. */}
                       <div
@@ -678,6 +675,8 @@ export function ApplicantsPanel({
                   );
                 })}
 
+                {/* Board 173: a long list loads 10 at a time, best match first; no infinite scroll on the poster side. */}
+                <ShowMoreApplicants total={sortedApplications.length} shown={shown} onMore={() => setShown((n) => n + 10)} />
                 {/* Boards 22/170: pick 2-3 and compare side by side, hire from there (ApplicantCompare). */}
                 <CompareBar apps={applications} ids={compare.ids} clear={compare.clear} onHire={onAcceptApplication}
                   distanceOf={(a) => sortedApplications.find((x) => x.app.id === a.id)?.distanceBand?.label ?? null} />

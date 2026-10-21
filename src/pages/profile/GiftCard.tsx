@@ -48,6 +48,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { hapticMedium, hapticSuccess } from "@/lib/haptics";
 import { posterCardCostFeeCents } from "@/lib/posterFees";
 import { formatPrice } from "@/lib/format";
+import { formatName } from "@/lib/utils";
 import { errorToast } from "@/lib/toast";
 import { report } from "@/lib/errorLogger";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -391,23 +392,19 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
        owns the AppShell. Same shape PetProfiles, WorkRecord, HomeHistory,
        StrSettings, AutoTip and HelprWrapped use. */
     <ProfileTabBody>
-      <ProfileTabHeader title="Gift Card" onBack={onBack} />
+      <ProfileTabHeader title="Gift card" onBack={onBack} />
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
         {claiming && (
           <div
-            className="rounded-ds-md p-4 flex items-center gap-3 mb-6"
-            style={{
-              background: "hsl(var(--gift-tint) / 0.06)",
-              border: "0.5px solid hsl(var(--gift-tint) / 0.18)",
-            }}
+            className="rounded-[20px] border border-border bg-card p-4 flex items-center gap-3 mb-6"
           >
             <div
               className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
-              style={{ borderColor: "hsl(var(--success-ink))", borderTopColor: "transparent" }}
+              style={{ borderColor: "hsl(var(--bark))", borderTopColor: "transparent" }}
             />
-            <p className="font-sans text-ds-13" style={{ color: "hsl(var(--gift-ink))" }}>
+            <p className="font-sans text-ds-13 text-foreground">
               Claiming your gift card…
             </p>
           </div>
@@ -431,19 +428,12 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
                 bespoke `rounded-ds-md p-4` box these used made the screen read
                 as a different app than the tabs it is opened from. */}
-            <div
-              className="rounded-2xl p-5"
-              style={{
-                background: "hsl(var(--gift-tint) / 0.06)",
-                border: "0.5px solid hsl(var(--gift-tint) / 0.18)",
-              }}
-            >
+            {/* Spec v2 rebuild (2026-10-21): a hint row on --subtle with an
+                olive icon, not a green box. */}
+            <div className="rounded-[20px] bg-muted p-5">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--success-ink))" }} />
-                <p
-                  className="font-sans font-semibold text-ds-14"
-                  style={{ color: "hsl(var(--gift-ink))" }}
-                >
+                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
+                <p className="font-sans font-semibold text-ds-14 text-foreground">
                   What is this?
                 </p>
               </div>
@@ -460,14 +450,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
             {/* Give a gift form */}
             <div
               data-testid="gift-form"
-              className="rounded-2xl p-5 space-y-4"
-              style={{
-                background:
-                  "radial-gradient(circle at 20% 0%, var(--gift-sheen) 0%, transparent 60%), " +
-                  "linear-gradient(180deg, hsl(var(--gift-form-from) / 0.92) 0%, hsl(var(--gift-form-to) / 0.74) 100%)",
-                border: "0.5px solid hsl(var(--bark) / 0.22)",
-                boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.6)",
-              }}
+              className="rounded-[20px] border border-border bg-card p-5 space-y-4"
             >
               {/* Recipient — search by name (default) or type an email */}
               <RecipientPicker
@@ -569,7 +552,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                   design={design}
                   amount={effectiveAmount || null}
                   note={note}
-                  senderName={profile?.full_name ?? null}
+                  senderName={profile?.full_name ? formatName(profile.full_name) : null}
                   occasionLabel={occasion.label}
                 />
               </div>
@@ -749,7 +732,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               <Button
                 onClick={handleDonate}
                 disabled={!canDonate || donateMutation.isPending}
-                className="w-full font-display font-semibold"
+                className="w-full rounded-full font-sans font-bold"
               >
                 <Gift aria-hidden />
                 {donateMutation.isPending ? "Starting checkout…" : "Continue to checkout"}

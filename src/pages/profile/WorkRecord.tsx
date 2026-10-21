@@ -304,7 +304,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
     // Earnings" eyebrow has no equivalent on this header; the document card
     // below already prints "Employment & Earnings Record" as its own heading.
     <ProfileTabBody>
-      <ProfileTabHeader title="Work Record" onBack={onBack} />
+      <ProfileTabHeader title="Work record" onBack={onBack} />
       {/* The shared section rhythm (--section-gap, Q191) between the
           document card and the share/print controls — was space-y-5. */}
       <div className="space-y-section">
@@ -346,12 +346,14 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
               >
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <HelprMark size="md" />
+                    {/* The H mark alone (owner 2026-10-20: the H replaces every
+                        "Helpr" wordmark); no "Helpr · LA" lockup on the sheet. */}
+                    <HelprMark size="md" emblemOnly />
                     <h2
-                      className="font-display font-bold mt-3 text-ds-20 leading-tight"
+                      className="font-sans font-bold mt-3 text-ds-20 leading-tight"
                       style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
                     >
-                      Employment &amp; Earnings Record
+                      Employment and earnings record
                     </h2>
                     <p className="font-sans text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                       Generated {today}
@@ -384,7 +386,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     better"). */}
                 <div className="grid grid-cols-3 gap-x-4 gap-y-3">
                   <div>
-                    <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                    <p className="text-ds-12 font-sans text-muted-foreground mb-0.5">
                       Issued to
                     </p>
                     <p className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -392,7 +394,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     </p>
                   </div>
                   <div>
-                    <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                    <p className="text-ds-12 font-sans text-muted-foreground mb-0.5">
                       {WORK_RECORD_ID_FIELD}
                     </p>
                     <p className="text-ds-13 font-semibold inline-flex items-center gap-1">
@@ -412,7 +414,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                       as a fact about the person. */}
                   {formatMonthYear(data.profile.created_at) && (
                     <div>
-                      <p className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground mb-0.5">
+                      <p className="text-ds-12 font-sans text-muted-foreground mb-0.5">
                         Member since
                       </p>
                       <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -431,11 +433,8 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   contents is not a header; it is the first row. */}
               <div style={{ borderBottom: "1px solid var(--doc-hairline)" }}>
                 <div className="doc-band px-5 py-2">
-                  <p
-                    className="doc-band-ink font-sans uppercase text-ds-9"
-                    style={{ letterSpacing: "0.18em" }}
-                  >
-                    Work Summary
+                  <p className="font-sans font-semibold text-ds-12 text-muted-foreground">
+                    Work summary
                   </p>
                 </div>
                 <div className="px-5 py-4">
@@ -443,7 +442,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     {/* Jobs completed */}
                     <StatBlock
                       icon={<Briefcase className="w-4 h-4" />}
-                      label="Jobs Completed"
+                      label="Jobs completed"
                       value={String(data.completedJobs.length)}
                     />
                     {/* Total earnings. EXACT, not floored — reversed
@@ -472,8 +471,9 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                         surfaces say the same thing. Only the caption went. */}
                     <StatBlock
                       icon={<DollarSign className="w-4 h-4" />}
-                      label="Total Earnings"
+                      label="Total earnings"
                       value={`$${formatPriceExact(data.totalEarnings)}`}
+                      money
                     />
                     {/* Active Period — the months WORKED (`date_needed`), not
                         the months the jobs were posted in. `workDays` holds
@@ -483,7 +483,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                         the previous month. */}
                     <StatBlock
                       icon={<Calendar className="w-4 h-4" />}
-                      label="Active Period"
+                      label="Active period"
                       value={
                         data.workDays
                           ? `${formatWorkDayMonthYear(data.workDays.first)} – ${formatWorkDayMonthYear(data.workDays.last)}`
@@ -493,7 +493,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     {/* Rating */}
                     <StatBlock
                       icon={<Star className="w-4 h-4" />}
-                      label="Avg Rating"
+                      label="Average rating"
                       value={
                         data.avgRating !== null
                           ? `${data.avgRating.toFixed(1)} (${data.reviewCount})`
@@ -531,7 +531,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                     No completed jobs yet. Once you complete your first job, your work record will fill in automatically.
                   </p>
                   <BarkPillButton onClick={() => navigate("/home")} className="mt-1">
-                    Browse Jobs
+                    Browse jobs
                   </BarkPillButton>
                 </div>
               )}
@@ -640,12 +640,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 onClick={() => { void handleShare(); }}
                 disabled={isSharing}
                 aria-busy={isSharing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-ds-lg py-3.5 text-ds-14 font-semibold active:scale-[0.99] transition-all disabled:opacity-60"
-                style={{
-                  background: "hsl(var(--bark) / 0.10)",
-                  border: "1px solid hsl(var(--bark) / 0.30)",
-                  color: "hsl(var(--bark))",
-                }}
+                className="flex-1 flex items-center justify-center gap-2 rounded-full min-h-12 py-3 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all disabled:opacity-60"
               >
                 {isSharing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -658,12 +653,7 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="flex items-center justify-center gap-2 rounded-ds-lg py-3.5 px-5 text-ds-14 font-semibold active:scale-[0.99] transition-all"
-                  style={{
-                    background: "transparent",
-                    border: "1px solid hsl(var(--bark) / 0.32)",
-                    color: "hsl(var(--bark))",
-                  }}
+                  className="flex items-center justify-center gap-2 rounded-full min-h-12 py-3 px-5 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all"
                 >
                   <Printer className="w-4 h-4" />
                   Print
@@ -705,24 +695,19 @@ interface StatBlockProps {
   icon: React.ReactNode;
   label: string;
   value: string;
+  money?: boolean;
 }
 
-function StatBlock({ icon, label, value }: StatBlockProps) {
+function StatBlock({ icon, label, value, money = false }: StatBlockProps) {
   return (
-    // `.doc-tile` — the inset-well rung of the document surface ladder. The
-    // old `parchment/0.55` fill composited to within 0.3/255 of the card it
-    // sat on, so the four stats read as loose text floating in the sheet
-    // rather than as four tiles; on a document meant to be handed to a
-    // landlord or a lender, that is the difference between a figure and a
-    // stated figure.
-    <div className="doc-tile rounded-ds-md px-3 py-2.5">
-      <div className="flex items-center gap-1.5 mb-1">
+    // Spec v2 rebuild (audit 2026-10-21): a plain label/value pair on the
+    // sheet, not a boxed tile with an uppercase tracked label. Money is rust.
+    <div data-stat className="py-1">
+      <div className="flex items-center gap-1.5 mb-0.5">
         <span style={{ color: "hsl(var(--bark))" }}>{icon}</span>
-        <span className="text-ds-10 font-sans font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </span>
+        <span className="text-ds-12 font-sans text-muted-foreground">{label}</span>
       </div>
-      <p className="text-ds-15 font-bold leading-tight" style={{ color: "hsl(var(--ink-deep))" }}>
+      <p className="text-ds-15 font-bold leading-tight tabular-nums" style={{ color: money ? "hsl(var(--accent-ink))" : "hsl(var(--ink-deep))" }}>
         {value}
       </p>
     </div>

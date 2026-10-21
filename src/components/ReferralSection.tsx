@@ -185,15 +185,13 @@ const ReferralSection = ({ userId }: { userId: string }) => {
   return (
     <div className="space-y-section pb-24">
       {/* Code card — hero of the page */}
-      <div className="rounded-2xl liquid-glass border-2 border-primary/30 p-6 space-y-4 text-center"
-        style={{
-          background: "radial-gradient(70% 90% at 50% 0%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%), hsl(var(--parchment) / 0.5)",
-        }}
-      >
-        <p className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+      {/* Spec v2 rebuild (audit 2026-10-21): the one card; no rust wash, no
+          olive double border (olive is for actions, and the code is not one). */}
+      <div className="rounded-[20px] liquid-glass p-6 space-y-4 text-center">
+        <p className="text-ds-13 font-sans text-muted-foreground">
           Your referral code
         </p>
-        <p className="font-sans font-bold tabular-nums leading-none text-ds-40" style={{ color: "hsl(var(--primary))", letterSpacing: "0.18em" }}>
+        <p className="font-sans font-bold tabular-nums leading-none text-ds-40 text-foreground" style={{ letterSpacing: "0.18em" }}>
           {referralCode}
         </p>
         {/* No `mr-1.5` on these icons: Button already spaces icon and label
@@ -204,7 +202,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Button
             variant="primary"
             size="sm"
-            className="h-11 rounded-ds-md"
+            className="h-11 rounded-full"
             onClick={shareReferral}
           >
             <Share2 className="w-4 h-4" />
@@ -226,14 +224,14 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           <Button
             variant="outline"
             size="sm"
-            className="h-11 rounded-ds-md"
+            className="h-11 rounded-full"
             onClick={shareViaSMS}
           >
             <MessageSquare className="w-4 h-4" />
             Text
           </Button>
           )}
-          <Button variant="outline" size="sm" className="h-11 rounded-ds-md" onClick={copyCode}>
+          <Button variant="outline" size="sm" className="h-11 rounded-full" onClick={copyCode}>
             {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             {copied ? "Copied" : "Copy"}
           </Button>
@@ -261,28 +259,29 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           a duplicate-counting bug before the first cash-out. */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { icon: Users, label: "Referrals", value: String(referralCount) },
+          { icon: Users, label: "Signed up", value: String(referralCount), money: false },
           // formatPriceExact, NOT raw interpolation. `$${totalCredits}` printed
           // the JS number verbatim, so a $12.50 balance rendered "$12.5" in this
           // tile while the cash-out button beside it (which already used
           // formatPriceExact) rendered "$12.50" and the rank card below it used
           // formatPrice and rendered "$13". Three spellings of one balance on
           // one screen. Credits are money: they use the exact formatter.
-          { icon: DollarSign, label: "Total earned", value: `$${formatPriceExact(totalCredits)}` },
-          { icon: Gift, label: "To cash out", value: `$${formatPriceExact(unredeemedCredits)}` },
-        ].map(({ icon: Icon, label, value }) => (
-          <div key={label} className="rounded-ds-md liquid-glass p-3 text-center">
+          { icon: DollarSign, label: "Total earned", value: `$${formatPriceExact(totalCredits)}`, money: true },
+          { icon: Gift, label: "To cash out", value: `$${formatPriceExact(unredeemedCredits)}`, money: true },
+        ].map(({ icon: Icon, label, value, money }) => (
+          <div key={label} className="rounded-[20px] liquid-glass p-3 text-center">
             <div className="flex items-center justify-center gap-1 mb-1 min-h-[1.5rem]">
               <Icon className="w-3 h-3 text-primary shrink-0" />
               {/* min-h + items-center keeps the three numbers on ONE baseline.
                   "Total earned" wraps to two lines at 320/375 while its two
                   siblings stay on one, which pushed the middle tile's figure a
                   line lower than the numbers either side of it. */}
-              <span className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+              <span className="text-ds-12 font-sans text-muted-foreground">
                 {label}
               </span>
             </div>
-            <p className="font-sans font-bold tabular-nums leading-none text-ds-18" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
+            {/* Money is rust (spec v2 §1.1); a count is ink. */}
+            <p className="font-sans font-bold tabular-nums leading-none text-ds-18" style={{ color: money ? "hsl(var(--accent-ink))" : "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
               {value}
             </p>
           </div>
@@ -294,14 +293,14 @@ const ReferralSection = ({ userId }: { userId: string }) => {
           as the person referred, or any other credit — which is exactly when
           the tiles and the rank ladder below would otherwise disagree. */}
       {earnings.needsExplanation && (
-        <div className="rounded-ds-md liquid-glass px-4 py-3" data-testid="referral-earnings-breakdown">
+        <div className="rounded-[20px] liquid-glass px-4 py-3" data-testid="referral-earnings-breakdown">
           <ul className="space-y-1.5">
             {earnings.lines.map((line) => (
               <li key={line.source} className="flex items-baseline justify-between gap-3">
                 <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                   {line.label}
                 </span>
-                <span className="font-sans font-semibold tabular-nums text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
+                <span className="font-sans font-semibold tabular-nums text-ds-12" style={{ color: "hsl(var(--accent-ink))" }}>
                   ${formatPriceExact(line.amount)}
                 </span>
               </li>
@@ -311,16 +310,16 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       )}
 
       {unredeemedCredits > 0 && (
-        <div className="rounded-2xl liquid-glass p-card flex items-center justify-between gap-3">
+        <div className="rounded-[20px] liquid-glass p-card flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-display font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
+            <p className="font-sans font-bold leading-tight text-ds-17" style={{ color: "hsl(var(--ink-deep))" }}>
               Cash out credits
             </p>
             <p className="font-sans leading-snug truncate text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               {hasStripeAccount ? `$${formatPriceExact(unredeemedCredits)} → Stripe payout account` : "Connect Stripe to cash out"}
             </p>
           </div>
-          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-10 shrink-0">
+          <Button onClick={handleCashOut} disabled={cashingOut || !hasStripeAccount} size="sm" className="h-11 rounded-full shrink-0">
             {cashingOut ? (
               <><Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> Cashing out</>
             ) : (
@@ -338,7 +337,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
       />
 
       {/* How it works */}
-      <div className="rounded-2xl liquid-glass p-card">
+      <div className="rounded-[20px] liquid-glass p-card">
         <div className="space-y-3">
           {[
             "Share your code with friends",

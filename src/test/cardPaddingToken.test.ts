@@ -24,7 +24,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 // Shown able to fail on the original defect (a card typing its own padding)
 // and on the token itself:
-// @mutate src/components/ReferralSection.tsx | <div className="rounded-2xl liquid-glass p-card"> | <div className="rounded-2xl liquid-glass p-5">
+// @mutate src/components/ReferralSection.tsx | <div className="rounded-[20px] liquid-glass p-card"> | <div className="rounded-[20px] liquid-glass p-5">
 // @mutate src/index.css | --card-pad: 1rem; | --card-pad: 1.5rem;
 // @mutate tailwind.config.ts | card: "var(--card-pad)", | card: "1.5rem",
 

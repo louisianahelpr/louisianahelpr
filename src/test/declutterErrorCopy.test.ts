@@ -44,6 +44,7 @@ const DECLUTTER_FILES = [
   "20261020064354_declutter_manage_listing.sql",
   "20261021023158_declutter_porch_note.sql",
   "20261021023530_declutter_review_tags.sql",
+  "20261021030654_declutter_moving_sale_name.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -68,7 +69,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(14);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(15);
     expect(codes.size).toBeGreaterThan(25);
   });
 

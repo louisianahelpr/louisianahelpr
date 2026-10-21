@@ -1,6 +1,7 @@
 import { toast } from "sonner";
 import { useFeature } from "@/hooks/useFeature";
 import { sectionItems } from "@/components/mobileNav/mobileNavHelpers";
+import { useOpenToEveryoneAnswer } from "@/components/landing/useSectionsOpen";
 
 /**
  * The section tabs (owner, 2026-10-18, option 1A): Declutter, Shops and Homes,
@@ -19,7 +20,23 @@ export function useSectionTabs() {
   const shops = useFeature("shops");
   const rentals = useFeature("rentals");
   const on = { declutter, shops, rentals } as const;
-  return sectionItems.map((s) => ({ ...s, on: on[s.feature] }));
+  // Asked only once some section is live for this viewer: useFeature is false
+  // signed out, so a signed-out page and a member with nothing live never ask.
+  const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals);
+  return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
+}
+
+/**
+ * Is this live section a PREVIEW for the viewer: open to them only because they
+ * are a tester (admin or test account), not yet to everyone? Then a small
+ * "Preview" mark sits where it is listed (PreviewPill), so the owner sees what
+ * members cannot. `openToEveryone` is the features_open_to_everyone() answer,
+ * null until it has loaded and after any failure: then NOTHING is a preview,
+ * never a false mark. A member's live section is always open to everyone, so a
+ * member never sees the mark. Guard: src/test/previewMark.test.tsx.
+ */
+export function sectionIsPreview(on: boolean, feature: string, openToEveryone: ReadonlySet<string> | null): boolean {
+  return on && openToEveryone !== null && !openToEveryone.has(feature);
 }
 
 /**
@@ -35,6 +52,9 @@ export function openingSoonLine(labels: readonly string[]): string | null {
 
 /** The accessible name of a switched-off section: "Declutter, coming soon". */
 export const comingSoonLabel = (label: string) => `${label}, coming soon`;
+
+/** The accessible name of a tester-only live section: "Declutter, preview". */
+export const previewLabel = (label: string) => `${label}, preview`;
 
 const shownComingSoon = new Set<string>();
 

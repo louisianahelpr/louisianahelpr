@@ -25,7 +25,9 @@
  * go red.
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
- * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature] })); |   return sectionItems.map((s) => ({ ...s, on: true }));
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) })); |   return sectionItems.map((s) => ({ ...s, on: true, preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
+ * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel), |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
+ * @mutate src/components/sections/ExploreSwitcher.tsx |         isPreview(s) ? ( |         false ? (
  * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
  * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER
  * control, tone="quiet", under which the section's own solid switch sits.)
@@ -34,7 +36,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return; if (!isOn(s)) return void toast("Soon");
  * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
  * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="badge" data-soon-badge="" aria-hidden="true" className="absolute -top-1.5 left-full -ml-0.5" /> | <span data-soon-badge="" aria-hidden />
- * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel), |       ariaLabel: s.navLabel,
+ * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel), |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
@@ -51,6 +53,9 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 const toasts = vi.hoisted(() => [] as string[]);
+// features_open_to_everyone's answer for the "Preview" mark: null = loading or failed.
+const everyone = vi.hoisted(() => ({ open: null as ReadonlySet<string> | null }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => everyone.open }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),
@@ -100,6 +105,7 @@ const exploreLabels = () =>
 
 beforeEach(() => {
   switches.on.clear();
+  everyone.open = null;
   toasts.length = 0;
 });
 afterEach(cleanup);
@@ -156,6 +162,26 @@ describe("the section tabs (owner 2026-10-18)", () => {
     fireEvent.click(shops);
     expect(screen.getByTestId("where").textContent).toBe("/shops");
     expect(toasts).toEqual([]);
+  });
+
+  it("a live section open to testers only says 'Preview' on its tab; one open to everyone does not (lead, 2026-10-21)", () => {
+    switches.on = new Set(["declutter", "shops"]);
+    everyone.open = new Set(["shops"]);
+    renderExplore();
+    const declutter = screen.getByRole("radio", { name: "Declutter, preview" });
+    expect(declutter.querySelector("[data-preview-pill]")?.textContent?.trim()).toBe("Preview");
+    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-preview-pill]")).toBeNull();
+    // A closed section says Soon, never Preview.
+    expect(screen.getByRole("radio", { name: "Homes, coming soon" }).querySelector("[data-preview-pill]")).toBeNull();
+    fireEvent.click(declutter);
+    expect(screen.getByTestId("where").textContent).toBe("/declutter");
+  });
+
+  it("while the open-to-everyone answer is loading or failed, no tab says 'Preview'", () => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
+    renderExplore();
+    expect(document.querySelector("[data-preview-pill]")).toBeNull();
+    expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
   it("the top bar's right side is the section's +, then the bell, then the Profile avatar at the far right", () => {

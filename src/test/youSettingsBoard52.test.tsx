@@ -20,6 +20,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const setHidden = vi.hoisted(() => vi.fn(() => true));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: false }) }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "declutter" }));
 vi.mock("@/hooks/useDarkMode", () => ({ useDarkMode: () => ({ theme: "system" }) }));
 vi.mock("@/components/sections/useSectionPrefs", async () => {

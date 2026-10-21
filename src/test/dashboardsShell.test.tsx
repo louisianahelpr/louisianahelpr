@@ -51,6 +51,8 @@ const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "liv
 vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
 // Board 189's first-job Home has its own reads (applications); this file is about the shell.
 vi.mock("@/pages/home/homeDashboard/FirstJobHome", () => ({ FirstJobHome: () => null, useFirstJobState: () => null }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),

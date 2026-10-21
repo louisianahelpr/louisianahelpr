@@ -26,6 +26,8 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const state = vi.hoisted(() => ({ jobs: 2, unread: 12, sheetOpened: 0 }));
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => true }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k !== "rentals" }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, isAdmin: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, gate: (_k: string, fn: () => void) => fn, gatedProps: () => ({}) }) }));

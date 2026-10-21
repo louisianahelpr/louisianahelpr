@@ -4,13 +4,14 @@ import { Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import type { SectionDef, SectionKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
-import { useSectionIsOn } from "@/components/sections/ExploreSwitcher";
+import { useSectionIsOn, useSectionIsPreview } from "@/components/sections/ExploreSwitcher";
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
+import { PreviewPill } from "@/components/sections/PreviewPill";
 
 /** The AI post-a-job path (EntryChoice opens its builder on `?start=ai`). */
 const DESCRIBE_IT_PATH = "/post-job?start=ai";
@@ -35,6 +36,7 @@ interface CreateAction {
  */
 function useCreateRows() {
   const isOn = useSectionIsOn();
+  const isPreview = useSectionIsPreview();
   const movingOut = useFeature("declutter_moving_out");
   const shopsOn = useFeature("shops");
   const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: fetchMyShopId, enabled: shopsOn });
@@ -45,7 +47,7 @@ function useCreateRows() {
     shops: [{ label: hasShop ? "Add a product or service" : "Open a shop", path: "/shops/mine" }],
     homes: [{ label: "List for rent", path: "/rentals?tab=own&add=1" }],
   };
-  return { isOn, actions, note: (s: SectionDef) => (s.key === "shops" && shopsOn && myShop.isSuccess && !hasShop ? "No shop yet" : null) };
+  return { isOn, isPreview, actions, note: (s: SectionDef) => (s.key === "shops" && shopsOn && myShop.isSuccess && !hasShop ? "No shop yet" : null) };
 }
 
 /**
@@ -63,7 +65,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
   const navigate = useNavigate();
   const gate = useAgeGate();
   const { visible } = useSectionPrefs();
-  const { isOn, actions, note } = useCreateRows();
+  const { isOn, isPreview, actions, note } = useCreateRows();
   const go = (path: string) => {
     hapticLight();
     onOpenChange(false);
@@ -89,6 +91,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                 <div className="flex items-center gap-2.5 min-h-6">
                   <Icon className="w-5 h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: on ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }} />
                   <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
+                  {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />}
                   {!on && (
                     <button
                       type="button"

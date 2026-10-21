@@ -53,6 +53,8 @@ import { blankComments } from "./helpers/blankNonCode";
 const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 const toasts = vi.hoisted(() => [] as string[]);
 const age = vi.hoisted(() => ({ under: false, explained: [] as string[] }));
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),

@@ -11,6 +11,8 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 
+// The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "declutter" }));
 vi.mock("@/components/sections/useSectionPrefs", () => ({
   useSectionPrefs: () => ({ prefs: { order: ["jobs", "declutter", "shops", "homes"], hidden: [] }, setHidden: () => true, move: () => {} }),

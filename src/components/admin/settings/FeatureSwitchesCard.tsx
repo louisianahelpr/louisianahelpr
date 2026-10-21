@@ -14,6 +14,7 @@ import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { useFeature } from "@/hooks/useFeature";
+import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 import { FEATURE_AUDIENCES, FEATURE_AUDIENCE_LABEL, type FeatureAudience, type FeatureKey } from "@/config/featureSwitches";
 import { AdminCard } from "../AdminViewShell";
 import { DeclutterReviewCard } from "./DeclutterReviewCard";
@@ -77,6 +78,8 @@ export function FeatureSwitchesCard() {
       if (stored !== change.to) throw new Error(`Switch ${change.key} reads ${String(stored)} after the change`);
       toast.success(`${change.key} is now ${FEATURE_AUDIENCE_LABEL[change.to]}.`);
       await queryClient.invalidateQueries({ queryKey: [FEATURE_SWITCH_PREFIX] });
+      // The "Preview" marks read which switches are open to everyone: re-ask, so a flip clears them now.
+      await queryClient.invalidateQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY });
     } catch (err) {
       toast.error(
         rpcErrorMessage("admin_set_feature_switch", err) ??

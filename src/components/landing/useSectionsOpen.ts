@@ -27,7 +27,8 @@ export function sectionIsComingSoon(feature: string | null, open: ReadonlySet<st
   return open === null || !open.has(feature);
 }
 
-const SECTIONS_OPEN_QUERY_KEY = ["features-open-to-everyone"] as const;
+/** Exported so FeatureSwitchesCard re-reads it after an admin changes a switch. */
+export const SECTIONS_OPEN_QUERY_KEY = ["features-open-to-everyone"] as const;
 
 let reported = false;
 /** One report per page session, whatever the failure count. Exported for the guard. */
@@ -38,11 +39,12 @@ export function reportSectionsOpenFailureOnce(error: unknown): boolean {
   return true;
 }
 
-async function fetchSectionsOpen(): Promise<string[]> {
+/** null = the RPC is not deployed yet: no answer (the landing reads it as empty, the Preview mark as unknown). */
+async function fetchSectionsOpen(): Promise<string[] | null> {
   try {
     const { supabase } = await import("@/integrations/supabase/client");
     const res = await supabase.rpc("features_open_to_everyone");
-    if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return [];
+    if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return null;
     const data = unwrap(res);
     return Array.isArray(data) ? data : [];
   } catch (error) {
@@ -51,9 +53,8 @@ async function fetchSectionsOpen(): Promise<string[]> {
   }
 }
 
-/** `open` is null until settled; a failed read settles EMPTY (every switched section "coming soon"). */
-export function useSectionsOpen(start: boolean): { open: ReadonlySet<string> | null; settled: boolean } {
-  const q = useQuery({
+function useSectionsOpenQuery(start: boolean) {
+  return useQuery({
     queryKey: SECTIONS_OPEN_QUERY_KEY,
     queryFn: fetchSectionsOpen,
     enabled: start,
@@ -61,7 +62,25 @@ export function useSectionsOpen(start: boolean): { open: ReadonlySet<string> | n
     retry: false,
     meta: { persist: false, reportsItself: true },
   });
-  if (q.isSuccess) return { open: new Set(q.data), settled: true };
+}
+
+/** `open` is null until settled; a failed read settles EMPTY (every switched section "coming soon"). */
+export function useSectionsOpen(start: boolean): { open: ReadonlySet<string> | null; settled: boolean } {
+  const q = useSectionsOpenQuery(start);
+  if (q.isSuccess) return { open: new Set(q.data ?? []), settled: true };
   if (q.isError) return { open: new Set(), settled: true };
   return { open: null, settled: false };
+}
+
+/**
+ * The same answer for the signed-in app's "Preview" mark (useSectionTabs): the
+ * switches open to everyone, but ONLY from a successful answer of the deployed
+ * RPC. null while loading, after any failure (a failed refetch too: isSuccess
+ * turns false), and while the RPC is not deployed. Unlike useSectionsOpen it
+ * never settles a failure as EMPTY: an empty set would mark every live section
+ * a preview, for members too.
+ */
+export function useOpenToEveryoneAnswer(start: boolean): ReadonlySet<string> | null {
+  const q = useSectionsOpenQuery(start);
+  return q.isSuccess && q.data !== null ? new Set(q.data) : null;
 }

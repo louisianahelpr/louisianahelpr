@@ -294,6 +294,8 @@ export const RPC_ERROR_COPY = {
     not_authorized: "Only the person who posted this job can cancel it.",
     job_not_found: JOB_GONE,
     not_authenticated: "Please sign in again to cancel this job.",
+    // Boards 66/172 slice 2 (20261021130723): the fee moved a tier since the dialog quoted it; nothing was cancelled.
+    quote_changed: "The cancellation fee changed while this was open, so nothing was cancelled. Check the new amount and confirm again.",
   },
   // EndSeriesControl — the poster ends a recurring series; a Helpr on it leaves.
   end_recurring_series: {

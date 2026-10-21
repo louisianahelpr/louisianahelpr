@@ -367,7 +367,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   return (
     <section className="space-y-3" aria-label="Your listings">
       <SectionHeading title="Your listings" />
-      {haulOn && !haul.isError && <HaulAwayCard group={haul.data?.trip ?? []} />}
+      {haulOn && !haul.isError && (
+        <HaulAwayCard group={haul.data?.trip ?? []} pausedCount={list.filter((i) => i.status === "paused").length} />
+      )}
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
@@ -395,7 +397,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
               <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(item.current_price_cents)}</span>
             </div>
             {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
-            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} />}
+            {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
             <div className="flex flex-wrap gap-2">
               {item.status === "draft" ? (
                 <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>

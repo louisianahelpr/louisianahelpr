@@ -27,7 +27,8 @@ export const HAUL_AWAY_ERROR_COPY: Record<string, string> = {
   haul_away_already_booked: "A Helpr is already booked to haul this away. To change that, cancel the job first.",
   haul_away_in_sale: "A buyer is getting this item, so it can't be hauled away.",
   haul_away_too_soon: "Give it a little longer. An item can be hauled away 14 days after it went up for sale.",
-  haul_away_not_unsold: "Only an item that's for sale or off sale without selling can be hauled away.",
+  // Q2261 (owner, 2026-10-21): a paused item is refused here on purpose; relist it first.
+  haul_away_not_unsold: "Only an item that's for sale or off sale without selling can be hauled away. If it's paused, relist it first.",
   haul_away_not_found: "There's no haul-away to cancel on this item.",
   haul_away_checkout_open:
     "A checkout for this haul-away is still open. Pay there, or try again in an hour when it runs out.",

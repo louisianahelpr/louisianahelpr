@@ -1,4 +1,5 @@
 import { linkTurnoverJob } from "./turnoverPrefill";
+import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { isUnder18Refusal, UNDER_18_POST_COPY } from "@/lib/ageGate";
 import { useRef } from "react";
@@ -756,6 +757,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
       toast.error(
         leakRejection
           ? leakRejection
+          // Q2291: the server's Louisiana-only address rule, in its own words.
+          : /job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? "")
+            ? (lifecycleErrorMessage(error) ?? "Helpr is in Louisiana only for now. Use a Louisiana address.")
           // Q1586(c): the server's under-18 refusal (also 42501) in its own words.
           : isUnder18Refusal(error)
             ? UNDER_18_POST_COPY

@@ -57,7 +57,6 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q1793: "Apple's App Review demo account, found preparing the 1.0.4 resubmission; not a code reviewer's finding",
   Q1892: "\"Identity Review\" is the admin screen's title (the reds lane looked at /admin?view=idvreview at 375 on prod); not a code reviewer's finding",
   Q2112: "the lead measuring prod analytics_events (robot traffic in the sign-up funnel), salvaged from ready/train-big-1016; not a code reviewer's finding",
-  Q2113: "a captcha-switch mismatch found from the 2026-10-15 login timeline, salvaged from ready/train-big-1016; not a code reviewer's finding",
   Q2082: "the owner's jobs-fee feature item; it lists lh-money-escrow review points of slice 3a as before-the-flip conditions, not a filed finding",
   Q1901: "the loading-states budget red mirrored from a CI run; \"lead review\" notes why the budget was left, not a filed finding",
   Q2229: "the owner's D4 lease feature (Homes); \"the tenant reviews\" is the tenant reading the lease and \"the lead's ten must-fix points\" is the status of its build, not a filed finding",

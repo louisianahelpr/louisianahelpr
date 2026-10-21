@@ -1,59 +1,36 @@
-# Declutter terms of use: DRAFT for the owner to read and approve
+# Declutter terms of use: owner-approved text, ready to publish
 
-Status: DRAFT, not published anywhere. Brought up to date on **2026-10-21** (Q2308) from the current
-record only: the owner rulings in the lead's master list (newest last), the Declutter launch handoff,
-the Declutter specs in `docs/specs/declutter-*.md`, the Declutter items in `docs/OPEN.md`, and the
-live code and migrations on `origin/main` @ 42c7557608 for every number. Owner ruling 2026-10-21: Claude
-updates this draft, the owner reads it, and there is **no lawyer step**. Where the record does not
-decide something, the text says **[OWNER TO CONFIRM: ...]** with a plain question instead of
-inventing a rule. Each number has a hidden note beside it (`<!-- ... -->`) saying where it was read;
-they do not show when the page is published. The 2026-10-14 version is in git history.
+Status: **content approved by the owner 2026-10-22** (Q2308; every point answered, MASTER-LIST.md:365).
+Not published yet: it goes live when it is added to the Terms tab (`TermsSection.tsx`). **No terms-version
+bump and no re-accept pop-up** (owner, 2026-10-22, #14). Written from the current record only: the owner
+rulings in the lead's master list (newest last), the Declutter launch handoff, the Declutter specs in
+`docs/specs/declutter-*.md` and `~/.lh-wt/declutter-seller-delivery-spec.md`, the Declutter items in
+`docs/OPEN.md`, and the code and migrations on `origin/main` @ 42c7557608 for every number. No lawyer
+step (owner, 2026-10-21). Each number has a hidden note beside it (`<!-- ... -->`) saying where it was
+read; the notes do not show when the page is published. Earlier versions are in git history.
 
-## For the owner: what changed since the 2026-10-14 draft
-- **No QR code and no 4-digit code anywhere.** Porch pickup is the default; a big item is picked up at the door. <!-- migrations 20261018183715 (handover), 20261018184535 (delivery); spec row 25, 28, 101 -->
-- **Buyer's fee is 5% of the items + 70 cents** (it was 15%, at least $1). <!-- 20261015023613_declutter_buyer_fee_f1.sql:95; spec row 20 -->
-- **One photo is enough to list** (it was 3). <!-- 20261020040503_declutter_one_photo_minimum.sql; src/lib/declutter/photoRules.ts:9 -->
-- **New sections:** Helpr delivery (with the buyer's pay raise), managing a listing (pause and relist), and the extras: Add a Helpr, haul-away, moving out and moving sales, the price hint, and Wanted posts.
-- **New refund rules:** a refund can be asked within 24 hours of pickup, the seller's payout waits until the sale is final, and a part refund is exactly the amount offered. <!-- MASTER-LIST.md:321 (owner 2026-10-21 AM) -->
-- **Helpr pay is rounded down to the whole dollar** (disclosed in section 8). <!-- MASTER-LIST.md:337 -->
-- Every lawyer note is gone (owner, 2026-10-21). <!-- MASTER-LIST.md:342 -->
+## For the owner: your answers of 2026-10-22, as written into the text
+<!-- all from MASTER-LIST.md:365 unless noted -->
+- "Declutter is not an auction" is published now (section 1).
+- The buyer always gets the full 24 hours after pickup to ask for a refund; "I got it" and the porch photo do not end it early (sections 7, 10).
+- The seller can decline a refund request; the buyer can then report a problem and an admin decides. If the seller doesn't answer in 24 hours, an admin decides and the payout stays held. A full refund gives back everything except the card fee (the buyer's fee included), and the item goes back to the seller (section 10).
+- A delivery pay raise: the buyer pays the raise plus its card fee, and the Helpr gets the whole raise (section 8).
+- Kept: a Helpr who already picked up is paid for the trip on a seller-fault refund; free take-down with unaccepted offers; the extras' numbers; Helpr delivery at a set price plus raises (sections 3, 8, 15).
+- Stripe Identity once, across Jobs and Declutter, asked at the first Declutter purchase or listing; the $2 setup fee once per account, whichever comes first (section 2).
+- Taxes in general words, with no promises on the CPA points (section 20).
+- On account deletion: strikes stay tied to the verified ID; finished sales stay visible to the other side as "Former member" (section 21).
+- Seller delivery is in, and opens with launch (section 9). <!-- MASTER-LIST.md:363; seller-delivery spec "Owner answers 2026-10-22" -->
 
-## For the owner: summary in 6 lines
-1. Neighbors sell their own used household items to each other at a set price, with private offers and an automatic 5% price drop each evening. There is no bidding.
-2. Buyers pay the item price plus a buyer's fee of 5% of the items + 70 cents, once per checkout. Sellers pay no fee.
-3. Handover: porch pickup (the default), pickup at the seller's door for big items, or delivery by a Helpr. Shipping is not offered.
-4. The seller is paid once the sale is final. The buyer can ask for a refund within 24 hours of pickup.
-5. Breaking the rules earns Declutter strikes (one count for buying and selling, each lasting 1 year). 3 active strikes lock you out of Declutter until one expires. Jobs are not affected.
-6. Delivery opens together with pickup, and every extra (Add a Helpr, haul-away, moving out, price hint, Wanted) opens together with Declutter. <!-- MASTER-LIST.md:342 -->
-
-## For the owner: rules you decided that the app does not do yet
-These sentences describe your rulings. The app does not do them on `main` yet, so publish the matching
-sentence only when its piece ships (or take the sentence out):
-- The buyer raising the delivery pay (Q1929; being built, not on main). <!-- docs/OPEN.md Q1929; handoff-declutter-launch.md "Pushed by this lane" #3 -->
-- Asking for a refund within 24 hours of pickup, part refunds, and holding the seller's payout until then (board 141, Declutter side; not built). <!-- MASTER-LIST.md:321, :312 -->
-- A seller's "Picked up" at the door becoming final 24 hours later unless the buyer reports a problem; today it is final at once (Q2151 (a); not built). <!-- docs/OPEN.md Q2151 "OWNER DECIDED 2026-10-21" -->
-- Rounding a delivery Helpr's pay down to the whole dollar: jobs payouts already do it, delivery payouts do not yet. <!-- MASTER-LIST.md:348 -->
-- The seller paying the card fee on a raised delivery the seller's fault cancelled (part of Q1929). <!-- MASTER-LIST.md:342 -->
-- Strike appeals (not built) and the storm pause (not built). <!-- spec rows 39, 49; no appeal or pause function in supabase/migrations (grep, 2026-10-21) -->
-
-Also needed elsewhere before this goes live: the Privacy tab's "Google Gemini" line still covers only the
-AI job builder; it must also cover Declutter listing photos, listing text and room scans. <!-- src/pages/info/legal/PrivacySection.tsx:153 -->
-
-## Every [OWNER TO CONFIRM] point in this draft
-1. **Auction law.** Your 2026-10-14 to-do list still says to call the Louisiana Auctioneers Licensing Board to confirm that set prices + private offers + slow daily price drops are not an auction. Publish "Declutter is not an auction" now, or after that call? (Section 1)
-2. **"I got it" and the 24-hour refund window.** Your 2026-10-21 rulings say a refund can be asked within 24 hours of pickup and the seller's payout waits until the sale is final, but also that the buyer's "I got it" finalizes the sale at once (today the buyer's porch "Picked up" photo does too). Do those taps end the 24 hours early, or does the buyer always get the 24 hours? (Sections 7, 9) <!-- MASTER-LIST.md:321; docs/OPEN.md Q2151 (a); spec row 99 -->
-3. **Refund requests.** When the buyer asks for a refund: can the seller say no, what happens if the seller does not answer in the 24 hours, does a full refund also give back the buyer's fee, and does the buyer have to give the item back? (Section 9)
-4. **Raised delivery pay: who pays the card fee, and does the Helpr fee apply to the raise?** (Section 8)
-5. **Refund after the Helpr already picked up the item, when the seller is at fault.** Today the Helpr is paid for the trip and the buyer does not get the delivery fee back. Keep that, or give the buyer the delivery fee back and charge it to the seller like the card fee? (Sections 8, 10)
-6. **Taking a listing down while offers are open.** Today it is free (the open offers close and the buyers are told) as long as no offer was accepted. Keep? (Section 3)
-7. **The extras' numbers were picked by the builders.** Haul-away: 14 days unsold, up to 10 items, suggested pay. Wanted: posts last 30 days, the daily limits. Moving out: 15 items per scan, a move-out date up to 180 days out. Add a Helpr: priced and paid like any job. Keep them all? (Section 14)
-8. **Helpr delivery details picked by the builder.** Road miles estimated as straight-line miles x 1.3; delivery only when every item is at one address; a Helpr who backs out under 2 hours before pickup gets a strike. Keep? (Section 8)
-9. **The one-time account setup fee.** Today it is not taken from any Declutter payout (seller or delivery Helpr). Keep it that way? (Section 9)
-10. **Sales tax questions for a CPA.** (a) Is the buyer's fee taxable when the item sale is exempt? (b) Does the jobs business already count toward the $100,000 marketplace limit? (c) Can Stripe Tax file every parish's rate? (d) Who decides a seller looks like a business? Publish the tax section with these still open? (Section 19)
-11. **Form 1099-K and the secondhand-dealer law.** Do Declutter payouts count toward the 1099-K the main Terms mention, and does Louisiana's secondhand-dealer law reach very frequent sellers? Publish without an answer? (Section 19)
-12. **Deleting an account.** What happens to Declutter strikes and finished sales when a member deletes their account? The draft promises nothing either way. (Section 20)
-13. **Seller delivery** (a seller who delivers the item themselves, at their own rate) is being built behind its own switch with the lead's starting numbers. Add a section when it ships? (Section 1) <!-- MASTER-LIST.md:347; ~/.lh-wt/declutter-seller-delivery-spec.md -->
-14. **The terms version.** When this goes live, bump the Terms version (every member is asked to accept again), or not? Your 2026-10-21 ruling for the jobs Terms changes was no re-accept pop-up. (Not in the text) <!-- MASTER-LIST.md:320; src/lib/consent.ts:17 LATEST_TERMS_VERSION = "Oct 2026" -->
+## For the owner: in the text, but not on `main` yet (they open with launch)
+You ruled these, so they are in the terms. The app on `main` (42c7557608) does not do them yet:
+- The buyer raising the delivery pay, the Helpr getting the whole raise, and the raise card-fee rules (Q1929, being built). <!-- docs/OPEN.md Q1929 -->
+- Refund requests within 24 hours of pickup: the seller refunding, offering part or declining, an admin deciding on a decline or no answer, and the payout held until then (board 141, Declutter side). <!-- MASTER-LIST.md:321, :365 -->
+- A seller's door "Picked up" becoming final 24 hours later unless the buyer reports a problem (Q2151 (a)); today it is final at once. <!-- docs/OPEN.md Q2151 -->
+- Seller delivery (being built behind the `declutter_seller_delivery` switch). <!-- MASTER-LIST.md:347, :363 -->
+- Stripe Identity at the first Declutter purchase or listing, and the setup fee at the first Declutter purchase or listing. Today no Declutter money path takes the setup fee. <!-- MASTER-LIST.md:365 #9; grep "onboarding" in supabase/functions/declutter-money and declutter-checkout: no match (2026-10-21) -->
+- Rounding a delivery Helpr's pay down to the whole dollar (jobs payouts already do it). <!-- MASTER-LIST.md:348 -->
+- Strike appeals and the storm pause. <!-- spec rows 39, 49; no appeal or pause function in supabase/migrations (grep, 2026-10-21) -->
+- Not checked against `main` for this text: that strikes stay tied to the verified ID after a deletion, and that the other side sees "Former member" on a finished sale.
 
 ## Where this would sit in the app (suggestion, not a decision)
 A new "Declutter" section in the **Terms** tab (`/legal`, anchor `declutter`), in the same card style as
@@ -76,8 +53,8 @@ something more specific about Declutter, this section wins for Declutter.*
 - Sellers set a price. Buyers can buy at that price or make a private offer. Prices drop 5% each evening until the item sells or reaches the seller's lowest price.
 - Sellers pay no fee. Buyers pay a buyer's fee of 5% of the items + 70 cents, once per checkout.
 - You need a saved card to buy or make an offer. After you buy, or your offer is accepted, you have 48 hours to check out and pay. <!-- read 2026-10-21: 20261014210518_declutter_slice3_offers_checkout.sql:487 -->
-- Pick it up from the porch, at the seller's door, or have a Helpr deliver it, within 7 days.
-- You can ask for a refund within 24 hours of pickup. After that the sale is final.
+- Pick it up from the porch or at the seller's door, or have a Helpr or the seller deliver it.
+- You always get 24 hours after pickup to ask for a refund. After that the sale is final.
 - Breaking the rules earns a Declutter strike. 3 active strikes and you can't use Declutter until one expires (each lasts 1 year). Your jobs are not affected.
 - Louisiana Helpr is the place where the sale happens. We are not the seller.
 
@@ -90,32 +67,38 @@ private offer, and the seller decides whether to accept.
 
 Declutter is **not an auction.** There is no bidding, no countdown, and no "highest bid wins". An item
 sells to the first buyer whose purchase or offer is accepted and who then pays.
-**[OWNER TO CONFIRM #1: publish this sentence now, or after calling the Louisiana Auctioneers Licensing Board?]**
-<!-- spec rows 55-59; B2 (offers only); "Owner to-dos before launch" -->
+<!-- spec rows 55-59; B2 (offers only); owner 2026-10-22 #1: publish now (MASTER-LIST.md:365) -->
 
-You can get your item three ways:
-- **Porch pickup** (the default): the seller leaves the item out and you collect it.
+You can get your item four ways:
+- **Porch pickup** (the default): the seller leaves the item out (on a porch or another safe place) and you collect it.
 - **Pickup at the seller's door**, for items the seller doesn't leave out (too big or too valuable).
 - **Helpr delivery**: a Helpr picks it up and brings it to you (section 8).
+- **Seller delivery**: the seller brings it to you, at a time you book, when the seller offers it (section 9).
 
 Shipping is not offered.
-**[OWNER TO CONFIRM #13: seller delivery is being built; add a section when it ships?]**
-<!-- spec rows 24, 101, 102; 20261017055504_declutter_porch_default.sql; shipping Q2259 paused (docs/OPEN.md) -->
+<!-- spec rows 24, 101, 102; 20261017055504_declutter_porch_default.sql; seller delivery: MASTER-LIST.md:363, seller-delivery spec; shipping Q2259 paused (docs/OPEN.md) -->
 
 Declutter also has extras: booking a Helpr to put an item together or hang it (Add a Helpr), a Helpr
 haul-away for items that don't sell, moving-out tools and moving sales, a price hint, and Wanted posts
-(section 14).
+(section 15).
 
 ## 2. Who can buy and sell
 To buy, make offers, post a Wanted request, deliver, or sell in Declutter you must:
 - **Be 18 or older.** Members under 18 can't buy, make offers, post Wanted requests, deliver or sell. The buttons are greyed out and our server refuses the request too. <!-- spec row 53; B32; Wanted W4; B72b -->
-- **Have a Louisiana Helpr account in good standing**: signed in, not banned, with fewer than 3 active Declutter strikes (section 11). <!-- B10; 20261014193955_declutter_foundation.sql:449 (>= 3 strikes refused) -->
+- **Have a Louisiana Helpr account in good standing**: signed in, not banned, with fewer than 3 active Declutter strikes (section 12). <!-- B10; 20261014193955_declutter_foundation.sql:449 (>= 3 strikes refused) -->
 - **Deal in items located in Louisiana.** Items and pickups are in Louisiana. Buyers may live anywhere. <!-- spec rows 5, 69 -->
 
 Sellers must **set up payouts with Stripe before their first listing**, the same step Helprs take before
 getting paid (see Terms, Payouts & Stripe Connect). <!-- spec row 23 -->
 
 Buyers must have **a saved card** before making an offer or buying (section 6). <!-- spec row 36; B31 -->
+
+**Verify your ID once.** Before your first Declutter purchase or your first listing, you verify your ID
+with Stripe Identity (a photo ID and a selfie). You do it only once for all of Louisiana Helpr: if you
+already did it for Jobs, you don't do it again. <!-- MASTER-LIST.md:365 #9 (owner 2026-10-22); MASTER-LIST.md:245 (Stripe Identity = photo ID + selfie) -->
+
+**The one-time account setup fee** in the main Terms is charged once per account, whichever comes first:
+your first Jobs payout, or your first Declutter purchase or listing. <!-- MASTER-LIST.md:365 #9 -->
 
 ## 3. Listing an item
 **Only your own personal things.** You may list only household items you own and bought for your own
@@ -126,7 +109,7 @@ use. When you list, you confirm four things, and we keep your answers:
 4. you will keep the item yourself until you hand it over.
 
 If you change the title, description or category of an unlisted item, you confirm these again before it
-goes up. When you list several items at once (moving out, section 14), you confirm them once for the
+goes up. When you list several items at once (moving out, section 15), you confirm them once for the
 batch, and we record them for each item. <!-- spec row 54; B18; src/components/declutter/declutterUi.tsx TAX_STATEMENTS; moving-out M12 (owner 2026-10-17) -->
 
 **Photos.** Each listing needs at least 1 and at most 12 photos that you took of the actual item. The app
@@ -167,9 +150,8 @@ the item is listed. <!-- 20261017055504_declutter_porch_default.sql (porch_ok se
 
 **Taking a listing down.** You can take your own listing down at any time before an offer is accepted or
 someone buys it. Any open offers close and those buyers are told. Once you've accepted, backing out is a
-strike (section 11).
-**[OWNER TO CONFIRM #6: taking a listing down while offers are open but none accepted is free today. Keep that?]**
-<!-- B20, B36, B46 -->
+strike (section 12).
+<!-- B20, B36, B46; owner 2026-10-22 #6: keep free take-down (MASTER-LIST.md:365) -->
 
 ## 4. What you can't sell
 These items are not allowed in Declutter:
@@ -231,13 +213,14 @@ one pickup or delivery. <!-- spec row 38; B30 -->
 **What you pay.**
 - The item price, plus
 - a **buyer's fee of 5% of the item total + 70 cents**, once per checkout. It already includes the card-processing cost. <!-- 20261015023613_declutter_buyer_fee_f1.sql:95 (round(items * 0.05) + 70); src/lib/declutter/money.ts:12-13; spec rows 20-21 (F1) -->
-- For Helpr delivery, the delivery fee (section 8). There is no buyer's fee on the delivery fee. <!-- B62 -->
-- You see one total before you pay. Sales tax: none on sales by casual sellers (section 19).
+- For Helpr delivery, the delivery fee (section 8). There is no buyer's fee on the Helpr delivery fee. <!-- B62 -->
+- For seller delivery, the seller's delivery rate (section 9). The buyer's fee is worked out on the items and the seller's delivery rate together. <!-- MASTER-LIST.md:363 ("buyer 5% fee on items+delivery"); seller-delivery spec ("the 70c fee is shared the same way") -->
+- You see one total before you pay. Sales tax: none on sales by casual sellers (section 20).
 
 **What sellers pay: nothing.** There is no seller fee. The seller receives 100% of the item price
-(minus any card fee the seller owes from an earlier sale they cancelled, section 10). <!-- spec row 22; B43, B53 -->
+(minus any card fee the seller owes from an earlier sale they cancelled, section 11). <!-- spec row 22; B43, B53 -->
 
-Payment is processed by Stripe. Louisiana Helpr holds the money until the sale is final (section 9).
+Payment is processed by Stripe. Louisiana Helpr holds the money until the sale is final (section 10).
 
 ## 7. Pickup and handover
 **Within 7 days of payment.** Every pickup and delivery happens within 7 days of paying. <!-- spec row 14; 20261018183715_declutter_handover_no_qr_no_code.sql:262 (paid_at + 7 days) -->
@@ -263,11 +246,14 @@ posted the "set out" photo. <!-- spec row 28; 20261018183715:236 (slot_start + 2
 
 **A seller's "Picked up" at the door** becomes final 24 hours later unless you report a problem.
 <!-- docs/OPEN.md Q2151 "OWNER DECIDED 2026-10-21" (a); not built yet -->
-**[OWNER TO CONFIRM #2: does your "I got it" (or your porch "Picked up" photo) end the 24-hour refund window early (section 9)?]**
+
+**You always get 24 hours.** However the pickup is confirmed ("I got it", the porch photo, the seller's
+"Picked up", or the 24-hour rule), you have the full 24 hours after pickup to ask for a refund
+(section 10). <!-- MASTER-LIST.md:365 #2 (owner 2026-10-22) -->
 
 **Someone didn't show.** 15 minutes after the booked time, the side who is waiting gets a "They didn't
 show" button. A buyer who misses a pickup may rebook once within the 7 days; a second miss cancels the
-sale (section 10). A seller who doesn't show refunds the buyer in full (section 10).
+sale (section 11). A seller who doesn't show refunds the buyer in full (section 11).
 <!-- spec rows 94, 95; 20261015042253_declutter_slice4_handover_payout.sql:1039 (slot_start + 15 minutes); B55 -->
 
 **Report a problem.** Either of you can tap "Report a problem" on a sale (not as described, damaged,
@@ -279,8 +265,7 @@ stays held while Louisiana Helpr looks at both sides' photos and messages and de
 **The price.** $10, plus $2 for each road mile from the pickup to your address, plus $20 for each large
 item and $40 for each extra-large item (two people). There is no distance limit. Road miles are
 estimated from the straight-line distance (times 1.3, rounded up to a whole mile, at least 1 mile).
-<!-- read 2026-10-21: 20261017055505_declutter_helpr_delivery.sql:1431-1433 (1000 + 200 * miles + 2000 large / 4000 xl per item), :1450 (x 1.3, ceil, at least 1); spec rows 29, 30; B60 -->
-**[OWNER TO CONFIRM #8: keep these delivery details the builder picked?]**
+<!-- read 2026-10-21: 20261017055505_declutter_helpr_delivery.sql:1431-1433 (1000 + 200 * miles + 2000 large / 4000 xl per item), :1450 (x 1.3, ceil, at least 1); spec rows 29, 30; B60; owner 2026-10-22 #8: keep the set price, no Helpr quotes (MASTER-LIST.md:365) -->
 
 **When it's offered.** Delivery is offered when every item in the checkout is at one pickup address. You
 type your drop-off address (any US address) and we work out the price on our side. <!-- B61, B62 -->
@@ -300,17 +285,18 @@ pickup at the seller's door (the 7-day clock keeps running).
 - at most $150 in raises in total for one delivery;
 - not in the last hour of the 48 hours.
 
+You pay the raise plus its card fee, and the Helpr gets the whole raise (no Helpr fee is taken from it).
 If the raise is refunded, you get it back with its card fee, unless you cancel for your own reason. If
 the seller's fault cancels a delivery you raised, the seller pays the card fee on your raise.
-<!-- MASTER-LIST.md:338 (owner 2026-10-21, Q1929); MASTER-LIST.md:342 (seller-fault raise card fee); not on main yet (docs/OPEN.md Q1929) -->
-**[OWNER TO CONFIRM #4: does the buyer pay a card fee on top of a raise, and does the Helpr fee (5% + 70 cents) apply to the raised part?]**
+<!-- read 2026-10-22: MASTER-LIST.md:338 (owner 2026-10-21, Q1929 caps); :342 (seller-fault raise card fee); :365 #4 (buyer pays raise + card fee, Helpr gets the whole raise); not on main yet (docs/OPEN.md Q1929) -->
 
 **Who can deliver.** A Helpr who is 18 or older, has set up payouts, is not banned, has fewer than 3
 Declutter strikes, and is not the buyer or the seller. Large and extra-large items need a Helpr with a
 truck (with a photo of it), and extra-large ones a second person too. <!-- B72b; spec row 41 -->
 
-**What the Helpr is paid.** The delivery fee minus the same Helpr fee as jobs: 5% of the pay + 70
-cents. Helpr pay is paid in **whole dollars, rounded down**; Louisiana Helpr keeps the leftover cents.
+**What the Helpr is paid.** The delivery fee minus the same Helpr fee as jobs (5% of the pay + 70
+cents), plus any raise in full. Helpr pay is paid in **whole dollars, rounded down**; Louisiana Helpr
+keeps the leftover cents.
 <!-- 20261017055505:314 (helpr_task_fee_cents = round(pay * 5%) + 70, never more than the pay); spec row 42; B59; rounding: MASTER-LIST.md:337 (owner 2026-10-21), not built for delivery yet (MASTER-LIST.md:348) -->
 
 **Helpr strikes.** A Helpr who backs out less than 2 hours before the pickup, or doesn't pick up within 2
@@ -323,26 +309,53 @@ too), the seller is still paid, and the Helpr is not paid and gets a strike. Lou
 cost. <!-- spec row 43; B71 -->
 
 **If the Helpr already picked up the item and the sale is then refunded for the seller's fault**, the
-Helpr is paid for the trip from the payment, so the delivery fee is not refunded. <!-- B69 -->
-**[OWNER TO CONFIRM #5: keep that, or refund the delivery fee and charge it to the seller?]**
+Helpr is paid for the trip from the payment, so the delivery fee is not refunded. <!-- B69; owner 2026-10-22 #5: keep (MASTER-LIST.md:365) -->
 
-## 9. When the seller gets paid, and when the sale is final
-**Refunds within 24 hours of pickup.** After you have the item, you have 24 hours to ask for a refund in
-the app. The seller can refund all of it, or offer to refund part of it. A part refund is exactly the
-amount offered. <!-- MASTER-LIST.md:321 (owner 2026-10-21 AM); MASTER-LIST.md:205 ("both now, with partials"); not built yet -->
-**[OWNER TO CONFIRM #3: can the seller say no; what if the seller doesn't answer in the 24 hours; does a full refund give back the buyer's fee; does the item go back to the seller?]**
+## 9. Seller delivery
+Some sellers deliver themselves. When a seller offers it, you can choose it at checkout.
+
+**The seller's side.** The seller turns on "I can deliver" and sets:
+- **one flat delivery rate per order**, in whole dollars, from $5 to $150 (the same rate whatever the number of items);
+- **how far they'll go**: 5, 10, 25 or 50 miles from their pickup address (10 unless they change it);
+- **their delivery times**: weekly hours, in 1-hour slots, plus days off.
+
+The seller can turn delivery off for an item that is too heavy. The seller keeps the whole delivery
+rate; Louisiana Helpr takes no cut of it.
+
+**Your side.** At checkout, seller delivery shows only when your address is within the seller's range
+and a time is open. You book a 1-hour slot from 24 hours ahead up to 14 days out, and choose:
+- **"Leave it at my door"**: the seller leaves it with a photo, and it is confirmed like a porch pickup; or
+- **"Hand it to me"**: you meet at your door. If nobody is home, report a problem and an admin decides.
+
+The seller sees your address only after you pay. Either of you can ask to move the time, to the
+seller's open times, at most 3 times each. If it doesn't come, "It wasn't delivered" opens 15 minutes
+after the booked hour ends.
+
+**Cancelling.**
+- **You** can cancel a paid seller delivery until 24 hours before the slot: you get everything back (items and the delivery rate) except the card fee. After that, use "Report a problem".
+- **The seller** cancelling a paid delivery means a full refund to you, a Declutter strike for the seller, and the seller pays the card fee.
+<!-- read 2026-10-22: MASTER-LIST.md:363 (owner pop-ups 2026-10-22); ~/.lh-wt/declutter-seller-delivery-spec.md "Seller side", "Buyer side", "Owner answers 2026-10-22"; not on main yet (switch declutter_seller_delivery) -->
+
+## 10. When the seller gets paid, and when the sale is final
+**Refunds within 24 hours of pickup.** After you have the item, you have the full 24 hours to ask for a
+refund in the app. The seller can:
+- **refund all of it**: you get everything back except the card fee (the buyer's fee included), and the item goes back to the seller;
+- **offer to refund part of it**: a part refund is exactly the amount offered; or
+- **decline**: you can then tap "Report a problem", and Louisiana Helpr decides.
+
+If the seller doesn't answer within 24 hours, Louisiana Helpr decides, and the seller's payout stays held
+until then. <!-- MASTER-LIST.md:321 (owner 2026-10-21 AM); :205 ("both now, with partials"); :365 #2, #3 (owner 2026-10-22); not built yet -->
 
 **The seller is paid when the sale is final.** The seller's payout is held until the sale is final:
-24 hours after pickup, with no refund asked and no problem reported. Then the item price is sent to the
-seller's Stripe account, and the bank timing follows Stripe's normal schedule (Terms, Payouts & Stripe
-Connect). <!-- MASTER-LIST.md:321 ("seller payout HELD until final"); spec row 93 -->
-**[OWNER TO CONFIRM #9: the one-time account setup fee is not taken from Declutter payouts today. Keep that?]**
-<!-- grep "onboarding" in supabase/functions/declutter-money and declutter-checkout: no match (2026-10-21) -->
+24 hours after pickup, with no refund asked and no problem reported (or once Louisiana Helpr has
+decided). Then the item price, and any seller delivery rate, is sent to the seller's Stripe account,
+and the bank timing follows Stripe's normal schedule (Terms, Payouts & Stripe Connect).
+<!-- MASTER-LIST.md:321 ("seller payout HELD until final"); spec row 93; seller-delivery spec "Money" -->
 
 **After that, the sale is final.** The item is yours **as is**. There are no returns after the sale is
 final. <!-- spec row 15 -->
 
-## 10. Refunds and fees
+## 11. Refunds and fees
 "The card fee" below is the fee Stripe keeps on your payment.
 
 | What happened | What the buyer gets back | Strike |
@@ -360,11 +373,14 @@ final. <!-- spec row 15 -->
 | **Buyer cancels**, or paid twice by restarting checkout | The payment minus the card fee | None |
 | **Nobody's fault** (decided by Louisiana Helpr) | The payment minus the card fee | None |
 | **Buyer misses the 48-hour checkout** | Nothing was charged | Buyer |
-| **A part refund the seller offered** (section 9) | Exactly the amount offered | None |
+| **The buyer asks within 24 hours and the seller refunds all of it** | Everything except the card fee (the buyer's fee included). The item goes back to the seller. | None |
+| **A part refund the seller offered** (section 10) | Exactly the amount offered | None |
+| **Buyer cancels a paid seller delivery** at least 24 hours before the slot | Everything (items and the delivery rate) except the card fee | None |
+| **Seller cancels a paid seller delivery** | Everything. The card fee is charged to the seller. | Seller |
 
-<!-- reason -> policy: 20261017060455_declutter_seller_out_pays_fee.sql:55-69 (full_seller_pays_fee: seller_backed_out, seller_out, seller_no_show, not_as_described; keep_card_fee: buyer_cancelled, buyer_restarted_checkout, admin_no_fault; keep_buyer_fee: buyer_no_show, admin_buyer_fault; everything else, delivery_damage included, full_platform_absorbs); spec rows 18, 19, 60, 91, 92, 95, 100; B40, B51, B68, B76; part refund MASTER-LIST.md:321 -->
+<!-- reason -> policy: 20261017060455_declutter_seller_out_pays_fee.sql:55-69 (full_seller_pays_fee: seller_backed_out, seller_out, seller_no_show, not_as_described; keep_card_fee: buyer_cancelled, buyer_restarted_checkout, admin_no_fault; keep_buyer_fee: buyer_no_show, admin_buyer_fault; everything else, delivery_damage included, full_platform_absorbs); spec rows 18, 19, 60, 91, 92, 95, 100; B40, B51, B68, B76; part refund MASTER-LIST.md:321; full refund on request MASTER-LIST.md:365 #3; seller delivery MASTER-LIST.md:363 -->
 
-## 11. Declutter strikes
+## 12. Declutter strikes
 Declutter keeps **one strike count** for each member, covering buying and selling together. It is
 separate from job strikes: Declutter strikes never affect your jobs.
 
@@ -380,11 +396,11 @@ until one of them expires. While you're locked out, your listings are hidden fro
 **Sellers get a strike for:**
 - not showing up at a booked pickup;
 - the item being gone after it sold;
-- backing out after accepting an offer or a purchase (before or after the buyer paid);
+- backing out after accepting an offer or a purchase (before or after the buyer paid), or cancelling a paid seller delivery;
 - an item that is not as described;
 - blocking the buyer after the sale.
 
-**Fake offers** (section 12) can get you removed from Declutter altogether.
+**Fake offers** (section 13) can get you removed from Declutter altogether.
 <!-- strike reasons: 20261014193955_declutter_foundation.sql:279-286; spec rows 18, 19, 48; slice 3 review fixes (blocking the buyer) -->
 
 You can see your count on the Declutter screen ("You have N of 3 strikes").
@@ -392,13 +408,13 @@ You can see your count on the Declutter screen ("You have N of 3 strikes").
 **Appeals.** You can appeal each strike once: write a note and, if you like, add a photo. An admin
 reviews it and either removes the strike or keeps it. <!-- spec row 49; not built yet -->
 
-## 12. Fair play
+## 13. Fair play
 - **No offers on your own items.** Offers from someone who shares the seller's household, phone or card are flagged to an admin. **A member proven to have made fake offers is removed from Declutter.** <!-- spec row 48 -->
 - **No fake activity** of any kind to push a price or find out a seller's lowest price.
 - **No off-app payments.** Pay only through checkout. Asking for or arranging payment outside Louisiana Helpr is banned by the Terms (Prohibited conduct) and the Community Rules, and is handled exactly as it is for jobs. <!-- spec row 68 -->
 - Everything in the Community Rules (respect, honesty, safety, reporting) applies here too.
 
-## 13. Questions and messages
+## 14. Questions and messages
 **Before you buy, ask on the item page.** Questions and answers show on the item page for everyone. The
 asker is shown only as "a neighbor", never by name, the seller included. Questions, answers, titles and
 descriptions can't contain phone numbers, emails, payment handles or other contact details; the app
@@ -410,7 +426,7 @@ refuses them. You can ask up to 20 questions a day.
 If you and the seller have blocked each other (either way), you can't watch or ask about each other's
 items. <!-- B17 -->
 
-## 14. Extras
+## 15. Extras
 **Add a Helpr.** After you pay, you can book a Helpr to put the item together, hang it on the wall or set
 it up at your place. It is an ordinary Helpr job: you set the price and pay for it separately, under the
 normal job rules and fees. The seller isn't told. If the Declutter sale is refunded because the seller
@@ -442,11 +458,9 @@ post lasts 30 days. Other members see your post with your first name and last in
 many miles away it is (never your address), and a seller can answer it with an offer on one of their
 listings, at or under your price. You can make your post private. Limits: 5 new
 posts a day and 10 open at once; a seller can answer 10 posts a day, and a post gets at most 5 answers a
-day. <!-- declutter-wanted-price-hint.md W2, W7; 20261021031757_declutter_wanted_public_replies.sql items 1, 3, 5, 6 (owner 2026-10-21) -->
+day. <!-- declutter-wanted-price-hint.md W2, W7; 20261021031757_declutter_wanted_public_replies.sql items 1, 3, 5, 6 (owner 2026-10-21); owner 2026-10-22 #7: keep the extras' numbers (MASTER-LIST.md:365) -->
 
-**[OWNER TO CONFIRM #7: keep the numbers the builders picked for these extras?]**
-
-## 15. Safety at pickup
+## 16. Safety at pickup
 You meet other members at your own risk (Terms, Disclaimers & limitation of liability). Some
 common-sense steps:
 - Porch pickup means you never have to meet. Use it when you can.
@@ -454,17 +468,17 @@ common-sense steps:
 - Never pay or take payment outside the app.
 - Use "Report a problem" or the report button for anything that doesn't feel right.
 
-## 16. Storms and other pauses
+## 17. Storms and other pauses
 When severe weather or another emergency hits, we may pause Declutter for all of Louisiana or for chosen
 parishes. During a pause the checkout and pickup clocks stop and no new strikes are given. When the
 pause ends, the clocks pick up where they stopped. <!-- spec row 39; not built yet -->
 
-## 17. If Declutter is turned off
+## 18. If Declutter is turned off
 We may turn Declutter off for everyone or for some members. If that happens, sales already agreed (an
 accepted offer or a paid order) can still be paid for and handed over, nobody gets a strike for a sale
 the shutdown interrupted, and nothing new can start. <!-- spec row 62; B44 -->
 
-## 18. Our role: we are the venue, not the seller
+## 19. Our role: we are the venue, not the seller
 Louisiana Helpr provides the place where members buy and sell. **Each sale is between the buyer and the
 seller.** We do not own, inspect, store, test or guarantee any item, and we are not the seller. We hold
 the payment through Stripe until the sale is final and then pay the seller. Our listing checks and admin
@@ -475,7 +489,7 @@ Terms, Disclaimers & limitation of liability (including the limit on our liabili
 indemnify us) applies to Declutter sales exactly as it does to jobs: read "job" there as including a
 Declutter sale and a Declutter delivery.
 
-## 19. Taxes
+## 20. Taxes
 **Casual sellers: no sales tax.** Louisiana exempts "isolated or occasional sales" by someone who is not
 in that business (La. R.S. 47:305(A)). That is why every seller confirms the four statements in section
 3. Sales by casual sellers carry no sales tax. <!-- spec row 54 (1); "Sales tax research" -->
@@ -484,27 +498,24 @@ in that business (La. R.S. 47:305(A)). That is why every seller confirms the fou
 stock), we may flag the account. Until our tax step is built, a flagged seller can't complete a Declutter
 sale. <!-- spec row 54 (2); B33 -->
 
-**Our own obligations.** We track Louisiana Declutter sales each calendar year. If they pass $100,000,
-Louisiana Helpr becomes responsible for collecting and filing the tax as a marketplace (La. R.S.
-47:340.1). <!-- spec row 54 (3) -->
+**Our own obligations.** We keep track of Louisiana Declutter sales as the law requires of a
+marketplace, and we follow the tax rules that apply to us.
 
-Taxes on your own income from selling or delivering are your responsibility; see Terms, Tax
-responsibilities.
+**Your own taxes.** Taxes on your own income from selling or delivering are your responsibility; see
+Terms, Tax responsibilities. We don't give tax advice: ask a tax professional about your situation.
+<!-- owner 2026-10-22 #10/#11: general tax wording, no promises on the CPA points (MASTER-LIST.md:365) -->
 
-**[OWNER TO CONFIRM #10: publish this section with the CPA questions still open (the buyer's fee on an exempt sale, the jobs business and the $100,000 limit, parish filing, who decides "business-like")?]**
-**[OWNER TO CONFIRM #11: do Declutter payouts count toward the Form 1099-K in the main Terms, and does the secondhand-dealer law reach very frequent sellers?]**
-
-## 20. Privacy
+## 21. Privacy
 - **Your location:** before a buyer pays, they see only your public area name and about how many miles away the item is (our map point is rounded to about 1 km). The exact address goes only to the buyer who paid, or to the Helpr who took the delivery. A delivery Helpr sees the drop-off address only after picking the item up. <!-- spec row 27; B7; "Exact addresses" note under B74 -->
 - **Your photos:** the app removes location data from every photo. Listing photos are shown to other members, and anyone with a photo's web link can open it. Porch, delivery and problem photos are private to the two sides (and the Helpr), and our admins. <!-- B4; 20261017055502_declutter_handover_private_bucket.sql; B73 -->
 - **Your questions:** other members, the seller included, never see who asked. <!-- 20261021122157 -->
-- **AI help:** the photos and text you give the listing helper, and room photos when moving out, are sent to our AI provider to draft and check the listing. Room photos are never stored. <!-- B19; moving-out M4 -->
+- **AI help:** the photos and text of your listing, and room photos when moving out, are sent to our AI provider (Google Gemini, listed in the Privacy tab) to draft and check the listing. Room photos are never stored. <!-- B19; moving-out M4; supabase/functions/declutter-ai-draft/index.ts header -->
 - **Your data:** "Download your data" includes your Declutter activity. See Privacy, Your rights. <!-- B9 -->
 - **Deleting your account:** you can't delete your account while a Declutter sale or delivery is in progress. Once you delete it, your Declutter photos are removed. <!-- slice 3 review fixes (findActiveWork); B75; B4 -->
-**[OWNER TO CONFIRM #12: what happens to strikes and finished sales when an account is deleted?]**
+  Your Declutter strikes stay tied to your verified ID. Your finished sales stay visible to the other side, with you shown as "Former member". <!-- MASTER-LIST.md:365 #12 (owner 2026-10-22) -->
 - **Emails:** Declutter emails you only about money (sold, receipts, refunds). Everything else comes as a push notification and in your in-app alerts. <!-- spec row 44; B74 -->
 
-## 21. Reviews and watching items
+## 22. Reviews and watching items
 After the handover, the buyer and seller can review each other with stars, a few quick tags and a
 comment. Reviews are hidden until both of you have reviewed, or 14 days pass. Declutter reviews count
 toward the same public star rating used for jobs.

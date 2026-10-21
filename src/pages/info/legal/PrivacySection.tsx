@@ -150,7 +150,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">Apple</strong> — push-notification delivery (APNs).</li>
               <li><strong className="text-foreground">Apple Maps (MapKit JS)</strong> — address search and maps: the address text you type and the location you share.</li>
               <li><strong className="text-foreground">OpenStreetMap (Nominatim)</strong> — turning an address or your current location into map coordinates.</li>
-              <li><strong className="text-foreground">Google Gemini</strong> — the job details you give the AI job builder, to draft your post.</li>
+              <li><strong className="text-foreground">Google Gemini</strong> — the job details you give the AI job builder, to draft your post, and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing.</li>
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
               <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>

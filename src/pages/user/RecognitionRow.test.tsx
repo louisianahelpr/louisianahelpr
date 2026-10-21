@@ -53,7 +53,7 @@ describe("RecognitionRow badge sizing", () => {
 // verified pill above it, so tier 1 draws no rung. Tiers 2 and 3 still do.
 // @mutate src/pages/user/RecognitionRow.tsx | if (tier === 0 \|\| tier === 1) return null; | if (tier === 0) return null;
 describe("RecognitionRow verification ladder (Q985)", () => {
-  const verified = { stripe_identity_verified: true, stripe_account_id: "acct_test" };
+  const verified = { idv_status: "verified", stripe_account_id: "acct_test" };
   const renderLadder = (stats: { completedJobs: number; avgRating: number; reviewCount: number }) =>
     render(
       <RecognitionRow

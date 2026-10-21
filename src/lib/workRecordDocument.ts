@@ -45,20 +45,10 @@ export interface WorkRecordDocumentInput {
   /** `profiles.created_at`, ISO. */
   memberSince: string;
   /**
-   * The identity verdict, ALREADY RESOLVED by the caller through
-   * `isIdentityVerified` (src/lib/awardGate.ts) — the same rule the hiring gate
-   * applies, which accepts EITHER Stripe Connect's cached verdict
-   * (`profiles.stripe_identity_verified`) or a completed Stripe Identity
-   * session (`profiles.idv_status = 'verified'`).
-   *
-   * This field used to be documented as Connect's verdict alone, explicitly
-   * "NOT `idv_status`". That was right when `idv_status` was an unreviewed
-   * upload flag and is wrong now: it is written by `stripe-idv-webhook` from a
-   * real document + selfie check, migration 20260907013734 made the server gate
-   * accept it, and ten live prod profiles hold it WITHOUT the Connect flag — so
-   * the old rule printed "Not verified" on the record of ten people the app
-   * shows a verified badge to. A formal document may not contradict the
-   * product about the same person.
+   * The "ID verified" verdict, ALREADY RESOLVED by the caller through
+   * `hasIdBadge` (src/lib/awardGate.ts): Stripe Identity's photo ID + selfie
+   * (`profiles.idv_status = 'verified'`) only, the rule every badge reads
+   * (owner 2026-10-21). Payout setup (Stripe Connect) is not an ID check.
    */
   identityVerified: boolean;
   jobsCompleted: number;

@@ -257,15 +257,15 @@ describe("the record does not contradict the app about the same person", () => {
   // sheet to a third party.
   const src = (rel: string) => readFileSync(new URL(rel, import.meta.url), "utf8");
 
-  it("resolves identity with the SAME rule the hiring gate uses", () => {
+  it("states ID verified with the SAME rule every badge uses (Stripe Identity only, owner 2026-10-21)", () => {
     // It read `stripe_identity_verified` alone — Stripe CONNECT's verdict —
     // and printed "Not verified" for anyone who had completed Stripe IDENTITY
     // instead. Ten live prod profiles were in exactly that state on
     // 2026-09-06: verified badge in the app, "Not verified" on the document
     // they hand a landlord.
     const page = src("../pages/profile/WorkRecord.tsx");
-    expect(page).toMatch(/isIdentityVerified\(/);
-    expect(page).toMatch(/idvStatus:\s*profileRow\.idv_status/);
+    expect(page).toMatch(/hasIdBadge\(profileRow\.idv_status\)/);
+    expect(page).not.toMatch(/isIdentityVerified\(/);
     // The three places the verdict is rendered (badge, footer sentence, PDF
     // input) must all read the one resolved value — a second `=== true` on the
     // raw Connect flag is how they drifted apart in the first place.

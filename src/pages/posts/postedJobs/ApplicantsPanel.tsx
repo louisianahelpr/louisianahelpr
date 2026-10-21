@@ -1,4 +1,4 @@
-import { ID_VERIFIED_LABEL, ID_VERIFIED_PILL_STYLE, IdVerifiedShield } from "@/components/profile/IdVerifiedPill";
+import { ApplicantVerificationChip } from "./applicantsPanel/ApplicantVerificationChip";
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
@@ -8,7 +8,7 @@ import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
 import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
-import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, ShieldAlert, Sparkles, Star } from "lucide-react";
+import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Pencil, Sparkles, Star } from "lucide-react";
 import { IconActionButton } from "@/components/dashboard/IconActionButton";
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
@@ -718,47 +718,5 @@ export function ApplicantsPanel({
 
     </>,
     document.body,
-  );
-}
-
-/**
- * The applicant's standing against the acceptance gate, in one chip.
- *
- * Verified is stated positively because it is the signal a poster is actually
- * shopping for. The blocked states are stated as facts about Stripe rather than
- * as a judgement of the person — a helper who simply hasn't finished onboarding
- * is not untrustworthy, and the poster is reading this about a real neighbour.
- *
- * "ID verified" here means Stripe Connect has no outstanding identity
- * requirement — never the old `idv_status` upload flag, which nobody reviews.
- */
-function ApplicantVerificationChip({
-  idVerified,
-  payoutReady,
-}: {
-  idVerified: boolean;
-  payoutReady: boolean;
-}) {
-  if (idVerified) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
-        style={ID_VERIFIED_PILL_STYLE}
-      >
-        <IdVerifiedShield className="w-3 h-3" />{ID_VERIFIED_LABEL}
-      </span>
-    );
-  }
-  return (
-    <span
-      className="inline-flex items-center gap-1 shrink-0 rounded-full px-2 py-0.5 text-ds-10 font-sans font-semibold"
-      style={{ background: "hsl(var(--amber-tint) / 0.16)", color: "hsl(var(--amber-ink))" }}
-      // Kept short deliberately: at 375px the chip shares its row with the
-      // Hire button, and "Payout setup unfinished" clipped under it.
-      title={payoutReady ? "Stripe has not finished verifying this Helpr's identity" : "This Helpr has not set up a payout account yet"}
-    >
-      <ShieldAlert className="w-3 h-3" strokeWidth={2} aria-hidden="true" />
-      {payoutReady ? "Stripe verifying" : "No payout account"}
-    </span>
   );
 }

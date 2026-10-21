@@ -13,7 +13,7 @@ import {
 // regress without a UI test catching it.
 
 const verifiedProfile: HelperTierProfile = {
-  stripe_identity_verified: true,
+  idv_status: "verified",
   stripe_account_id: "acct_TEST123",
 };
 
@@ -28,32 +28,18 @@ describe("computeHelperTier — Tier 0 (no badge)", () => {
     expect(computeHelperTier(null, zeroStats)).toBe(0);
   });
 
-  it("returns 0 unless STRIPE verified the identity", () => {
-    // The Tier-1 gate is deliberately `stripe_identity_verified`, not the old
-    // `idv_status`: the latter is set by an ID upload + an admin review that
-    // nobody performs, so the publicly-shown "Verified" rung was an unearned
-    // claim. Anything short of an explicit `true` must not earn the rung.
-    expect(
-      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: false }, zeroStats),
-    ).toBe(0);
-    expect(
-      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: null }, zeroStats),
-    ).toBe(0);
-    expect(
-      computeHelperTier({ ...verifiedProfile, stripe_identity_verified: undefined }, zeroStats),
-    ).toBe(0);
+  it("returns 0 unless Stripe IDENTITY verified the ID (owner 2026-10-21: the badge is Identity only)", () => {
+    // The rung is a public "Verified" badge. Payout setup (Stripe Connect's
+    // stripe_identity_verified) is a separate fact and must not earn it.
+    for (const idv_status of ["not_started", "pending", "processing", "manual_review", "failed", null, undefined]) {
+      expect(computeHelperTier({ ...verifiedProfile, idv_status }, zeroStats)).toBe(0);
+    }
+    const connectOnly = { stripe_account_id: "acct_123", stripe_identity_verified: true, idv_status: "not_started" };
+    expect(computeHelperTier(connectOnly, zeroStats)).toBe(0);
   });
 
-  it("accepts idv_status 'verified' through the one identity rule (owner 2026-10-19: verified once counts everywhere)", () => {
-    // Stripe Identity, an admin-approved ID photo or admin manual_verify all
-    // write idv_status = 'verified'; the rung reads it with the Connect flag
-    // through isIdentityVerified (src/lib/awardGate.ts), as every gate does.
-    const viaIdv = {
-      stripe_account_id: "acct_123",
-      idv_status: "verified",
-    };
-    expect(computeHelperTier(viaIdv, zeroStats)).toBe(1);
-    expect(computeHelperTier({ stripe_account_id: "acct_123", idv_status: "pending" }, zeroStats)).toBe(0);
+  it("accepts idv_status 'verified' (Stripe Identity, or an admin-approved ID, Q2201)", () => {
+    expect(computeHelperTier({ stripe_account_id: "acct_123", idv_status: "verified" }, zeroStats)).toBe(1);
   });
 
   it("returns 0 when stripe_account_id is missing", () => {
@@ -184,7 +170,7 @@ describe("describeTierProgress", () => {
   it("at tier 0, lists every missing onboarding signal", () => {
     const hint = describeTierProgress(
       0,
-      { stripe_identity_verified: false, stripe_account_id: null },
+      { idv_status: "not_started", stripe_account_id: null },
       zeroStats,
     );
     expect(hint.nextTier).toBe(1);
@@ -239,7 +225,6 @@ describe("describeTierProgress", () => {
   });
 });
 
-// Tier 1 is a publicly-rendered "Verified" claim, so it needs an explicit
-// `true` from Stripe. Treating null/undefined (never verified) as good enough
-// hands the rung to every helper with a Connect account.
-// @mutate src/lib/helperTier.ts | isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status }); | profile?.stripe_identity_verified !== false;
+// Tier 1 is a publicly-rendered "Verified" claim, so it needs Stripe Identity's
+// verdict. Reading the Connect flag hands the rung to everyone who set up payouts.
+// @mutate src/lib/helperTier.ts |   hasIdBadge(profile?.idv_status); |   profile?.idv_status !== "failed";

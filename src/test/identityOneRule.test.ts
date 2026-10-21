@@ -27,7 +27,6 @@
  *
  * @mutate src/lib/helperTier.ts |   if (!tierIdentityVerified(profile)) return false; |   if (profile.stripe_identity_verified !== true) return false;
  * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   IF public.identity_is_verified(v_status, v_connect) THEN | IF v_status = 'verified' THEN
- * @mutate src/components/admin/adminusers/AdminUserRow.tsx |             const hasIdv = isIdentityVerified({ connectIdentityVerified: p.stripe_identity_verified, idvStatus: p.idv_status }); |             const hasIdv = p.idv_status === "verified";
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -58,14 +57,15 @@ const TS_TESTS: RegExp[] = [
 const SQL_ALLOWED: Record<string, string> = {
   "policy public.profiles \"Users can insert their own profile\"": "pins the verdict columns on a member's own profile INSERT (nobody self-verifies); not a gate",
   "fn rentals_admin_review_landlord_id": "WRITES the verdict (SET idv_status = 'verified') on an admin's approval, as manual_verify does; not a gate",
+  "fn get_safe_profiles": "the \"ID verified\" BADGE (is_id_verified), Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
+  "fn get_public_profile_stats": "the \"ID verified\" BADGE (is_id_verified), Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
+  "fn shop_badges": "the shop's \"ID checked\" BADGE, Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
 };
 
 /** `file :: matched text` for TS that may test a verdict column. EXACT. */
 // @two-way src/test/identityOneRule.test.ts:const staleTs =
 const TS_ALLOWED: Record<string, string> = {
   "src/lib/awardGate.ts :: idvStatus === \"verified\"": "THE client rule, isIdentityVerified",
-  "src/components/admin/adminUserHelpers.tsx :: if (profile.stripe_identity_verified)":
-    "admin badge naming WHICH route verified (Admin / Stripe / ID); the verdict itself is not decided here",
   "supabase/functions/stripe-idv-start/index.ts :: idv_status === \"verified\"":
     "deploy-order fallback only: used when is_identity_verified answers PGRST202 (not deployed yet); the normal path is the rule",
   "supabase/functions/_shared/connectGateSync.ts :: stripe_identity_verified === true":

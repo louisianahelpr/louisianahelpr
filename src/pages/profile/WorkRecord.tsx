@@ -25,7 +25,7 @@ import { canPrintDocument } from "./workRecordPrint";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { formatPriceExact } from "@/lib/format";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 import HelprMark from "@/components/HelprMark";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
@@ -49,24 +49,14 @@ type Job = ReadableJobRow;
 interface WorkRecordData {
   profile: {
     full_name: string | null;
-    stripe_identity_verified: boolean | null;
     idv_status: string | null;
     created_at: string;
   };
   /**
-   * The identity verdict this document states, resolved by the SAME helper the
-   * hiring gate uses (`isIdentityVerified`) rather than by reading the Connect
-   * flag alone.
-   *
-   * Reading `stripe_identity_verified` on its own made this sheet contradict
-   * the app about the same person: measured against prod 2026-09-06, TEN live
-   * profiles have `idv_status = 'verified'` with `stripe_identity_verified =
-   * false`. Those people completed Stripe Identity (document + selfie, written
-   * by `stripe-idv-webhook`), the badge in the app says so, migration
-   * 20260907013734 lets the database hire them — and this document, the one
-   * they hand to a landlord or a lender, printed "Not verified" about them.
-   * A formal record that disagrees with the product is worse than one that
-   * says nothing.
+   * The "ID verified" verdict this document states: Stripe Identity's photo ID
+   * + selfie (or an approved ID), `idv_status = 'verified'`, through the badge
+   * rule hasIdBadge, so the sheet and every badge in the app say the same thing
+   * (owner 2026-10-21). Payout setup (Stripe Connect) is not an ID check.
    */
   identityVerified: boolean;
   completedJobs: Job[];
@@ -116,12 +106,11 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       // /wrapped and /profile resolve it.
       const profileRes = await supabase
         .from("profiles")
-        .select("full_name, stripe_identity_verified, idv_status, created_at, subscription_tier, subscription_expires_at")
+        .select("full_name, idv_status, created_at, subscription_tier, subscription_expires_at")
         .eq("user_id", userId)
         .single();
       const profileRow = unwrap(profileRes) as {
         full_name: string | null;
-        stripe_identity_verified: boolean | null;
         idv_status: string | null;
         created_at: string;
         subscription_tier: string | null;
@@ -129,16 +118,12 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
       };
       const profile = {
         full_name: profileRow.full_name,
-        stripe_identity_verified: profileRow.stripe_identity_verified,
         idv_status: profileRow.idv_status,
         created_at: profileRow.created_at,
       };
       // ONE verdict for the whole document — the badge, the PDF and the footer
       // sentence all read this, so they cannot disagree with each other either.
-      const identityVerified = isIdentityVerified({
-        connectIdentityVerified: profileRow.stripe_identity_verified,
-        idvStatus: profileRow.idv_status,
-      });
+      const identityVerified = hasIdBadge(profileRow.idv_status);
       const feeFallbackPercent = tierFeePercent(
         profileRow.subscription_tier,
         profileRow.subscription_expires_at,
@@ -554,21 +539,11 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   className="font-sans text-ds-11 leading-relaxed mx-auto"
                   style={{ color: "hsl(var(--olivewood) / 0.8)", textWrap: "balance" }}
                 >
-                  {/* "verified" is true of an account Stripe actually checked
-                      — and there are TWO such checks, which is the correction
-                      here. This used to read `stripe_identity_verified` alone
-                      (Stripe CONNECT's verdict, a side effect of payout
-                      onboarding) and dismiss `idv_status` as "an upload/admin
-                      state nobody reviews". That was accurate when it was
-                      written and is not any more: `idv_status` is written by
-                      `stripe-idv-webhook` from a real Stripe Identity document
-                      + selfie session, it is the only identity check a helper
-                      can start from inside this app, and since migration
-                      20260907013734 the hiring gate accepts either one.
-                      `isIdentityVerified` is that same rule, so this sentence
-                      and the badge the app shows the same person cannot
-                      disagree. On an account with neither, the sheet still
-                      states only what it can support — the job history. */}
+                  {/* "verified" means Stripe Identity checked a photo ID and
+                      selfie (hasIdBadge, owner 2026-10-21): the same rule as every
+                      badge in the app, so they cannot disagree. Payout setup is
+                      not an ID check. On an account without it, the sheet states
+                      only what it can support: the job history. */}
                   {data.identityVerified ? (
                     <>
                       This record was generated from Helpr&rsquo;s job history on {today}. This

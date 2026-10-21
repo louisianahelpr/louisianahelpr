@@ -6,7 +6,7 @@
  * looks identical to one with 30 5-star jobs. This computes a four-step
  * ladder (0 / 1 Verified / 2 Trusted / 3 Top Rated) from data we already have:
  *
- *   - `profiles.stripe_identity_verified` — Stripe Connect's identity verdict
+ *   - `profiles.idv_status`          — Stripe Identity (photo ID + selfie)
  *   - `profiles.stripe_account_id`   — Stripe Connect onboarding
  *   - completed-job count + avg rating from existing per-helpr stats
  *
@@ -22,7 +22,7 @@
  * flow.
  */
 
-import { isIdentityVerified } from "./awardGate";
+import { hasIdBadge } from "./awardGate";
 
 export type HelperTier = 0 | 1 | 2 | 3;
 
@@ -31,24 +31,18 @@ export type HelperTier = 0 | 1 | 2 | 3;
  * satisfies this; tests can build a plain object literal.
  */
 export interface HelperTierProfile {
-  /**
-   * Stripe Connect's identity verdict, cached by the `account.updated`
-   * webhook. This replaced `idv_status` as the Tier-1 gate: `idv_status` is
-   * flipped by the ID-upload flow and by an admin manual-approve that nobody
-   * actually performs, so the publicly-rendered "Verified" rung asserted a
-   * human ID review that never happened. See
-   * supabase/functions/_shared/stripeIdentity.ts.
-   */
-  stripe_identity_verified?: boolean | null;
-  /** `profiles.idv_status` (Stripe Identity, or an admin-approved ID). The rung
-   *  reads BOTH through the one rule, isIdentityVerified (owner 2026-10-19:
-   *  verified once, by any route, counts everywhere). */
+  /** `profiles.idv_status`: Stripe Identity's photo ID + selfie verdict (or an
+   *  admin-approved ID, Q2201). The "Verified" rung is a public badge, so it
+   *  reads the badge rule, hasIdBadge: Identity only, never Stripe Connect's
+   *  `stripe_identity_verified` (owner 2026-10-21). */
   idv_status?: string | null;
   stripe_account_id?: string | null;
 }
 
+// The rung is a public "Verified" badge, so it reads the badge rule: Stripe
+// Identity only (owner 2026-10-21), never the Connect flag.
 const tierIdentityVerified = (profile: HelperTierProfile | null | undefined): boolean =>
-  isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status });
+  hasIdBadge(profile?.idv_status);
 
 export interface HelperTierStats {
   /** Distinct jobs where this user was the `helper_id` and status='completed'. */

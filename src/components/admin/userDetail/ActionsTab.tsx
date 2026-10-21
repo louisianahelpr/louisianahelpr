@@ -17,7 +17,7 @@ import { logAdminAction } from "@/lib/adminAudit";
 import { toneTextClasses } from "@/components/admin/tones";
 import { RestrictApplicationsDialog } from "../RestrictApplicationsDialog";
 import { AdminMessageUserDialog } from "../AdminMessageUserDialog";
-import { isIdentityVerified } from "@/lib/awardGate";
+import { hasIdBadge } from "@/lib/awardGate";
 
 
 interface ActionsTabProps {
@@ -76,7 +76,9 @@ export function ActionsTab({
     navigate("/home");
   };
 
-  const alreadyVerified = isIdentityVerified({ connectIdentityVerified: viewProfile.stripe_identity_verified, idvStatus: viewProfile.idv_status });
+  // Stripe Identity (or an approved ID) only: payout setup is not an ID check,
+  // so a payouts-only member can still be manually verified (owner 2026-10-21).
+  const alreadyVerified = hasIdBadge(viewProfile.idv_status);
 
   return (
     <TabsContent value="actions" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
@@ -88,10 +90,8 @@ export function ActionsTab({
               bans are automated. */}
           {showActivityChip && (() => {
             const hasLoggedIn = !!lastLoginSummary?.[viewProfile.user_id];
-            // The OR that `identity_is_verified(idv_status,
-            // stripe_identity_verified)` computes in the database — reading only
-            // `idv_status` here would call a Stripe-verified account "Awaiting
-            // first login" while the hiring gate treats it as verified.
+            // "ID verified" is Stripe Identity or an approved ID only; a
+            // payouts-only account reads "Stripe payout connected" below.
             const idvVerified = alreadyVerified;
             const hasStripe = !!viewProfile.stripe_account_id;
             const isActive = hasLoggedIn || idvVerified || hasStripe;

@@ -15,7 +15,7 @@ import HelperTierBadge from "@/components/profile/HelperTierBadge";
 describe("no plain 'Verified' badge beside 'Stripe ID verified'", () => {
   it("an ID-verified, payout-ready Helpr with no track record (tier 1) draws no tier badge", () => {
     const { container } = render(
-      <HelperTierBadge profile={{ stripe_identity_verified: true, stripe_account_id: "acct_1" }} stats={{ completedJobs: 0, avgRating: null, reviewCount: 0 } as never} size="sm" />,
+      <HelperTierBadge profile={{ idv_status: "verified", stripe_account_id: "acct_1" }} stats={{ completedJobs: 0, avgRating: null, reviewCount: 0 } as never} size="sm" />,
     );
     expect(container.textContent ?? "").not.toMatch(/^Verified$|\bVerified\b/);
   });

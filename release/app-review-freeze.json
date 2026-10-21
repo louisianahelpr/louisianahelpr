@@ -1,5 +1,5 @@
 {
-  "frozen": true,
+  "frozen": false,
   "version": "1.0.4",
   "build": 7119,
   "buildSha": "c16b0f0dc62854d8b9068888ecff49a9242c8666",
@@ -7,5 +7,5 @@
   "liveClientCompatFloor": 1,
   "liveMinSupportedBuild": 7117,
   "scanFrom": "20261001000000",
-  "why": "Build 7119 is in Apple review. Raising client_compat_floor() or min_supported_build shows the reviewer 'Update Helpr', and narrowing a privilege the 7119 client uses breaks it: both are an instant rejection. The release session or the lead sets frozen to false once Apple decides; src/test/appReviewFreeze.test.ts enforces it."
+  "why": "Build 7119 (1.0.4) is no longer in Apple review: the owner cancelled the submission in App Store Connect on 2026-10-21 (release-status run 39556175686: version 1.0.4 DEVELOPER_REJECTED, review submission af75253d COMPLETE with its item REMOVED; no version is live on the App Store). Unfrozen so held server changes (Q1805 phone save, Declutter privacy) can land BEFORE the replacement build is cut from main. When the new build is submitted, set frozen true again with its version, build and buildSha. While frozen: raising client_compat_floor() or min_supported_build shows the reviewer 'Update Helpr', and narrowing a privilege the client uses breaks it; src/test/appReviewFreeze.test.ts enforces it."
 }

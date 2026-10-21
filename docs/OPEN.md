@@ -4,7 +4,7 @@
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 408** (363 to do, 45 fixed with protection pending; 1490 done). Feeds mirrored in: 16 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 13 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 406** (359 to do, 47 fixed with protection pending; 1492 done). Feeds mirrored in: 16 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 13 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 11 red, 13 stale, 0 unknown, 51 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-18T22:58Z)_
@@ -92,7 +92,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 1898 items — 1490 done, 45 partly done (fixed, protection pending), 363 open.**
+**Queue: 1898 items — 1492 done, 47 partly done (fixed, protection pending), 359 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.

@@ -14,6 +14,8 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (handover === "porch" ? !!h?.set_out_at : booked) return 1; |   if (booked) return 1;
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           itemsCents={items} |           itemsCents={order.lines[0]?.total_cents ?? 0}
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -22,6 +24,7 @@ const state = {
   bookings: [] as unknown[],
   payouts: [] as unknown[],
   calls: [] as unknown[][],
+  handover: null as Record<string, unknown> | null,
 };
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -29,6 +32,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => state.payouts,
+  fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, ...state.handover }),
+  handoverPhotoUrl: async (path: string) => `https://signed.test/${path}`,
   fetchItemAddress: async (itemId: string) => ({
     pickup_address: itemId === "i2" ? "9 Far Rd, Baton Rouge" : "1234 Example St, Baton Rouge", pickup_lat: 30.45, pickup_lng: -91.15,
   }),
@@ -68,11 +73,12 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.bookings = [];
     state.payouts = [];
     state.calls = [];
+    state.handover = null;
     vi.spyOn(window, "confirm").mockReturnValue(true);
   });
 
   it("an unpaid cart shows nothing (inventory: only paid lines become cards)", async () => {
-    const { container } = show([line({ status: "in_cart", order_id: null, order_status: null })]);
+    const { container } = show([line({ status: "in_cart", order_status: null })]);
     await new Promise((r) => setTimeout(r, 10));
     expect(container.textContent).toBe("");
   });
@@ -179,5 +185,34 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.click(screen.getByRole("radio", { name: "5 stars" }));
     fireEvent.click(screen.getByRole("button", { name: "Send review" }));
     await waitFor(() => expect(state.calls).toContainEqual(["review", "o1", 5, null]));
+  });
+
+  // Boards 71/72: the one tracker, where it stands, and the money note, from the real handover row.
+  it("board 71: porch, the buyer: Ready once the seller's photo is in, the photo shown, what the buyer paid", async () => {
+    state.bookings = [slot(-120)];
+    state.handover = { set_out_at: "2026-10-20T15:00:00Z", set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
+    show([line({ handover: "porch", porch_ok: true })]);
+    expect(await screen.findByRole("list", { name: "Step 2 of 4: Ready" })).toBeInTheDocument();
+    expect(screen.getByText("Ready · it's out. Pick it up at your pickup time.")).toBeInTheDocument();
+    expect(screen.getByText(/You paid/).textContent).toMatch(/You paid \$42\.70 · the seller is paid after you pick it up/);
+    expect(await screen.findByAltText("Where the item was left")).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o1/out.jpg");
+  });
+
+  it("board 72: porch, the seller: Paid until the photo, told to put it out, and paid the whole item price by the real rule", async () => {
+    // Booked but no porch photo yet: still Paid (a porch pickup is Ready only once the photo is in).
+    state.bookings = [slot(-120)];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
+    expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);
+    expect(screen.getByRole("list", { name: "Step 1 of 4: Paid" })).toBeInTheDocument();
+    expect(screen.getByText("Paid · put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
+    expect(screen.getByText(/You get/).textContent).toMatch(/You get \$40 when the buyer marks it picked up, or 24 hours after the pickup time once your porch photo is in/);
+  });
+
+  it("a handed-over pickup reads Done on the tracker", async () => {
+    state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
+    show([line({ order_status: "handed_over" })]);
+    expect(await screen.findByRole("list", { name: "Step 4 of 4: Done" })).toBeInTheDocument();
+    expect(screen.getByText("Handed over. The sale is final.")).toBeInTheDocument();
   });
 });

@@ -120,7 +120,7 @@ export function ChangeJobSheet({
                 onCancelJob();
               }}
             >
-              See the cancellation and confirm
+              Review cancellation
             </SheetDestructiveAction>
           </SheetFooter>
         )}

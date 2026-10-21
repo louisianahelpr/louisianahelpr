@@ -228,7 +228,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <DialogHero
-            title="Change Email Address"
+            title="Change email address"
           />
 
           <div className="space-y-1.5">

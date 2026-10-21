@@ -69,7 +69,7 @@ describe("EditEmailDialog", () => {
 
   it("shows current email and dialog title", () => {
     render(<EditEmailDialog profile={sampleProfile} onClose={vi.fn()} />);
-    expect(screen.getByText(/Change Email for Lexi Lombas/)).toBeInTheDocument();
+    expect(screen.getByText(/Change email for Lexi Lombas/)).toBeInTheDocument();
     expect(screen.getByText(/lexi@example\.com/)).toBeInTheDocument();
   });
 

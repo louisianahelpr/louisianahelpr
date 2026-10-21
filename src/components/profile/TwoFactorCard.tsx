@@ -270,7 +270,7 @@ function EnrollDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) close(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title="Turn On Two-Step?"
+          title="Turn on two-step?"
         />
 
         {isLoading ? (
@@ -401,7 +401,7 @@ function DisableDialog({
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title="Turn Off Two-Step?"
+          title="Turn off two-step?"
         />
 
         <div className="space-y-1.5">

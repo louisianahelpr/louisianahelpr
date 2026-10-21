@@ -76,7 +76,7 @@ import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
 
 const ROOT = resolve(__dirname, "../..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
-const TITLE = /Please Take a Moment to Re-Agree/;
+const TITLE = /Please take a moment to re-agree/;
 
 /** "Mon YYYY" -> sortable number. */
 function monthKey(v: string): number {

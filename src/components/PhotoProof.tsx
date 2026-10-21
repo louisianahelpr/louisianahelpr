@@ -261,7 +261,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHero
-            title={`${type === "before" ? "Before" : "After"} Photos`}
+            title={`${type === "before" ? "Before" : "After"} photos`}
           />
           <div className="space-y-3">
             {existingUrls.length > 0 && (
@@ -411,7 +411,7 @@ export const PhotoProofDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHero
-          title="Photo Proof"
+          title="Photo proof"
         />
         <div className="space-y-4 max-h-[60vh] overflow-y-auto">
           {hasBefore && (

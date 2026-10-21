@@ -74,7 +74,7 @@ export function DeleteUserDialog({ profile, onClose, onSuccess }: DeleteUserDial
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title="Delete Account"
+          title="Delete account"
         />
         <div className="space-y-4">
           <DialogBody>

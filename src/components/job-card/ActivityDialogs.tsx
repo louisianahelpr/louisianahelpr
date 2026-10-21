@@ -160,7 +160,7 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
       <Dialog open={!!props.noShowJobId} onOpenChange={() => props.setNoShowJobId(null)}>
         <DialogContent>
           <DialogHero
-            title="Report No-Show"
+            title="Report no-show"
           />
           {/* THE HOUSE VOICE, not shadcn's grey default. Copy is untouched —
               same question, same three consequences, same ladder sentence —

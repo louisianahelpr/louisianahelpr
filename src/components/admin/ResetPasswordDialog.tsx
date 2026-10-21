@@ -66,7 +66,7 @@ export function ResetPasswordDialog({ profile, onClose, onSuccess }: ResetPasswo
     <Dialog open={!!profile} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent>
         <DialogHero
-          title="Send Password Reset Link"
+          title="Send password reset link"
         />
         <div className="space-y-3">
           <DialogBody>

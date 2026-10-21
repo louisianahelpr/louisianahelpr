@@ -296,7 +296,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
 
       <Dialog open={!!reversing} onOpenChange={(o) => !o && setReversing(null)}>
         <DialogContent>
-          <DialogHero title="Reverse This Strike" />
+          <DialogHero title="Reverse this strike" />
           <div className="space-y-3">
             <p className="text-ds-12 text-muted-foreground leading-snug">
               <strong className="text-foreground">{reversing?.label}</strong> will be

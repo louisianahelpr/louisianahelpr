@@ -67,7 +67,8 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
                 </div>
               </div>
               <div className="min-w-0">
-                <p className="text-ds-13 font-semibold text-foreground leading-tight">Senior mode</p>
+                {/* One name for the one setting (audit #34): Settings calls it the same. */}
+                <p className="text-ds-13 font-semibold text-foreground leading-tight">Bigger text and buttons</p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">Larger text and bigger tap targets</p>
               </div>
             </div>

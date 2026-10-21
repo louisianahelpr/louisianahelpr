@@ -118,19 +118,20 @@ export function useHelperMilestones({
 
     if (fresh.length === 0) return;
 
-    // Fire the toasts in canonical order (smallest milestone first).
-    // We persist BEFORE rendering the toast so a crash mid-cascade
-    // still means "we celebrated, don't replay" — better than
-    // double-celebrating on next mount.
+    // AT MOST ONE toast (audit #24, 2026-10-21: three stacked on load).
+    // Every fresh milestone is recorded, so none replays later; only the
+    // biggest one (the last, in canonical smallest-first order) is shown.
+    // Persisted BEFORE the toast so a crash still means "don't replay".
+    let show: (typeof fresh)[number] | null = null;
     for (const m of fresh) {
       const sessionKey = `${helperId}:${m.id}`;
       if (firedThisMountRef.current.has(sessionKey)) continue;
       firedThisMountRef.current.add(sessionKey);
-
       markCelebrated(safeStorage, helperId, m.id);
-
-      toast(m.title, { description: m.description });
+      show = m;
     }
+    if (!show) return;
+    toast(show.title, { description: show.description });
 
     // Reuse the existing brand confetti utility for the visual beat.
     // It de-dupes itself (caps at 3 fires per event lifetime) so we

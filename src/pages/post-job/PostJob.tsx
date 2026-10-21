@@ -7,6 +7,7 @@ import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
 import { FormStep } from "./FormStep";
 import { CheckoutStepView } from "./CheckoutStepView";
+import { JOB_CATEGORY_GROUPS } from "@/lib/jobCategoryGroups";
 
 const PostJob = () => {
   usePageTitle("Post a Job — Helpr");
@@ -41,9 +42,9 @@ const PostJob = () => {
   // Order Summary opened scrolled to its own bottom.
   // The form's four screens (formPage) share the "form" step, so a screen
   // change resets the scroll too.
-  const lastStep = useRef(`${form.step}:${form.formPage}`);
+  const lastStep = useRef(`${form.step}:${form.formPage}:${form.categoryGroup}:${form.entryPanel}`);
   useLayoutEffect(() => {
-    const key = `${form.step}:${form.formPage}`;
+    const key = `${form.step}:${form.formPage}:${form.categoryGroup}:${form.entryPanel}`;
     if (lastStep.current === key) return;
     lastStep.current = key;
     window.scrollTo(0, 0);
@@ -54,13 +55,15 @@ const PostJob = () => {
     document.querySelectorAll<HTMLElement>(".app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
       el.scrollTop = 0;
     });
-  }, [form.step, form.formPage]);
+  }, [form.step, form.formPage, form.categoryGroup, form.entryPanel]);
 
   // Per-step header copy. The entry landing is the new first step where the
   // poster picks how to begin (start fresh / draft / template).
   // Each screen asks its own question under the bar (PostJobStepHeader), so
   // the bar just names the flow (sentence case, spec §2 Type).
-  const header = { title: "Post a job" };
+  // Screen 1b titles the bar with its group ("Home"), and the back arrow returns to the groups.
+  const group = form.step === "form" && form.formPage === 1 && form.categoryGroup ? JOB_CATEGORY_GROUPS.find((g) => g.id === form.categoryGroup) : null;
+  const header = { title: group ? group.label : "Post a job" };
 
   return (
     /* ONE shell, like every other in-app sub-screen (owner, 2026-08-30:

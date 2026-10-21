@@ -128,7 +128,8 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
   it("post-job's entry column holds until its two data rows settle", () => {
     const src = read("pages/post-job/EntryChoice.tsx");
     expect(src).toMatch(/recentPosted !== null && form\.openJobCount !== null/);
-    expect(src).toMatch(/if \(!entryReady\) \{[\s\S]{0,400}return <EntryChoiceSkeleton count=\{count\} \/>;/);
+    // The question paints with the screen (owner 2026-10-21 step 0); only the cards wait.
+    expect(src).toMatch(/if \(!entryReady\) \{[\s\S]{0,500}\{startHeader\}\s*<EntryChoiceSkeleton count=\{count\} \/>/);
     // Owner, 2026-10-01: the saved-helprs card renders for everyone, so it is
     // one of the four always-drawn cards and never hides itself. Owner,
     // 2026-10-03 (Q722, data-aware): the draft and repost cards are drawn only

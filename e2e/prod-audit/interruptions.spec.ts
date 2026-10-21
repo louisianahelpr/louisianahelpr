@@ -553,11 +553,11 @@ test.describe("post a job", () => {
   async function fillPostJob(page: Page, title: string, info: import("@playwright/test").TestInfo) {
     await page.goto("/post-job");
     await settle(page);
-    const fresh = page.getByRole("button", { name: /start fresh/i });
+    const fresh = page.getByRole("button", { name: /start from scratch/i });
     if (await fresh.isVisible().catch(() => false)) await fresh.click();
-    await expect(page.getByRole("heading", { name: "What do you need?" })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: /^Home/ }).click();
     await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-    await page.getByRole("button", { name: "Continue with Cleaning" }).click();
     await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
     await page.getByRole("textbox", { name: "Description *" }).fill(`${JOB_MARKER} interruption test post. Not a real job; created and removed by the test suite.`);
     await shoot(page, info, "post-step-details");
@@ -627,8 +627,10 @@ test.describe("post a job", () => {
     const title = `${RUN_MARKER} refresh ${nonce()}`;
     await page.goto("/post-job");
     await settle(page);
-    const fresh = page.getByRole("button", { name: /start fresh/i });
+    const fresh = page.getByRole("button", { name: /start from scratch/i });
     if (await fresh.isVisible().catch(() => false)) await fresh.click();
+    await page.getByRole("button", { name: /^Home/ }).click().catch(() => {});
+    await page.getByRole("button", { name: "Cleaning", exact: true }).click().catch(() => {});
     const titleBox = page.getByRole("textbox", { name: /title|what do you need/i }).first();
     await expect(titleBox).toBeVisible({ timeout: 20_000 });
     await titleBox.fill(title);
@@ -636,7 +638,7 @@ test.describe("post a job", () => {
     await page.reload();
     await settle(page);
     await assertHealthy(page, info, "post-refresh");
-    const restored = await page.getByText(/resume|continue where you left|draft|start fresh/i).first().isVisible().catch(() => false);
+    const restored = await page.getByText(/resume|continue where you left|draft|start from scratch/i).first().isVisible().catch(() => false);
     const kept = (await page.getByRole("textbox", { name: /title|what do you need/i }).first().inputValue().catch(() => "")) === title;
     expect(restored || kept, "after a refresh the typed title was gone with no draft offer").toBe(true);
     expect((await jobsTitled(request, title)).length, "a refresh must never post").toBe(0);

@@ -17,7 +17,8 @@ interface Props {
 export function PostJobStepHeader({ step, question, helper }: Props) {
   return (
     <header className="space-y-4">
-      <div className="flex items-center gap-3">
+      {/* Desktop shows the step rail instead (board 166, PostJobStepRail). */}
+      <div className="flex items-center gap-3 lg:hidden">
         <div
           role="progressbar"
           aria-label="Post a job progress"

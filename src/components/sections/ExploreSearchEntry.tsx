@@ -12,7 +12,7 @@ export function ExploreSearchEntry() {
     <Link
       to="/search"
       data-testid="explore-search-entry"
-      className="flex items-center gap-2 h-10 px-3.5 rounded-full border border-border text-muted-foreground font-sans text-ds-14 ctl-tint"
+      className="flex items-center gap-2 h-11 px-3.5 rounded-full border border-border text-muted-foreground font-sans text-ds-14 ctl-tint"
       style={{ background: "hsl(var(--card))" }}
     >
       <Search className="w-4 h-4 shrink-0" aria-hidden />

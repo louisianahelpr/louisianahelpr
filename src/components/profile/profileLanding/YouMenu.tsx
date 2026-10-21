@@ -93,11 +93,14 @@ export function YouMenuList({
           >
             {i > 0 && <span aria-hidden className="hairline pointer-events-none absolute top-0 left-4 right-4" />}
             <span className="shrink-0" style={{ color: "hsl(var(--bark))" }}>{ICON[row.key]}</span>
-            <span className="flex-1 min-w-0 text-ds-15 font-semibold text-foreground truncate" title={row.label}>{row.label}</span>
+            {/* Q2306: the label never gives way (shrink-0, never truncated); the caption takes what is left and
+                truncates. At 375 the old flex-1 label + shrink-0 caption cut "Notifications" to "Notificat…". */}
+            <span data-you-label={row.key} className="shrink-0 whitespace-nowrap text-ds-15 font-semibold text-foreground" title={row.label}>{row.label}</span>
             {cap && (
               <span
                 data-you-caption={row.key}
-                className={`shrink-0 text-ds-13 ${row.key === "earnings" ? "font-bold tabular-nums" : "text-muted-foreground"}`}
+                title={cap}
+                className={`flex-1 min-w-0 truncate text-right text-ds-13 ${row.key === "earnings" ? "font-bold tabular-nums" : "text-muted-foreground"}`}
                 style={row.key === "earnings" ? { color: "hsl(var(--accent-ink))" } : undefined}
               >
                 {cap}

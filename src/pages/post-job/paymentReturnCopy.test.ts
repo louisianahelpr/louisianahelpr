@@ -9,11 +9,12 @@ const STATES: ConfirmState[] = ["checking", "held", "not_held", "unknown", "not_
 
 describe("payment return headline (board 56)", () => {
   it("a held payment reads exactly 'Your job is live'", () => {
-    expect(paymentHeading("held")).toBe("Your job is live");
+    expect(paymentHeading("held", true)).toBe("Your job is live");
   });
 
   it("every state has its own non-empty headline (cannot pass vacuously)", () => {
-    const headings = STATES.map(paymentHeading);
+    const headings = STATES.map((st) => paymentHeading(st, true));
+    expect(paymentHeading("held", false)).toBe("Payment confirmed.");
     expect(headings.length).toBeGreaterThan(4);
     expect(headings.every((h) => h.trim().length > 0)).toBe(true);
     expect(new Set(headings).size).toBe(STATES.length);

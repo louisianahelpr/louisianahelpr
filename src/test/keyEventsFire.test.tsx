@@ -295,7 +295,7 @@ async function drivePaymentMade(): Promise<string> {
   const JOB = PAYMENT_JOB;
   h.state.fromHandler = (c, t) =>
     c.table === "jobs" && t === "maybeSingle"
-      ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID }, error: null }
+      ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID, status: "open" }, error: null }
       : undefined;
   render(
     <MemoryRouter initialEntries={[`/payment-success?job_id=${JOB}`]}>
@@ -417,7 +417,7 @@ describe("payment_made counts only the job's poster (Q1385/Q1386b)", () => {
   it("a different account opening the payment-success link emits no payment_made", async () => {
     h.state.fromHandler = (c, t) =>
       c.table === "jobs" && t === "maybeSingle"
-        ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: "99999999-0000-4000-8000-00000000dead" }, error: null }
+        ? { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: "99999999-0000-4000-8000-00000000dead", status: "open" }, error: null }
         : undefined;
     render(
       <MemoryRouter initialEntries={[`/payment-success?job_id=${PAYMENT_JOB}`]}>
@@ -447,7 +447,7 @@ describe("payment_made and first_payment_collected count only real checkout retu
     (c: { table: string; ops: Array<{ m: string; a: unknown[] }> }, t: string) => {
       if (c.table !== "jobs") return undefined;
       if (t === "maybeSingle") {
-        return { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID }, error: null };
+        return { data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: h.USER_ID, status: "open" }, error: null };
       }
       if (rows === "error") return { data: null, error: { code: "57014", message: "statement timeout" }, count: null };
       const sel = c.ops.find((o) => o.m === "select");

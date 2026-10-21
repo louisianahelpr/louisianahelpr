@@ -154,7 +154,7 @@ const PaymentSuccess = () => {
   const lifecycleStep = lifecycleStepFor(jobStatus, alreadyReleased);
   const [directOffer, setDirectOffer] = useState(false);
   // Board 56: "live" only while Helprs can find it (paymentReturnCopy.ts).
-  const live = lifecycleStep === 0 && !alreadyReleased && !directOffer;
+  const live = jobStatus === "open" && !alreadyReleased && !directOffer;
 
   usePageTitle(paymentPageTitle(confirmState, live));
 

@@ -10,7 +10,7 @@
  * "failed confirmation must NOT render a success claim" behaviour is pinned
  * here permanently rather than left to a sweep that only runs on demand.
  */
-// @mutate src/pages/post-job/PaymentSuccess.tsx |   const live = lifecycleStep === 0 && !alreadyReleased && !directOffer; |   const live = true;
+// @mutate src/pages/post-job/PaymentSuccess.tsx |   const live = jobStatus === "open" && !alreadyReleased && !directOffer; |   const live = !alreadyReleased && !directOffer;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, act } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -210,7 +210,7 @@ describe("PaymentSuccess", () => {
     beforeEach(() => {
       viewerId = OTHER;
       jobsLookup = {
-        data: { budget: 10, category: "cleaning", payment_status: "escrow", customer_id: POSTER },
+        data: { budget: 10, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open" },
         error: null,
       };
     });
@@ -252,7 +252,7 @@ describe("PaymentSuccess", () => {
   describe("the payment IS confirmed held", () => {
     beforeEach(() => {
       jobsLookup = {
-        data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER },
+        data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "open" },
         error: null,
       };
     });
@@ -317,7 +317,7 @@ describe("PaymentSuccess", () => {
 
     it("accepts payout_pending — the money is still in escrow", async () => {
       jobsLookup = {
-        data: { budget: 80, category: "cleaning", payment_status: "payout_pending", customer_id: POSTER },
+        data: { budget: 80, category: "cleaning", payment_status: "payout_pending", customer_id: POSTER, status: "open" },
         error: null,
       };
       renderAt();
@@ -388,6 +388,15 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
     ["disputed", "In progress", "View Job"],
     ["completed", "Released", "View Job"],
   ];
+
+  it("a paid job still waiting for approval is not 'live' (open_jobs_browse lists only open jobs)", async () => {
+    jobsLookup = {
+      data: { budget: 120, category: "cleaning", payment_status: "escrow", customer_id: POSTER, status: "pending_approval" },
+      error: null,
+    };
+    renderAt();
+    await screen.findByRole("heading", { level: 1, name: /^payment confirmed\.$/i });
+  });
 
   it("a paid direct offer to one Helpr is not 'live' (Helprs browsing cannot see it)", async () => {
     jobsLookup = {

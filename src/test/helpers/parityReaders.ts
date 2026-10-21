@@ -111,6 +111,11 @@ function newestCheck(name: string): CheckDef | null {
   return cur;
 }
 
+/** The newest live `ADD CONSTRAINT <name> CHECK (...)` body (comments blanked), or null when dropped/absent. */
+export function newestCheckBody(name: string): CheckDef | null {
+  return newestCheck(name);
+}
+
 /** `[char_]length(col) <= N` inside the newest CHECK called `name`. */
 export function checkMaxLength(name: string, column: string): { max: number; file: string } {
   const def = newestCheck(name);

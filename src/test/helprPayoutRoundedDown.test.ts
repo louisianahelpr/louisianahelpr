@@ -73,7 +73,7 @@ const NOT_A_JOB_PAYOUT: Record<string, string> = {
   "supabase/functions/_shared/heldTipRepay.ts":
     "re-pays exactly the tip cents a payout hold reversed (Q1222); a tip goes to the Helpr in full, never rounded",
   "supabase/functions/declutter-money/index.ts":
-    "a Declutter SELLER's item price minus their card-fee debt (row 93, B53), and (slice 5) a Helpr's DELIVERY pay = the delivery fee minus jobs' flat 5% + 70c, both fixed to the exact cent by their SQL payout rows (declutter_payouts, helpr_task_payouts); neither is a job payout",
+    "a Declutter SELLER's item price minus their card-fee debt (row 93, B53; exact cents, sellers are not rounded), and (slice 5) a Helpr's DELIVERY pay, sent as its SQL payout row's own amount_cents (helpr_task_payouts), which SQL already rounds DOWN to the whole dollar through helpr_payout_round_down_cents (owner 2026-10-21; src/test/helprDeliveryPayoutRoundedDown.test.ts); neither is a job payout",
 };
 
 /** EXACT per-file count of `transfers.create(` (comments blanked). */

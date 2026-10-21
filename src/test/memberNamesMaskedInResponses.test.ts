@@ -57,6 +57,11 @@ const ADMIN_ONLY = Object.keys(RAW_NAME_OK).filter((k) => RAW_NAME_OK[k].startsW
 const MASKED_READERS = ["get_safe_profiles", "search_profiles_by_name", "get_my_saved_helpers", "get_quotes_for_request", "get_public_profile_reviews"];
 /** The first-name readers / builders: each takes the first word of member_display_name. */
 const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_notice", "notify_message_recipient"];
+/** A first-name reader restated verbatim by a later migration for another reason (its name line unchanged). EXACT. */
+const RESTATED_LATER: Record<string, string> = {
+  // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
+  helpr_task_view: "20261021181118_helpr_delivery_payout_round_down.sql",
+};
 
 /** Blank every call to the masking helpers, balanced parentheses, so what is left reads names raw. */
 function withoutMaskCalls(body: string): string {
@@ -267,8 +272,9 @@ describe("members never see another member's last name in a response", () => {
       expect(defs.get(name)!.file, name).toBe(THIS);
       expect(bodyOf(defs.get(name)!.stmt), name).toMatch(/\bpublic\.display_name_for_viewer\(\s*\w+\.full_name\s*,/);
     }
+    expect(Object.keys(RESTATED_LATER).every((n) => FIRST_NAME_READERS.includes(n))).toBe(true);
     for (const name of FIRST_NAME_READERS) {
-      expect(defs.get(name)!.file, name).toBe(THIS);
+      expect(defs.get(name)!.file, name).toBe(RESTATED_LATER[name] ?? THIS);
       expect(readsRaw(bodyOf(defs.get(name)!.stmt)), name).toBe(false);
       expect(bodyOf(defs.get(name)!.stmt), name).toMatch(/\bpublic\.member_display_name\(\s*(?:\w+\.)?full_name\s*,/);
     }

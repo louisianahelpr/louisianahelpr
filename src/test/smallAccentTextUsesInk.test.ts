@@ -16,7 +16,7 @@
  * `--sienna-ink` over the accent's 10% tint on either dark surface clears 4.5.
  *
  * @mutate src/components/messages/ChatView.tsx | <p className="text-ds-11 leading-snug text-foreground"> | <p className="text-ds-11 leading-snug text-accent">
- * @mutate src/components/CancellationDialog.tsx | <span className="text-ds-11 text-[hsl(var(--sienna-ink))] font-medium"> | <span className="text-ds-11 text-accent font-medium">
+ * @mutate src/components/declutter/DeclutterSellSteps.tsx | <span className="text-ds-11 font-bold tabular-nums text-[hsl(var(--sienna-ink))]">{formatPrice(c)}</span> | <span className="text-ds-11 font-bold tabular-nums text-accent">{formatPrice(c)}</span>
  * @mutate src/index.css | --sienna-ink: 19 72% 68%; | --sienna-ink: 19 65% 52%;
  */
 import { describe, expect, it } from "vitest";

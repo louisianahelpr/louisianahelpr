@@ -191,7 +191,7 @@ export function OfferToSavedHelpr({
             className="block font-display font-bold text-ds-17"
             style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.01em" }}
           >
-            Offer It to a Saved Helpr
+            Offer it to a saved Helpr
           </span>
           <span
             className="block font-sans mt-0.5 text-ds-11"

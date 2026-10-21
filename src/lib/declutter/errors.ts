@@ -18,6 +18,9 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   declutter_strikes_blocked:
     "You have 3 Declutter strikes, so Declutter is paused for you. It opens again when one of them expires.",
   under_18: "You must be 18 or older to buy or sell on Declutter.",
+  // Stripe Identity once, at the first purchase or listing (owner 2026-10-22); the ID sheet opens with it.
+  identity_required_to_buy: "Verify your ID with Stripe first. It takes about 2 minutes, once, then buy again.",
+  identity_required_to_list: "Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.",
   payout_setup_incomplete: "Set up your payouts first, so we can pay you when your item sells.",
   photos_required: "Add at least 1 photo of the item (up to 12).",
   attestation_required: "Confirm the four statements about this item before you list it.",

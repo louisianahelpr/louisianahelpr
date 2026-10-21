@@ -18,6 +18,7 @@ import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
+import { SoonPill } from "@/components/sections/SoonPill";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -185,7 +186,7 @@ export function SettingsTab({
                     }}
                   />
                 ) : (
-                  <span className="shrink-0 text-ds-13 font-semibold text-muted-foreground">Soon</span>
+                  <SoonPill variant="short" />
                 )
               }
             />

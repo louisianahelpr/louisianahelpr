@@ -22,6 +22,7 @@ import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { SoonPill } from "@/components/sections/SoonPill";
 
 /**
  * DesktopSidebarNav — the persistent LEFT sidebar (owner 2026-10-19: left and
@@ -263,9 +264,7 @@ const DesktopSidebarRail = () => {
                   {label}
                 </span>
                 {soon && (
-                  <span aria-hidden className="ml-auto font-sans text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>
-                    Soon
-                  </span>
+                  <SoonPill variant="short" aria-hidden="true" className="ml-auto" />
                 )}
               </button>
             </li>

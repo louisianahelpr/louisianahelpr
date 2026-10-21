@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { addDays, format } from "date-fns";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
@@ -115,17 +114,14 @@ export function ChangeJobSheet({
           </div>
         ) : (
           <SheetFooter>
-          <Button
-            variant="outline"
-            size="lg"
-            className="mt-4 w-full rounded-full text-ds-16 text-[hsl(var(--alert,4_71%_41%))]"
-            onClick={() => {
-              onOpenChange(false);
-              onCancelJob();
-            }}
-          >
-            See the cancellation and confirm
-          </Button>
+            <SheetDestructiveAction
+              onClick={() => {
+                onOpenChange(false);
+                onCancelJob();
+              }}
+            >
+              See the cancellation and confirm
+            </SheetDestructiveAction>
           </SheetFooter>
         )}
       </SheetContent>

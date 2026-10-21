@@ -255,8 +255,8 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                               border: "0.5px solid hsl(var(--parchment) / 0.30)",
                             }
                           : {
-                              background: "hsl(var(--burnt-sienna) / 0.10)",
-                              border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
+                              background: "hsl(var(--bark) / 0.10)",
+                              border: "0.5px solid hsl(var(--bark) / 0.22)",
                             }
                       }
                     >
@@ -265,7 +265,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                         style={{
                           color: active
                             ? "hsl(var(--parchment))"
-                            : "hsl(var(--burnt-sienna))",
+                            : "hsl(var(--bark))",
                         }}
                         strokeWidth={2}
                         aria-hidden="true"
@@ -396,7 +396,7 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId }: ReportDialogP
                   className="tabular-nums shrink-0"
                   style={{
                     color: charsLeft < 50
-                      ? "hsl(var(--burnt-sienna))"
+                      ? "hsl(var(--alert))"
                       : "hsl(var(--muted-foreground))",
                   }}
                 >

@@ -26,8 +26,8 @@
 //      route's real stylesheet, not just whatever the screen rendered.
 //
 // SHOWN ABLE TO FAIL, every run: the control test below loads the landing page
-// WITHOUT the preference and requires the same probe to see the hero chevron's
-// infinite bounce (as an animation AND as a mover) and every canary looping. A
+// WITHOUT the preference, plants one `animate-spin` fixture (the landing's own
+// chevron went with the 2026-10-20 redesign) and requires the same probe to see it spin (as an animation AND as a mover) and every canary looping. A
 // probe that has gone blind reds there. Proven red by hand on 2026-09-25 by
 // deleting the catch-all and rebuilding (the canary reds on every route) — see
 // the Q254 line in docs/OPEN.md. The rule itself is also pinned in source by
@@ -236,17 +236,33 @@ function expectStill(report: MotionReport, where: string) {
 }
 
 test.describe("Reduce Motion: nothing moves (Q254)", () => {
-  test("control: without the preference the probe sees the landing chevron bounce", async ({ browser }) => {
+  // The landing redesign (TRAIN26, 2026-10-20) removed the hero chevron, the
+  // page's only infinite animation, so the control now plants a FIXTURE on /:
+  // one visible `animate-spin` element (the spinner class the app compiles;
+  // `animate-bounce` is not in the landing's built CSS, measured 2026-10-21:
+  // its computed animation-name was "none"). The probe must still see it as an
+  // animation AND as a mover, on the landing's real stylesheet.
+  const plantSpinner = async (page: Page) => {
+    await page.evaluate(() => {
+      const el = document.createElement("div");
+      el.className = "rm-control animate-spin";
+      el.setAttribute("aria-hidden", "true");
+      el.style.cssText = "position:fixed;left:8px;top:8px;width:12px;height:12px;";
+      document.body.appendChild(el);
+    });
+  };
+
+  test("control: without the preference the probe sees a spinner planted on the landing", async ({ browser }) => {
     const ctx = await motionContext(browser, null, VIEWPORTS[0], "no-preference");
     const page = await ctx.newPage();
     try {
-      const report = await measureMotion(page, "/");
+      const report = await measureMotion(page, "/", plantSpinner);
       expect(
-        report.animations.some((a) => a.startsWith("bounce ")),
-        `the probe saw no bounce on / with motion allowed — it is blind, so every "clean" below means nothing. Saw: ${JSON.stringify(report.animations)}`,
+        report.animations.some((a) => a.startsWith("spin ") && a.includes("rm-control")),
+        `the probe saw no spin on the planted control with motion allowed — it is blind, so every "clean" below means nothing. Saw: ${JSON.stringify(report.animations)}`,
       ).toBe(true);
       expect(
-        report.movers.some((m) => m.includes("animate-bounce")),
+        report.movers.some((m) => m.includes("rm-control")),
         `the movement sampler saw nothing move on / with motion allowed — it is blind. Saw: ${JSON.stringify(report.movers)}`,
       ).toBe(true);
       expect(

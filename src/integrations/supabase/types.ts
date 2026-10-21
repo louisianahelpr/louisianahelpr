@@ -1511,6 +1511,8 @@ export type Database = {
           floor_price_cents: number
           item_id: string
           move_out_on: string | null
+          sale_name: string | null
+          sale_starts_on: string | null
           pickup_address: string
           pickup_lat: number
           pickup_lng: number
@@ -1526,6 +1528,8 @@ export type Database = {
           floor_price_cents: number
           item_id: string
           move_out_on?: string | null
+          sale_name?: string | null
+          sale_starts_on?: string | null
           pickup_address: string
           pickup_lat: number
           pickup_lng: number
@@ -1541,6 +1545,8 @@ export type Database = {
           floor_price_cents?: number
           item_id?: string
           move_out_on?: string | null
+          sale_name?: string | null
+          sale_starts_on?: string | null
           pickup_address?: string
           pickup_lat?: number
           pickup_lng?: number
@@ -11941,6 +11947,13 @@ export type Database = {
         Args: { p_move_out_on: string }
         Returns: string
       }
+      declutter_my_moving_sale: {
+        Args: never
+        Returns: {
+          sale_name: string
+          sale_starts_on: string
+        }[]
+      }
       declutter_my_move_out_date: { Args: never; Returns: string }
       declutter_my_cart: {
         Args: never
@@ -12176,6 +12189,8 @@ export type Database = {
         Args: { p_seller_id: string }
         Returns: {
           move_out_on: string
+          sale_name: string
+          sale_starts_on: string
         }[]
       }
       declutter_seller_item_private: {
@@ -12198,6 +12213,10 @@ export type Database = {
       }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
+        Returns: number
+      }
+      declutter_set_moving_sale: {
+        Args: { p_name: string; p_starts_on: string }
         Returns: number
       }
       declutter_set_delivery_dropoff: { Args: { p_address: string; p_area_label: string; p_buyer: string; p_lat: number; p_lng: number; p_seller: string }; Returns: undefined }

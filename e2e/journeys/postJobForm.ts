@@ -66,13 +66,13 @@ export async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhea
 }
 
 /**
- * Screens 1 and 2 of 5 (boards 23, 44): the category (Home group is open by
- * default), then title, description and (optionally) one photo. Ends on
+ * Screens 1 and 2 of 5 (boards 23, 44): the category (the Home group, then Cleaning), then title, description and (optionally) one photo. Ends on
  * screen 3, the price.
  */
 export async function fillJobDetails(page: Page, title: string, photoPath?: string) {
+  // Screen 1 shows the 8 groups; Home opens its categories (1b), and a category tap goes on (owner 2026-10-21).
+  await page.getByRole("button", { name: /^Home/ }).click();
   await page.getByRole("button", { name: "Cleaning", exact: true }).click();
-  await page.getByRole("button", { name: "Continue with Cleaning" }).click();
   await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
   await page.getByRole("textbox", { name: "Description *" }).fill(
     "Automated journey test. Not a real job; created and removed by the test suite. Please ignore.",

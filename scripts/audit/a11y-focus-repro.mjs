@@ -118,7 +118,7 @@ const active = () => page.evaluate(() => {
   const el = page.locator("#require-photo-proof");
   // may be on a later step; try scrolling/finding
   if (!(await el.count())) {
-    await page.getByRole("button", { name: /start fresh/i }).first().click();
+    await page.getByRole("button", { name: /start from scratch/i }).first().click();
     await page.waitForTimeout(1000);
   }
   if (await el.count()) {

@@ -150,10 +150,10 @@ export const SCENARIOS = {
     from: "/home",
     arrive: "button[aria-label='Post a new job']:visible, button:has-text('Post a Job'):visible",
     steps: [
-      { tap: "button:has-text('Start Fresh')" },
+      { tap: "button:has-text('Start from scratch')" },
       // Five screens (boards 23/44/3/45): category, details, price, when and where.
-      { tap: "button[aria-pressed]:text-is('Cleaning')" },
-      { tap: "button:has-text('Continue with')" },
+      { tap: "button:has-text('Home')" },
+      { tap: "button[aria-pressed]:has-text('Cleaning')" },
       { type: "#title", text: "Rake the front yard" },
       { type: "#description", text: "Leaves on the lawn and the driveway, bags are in the shed." },
       // Three phone photos, and the taps that land while they are prepared.

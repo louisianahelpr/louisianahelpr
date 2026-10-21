@@ -209,8 +209,8 @@ function removeJobsTitled(api: APIRequestContext, poster: Session, title: string
 /** Post a Job form up to the checkout step, on whatever network the page has. */
 async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp, why: string) => void) {
   await page.goto("/post-job");
-  await page.getByRole("button", { name: /Start Fresh/ }).click();
-  await expect(page.getByRole("heading", { name: "What do you need?" })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole("button", { name: /Start from scratch/ }).click();
+  await expect(page.getByRole("heading", { name: "What do you need done?" })).toBeVisible({ timeout: 60_000 });
   await fillJobDetails(page, title);
   await fillBudget(page);
   // Three days out: no day-of ladder here, and never "today" at any hour.

@@ -60,6 +60,14 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Board 191 (shell 1j): the admin funnel. The admin console is behind
+  // AdminRoute, and the client only ever sends jobs/declutter and 7/30/90; any
+  // error shows the card's own "Couldn't load the funnel" with Try again.
+  admin_section_funnel: {
+    not_authorized: { reason: "unreachable from the client: SectionFunnel mounts only inside the admin console (AdminRoute); any error shows the card's own failure state" },
+    invalid_window: { reason: "unreachable from the client: SectionFunnel sends only 7, 30 or 90 days" },
+    invalid_section: { reason: "unreachable from the client: SectionFunnel sends only 'jobs' or 'declutter'" },
+  },
   // Boards 184 / 188 (Builder 2f s6): both hooks call only while their switch
   // reads on (useFeature gates `enabled`), and a refusal shows no words: the
   // reach line / proof line is simply left out (useJobReach drops 42501 quietly;

@@ -65,6 +65,25 @@ export async function handleChargeRefundUpdated(
     });
     return;
   }
+  if (meta.kind === "declutter_refund" && meta.raise_id) {
+    // Q1929: a delivery-pay raise refunded on its own charge (declutter_delivery_raises); the same rule.
+    const { data: reopened, error: rErr } = await supabase.rpc("declutter_delivery_raise_refund_reversed", {
+      p_raise_id: meta.raise_id,
+      p_stripe_refund_id: refund.id,
+      p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
+    });
+    if (rErr) throw new Error(`declutter_delivery_raise_refund_reversed failed for ${refund.status} refund ${refund.id}: ${rErr.message}`);
+    const lastTry = reopened === "gave_up";
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: reopened === "reopened" || lastTry ? "critical" : "warning",
+      title: lastTry ? "Declutter delivery-raise refund failed after Stripe took it: GAVE UP, refund it by hand"
+        : reopened === "reopened" ? "Declutter delivery-raise refund failed after Stripe took it: retrying" : "Declutter delivery-raise refund failed (row not reopened)",
+      message: `Stripe moved delivery-raise refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${lastTry ? "The buyer has NOT been repaid and that was the last try. Refund it by hand." : reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The row did not record this refund: nothing changed."}`,
+      fields: { "Raise row": meta.raise_id, "Order": meta.order_id || "none" },
+    });
+    return;
+  }
   if (meta.kind === "declutter_refund" && meta.delivery_refund_id) {
     // Slice 5: a delivery fee refunded on its own (row 40) lives in
     // declutter_delivery_refunds; the same rule, its own row.

@@ -19,6 +19,9 @@
 //                   B40). A refund answer is executed here with Stripe, keyed
 //                   on the refund row (a retry never refunds twice), and
 //                   reported back with declutter_refund_executed.
+//   declutter_raise (declutter-checkout raise_pay, mode=payment) the buyer
+//                   paid a raise of a delivery's Helpr pay (Q1929, row 40):
+//                   settleRaise below; only a PAID page changes anything.
 //
 // Idempotent: a replayed event finds 'already_paid' or the same refund row,
 // and a refund already 'succeeded' is not sent again. Any failure THROWS, so
@@ -33,7 +36,7 @@ import { queueEmail } from "../../_shared/resend.ts";
 import { getAppUrl } from "../../_shared/appUrl.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 
-const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order"]);
+const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order", "declutter_raise"]);
 
 /** True for a Checkout Session Declutter created. */
 export function isDeclutterSession(session: { metadata?: unknown } | null | undefined): boolean {
@@ -60,6 +63,82 @@ export async function settleDeclutterSession(
   const meta = (session.metadata ?? {}) as Record<string, string>;
   if (meta.kind === "declutter_card") return saveCard(event, session, meta, ctx);
   if (meta.kind === "declutter_order") return settleOrder(event, session, meta, ctx);
+  if (meta.kind === "declutter_raise") return settleRaise(event, session, meta, ctx);
+}
+
+type RaisePaidAnswer = {
+  result: "applied" | "refund" | "already" | "unknown" | "session_mismatch" | "other_payment";
+  raise_id?: string; reason?: string; refund_cents?: number; status?: string;
+};
+
+/**
+ * Q1929 (spec row 40): the buyer paid a raise of a delivery's Helpr pay
+ * (declutter-checkout raise_pay). ONLY a paid page changes anything:
+ * declutter_delivery_raise_paid, under the order and task locks, raises the
+ * task's pay if it is still waiting for a Helpr, or marks the payment to go
+ * back in full (declutter-money sends that refund, keyed on the raise id).
+ * An unpaid completion changes nothing. A replay answers 'already'. A page we
+ * cannot tie to its raise is never applied: ops are paged to refund it by hand.
+ * Any failure THROWS, so Stripe redelivers.
+ */
+async function settleRaise(
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+  meta: Record<string, string>,
+  ctx: WebhookContext,
+): Promise<void> {
+  const { supabase, logStep } = ctx;
+  if (session.mode !== "payment" || !meta.raise_id || !meta.order_id) {
+    logStep("Declutter raise session ignored (shape)", { id: session.id, mode: session.mode });
+    return;
+  }
+  if (session.payment_status !== "paid") {
+    // Card only: an unpaid completion is logged and changes nothing.
+    logStep("Declutter raise session completed unpaid", { id: session.id, payment_status: session.payment_status });
+    return;
+  }
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  const amount = session.amount_total;
+  if (!paymentIntentId || typeof amount !== "number") {
+    throw new Error(`declutter raise session ${session.id} paid without a PaymentIntent or amount`);
+  }
+  const { data: orderRow, error: orderErr } = await supabase
+    .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle();
+  if (orderErr) throw new Error(`declutter order read failed: ${orderErr.message}`);
+  const buyer = (orderRow as { buyer_id?: string | null } | null)?.buyer_id ?? null;
+  const pageOps = (why: string) => postSlackOpsAlert({
+    kind: "stripe_webhook_error",
+    severity: "critical",
+    title: "Declutter delivery raise paid but not applied: refund it by hand",
+    message: `Session ${session.id} was paid (${dollars(amount)}) to raise the delivery pay of order ${meta.order_id}, but ${why}. Nothing was changed; refund it by hand after checking.`,
+    fields: { "Payment intent": paymentIntentId, Raise: meta.raise_id },
+  });
+  if (!buyer || buyer !== meta.buyer_id) {
+    await pageOps("its buyer does not match the order");
+    return;
+  }
+  const { data, error } = await supabase.rpc("declutter_delivery_raise_paid", {
+    p_raise_id: meta.raise_id,
+    p_session_id: session.id,
+    p_payment_intent_id: paymentIntentId,
+    p_amount_cents: amount,
+    p_livemode: event.livemode ? true : false,
+  });
+  if (error) throw new Error(`declutter_delivery_raise_paid failed: ${error.message}`);
+  const answer = data as RaisePaidAnswer | null;
+  if (!answer || typeof answer !== "object" || !("result" in answer)) {
+    throw new Error(`declutter_delivery_raise_paid gave no answer for raise ${meta.raise_id}`);
+  }
+  logStep("Declutter raise settled", { raise: meta.raise_id, result: answer.result, reason: answer.reason ?? null });
+  if (answer.result === "unknown" || answer.result === "session_mismatch" || answer.result === "other_payment") {
+    await pageOps(answer.result === "unknown" ? "no raise row has that id"
+      : answer.result === "session_mismatch" ? "the raise row names another Stripe page" : "the raise row already holds another payment");
+    return;
+  }
+  if (answer.result === "applied") {
+    await sendMoneyEmail(ctx, buyer, "declutter_receipt", "Your Declutter receipt",
+      `You paid ${dollars(amount)} to raise your delivery's Helpr pay. Helprs now see the higher pay. If no Helpr takes it in time, the raise comes back with your delivery fee.`);
+  }
 }
 
 async function saveCard(

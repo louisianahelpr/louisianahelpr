@@ -160,6 +160,14 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   vehicle_photo_required: "Add a photo of your truck.",
   not_picked_up_yet: "Take the \"Picked up\" photo first.",
   not_at_dropoff: "Take the photo at the drop-off address.",
+  // Raise the delivery pay (20261021130506, Q1929).
+  invalid_raise: "Raise the pay by whole dollars, at least $5.",
+  delivery_not_waiting: "A Helpr already took this delivery, or it closed.",
+  raise_too_late: "Less than an hour is left to find a Helpr, so the pay can't be raised now.",
+  raise_limit: "The pay can be raised by up to $150 in all on one delivery.",
+  raise_not_waiting: "That raise was replaced by a newer one. Try again.",
+  raise_not_found: "That raise couldn't be found.",
+  invalid_session: "That payment page couldn't be recorded.",
   // Add a Helpr (20261017073146): the link is for the job just posted, before its checkout.
   job_already_funded: "This job is already paid for, so it can't be added to your Declutter purchase. It's under your posted jobs.",
   // A10 (20261017073146): the seller-fault cancel's hand tool and the seller's fee debt (staff and server only).
@@ -192,6 +200,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   address_not_found: "We couldn't find that address. Check the street number, street and town.",
   geocode_unavailable: "We couldn't look up addresses just now. Try again in a minute.",
   photo_unavailable: "That photo couldn't load. Try again.",
+  // declutter-checkout's raise_pay before its migration is deployed (PGRST202).
+  raise_unavailable: "Raising the pay isn't available yet. Nothing was charged.",
 };
 
 /**

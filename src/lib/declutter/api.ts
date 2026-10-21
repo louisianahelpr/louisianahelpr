@@ -604,7 +604,7 @@ export async function buyNow(itemId: string, seenPriceCents: number): Promise<st
  * (declutterErrorMessage maps the code to plain words). The functions answer
  * `{ error: "<code>" }` on a refusal.
  */
-async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout", body: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function invokeDeclutter(fn: "declutter-card" | "declutter-checkout", body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const { data, error } = await supabase.functions.invoke(fn, { body: { ...body, native: isNativePlatform } });
   if (error) {
     const ctx = (error as { context?: Response }).context;

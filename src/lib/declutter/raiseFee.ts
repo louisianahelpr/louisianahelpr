@@ -11,12 +11,8 @@
  * compares it with the SQL for every allowed raise.
  */
 
-/** At least $5 a raise. */
+/** At least $5 a raise, in whole dollars (the most, $150 in all, comes from the server as room_cents). */
 export const RAISE_MIN_CENTS = 500;
-/** Whole dollars. */
-export const RAISE_STEP_CENTS = 100;
-/** At most $150 raised in all on one delivery. */
-export const RAISE_MAX_TOTAL_CENTS = 15000;
 
 /** The card fee on a raise of `raiseCents`, in cents (0 for nothing). */
 export function raiseCardFeeCents(raiseCents: number): number {

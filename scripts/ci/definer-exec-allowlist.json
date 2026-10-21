@@ -153,6 +153,7 @@
     "is_submitted_credential_object(text)": "policy",
     "job_has_crew(uuid)": "reviewed 2026-10-05 (Q14): called by the SECURITY INVOKER trigger enforce_series_columns_client_lock, which runs as the client.",
     "job_is_funded(uuid)": "policy",
+    "job_photos_shareable(uuid)": "reviewed 2026-10-21 (Q14): Terms 'Photos from jobs' (20261021001940, lh-authz-rls PASS); admin-only (has_role check inside, raises admin_only otherwise), read-only: true only when the poster and every booked Helpr left share_job_photos on; no client caller yet.",
     "link_str_turnover_job(uuid, uuid)": "client",
     "list_open_quote_requests()": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
     "mark_applications_viewed(uuid)": "client",

@@ -69,11 +69,12 @@ describe("DealCard never writes", () => {
 
 // Lead 2026-10-21: while the card is pinned, the header names the PERSON (the
 // You card's real-or-absent facts) instead of repeating the job title.
-// @mutate src/components/messages/ChatHeader.tsx | {dealPinned ? personFacts : activeConvo.jobTitle} | {activeConvo.jobTitle}
+// @mutate src/components/messages/ChatHeader.tsx | {dealPinned && personFacts ? personFacts : activeConvo.jobTitle} | {activeConvo.jobTitle}
 describe("chat header while the deal card is pinned", () => {
   it("shows the person's facts, not the job title, and drops the status chip", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../ChatHeader.tsx"), "utf8"));
-    expect(src).toContain("{dealPinned ? personFacts : activeConvo.jobTitle}");
+    // Falls back to the job title while the facts load or if they fail (review note 5).
+    expect(src).toContain("{dealPinned && personFacts ? personFacts : activeConvo.jobTitle}");
     expect(src).toMatch(/activeConvo\.jobStatus && !inboxVisible && !dealPinned/);
     expect(src).toMatch(/usePersonFacts\(dealPinned \? activeConvo\.otherUserId : null\)/);
   });

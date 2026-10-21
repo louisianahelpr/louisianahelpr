@@ -5,7 +5,9 @@ import { Search, X } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { formatPrice } from "@/lib/format";
 import { formatJobDate } from "@/lib/dateUtils";
@@ -31,16 +33,23 @@ const MAX_ROWS = 20;
 type JobHit = { id: string; title: string; budget: number | null; pricing_mode: string | null; parish: string | null; date_needed: string | null };
 type ItemHit = { id: string; title: string; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
-function useJobHits(q: string) {
+function useJobHits(q: string, userId: string | null) {
   return useQuery({
-    queryKey: ["search", "jobs", q],
-    enabled: q.length > 0,
+    queryKey: ["search", "jobs", q, userId],
+    enabled: q.length > 0 && !!userId,
     staleTime: 30_000,
     queryFn: async () => {
-      const res = await supabase
+      // Jobs Browse hides posters on either side of a block (Q573); so does
+      // search, in the query itself so the exact count stays exact.
+      // getBlockedUserIds throws on a failed read: the error state, never
+      // jobs from someone blocked.
+      const blocked = [...(await getBlockedUserIds(userId!))];
+      let query = supabase
         .from("open_jobs_browse")
         .select("id,title,budget,pricing_mode,parish,date_needed", { count: "exact" })
-        .ilike("title", likePattern(q))
+        .ilike("title", likePattern(q));
+      if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
+      const res = await query
         .order("created_at", { ascending: false })
         .limit(MAX_ROWS);
       return { rows: (unwrap(res) ?? []) as JobHit[], count: res.count ?? 0 };
@@ -90,7 +99,7 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
         <h2 className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>{title}</h2>
         {onSeeAll && count > PER_SECTION && (
           <button type="button" onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
-            See all {count}
+            {count > MAX_ROWS ? `See ${MAX_ROWS} of ${count}` : `See all ${count}`}
           </button>
         )}
       </div>
@@ -119,10 +128,15 @@ export default function SearchPage() {
   useEffect(() => setDraft(q), [q]);
   const [section, setSection] = useState<SearchSection>("all");
 
-  const declutterOn = useFeature("declutter");
-  const shopsOn = useFeature("shops");
-  const homesOn = useFeature("rentals");
-  const jobs = useJobHits(q);
+  const { user } = useCurrentUser();
+  // A switch reads false until its answer arrives; "Opening soon" waits for
+  // the settled answer so a slow read never says a section is closed.
+  const declutter = useFeatureStatus("declutter");
+  const shops = useFeatureStatus("shops");
+  const homes = useFeatureStatus("rentals");
+  const declutterOn = declutter.on;
+  const switchesSettled = declutter.settled && shops.settled && homes.settled;
+  const jobs = useJobHits(q, user?.id ?? null);
   const items = useItemHits(q, declutterOn);
 
   const submit = (e: FormEvent) => {
@@ -133,7 +147,7 @@ export default function SearchPage() {
 
   const jobCount = jobs.data?.count ?? 0;
   const itemCount = declutterOn ? items.data?.count ?? 0 : 0;
-  const loading = jobs.isLoading || (declutterOn && items.isLoading);
+  const loading = !switchesSettled || jobs.isLoading || (declutterOn && items.isLoading);
   const failed = jobs.isError || (declutterOn && items.isError);
   const qs = `${SEARCH_PARAM}=${encodeURIComponent(q)}`;
   const chips: { key: SearchSection; label: string; count?: number }[] = [
@@ -228,11 +242,11 @@ export default function SearchPage() {
           </Link>
         )}
 
-        {q && section === "all" && (
+        {q && section === "all" && switchesSettled && (
           <div className="space-y-2">
-            {!declutterOn && <SoonRow name="Declutter" />}
-            {!shopsOn && <SoonRow name="Shops" />}
-            {!homesOn && <SoonRow name="Homes" />}
+            {!declutter.on && <SoonRow name="Declutter" />}
+            {!shops.on && <SoonRow name="Shops" />}
+            {!homes.on && <SoonRow name="Homes" />}
           </div>
         )}
       </div>

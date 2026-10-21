@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { CalendarClock, MessageSquare, XCircle } from "lucide-react";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import { JobActionChip, JobStepPrimaryButton } from "../../../../components/job-card/JobActionRow";
@@ -60,6 +61,7 @@ export function ScheduledStep({
   const askedByMe = !!pendingChange && pendingChange.requested_by === userId;
   // "Yusef" from "Yusef H." (helperNames is already First L.); nothing invented when it is missing.
   const helperFirst = ((job.helper_id && helperNames?.[job.helper_id]) || "").trim().split(/\s+/)[0] || null;
+  const rescheduled = useJobRescheduled(job.id, job.status === "accepted");
   const messageHelpr = () => navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages");
   return (
     <JobStepCard
@@ -100,6 +102,7 @@ export function ScheduledStep({
             helperOnTheWayAt={job.helper_on_the_way_at}
             helperArrivedAt={job.helper_arrived_at}
             otherFirstName={helperFirst}
+            rescheduled={rescheduled}
             onCantMakeIt={() => onCancel(job)}
           />
         )}

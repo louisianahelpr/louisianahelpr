@@ -29,6 +29,7 @@ import { posterOwesConfirmation } from "./postedJobCard/steps/posterStepContract
    a truthful failure: the card genuinely needs that derivation now. */
 // Q344: the cards read unsettled decided disputes through React Query; none here.
 // Q1461: the Access & Parking note is a network read once a card opens; none here.
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false })); // no QueryClient here
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/hooks/useUnsettledDisputeJobIds", () => ({ useUnsettledDisputeJobIds: () => undefined }));
 // The card reads the poster's instant-release flag; these tests render without a QueryClient.

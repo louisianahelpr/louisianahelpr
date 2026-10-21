@@ -24,6 +24,7 @@ import type { Job } from "@/components/job-card/activityConstants";
 import type { PosterStepCtx } from "@/pages/posts/postedJobCard/steps/posterStepContract";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false })); // no QueryClient here
 vi.mock("@/lib/scheduleChange", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/scheduleChange")>()),
   fetchPendingScheduleChange: async () => null,

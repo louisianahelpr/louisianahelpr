@@ -6,7 +6,7 @@
  * Confirmed"); the tracker measured from the START (did not). One rule now:
  * from the start, so both say the Helpr still owes the day-before tap.
  *
- * @mutate src/components/JobConfirmation.tsx |   return helperDayofConfirmedAt ?? null; |   return helperDayofConfirmedAt ?? "2026-10-08T19:30:00Z";
+ * @mutate src/components/job-card/helperDayOfConfirmation.ts |   return helperDayofConfirmedAt ?? null; |   return helperDayofConfirmedAt ?? "2026-10-08T19:30:00Z";
  */
 import { describe, expect, it } from "vitest";
 import { helperDayOfConfirmation } from "@/components/JobConfirmation";

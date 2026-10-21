@@ -7,7 +7,8 @@
  * on the way, arrived, working, marked done).
  * Guard: src/test/oneJobTracker.test.ts.
  */
-import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
+import { confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
+import { jobStartDateTime } from "@/lib/dateUtils";
 
 export const JOB_PROGRESS_STEPS = ["Posted", "Hired", "Working", "Done"] as const;
 
@@ -48,6 +49,14 @@ function when(ms: number): string {
   return new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 }
 
+/** The job's slot in Louisiana time: "Thu 9:00 AM", or the weekday alone when it has no start time. */
+export function slotLabel(dateNeeded: string | null | undefined, startTime: string | null | undefined): string {
+  if (!dateNeeded) return "";
+  const start = startTime ? jobStartDateTime(dateNeeded, startTime) : null;
+  if (start) return when(start.getTime());
+  return jobDayStart(dateNeeded).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short" });
+}
+
 export function jobProgress(
   job: ProgressJob,
   o: {
@@ -59,6 +68,8 @@ export function jobProgress(
     threadHelprId?: string | null;
     /** The thread Helpr's application status, when they have applied (chat, an open job). */
     application?: string | null;
+    /** The date or time was moved by an accepted change (useJobRescheduled): both sides confirm the NEW slot. */
+    rescheduled?: boolean;
     now?: Date;
   },
 ): JobProgressState {
@@ -109,12 +120,19 @@ export function jobProgress(
   if (job.date_needed) {
     const opens = confirmOpensMs(job.date_needed);
     const due = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
+    // Moved by an accepted change (owner, 2026-10-21): the line names the NEW slot.
+    const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : "";
     if (!Number.isNaN(opens) && now < opens) {
-      return { step: 2, word: "Hired", next: poster ? `${other} confirms the day before. Opens ${when(opens)}` : `Confirm the day before. Opens ${when(opens)}`, held };
+      const wait = poster ? `${other} confirms the day before. Opens ${when(opens)}` : `Confirm the day before. Opens ${when(opens)}`;
+      return { step: 2, word: "Hired", next: slot ? `New time ${slot}. ${wait}` : wait, held };
     }
     const helprIn = !!job.helper_dayof_confirmed_at;
     const posterIn = !!job.poster_confirmed_at;
     if (!helprIn || !posterIn) {
+      if (slot) {
+        const mine = poster ? !posterIn : !helprIn;
+        return { step: 2, word: "Hired", next: mine ? (poster ? `Confirm the new time, ${slot}` : `Confirm you'll be there ${slot}`) : `Waiting for ${otherLow} to confirm ${slot}`, held };
+      }
       if (poster) {
         return { step: 2, word: "Hired", next: !posterIn ? "Tap I'm still on to confirm" : `Waiting on ${otherLow} to confirm by ${when(due)}`, held };
       }

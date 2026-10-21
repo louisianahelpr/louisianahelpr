@@ -8,7 +8,7 @@
  * tracker's Confirmed step, and on the server (helper_mark_on_the_way refuses
  * helper_not_dayof_confirmed, 20261008203441).
  *
- * @mutate src/components/JobConfirmation.tsx |   return helperDayofConfirmedAt ?? null; |   return "accept-counted";
+ * @mutate src/components/job-card/helperDayOfConfirmation.ts |   return helperDayofConfirmedAt ?? null; |   return "accept-counted";
  * @mutate src/components/JobTracking.tsx |   const helperHasConfirmed = !!helperDayofConfirmedAt; |   const helperHasConfirmed = !!helperConfirmedAt;
  */
 import { readFileSync } from "node:fs";

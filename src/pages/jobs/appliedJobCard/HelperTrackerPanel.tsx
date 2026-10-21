@@ -1,4 +1,5 @@
 import { JobConfirmation, helperDayOfConfirmation } from "@/components/JobConfirmation";
+import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobDayStart } from "@/lib/jobDate";
 import { JobTracking, type TrackingData } from "@/components/JobTracking";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
@@ -127,6 +128,7 @@ export function HelperTrackerPanel({
    *    and JobConfirmation's helper window are the same number ON PURPOSE — the
    *    gate may only hold while the control that releases it exists.
    */
+  const rescheduled = useJobRescheduled(app.job_id, job.status === "accepted");
   const gateActive =
     !readOnly &&
     (job.status === "accepted" || job.status === "open") &&
@@ -150,6 +152,7 @@ export function HelperTrackerPanel({
       helperOnTheWayAt={job.helper_on_the_way_at}
       onCantMakeIt={onCantMakeIt}
       hideNotYetOpen={hideConfirmNotYetOpen}
+      rescheduled={rescheduled}
     />
   );
 
@@ -174,6 +177,7 @@ export function HelperTrackerPanel({
         includePostingSteps
         jobId={app.job_id}
         helperId={userId}
+        rescheduled={rescheduled}
         posterName={(app as { posterName?: string | null }).posterName ?? null}
         isHelper={!gateActive && !readOnly}
         isOwner={false}

@@ -14,6 +14,7 @@ import {
 import { CheckCircle2, CalendarClock } from "lucide-react";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { slotLabel } from "@/lib/jobProgress";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
@@ -23,43 +24,12 @@ import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // The row's own done-state surface, so the poster's "already confirmed" box
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
-
-/**
- * THE HELPER'S DAY-OF ANSWER, in one place.
- *
- * `helper_confirmed_at` is stamped at ACCEPT time — possibly days early — so it
- * cannot answer "are you still on today?". `helper_dayof_confirmed_at`
- * (migration 20260824213000) is the day-before tap. An accept that itself
- * happened inside the 24h window IS a day-of answer, so it counts.
- *
- * Exported because the merged tracker panel on the helper's card
- * (appliedJobCard/HelperTrackerPanel) gates "I'm on my way" on exactly this
- * value, and a second hand-rolled copy of the rule is how the card and the card
- * it sits inside end up disagreeing about whether the helper has confirmed.
- *
- * Returns the effective STAMP (so callers can print it), or null.
- */
+import { helperDayOfConfirmation } from "@/components/job-card/helperDayOfConfirmation";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
+export { helperDayOfConfirmation };
 
-export function helperDayOfConfirmation({
-  helperDayofConfirmedAt,
-}: {
-  helperConfirmedAt: string | null;
-  helperDayofConfirmedAt?: string | null;
-  dateNeeded: string;
-  /** The job's start. Unused since Q1570 (only the Helpr's own day-before
-   *  stamp counts); kept so callers need not change. An accept 24h37m before a
-   *  2 PM start once read "Helpr: Confirmed" here while the tracker left
-   *  Confirmed unchecked (owner, 2026-10-08, job 5b68bccb). */
-  startTime?: string | null;
-}): string | null {
-  // ACCEPTING NEVER COUNTS (owner, 2026-10-08, Q1570: "both must tap
-  // confirm"): an accept inside the window used to stand in for this tap, so
-  // a same-day job reached On My Way with nobody confirming anything.
-  return helperDayofConfirmedAt ?? null;
-}
 
 export function JobConfirmation({
   jobId,
@@ -79,6 +49,7 @@ export function JobConfirmation({
   embedded = false,
   hideNotYetOpen = false,
   otherFirstName = null,
+  rescheduled = false,
 }: {
   jobId: string;
   isOwner: boolean;
@@ -133,6 +104,9 @@ export function JobConfirmation({
   hideNotYetOpen?: boolean;
   /** The other side's first name, for the poster's status line ("Yusef confirms the day before"). */
   otherFirstName?: string | null;
+  /** The date or time was moved by an accepted change (useJobRescheduled, owner 2026-10-21): both sides
+   *  confirm the NEW slot, and the words say so ("Confirm the new time, Thu 9:00 AM"). */
+  rescheduled?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -444,10 +418,11 @@ export function JobConfirmation({
   const deadlineNotice = !isOwner && isHelper && !myConfirmed && (
     <p
       className="text-ds-10 font-sans font-semibold tabular-nums mb-1.5"
-      style={{ color: "hsl(var(--burnt-sienna))" }}
+      style={{ color: "hsl(var(--ink-deep))" }}
     >
       {deadlineMs > now.getTime()
         ? `Confirm by ${new Date(deadlineMs).toLocaleString("en-US", {
+            timeZone: JOB_TIMEZONE,
             weekday: "short",
             hour: "numeric",
             minute: "2-digit",
@@ -468,6 +443,8 @@ export function JobConfirmation({
    *  declares 44px and renders 61px is a size class the cascade defeated —
    *  the buttonGeometry a11y gate reads `h-auto` as "released on purpose".
    *  The 44px tap-target floor is unchanged. */
+  // MOVED BY AN ACCEPTED CHANGE (owner, 2026-10-21): both sides confirm the NEW slot, and every line names it.
+  const newSlot = rescheduled ? slotLabel(dateNeeded, startTime) : "";
   const confirmCtaClass = "w-full rounded-ds-md h-auto min-h-[44px] text-ds-14";
   const confirmCta = (isOwner || isHelper) && (
     !myConfirmed ? (
@@ -478,7 +455,7 @@ export function JobConfirmation({
         className={confirmCtaClass}
       >
         <CheckCircle2 className="w-3.5 h-3.5 mr-1" />
-        I'm still on
+        {newSlot ? "Confirm" : "I'm still on"}
       </Button>
     ) : null
     /* Poster confirmed: no greyed "Confirm they've arrived" here either (owner, 2026-10-21); the
@@ -486,7 +463,14 @@ export function JobConfirmation({
   );
   // NUDGE (answer 1): while the other side still owes its confirm.
   const otherUnconfirmed = isOwner ? !helperDayOf : isHelper ? !posterConfirmedAt : false;
-  const waitingWords = `Waiting on ${otherFirstName || "your Helpr"} to confirm by ${new Date(deadlineMs).toLocaleString("en-US", { timeZone: JOB_TIMEZONE, weekday: "short", hour: "numeric", minute: "2-digit" })}`;
+  const waitingWords = newSlot
+    ? `Waiting for ${otherFirstName || "your Helpr"} to confirm ${newSlot}`
+    : `Waiting on ${otherFirstName || "your Helpr"} to confirm by ${new Date(deadlineMs).toLocaleString("en-US", { timeZone: JOB_TIMEZONE, weekday: "short", hour: "numeric", minute: "2-digit" })}`;
+  const rescheduleNote = newSlot && !myConfirmed && (isOwner || isHelper) ? (
+    <p className="font-sans text-ds-10 font-semibold" data-new-time-confirm-note="" style={{ color: "hsl(var(--ink-deep))" }}>
+      {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`}
+    </p>
+  ) : null;
   const nudgeLine = showConfirmation && otherUnconfirmed && jobStatus === "accepted" ? (
     // The poster's one status line carries the Nudge (owner, 2026-10-21): "Waiting on Yusef to confirm, by Sat 7 AM · Nudge".
     <NudgeConfirmLink jobId={jobId} otherLabel={isOwner ? otherFirstName || "Your Helpr" : "The person who posted it"} lead={isOwner && myConfirmed ? waitingWords : undefined} />
@@ -527,7 +511,7 @@ export function JobConfirmation({
       !myConfirmed ? (
         <JobStepPrimaryButton
           icon={CheckCircle2}
-          label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+          label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
           onClick={() => setShowConfirmDialog(true)}
         />
       ) : null
@@ -537,7 +521,7 @@ export function JobConfirmation({
     );
     return (
       <>
-        <JobStepRowSlot slot="note">{deadlineNotice}{posterNextNote}{nudgeLine}</JobStepRowSlot>
+        <JobStepRowSlot slot="note">{rescheduleNote}{deadlineNotice}{posterNextNote}{nudgeLine}</JobStepRowSlot>
         <JobStepRowSlot slot="primary">{rowCta}</JobStepRowSlot>
         {confirmDialog}
       </>
@@ -576,11 +560,12 @@ export function JobConfirmation({
           className="font-sans text-ds-11"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          {jobDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
+          {jobDate.toLocaleDateString("en-US", { timeZone: JOB_TIMEZONE, weekday: "long", month: "short", day: "numeric" })}
           {hoursUntilJob > 0 && ` · ${urgencyText} away`}
         </p>
 
         {/* No You/Helpr Confirmed chips or receipt (owner, 2026-10-08). */}
+        {rescheduleNote}
         {deadlineNotice}
         {confirmCta}
         {posterNextNote}

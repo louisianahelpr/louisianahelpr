@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 898,
-    "files": 224,
-    "rendering": 782,
+    "calls": 900,
+    "files": 225,
+    "rendering": 784,
     "suppressedByPolicy": 116,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 63,
-      "toast.error": 651,
+      "toast": 64,
+      "toast.error": 652,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 424,
+      "literal": 425,
       "template": 97,
-      "dynamic": 425,
+      "dynamic": 426,
       "jsx": 0
     }
   },
@@ -5918,17 +5918,17 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 95,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign Out Everywhere again."
+        "text": "Signed out on this device. We couldn't confirm your other devices. Sign in and use Sign out everywhere again."
       },
       "renders": true
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 138,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5938,11 +5938,31 @@
     },
     {
       "file": "src/components/profile/SecurityTab.tsx",
-      "line": 158,
+      "line": 159,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
         "text": "Check ${trimmed} to confirm your new address."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SettingsTab.tsx",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "mutationErrorMessage(err, \"Couldn't save that setting. Please try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/SettingsTab.tsx",
+      "line": 170,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Keep at least one section on"
       },
       "renders": true
     },
@@ -6091,7 +6111,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 158,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6108,7 +6128,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 162,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6118,7 +6138,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 195,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6128,7 +6148,7 @@
     },
     {
       "file": "src/components/profile/SupportInline.tsx",
-      "line": 235,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6138,7 +6158,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 267,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6148,7 +6168,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 392,
+      "line": 388,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6158,7 +6178,7 @@
     },
     {
       "file": "src/components/profile/TwoFactorCard.tsx",
-      "line": 398,
+      "line": 394,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8926,7 +8946,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 338,
+      "line": 320,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8936,7 +8956,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 717,
+      "line": 699,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10646,7 +10666,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 373,
+      "line": 367,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10656,7 +10676,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 397,
+      "line": 391,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10666,7 +10686,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 418,
+      "line": 412,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10676,7 +10696,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 499,
+      "line": 493,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10696,7 +10716,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 514,
+      "line": 508,
       "kind": "toast.error",
       "title": {
         "form": "literal",

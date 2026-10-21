@@ -43,7 +43,10 @@ function wrappingTag(src: string, at: number): string | null {
 function scan(): { sites: number; bad: string[] } {
   let sites = 0;
   const bad: string[] = [];
-  for (const rel of trackedFiles("src")) {
+  const files = trackedFiles("src");
+  // Vacuity floor (#2894): 3905 tracked files under src/ on 2026-10-21; an empty walk is a broken guard.
+  expect(files.length).toBeGreaterThan(3000);
+  for (const rel of files) {
     if (!rel.endsWith(".tsx") || rel.startsWith("src/test/") || /\.test\.tsx$/.test(rel)) continue;
     const src = blankComments(fs.readFileSync(path.join(ROOT, rel), "utf8"));
     for (const m of src.matchAll(LABEL)) {

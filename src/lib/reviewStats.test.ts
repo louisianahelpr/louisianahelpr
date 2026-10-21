@@ -3,6 +3,8 @@
  * source; only a not-deployed RPC (PGRST202) falls back to the direct read,
  * which still applies the reveal window and published status. Any other error
  * throws, never an empty Map that reads as "never reviewed".
+ *
+ * @mutate src/lib/reviewStats.ts |   if ((statsRes.error as { code?: string } \| null)?.code !== "PGRST202") { |   if (!statsRes.error) {
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

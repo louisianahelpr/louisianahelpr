@@ -3,6 +3,8 @@
  * the Saved list. Before db-deploy has created the table and RPCs, PostgREST
  * answers PGRST205 / PGRST202 and that reads as "nothing saved"; any other
  * error surfaces (never an empty list that hides a real failure).
+ *
+ * @mutate src/lib/rentals/savedHomes.ts | (error as { code: unknown }).code === "PGRST205"); | (error as { code: unknown }).code !== undefined);
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

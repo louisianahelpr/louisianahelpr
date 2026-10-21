@@ -42,6 +42,8 @@ describe("each Browse list renders it", () => {
     ["src/components/shops/ShopsHomeView.tsx", /<BrowseEndCard \/>/],
     ["src/components/rentals/listings/RentBrowse.tsx", /<BrowseEndCard \/>/],
   ];
+  // Vacuity floor (#2894): the four Browse lists (Jobs, Declutter, Shops, Homes), never an empty list.
+  it("checks all four Browse lists", () => expect(FILES.length).toBe(4));
   for (const [f, re] of FILES) it(f, () => expect(src(f)).toMatch(re));
   it("only Jobs offers alerts", () => {
     for (const [f] of FILES.slice(1)) expect(src(f)).not.toMatch(/<BrowseEndCard[^>]*onAlerts/);

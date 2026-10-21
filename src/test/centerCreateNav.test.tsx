@@ -276,6 +276,7 @@ describe("Explore", () => {
 
   it("every section screen carries the switcher (SectionScreen for three, JobsSection for Jobs)", () => {
     const screens = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"];
+    expect(screens.length).toBe(3); // vacuity floor (#2894)
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
     expect(code("src/pages/jobs/JobsSection.tsx")).toContain('<ExploreSwitcher current="jobs" />');
     expect(code("src/components/sections/SectionScreen.tsx")).toContain("{section && <ExploreSwitcher current={section} />}");

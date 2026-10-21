@@ -45,7 +45,7 @@ describe("AiJobBuilder", () => {
   it("toasts an error when prompt is empty", () => {
     render(<AiJobBuilder onGenerated={vi.fn()} />);
     fireEvent.click(screen.getByText(/Try the AI Job Builder/));
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Fill in my job/ }));
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("Describe what you need"));
     expect(invokeMock).not.toHaveBeenCalled();
   });
@@ -63,7 +63,7 @@ describe("AiJobBuilder", () => {
     fireEvent.click(screen.getByText(/Try the AI Job Builder/));
     const textarea = screen.getByPlaceholderText(/I need help/i);
     fireEvent.change(textarea, { target: { value: "Need help raking my yard" } });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Fill in my job/ }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalled());
     expect(invokeMock).toHaveBeenCalledWith("ai-job-builder", {
       body: {
@@ -89,7 +89,7 @@ describe("AiJobBuilder", () => {
     fireEvent.change(screen.getByPlaceholderText(/I need help/i), {
       target: { value: "anything" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Fill in my job/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     const msg = toastError.mock.calls[0][0] as string;
     expect(msg).toMatch(/busy right now/);
@@ -105,7 +105,7 @@ describe("AiJobBuilder", () => {
     fireEvent.change(screen.getByPlaceholderText(/I need help/i), {
       target: { value: "anything" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /Generate Job Posting/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Fill in my job/ }));
     await waitFor(() => expect(toastError).toHaveBeenCalled());
     expect(toastError).toHaveBeenCalledWith(expect.stringContaining("bit more detail"));
     expect(onGenerated).not.toHaveBeenCalled();

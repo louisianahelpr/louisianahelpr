@@ -15,7 +15,7 @@ export interface FormSpec {
   url: string;
   /** null = signed out */
   as: Account | null;
-  /** Get from the URL to the form itself (e.g. press "Start Fresh"). */
+  /** Get from the URL to the form itself (e.g. press "Start from scratch"). */
   prepare?: (page: Page) => Promise<void>;
   /** Inventory files this form exercises. */
   covers: string[];
@@ -432,7 +432,7 @@ export const FORMS: FormSpec[] = [
   },
   {
     name: "post-job", url: "/post-job", as: "poster",
-    prepare: async (page) => { await pressIfPresent(page, /start fresh/i); },
+    prepare: async (page) => { await pressIfPresent(page, /start from scratch/i); await pressIfPresent(page, /^home/i); await pressIfPresent(page, /^cleaning$/i); },
     covers: ["src/components/postjob/detailsSection/TitleField.tsx", "src/components/postjob/detailsSection/DescriptionField.tsx"],
   },
   // The feed moved to Jobs > Browse (2026-10-19, Q2205): at phone width its search is the permanent compact row.
@@ -702,13 +702,12 @@ export const FORMS: FormSpec[] = [
     covers: ["src/components/profile/CredentialsTab.tsx"],
   },
   {
-    // The AI builder is a collapsed card on the post-job ENTRY step
-    // (EntryChoice.tsx), so this does not press "Start Fresh".
+    // The AI builder opens from step 0's "Get help from AI" card (EntryChoice.tsx).
     name: "ai-job-builder", url: "/post-job", as: "poster",
     prepare: async (page) => {
-      const toggle = page.locator("button[aria-expanded]").filter({ hasText: /let ai fill/i }).first();
-      await toggle.waitFor({ timeout: 20_000 });
-      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      const card = page.getByRole("button", { name: /^get help from ai/i });
+      await card.waitFor({ timeout: 20_000 });
+      await card.click();
       await page.getByRole("textbox", { name: /^describe your job$/i }).waitFor({ timeout: 10_000 });
     },
     covers: ["src/components/postjob/AiJobBuilder.tsx"],

@@ -6,7 +6,8 @@ import { safeStorage } from "@/lib/safeStorage";
 import { defaultRequirePhotoProof } from "@/lib/photoProofDefaults";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import type { Step } from "./postJobFormTypes";
+import type { EntryPanel, Step } from "./postJobFormTypes";
+import type { JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { useJobMediaUpload } from "./useJobMediaUpload";
 import { useJobSubmit } from "./useJobSubmit";
 import { useJobEntry } from "./useJobEntry";
@@ -57,6 +58,14 @@ export function usePostJobForm() {
   // Which of the form's four screens is showing (1 What, 2 Details, 3 Price,
   // 4 When and where; screen 5 is the checkout step). Boards 23/44/3/45/46.
   const [formPage, setFormPage] = useState(1);
+  // Step 0's chosen way to start, shown in place of the four cards (owner 2026-10-21: "tapping goes
+  // straight on"). `?start=ai` (the create sheet's "Or just describe the job") opens the AI builder.
+  const [entryPanel, setEntryPanel] = useState<EntryPanel | null>(() =>
+    searchParams.get("start") === "ai" ? "ai" : null,
+  );
+  // Screen 1b: the group whose categories are showing (owner 2026-10-21: 8 groups first, a tap opens
+  // that group's categories, a category tap goes on to Details).
+  const [categoryGroup, setCategoryGroup] = useState<JobCategoryGroupId | null>(null);
 
   // Gift card — the gift card this post is being funded with, if any.
   // Read ONCE here so the id that goes to create-payment and the amount the
@@ -496,7 +505,13 @@ export function usePostJobForm() {
   });
 
   const handlePostJobBack = () => {
-    if (step === "form" && formPage > 1) {
+    if (step === "entry" && entryPanel) {
+      // Back from a way to start is the four cards.
+      setEntryPanel(null);
+    } else if (step === "form" && formPage === 1 && categoryGroup) {
+      // Back from a group's categories (1b) is the groups.
+      setCategoryGroup(null);
+    } else if (step === "form" && formPage > 1) {
       // Back steps through the form's screens; entered data stays (state
       // lives here, every screen stays mounted).
       setFormPage((p) => p - 1);
@@ -514,6 +529,7 @@ export function usePostJobForm() {
       // Back out of the form to the entry landing — unless the form was
       // reached via a deep link that has no entry screen behind it.
       setFormPage(1);
+      setCategoryGroup(null);
       setStep("entry");
       requestAnimationFrame(() => {
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -529,6 +545,10 @@ export function usePostJobForm() {
     setStep,
     formPage,
     setFormPage,
+    entryPanel,
+    setEntryPanel,
+    categoryGroup,
+    setCategoryGroup,
     handlePostJobBack,
     // overlay / status
     saving,

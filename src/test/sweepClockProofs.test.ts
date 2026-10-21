@@ -27,6 +27,8 @@
  *   grace 3 / 12 h poster alert 3, no-show 6 h 3 / 30 min 3, backout notice
  *   30 min 3 / re-push 2 h 3 / 24 h window 6, last chance 22 h 3 / 24 h 3,
  *   repost 2 h 3 / reminder 3 h 3; Central read as UTC 51)
+ *   node src/test/pglite/idvReviewWaitingClock.pglite.mjs  (11 PASS; FAIL on: 24 h wait
+ *   made inclusive 3 / once-a-day repeat made inclusive 3 / 24 h -> 23 h 4)
  *
  * @mutate src/test/sweepClockProofs.test.ts | sweep_old_notifications: "sweepClockBoundaries.pglite.mjs",\n  sweep_open_ban | sweep_old_notification: "sweepClockBoundaries.pglite.mjs",\n  sweep_open_ban
  * @mutate src/test/sweepClockProofs.test.ts | const PROVEN: Record<string, string> = {\n | const PROVEN: Record<string, string> = {\n  sweep_gone_long_ago: "sweepClockBoundaries.pglite.mjs",\n
@@ -55,6 +57,7 @@ const PROVEN: Record<string, string> = {
   sweep_dayof_confirm_reminders: "sweepCentralStartClock.pglite.mjs",
   sweep_dead_crons: "sweepCronMonitorClock.pglite.mjs",
   sweep_expired_auto_bans: "sweepClockBoundaries.pglite.mjs",
+  sweep_idv_review_waiting: "idvReviewWaitingClock.pglite.mjs",
   sweep_job_match_queue: "sweepNotifyQueueClock.pglite.mjs",
   sweep_job_start_reminders: "sweepClockBoundaries.pglite.mjs",
   sweep_no_show_alerts: "sweepCentralStartClock.pglite.mjs",

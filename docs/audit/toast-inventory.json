@@ -6004,7 +6004,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 94,
+      "line": 103,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6014,7 +6014,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 170,
+      "line": 183,
       "kind": "toast",
       "title": {
         "form": "literal",

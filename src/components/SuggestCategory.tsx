@@ -63,7 +63,7 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
         type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 min-h-[44px] text-ds-12 font-sans font-semibold link-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-sm"
-        style={{ color: "hsl(var(--burnt-sienna))" }}
+        style={{ color: "hsl(var(--bark))" }}
       >
         <Lightbulb className="w-3.5 h-3.5" aria-hidden />
         Don&apos;t see yours? Suggest a category

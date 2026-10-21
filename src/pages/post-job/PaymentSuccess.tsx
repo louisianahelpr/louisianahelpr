@@ -330,11 +330,15 @@ const PaymentSuccess = () => {
         // Q1788: the stepper and the primary follow the job's real stage.
         setJobStatus(typeof data.status === "string" ? data.status : null);
         // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
-        void fetchJobOfferTargets([resolvedJobId]).then((m) => { if (!cancelled) setDirectOffer(m.has(resolvedJobId)); });
 
         const status = data.payment_status;
         if (status && HELD_STATUSES.has(status)) {
           if (status === "released") setAlreadyReleased(true);
+          // Once, only when held, and awaited before the held state: a direct offer never flashes
+          // "Your job is live" first (money review notes, 2026-10-21).
+          const offerTargets = await fetchJobOfferTargets([resolvedJobId]);
+          if (cancelled) return;
+          setDirectOffer(offerTargets.has(resolvedJobId));
           setConfirmState("held");
           return;
         }

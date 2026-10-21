@@ -160,7 +160,6 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
         // disabled preference — the CHECK constraint enforces this too.
         auto_tip_value: mode === "off" ? null : numericValue,
         auto_tip_cap: mode === "percent" ? numericCap : null,
-        auto_release_on_complete: autoRelease,
       })
       .eq("user_id", user.id)
       .select("user_id");
@@ -175,10 +174,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
         tags: { source: "AutoTip.save" },
         context: { user_id: user.id, mode },
       });
-      // "these settings", not "your auto-tip": one Save persists BOTH the tip
-      // and the release toggle, so naming only the tip left a poster who had just
-      // flipped Instant Release unsure whether that half had landed.
-      toast.error("Couldn't save these settings", {
+      // Save persists only the tip amount and cap (the switches save on flip).
+      toast.error("Couldn't save your tip amount", {
         description: "We couldn't reach your profile. Try again in a moment.",
       });
       return;
@@ -246,13 +243,71 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
     setMode(m);
     setValue("");
   };
-  const toggleOn = (next: boolean) => {
-    void hapticLight();
-    if (next) setMode(lastOnMode.current);
-    else {
-      lastOnMode.current = mode === "off" ? lastOnMode.current : mode;
-      setMode("off");
+  // Audit #41 (lead 2026-10-21): the two SWITCHES save the moment they flip,
+  // like every other settings switch; the tip AMOUNT and cap keep the explicit
+  // Save below (money is never saved on blur). Optimistic, reverted on failure.
+  type SwitchPatch = { auto_tip_mode?: Mode; auto_tip_value?: number | null; auto_tip_cap?: number | null; auto_release_on_complete?: boolean };
+  const writeNow = async (patch: SwitchPatch, source: string): Promise<boolean> => {
+    if (!user?.id) {
+      toast.error("You're signed out — sign in again to change this.");
+      return false;
     }
+    const { data: updated, error } = await supabase
+      .from("profiles")
+      .update(patch)
+      .eq("user_id", user.id)
+      .select("user_id");
+    if (error || !updated || updated.length === 0) {
+      report(error ?? new Error("AutoTip switch update matched no rows"), { tags: { source }, context: { user_id: user.id } });
+      toast.error("Couldn't save that change — try again?");
+      return false;
+    }
+    void refresh();
+    return true;
+  };
+
+  // One write in flight per switch: a second flip waits for the first to land,
+  // so the screen and the database can never end up disagreeing (money review).
+  const [tipBusy, setTipBusy] = useState(false);
+  const [releaseBusy, setReleaseBusy] = useState(false);
+
+  const toggleOn = async (next: boolean) => {
+    void hapticLight();
+    const nextMode: Mode = next ? lastOnMode.current : "off";
+    if (next) {
+      // Turning on saves the amount shown. If it (or the cap) is not a valid
+      // amount, the switch stays OFF and says why: never "on" over a database
+      // that says off (money review).
+      const onLimits = nextMode === "percent" ? LIMITS.percent : LIMITS.fixed;
+      const amountOk = Number.isFinite(numericValue) && numericValue >= onLimits.min && numericValue <= onLimits.max;
+      const capOk = nextMode !== "percent" || numericCap === null
+        || (Number.isFinite(numericCap) && numericCap >= LIMITS.cap.min && numericCap <= LIMITS.cap.max);
+      if (!amountOk || !capOk) {
+        toast.error(!amountOk ? "Pick a tip amount first." : "Fix the maximum per job first.");
+        return;
+      }
+    }
+    const before = mode;
+    if (!next) lastOnMode.current = mode === "off" ? lastOnMode.current : mode;
+    setMode(nextMode);
+    setTipBusy(true);
+    const ok = await writeNow(
+      next
+        ? { auto_tip_mode: nextMode, auto_tip_value: numericValue, auto_tip_cap: nextMode === "percent" ? numericCap : null }
+        : { auto_tip_mode: "off", auto_tip_value: null, auto_tip_cap: null },
+      "AutoTip.toggle",
+    );
+    setTipBusy(false);
+    if (!ok) setMode(before);
+  };
+
+  const toggleRelease = async (next: boolean) => {
+    void hapticLight();
+    setAutoRelease(next);
+    setReleaseBusy(true);
+    const ok = await writeNow({ auto_release_on_complete: next }, "AutoTip.release");
+    setReleaseBusy(false);
+    if (!ok) setAutoRelease(!next);
   };
 
   return (
@@ -276,7 +331,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
             </div>
             <Switch
               checked={on}
-              onCheckedChange={toggleOn}
+              onCheckedChange={(v) => void toggleOn(v)}
+              disabled={tipBusy}
               aria-labelledby="auto-tip-heading"
               aria-describedby="auto-tip-desc"
               className="shrink-0"
@@ -406,8 +462,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
         </div>
 
         {/* Instant release: its own card, same row shape as the auto-tip switch
-            above. Save still persists both in one write (they're one profile
-            row). Safe to offer because completion is DB-gated (photos + 30-min
+            above. It saves the moment it flips (audit #41). Safe to offer because completion is DB-gated (photos + 30-min
             floor, 20260824235000); release fires on the next auto-release pass,
             which runs every 30 minutes. */}
         <section className="liquid-glass rounded-ds-md p-card flex items-center justify-between gap-3">
@@ -422,21 +477,26 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           </div>
           <Switch
             checked={autoRelease}
-            onCheckedChange={setAutoRelease}
+            onCheckedChange={(v) => void toggleRelease(v)}
+            disabled={releaseBusy}
             aria-labelledby="instant-release-heading"
             aria-describedby="instant-release-desc"
             className="shrink-0"
           />
         </section>
 
+        {/* Only the tip AMOUNT needs Save (the switches save on flip), so
+            the button shows only while a tip is on (audit #41). */}
+        {mode !== "off" && (
         <Button
           variant="primary"
           onClick={() => void save()}
-          disabled={saving || justSaved || !valueValid || !capValid}
+          disabled={saving || justSaved || tipBusy || !valueValid || !capValid}
           className="w-full rounded-full"
         >
-          {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" strokeWidth={3} aria-hidden /> Saved</>) : "Save"}
+          {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" strokeWidth={3} aria-hidden /> Saved</>) : "Save tip amount"}
         </Button>
+        )}
       </div>
     </ProfileTabBody>
   );

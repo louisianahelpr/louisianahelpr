@@ -129,8 +129,11 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">Posting a job:</strong> {POSTER_PAYS_SENTENCE}</p>
             <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each Helpr's pay, deducted from the payout, the same on every plan; it covers card processing. A job paid for before October 15, 2026 keeps the fee it was paid under. Every payout is rounded down to the whole dollar.</p>
-
-            <p><strong className="text-foreground">Total platform take:</strong> the Helpr fee above.</p>
+            {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
+                fee list. Quoted from platform_settings via feeLabel (the number
+                release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is added at that checkout instead. It is never charged twice.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the Helpr fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the Helpr fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.
@@ -309,7 +312,7 @@ export const TermsContent = () => {
         icon={Receipt}
         title="Platform (Helpr, LLC)"
         body={
-          <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met — {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions, for 2025 and later. (The One Big Beautiful Bill repealed the planned $2,500 and $600 step-downs, so this threshold does not drop in 2026.) The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
+          <p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met — {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions, for 2025 and later. (The One Big Beautiful Bill repealed the planned $2,500 and $600 step-downs, so this threshold does not drop in 2026.) The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
         }
       />
       <PolicyRowItem

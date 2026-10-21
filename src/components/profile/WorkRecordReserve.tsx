@@ -47,7 +47,7 @@ function Ghost({ className, children }: { className?: string; children: ReactNod
   );
 }
 
-const FIELD_LABEL = "text-ds-10 font-sans font-semibold uppercase tracking-wider mb-0.5";
+const FIELD_LABEL = "text-ds-12 font-sans mb-0.5";
 /** [label, stand-in value, the value's type style on the sheet] */
 const IDENTITY: Array<[string, string, string]> = [
   ["Issued to", "Helpr Member", "text-ds-14 font-semibold"],
@@ -62,11 +62,11 @@ const IDENTITY: Array<[string, string, string]> = [
  * sheet downward, never collapses it.
  */
 const STATS: Array<[string, string]> = [
-  ["Jobs Completed", "0"],
-  ["Total Earnings", "$0"],
-  ["Active Period", "—"],
-  // One line, like "4.0 (1)"; "No reviews yet" can wrap in a 114px tile.
-  ["Avg Rating", "—"],
+  ["Jobs completed", "0"],
+  ["Total earnings", "$0"],
+  ["Active period", "—"],
+  // One line, like "4.0 (1)"; "No reviews yet" can wrap.
+  ["Average rating", "—"],
 ];
 
 export function WorkRecordReserve() {
@@ -78,7 +78,7 @@ export function WorkRecordReserve() {
             <div data-testid="work-record-reserve-mark" className="min-h-11 flex items-center">
               <Skeleton className="h-6 w-36 rounded" />
             </div>
-            <Ghost className="font-display font-bold mt-3 text-ds-20 leading-tight">Employment &amp; Earnings Record</Ghost>
+            <Ghost className="font-sans font-bold mt-3 text-ds-20 leading-tight">Employment and earnings record</Ghost>
             <Ghost className="font-sans text-ds-12 mt-0.5">Generated September 30, 2026</Ghost>
           </div>
           <Skeleton className="shrink-0 w-14 h-14 rounded-ds-lg" />
@@ -96,15 +96,15 @@ export function WorkRecordReserve() {
       </div>
       <div style={hairline}>
         <div className="doc-band px-5 py-2">
-          <Ghost className="font-sans uppercase text-ds-9">Work Summary</Ghost>
+          <Ghost className="font-sans font-semibold text-ds-12">Work summary</Ghost>
         </div>
         <div className="px-5 py-4">
           <div className="grid grid-cols-2 gap-4">
             {STATS.map(([label, value]) => (
-              <div key={label} className="doc-tile rounded-ds-md px-3 py-2.5">
-                <div className="flex items-center gap-1.5 mb-1">
+              <div key={label} data-stat className="py-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
                   <Skeleton data-testid="work-record-reserve-stat-icon" className="w-4 h-4 rounded shrink-0" />
-                  <Ghost className="text-ds-10 font-sans font-semibold uppercase tracking-wider">{label}</Ghost>
+                  <Ghost className="text-ds-12 font-sans">{label}</Ghost>
                 </div>
                 <Ghost className="text-ds-15 font-bold leading-tight">{value}</Ghost>
               </div>

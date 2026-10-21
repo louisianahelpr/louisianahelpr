@@ -88,7 +88,7 @@ export function GiftCardPreview({
           {/* ── Who it's from + why ─────────────────────────────────────── */}
           <div className="min-w-0 flex items-start justify-between gap-2">
             <span
-              className={`shrink-0 font-display font-bold leading-none ${compact ? "text-ds-13" : "text-ds-16"}`}
+              className={`shrink-0 font-sans font-bold leading-none ${compact ? "text-ds-13" : "text-ds-16"}`}
               style={{ color: design.ink, letterSpacing: "-0.02em" }}
             >
               Helpr
@@ -96,8 +96,8 @@ export function GiftCardPreview({
             <div className="flex items-center gap-1.5 min-w-0">
               {occasionLabel && (
                 <span
-                  className="font-sans font-semibold uppercase truncate text-ds-9"
-                  style={{ color: design.ink, opacity: 0.7, letterSpacing: "0.08em" }}
+                  className="font-sans font-semibold truncate text-ds-11"
+                  style={{ color: design.ink, opacity: 0.8 }}
                 >
                   {occasionLabel}
                 </span>

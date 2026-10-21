@@ -324,9 +324,9 @@ function workRecordStats(
   input: WorkRecordDocumentInput,
 ): { label: string; value: string }[] {
   return [
-    { label: "Jobs Completed", value: String(input.jobsCompleted) },
+    { label: "Jobs completed", value: String(input.jobsCompleted) },
     {
-      label: "Total Earnings",
+      label: "Total earnings",
       // EXACT, exactly as the on-screen tile is (both changed 2026-09-06).
       // `formatPriceFloor` is for money OWED — it exists so a quote can never
       // read above the payout that follows. Nothing here is owed: this is a
@@ -336,9 +336,9 @@ function workRecordStats(
       // favour. Whole amounts still print without cents.
       value: `$${formatPriceExact(input.totalEarnings)}`,
     },
-    { label: "Active Period", value: activePeriod(input) },
+    { label: "Active period", value: activePeriod(input) },
     {
-      label: "Avg Rating",
+      label: "Average rating",
       value:
         input.avgRating !== null
           ? `${input.avgRating.toFixed(1)} (${input.reviewCount})`
@@ -375,7 +375,7 @@ export type WorkRecordFile = PdfFile;
  */
 export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promise<WorkRecordFile> {
   const { doc, ink, rule, label, band, fitLines } = await createLetterheadPdf(
-    "Employment & Earnings Record",
+    "Employment and earnings record",
     `Generated ${formatLongDate(input.generatedAt)}`,
   );
 

@@ -80,29 +80,19 @@ export function CreditCard({
   // Moot once the money is spent — only unredeemed cards can still lapse.
   const showExpiry = expiresAt !== null && credit.status !== "redeemed";
   return (
-    <div
-      className="rounded-ds-md p-4"
-      style={{
-        background:
-          "radial-gradient(circle at 15% 0%, var(--gift-sheen) 0%, transparent 55%), " +
-          "linear-gradient(180deg, hsl(var(--gift-card-from)) 0%, hsl(var(--gift-card-to)) 100%)",
-        border: "0.5px solid hsl(var(--gift-tint) / 0.22)",
-        boxShadow:
-          "inset 0 1px 1px 0 rgba(255,255,255,0.5), " +
-          "0 1px 3px hsl(var(--gift-tint) / 0.08)",
-      }}
-    >
+    // Spec v2 rebuild (audit 2026-10-21): the one card (white, 20px, 1px
+    // line border). The amount is money, so it is rust; no green box.
+    <div className="rounded-[20px] border border-border bg-card p-4">
       <div className="flex items-start justify-between gap-2 mb-2">
         <div>
           <p
-            className="font-display font-bold leading-tight text-ds-22"
-            style={{ color: "hsl(var(--gift-ink))", letterSpacing: "-0.02em" }}
+            className="font-sans font-bold leading-tight text-ds-22 tabular-nums"
+            style={{ color: "hsl(var(--accent-ink))", letterSpacing: "-0.02em" }}
           >
             ${formatPrice(Number(credit.amount))}
           </p>
           <p
-            className="font-sans mt-0.5 text-ds-12"
-            style={{ color: "hsl(var(--gift-green-soft))" }}
+            className="font-sans mt-0.5 text-ds-12 text-muted-foreground"
           >
             {subline}
           </p>
@@ -112,13 +102,8 @@ export function CreditCard({
 
       {showExpiry && (
         <p
-          className="font-sans text-ds-11 font-semibold uppercase mb-2"
-          style={{
-            color: isExpired
-              ? "hsl(var(--burnt-sienna))"
-              : "hsl(var(--gift-green-soft))",
-            letterSpacing: "0.06em",
-          }}
+          className="font-sans text-ds-12 mb-2"
+          style={{ color: isExpired ? "hsl(var(--alert-ink))" : "hsl(var(--muted-foreground))" }}
         >
           {isExpired ? "Expired" : "Expires"} {formatShortDate(expiresAt)}
         </p>
@@ -137,12 +122,8 @@ export function CreditCard({
         <Button
           size="sm"
           onClick={() => onRedeem(credit.id)}
-          className="w-full rounded-ds-sm font-sans font-semibold text-ds-13"
-          style={{
-            background: "hsl(var(--success-ink))",
-            color: "hsl(var(--parchment))",
-            border: "none",
-          }}
+          variant="primary"
+          className="w-full rounded-full font-sans font-semibold text-ds-13"
         >
           Use this gift
         </Button>
@@ -153,12 +134,8 @@ export function CreditCard({
           size="sm"
           disabled={claiming}
           onClick={() => onClaim(credit.claim_token as string)}
-          className="w-full rounded-ds-sm font-sans font-semibold text-ds-13"
-          style={{
-            background: "hsl(var(--success-ink))",
-            color: "hsl(var(--parchment))",
-            border: "none",
-          }}
+          variant="primary"
+          className="w-full rounded-full font-sans font-semibold text-ds-13"
         >
           {claiming ? "Claiming…" : "Claim this gift"}
         </Button>

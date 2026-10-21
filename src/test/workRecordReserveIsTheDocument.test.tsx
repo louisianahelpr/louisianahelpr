@@ -28,7 +28,7 @@ describe("Work record waits in the shape of its document", () => {
     const sheet = screen.getByTestId("work-record-reserve");
     expect(sheet.classList.contains("doc-card")).toBe(true);
     expect(screen.queryByTestId("profile-tab-fallback")).toBeNull();
-    expect(container.querySelectorAll(".doc-tile")).toHaveLength(4);
+    expect(container.querySelectorAll("[data-stat]")).toHaveLength(4);
     expect(container.querySelectorAll(".doc-band")).toHaveLength(1);
   });
 
@@ -45,9 +45,9 @@ describe("Work record waits in the shape of its document", () => {
     expect(sheetSrc).toContain("{WORK_RECORD_ID_FIELD}");
     // Header: the mark's 44px link box (HelprMark min-h-11), and the date as a text-ds-12 line.
     expect(screen.getByTestId("work-record-reserve-mark").className).toContain("min-h-11");
-    expect([...container.querySelectorAll("p.text-ds-12")].map((p) => p.textContent)).toEqual([
+    expect([...container.querySelectorAll("p.text-ds-12")].map((p) => p.textContent)).toContainEqual(
       expect.stringMatching(/^Generated /),
-    ]);
+    );
     // Stat tiles: each label sits beside an icon-sized bone, as StatBlock's does.
     expect(screen.getAllByTestId("work-record-reserve-stat-icon")).toHaveLength(4);
   });

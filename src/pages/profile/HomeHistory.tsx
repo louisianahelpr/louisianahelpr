@@ -309,7 +309,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
     // matching every other tab. Profile.tsx owns the AppShell and the centered
     // content column that used to come from AppPage.
     <ProfileTabBody>
-      <ProfileTabHeader title="Home History" onBack={onBack} />
+      <ProfileTabHeader title="Home history" onBack={onBack} />
       {/* The shared section rhythm (--section-gap, Q191) between the
           per-year timeline sections — was a hand-typed space-y-5. */}
       <div className="space-y-section">

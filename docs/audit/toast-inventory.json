@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 908,
-    "files": 233,
-    "rendering": 790,
+    "calls": 906,
+    "files": 232,
+    "rendering": 788,
     "suppressedByPolicy": 118,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 64,
-      "toast.error": 658,
+      "toast.error": 656,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 427,
+      "literal": 426,
       "template": 97,
-      "dynamic": 433,
+      "dynamic": 432,
       "jsx": 0
     }
   },
@@ -37,7 +37,7 @@
     },
     {
       "file": "src/components/AwardGateDialog.tsx",
-      "line": 89,
+      "line": 90,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1628,26 +1628,6 @@
       "title": {
         "form": "dynamic",
         "text": "userFacingError(err, \"Couldn't send your tip — try again?\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/W9CollectionDialog.tsx",
-      "line": 68,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "We couldn't record your signature right now — try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/W9CollectionDialog.tsx",
-      "line": 70,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "userFacingError(err, \"We couldn't record that signature — try again.\")"
       },
       "renders": true
     },
@@ -5414,7 +5394,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 152,
+      "line": 148,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5424,7 +5404,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 156,
+      "line": 152,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5434,7 +5414,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 363,
+      "line": 359,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5444,7 +5424,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 371,
+      "line": 367,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5454,7 +5434,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 382,
+      "line": 378,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5464,7 +5444,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 388,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5474,7 +5454,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 392,
+      "line": 388,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5484,7 +5464,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 550,
+      "line": 502,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5494,7 +5474,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 556,
+      "line": 508,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5504,7 +5484,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 565,
+      "line": 517,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5514,7 +5494,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 569,
+      "line": 521,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5524,7 +5504,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 603,
+      "line": 555,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5534,7 +5514,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 607,
+      "line": 559,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5544,7 +5524,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 620,
+      "line": 572,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5554,7 +5534,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 635,
+      "line": 587,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -5564,7 +5544,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 643,
+      "line": 595,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -5574,7 +5554,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 667,
+      "line": 619,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10011,7 +9991,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 204,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10025,7 +10005,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10039,7 +10019,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 394,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10049,7 +10029,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 401,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10059,7 +10039,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 410,
+      "line": 411,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10069,7 +10049,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 412,
+      "line": 413,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10079,7 +10059,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 416,
+      "line": 417,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10089,7 +10069,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 422,
+      "line": 423,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10099,7 +10079,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 424,
+      "line": 425,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10109,7 +10089,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 425,
+      "line": 426,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10119,7 +10099,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 429,
+      "line": 430,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10129,7 +10109,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 430,
+      "line": 431,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10139,7 +10119,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 431,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10149,7 +10129,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 432,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10159,7 +10139,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 433,
+      "line": 434,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10169,7 +10149,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 438,
+      "line": 439,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10179,7 +10159,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 439,
+      "line": 440,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10189,7 +10169,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 448,
+      "line": 449,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10199,7 +10179,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 461,
+      "line": 462,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10209,7 +10189,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 462,
+      "line": 463,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10219,7 +10199,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 463,
+      "line": 464,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10229,7 +10209,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 467,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10239,7 +10219,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 474,
+      "line": 475,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10249,7 +10229,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 519,
+      "line": 520,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10259,7 +10239,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 528,
+      "line": 529,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10269,7 +10249,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 544,
+      "line": 545,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10279,7 +10259,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 550,
+      "line": 551,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10303,7 +10283,7 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "leakRejection ? leakRejection // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+        "text": "leakRejection ? leakRejection // Q2291: the server's Louisiana-only address rule, in its own words. : /job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
         "branches": [
           {
             "form": "dynamic",
@@ -10311,31 +10291,41 @@
           },
           {
             "form": "dynamic",
-            "text": "isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+            "text": "/job_address_not_louisiana/.test((error as { message?: string } | null)?.message ?? \"\") ? (lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\") // Q1586(c): the server's under-18 refusal (also 42501) in its own words. : isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
             "branches": [
               {
                 "form": "dynamic",
-                "text": "UNDER_18_POST_COPY"
+                "text": "lifecycleErrorMessage(error) ?? \"Helpr is in Louisiana only for now. Use a Louisiana address.\""
               },
               {
                 "form": "dynamic",
-                "text": "isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                "text": "isUnder18Refusal(error) ? UNDER_18_POST_COPY : isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
                 "branches": [
                   {
-                    "form": "literal",
-                    "text": "We couldn't post this job from your account. Refresh the page and try again."
+                    "form": "dynamic",
+                    "text": "UNDER_18_POST_COPY"
                   },
                   {
                     "form": "dynamic",
-                    "text": "isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                    "text": "isPolicyRefusal ? \"We couldn't post this job from your account. Refresh the page and try again.\" // Q270: never the raw text. A dropped connection gets connection // copy (and the attempt's key is kept, so the retry is safe); // anything else goes through the shared internal-text filter. : isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
                     "branches": [
                       {
-                        "form": "dynamic",
-                        "text": "CONNECTION_TROUBLE_COPY"
+                        "form": "literal",
+                        "text": "We couldn't post this job from your account. Refresh the page and try again."
                       },
                       {
                         "form": "dynamic",
-                        "text": "userFacingError(error, \"Couldn't post your job just yet — give it another try?\")"
+                        "text": "isNetworkFailure(error) ? CONNECTION_TROUBLE_COPY : userFacingError(error, \"Couldn't post your job just yet — give it another try?\")",
+                        "branches": [
+                          {
+                            "form": "dynamic",
+                            "text": "CONNECTION_TROUBLE_COPY"
+                          },
+                          {
+                            "form": "dynamic",
+                            "text": "userFacingError(error, \"Couldn't post your job just yet — give it another try?\")"
+                          }
+                        ]
                       }
                     ]
                   }
@@ -10349,7 +10339,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 794,
+      "line": 797,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10363,7 +10353,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 816,
+      "line": 819,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10377,7 +10367,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 849,
+      "line": 852,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10387,7 +10377,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 874,
+      "line": 877,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10401,7 +10391,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1057,
+      "line": 1060,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10421,7 +10411,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1125,
+      "line": 1128,
       "kind": "toast.error",
       "title": {
         "form": "literal",

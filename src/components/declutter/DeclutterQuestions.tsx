@@ -189,13 +189,13 @@ export function DeclutterQuestions({
               value={question}
               maxLength={500}
               onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Everyone can see questions and answers"
+              placeholder="Ask the seller"
             />
             <Button type="submit" className="h-auto shrink-0" disabled={ask.isPending || text.length < 2}>
               Ask
             </Button>
           </div>
-          <p className="text-ds-13 text-muted-foreground">Contact info is hidden. Want to make a deal? Make an offer.</p>
+          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is hidden. Want to make a deal? Make an offer.</p>
         </form>
       )}
       {isSeller && <AnswerSheet q={answering} itemId={itemId} onClose={() => setAnswering(null)} />}

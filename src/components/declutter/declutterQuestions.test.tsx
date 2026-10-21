@@ -57,7 +57,8 @@ describe("board 162: public questions", () => {
     expect(within(cards[0]).getByText("Asked by a neighbor · today")).toBeInTheDocument();
     await waitFor(() => expect(within(cards[0]).getByText(/— Marie/)).toBeInTheDocument());
     expect(within(cards[1]).getByText("Asked today · waiting for Marie")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Everyone can see questions and answers")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Ask the seller")).toBeInTheDocument();
+    expect(screen.getByText(/^Everyone can see questions and answers\./)).toBeInTheDocument();
     const note = screen.getByText(/Contact info is hidden/);
     expect(note.textContent).not.toMatch(/message/i);
     expect(screen.queryByRole("button", { name: "Answer" })).toBeNull();

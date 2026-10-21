@@ -12,31 +12,54 @@ import { Button } from "@/components/ui/button";
 import { daysUntil, haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 
-/** The one-tap card above the list: the items one trip can take. */
+/** "Dresser, 2 chairs, boxes": the first few titles, then how many more. */
+export function leftoversLine(titles: string[], shown = 3): string {
+  const head = titles.slice(0, shown).join(", ");
+  const more = titles.length - shown;
+  return more > 0 ? `${head} and ${more} more` : head;
+}
+
+/**
+ * The one-tap card above the list (board 164, "Haul it away"): the items one
+ * trip can take, where they go, and one button that opens Post a Job
+ * pre-filled. The day and the price are set there, like any job.
+ */
 export function HaulAwayCard({ group }: { group: HaulAwayRow[] }) {
   if (group.length === 0) return null;
   const n = group.length;
   return (
     <section
-      aria-label="Haul away unsold items"
+      aria-labelledby="haul-away-title"
       className="rounded-2xl border border-border bg-card p-4 space-y-3"
+      data-haul-away-card=""
     >
       <div className="flex items-start gap-3 min-w-0">
         <span className="shrink-0 rounded-full bg-muted p-2" aria-hidden>
           <Truck className="h-5 w-5" />
         </span>
-        <div className="min-w-0 space-y-1">
-          <p className="font-semibold">{n === 1 ? "1 item hasn't sold" : `${n} items haven't sold`}</p>
-          <p className="text-sm text-muted-foreground">
-            A Helpr can pick {n === 1 ? "it" : "them"} up and take {n === 1 ? "it" : "them"} to donation, or the dump
-            if donation won't take {n === 1 ? "it" : "something"}. You check the job and pay like any job. The Helpr sends
-            a photo at drop-off. Booking takes {n === 1 ? "it" : "them"} off sale.
-          </p>
+        <div className="min-w-0">
+          <h2 id="haul-away-title" className="text-ds-17 font-bold">Haul it away</h2>
+          <p className="text-ds-13 text-muted-foreground">A Helpr picks up what didn't sell.</p>
         </div>
       </div>
-      <Button asChild size="sm">
+      <dl className="divide-y divide-border rounded-2xl border border-border">
+        <div className="px-4 py-3 min-w-0">
+          <dt className="text-ds-15 font-semibold">{n === 1 ? "1 item hasn't sold" : `${n} items haven't sold`}</dt>
+          <dd className="text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">{leftoversLine(group.map((r) => r.title))}</dd>
+        </div>
+        <div className="px-4 py-3 min-w-0">
+          <dt className="text-ds-15 font-semibold">Where it goes</dt>
+          <dd className="text-ds-13 text-muted-foreground">
+            To donation, or the dump if donation won't take {n === 1 ? "it" : "something"}. The Helpr sends a photo at drop-off.
+          </dd>
+        </div>
+      </dl>
+      <p className="text-ds-13 text-muted-foreground">
+        Posted as a job: you pick the day and price, and pay like any job. Booking takes {n === 1 ? "it" : "them"} off sale.
+      </p>
+      <Button asChild className="w-full sm:w-auto">
         <Link to={haulAwayPostJobPath(group.map((r) => r.item_id))}>
-          {n === 1 ? "Book a haul-away" : `Book a haul-away for ${n} items`}
+          {n === 1 ? "Post a haul-away job" : `Post a haul-away job for ${n} items`}
         </Link>
       </Button>
     </section>

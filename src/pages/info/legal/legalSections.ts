@@ -1,10 +1,6 @@
 import { Scale, Users, Lock, type LucideIcon } from "lucide-react";
 import { LEGAL_PAGE_META } from "@/lib/publicPageMeta.mjs";
 
-// Tier pricing/fees come from the single source of truth so this page can
-// never drift from the Subscription page or the in-feed fee math (LH-30).
-export const legalFmtMo = (n: number | null) => (n == null ? "free" : `$${n.toFixed(2)}/mo`);
-
 export type TabKey = "terms" | "community" | "privacy";
 export const VALID_TABS: TabKey[] = ["terms", "community", "privacy"];
 

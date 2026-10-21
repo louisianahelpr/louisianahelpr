@@ -4,7 +4,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
-import { useSectionTabs, sayComingSoon, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import type { SectionDef, SectionKey } from "./sectionsConfig";
 
@@ -41,9 +41,14 @@ export function useSectionIsOn() {
  * segmented control at the top of each section's screen, so all four are equal
  * and one tap apart. The member's Customize order, hidden ones left out. Each
  * section keeps its own Browse and "mine" tabs underneath, so "my stuff" is
- * Explore, then that tab. A section closed to the viewer shows muted and a tap
- * says "coming soon"; it never routes into it. Phone only: the desktop rail
- * already lists the sections. Guard: src/test/centerCreateNav.test.tsx.
+ * Explore, then that tab. Phone only: the desktop rail already lists the
+ * sections. Guard: src/test/centerCreateNav.test.tsx.
+ *
+ * Owner 2026-10-21: this row is the LIGHTER control (tone="quiet") so it never
+ * reads as a second olive pill over the section's own Browse/Posted/Working
+ * switch. A section closed to the viewer says "Soon" ON its tab, muted; a tap
+ * does nothing (no toast popping up elsewhere on the screen, no navigation).
+ * Guard: src/test/sectionNavTabs.test.tsx.
  */
 export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const navigate = useNavigate();
@@ -58,7 +63,17 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     const Icon = s.icon;
     return {
       value: s.key,
-      icon: <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />,
+      icon: on ? (
+        <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
+      ) : (
+        // "Soon" sits beside the muted icon, so the name below stays whole at 320.
+        <span className="relative inline-flex">
+          <Icon className="w-[18px] h-[18px] text-muted-foreground" strokeWidth={1.75} aria-hidden />
+          <span data-soon-badge="" aria-hidden className="absolute -top-1.5 left-full -ml-0.5 rounded-full border border-border bg-card px-1 text-ds-9 font-semibold leading-[14px] text-muted-foreground">
+            Soon
+          </span>
+        </span>
+      ),
       label: on ? s.navLabel : <span data-soon="" className="text-muted-foreground font-medium">{s.navLabel}</span>,
       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
     };
@@ -74,11 +89,12 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
         value={current}
         onChange={(key) => {
           const s = visible.find((v) => v.key === key);
-          if (!s) return;
-          if (!isOn(s)) return sayComingSoon(s.label);
+          // A "Soon" tab already says so on itself: a tap does nothing.
+          if (!s || !isOn(s)) return;
           navigate(s.path);
         }}
         iconPosition="top"
+        tone="quiet"
         className="w-full"
         optionClassName="px-1 text-ds-11 min-[360px]:text-ds-12 whitespace-nowrap"
       />

@@ -15,6 +15,8 @@
  * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
+ * @mutate src/pages/jobs/JobsSection.tsx |       {tab !== "browse" && <ExploreSearchEntry />} |       <ExploreSearchEntry />
+ * @mutate src/pages/jobs/JobsSection.tsx |       {tab !== "browse" && <ExploreSearchEntry />} |       {tab === "browse" && <ExploreSearchEntry />}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -67,6 +69,19 @@ const open = (url: string) =>
 const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("tab");
 
 afterEach(cleanup);
+
+describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
+  it("Browse has no 'Search all sections' (its own 'Search jobs' row is the search); Posted and Working, which have none, keep it", () => {
+    open("/jobs");
+    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
+    cleanup();
+    for (const tab of ["posted", "working"]) {
+      open(`/jobs?tab=${tab}`);
+      expect(screen.getByTestId("explore-search-entry").textContent).toBe("Search all sections");
+      cleanup();
+    }
+  });
+});
 
 describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () => {
   it("a plain /jobs shows the feed with Browse selected and leftmost", () => {

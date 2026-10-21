@@ -85,6 +85,44 @@ export function jobCategoryGroupOf(value: string): JobCategoryGroupId | null {
   return GROUP_OF[value as JobCategory] ?? null;
 }
 
+/** Is this browse filter value one of the 8 group ids? */
+export function isJobCategoryGroupId(value: string | null | undefined): value is JobCategoryGroupId {
+  return !!value && (GROUP_ORDER as string[]).includes(value);
+}
+
+/**
+ * THE BROWSE CATEGORY FILTER (owner 2026-10-21: "the group a poster picks is
+ * the group a Helpr filters by"). The filter sheet offers the 8 groups above,
+ * the same list Post a job opens on; the value it stores (`?cat=`, saved
+ * searches) is the group id. A value from before the groups (an old `?cat=`
+ * link, a saved search holding one category) still means that one category.
+ *
+ * "events" and "other" are both a group id and a category value; each of
+ * those groups holds exactly that one category, so either reading is the same.
+ * The saved-search alert trigger reads the same rule server-side
+ * (public.job_category_group, migration 20261021*_saved_search_alerts_by_group).
+ */
+export function categoriesForFilter(value: string): string[] {
+  if (isJobCategoryGroupId(value)) {
+    return (Object.keys(GROUP_OF) as JobCategory[]).filter((c) => GROUP_OF[c] === value);
+  }
+  return [value];
+}
+
+/** Does a job of `category` pass the browse category filter `value` (null = no filter)? */
+export function categoryFilterMatches(value: string | null, category: string | null | undefined): boolean {
+  if (!value) return true;
+  if (!category) return false;
+  return categoriesForFilter(value).includes(category);
+}
+
+/** The words for a filter value: the group's label, or the one category's sentence-case label. */
+export function categoryFilterLabel(value: string): string {
+  if (isJobCategoryGroupId(value)) return GROUP_LABELS[value];
+  const label = JOB_CATEGORY_LABELS[value as JobCategory];
+  return label ? sentenceCaseLabel(label) : value;
+}
+
 /**
  * A stored Title Case label in sentence case for the UI (spec §2: "Pressure
  * washing", "Auto & small engine"). Acronyms written in capitals stay ("HVAC").

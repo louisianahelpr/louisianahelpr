@@ -41,7 +41,6 @@ import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/dis
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
-import { DeclutterChipRow } from "./DeclutterChipRow";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { DeclutterFilterPanel } from "./DeclutterFilterPanel";
 import { NO_FILTERS, SORT_LABEL, activeFilterCount, applyBrowseFilters, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
@@ -173,7 +172,9 @@ function BrowseView({ userId }: { userId: string }) {
     <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8">
     <div className="min-w-0 space-y-4">
       <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} panel={panel} shown={rows.length} onClearAll={clearAll} />
-      <DeclutterChipRow filters={filters} onChange={setFilters} showDrops={showDrops} />
+      {/* No chip row under "Search items" (owner 2026-10-21): category, porch
+          pickup and price drops live only in the filter sheet / desktop column
+          (DeclutterFilterPanel). Guard: src/test/browseCategoryGroups.test.tsx. */}
       {others.length > 0 && (
         <p data-results-line="" className="hidden items-baseline justify-between gap-3 text-ds-13 text-muted-foreground lg:flex">
           <span>
@@ -552,7 +553,8 @@ export default function DeclutterHome() {
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
   return (
-    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add}>
+    // Browse draws its own "Search items" row, so Explore's global search shows only on the other tabs.
+    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={view !== "browse"}>
       <SectionTabs
         label="Declutter view"
         value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}

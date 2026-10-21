@@ -26,7 +26,14 @@
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature] })); |   return sectionItems.map((s) => ({ ...s, on: true }));
- * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!isOn(s)) return sayComingSoon(s.label); |
+ * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
+ * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER
+ * control, tone="quiet", under which the section's own solid switch sits.)
+ *
+ * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return;
+ * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return; if (!isOn(s)) return void toast("Soon");
+ * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
+ * @mutate src/components/sections/ExploreSwitcher.tsx |             Soon\n |             \n
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel), |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
@@ -113,15 +120,32 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
-  it("a switched-OFF section is labelled 'coming soon', muted, and a tap does not navigate", () => {
+  it("a switched-OFF section says 'Soon' on its tab, muted; a tap neither navigates nor fires a toast", () => {
     switches.on = new Set(["shops"]);
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
     expect(declutter.querySelector("[data-soon]")).toBeTruthy();
+    expect(declutter.querySelector("[data-soon-badge]")?.textContent?.trim()).toBe("Soon");
     fireEvent.click(declutter);
     expect(screen.getByTestId("where").textContent).toBe("/jobs");
-    expect(toasts).toEqual(["Declutter is coming soon"]);
-    expect(screen.getByRole("radio", { name: "Homes, coming soon" })).toBeTruthy();
+    expect(toasts).toEqual([]);
+    const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
+    expect(homes.querySelector("[data-soon-badge]")?.textContent?.trim()).toBe("Soon");
+    // A live section carries no badge.
+    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-soon-badge]")).toBeNull();
+  });
+
+  it("the section row is the LIGHTER control: its picked tab is never the olive fill the view switch under it wears", () => {
+    switches.on = new Set(["declutter", "shops", "rentals"]);
+    renderExplore();
+    const jobs = screen.getByRole("radio", { name: "Jobs" });
+    expect(jobs.getAttribute("aria-checked")).toBe("true");
+    expect(jobs.className.split(/\s+/)).toContain("segmented-option-quiet-selected");
+    expect(jobs.className.split(/\s+/)).not.toContain("btn-grad-primary");
+    const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
+    const rule = /\.segmented-option-quiet-selected\s*\{([^}]*)\}/.exec(css)?.[1] ?? "";
+    expect(rule).toMatch(/background-color:\s*hsl\(var\(--card\)\)/);
+    expect(rule.match(/background(-color)?:/g)).toHaveLength(1);
   });
 
   it("a switched-ON section is live: no aria-disabled, its plain name, and a tap navigates", () => {

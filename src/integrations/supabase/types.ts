@@ -13381,6 +13381,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      job_category_group: {
+        Args: { p_category: Database["public"]["Enums"]["job_category"] }
+        Returns: string
+      }
       job_expires_at_for_schedule: {
         Args: { p_date_needed: string; p_start_time: string }
         Returns: string
@@ -14565,6 +14569,20 @@ export type Database = {
       run_missed_cron_catch_up: { Args: never; Returns: Json }
       run_seed_purge: { Args: never; Returns: Json }
       save_weekly_availability: { Args: { p_slots: Json }; Returns: number }
+      saved_search_category_matches: {
+        Args: {
+          p_category: Database["public"]["Enums"]["job_category"]
+          p_search_category: string
+        }
+        Returns: boolean
+      }
+      saved_search_new_counts: {
+        Args: never
+        Returns: {
+          new_count: number
+          search_id: string
+        }[]
+      }
       search_profiles_by_name: {
         Args: { query: string }
         Returns: {

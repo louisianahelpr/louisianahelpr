@@ -673,7 +673,7 @@ function PostedJobCardInner({
                   group-helper roster) and neither stops it internally, so
                   without this every tap in them also toggled the card open or
                   shut. Same pattern as the tracker wrapper above. */}
-              {/* The poster's "I'm Still On" is the Scheduled step's row primary
+              {/* The poster's "I'm still on" is the Scheduled step's row primary
                   now (ScheduledStep, owner 2026-10-08), not a panel here. */}
               {(job.status === "in_progress" || job.status === "accepted") && job.is_group_job && (
                 <div className="px-4 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
@@ -718,7 +718,7 @@ function PostedJobCardInner({
                       the tracker's Arrived step is lit, which is the same
                       statement with the whole timeline around it.
 
-                      The Confirm Arrival ACTION moved to the card's ONE action
+                      The Confirm they've arrived ACTION moved to the card's ONE action
                       row (owner, 2026-09-14, VN-21: every button on a Posts
                       card on one row): it is ScheduledStep's primary now, same
                       gate, same handler. It used to be a full-width button up

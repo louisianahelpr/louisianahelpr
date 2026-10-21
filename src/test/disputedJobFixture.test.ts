@@ -75,7 +75,7 @@ describe("planDisputedJob", () => {
     const confirm = fn.indexOf("await helperConfirmsOffer(api, helper, id, log");
     expect(confirm, "ensureDisputedJob opens the dispute on an offer helper-e2e never accepted").toBeGreaterThan(-1);
     expect(confirm).toBeLessThan(fn.indexOf('"rpc_open_dispute"'));
-    // Floor: the confirm itself still goes through the app's Accept Job RPC.
+    // Floor: the confirm itself still goes through the app's Accept job RPC.
     expect(src).toMatch(/async function helperConfirmsOffer\([\s\S]*?"accept_job_offer"/);
   });
   it("ignores other jobs: the funded OPEN fixture, and a dispute with someone else", () => {

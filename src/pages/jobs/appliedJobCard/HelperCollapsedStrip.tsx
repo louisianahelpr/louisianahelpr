@@ -30,7 +30,7 @@ import { helperProgress } from "./steps/helperProgress";
  * the card already holds, and the tracking row the list already fetched
  * (`tracking`, the same `initialTracking` the expanded card's tracker gets):
  * whether work has started lives there, and without it the line said "Finish
- * and mark it done" over an expanded "Start Working" (lane B, 2026-10-12). That is also what the compact rail bought and this
+ * and mark it done" over an expanded "Start working" (lane B, 2026-10-12). That is also what the compact rail bought and this
  * keeps: the three expanded sections once mounted a full JobTracking on every
  * collapsed card, one subscription per row of the list. (A crew member's
  * strip reads their roster row through CrewMemberSection's query key, so it

@@ -165,7 +165,7 @@ function posterCtx(job: Job): PosterStepCtx {
  *
  * Matched on `aria-label`, which `PhotoProof` always ends "— add the before/
  * after photo for this job", rather than on the visible text. The visible text
- * is NOT stable: the chip reads "Before Photo" / "After Photo" while the array
+ * is NOT stable: the chip reads "Before photo" / "After photo" while the array
  * is empty and relabels to "Before (1)" / "After (2)" once it is not — which
  * is exactly the revision case this file exists for, and exactly the sort of
  * near-miss that makes a guard quietly stop asserting anything.

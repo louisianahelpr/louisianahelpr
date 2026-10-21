@@ -24,12 +24,12 @@ const NUDGE_RESULT: Record<string, string> = {
  * info toast app-wide, so "Nudge sent" was never seen. After a tap the link is
  * replaced by what happened. Failures still toast (errors render).
  */
-export function NudgeConfirmLink({ jobId, otherLabel }: { jobId: string; otherLabel: string }) {
+export function NudgeConfirmLink({ jobId, otherLabel, lead }: { jobId: string; otherLabel: string; /** The status words before " · Nudge", when the caller has a better line than "<other> hasn't confirmed yet". */ lead?: string }) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   return (
     <p className="font-sans text-center text-ds-11" data-nudge-confirm="">
-      <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{otherLabel} hasn't confirmed yet · </span>
+      <span style={{ color: "hsl(var(--olivewood) / 0.8)" }}>{lead ?? `${otherLabel} hasn't confirmed yet`} · </span>
       {result ? (
         <span className="font-semibold" data-nudge-result="" role="status" style={{ color: "hsl(var(--olivewood))" }}>
           {result}

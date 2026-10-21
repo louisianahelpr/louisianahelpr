@@ -28,7 +28,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { railStepPaint, railStepPulses } from "@/components/job-card/jobRailTone";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
-/* `JobActionChip` was imported here for the "Try My Location Again" chip
+/* `JobActionChip` was imported here for the "Try my location again" chip
    only; that control is gone (owner, 2026-09-19) and this component draws no
    chips of its own again — just its one primary. */
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
@@ -51,7 +51,7 @@ const TrackingMap = lazy(() =>
  * so a label that outgrows its box spills instead of wrapping. On a 320px
  * phone this button has roughly 170px of text room (card px-4, tracker p-3,
  * size="sm" px-4, an 18px icon and its gap), which is ~20 characters of the
- * 14px bold sans it renders in. The Done action reads "Mark Job Complete"
+ * 14px bold sans it renders in. The Done action reads "Mark job complete"
  * (owner, 2026-09-14: name the event, not the money) — the same words as the
  * card's PayoutPrimary button, so the two controls for one action agree.
  *
@@ -89,17 +89,17 @@ const STATUSES: TrackerStep[] = [
   // Step 0 is never the TARGET of the next-step button (nextIdx is always
   // currentStatusIdx + 1 ≥ 1), so it has no action phrasing.
   { key: "assigned", label: "Offered", action: null, icon: Clock, color: "text-muted-foreground" },
-  { key: "confirmed", label: "Accepted", action: "I've Accepted", icon: CheckCircle2, color: "text-primary" },
+  { key: "confirmed", label: "Accepted", action: "I've accepted", icon: CheckCircle2, color: "text-primary" },
   // CalendarCheck, not ShieldCheck: at the 16px the step row draws these at,
   // a shield-with-a-tick and the circle-with-a-tick above it were two dark
   // rings with a check in them and read as the same step twice. This one means
   // "both sides confirmed, the date is locked", which a calendar says plainly
   // and cannot be confused with "Accepted".
-  { key: "job_confirmed", label: "Confirmed", action: "Confirm This Job", icon: CalendarCheck, color: "text-primary" },
-  { key: "on_the_way", label: "On the way", action: "I'm On My Way", icon: Truck, color: "text-primary" },
-  { key: "arrived", label: "Arrived", action: "I've Arrived", icon: MapPin, color: "text-primary" },
-  { key: "working", label: "Working", action: "Start Working", icon: Wrench, color: "text-primary" },
-  { key: "done", label: "Done", action: "Mark Job Complete", icon: PartyPopper, color: "text-primary" },
+  { key: "job_confirmed", label: "Confirmed", action: "Confirm this job", icon: CalendarCheck, color: "text-primary" },
+  { key: "on_the_way", label: "On the way", action: "I'm on my way", icon: Truck, color: "text-primary" },
+  { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" },
+  { key: "working", label: "Working", action: "Start working", icon: Wrench, color: "text-primary" },
+  { key: "done", label: "Done", action: "Mark job complete", icon: PartyPopper, color: "text-primary" },
 ];
 
 /**
@@ -219,7 +219,7 @@ export function deriveCurrentStatusIdx({
   // wrong on the only rows it was written for. FOUND LIVE on prod job
   // bb2c3732: `in_progress` with `helper_confirmed_at`, `poster_confirmed_at`
   // AND `helper_dayof_confirmed_at` all NULL. The rail painted Confirmed
-  // complete, the next-step CTA therefore became "I'm On My Way" — and
+  // complete, the next-step CTA therefore became "I'm on my way" — and
   // `helper_mark_on_the_way` refused the tap with `helper_not_confirmed`,
   // because its one predicate is `v_job.helper_confirmed_at IS NULL`
   // (verified live on prod, 2026-09-19, and pinned by
@@ -552,7 +552,7 @@ export function JobTracking({
   // BrandConfirmDialog at the bottom of the helper controls.
   const [confirmDoneOpen, setConfirmDoneOpen] = useState(false);
   /**
-   * LEGACY ONLY since 2026-09-19. Why an "I've Arrived" tap was REFUSED, back
+   * LEGACY ONLY since 2026-09-19. Why an "I've arrived" tap was REFUSED, back
    * when `mark_helper_arrival` refused far or fix-less arrivals and wrote
    * nothing (VN-33, 20260915044137). Migration 20260919155016 removed every
    * refusal — the RPC now records the check-in on every call — so this can only
@@ -872,7 +872,7 @@ export function JobTracking({
     setJobStamps((prev) => ({
       ...prev,
       // ALWAYS: the check-in is recorded on every call now. This is the stamp
-      // that makes the poster's "Confirm They Arrived" control appear, so
+      // that makes the poster's "Confirm they've arrived" control appear, so
       // failing to mirror it here is what leaves the Helpr staring at a CTA
       // telling them to ask for a tap the other side cannot yet offer.
       arrivedAt: prev.arrivedAt ?? nowIso,
@@ -886,14 +886,14 @@ export function JobTracking({
   };
 
   /* `retryArrivalVerification` LIVED HERE and is gone (owner, 2026-09-19).
-     The "Try My Location Again" chip it backed is removed from the action row;
+     The "Try my location again" chip it backed is removed from the action row;
      the same operation now runs from the pull-to-refresh gesture on My Jobs,
      in `src/lib/arrivalRefresh.ts`, gated on an arrival that is recorded and
      unverified. That module carries the reasoning, the conservatism rules, and
      the note on why the replacement had to exist before the chip could go.
 
      `getLocationOutcome` and `applyArrivalVerdict` above are UNCHANGED and
-     still have their other caller — the "I've Arrived" transition — so nothing
+     still have their other caller — the "I've arrived" transition — so nothing
      was deleted with this beyond the retry itself. */
 
 
@@ -933,7 +933,7 @@ export function JobTracking({
     // paths deliberately do NOT loadTracking(): nothing was written, so there
     // is nothing to re-read.
     //
-    // SAME GATES AS PayoutPrimary's "Mark Job Complete" (owner, 2026-08-24 E2E): this
+    // SAME GATES AS PayoutPrimary's "Mark job complete" (owner, 2026-08-24 E2E): this
     // button used to write helper_completed_at with no checks at all, so the
     // before/after-photo requirement and the 30-minute work floor on the payout
     // CTA were decorative — the tracker was a free bypass that still started
@@ -1005,7 +1005,7 @@ export function JobTracking({
     // WHAT THIS REPLACED. Under VN-33 (20260915044137) the RPC REFUSED a far or
     // fix-less arrival and wrote nothing, and this branch returned before the
     // tracking row was written — so a Helpr with Location off never got a
-    // `helper_arrived_at`, the poster's "Confirm They Arrived" control (gated on
+    // `helper_arrived_at`, the poster's "Confirm they've arrived" control (gated on
     // exactly that column) never rendered, and the Helpr's blocked CTA told them
     // to go ask the poster for a tap the poster was never offered. A deadlock
     // with a polite explanation on both ends.
@@ -2146,7 +2146,7 @@ export function JobTracking({
       {/* NO TRACKING ROW, SETTLED ARRIVAL, ARRIVED IS THE CURRENT STEP.
           The status line above only exists once a `job_tracking` row does,
           and the map needs one too — but the arrival stamps live on the jobs
-          row (a poster's "Confirm They Arrived", or a job whose tracking row
+          row (a poster's "Confirm they've arrived", or a job whose tracking row
           was never written). When the Arrived step carried "Poster confirmed"
           itself this case still said something; with that caption moved to
           the map (VN-20) it would have said nothing at all. So the fact gets
@@ -2229,7 +2229,7 @@ export function JobTracking({
          * `helper_mark_on_the_way` has exactly one content predicate:
          * `v_job.helper_confirmed_at IS NULL` → `helper_not_confirmed`
          * (read live off prod, 2026-09-19; pinned by
-         * src/test/jobsGuardRpcParity.test.ts). So "I'm On My Way" must never
+         * src/test/jobsGuardRpcParity.test.ts). So "I'm on my way" must never
          * be offered without that stamp.
          *
          * This check used to live INSIDE the `job_confirmed` skip above, which
@@ -2275,9 +2275,9 @@ export function JobTracking({
         }
 
         // While a revision is open, the revision flow OWNS completion (the
-        // card's "Mark Fixed" → poster accepts). The tracker caps its index
+        // card's "Mark fixed" → poster accepts). The tracker caps its index
         // at Working in this state, which made its next-step button "Done" —
-        // so the card offered Done, "I'll Fix It" and "Mark Fixed" at once,
+        // so the card offered Done, "I'll Fix It" and "Mark fixed" at once,
         // three CTAs for one decision. Hide the tracker's Done here.
         //
         // `disputed` is in the same list for the same mechanical reason and a
@@ -2368,7 +2368,7 @@ export function JobTracking({
         //
         // THIS LINE IS ALSO THE ANTI-CHEAT NOTICE. Owner: "they shoud be aware
         // of this so they dont try to cheat the system" — every branch of
-        // `arrivalGateMessage` names "Confirm They Arrived" and whose tap it is,
+        // `arrivalGateMessage` names "Confirm they've arrived" and whose tap it is,
         // and the Helpr reads it the moment they reach the Arrived step, before
         // they have any reason to try walking the rail on their own. (The
         // separate "Awaiting confirmation" caption under the Arrived step is NOT
@@ -2384,7 +2384,7 @@ export function JobTracking({
           : arrivalGateMessage(arrivalEvidence, isDoneStep ? "wrap-up" : "tracker");
         /* CHECKED IN, BUT THE SERVER NEVER PUT THEM AT THE JOB.
          *
-         * The state the GPS encouragement and the "Try My Location Again"
+         * The state the GPS encouragement and the "Try my location again"
          * button both belong to, defined ONCE so the sentence and the control
          * it names can never appear without each other.
          *
@@ -2413,10 +2413,10 @@ export function JobTracking({
         // bad connection) with no clue why. Same line, same voice, both
         // reasons — and now the arrival gate too, which must never be a silent
         // dead button: every branch of `arrivalBlockReason` names the poster's
-        // "Confirm They Arrived" tap, which is the way out.
+        // "Confirm they've arrived" tap, which is the way out.
         // The proof-photo gate, at RENDER time rather than only on click.
         // A state sweep found the two money controls disagreeing in 17 frames:
-        // this CTA rendered an ENABLED "Request My Payout" (now "Mark Job Complete") while
+        // this CTA rendered an ENABLED "Request My Payout" (now "Mark job complete") while
         // ActiveJobSection's button sat directly below it, DISABLED, reading
         // "Upload before & after photos first". Both enforce the same rule —
         // the comment on the click-time gate below says the two "must not
@@ -2494,7 +2494,7 @@ export function JobTracking({
          * card means "something is stopping you", and nothing here is. The one
          * thing stopping them is the poster's tap, and `reasonEl` above says so.
          *
-         * ONE TAP is the "Try My Location Again" button rendered directly below
+         * ONE TAP is the "Try my location again" button rendered directly below
          * it (`retryEl`), which re-runs the permission pre-prompt and the fix.
          * Same gate as that button, deliberately: a line about turning Location
          * on, with no control on screen, is worse than no line at all.
@@ -2503,7 +2503,7 @@ export function JobTracking({
          * gate: "amber says what is BLOCKING; muted says why GPS helps. Nothing
          * else"). It used to run three sentences and end by naming the button
          * directly beneath it — while the amber line above ALSO said "turn
-         * Location on" and ALSO named "Try My Location Again". Ten lines of
+         * Location on" and ALSO named "Try my location again". Ten lines of
          * prose between the photo box and the buttons, saying two things twice.
          * The instruction is gone (the button is right there, wearing the same
          * words) and the "gets you confirmed faster" clause is gone with it:
@@ -2534,7 +2534,7 @@ export function JobTracking({
          *
          * It used to be a raw `<Button size="sm" className="w-full h-auto">`
          * with the icon inline and a bare 14px label, portalled into a row of
-         * stacked 11px chips — "Message" and "I'm On My Way" side by side as
+         * stacked 11px chips — "Message" and "I'm on my way" side by side as
          * two different kinds of object, which is the screenshot the owner sent
          * twice. `JobStepPrimaryButton` is that one object; nothing about the
          * gates, the busy state or the confirm dialog moves. */
@@ -2547,7 +2547,7 @@ export function JobTracking({
             icon={nextStatus.icon}
             // The ACTION, not the step's name — see STATUSES. After a
             // refused arrival the same tap is a retry, so it says so.
-            label={arrivalRefusedHere ? "Try My Location Again" : (nextStatus.action ?? nextStatus.label)}
+            label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}
             // Done asks first — see the dialog below. Every other step is a
             // reversible statement about where the helper is; this one moves
             // money and cannot be taken back from here.

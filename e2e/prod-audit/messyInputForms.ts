@@ -159,7 +159,7 @@ const openActivityCard = async (page: Page, tab: "/jobs" | "/posts", job: { id: 
 //
 // A step whose action row is full parks the rest behind its "More" overflow
 // (JobActionRow.tsx `data-job-step-overflow`) — measured on prod 2026-09-23:
-// the confirmed card shows Directions · More · I'm On My Way, with Cancel job
+// the confirmed card shows Directions · More · I'm on my way, with Cancel job
 // inside More. So: the chip if it is on the row, else open the overflow first.
 const pressChipForField = async (page: Page, name: RegExp, opts: { field?: boolean } = {}) => {
   const chip = page.getByRole("button", { name }).filter({ visible: true }).first();
@@ -261,8 +261,8 @@ const openActiveJobSection = async (page: Page) => {
 };
 
 /**
- * The helper's expanded Disputed card offers "Respond to Dispute"/"Add Your
- * Side" (a textarea) to whichever side did NOT file, and "Withdraw Dispute"
+ * The helper's expanded Disputed card offers "Respond to dispute"/"Add Your
+ * Side" (a textarea) to whichever side did NOT file, and "Withdraw dispute"
  * (a confirm, no typed field) to whichever side DID (DisputedSection.tsx:
  * `canRespond`/`canWithdraw`). The standing disputed job's opener is not
  * pinned by the fixture picker, so press Respond when it is offered and fall

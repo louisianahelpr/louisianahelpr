@@ -7,7 +7,7 @@
  * admin. If no action is taken, payment auto-releases to the Helpr." with no
  * gate at all. So the card promised two actions to a poster who had neither,
  * in two ordinary states — external QA, 2026-09-06, enumerated every `<button>`
- * on that card and got exactly: Timeline & Evidence, Message, Contact Admin.
+ * on that card and got exactly: Timeline & Evidence, Message, Contact admin.
  *
  * The two states, both reproduced against production data:
  *

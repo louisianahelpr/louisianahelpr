@@ -108,7 +108,7 @@ const legacyWorkingEnabled = (j: Job) =>
 
 describe("the poster's confirmation ladder is never blank while the job is live", () => {
   it("draws a box for every shape of a scheduled or in-progress job the Helpr has not finished", () => {
-    // EXCEPT AN UNANSWERED OFFER (owner, 2026-10-05: "Confirm Arrival must
+    // EXCEPT AN UNANSWERED OFFER (owner, 2026-10-05: "Confirm they've arrived must
     // NOT show at all until the Helpr has accepted"): nobody is coming yet, so
     // there is no box at all. That carve-out has its own inventory guard
     // (src/test/offerCardHierarchy.test.tsx); here it is excluded by name.
@@ -165,7 +165,7 @@ describe("the ladder enables nothing the old gates did not", () => {
     const widened = matrix()
       .filter((j) => j.status === "in_progress")
       .filter((j) => {
-        // The Helpr has tapped Start Working (Q1571: the vouch waits for it).
+        // The Helpr has tapped Start working (Q1571: the vouch waits for it).
         const rung = posterConfirmationRung(j, stepOf(j), undefined, true);
         const nowEnabled = rung?.action === "working" && rung.enabled;
         // Marked done: Approve & Pay is the primary; the vouch stands down (2026-10-08).
@@ -215,7 +215,7 @@ describe("Q1400 — no arrival box from accept until the Helpr marks themselves 
   /* OWNER DECISION 2026-10-07 (Q1400), extending the 2026-10-05 offer rule
    * ("no disabled primary-looking button"). This describe used to be "item 6c
    * — the box is drawn before the Helpr arrives, and says the truth": a
-   * DISABLED "Confirm Arrival" with a waiting line under it, from accept until
+   * DISABLED "Confirm they've arrived" with a waiting line under it, from accept until
    * arrival. The owner ruled that box out: until the Helpr says they are there
    * there is nothing to confirm, so the card draws no box at all. The status
    * line still says where the Helpr is, and No-Show stays on the row.
@@ -240,7 +240,7 @@ describe("Q1400 — no arrival box from accept until the Helpr marks themselves 
   it("SUPERSEDED 2026-10-08 (Q1568): on the way, the box is drawn greyed, saying when it turns on", () => {
     // Owner: "where do i confirm they arrived? it should be a greyed out confirm they arrived button".
     const r = posterConfirmationRung(startedNotArrived, "in_progress");
-    expect(r).toMatchObject({ action: "arrival", enabled: false, label: "Confirm They Arrived" });
+    expect(r).toMatchObject({ action: "arrival", enabled: false, label: "Confirm they've arrived" });
     expect(r?.reason).toMatch(/turns on once your Helpr says they've arrived/);
   });
 
@@ -254,11 +254,11 @@ describe("Q1400 — no arrival box from accept until the Helpr marks themselves 
 
   it("can fail: the moment the Helpr marks themselves arrived the box appears, enabled", () => {
     const arrived = job({ status: "accepted", helper_confirmed_at: T(48), helper_on_the_way_at: T(1), helper_arrived_at: T(0.5) });
-    expect(posterConfirmationRung(arrived, "scheduled")).toMatchObject({ action: "arrival", enabled: true, label: "Confirm Arrival" });
+    expect(posterConfirmationRung(arrived, "scheduled")).toMatchObject({ action: "arrival", enabled: true, label: "Confirm they've arrived" });
     expect(posterConfirmationRung({ ...startedNotArrived, helper_arrived_at: T(0.5) } as Job, "in_progress")).toMatchObject({
       action: "arrival",
       enabled: true,
-      label: "Confirm They Arrived",
+      label: "Confirm they've arrived",
     });
   });
 
@@ -350,7 +350,7 @@ describe("item 7 — the job nobody marked done", () => {
   });
 
   it("does not show while the job is still legitimately running", () => {
-    expect(posterConfirmationRung(stalledJob(), "in_progress", DURING)?.label).toBe("Working Confirmed");
+    expect(posterConfirmationRung(stalledJob(), "in_progress", DURING)?.label).toBe("Working confirmed");
   });
 
   it("uses the SWEEP's threshold, not one of its own", () => {
@@ -359,7 +359,7 @@ describe("item 7 — the job nobody marked done", () => {
     const end = new Date("2026-09-18T05:00:00Z").getTime();
     const justBefore = new Date(end + (STALLED_FIRST_AFTER_HOURS - 0.1) * 3_600_000);
     const justAfter = new Date(end + STALLED_FIRST_AFTER_HOURS * 3_600_000);
-    expect(posterConfirmationRung(stalledJob(), "in_progress", justBefore)?.label).toBe("Working Confirmed");
+    expect(posterConfirmationRung(stalledJob(), "in_progress", justBefore)?.label).toBe("Working confirmed");
     expect(posterConfirmationRung(stalledJob(), "in_progress", justAfter)?.label).toBe(
       STALLED_APPROVE_DISABLED_LABEL,
     );
@@ -371,12 +371,12 @@ describe("item 7 — the job nobody marked done", () => {
       "in_progress",
       LONG_AFTER,
     );
-    expect(rung?.label).toBe("Confirm They Arrived");
+    expect(rung?.label).toBe("Confirm they've arrived");
     expect(rung?.enabled).toBe(true);
   });
 
   it("a Helpr who never arrived gets NO box — neither a disabled arrival box nor the stalled notice", () => {
-    // Was "loses to a DISABLED confirmation": a disabled "Confirm They Arrived"
+    // Was "loses to a DISABLED confirmation": a disabled "Confirm they've arrived"
     // with "on the way" under it. Q1400 (owner, 2026-10-07) removed that box,
     // and the stalled notice still must not take the slot: "nobody marked this
     // job done" is not the truth when nobody ever turned up. No-Show is the
@@ -412,8 +412,8 @@ describe("item 7 — the job nobody marked done", () => {
 // @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | (step === "in_progress" \|\| !!job.helper_confirmed_at) && !job.helper_completed_at; | (step === "in_progress" \|\| !!job.helper_confirmed_at);
 // And the in-progress rung's wording (run 39004497945's other survivor, which
 // controlReachability.test.ts cannot see because Q1568's greyed rung also says
-// "Confirm They Arrived"): the enabled box reads the same as the greyed one.
-// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | ? "Confirm Arrival" : "Confirm They Arrived", | ? "Confirm Arrival" : "Confirm Arrival",
+// "Confirm they've arrived"): the enabled box reads the same as the greyed one.
+// @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | the same words everywhere).\n      label: "Confirm they've arrived", | the same words everywhere).\n      label: "Confirm arrival",
 // Shown able to fail: Q1400's hide. Dropping it draws the disabled arrival box
 // again from accept until arrival, which the Q1400 describe catches.
 // @mutate src/pages/posts/postedJobCard/steps/posterStepContract.ts | if (!job.poster_confirmed_arrival_at && !arrivalClaimed) { | if (false) {

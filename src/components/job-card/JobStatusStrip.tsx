@@ -12,7 +12,7 @@ import { CountdownRows, type CountdownClock } from "./CountdownRows";
  *
  * ── IT IS THE DISPUTE BADGE, GENERALISED. NOT A SECOND STRIP BESIDE IT ────
  * `DisputeOpenBadge` (the sienna "DISPUTE OPEN … Payment on hold" band) and
- * `PosterConfirmationBadge` (the bark "NEEDS YOUR OK … Confirm They Arrived"
+ * `PosterConfirmationBadge` (the bark "NEEDS YOUR OK … Confirm they've arrived"
  * band) were the same component written twice, each hard-coding one state. Both
  * are deleted and both are now VALUES of this one strip — a disputed card shows
  * one band, not two, and its words, tone and consequence line are unchanged

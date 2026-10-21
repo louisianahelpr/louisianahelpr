@@ -47,7 +47,7 @@ describe("HelperPhotoAsk", () => {
   it("re-reads the activity cache when the After photo upload finishes", () => {
     // Photo first (owner, 2026-10-08): an owed After photo is the row's primary.
     const spy = setup(<HelperPhotoAsk jobId="job-1" job={job()} step="working" mode="primary" />);
-    expect(screen.getByText(/After Photo/)).toBeTruthy();
+    expect(screen.getByText(/After photo/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "simulate upload finished" }));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["activity"] });
   });
@@ -56,7 +56,7 @@ describe("HelperPhotoAsk", () => {
     const spy = setup(
       <HelperPhotoAsk jobId="job-1" job={job({ proof_after_urls: ["a.png"] })} step="working" />,
     );
-    expect(screen.getByText("Before Photo")).toBeTruthy();
+    expect(screen.getByText("Before photo")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "simulate upload finished" }));
     expect(spy).toHaveBeenCalledWith({ queryKey: ["activity"] });
   });
@@ -82,15 +82,15 @@ describe("HelperPhotoAsk", () => {
           <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: true, ...over })} step="working" mode={mode} />
         </QueryClientProvider>,
       );
-      expect(asked.container.textContent, `${name}: drawn when required`).toMatch(/Photo/);
+      expect(asked.container.textContent, `${name}: drawn when required`).toMatch(/photo/i);
       asked.unmount();
       const { container } = render(
         <QueryClientProvider client={new QueryClient()}>
           <HelperPhotoAsk jobId="job-1" job={job({ require_photo_proof: false, ...over })} step="working" mode={mode} />
         </QueryClientProvider>,
       );
-      expect(screen.queryByText(/After Photo/), name).toBeNull();
-      expect(screen.queryByText(/Before Photo/), name).toBeNull();
+      expect(screen.queryByText(/After photo/), name).toBeNull();
+      expect(screen.queryByText(/Before photo/), name).toBeNull();
       expect(container, name).toBeEmptyDOMElement();
       cleanup();
     }
@@ -98,7 +98,7 @@ describe("HelperPhotoAsk", () => {
 
   it("still asks when the column is missing entirely (old database, `?? true`)", () => {
     setup(<HelperPhotoAsk jobId="job-1" job={{ id: "job-1", proof_before_urls: [], proof_after_urls: [] } as never} step="working" mode="primary" />);
-    expect(screen.getByText(/After Photo/)).toBeTruthy();
+    expect(screen.getByText(/After photo/)).toBeTruthy();
   });
 });
 

@@ -119,7 +119,7 @@ const S = {} as Shared;
  *    and broke J5 instead, because the helper's ladder is LOCKED until two
  *    hours before the start: `JobTracking`'s `isLocked` is
  *    `Date.now() < startAt - 2h` whenever `jobs.start_time` exists. At 24h out
- *    the card renders "I'm On My Way" DISABLED under the caption "Actions
+ *    the card renders "I'm on my way" DISABLED under the caption "Actions
  *    unlock at 9:40 PM on Sep 22" — visible, so `toBeVisible` passed, and the
  *    click that followed timed out after 20s against a disabled button.
  *
@@ -795,17 +795,17 @@ test.describe.serial("marketplace chain", () => {
          job day's 24h window AS the day-before answer ("don't ask the same
          question twice", JobConfirmation). J4 accepts minutes after J2 posts,
          so on every slot this chain can use the answer is already in and the
-         row opens straight at "I'm On My Way".
+         row opens straight at "I'm on my way".
 
          Both branches are kept because which one runs is a product rule, not a
          constant, and the branch that runs is recorded either way. What is
          asserted unconditionally is the thing that actually went wrong: the
          control the row offers must be PRESSABLE, not merely painted. A
-         24h-out slot rendered "I'm On My Way" disabled under "Actions unlock
+         24h-out slot rendered "I'm on my way" disabled under "Actions unlock
          at 9:40 PM on Sep 22" and this assertion passed on it. */
       const c = await card(hp, "/jobs?tab=working", scheduledTab());
       const stillOn = c.getByRole("button", { name: /I'm still on/ }).first();
-      const onWay = c.getByRole("button", { name: /I'm On My Way/ }).first();
+      const onWay = c.getByRole("button", { name: /I'm on my way/ }).first();
       await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
       await expect(
         stillOn.or(onWay).first(),
@@ -843,7 +843,7 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("helper heads over and arrives; poster confirms arrival", async () => {
       let c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
-      await press(hp, c, /I'm On My Way/, "on my way");
+      await press(hp, c, /I'm on my way/, "on my way");
       // The location rationale on the way: this helper declines here (en-route
       // tracking is optional).
       if (await appears(hp.getByRole("button", { name: "Share Location" }), 8_000)) {
@@ -854,7 +854,7 @@ test.describe.serial("marketplace chain", () => {
       // ARRIVAL NEEDS A REAL LOCATION AT THE SITE (VN-33, owner: "both required
       // … no fallback"). mark_helper_arrival refuses a missing or far location
       // and writes nothing, so the helper's browser is placed at the job's own
-      // coordinates and SHARES its location at the "I've Arrived" tap. The
+      // coordinates and SHARES its location at the "I've arrived" tap. The
       // poster's confirmation below is the second half of the rule, not a
       // substitute for the first.
       const site = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=latitude,longitude`, { headers: rest(S.poster) });
@@ -865,10 +865,10 @@ test.describe.serial("marketplace chain", () => {
       // accepts any real fix; Lafayette stands in for that case.
       await hp.context().setGeolocation({ latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) });
       c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
-      const arriveBtn = c.getByRole("button", { name: /I've Arrived/ }).first();
-      await expect(arriveBtn, `arrived: no "I've Arrived" control`).toBeVisible({ timeout: 45_000 });
+      const arriveBtn = c.getByRole("button", { name: /I've arrived/ }).first();
+      await expect(arriveBtn, `arrived: no "I've arrived" control`).toBeVisible({ timeout: 45_000 });
       // Same rule as `press`: painted is not pressable on this rail.
-      await expect(arriveBtn, `arrived: "I've Arrived" is on the card but DISABLED`).toBeEnabled({ timeout: 45_000 });
+      await expect(arriveBtn, `arrived: "I've arrived" is on the card but DISABLED`).toBeEnabled({ timeout: 45_000 });
       await arriveBtn.click();
       const share = hp.getByRole("button", { name: "Share Location" });
       if (await appears(share, 8_000)) await share.click();
@@ -882,7 +882,7 @@ test.describe.serial("marketplace chain", () => {
       await assertHealthy(hp, "arrived");
       await journey.milestone(hp, "arrived-gps");
       c = await card(pp, "/jobs?tab=posted", "Needs You");
-      await press(pp, c, /Confirm They Arrived/, "poster confirms arrival");
+      await press(pp, c, /Confirm they've arrived/, "poster confirms arrival");
       await journey.milestone(pp, "poster-confirmed-arrival");
     });
 
@@ -905,23 +905,23 @@ test.describe.serial("marketplace chain", () => {
       const seen: string[] = [];
       for (let i = 0; i < 8; i++) {
         const c = await card(hp, "/jobs?tab=working", "Needs You");
-        // "Before Photo" / "After Photo" — the PhotoProofCaptureChip labels.
+        // "Before photo" / "After photo" — the PhotoProofCaptureChip labels.
         // These read "Add a before photo" / "Add an after photo" until
         // 2026-09-21, which is PhotoProofStep's title; that panel has ZERO call
         // sites in src/, so this loop was watching for words nothing renders.
         // The same stale pair had already cost the production money loop a
         // 30-second timeout that read like a broken completion flow. Guarded
         // now by src/test/e2eExactLocatorsMatchRealCopy.test.ts.
-        const before = c.getByText("Before Photo", { exact: true });
-        const after = c.getByText("After Photo", { exact: true });
-        const start = c.getByRole("button", { name: /^Start Working$/ });
-        // "Mark Job Complete" (owner, 2026-09-14; was "Request My Payout"). Since
+        const before = c.getByText("Before photo", { exact: true });
+        const after = c.getByText("After photo", { exact: true });
+        const start = c.getByRole("button", { name: /^Start working$/ });
+        // "Mark job complete" (owner, 2026-09-14; was "Request My Payout"). Since
         // VN-21 the tracker's Done CTA is the card's ONE primary and the
         // same-label PayoutPrimary stands down, so there is one; `.first()`
         // stays as a guard. It opens the "Mark This Job Complete?"
         // confirmation this step expects (its button reads "Mark Complete",
         // owner 2026-09-14; was "Yes, I'm Done").
-        const payout = c.getByRole("button", { name: /^Mark Job Complete$/ }).first();
+        const payout = c.getByRole("button", { name: /^Mark job complete$/ }).first();
         await expect(before.or(after).or(start).or(payout).first(), `helper card offers no next step (so far: ${seen.join(" > ")})`).toBeVisible({ timeout: 45_000 });
         if (await before.isVisible() || await after.isVisible()) {
           const label = (await before.isVisible()) ? "Before" : "After";
@@ -942,35 +942,35 @@ test.describe.serial("marketplace chain", () => {
           await dialog.getByRole("button", { name: "Upload" }).click();
           await expect(dialog, `${label} photo dialog never closed`).toBeHidden({ timeout: 45_000 });
           await expect(
-            c.getByText(label === "Before" ? "Before Photo" : "After Photo", { exact: true }),
+            c.getByText(label === "Before" ? "Before photo" : "After photo", { exact: true }),
             `the ${label.toLowerCase()} photo ask is still on the card 30s after the upload dialog closed`,
           ).toBeHidden({ timeout: 30_000 });
           await assertHealthy(hp, `${label} photo`);
           await journey.milestone(hp, `${label.toLowerCase()}-photo-uploaded`);
         } else if (await start.isVisible()) {
-          seen.push("Start Working");
+          seen.push("Start working");
           await start.click();
-          // Start Working asks for location while it saves; decline, then let the save land.
+          // Start working asks for location while it saves; decline, then let the save land.
           await hp.getByRole("button", { name: "Share Location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
           await declineLocation(hp);
-          await expect(c.getByText(/Saving your update/), "Start Working never finished saving").toBeHidden({ timeout: 45_000 });
-          await expect(c.getByRole("button", { name: /^Start Working$/ }), "Start Working did not advance the tracker").toBeHidden({ timeout: 45_000 });
+          await expect(c.getByText(/Saving your update/), "Start working never finished saving").toBeHidden({ timeout: 45_000 });
+          await expect(c.getByRole("button", { name: /^Start working$/ }), "Start working did not advance the tracker").toBeHidden({ timeout: 45_000 });
           await assertHealthy(hp, "start working");
           await journey.milestone(hp, "working");
         } else {
-          seen.push("Mark Job Complete");
-          const payoutButtons = await c.getByRole("button", { name: /^Mark Job Complete$/ }).count();
+          seen.push("Mark job complete");
+          const payoutButtons = await c.getByRole("button", { name: /^Mark job complete$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
           const yes = hp.getByRole("button", { name: "Mark Complete", exact: true });
-          await expect(yes, "Mark Job Complete opened no confirmation").toBeVisible({ timeout: 15_000 });
+          await expect(yes, "Mark job complete opened no confirmation").toBeVisible({ timeout: 15_000 });
           await journey.milestone(hp, "request-payout-confirm");
           await yes.click();
           // The done write asks for location on its way out (JobTracking's
           // updateStatus → getLocation), and "Not Now" is deliberately NOT
           // remembered — usePermissionRationale only marks a kind confirmed
           // when the person says yes — so the rationale comes back here even
-          // though Start Working already declined it once. e2e-journeys
+          // though Start working already declined it once. e2e-journeys
           // 34927100318 left that dialog open: every button had been pressed,
           // `helper_completed_at` was never written, and the failure shot shows
           // the "Location" alertdialog still up. Answer it, the same way the
@@ -993,7 +993,7 @@ test.describe.serial("marketplace chain", () => {
          reading as missing copy on a job that had completed perfectly. */
       const submitted = await card(hp, "/jobs?tab=working", "Waiting");
       await expect(
-        submitted.getByText(/Waiting for the person who posted this job|Marked Complete/).first(),
+        submitted.getByText(/Waiting for the person who posted this job|Marked complete/).first(),
         "the helper's card does not say the submission is with the poster",
       ).toBeVisible({ timeout: 45_000 });
       await journey.milestone(hp, "submitted");
@@ -1062,7 +1062,7 @@ test.describe.serial("marketplace chain", () => {
       await sheet.getByRole("button", { name: /Something's not right/ }).click();
       await pp.getByRole("textbox", { name: "Describe what needs to be redone" }).first().fill(`Journey ${RUN}: please redo the corner.`);
       await journey.milestone(pp, "revision-sheet");
-      await pp.getByRole("button", { name: "Send Revision Request" }).click();
+      await pp.getByRole("button", { name: "Send revision request" }).click();
       await expect.poll(async () => (await readJob(request, S.poster, S.jobId!)).status, { timeout: 30_000 }).toBe("revision_requested");
       await journey.milestone(pp, "revision-requested");
     });
@@ -1072,8 +1072,8 @@ test.describe.serial("marketplace chain", () => {
       await expect(c.getByText(`Journey ${RUN}: please redo the corner.`), "the helper never sees the revision note").toBeVisible({ timeout: 45_000 });
       await press(hp, c, /I'll fix it/, "acknowledge revision");
       const c2 = await card(hp, "/jobs?tab=working", "Needs You", false);
-      await press(hp, c2, /Mark Fixed/, "mark fixed");
-      const yes = hp.getByRole("dialog").getByRole("button", { name: /Mark Fixed|Yes|Confirm/ }).last();
+      await press(hp, c2, /Mark fixed/, "mark fixed");
+      const yes = hp.getByRole("dialog").getByRole("button", { name: /Mark fixed|Yes|Confirm/ }).last();
       if (await appears(yes, 5_000)) await yes.click();
       await journey.milestone(hp, "resubmitted");
     });

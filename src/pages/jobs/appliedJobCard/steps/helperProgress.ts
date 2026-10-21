@@ -7,7 +7,7 @@ import type { Job } from "../../../../components/job-card/activityConstants";
  * (HelperCollapsedStrip passes `workUnderway` to helperStatusLine).
  *
  * They disagreed (lane B, 2026-10-12): on the on-site step with the before
- * photo taken, the expanded primary was the tracker's "Start Working", while
+ * photo taken, the expanded primary was the tracker's "Start working", while
  * the collapsed line, which read only the jobs row, said "Finish and mark it
  * done". Whether work is underway lives on the `job_tracking` row, which the
  * line never saw. Guard: src/test/collapsedLineNamesThePhotoPrimary.test.tsx.

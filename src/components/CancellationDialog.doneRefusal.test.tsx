@@ -80,7 +80,7 @@ describe("CancellationDialog — refused because the Helpr marked the job done",
 
     // Not "Cancelling…" forever: enabled, and back to its resting label.
     await waitFor(() => expect(button).not.toBeDisabled());
-    expect(button).toHaveTextContent(/^Cancel Job$/);
+    expect(button).toHaveTextContent(/^Cancel job$/);
 
     // …and the second press actually reaches the server.
     fireEvent.click(button);

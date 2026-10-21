@@ -19,12 +19,12 @@ export interface HelperStepProps {
   tracker: ReactNode;
   /** The Message chip, identical in every step — built once, never re-styled. */
   messageChip: ReactNode;
-  /** The "Cancel Job" chip — only after the helper has confirmed and before
-   *  "I'm On My Way" (owner, 2026-09-14, VN-18); null everywhere else. */
+  /** The "Cancel job" chip — only after the helper has confirmed and before
+   *  "I'm on my way" (owner, 2026-09-14, VN-18); null everywhere else. */
   exitChip: ReactNode;
   /** The "Report a Problem" danger chip for the action row, beside Message
-   *  (owner, 2026-09-14, VN-19) — from On the Way onward, i.e. wherever
-   *  "Cancel Job" is gone; null where Cancel Job still exists, on a disputed
+   *  (owner, 2026-09-14, VN-19) — from On the way onward, i.e. wherever
+   *  "Cancel job" is gone; null where Cancel job still exists, on a disputed
    *  job, or once the job is done. */
   reportChip: ReactNode;
   /** SOS "share my location" (Q366, TS-007): the Helpr is the party at a

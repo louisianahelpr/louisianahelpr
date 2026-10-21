@@ -18,6 +18,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
+import { formatPrice } from "@/lib/format";
 import {
   MAX_PITCH_LENGTH,
   pitchDraftKey,
@@ -214,6 +215,12 @@ export function ApplyBody({
     if (online) toast.dismiss(OFFLINE_TOAST_ID);
   }, [online]);
 
+  // Board 58: the button names the job's price, the same number the summary card shows. A crew job
+  // is split between Helprs, so it says "Apply now" rather than a price no one Helpr gets.
+  const posterFirst = confirmApplyJob?.posterName?.trim().split(/\s+/)[0] ?? "";
+  const single = (confirmApplyJob?.helpers_needed ?? 1) <= 1;
+  const applyLabel = confirmApplyJob && single && confirmApplyJob.budget > 0 ? `Apply at $${formatPrice(confirmApplyJob.budget)}` : "Apply now";
+
   const handleConfirm = () => {
     if (underAge) return;
     hapticMedium();
@@ -280,7 +287,8 @@ export function ApplyBody({
             masthead for what is an optional note field. */}
         <div className="flex items-baseline justify-between gap-2">
           <label htmlFor="apply-message" className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Note to the person who posted this job{" "}
+            {/* Board 58: by the poster's first name when the row has it; never he/she. */}
+            {posterFirst ? `Say hi to ${posterFirst}` : "Note to the person who posted this job"}{" "}
             <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
               (optional)
             </span>
@@ -306,7 +314,12 @@ export function ApplyBody({
           maxLength={MAX_PITCH_LENGTH}
           rows={3}
           className="rounded-ds-md bg-background/60 border-border/60 focus-visible:bg-background focus-visible:border-primary/40 font-sans text-ds-14 leading-relaxed"
+          aria-describedby="apply-message-help"
         />
+        {/* The scanner above blocks these before sending (Messages' rule, 85). */}
+        <p id="apply-message-help" className="font-sans text-ds-12 text-muted-foreground">
+          Keep it on Helpr. Phone numbers, emails and links can't be sent until you're hired.
+        </p>
 
         {/* Saved pitch, as ONE control instead of two. Restoring the template
             and saving a new one used to be a sage text button above the field
@@ -495,7 +508,7 @@ export function ApplyBody({
           className="flex-1 min-w-0 rounded-ds-md h-11 sm:h-12 px-4 group disabled:opacity-60"
         >
           <span>
-            {applyLoading ? "Applying…" : !online ? "Try Again" : "Apply Now"}
+            {applyLoading ? "Applying…" : !online ? "Try again" : applyLabel}
           </span>
         </Button>
       </div>

@@ -65,8 +65,8 @@ const isTest = (rel: string) => /\.(test|spec)\.tsx?$/.test(rel) || rel.startsWi
 
 /** Code that names the Post a Job route as a destination (a string, template or href). */
 const POST_ROUTE = /["'`]\/post-job(?=[?"'`$/])/;
-/** The Apply entry: the visible "Apply Now" label, or the RPCs that take on work. */
-const APPLY_ENTRY = />\s*Apply Now\s*<|"Apply Now"/;
+/** The Apply entry: the visible "Apply Now" / "Apply now" / "Apply at $X" label (board 58), or the RPCs that take on work. */
+const APPLY_ENTRY = />\s*Apply [Nn]ow\s*<|"Apply [Nn]ow"|`Apply at \$/;
 const WORK_RPC = /\.rpc\(\s*["'](apply_to_job|respond_to_direct_offer|claim_series_dates)["']/;
 
 /** Files that name /post-job but are not an entry a member taps, with why. EXACT: each must still name the route. */

@@ -143,7 +143,7 @@ describe("Apply and Post ask for no photo, phone or birthday (owner, 2026-10-14)
     cacheBareProfile();
     const props = applyProps();
     render(<ApplyConfirmDialog {...props} />);
-    fireEvent.click(screen.getByRole("button", { name: "Apply Now" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Apply (now|at \$)/ }));
     await act(async () => {});
     expect(props.handleApplyConfirm).toHaveBeenCalledTimes(1);
     expectNoProfilePrompt();

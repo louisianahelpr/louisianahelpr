@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Building2, Wallet, Crown, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
-  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera,
+  DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera, Sofa, Truck, Star, Ban,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
@@ -222,6 +222,219 @@ export const TermsContent = () => {
               <Link to="/profile?tab=settings" className="font-semibold underline" style={{ color: "hsl(var(--bark))" }}>Settings</Link>.
               It stops future posts; it can&apos;t pull posts already shared.
             </p>
+          </>
+        }
+      />
+    </PolicySection>
+
+    {/* Q2308 (owner approved the content 2026-10-22; docs/specs/declutter-terms-draft.md is the source and
+        src/test/termsDeclutterSection.test.ts pins its numbers to the code). No terms-version bump (owner #14). */}
+    <PolicySection
+      icon={Sofa}
+      title="Declutter"
+      subtitle="Buying and selling used household items"
+      anchorId="declutter"
+    >
+      <PolicyRowItem
+        icon={Sofa}
+        title="What Declutter is"
+        body={
+          <>
+            <p>These Declutter terms are part of these Terms. Everything else in the Terms, the Community Rules and the Privacy policy still applies in Declutter; where this section is more specific, it wins for Declutter.</p>
+            <p>Declutter is where members sell their own used household items to other members. Each item has a price set by the seller. A buyer can buy it at that price or send the seller a private offer, and the seller decides.</p>
+            <p><strong className="text-foreground">Declutter is not an auction.</strong> There is no bidding, no countdown and no &ldquo;highest bid wins&rdquo;. An item sells to the first buyer whose purchase or offer is accepted and who then pays.</p>
+            <p>You can get an item four ways: <strong className="text-foreground">porch pickup</strong> (the default: the seller leaves it on a porch or another safe place), <strong className="text-foreground">pickup at the seller&apos;s door</strong> (for items the seller doesn&apos;t leave out), <strong className="text-foreground">Helpr delivery</strong>, or <strong className="text-foreground">seller delivery</strong> when the seller offers it. Shipping is not offered.</p>
+            <p>Louisiana Helpr is the place where the sale happens. We are not the seller.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Users}
+        title="Who can buy and sell"
+        body={
+          <>
+            <p><strong className="text-foreground">18 or older.</strong> Members under 18 can&apos;t buy, make offers, post Wanted requests, deliver or sell.</p>
+            <p><strong className="text-foreground">In good standing:</strong> signed in, not banned, and with fewer than 3 active Declutter strikes.</p>
+            <p><strong className="text-foreground">Items in Louisiana.</strong> Items and pickups are in Louisiana. Buyers may live anywhere.</p>
+            <p>Sellers set up payouts with Stripe before their first listing. Buyers save a card before making an offer or buying.</p>
+            <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase or your first listing, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>
+            <p>The one-time account setup fee is charged once per account, whichever comes first: your first Jobs payout, or your first Declutter purchase or listing.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={FileText}
+        title="Listing an item"
+        body={
+          <>
+            <p><strong className="text-foreground">Only your own personal things.</strong> When you list, you confirm that you bought the item for your own personal or household use, that you&apos;re not in the business of selling items like it, that you don&apos;t sell things often, and that you&apos;ll keep the item until you hand it over. We keep your answers.</p>
+            <p><strong className="text-foreground">Photos:</strong> at least 1 and at most 12 photos you took of the actual item. The app removes location data from them.</p>
+            <p><strong className="text-foreground">Be honest.</strong> The title, description, category, size and condition must describe the item accurately, including any damage or missing parts. The app can draft these from your photos; you must read and correct the draft, and you are responsible for every word of your listing.</p>
+            <p><strong className="text-foreground">Review:</strong> your first 3 listings, and any listing our automatic check flags, wait for a Louisiana Helpr admin. We may remove any listing that breaks these terms.</p>
+            <p><strong className="text-foreground">Price:</strong> from $1 to $1,000 per item, plus a private lowest price you&apos;ll accept. Set the lowest price equal to the price if you don&apos;t want it to drop.</p>
+            <p><strong className="text-foreground">Location and times:</strong> your pickup address stays private; buyers see an area name (it can&apos;t contain your house number or street address). You set your usual weekly pickup times.</p>
+            <p><strong className="text-foreground">Porch or door:</strong> porch pickup is on for every item unless you turn it off when you list. It can&apos;t be changed after the item is listed.</p>
+            <p><strong className="text-foreground">Managing a listing:</strong> while it&apos;s for sale you can change its price or lowest price (never above the price it was first listed at), stop or restart the evening price drops, pause it (hidden from buyers, open offers close, nothing is charged) and relist it.</p>
+            <p><strong className="text-foreground">Taking it down</strong> is free any time before an offer is accepted or someone buys it; open offers close and those buyers are told. Backing out after you&apos;ve accepted is a strike.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={AlertTriangle}
+        title="What you can't sell"
+        body={
+          <p>Weapons, ammunition and knives made as weapons; alcohol; prescription and illegal drugs; vapes; any recalled product; cribs made before mid-2011; used car seats; counterfeits; adult items; live animals; vehicles and boats; real estate. The app checks listings for these, and flagged listings wait for an admin.</p>
+        }
+      />
+      <PolicyRowItem
+        icon={Handshake}
+        title="Offers and price drops"
+        body={
+          <>
+            <p><strong className="text-foreground">Offers:</strong> at least half of today&apos;s price (and at least $1). The side whose turn it is has 48 hours to accept, say no or answer with another price; each answer restarts the 48 hours. If nobody answers, the offer expires with no strike. You can take an offer back before it&apos;s accepted.</p>
+            <p>One open offer per item, and at most 3 new offers on the same item in 24 hours. The first offer accepted gets the item; every other open offer closes and nobody is charged. If an offer is accepted, you pay the accepted amount or today&apos;s price, whichever is lower.</p>
+            <p><strong className="text-foreground">Evening price drops:</strong> every evening the price of each unsold item drops 5%, at most once a day, and stops a little above the seller&apos;s private lowest price at a point chosen at random. Open offers keep their amounts.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Wallet}
+        title="Checkout and what buyers pay"
+        body={
+          <>
+            <p><strong className="text-foreground">48 hours to check out.</strong> After you buy, or your offer is accepted, the item is reserved for you and you have 48 hours to check out and pay. We remind you 24 hours and 2 hours before. Missing the deadline is 1 Declutter strike, and the item goes back on sale.</p>
+            <p>Your saved card is charged only when you check out and pay, or automatically in a part of Louisiana Helpr where you turned on automatic charges.</p>
+            <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout (it includes card processing). With seller delivery, the buyer&apos;s fee is worked out on the items and the seller&apos;s delivery rate together. A Helpr delivery fee carries no buyer&apos;s fee. You see one total before you pay.</p>
+            <p>Items from the same seller go into one checkout: one payment, one pickup or delivery.</p>
+            <p><strong className="text-foreground">Sellers pay no fee</strong> and receive the whole item price, less any card fee they owe from a sale they cancelled. We hold the payment through Stripe until the sale is final.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Clock}
+        title="Pickup and handover"
+        body={
+          <>
+            <p>Every pickup and delivery happens within 7 days of paying. Before you pay you see only the seller&apos;s area and the distance; right after you pay you get the exact address.</p>
+            <p><strong className="text-foreground">Pickup:</strong> you book a 30-minute slot in the seller&apos;s pickup times. Each of you may move it once.</p>
+            <p><strong className="text-foreground">Porch pickup:</strong> the seller sets the item out, posts a photo and may add a short note on where it is. You collect it and tap &ldquo;I got it&rdquo;, or take a photo and tap &ldquo;Picked up&rdquo;. If you haven&apos;t collected it by the time the seller said it stays out, the seller may bring it in, and it counts as you not showing up.</p>
+            <p><strong className="text-foreground">At the door:</strong> you tap &ldquo;I got it&rdquo;, or the seller taps &ldquo;Picked up&rdquo;. A seller&apos;s &ldquo;Picked up&rdquo; becomes final 24 hours later unless you report a problem.</p>
+            <p>If nobody confirms, the handover counts as done 24 hours after the booked time unless a problem was reported (for porch pickup, only if the seller posted the set-out photo).</p>
+            <p><strong className="text-foreground">Someone didn&apos;t show:</strong> 15 minutes after the booked time the waiting side can say so. A buyer who misses a pickup may rebook once; a second miss cancels the sale.</p>
+            <p><strong className="text-foreground">Report a problem:</strong> either of you can report a problem until the sale is final. The money stays held while Louisiana Helpr looks at both sides&apos; photos and messages and decides.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Truck}
+        title="Helpr delivery"
+        body={
+          <>
+            <p><strong className="text-foreground">Price:</strong> $10, plus $2 for each road mile, plus $20 for each large item and $40 for each extra-large item. Road miles are estimated from the straight-line distance (times 1.3, rounded up, at least 1 mile). There is no distance limit. Delivery is offered when every item is at one pickup address.</p>
+            <p>A Helpr takes the delivery, picks the pickup time within the seller&apos;s times and the 7 days, takes a photo at pickup and leaves the item at your door with a photo. Then you tap &ldquo;I got it&rdquo;, or it counts as done 24 hours after the drop-off.</p>
+            <p><strong className="text-foreground">No Helpr in 48 hours:</strong> the whole delivery fee comes back to you and the order becomes a pickup at the seller&apos;s door.</p>
+            <p><strong className="text-foreground">Raising the pay:</strong> while you wait, you may raise the delivery pay, at least $5 at a time in whole dollars, at most $150 in total for one delivery, and not in the last hour of the 48 hours. You pay the raise plus its card fee, and the Helpr gets the whole raise. A refunded raise comes back with its card fee unless you cancel for your own reason; if the seller&apos;s fault cancels a raised delivery, the seller pays the raise&apos;s card fee.</p>
+            <p><strong className="text-foreground">Who can deliver:</strong> a Helpr who is 18 or older, has set up payouts, is not banned, has fewer than 3 Declutter strikes and is not the buyer or seller. Large items need a truck; extra-large items a truck and a second person.</p>
+            <p><strong className="text-foreground">The Helpr&apos;s pay:</strong> the delivery fee minus the same Helpr fee as jobs ({HELPR_FLAT_FEE_PHRASE}), plus any raise in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.</p>
+            <p>A Helpr who backs out less than 2 hours before the pickup, or doesn&apos;t pick up within 2 hours of the pickup time, gets a strike on the jobs strike ladder. If the item is damaged on the way, you get everything back, the seller is still paid, and the Helpr isn&apos;t paid. If the Helpr already picked up the item and the sale is refunded for the seller&apos;s fault, the Helpr is paid for the trip and the delivery fee is not refunded.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Truck}
+        title="Seller delivery"
+        body={
+          <>
+            <p>A seller may offer to deliver: one flat rate per order in whole dollars, from $5 to $150; a range of 5, 10, 25 or 50 miles from their pickup address (10 unless they change it); and weekly 1-hour delivery slots. The seller keeps the whole delivery rate; Louisiana Helpr takes no cut of it. The seller can turn delivery off for an item.</p>
+            <p>At checkout it shows only when your address is in range and a time is open. You book a slot from 24 hours ahead up to 14 days out and choose &ldquo;Leave it at my door&rdquo; (left with a photo, confirmed like a porch pickup) or &ldquo;Hand it to me&rdquo; (if nobody is home, report a problem and an admin decides). The seller sees your address only after you pay. Either of you may ask to move the time, at most 3 times each.</p>
+            <p><strong className="text-foreground">Cancelling:</strong> you may cancel a paid seller delivery until 24 hours before the slot and get everything back except the card fee; after that, report a problem. A seller who cancels a paid delivery refunds you in full, gets a Declutter strike and pays the card fee.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Receipt}
+        title="Refunds and when the sale is final"
+        body={
+          <>
+            <p><strong className="text-foreground">You always get 24 hours.</strong> However the pickup is confirmed, you have 24 hours after pickup to ask for a refund. The seller can refund all of it (you get everything back except the card fee, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.</p>
+            <p><strong className="text-foreground">The seller is paid when the sale is final:</strong> 24 hours after pickup with no refund asked and no problem open, or once Louisiana Helpr has decided. After that the item is yours as is, with no returns.</p>
+            <ul className="list-disc pl-4 space-y-0.5">
+              <li><strong className="text-foreground">Our mistake</strong> (a duplicate charge, a payment on a closed order): everything back.</li>
+              <li><strong className="text-foreground">Not as described, seller no-show, seller backs out or blocks you after you paid:</strong> everything back; the seller pays the card fee and gets a strike. The same full refund applies if the seller can no longer sell when you pay.</li>
+              <li><strong className="text-foreground">Damaged in Helpr delivery:</strong> everything back, the delivery fee too.</li>
+              <li><strong className="text-foreground">A delivery that falls through with less than 48 hours left:</strong> the delivery fee in full and the rest minus the card fee; no strike.</li>
+              <li><strong className="text-foreground">Buyer never picks up, or misses a pickup twice:</strong> the item price back; the buyer&apos;s fee is kept; a buyer strike.</li>
+              <li><strong className="text-foreground">Buyer cancels, pays twice by restarting checkout, or nobody&apos;s fault:</strong> the payment back minus the card fee.</li>
+              <li><strong className="text-foreground">Missed the 48-hour checkout:</strong> nothing was charged; a buyer strike.</li>
+            </ul>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Ban}
+        title="Declutter strikes"
+        body={
+          <>
+            <p>Declutter keeps one strike count per member for buying and selling together, separate from job strikes; Declutter strikes never affect your jobs. <strong className="text-foreground">Each strike lasts 1 year. 3 active strikes lock you out of all of Declutter</strong> until one expires, and your listings are hidden meanwhile.</p>
+            <p><strong className="text-foreground">Buyers</strong> get a strike for missing the 48-hour checkout, or paying but not picking up within the 7 days. <strong className="text-foreground">Sellers</strong> get one for not showing up at a booked pickup, the item being gone after it sold, backing out after accepting (or cancelling a paid seller delivery), an item that is not as described, or blocking the buyer after the sale.</p>
+            <p>You can appeal each strike once, with a note and, if you like, a photo. An admin removes or keeps it.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={ShieldCheck}
+        title="Fair play, questions and messages"
+        body={
+          <>
+            <p>No offers on your own items, and no fake activity to push a price or find a seller&apos;s lowest price. Offers from someone sharing the seller&apos;s household, phone or card are flagged; a member proven to have made fake offers is removed from Declutter. Pay only through checkout: off-app payments are handled exactly as for jobs.</p>
+            <p>Questions and answers show on the item page; the asker is shown only as &ldquo;a neighbor&rdquo;. They, and listings, can&apos;t contain phone numbers, emails, payment handles or other contact details. You can ask up to 20 questions a day. Private messages open only after checkout, between that buyer and seller.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Star}
+        title="Extras"
+        body={
+          <>
+            <p><strong className="text-foreground">Add a Helpr:</strong> after you pay, you can book a Helpr to put an item together, hang it or set it up. It is an ordinary Helpr job under the normal job rules and fees, paid separately. If the sale is refunded because the seller failed, that job is cancelled with no cancellation fee, you get the card fee back, and the seller owes it.</p>
+            <p><strong className="text-foreground">Haul-away:</strong> an item unsold 14 days after it went up for sale (or off sale without selling) can be taken by a Helpr to donation, or the dump if donation won&apos;t take it. Up to 10 items from one pickup address per trip; it is an ordinary Helpr job you price and pay for. Booking takes the items off sale. A paused item must be relisted first.</p>
+            <p><strong className="text-foreground">Moving out:</strong> photograph each room and the app drafts up to 15 listings at a time for you to check and price. A moving sale can show its name, dates and move-out date (up to 180 days away) on your profile, never your address. Room photos are used once and never stored.</p>
+            <p><strong className="text-foreground">Price hint:</strong> what similar items sold for nearby, worked out only from real Declutter sales, and shown only when there are enough of them. It is a guide, not a promise.</p>
+            <p><strong className="text-foreground">Wanted posts:</strong> post what you&apos;re looking for and the most you&apos;ll pay; a post lasts 30 days. Others see it with your first name and last initial and about how far away, never your address, and a seller can answer with an offer at or under your price. You can make a post private.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Scale}
+        title="Our role, safety and pauses"
+        body={
+          <>
+            <p><strong className="text-foreground">Each sale is between the buyer and the seller.</strong> We don&apos;t own, inspect, store, test or guarantee any item. Our checks look for banned items and rule-breaking; they are not a promise that an item is safe, genuine, legal, working or as described. The disclaimers and limitation of liability below apply to Declutter sales and deliveries as they do to jobs.</p>
+            <p>You meet other members at your own risk. Porch pickup means you never have to meet; never pay or take payment outside the app; report anything that doesn&apos;t feel right.</p>
+            <p>In severe weather or another emergency we may pause Declutter for all of Louisiana or chosen parishes: the checkout and pickup clocks stop and no new strikes are given until the pause ends. If we turn Declutter off, sales already agreed can still be paid for and handed over, with no strike for a sale the shutdown interrupted.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={DollarSign}
+        title="Declutter and taxes"
+        body={
+          <>
+            <p>Louisiana exempts occasional sales by someone who is not in the business of selling. That is why every seller confirms the four statements when they list. A seller who lists like a business may be flagged, and a flagged seller can&apos;t complete a Declutter sale until our tax step is ready.</p>
+            <p>Taxes on your own income from selling or delivering are your responsibility. We don&apos;t give tax advice: ask a tax professional about your situation.</p>
+          </>
+        }
+      />
+      <PolicyRowItem
+        icon={Camera}
+        title="Declutter privacy and your account"
+        body={
+          <>
+            <p>Before a buyer pays, they see your area name and about how far away the item is; the exact address goes only to the buyer who paid or the Helpr who took the delivery. Listing photos are shown to members, and anyone with a photo&apos;s link can open it; porch, delivery and problem photos stay with the people in that sale and our admins.</p>
+            <p>The photos and text of your listing, and room photos when moving out, are sent to our AI provider to draft and check the listing.</p>
+            <p>You can&apos;t delete your account while a Declutter sale or delivery is in progress. After you delete it, your Declutter photos are removed, your Declutter strikes stay tied to your verified ID, and your finished sales stay visible to the other side with you shown as &ldquo;Former member&rdquo;.</p>
+            <p>Declutter emails you only about money (sold, receipts, refunds); everything else comes as a push notification and in-app alert.</p>
+            <p>After a handover, buyer and seller can review each other with stars, quick tags and a comment, hidden until both have reviewed or 14 days pass. Declutter reviews count toward the same star rating used for jobs.</p>
           </>
         }
       />

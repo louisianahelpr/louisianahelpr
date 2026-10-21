@@ -35,7 +35,7 @@ export const PAGE_CANONICALS: Record<TabKey, string> = {
 // rather than implying all three changed together — bump only the tab you
 // actually edited.
 export const LAST_UPDATED: Record<TabKey, string> = {
-  terms: "Oct 2026",
+  terms: "Oct 2026", // 2026-10-21: the Declutter section (Q2308; no version bump, owner #14)
   community: "Oct 2026", // 2026-10-21: the 1099 line made true (Stripe issues the 1099-K)
   privacy: "Oct 2026",
 };

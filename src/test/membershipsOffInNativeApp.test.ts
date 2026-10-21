@@ -23,7 +23,7 @@
 // @mutate src/hooks/useMembershipsOn.ts |   return on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP; |   return on;
 // @mutate src/components/profile/EarningsTab.tsx |   const membershipsOn = useMembershipsOn(); |   const membershipsOn = useFeature("memberships");
 // @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | (tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP) | tier !== "free"
-// @mutate src/components/profile/SubscriptionTab.tsx |   if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) { |   if (false) {
+// @mutate src/components/profile/SubscriptionTab.tsx |   if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return |   if (false) return
 // @mutate src/pages/info/HelpCenter.tsx | !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing") | true
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -57,7 +57,7 @@ describe("memberships are never shown or sold in the store app", () => {
     const landing = read("src/components/profile/profileLanding/useProfileLandingDerived.tsx");
     expect(landing).toMatch(/tier !== "free" && !MEMBERSHIPS_HIDDEN_IN_THIS_APP/);
     const tab = read("src/components/profile/SubscriptionTab.tsx");
-    const early = tab.indexOf("if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) {");
+    const early = tab.indexOf("if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return <MembershipsUnavailable");
     expect(early).toBeGreaterThan(-1);
     // The early return comes before the plans render.
     expect(early).toBeLessThan(tab.indexOf("tierConfig.map"));

@@ -53,9 +53,6 @@ const hoisted = vi.hoisted(() => ({
   listeners: [] as { filter?: string; handler: (payload: unknown) => void }[],
 }));
 
-// The pinned deal card (board 2) and the header's person line read Supabase
-// through React Query; this file is about layout, so both are stubbed.
-vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, usePersonFacts: () => "" }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
@@ -116,7 +113,7 @@ vi.mock("@/components/messages/chatView/ChatPaneShell", () => ({
 }));
 vi.mock("@/components/messages/chatView/ChatTimeline", () => ({ ChatTimeline: () => null }));
 // Board 2's deal card reads the job through React Query; not this test's subject.
-vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null }));
+vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, usePersonFacts: () => "" }));
 vi.mock("@/components/messages/chatView/JumpToBottomButton", () => ({ JumpToBottomButton: () => null }));
 vi.mock("@/components/messages/MuteSheet", () => ({ MuteSheet: () => null }));
 vi.mock("@/components/messages/MessageActionSheet", () => ({ MessageActionSheet: () => null }));

@@ -96,6 +96,8 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
   "/quotes",
   // Shops (hidden switch): the same.
   "/shops",
+  // One search across the sections (board 89).
+  "/search",
   // Rentals (hidden switch 'rentals'): it had the desktop rail but no dock at
   // 375 (measured 2026-10-15, local build); guard: src/test/dualSurfaceRoutesGetAppChrome.test.ts
   // (every App.tsx route with the rail has the dock).

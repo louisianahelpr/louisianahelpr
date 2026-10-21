@@ -17,6 +17,8 @@ const AUTH_PREFIXES = [
   // Explore: the bottom bar's sections tab (owner-approved mock-up, 2026-10-20).
   "/explore",
   "/messages", "/user",
+  // One search across the sections (board 89).
+  "/search",
   // Declutter (hidden switch; each page is the 404 while it is off).
   "/declutter",
   // Quotes on jobs (hidden switch 'quotes'; each page is the 404 while off).

@@ -43,9 +43,6 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 
-// The pinned deal card (board 2) and the header's person line read Supabase
-// through React Query; this file is about layout, so both are stubbed.
-vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, usePersonFacts: () => "" }));
 vi.mock("./../components/messages/chatView/ChatPaneShell", () => ({
   ChatPaneShell: ({ header, children }: { header?: ReactNode; children: ReactNode }) => (
     <div data-testid="pane">
@@ -74,7 +71,7 @@ vi.mock("@/lib/offJobGate", () => ({ useOffJobState: () => null }));
 vi.mock("./../components/messages/chatView/ApplicationNoteCard", () => ({ ApplicationNoteCard: () => <section data-testid="chat-application-note" /> }));
 // Board 2's deal card reads the job (React Query); its own spec is dealStage.test.ts.
 // It is pinned under the header ABOVE the scroller, like the safety banner.
-vi.mock("./../components/messages/chatView/DealCard", () => ({ DealCard: () => <section data-testid="deal-card">deal</section> }));
+vi.mock("./../components/messages/chatView/DealCard", () => ({ DealCard: () => <section data-testid="deal-card">deal</section>, useDealCardShown: () => false, usePersonFacts: () => "" }));
 vi.mock("./../components/messages/useMessageReactions", () => ({
   useMessageReactions: () => ({ reactions: new Map(), react: vi.fn() }),
 }));

@@ -24,6 +24,7 @@ import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DatePickerField } from "@/components/DatePickerField";
+import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
@@ -308,6 +309,8 @@ export default function MoveFlow() {
             {changingDate ? "Changing…" : `Change the date on my moving-sale items to ${formatMoveDate(date)}`}
           </Button>
         )}
+        {/* Board 164 / Q2269: the sale's name and start, once there is a moving sale to name. */}
+        {user && current && <MovingSaleDetails userId={user.id} moveOutOn={current} today={today} />}
       </Section>
 
       <Section id="move-rooms" title="2. Photograph a room">

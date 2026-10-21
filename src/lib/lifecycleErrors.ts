@@ -846,6 +846,21 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
+  declutter_my_moving_sale: {
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_set_moving_sale: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_sale_dates: DC.invalid_sale_dates,
+    invalid_sale_name: DC.invalid_sale_name,
+    no_moving_sale: DC.no_moving_sale,
+    not_authenticated: DC.not_authenticated,
+    sale_name_contact_info: DC.sale_name_contact_info,
+    under_18: DC.under_18,
+  },
   declutter_set_pickup_windows: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

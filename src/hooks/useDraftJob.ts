@@ -65,7 +65,6 @@ export interface JobDraft {
   includeMaterials?: boolean;
   materialsNote?: string;
   department?: string;
-  requiresW9?: boolean;
   offerToHelperId?: string | null;
   savedAt: number;
 }

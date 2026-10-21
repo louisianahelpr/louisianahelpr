@@ -614,7 +614,6 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // column default, so the deploy-lag window loses an opt-OUT only.
         requirePhotoProof: opts.withExtras ? requirePhotoProof : true,
         department: null,
-        requiresW9: false,
       });
 
     // `expires_at` is left out: it is floored to now + 1 hour, so for a job

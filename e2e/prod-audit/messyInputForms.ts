@@ -979,7 +979,6 @@ export const GAPS: Record<string, string> = {
   "src/components/profile/profileEditForm/RecentWorkSection.tsx": "file input only",
   "src/components/NotificationPreferences.tsx": "switches only",
   "src/components/profile/TwoFactorCard.tsx": "6-digit code field appears only after a real authenticator enrolment; not swept on the shared accounts (would enrol 2FA on them)",
-  "src/components/W9CollectionDialog.tsx": "opens only when a helper crosses the $600 tax threshold in the current year; no seed state (real money)",
   "src/components/feedback/NpsPrompt.tsx": "appears on a 30-day cadence after a completed job; not reachable on demand",
   "src/components/ResponseDeadlineDialog.tsx": "select only (response window)",
   "src/components/CompletionPrompts.tsx": "yes/no prompts, no typed text",

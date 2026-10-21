@@ -23,8 +23,8 @@ export function useApplicantCompare() {
   return { ids, toggle, clear: () => setIds([]) };
 }
 
-/** The card's "Compare" tick. Disabled once 3 are picked, unless this one is. */
-export function CompareCheck({ id, name, ids, toggle }: { id: string; name: string; ids: string[]; toggle: (id: string) => void }) {
+/** The card's "Compare" tick. Disabled once 3 are picked, unless this one is. `labelHidden`: the desktop table's column header already says Compare (board 170). */
+export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: string; name: string; ids: string[]; toggle: (id: string) => void; labelHidden?: boolean }) {
   const on = ids.includes(id);
   const full = !on && ids.length >= COMPARE_MAX;
   return (
@@ -38,7 +38,7 @@ export function CompareCheck({ id, name, ids, toggle }: { id: string; name: stri
         onChange={() => toggle(id)}
         aria-label={`Compare ${name}`}
       />
-      Compare
+      <span className={labelHidden ? "sr-only" : undefined}>Compare</span>
     </label>
   );
 }
@@ -52,12 +52,15 @@ export function CompareBar({
   clear,
   distanceOf,
   onHire,
+  barClassName,
 }: {
   apps: EnrichedApplication[];
   ids: string[];
   clear: () => void;
   distanceOf: DistanceOf;
   onHire: (app: EnrichedApplication) => void;
+  /** Extra classes on the bar: the desktop table hides it where its side card shows (board 170). */
+  barClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
   const picked = ids.map((id) => apps.find((a) => a.id === id)).filter((a): a is EnrichedApplication => !!a);
@@ -72,7 +75,7 @@ export function CompareBar({
   ];
   return (
     <>
-      <div className="sticky bottom-safe-nav z-10 flex items-center justify-between gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-[var(--card-shadow)]" data-compare-bar="">
+      <div className={`sticky bottom-safe-nav z-10 flex items-center justify-between gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-[var(--card-shadow)] ${barClassName ?? ""}`} data-compare-bar="">
         <span className="text-ds-14 font-semibold">{picked.length} selected</span>
         <Button variant="primary" className="rounded-full" onClick={() => setOpen(true)}>Compare side by side</Button>
       </div>

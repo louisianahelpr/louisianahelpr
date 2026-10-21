@@ -5,6 +5,7 @@
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Open: 403** (361 to do, 42 fixed with protection pending; 1531 done). Feeds mirrored in: 23 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 16 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 419** (362 to do, 57 fixed with protection pending; 1513 done). Feeds mirrored in: 23 from the alert ledger, 2 from alert issues (ONE "Fix the test robots" item lists all 16 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 11 red, 13 stale, 0 unknown, 51 green of 75 — [SCOREBOARD](SCOREBOARD.md). _(2026-10-18T22:58Z)_

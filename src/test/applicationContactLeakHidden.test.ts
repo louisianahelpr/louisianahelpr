@@ -23,6 +23,8 @@ const codeOnly = (s: string) =>
   blankComments(s);
 
 const PANEL = codeOnly(read("src/pages/posts/postedJobs/ApplicantsPanel.tsx"));
+// Board 170: the desktop table is the second place the poster reads a Helpr's note.
+const TABLE = codeOnly(read("src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx"));
 const OFFER = codeOnly(read("src/pages/jobs/appliedJobCard/OfferedActions.tsx"));
 const APPLICANTS_QUERY = read("src/components/job-card/activityActions/useApplicantsState.ts");
 const ACTIVITY_QUERY = read("src/hooks/useActivityData.ts");
@@ -61,6 +63,14 @@ describe("helper's note -> poster (ApplicantsPanel)", () => {
     const block = guardedRange(PANEL, "{(app.message || app.flagged_hidden) &&", "{app.message}", "ApplicantsPanel");
     // The ternary itself, not just a mention: the opener also names the flag (Q1206).
     expect(block).toContain("app.flagged_hidden ? (");
+    expect(block).toMatch(/hidden/i);
+  });
+});
+
+// @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.flagged_hidden ? ( | {false ? (
+describe("helper's note -> poster (the desktop applicants table, board 170)", () => {
+  it("tests the flag before the raw note is rendered", () => {
+    const block = guardedRange(TABLE, "{app.flagged_hidden ? (", "{app.message}", "ApplicantsDesktopTable");
     expect(block).toMatch(/hidden/i);
   });
 });

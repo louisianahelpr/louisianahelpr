@@ -1,4 +1,23 @@
 import { Link } from "react-router-dom";
+import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
+import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+
+/**
+ * What /profile?tab=subscription shows in the store app, where memberships are
+ * never shown or sold (useMembershipsOn, owner 2026-10-21): no plans, no
+ * purchase, no Restore button. Moved out of SubscriptionTab.tsx for the
+ * componentSizeRatchet.
+ */
+export function MembershipsUnavailable({ onBack }: { onBack: () => void }) {
+  return (
+    <ProfileTabBody>
+      <ProfileTabHeader title="Membership" onBack={onBack} />
+      <p className="text-ds-14 text-muted-foreground" data-testid="memberships-unavailable">
+        Memberships aren't available right now.
+      </p>
+    </ProfileTabBody>
+  );
+}
 
 /*
  * The two static footnotes under the membership tier cards, moved out of

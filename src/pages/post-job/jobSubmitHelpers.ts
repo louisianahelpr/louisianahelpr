@@ -57,9 +57,6 @@ export interface BuildJobInsertPayloadInput {
   isUrgent: boolean;
   urgentFee: string;
   salesTaxRate: number;
-  /** When the poster is a business with W-9 policy enabled, the accepted
-   *  helper must e-sign a W-9 before payout. See helper_w9_records. */
-  requiresW9?: boolean;
   offerToHelperId: string | null;
   /** How long a direct offer is held for the targeted helpr, in hours.
    *  Poster-chosen (DirectOfferBanner); defaults to 24 for older drafts. */
@@ -100,7 +97,6 @@ export function salesTaxRateFraction(percent: number): number {
 }
 
 export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobInsertPayload {
-  const requiresW9 = input.requiresW9 ?? false;
   const credentialTier = input.credentialTier ?? 0;
   const requirePhotoProof = input.requirePhotoProof ?? true;
   const {
@@ -241,9 +237,6 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // lockedSalesTaxRate is the parish PERCENT that salesTaxCents takes.
     sales_tax_rate: salesTaxRateFraction(lockedSalesTaxRate),
     sales_tax_amount: lockedSalesTaxAmount,
-    // requires_w9 column is added by migration 20260609180000 (now in the
-    // generated types). Spread only when true, as before.
-    ...(requiresW9 ? { requires_w9: true } : {}),
     // credential_tier column ships in migration 20260612150000. Only include
     // when > 0 so a pre-push prod INSERT still succeeds (DB default of 0
     // is applied automatically on the column). Retry path strips withExtras.

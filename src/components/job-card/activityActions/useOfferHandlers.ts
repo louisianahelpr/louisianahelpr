@@ -50,8 +50,6 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
   setAwardBlockReason: (reason: AwardBlockReason | null) => void;
   /** Q1180: the steps a pending accept waits on (accept_job_offer said pending_setup). */
   setAcceptPendingMissing: (missing: AcceptMissing[] | null) => void;
-  setW9Context: (ctx: { jobId: string; businessId: string | null } | null) => void;
-  setW9DialogOpen: (open: boolean) => void;
   /** Q997: the "payment is held" pop-up, after an offer is sent or an accept completes. */
   setPaymentHeldSide: (side: PaymentHeldSide | null) => void;
   /** Board 78: the offered Helpr's name and the job's date, for the poster's what-next sheet. */
@@ -84,8 +82,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     setPendingAcceptApp,
     setAwardBlockReason,
     setAcceptPendingMissing,
-    setW9Context,
-    setW9DialogOpen,
     setPaymentHeldSide,
     setPaymentHeldWho,
     setRespondingHelperAppId,
@@ -417,59 +413,15 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
   };
 
   // Everything an accepted offer does on the Helpr's side once the accept is
-  // COMPLETE: the W-9 a business job requires, the funnel events, and the
+  // COMPLETE: the payment-held notice, the funnel events, and the
   // move to the Accepted bucket. Runs on accept_job_offer's 'accepted' answer
   // (Q1180).
   const afterAccepted = async (app: Application) => {
     if (!user) return;
-  // W-9 collection — if the business poster set requires_w9 = true,
-  // the helper signs immediately at acceptance. The column may not
-  // exist yet (PGRST204) on prod between merge and `supabase db push`;
-  // in that case we skip silently.
-  try {
-    // `requires_w9` is a new column not in the generated types yet, so
-    // the builder is cast to a minimal shape returning the row we read.
-    // The cast MUST include `error`. Omitting it made a genuine read failure
-    // indistinguishable from `requires_w9: false`, so the W-9 signature
-    // dialog was silently skipped on a business job that legally requires
-    // one — a compliance gap that looked identical to the happy path.
-    const { data: jobMeta, error: jobMetaError } = await (supabase.from("jobs") as unknown as {
-      select: (cols: string) => {
-        eq: (col: string, val: string) => {
-          maybeSingle: () => Promise<{
-            data: { requires_w9?: boolean | null; business_id?: string | null } | null;
-            error: { code?: string; message: string } | null;
-          }>;
-        };
-      };
-    })
-      .select("requires_w9, business_id")
-      .eq("id", app.job_id)
-      .maybeSingle();
-    // Rethrow into the catch below so a real failure is REPORTED rather
-    // than silently treated as "no W-9 needed". PGRST204/42703 (column not
-    // on prod yet) is still handled there as the intended graceful skip.
-    if (jobMetaError) throw jobMetaError;
-    if (jobMeta && jobMeta.requires_w9) {
-      setW9Context({ jobId: app.job_id, businessId: jobMeta.business_id ?? null });
-      setW9DialogOpen(true);
-    } else {
-      // Q997 (owner, 2026-10-07): the Helpr is told the payment is held. Not
-      // on top of the W-9 signature a business job requires at this moment:
-      // two modals at once would stack.
-      setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
-      setPaymentHeldSide("helpr");
-    }
-  } catch (err) {
-    // requires_w9 column missing on pre-migration prod → skip is the
-    // intended graceful degrade. Any other unexpected error still gets
-    // reported so we can see it in monitoring rather than dropping it
-    // into the same silent bucket.
-    const code = (err as { code?: string })?.code;
-    if (code !== "PGRST204" && code !== "42703") {
-      report(err, { tags: { source: "useOfferHandlers.w9Fetch" }, context: { job_id: app.job_id } });
-    }
-  }
+  // Q997 (owner, 2026-10-07): the Helpr is told the payment is held. (Q1680,
+  // owner 2026-10-21: our W-9 form is removed, so nothing else opens here.)
+  setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
+  setPaymentHeldSide("helpr");
 
   hapticSuccess();
   // Funnel: helper accepted an offer — closes the "applied → hired" gap

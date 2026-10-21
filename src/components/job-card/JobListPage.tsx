@@ -626,7 +626,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
         helperNames={helperNames}
         onRefresh={refresh}
       />
-      <ActivityOfferDialogs actions={actions} userId={user?.id ?? null} />
+      <ActivityOfferDialogs actions={actions} />
       {reportJobId && (
         <Suspense fallback={null}>
           <ReportDialog

@@ -1,7 +1,7 @@
 // Pins the held-payment headline's wording: board 56 "Your job is live" (owner
 // 2026-10-20, superseding Q1536's "Payment Authorized."). The payment-held
 // sentence stays below it on the page. The page reads it from paymentHeading.
-// @mutate src/pages/post-job/paymentReturnCopy.ts | "Your job is live" | "Payment Authorized."
+// @mutate src/pages/post-job/paymentReturnCopy.ts | live ? "Your job is live" : "Payment confirmed." | live ? "Payment Authorized." : "Payment confirmed."
 import { describe, expect, it } from "vitest";
 import { paymentHeading, type ConfirmState } from "./paymentReturnCopy";
 

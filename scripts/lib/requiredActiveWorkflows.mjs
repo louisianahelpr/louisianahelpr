@@ -62,6 +62,7 @@ export const REQUIRED_ACTIVE = [
   "schedule-heartbeat.yml",
   "scoreboard.yml",
   "security-audit.yml",
+  "sentry-alert-rules.yml",
   "slow-network.yml",
   "staleness-watch.yml",
   "stripe-webhook-guard.yml",

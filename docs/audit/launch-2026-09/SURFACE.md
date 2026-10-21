@@ -21,9 +21,9 @@ reports coverage against THIS file, not against the route list.
 | Overlay surfaces | **instance** | 179 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
 | Toast messages | **call site** | 901 (across 227 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 32 |
+| Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 20 |
-| Back/next navigation only | flow | 44 |
+| Back/next navigation only | flow | 45 |
 | Forms (submittable) | form | 73 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 149 |
 | Email templates | **exported template** | 20 |
@@ -72,7 +72,7 @@ they differ, the reason is understood:
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 179 | 130 | agree within method (script counts every menu instance) |
 | Forms | 73 | ~38 | agree |
-| Confirmed multi-step flows | 32 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -388,7 +388,6 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
 | `src/pages/jobs/jobPage/JobPageParts.tsx` | step-array |
-| `src/pages/post-job/EntryChoice.tsx` | nav-handler, union-state |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
 | `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |
 | `src/pages/posts/postedJobCard/PostedJobActions.tsx` | switch |
@@ -461,6 +460,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/hooks/useDeleteAccount.ts` | nav-handler |
 | `src/pages/admin/AdminFrame.tsx` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
+| `src/pages/post-job/EntryChoice.tsx` | nav-handler |
 | `src/pages/post-job/useJobEntry.ts` | nav-handler |
 | `src/pages/post-job/useJobSubmit.ts` | nav-handler |
 | `src/pages/posts/postedJobs/ApplicantsPanel.tsx` | nav-handler |

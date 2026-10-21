@@ -27,6 +27,9 @@ export const HELPR_FLAT_FEE_PERCENT = 5;
 /** The fixed part of the flat fee, in cents, per Helpr payout. */
 export const HELPR_FLAT_FEE_CENTS = 70;
 
+/** The fee as words ("5% + $0.70"), for every page that quotes it (Terms, Help Center). Read, never retyped. */
+export const HELPR_FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
+
 /** A job row's fee-model stamp, as create-payment writes it. */
 export interface FlatFeeStamp {
   helper_fee_flat_cents?: number | string | null;

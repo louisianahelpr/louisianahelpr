@@ -23,7 +23,7 @@
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | you get back what you paid (tax included) less | you get back what you paid less
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start | It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`; | const FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}%`;
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE; | const FLAT_FEE_PHRASE = "5%";
 //
 // Memberships are off for members (roadmap F4/F4a; feature_switches
 // 'memberships' = testers on prod, measured 2026-10-17), so every answer that

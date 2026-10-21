@@ -13,7 +13,7 @@ export interface PersonTileProps {
   avatarUrl?: string | null;
   /** Monogram override; UserAvatar derives one from `name` when omitted. */
   initials?: string;
-  /** The small uppercase line above the name — "Posted by", "Helpr". */
+  /** The small line above the name, in sentence case as written — "Posted by", "Helpr". */
   eyebrow: string;
   /** Printed beside the name only when `reviewCount > 0`. */
   rating?: number | null;
@@ -108,10 +108,8 @@ export function PersonTile({
           }}
         />
         <div className="min-w-0 flex-1">
-          <p
-            className="text-ds-10 font-sans font-semibold uppercase"
-            style={{ color: "hsl(var(--olivewood) / 0.8)", letterSpacing: "0.06em" }}
-          >
+          {/* Sentence case, as written ("Posted by", "Helpr"); no uppercase eyebrow (spec v2, lead 2026-10-21). */}
+          <p data-person-eyebrow="" className="text-ds-12 font-sans font-medium" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             {eyebrow}
           </p>
           <div className="flex items-baseline gap-2">

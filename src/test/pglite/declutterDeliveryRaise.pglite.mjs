@@ -108,7 +108,9 @@ async function paidDelivery(n, buyer, seller, price) {
 }
 const start = (uid, orderId, cents) => as("authenticated", uid, `SELECT * FROM public.declutter_delivery_raise_start('${orderId}', ${cents})`);
 const attach = (id, cs) => svc(`SELECT public.declutter_delivery_raise_attach('${id}', '${cs}')`);
-const paid = (id, cs, pi, cents) => svc(`SELECT public.declutter_delivery_raise_paid('${id}', '${cs}', '${pi}', ${cents}, false)`);
+/** The webhook's call: the raise, the order the page names (default: the raise's own), the page, the payment. */
+const paid = (id, cs, pi, cents, orderSql = `(SELECT order_id FROM public.declutter_delivery_raises WHERE id = '${id}')`) =>
+  svc(`SELECT public.declutter_delivery_raise_paid('${id}', ${orderSql}, '${cs}', '${pi}', ${cents}, false)`);
 /** A raise started, its page attached, and paid in full. */
 async function raiseAndPay(uid, orderId, cents, tag) {
   const r = (await start(uid, orderId, cents))[0];
@@ -151,6 +153,9 @@ ok(refused(await start(SELLER, P1.order_id, 1000), /item_not_found/), "the selle
 ok(refused(await start(BUYER, P1.order_id, 450), /invalid_raise/) && refused(await start(BUYER, P1.order_id, 550), /invalid_raise/),
   "under $5, or not whole dollars, is refused");
 ok(refused(await start(BUYER, P1.order_id, 15100), /raise_limit/), "over $150 in all is refused");
+await svc(`UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${BUYER}'`);
+ok(refused(await start(BUYER, P1.order_id, 1000), /account_restricted/), "a banned buyer is refused");
+await svc(`UPDATE public.profiles SET ban_status = 'active' WHERE user_id = '${BUYER}'`);
 
 // 3. An unpaid page changes nothing; a replaced page paid late is refunded, never applied.
 const before = JSON.stringify(await task(P1.task));
@@ -172,6 +177,9 @@ ok(late1?.result === "refund" && late1.reason === "page_replaced" && R1.status =
 ok(JSON.stringify(await task(P1.task)) === before, "  and the task is unchanged");
 ok(one(await paid(r2.raise_id, "cs_test_WRONG", "pi_raise_r2", 2000 + r2.card_fee_cents))?.result === "session_mismatch"
   && JSON.stringify(await task(P1.task)) === before, "a payment naming another page is not applied");
+ok(one(await paid(r2.raise_id, "cs_test_r2", "pi_raise_r2", r2.total_cents, `'${I(77)}'`))?.result === "order_mismatch"
+  && JSON.stringify(await task(P1.task)) === before && (await raiseRow(r2.raise_id)).status === "awaiting_payment",
+  "a page whose metadata names another order is not applied (the raise row's own order decides)");
 
 // 4. A PAID raise keeps the task open at the new pay; the window is not restarted.
 const a2 = one(await paid(r2.raise_id, "cs_test_r2", "pi_raise_r2", r2.total_cents));
@@ -221,6 +229,14 @@ ok(due?.payment_intent_id === "pi_order_1" && due.raised_cents === 2000 && parts
 ok((await raiseRow(r2.raise_id)).status === "applied"
   && one(await svc(`SELECT count(*)::int FROM public.declutter_delivery_raise_refunds_due(50) WHERE raise_id = '${r2.raise_id}'`)) === 0,
   "a raise the Helpr earned is never refunded");
+ok(one(await svc(`SELECT public.declutter_delivery_raise_payout_sent('${r2.raise_id}', 'tr_raise_r2')`)) === "recorded"
+  && one(await svc(`SELECT public.declutter_delivery_raise_payout_sent('${r2.raise_id}', 'tr_raise_r2')`)) === "already"
+  && refused(await svc(`SELECT public.declutter_delivery_raise_payout_sent('${r2.raise_id}', 'tr_other')`), /raise_transfer_mismatch/),
+  "the raise part's transfer is recorded on the raise once, never overwritten");
+ok(refused(await svc(`SELECT public.declutter_delivery_raise_payout_sent('${r1.raise_id}', 'tr_x1')`), /raise_transfer_mismatch/),
+  "  and only on an applied raise");
+ok((await raiseRow(r2.raise_id)).is_seed === false && (await svc(`SELECT is_seed FROM public.declutter_orders WHERE id = '${P1.order_id}'`))[0]?.is_seed === false,
+  "is_seed follows the order (a real order: false)");
 
 // 8. A raise paid after a Helpr took the task: refunded, the pay unchanged.
 const P2 = await paidDelivery(2, BUYER, SELLER2, 4000);
@@ -291,9 +307,28 @@ const Y1 = await raiseRow(y1.raise_id);
 ok(Array.isArray(closed) && (await task(P5.task)).status === "cancelled" && Y1.status === "refunding"
   && Y1.refund_reason === "delivery_cancelled" && Y1.refund_cents === y1.total_cents, "the sale cancelled: the raise is refunded in full");
 
+// 11b. A sale cancelled for the buyer's own reason: the raise comes back minus its card fee (as the order's
+// refund keeps its own); a refund made by hand in Stripe on a raise's charge settles the raise.
+const P6 = await paidDelivery(6, BUYER3, SELLER, 2500);
+const z1 = await raiseAndPay(BUYER3, P6.order_id, 2000, "z1");
+await svc(`SELECT public.declutter_close_paid_order('${P6.order_id}', 'buyer_cancelled', NULL, NULL, NULL)`);
+const Z1 = await raiseRow(z1.raise_id);
+ok((await task(P6.task)).status === "cancelled" && Z1.status === "refunding" && Z1.refund_reason === "delivery_cancelled_buyer"
+  && Z1.refund_cents === 2000 && z1.total_cents === 2000 + z1.card_fee_cents,
+  `the buyer cancelled: the $20 raise comes back, its ${z1.card_fee_cents}c card fee is kept`);
+ok(refused(await svc(`UPDATE public.declutter_delivery_raises SET refund_cents = paid_cents WHERE id = '${z1.raise_id}'`), /refund_amount/),
+  "  and no write can make it a full refund (CHECK declutter_delivery_raises_refund_amount)");
+ok(one(await svc(`SELECT public.declutter_delivery_raise_hand_refund('pi_nobody', 're_h0', 5000)`)) === "not_raise"
+  && one(await svc(`SELECT public.declutter_delivery_raise_hand_refund('pi_raise_z1', 're_h1', 1999)`)) === "recorded_other"
+  && one(await svc(`SELECT public.declutter_delivery_raise_hand_refund('pi_raise_z1', 're_h1', 2000)`)) === "settled"
+  && (await raiseRow(z1.raise_id)).status === "refunded"
+  && one(await svc(`SELECT public.declutter_delivery_raise_hand_refund('pi_raise_z1', 're_h1', 2000)`)) === "already",
+  "a hand refund covering the raise settles it once; a short one or another payment is left to a person");
+
 // 12. Service-only functions.
 for (const fn of [
-  `declutter_delivery_raise_paid('${r2.raise_id}', 'cs_test_r2', 'pi_x', 100, false)`, `declutter_delivery_raise_attach('${r2.raise_id}', 'cs_test_x')`,
+  `declutter_delivery_raise_paid('${r2.raise_id}', '${P1.order_id}', 'cs_test_r2', 'pi_x', 100, false)`,
+  `declutter_delivery_raise_payout_sent('${r2.raise_id}', 'tr_x')`, `declutter_delivery_raise_hand_refund('pi_x', 're_x', 1)`, `declutter_delivery_raise_attach('${r2.raise_id}', 'cs_test_x')`,
   "declutter_delivery_raise_refunds_due(1)", `declutter_delivery_raise_refund_executed('${r2.raise_id}', 're_x', true, NULL)`,
   `declutter_delivery_raise_refund_defer('${r2.raise_id}', 5)`, `declutter_delivery_raise_refund_reversed('${r2.raise_id}', 're_x', 'x')`,
   "helpr_task_payouts_due(1)",

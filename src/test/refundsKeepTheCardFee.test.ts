@@ -229,6 +229,8 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         // page (an amount shown, never sent); skipRow defers the row and moves no money.
         "refund_cents: number;",
         "refund_cents: number;",
+        // Q1929: the raise-refund row's type (its own charge, step 4b; never a declutter_refunds row).
+        "refund_cents: number;",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"no order and no recorded Stripe mode\");",
         "amount: r.refund_cents,",
@@ -244,6 +246,13 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", \"the order mixes a test account and a real one\");",
+        // Q1929, step 4b: a raise refund's page text, the mode resolver's input, the amount it sends (the raise row's
+        // refund_cents, decided in SQL) and the buyer's email. None writes a refund_cents.
+        "`Raise ${x.raise_id} (${dollars(x.refund_cents)} to the buyer of order ${x.order_id}, payment ${x.payment_intent_id}) was not refunded: ${stuck}. Refund it by hand in Stripe; the refund settles the raise.`);",
+        "payment_intent_id: x.payment_intent_id, refund_cents: x.refund_cents, attempts: x.attempts, livemode: x.livemode,",
+        "amount: x.refund_cents,",
+        "message: `Stripe answered ${xRefund.status} for raise refund ${x.raise_id} (${dollars(x.refund_cents)}, order ${x.order_id}). ${x.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
+        "await tellBuyerRefunded(admin, x.buyer_id, x.refund_cents);",
       ],
     },
   },
@@ -252,6 +261,12 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   // service we sold did not happen). Amount = declutter_delivery_refunds.refund_cents = the order's frozen
   // delivery_cents (declutter_delivery_refund, 20261017055505).
   { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: d.payment_intent_id", kind: "own-mistake", why: "Helpr delivery fee back: no Helpr in 48 h (row 40) or the delivery never happened" },
+  // Q1929 (owner 2026-10-21: build the raise): a delivery-pay RAISE is its own charge. It goes back in full when
+  // the delivery we sold did not happen (no Helpr, damage, a cancel that was not the buyer's) or our system took a
+  // payment it could not use (the delivery stopped waiting, a replaced page, a wrong amount). A sale cancelled for
+  // the buyer's own reason keeps the raise's card fee: decided in SQL (declutter_delivery_raises_on_task_close,
+  // CHECK declutter_delivery_raises_refund_amount, 20261021130506; proven by declutterDeliveryRaise.pglite.mjs).
+  { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: x.payment_intent_id", kind: "own-mistake", why: "delivery-pay raise back on its own charge: the delivery never had a Helpr, or a payment we could not use (Q1929)" },
   {
     file: "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", key: "payment_intent: paymentIntentId", kind: "sql-policy",
     why: "Declutter payment the order could not take (declutter_mark_order_paid answered refund)",
@@ -299,6 +314,8 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2170: the admin "Bill the Helpr" button READS whether the ruling is billed yet (no write; the bill is server-side).
   'src/components/admin/helprFault/BillHelprFaultButton.tsx: .select("card_fee_cents")',
   "src/components/admin/helprFault/BillHelprFaultButton.tsx: if (live) setUnbilled({ jobId, value: !error && !!data && data.card_fee_cents == null });",
+  // Q1929: the buyer's raise panel row TYPE names each raise's card fee (shown, never written).
+  "src/lib/declutter/deliveryRaise.ts: card_fee_cents: number;",
   // Declutter reviews (Builder 3c s3): READS the order's two parties to name who is being reviewed; no money column, no write.
   'src/lib/declutter/reviews.ts: .from("declutter_orders").select("buyer_id, seller_id").eq("id", orderId).maybeSingle(), ) as { buyer_id: string | null',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
@@ -314,6 +331,14 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
+  // Q1929 raise_pay: the raise row's card fee (decided by declutter_delivery_raise_start in SQL) is checked to add up
+  // and sent as its own Stripe line the BUYER pays; the order is READ for its two parties. No refund, no write.
+  "supabase/functions/declutter-checkout/index.ts: type RaiseRow = { raise_id: string; raise_cents: number; card_fee_cents: number; total_cents: number; superseded_session_id: string | null };",
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("buyer_id, seller_id").eq("id", orderId).maybeSingle()',
+  "supabase/functions/declutter-checkout/index.ts: if (!raise?.raise_id || raise.raise_cents !== raiseCents || raise.raise_cents + raise.card_fee_cents !== raise.total_cents) {",
+  'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.card_fee_cents,',
+  // Q1929 settleRaise: READS the order's buyer to check the raise page's payer. No money column, no write.
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
@@ -431,6 +456,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_admin_decide_delivery_damage: "20261017055505_declutter_helpr_delivery.sql fe11a9a3460b2a93",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       declutter_close_paid_order: "20261017055505_declutter_helpr_delivery.sql 0c52fabd4123f2d4",
+      // Q1929 (20261021130506), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
+      // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
+      // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale
+      // cancelled for the buyer's own reason, where the raise's card fee is kept (refund = paid - card fee, held
+      // by CHECK declutter_delivery_raises_refund_amount). None records or changes an order refund.
+      declutter_delivery_raise_start: "20261021130506_declutter_delivery_raise_pay.sql f54438c6e9a4e1f9",
+      declutter_delivery_raise_status: "20261021130506_declutter_delivery_raise_pay.sql bd5359e2919ef3b0",
+      declutter_delivery_raises_on_task_close: "20261021130506_declutter_delivery_raise_pay.sql 5a8a059eef32a5f7",
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
@@ -1225,7 +1258,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     const stale = REFUND_SITES.filter((e) => sites.filter((s) => s.file === e.file && s.call.includes(e.key)).length !== 1);
     expect(stale.map((e) => `${e.file} ${e.key}`), "stale REFUND_SITES entry: remove it").toEqual([]);
     // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
-    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(5);
+    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(6);
   });
 
   it("each refund either keeps the card fee through the shared helper or is a named own-mistake full refund", () => {

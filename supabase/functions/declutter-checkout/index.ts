@@ -367,7 +367,9 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
   const mode = await stripeModeForParties(admin, [user.id, parties.seller_id]);
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
 
-  // The open raise page first: paid -> say so (the webhook applies it); open -> close it.
+  // The open raise page first: already paid -> say so and replace nothing (the webhook applies it).
+  // It is CLOSED only after the SQL accepted the new raise (lh-authz-rls review #4): a refused
+  // request never costs the buyer the page they have open.
   const { data: openRaise, error: openErr } = await admin.from("declutter_delivery_raises")
     .select("id, stripe_checkout_session_id").eq("order_id", orderId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
@@ -380,15 +382,6 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     const pageStripe = m && m !== mode ? new Stripe(stripeSecretKeyFor(m), { apiVersion: "2025-08-27.basil" }) : stripe;
     const page = await pageStripe.checkout.sessions.retrieve(openPage);
     if (page.status === "complete") return json({ paid: true, order_id: orderId });
-    if (page.status === "open") {
-      try {
-        await pageStripe.checkout.sessions.expire(openPage);
-      } catch (e) {
-        // Paid in the meantime (Stripe refuses to expire a complete page).
-        console.log(JSON.stringify({ event: "declutter_raise_page_expire_refused", session: openPage, detail: String(e).slice(0, 200) }));
-        return json({ paid: true, order_id: orderId });
-      }
-    }
   }
 
   const { data, error } = await asBuyer.rpc("declutter_delivery_raise_start", { p_order_id: orderId, p_raise_cents: raiseCents });
@@ -400,8 +393,9 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     console.error(`[declutter-checkout] raise for order ${orderId} came back without its amounts`);
     return json({ error: TRY_AGAIN }, 500);
   }
-  if (raise.superseded_session_id && raise.superseded_session_id !== openPage) {
-    // A page another tap opened meanwhile: closed too (a payment on it is refunded by the webhook).
+  if (raise.superseded_session_id) {
+    // The page this raise replaced is closed now; one paid in the meantime is refunded in full by the webhook
+    // (its row is 'superseded': page_replaced).
     const m = sessionIdMode(raise.superseded_session_id);
     if (m) await expirePage(new Stripe(stripeSecretKeyFor(m), { apiVersion: "2025-08-27.basil" }), raise.superseded_session_id);
   }

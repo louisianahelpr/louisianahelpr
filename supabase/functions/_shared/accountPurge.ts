@@ -631,6 +631,25 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
   if (!tasks.ok || tasks.active) return tasks.active ? { ...tasks, detail: `helpr delivery ${tasks.detail}` } : tasks;
   const pay = await activeHelprRows(admin, "helpr_task_payouts", userId, ["pending", "failed", "held_for_review"]);
   if (!pay.ok || pay.active) return pay.active ? { ...pay, detail: `helpr delivery pay ${pay.detail}` } : pay;
+  // Q1929: a delivery-pay raise not settled yet on an order this member is part of (a page open, the raise
+  // in the Helpr's pay, or its refund still to go back to the buyer). The order cascades with either party's
+  // account and the raise row (ON DELETE RESTRICT) would refuse that deletion half way.
+  const raises: PostgrestLike<{ id: string }[]> = await admin
+    .from("declutter_delivery_raises")
+    .select("id, declutter_orders!inner(buyer_id, seller_id)")
+    .in("status", ["awaiting_payment", "applied", "refunding"])
+    .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
+    .limit(1);
+  if (raises.error) {
+    if (/does not exist|42P01|PGRST205|PGRST200/i.test(`${raises.error.code ?? ""} ${raises.error.message}`)) {
+      return { ok: true, active: false, detail: "declutter_delivery_raises absent" };
+    }
+    console.error(`[accountPurge] delivery raise check failed for ${userId}:`, raises.error.message);
+    return { ok: false, active: false, detail: raises.error.message };
+  }
+  if (raises.data && raises.data.length > 0) {
+    return { ok: true, active: true, detail: `declutter delivery raise ${raises.data[0].id}`, reason: "declutter" };
+  }
   return { ok: true, active: false };
 }
 

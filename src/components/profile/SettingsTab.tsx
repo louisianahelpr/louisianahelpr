@@ -16,6 +16,7 @@ import { dataRightsTarget } from "@/pages/info/legal/dataExportAnchor";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { isIdentityVerified } from "@/lib/awardGate";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 
 /** Both sides of each section, the spec v2 §11 wording. */
@@ -46,11 +47,19 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** One settings row: label, a muted line under it, and either a chevron (it opens something) or a control. */
-function Row({ label, sub, onClick, right, testId }: { label: string; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string }) {
+/** "you@example.com · Password, Google": the account row's line, or null when nothing is known. */
+export function accountLine(email: string | null | undefined, identities: { provider: string }[] | null | undefined): string | null {
+  const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" };
+  const methods = [...new Set((identities ?? []).map((i) => NAMES[i.provider]).filter(Boolean))];
+  const parts = [email || null, methods.length ? methods.join(", ") : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+function Row({ label, sub, onClick, right, testId, danger = false }: { label: string; sub?: string; onClick?: () => void; right?: ReactNode; testId?: string; danger?: boolean }) {
   const body = (
     <>
       <span className="flex-1 min-w-0">
-        <span className="block text-ds-15 font-semibold text-foreground leading-tight">{label}</span>
+        <span className={`block text-ds-15 font-semibold leading-tight ${danger ? "" : "text-foreground"}`} style={danger ? { color: "hsl(var(--alert-ink))" } : undefined}>{label}</span>
         {sub && <span className="block text-ds-13 text-muted-foreground mt-0.5">{sub}</span>}
       </span>
       {right ?? (onClick && <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />)}
@@ -118,6 +127,7 @@ export function SettingsTab({
   onToggleSeniorMode,
   onSelectTab,
   onRequestLogout,
+  onRequestDelete,
   onBack,
 }: {
   profile: Profile | null;
@@ -125,9 +135,12 @@ export function SettingsTab({
   onToggleSeniorMode?: (enabled: boolean) => void;
   onSelectTab: (key: string) => void;
   onRequestLogout: () => void;
+  /** Board 120: Delete account sits at the foot of Your account (its dialog does the warning). */
+  onRequestDelete?: () => void;
   onBack: () => void;
 }) {
   const navigate = useNavigate();
+  const { user } = useCurrentUser();
   const { theme } = useDarkMode();
   const { prefs, setHidden } = useSectionPrefs();
   const live = useSectionTabs();
@@ -185,11 +198,18 @@ export function SettingsTab({
 
       <Group title="Your account">
         <Row testId="profile" label={TAB_TITLES.profile} sub="Photo, name, about you" onClick={() => onSelectTab("profile")} />
-        <Row testId="security" label={TAB_TITLES.security} sub="Email, password, sign-in" onClick={() => onSelectTab("security")} />
+        {/* Board 120: the row shows what is true now (your email and how you
+            sign in) instead of a list of what is inside; each part only when known. */}
+        <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
+        {isIdentityVerified({ connectIdentityVerified: profile?.stripe_identity_verified, idvStatus: profile?.idv_status }) && (
+          // Status only: ID checks start nowhere any more (owner 2026-10-01), so the row opens nothing.
+          <Row testId="id" label="ID" sub="Verified" />
+        )}
         {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}
         <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
         <ShareJobPhotosRow profile={profile} />
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
+        {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}
       </Group>
 
       {more.length > 0 && (

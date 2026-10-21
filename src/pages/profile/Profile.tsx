@@ -808,7 +808,7 @@ const ProfilePage = () => {
             reviewCount={reviewCount}
             seniorMode={seniorMode}
             onToggleSeniorMode={handleToggleSeniorMode}
-            onSelectTab={openFromSettings} onRequestLogout={() => setShowLogoutDialog(true)}
+            onSelectTab={openFromSettings} onRequestLogout={() => setShowLogoutDialog(true)} onRequestDelete={deleteAccount.requestDelete}
           />
           </div>
           </SectionBoundary>

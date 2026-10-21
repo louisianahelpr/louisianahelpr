@@ -208,7 +208,7 @@ export const POPUP_FOOTER_ROW =
  */
 export const POPUP_SHEET_CLS =
   "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " +
-  "p-4 pb-[max(1rem,env(safe-area-inset-bottom))] " +
+  "p-4 pb-[max(1rem,var(--safe-area-bottom,0px))] " +
   "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom";
 export const POPUP_DIALOG_CLS =
   "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:[translate:-50%_-50%] sm:w-full sm:max-w-[480px] " +

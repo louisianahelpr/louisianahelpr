@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ID_VERIFIED_LABEL } from "@/components/profile/IdVerifiedPill";
 
 /**
  * Work Record's loading state: the SHEET it is about to show (owner,
@@ -32,7 +33,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 const hairline = { borderBottom: "1px solid var(--doc-hairline)" };
 
 /** The identity row's ID field label: the sheet prints it, this reserve ghosts it. */
-export const WORK_RECORD_ID_FIELD = "ID verified by Stripe";
+// Q2201 (owner 2026-10-21): one neutral label whichever route verified the ID
+// (Stripe Identity or an admin's hand approval); only admins see the route.
+export const WORK_RECORD_ID_FIELD = ID_VERIFIED_LABEL;
 
 function Ghost({ className, children }: { className?: string; children: ReactNode }) {
   return (

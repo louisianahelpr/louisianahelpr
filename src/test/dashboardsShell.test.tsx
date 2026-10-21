@@ -47,6 +47,8 @@ const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 const noTodos = vi.hoisted(() => ({ on: false }));
 // Boards 83/165: what Home's posted jobs are instead of the two to-dos.
 const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));
+// Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
+vi.mock("@/components/money/PayoutFailedCard", () => ({ PayoutFailedCard: () => null }));
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: (key: string) => switches.on.has(key),
   useFeatureStatus: (key: string) => ({ on: switches.on.has(key), settled: true }),

@@ -17,7 +17,7 @@ import type { ReactNode } from "react";
 
 // The pinned deal card (board 2) and the header's person line read Supabase
 // through React Query; this file is about layout, so both are stubbed.
-vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, usePersonFacts: () => "" }));
+vi.mock("@/components/messages/chatView/DealCard", () => ({ DealCard: () => null, useDealCardShown: () => false, useDealSafetyJob: () => null, usePersonFacts: () => "" }));
 vi.mock("./chatView/ChatPaneShell", () => ({
   ChatPaneShell: ({ header, children }: { header?: ReactNode; children: ReactNode }) => (
     <div data-testid="pane">

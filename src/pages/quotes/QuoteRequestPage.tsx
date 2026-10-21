@@ -55,6 +55,7 @@ function useQuoteFeeQuote(): JobFeeQuote {
   const posterFeeOn = useFeature("jobs_poster_fee");
   return buildFeeQuote({ switchOn: posterFeeOn });
 }
+import { QuotesSideBySide } from "@/components/quotes/QuotesSideBySide";
 import { QUOTE_STATUS_LABEL, QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { QUOTE_HOMES } from "@/lib/quotes/homes";
 import { OfferThread, QuoteAnswerControls, parseWholeDollars } from "@/components/quotes/QuoteAnswerControls";
@@ -275,11 +276,15 @@ function RequestView({ id }: { id: string }) {
           {open ? "Members near you can send their price until the window closes. We'll let you know when one arrives." : null}
         </QuotesNotice>
       ) : (
+        <>
+        {/* Board 115: two or more live quotes, side by side, before the cards you act on. */}
+        <QuotesSideBySide quotes={quotes.data} />
         <ul className="space-y-3" aria-label="Quotes, lowest price first">
           {quotes.data.map((q) => (
             <QuoteCard key={q.id} quote={q} requestOpen={open} requestId={id} />
           ))}
         </ul>
+        </>
       )}
       {open && <SetMyOwnPrice request={request} />}
       {/* An agreed request whose job was never paid can still be cancelled: cancel_quote_request

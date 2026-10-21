@@ -11,6 +11,7 @@
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
  * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (posterFeeModel) return null; |   if (!posterFeeModel) return null;
  * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
+ * @mutate src/components/quotes/QuotesSideBySide.tsx |   if (live.length < 2) return null; |   return null;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError \|\| quotes.isError) { |   if (reqs.isError \|\| quotes.isError \|\| !request) {
  * @mutate src/pages/quotes/QuoteRequestPage.tsx | const requestReturnPath = (requestId: string) => `/quotes/request/${requestId}`; | const requestReturnPath = (requestId: string) => `/post-job?r=${requestId}`;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |       const jobId = await bookAcceptedQuote(id); |       const jobId = id;
@@ -197,6 +198,26 @@ describe("the 'quotes' switch", () => {
     expect(link.textContent).toMatch(/Quote request/);
     expect(link.textContent).toMatch(/Taking quotes · 2 quotes/);
     expect(screen.getByRole("heading", { name: "Your quote requests" })).toBeInTheDocument();
+  });
+});
+
+describe("board 115: quotes side by side", () => {
+  it("two live quotes show side by side with the job price in rust and no take-home; one shows no table", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [QUOTE, { ...QUOTE, id: "q2", quoter_id: "u2", quoter_name: "Ray Theriot", price_cents: 9500, photo_paths: [] }];
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    const table = await screen.findByRole("region", { name: "Quotes side by side" });
+    expect(table.textContent).toMatch(/\$95/);
+    expect(table.textContent).not.toMatch(/take.?home|receives/i);
+    expect(screen.getByText(/Each amount is the job price/)).toBeInTheDocument();
+  });
+
+  it("one quote: no side-by-side", async () => {
+    state.rpc.get_my_quote_requests = [REQ];
+    state.rpc.get_quotes_for_request = [QUOTE];
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    await screen.findAllByText(/\$/);
+    expect(screen.queryByRole("region", { name: "Quotes side by side" })).toBeNull();
   });
 });
 

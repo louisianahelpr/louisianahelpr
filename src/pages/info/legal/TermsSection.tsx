@@ -4,11 +4,9 @@ import {
   DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
-import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
 import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
-import { BOOST_DISCOUNT_PCT } from "@/lib/productPrices";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
   FORM_1099K_TRANSACTION_THRESHOLD,
@@ -26,13 +24,7 @@ import {
   STANDARD_PAYOUT_PHRASE,
   TOTAL_TO_PAYOUT_HOURS,
 } from "../../../../supabase/functions/_shared/escrowTiming";
-import { legalFmtMo } from "./legalSections";
 
-// "Annual plans save about N months" is a PRICE claim, so compute it from the
-// prices instead of typing it as prose. `annualPrice` is the annual plan's
-// monthly-equivalent (yearly ÷ 12), so a year on annual saves
-// 12 × (1 − annual/monthly) months — 2.0 on every paid tier today. Re-price a
-// tier and this sentence restates itself instead of quietly going stale.
 /**
  * THE POSTER PAYS NOTHING ON TOP (owner 2026-10-20: the Terms describe the
  * current flat model). Read from the checkout's own fee functions at the
@@ -48,12 +40,6 @@ const POSTER_PAYS_SENTENCE =
     ? "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and the one-time account setup fee."
     : "The poster pays the job price plus the service fee shown at checkout, before they pay.";
 
-const ANNUAL_MONTHS_SAVED = (() => {
-  const monthly = TIER_PERKS.pro.price ?? 0;
-  const annualMonthly = TIER_PERKS.pro.annualPrice ?? 0;
-  if (monthly <= 0 || annualMonthly <= 0) return 0;
-  return Math.round(12 * (1 - annualMonthly / monthly));
-})();
 
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
@@ -170,22 +156,21 @@ export const TermsContent = () => {
         title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first — your first job post, your first payout, or your identity verification — is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post or your first payout, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
             <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
             <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
-            <p><strong className="text-foreground">If you verify your identity first:</strong> the fee is settled before your Stripe Identity check starts. It is the same fee, and it covers that check.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>
           </>
         }
       />
       <PolicyRowItem
         icon={ShieldCheck}
-        title="Identity verification (one attempt)"
+        title="Identity verification"
         body={
           <>
-            <p><strong className="text-foreground">Your account setup fee covers one check.</strong> The one-time fee above pays for one Stripe ID + selfie check per account — there is no separate charge for verification.</p>
-            <p><strong className="text-foreground">If your verification fails the first time</strong>, an admin will review your submitted ID manually within 24 hours. There is no self-service retry — please make sure your photos are clear, well-lit, and show all four corners of the ID before you submit.</p>
-            <p>Once verified (auto or by admin), you're set for the life of your account.</p>
+            <p><strong className="text-foreground">Stripe Identity verifies a photo ID and a selfie before a member's first accepted or posted job</strong>, and before a Helpr heads out to a job. Helpr pays for this check; there is no charge to you. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
+            <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
+            <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </>
         }
       />
@@ -193,22 +178,17 @@ export const TermsContent = () => {
 
     <PolicySection
       icon={Crown}
-      title="Membership tiers"
-      subtitle={`Free, ${TIER_PERKS.basic.name}, ${TIER_PERKS.pro.name}, ${TIER_PERKS.plus.name}, and ${TIER_PERKS.elite.name} plans`}
+      title="Memberships"
+      subtitle="No paid memberships right now"
       anchorId="subscription-tiers"
     >
       <PolicyRowItem
         icon={Crown}
-        title="Tiers & pricing"
+        title="No paid memberships"
         body={
           <>
-            <p>No plan changes the fee on a job: every job carries the same {HELPR_FLAT_FEE_PHRASE} Helpr fee, whatever the plan.</p>
-            <p><strong className="text-foreground">Free:</strong> standard access.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.basic.name}:</strong> {legalFmtMo(TIER_PERKS.basic.price)} — instant payouts and {BOOST_DISCOUNT_PCT}% off job boosts.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.pro.name}:</strong> {legalFmtMo(TIER_PERKS.pro.price)}.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.plus.name}:</strong> {legalFmtMo(TIER_PERKS.plus.price)}.</p>
-            <p><strong className="text-foreground">{TIER_PERKS.elite.name}:</strong> {legalFmtMo(TIER_PERKS.elite.price)}.</p>
-            <p>Annual plans save about {ANNUAL_MONTHS_SAVED} month{ANNUAL_MONTHS_SAVED === 1 ? "" : "s"}. Stripe handles billing automatically.</p>
+            <p>There are no paid memberships right now. Joining Helpr is free.</p>
+            <p>No plan changes the fee on a job: every job carries the same {HELPR_FLAT_FEE_PHRASE} Helpr fee.</p>
           </>
         }
       />

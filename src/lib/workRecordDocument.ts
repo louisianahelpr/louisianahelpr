@@ -293,7 +293,7 @@ export function buildWorkRecordSummaryLines(input: WorkRecordDocumentInput): str
     input.avgRating !== null
       ? `${input.avgRating.toFixed(1)}★ average across ${input.reviewCount} review${input.reviewCount === 1 ? "" : "s"}`
       : null,
-    input.identityVerified ? "Identity verified by Stripe" : null,
+    input.identityVerified ? "ID verified" : null,
     `Verify this record: ${VERIFICATION_EMAIL}`,
   ].filter((l): l is string => !!l);
 }
@@ -345,8 +345,8 @@ function workRecordStats(
 function workRecordFooterText(input: WorkRecordDocumentInput): string {
   const today = formatLongDate(input.generatedAt);
   const identity = input.identityVerified
-    ? `This record was generated from Helpr's job history on ${today}. This member's identity was verified by Stripe.`
-    : `This record was generated from this member's completed job history on Helpr on ${today}. This member's identity has not been verified by Stripe.`;
+    ? `This record was generated from Helpr's job history on ${today}. This member's ID was verified.`
+    : `This record was generated from this member's completed job history on Helpr on ${today}. This member's ID has not been verified.`;
   return `${identity} Helpr is a Louisiana-based labor marketplace. For verification inquiries: ${VERIFICATION_EMAIL}`;
 }
 
@@ -388,7 +388,7 @@ export async function buildWorkRecordPdf(input: WorkRecordDocumentInput): Promis
   const memberSince = formatMonthYear(input.memberSince);
   const cols: [string, string][] = [
     ["Issued to", displayName(input)],
-    ["ID verified by Stripe", input.identityVerified ? "Verified" : "Not verified"],
+    ["ID verified", input.identityVerified ? "Verified" : "Not verified"],
     ...(memberSince ? ([["Member since", memberSince]] as [string, string][]) : []),
   ];
   cols.forEach(([l, v], i) => {

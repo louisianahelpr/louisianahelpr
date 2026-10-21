@@ -12,6 +12,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation } from "@/lib/mutationResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 
@@ -51,7 +52,8 @@ const COLUMNS =
   "id,name,section,query,category,min_budget,max_budget,radius_miles,parish,location_keyword,notify_enabled,notify_email,last_seen_at,created_at";
 
 function categoryWord(section: string, category: string): string {
-  return (section === "declutter" ? CATEGORY_WORD[category] : categoryLabels[category]) ?? category;
+  if (section === "declutter") return CATEGORY_WORD[category] ?? category;
+  return categoryLabels[category] ?? category;
 }
 
 function sectionWord(section: string): string {
@@ -130,7 +132,7 @@ export async function fetchSavedSearches(userId: string): Promise<SavedSearch[]>
  */
 export async function fetchNewCounts(): Promise<Map<string, number>> {
   const res = await supabase.rpc("saved_search_new_counts");
-  if (res.error && res.error.code === "PGRST202") return new Map();
+  if (isMissingRpcNamed(res.error, "saved_search_new_counts")) return new Map();
   const rows = unwrap(res) ?? [];
   return new Map(rows.map((r) => [r.search_id, r.new_count]));
 }

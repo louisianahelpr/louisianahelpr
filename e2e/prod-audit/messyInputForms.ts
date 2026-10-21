@@ -813,6 +813,9 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Builder 1h (2026-10-21, board 91, Q2275): saved searches.
+  "src/components/savedSearches/SaveSearchSheet.tsx": "no typed text: the sheet saves the search already on screen (its name is built from it, capped at 60) with one email switch and optional section chips; the write is the member's own saved_searches row (RLS) and the 10-search cap is the server's",
+  "src/pages/profile/SavedSearchesTab.tsx": "no typed text: switches (alerts, email, pause all) and Delete on the member's own rows; nothing a member types reaches it",
   // Builder 2f (2026-10-21, boards 22/170): the applicant compare tick.
   "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": "one checkbox per applicant card ('Compare', at most three); no typed text, and it writes nothing (local state that opens a side-by-side sheet)",
   // Landing redesign (2026-10-20): the hero search.

@@ -15,7 +15,7 @@
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>} |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}<CategoryChipRow selectedCategory={null} setSelectedCategory={() => {}} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   const [maxMiles, setMaxMiles] = useState<number \| null>(null); |   const [maxMiles, setMaxMiles] = useState<number \| null>(25);
+ * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |               {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised |               <button aria-label="Post a new job"><Plus /></button>\n              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
  * @mutate src/pages/jobs/JobsSection.tsx |       <AppTopBar title={section.label} add={section.add} explore /> |       <AppTopBar title={section.label} explore />
@@ -110,7 +110,9 @@ describe("design tweaks (owner 2026-10-18)", () => {
   });
 
   it("owner 10-19/10-20: Declutter opens on Any distance, the dock's ONE + is the center Create (it opens the sheet, never a post-a-job shortcut), and each section's add action is the shared pill", () => {
-    expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/useState<number \| null>\(null\)/);
+    // Any distance unless the URL (a saved search, Q2275) names one.
+    expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/useState<number \| null>\(start\.maxMiles\)/);
+    expect(code("src/lib/declutter/browseFilters.ts")).toMatch(/maxMiles: positive\(p\.get\("mi"\)\),/);
     const nav = code("src/components/MobileNav.tsx");
     // Superseded 2026-10-20 (owner-approved mock-up: center + in the bottom bar): exactly one +, the Create button.
     expect(nav.match(/<Plus\b/g) ?? []).toHaveLength(1);

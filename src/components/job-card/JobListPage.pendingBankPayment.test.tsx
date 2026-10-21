@@ -80,7 +80,7 @@ function renderPosts() {
   );
 }
 
-const COPY = "Waiting for your bank payment. This usually takes up to 4 business days; your job posts when it arrives.";
+const COPY = "Bank payment pending. This usually takes up to 4 business days; your job posts when it arrives.";
 const job = (over: Record<string, unknown>) => ({
   id: "j-1", title: "Mow & weed eat", status: "open", payment_status: "unpaid",
   stripe_payment_intent_id: "pi_bank_1", created_at: "2026-10-17T12:00:00Z", customer_id: "payer-1", ...over,

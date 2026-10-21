@@ -49,13 +49,22 @@ export function MyQuoteCard({ quote }: { quote: MyJobQuote }) {
       <OfferThread offers={offersOf(quote.offers)} mySide="quoter" />
       {quote.status === "accepted" && (
         <p className="mt-3 text-sm text-foreground">
-          {quote.job_id ? (
+          {/* Q1877: booked only once the money lands; a bank payment still clearing says so. An old
+              server without job_payment (undefined) keeps the earlier reading. */}
+          {quote.job_id && (quote.job_payment === "paid" || quote.job_payment === undefined) ? (
             <>
               It's booked.{" "}
               <Link to={`/jobs/${quote.job_id}`} className="font-medium underline underline-offset-2">
                 Open the job
               </Link>
             </>
+          ) : quote.job_payment === "bank_pending" ? (
+            <>
+              <span className="font-semibold">Bank payment pending.</span> It is booked once their bank payment
+              clears, usually 1 to 4 business days.
+            </>
+          ) : quote.job_payment === "closed" ? (
+            "This job has closed."
           ) : (
             "Accepted. It is booked once it is paid for."
           )}

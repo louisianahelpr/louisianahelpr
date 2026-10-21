@@ -27,7 +27,7 @@ export function PendingBankPayments({ jobs, className }: { jobs: readonly Pendin
           <div className="text-sm min-w-0">
             <p className="font-semibold break-words">{job.title?.trim() || "Your job"}</p>
             <p className="text-muted-foreground">
-              Waiting for your bank payment. This usually takes up to 4 business days; your job posts when it arrives.
+              Bank payment pending. This usually takes up to 4 business days; your job posts when it arrives.
             </p>
           </div>
         </div>

@@ -112,6 +112,9 @@ const EXPECTED_CALLERS = [
   // only hold that applicant's edit notice back.
   "jobs_open_edit_tells_applicants",
   "list_open_quote_requests",
+  // The application notice (20261021174935) names the applicant only when neither has blocked the other:
+  // a trigger, it passes both parties (NEW.helper_id, the job's owner) and reads the pg_trigger_depth() arm.
+  "notify_on_application",
   "offer_series_dates",
   // Quote hire on pay (20261018155222): the AFTER UPDATE OF payment_status
   // trigger asks (the quoter, the job's poster) before it sends the quoter an

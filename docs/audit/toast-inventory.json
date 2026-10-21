@@ -8343,7 +8343,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 138,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10632,7 +10632,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 171,
+      "line": 172,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10646,7 +10646,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10660,7 +10660,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 221,
+      "line": 222,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10694,7 +10694,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 239,
+      "line": 240,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -10708,7 +10708,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 358,
+      "line": 359,
       "kind": "errorToast",
       "title": {
         "form": "literal",

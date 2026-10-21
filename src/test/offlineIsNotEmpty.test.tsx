@@ -51,6 +51,7 @@ const NOT_QUERY_DRIVEN: Record<string, string> = {
   "src/components/rentals/RentalsHomeView.tsx": "renders RentalsHomeSkeleton while its read has no data (`!data.isError && !data.data`), so a paused first load stays the skeleton; the two empty cards render only from a successful read",
   "src/components/rentals/listings/RentBrowse.tsx": "shows the listing bones while `!q.data` (a paused read has none) and its empty state only for a successful read with zero rows",
   "src/components/admin/adminAnalytics/SignupLeadsCard.tsx": "gates on isPending (a paused first load stays the spinner) and renders its empty card only from a successful read's rows",
+  "src/components/shops/shopsUi.tsx": "its EmptyState is ShopUnavailable, which ShopView and PublicShopView render only after their own shop read SETTLES (they gate on isPending, so a read paused offline stays the skeleton); shopsUi's own useQuery is the categories list, which never renders it",
 };
 
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));

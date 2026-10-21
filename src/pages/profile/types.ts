@@ -55,8 +55,8 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // Six more standalone routes folded in 2026-09-02 — each was reached only
   // from Profile, so each was a tab already (owner: "anything in profile tab
   // should not be a stand alone tab").
-  work_record: "Work Record",
-  home_history: "Home History",
+  work_record: "Work record",
+  home_history: "Home history",
   str_settings: "Host Automation",
   auto_tip: "After a job",
   // ONE ANSWER IN BOTH PLACES, and it is computed, not typed.
@@ -78,7 +78,7 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   analytics: "Analytics",
   // Was the standalone route /gift-card until 2026-09-11 — the last Profile
   // sibling that was still a route of its own.
-  gift_card: "Gift Card",
+  gift_card: "Gift card",
   settings: "Settings",
 };
 

@@ -62,7 +62,9 @@ export default function ShopView() {
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
-  if (shop.isLoading || categories.isLoading) return <ShopSkeleton />;
+  // isPending, not isLoading: a read paused offline is pending but not loading,
+  // and must stay the skeleton rather than claim the shop "isn't available".
+  if (shop.isPending || categories.isPending) return <ShopSkeleton />;
   if (shop.isError || !shop.data) {
     return (
       <AppPage title="Shop" backTo="/shops">

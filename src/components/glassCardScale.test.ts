@@ -76,4 +76,4 @@ describe("glass card padding scale", () => {
 
 // A SIXTH padding tier appearing because nobody knew the other five were
 // deliberate — the exact drift this guard was written for.
-// @mutate src/components/ReferralSection.tsx | <div className="rounded-2xl liquid-glass p-card"> | <div className="rounded-2xl liquid-glass p-7">
+// @mutate src/components/ReferralSection.tsx | <div className="rounded-[20px] liquid-glass p-card"> | <div className="rounded-[20px] liquid-glass p-7">

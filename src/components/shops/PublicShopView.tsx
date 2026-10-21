@@ -123,7 +123,7 @@ export default function PublicShopView() {
       <ShopMeta shop={shop.data} id={id} />
       {!isShopId(id) ? (
         <ShopUnavailable />
-      ) : shop.isLoading ? (
+      ) : shop.isPending ? (
         <div className="space-y-4" role="status" aria-label="Loading the shop">
           <Skeleton className="h-64 w-full rounded-2xl" />
           <Skeleton className="h-24 w-full rounded-2xl" />

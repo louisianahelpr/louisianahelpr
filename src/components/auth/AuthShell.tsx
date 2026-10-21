@@ -184,8 +184,8 @@ const AuthShell = ({
   return withWebChrome(
     <div className="min-h-screen bg-premium-page relative overflow-hidden">
       {/* Ambient brand-wash decoration — desktop-only, sits behind the
-          auth column. Two soft radial gradients in the brand palette
-          (olivewood + burnt-sienna) fill the empty gutters on wide
+          auth column. Soft radial gradients (olivewood + a neutral
+          stormy-sky) fill the empty gutters on wide
           viewports so the page reads as intentional atmosphere rather
           than blank whitespace. Kept `pointer-events-none` + `aria-hidden`
           so it never intercepts input or announces to screen readers. */}
@@ -201,7 +201,8 @@ const AuthShell = ({
           style={{
             background: [
               "radial-gradient(60% 55% at 12% 22%, hsl(var(--olivewood) / 0.09) 0%, transparent 60%)",
-              "radial-gradient(50% 45% at 88% 78%, hsl(var(--burnt-sienna) / 0.08) 0%, transparent 60%)",
+              // Neutral, not rust (owner 2026-10-21: rust is for money).
+              "radial-gradient(50% 45% at 88% 78%, hsl(var(--stormy-sky) / 0.08) 0%, transparent 60%)",
               "radial-gradient(38% 32% at 92% 18%, hsl(var(--olivewood) / 0.05) 0%, transparent 65%)",
             ].join(", "),
           }}

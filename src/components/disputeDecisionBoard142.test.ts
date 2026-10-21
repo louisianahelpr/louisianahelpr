@@ -45,6 +45,8 @@ describe("board 142: decision headline per side", () => {
   it("the dialog promises no decide-by date, bank timing or second look", () => {
     const src = ["src/components/DisputeTimelineDialog.tsx", "src/components/disputeTimeline/DisputeDecisionCard.tsx"]
       .map((f) => blankComments(readFileSync(join(process.cwd(), f), "utf8"))).join("\n");
+    // Floor: the two files this scans, 751 lines on 2026-10-21.
+    expect(src.split("\n").length).toBeGreaterThan(700);
     expect(src).toContain("— Helpr Support");
     for (const re of [/second look/i, /business days/i, /decide by/i, /card ending/i]) expect(src).not.toMatch(re);
   });

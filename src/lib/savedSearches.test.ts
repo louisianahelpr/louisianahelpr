@@ -2,6 +2,9 @@ import { describe, it, expect } from "vitest";
 import { defaultName, resultsPath, rowSummary, type SavedSearch } from "./savedSearches";
 import { browseStateFromParams } from "./declutter/browseFilters";
 
+// Swapping the channel words must turn the row-summary test red.
+// @mutate src/lib/savedSearches.ts | s.notify_email ? "Email" : "App only" | s.notify_email ? "App only" : "Email"
+
 const base: SavedSearch = {
   id: "s1", name: "", section: "declutter", query: "chair", category: null, min_budget: null, max_budget: 100,
   radius_miles: 25, parish: null, location_keyword: null, notify_enabled: true, notify_email: true, last_seen_at: null, created_at: "",

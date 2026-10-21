@@ -22,12 +22,16 @@ describe("stripe_identity_verified_at keeps the first date", () => {
     const files = execFileSync("git", ["grep", "-l", "stripe_identity_verified_at:", "--", "supabase/functions"], { encoding: "utf8" })
       .split("\n").filter((f) => f && !/\.test\./.test(f));
     expect(files.sort()).toEqual(["supabase/functions/_shared/connectGateSync.ts", "supabase/functions/stripe-webhook/handlers/accountUpdated.ts"]);
+    const stamps: string[] = [];
     for (const f of files) {
       const src = blankComments(readFileSync(f, "utf8"));
       for (const m of src.matchAll(/stripe_identity_verified_at:/g)) {
+        stamps.push(f);
         const before = src.slice(Math.max(0, m.index! - 200), m.index!);
         expect(before, f).toMatch(/stripe_identity_verified !== true\s*\?\s*\{?\s*$/);
       }
     }
+    // Floor: 2 stamps of the column checked on 2026-10-21.
+    expect(stamps.length).toBeGreaterThan(1);
   });
 });

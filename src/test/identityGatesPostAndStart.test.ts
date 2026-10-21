@@ -45,7 +45,10 @@ const body = (fn: string) => {
 /** The newest CREATE TRIGGER <name>, flattened. */
 function trigger(name: string): string {
   let last = "";
-  for (const f of readdirSync(MIG).filter((x) => x.endsWith(".sql")).sort()) {
+  const files = readdirSync(MIG).filter((x) => x.endsWith(".sql")).sort();
+  // Floor: 1253 migration files read on 2026-10-21.
+  expect(files.length).toBeGreaterThan(1200);
+  for (const f of files) {
     const sql = blankSqlComments(readFileSync(join(MIG, f), "utf8"));
     for (const m of sql.matchAll(new RegExp(`CREATE TRIGGER ${name}\\b[\\s\\S]*?;`, "gi"))) last = m[0];
   }

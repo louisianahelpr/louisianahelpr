@@ -64,7 +64,10 @@ function reads() {
 
 describe("analytics counts read the people's rows only (Q2112)", () => {
   it("every raw analytics_events read carries the robot filter, or is listed with why", () => {
-    const bad = [...new Set(reads().filter((r) => !r.filtered && !(r.file in NOT_A_PEOPLE_COUNT)).map((r) => r.file))];
+    const rows = reads();
+    // Floor: 5 raw analytics_events reads found on 2026-10-21.
+    expect(rows.length).toBeGreaterThan(4);
+    const bad = [...new Set(rows.filter((r) => !r.filtered && !(r.file in NOT_A_PEOPLE_COUNT)).map((r) => r.file))];
     expect(bad).toEqual([]);
   });
 

@@ -44,7 +44,10 @@ describe("Q2278: the app never reads who asked a Declutter question", () => {
 
   it("no app read of declutter_questions asks for asker_id or * (inventory floor: the fallback read)", () => {
     let reads = 0;
-    for (const { f, src } of appSources()) {
+    const sources = appSources();
+    // Floor: 1484 app source files scanned on 2026-10-21.
+    expect(sources.length).toBeGreaterThan(1350);
+    for (const { f, src } of sources) {
       for (const m of src.matchAll(/from\("declutter_questions"\)\s*\.select\(\s*"([^"]*)"/g)) {
         reads++;
         expect(m[1], f).not.toMatch(/asker_id|\*/);

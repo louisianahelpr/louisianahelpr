@@ -193,6 +193,9 @@ describe("Q2273: money owed to the member blocks deleting the account", () => {
     const sql = (f: string) => blankSqlComments(readFileSync(join(process.cwd(), "supabase/migrations", f), "utf8"));
     const fee = sql("20261002052502_cancellation_fee_transfers_ledger.sql");
     const tip = sql("20261004220059_tip_held_payout_redrive.sql");
+    // Floors: 2 fee statuses and 4 tip statuses on 2026-10-21.
+    expect(mod.CANCELLATION_FEE_OWED_STATUSES.length).toBeGreaterThan(1);
+    expect(mod.TIP_REDRIVE_OWED_STATUSES.length).toBeGreaterThan(3);
     for (const s of mod.CANCELLATION_FEE_OWED_STATUSES) expect(fee).toContain(`'${s}'`);
     for (const s of mod.TIP_REDRIVE_OWED_STATUSES) expect(tip).toContain(`'${s}'`);
   });

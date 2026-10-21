@@ -49,6 +49,10 @@ describe("press run 39376366289: the gate classes what that run caught", () => {
     expect(src).toMatch(/\|\| isNotificationOpen\(\{ label \}\) \|\| isAdminWrite/);
   });
 
+  it("walks every read RPC the run caught (floor: 13 on 2026-10-21)", () => {
+    expect(READ_RPCS.length).toBeGreaterThan(12);
+  });
+
   it.each(READ_RPCS)("rpc %s reads", (name) => {
     expect(pressWriteKind({ method: "POST", url: `${BASE}/rest/v1/rpc/${name}` })).toBe("read");
   });

@@ -17,8 +17,8 @@ interface ProUpgradeSheetProps {
   /** Lucide icon for the hero chip — pass the feature's own icon (Zap for
       instant payout, Rocket for boost, Send for direct offer, etc.). */
   icon: LucideIcon;
-  /** Italic display headline — Title Case, no full stop, like every other
-      popup title ("Unlock Instant Cash Out"). */
+  /** Italic display headline — sentence case, no full stop, like every other
+      popup title ("Unlock instant cash out"). */
   title: string;
   /** One-sentence serif body explaining what they unlock. */
   body: string;

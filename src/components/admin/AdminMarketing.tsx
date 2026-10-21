@@ -199,7 +199,7 @@ const AdminMarketing = () => {
           <BrandConfirmDialog
             open={confirmSendOpen}
             onOpenChange={setConfirmSendOpen}
-            title="Send to the Full Segment?"
+            title="Send to the full segment?"
             description={`This sends the campaign to all matching ${segment === "all" ? "users" : segment}. It can't be undone.`}
             callout={{ text: "Did you send a test first? This goes straight to real inboxes." }}
             primaryLabel="Send Campaign"

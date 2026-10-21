@@ -386,7 +386,7 @@ export function CrewMemberSection({
           <BrandConfirmDialog
             open={cancelOpen}
             onOpenChange={setCancelOpen}
-            title={step === "confirm" ? "Turn Down This Spot?" : "Leave This Crew?"}
+            title={step === "confirm" ? "Turn down this spot?" : "Leave this crew?"}
             description={`Your spot on "${job.title}" reopens for other Helprs right away, and the person who posted it is told now.`}
             callout={
               step === "confirm"

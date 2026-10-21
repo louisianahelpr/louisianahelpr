@@ -561,7 +561,7 @@ export function ChatView({
       <BrandConfirmDialog
         open={!!editingMessage}
         onOpenChange={(open) => { if (!open) setEditingMessage(null); }}
-        title="Edit Message"
+        title="Edit message"
         description={
           editSecondsLeft !== null
             ? `Changes are visible to the other person, and the message is marked as edited. Editable for ${

@@ -8,7 +8,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
  *
  * The Helpr's Mark Job Complete confirm read "Request Your Payout?" with a
  * "Yes, I'm Done" button: the card says Mark Job Complete, the popup it
- * opens talked about money. Now "Mark This Job Complete?" / "Mark Complete".
+ * opens talked about money. Now "Mark this job complete?" / "Mark Complete".
  *
  * The confirm-booking popup's hand-off link read "Can't make it? See what
  * happens". It opens the real cancel flow, so it now says "Cancel Job", the
@@ -24,7 +24,7 @@ import { blankComments } from "@/test/helpers/blankNonCode";
  * paragraph above does it twice, naming both the copy that shipped and the
  * copy it replaced. A raw-text guard cannot tell a live JSX prop from a
  * sentence about one, so it fails in both directions: a commented-out
- * `title="Mark This Job Complete?"` would satisfy the positive assertions
+ * `title="Mark this job complete?"` would satisfy the positive assertions
  * while the rendered popup said something else, and one honest note
  * mentioning "Request Your Payout?" would turn the negative assertions red
  * for a change that never touched the UI.
@@ -46,7 +46,7 @@ describe("Mark Job Complete confirm popup", () => {
   const tracking = src("JobTracking.tsx");
 
   it("asks to mark the job complete, not to request a payout", () => {
-    expect(tracking).toContain('title="Mark This Job Complete?"');
+    expect(tracking).toContain('title="Mark this job complete?"');
     expect(tracking).toContain('primaryLabel="Mark Complete"');
     expect(tracking).not.toContain("Request Your Payout?");
     expect(tracking).not.toMatch(/Yes, I['’]m Done/);
@@ -66,7 +66,7 @@ describe("confirm-booking popup cancel link", () => {
 
 // Owner, 2026-09-14: the card says Mark Job Complete and the popup it opens
 // talked about money. This is that popup reverting.
-// @mutate src/components/JobTracking.tsx | title="Mark This Job Complete?" | title="Request Your Payout?"
+// @mutate src/components/JobTracking.tsx | title="Mark this job complete?" | title="Request Your Payout?"
 // The confirm-booking hand-off link reverting to euphemism: it opens the real
 // cancel flow, so it has to say Cancel Job (VN-18).
 // @mutate src/components/JobConfirmation.tsx | Cancel Job | See what happens

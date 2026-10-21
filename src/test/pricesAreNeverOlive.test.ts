@@ -33,7 +33,6 @@ const OLIVE = /\btext-primary\b|--bark\b|--sage\b|\btext-sage\b|\btext-bark\b|--
 const KNOWN_OLIVE_PRICES = [
   "src/components/CancellationDialog.tsx",
   "src/components/admin/AdminPayoutBatches.tsx",
-  "src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx",
   "src/components/postjob/RecurringSchedulePicker.tsx",
   "src/components/profile/MonthlyGoalCard.tsx",
   "src/pages/profile/HomeHistory.tsx",

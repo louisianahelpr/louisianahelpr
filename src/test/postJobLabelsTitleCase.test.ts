@@ -18,6 +18,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * placeholders / helper sentences are not labels, so they are not checked.
  */
 // @mutate src/components/postjob/AddressBlock.tsx | >Street address</Label> | >Street Address</Label>
+// @mutate src/components/postjob/CurrentLocationPill.tsx | "Use my location" | "Use My Location"
 const ROOTS = ["src/components/postjob", "src/pages/post-job"];
 /** Proper nouns that keep their capital mid-label. */
 const PROPER = new Set(["Helpr", "Helprs", "Helpr's", "Louisiana", "I", "I'll", "I'm"]);
@@ -61,6 +62,10 @@ function collectLabels(): { file: string; text: string }[] {
     const patterns = [
       /<Label\b[^>]*>([\s\S]*?)<\/Label>/g,
       /<span className="text-ds-13 font-semibold text-foreground">([^<{]+)<\/span>/g,
+      // Button labels written as a ternary of two strings in JSX children ({busy ? "Locating…" : "Use my location"}),
+      // owner 2026-10-21: "Use My Location" -> "Use my location".
+      /[>}]\s*\{\s*\w+\s*\?\s*"([^".]{1,40})"\s*:\s*"[^"]+"\s*\}\s*</g,
+      /[>}]\s*\{\s*\w+\s*\?\s*"[^"]+"\s*:\s*"([^".]{1,40})"\s*\}\s*</g,
     ];
     for (const rx of patterns) {
       for (const m of src.matchAll(rx)) {

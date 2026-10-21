@@ -17,6 +17,7 @@ import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
 import { PostJobStepRail } from "@/components/postjob/PostJobStepRail";
+import { FORM_PAGE_OF, screenOfFormPage } from "@/components/postjob/postJobScreens";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 import { useFeatureStatus } from "@/hooks/useFeature";
@@ -153,7 +154,15 @@ export function FormStep({ form }: FormStepProps) {
     // Desktop (board 166): step rail left, the step centred (max 640px), the live
     // "What Helprs will see" card right. The phone is the one centred column.
     <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
-      <PostJobStepRail step={page} onPick={setPage} />
+      <PostJobStepRail
+        screen={screenOfFormPage(page, !!openGroup)}
+        canPick={(s) => FORM_PAGE_OF[s] !== undefined && !(s === "kind")}
+        onPick={(s) => {
+          if (s === "groups") form.setCategoryGroup(null);
+          const p = FORM_PAGE_OF[s];
+          if (p) setPage?.(p);
+        }}
+      />
       <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
@@ -222,9 +231,9 @@ export function FormStep({ form }: FormStepProps) {
         {/* SCREEN 1: WHAT (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
           {openGroup ? (
-            <PostJobStepHeader step={1} question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." />
+            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." />
           ) : (
-            <PostJobStepHeader step={1} question="What do you need done?" helper="Search, or pick a category." />
+            <PostJobStepHeader screen="groups" question="What do you need done?" helper="Search, or pick a category." />
           )}
           <JobCategoryGroups
             category={form.category}
@@ -242,7 +251,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* SCREEN 2: DETAILS (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
-          <PostJobStepHeader step={2} question="Tell us about it" helper="A few words and a photo help Helprs say yes." />
+          <PostJobStepHeader screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." />
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -271,7 +280,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* SCREEN 3: PRICE (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader step={3} question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} />
+          <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
@@ -307,7 +316,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* SCREEN 4: WHEN AND WHERE (board 45) */}
         <div data-form-page="4" hidden={page !== 4} className="space-y-section">
-          <PostJobStepHeader step={4} question="When and where?" helper="Helprs see the area now and your street address after you hire." />
+          <PostJobStepHeader screen="where" question="When and where?" helper="Helprs see the area now and your street address after you hire." />
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}

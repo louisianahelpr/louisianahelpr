@@ -149,6 +149,36 @@ export async function uploadHandoverPhoto(userId: string, orderId: string, file:
   return path;
 }
 
+/** Boards 71/72/159: where the handover stands, for either side (declutter_my_handover; never a code). */
+export interface MyHandover {
+  order_id: string;
+  status: "paid" | "handed_over";
+  side: "buyer" | "seller";
+  confirmed_at: string | null;
+  set_out_at: string | null;
+  set_out_photo_path: string | null;
+  picked_up_at: string | null;
+}
+
+export async function fetchMyHandover(orderId: string): Promise<MyHandover> {
+  const res = await supabase.rpc("declutter_my_handover", { p_order_id: orderId });
+  if (res.error) {
+    const words = rpcErrorMessage("declutter_my_handover", res.error);
+    throw Object.assign(new Error(res.error.message), words ? { userMessage: words } : {});
+  }
+  return res.data as unknown as MyHandover;
+}
+
+/** A short-lived link to a handover photo (the two sides and admins may read it). */
+export async function handoverPhotoUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from(DECLUTTER_HANDOVER_BUCKET).createSignedUrl(path, 600);
+  if (error) {
+    console.warn("[declutter] handover photo link failed", error.message);
+    return null;
+  }
+  return data?.signedUrl ?? null;
+}
+
 /** "They didn't show", 15 minutes after the booked time (row 94). */
 export async function reportNoShow(orderId: string): Promise<{ result: string }> {
   return rpcData(

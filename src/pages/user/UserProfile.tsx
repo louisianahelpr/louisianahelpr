@@ -176,7 +176,7 @@ const UserProfile = () => {
   // so keying off it made the tab read "A neighbor" for the whole load.
   usePageTitle(
     isOwnProfile
-      ? "Profile Review — Helpr"
+      ? "Profile review — Helpr"
       : profile?.full_name
         ? `${displayName} — Helpr`
         : "Profile — Helpr",

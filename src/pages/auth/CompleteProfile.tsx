@@ -48,7 +48,7 @@ const DeleteAccountDialog = lazy(() =>
 );
 
 const CompleteProfile = () => {
-  usePageTitle("Complete Your Profile — Helpr");
+  usePageTitle("Complete your profile — Helpr");
   const navigate = useNavigate();
   const { signingOut, signOut } = useSignOutAction();
   const queryClient = useQueryClient();

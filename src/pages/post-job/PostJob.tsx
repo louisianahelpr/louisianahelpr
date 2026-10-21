@@ -14,7 +14,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { needsIdentityCheck, openIdentityCheck } from "@/lib/identityCheck";
 
 const PostJob = () => {
-  usePageTitle("Post a Job — Helpr");
+  usePageTitle("Post a job — Helpr");
   const form = usePostJobForm();
   // Stripe Identity before a post (owner 2026-10-21; the server refuses the
   // insert without it, 20261021081258). Say so before the form, not after it.

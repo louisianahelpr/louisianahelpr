@@ -66,24 +66,28 @@ function renderRow(j: Job) {
 if (!Element.prototype.scrollTo) Element.prototype.scrollTo = () => {};
 
 describe("11. the date-change ask is a button left of Message", () => {
-  it("an unanswered offer has no ask yet: More holds Message | Cancel (owner, 2026-10-08)", async () => {
+  // Owner, 2026-10-21: while nothing is confirmable, "Message <Helpr>" IS the row's primary, so More
+  // no longer carries Message (primaryChipKey); the primary is asserted here too.
+  it("an unanswered offer has no ask yet: Message is the primary, More holds Cancel", async () => {
     renderRow(job);
     // Everything but the primary is under More (owner, 2026-10-08).
     await openMore();
     const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
       .map((b) => b.textContent?.trim() ?? "")
       .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
-    expect(labels).toEqual(["Message", "Cancel"]);
+    expect(labels).toEqual(["Cancel"]);
+    expect(document.querySelector("[data-job-step-primary]")?.textContent ?? "").toMatch(/^Message /);
   });
 
-  it("once accepted More holds Message | Ask for a new date or time | Cancel, and the ask opens the Change sheet", async () => {
+  it("once accepted More holds Ask for a new date or time | Cancel (Message is the primary), and the ask opens the Change sheet", async () => {
     renderRow({ ...job, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job);
     await openMore();
     const labels = [...document.querySelectorAll("[data-job-step-overflow-panel] button")]
       .map((b) => b.textContent?.trim() ?? "")
       .filter((t) => /Ask for a new date or time|Message|Cancel/.test(t));
-    // Most important first (owner, 2026-10-08): Message, then the ask, then Cancel.
-    expect(labels).toEqual(["Message", "Ask for a new date or time", "Cancel"]);
+    // Most important first (owner, 2026-10-08): the ask, then Cancel; Message is the primary (2026-10-21).
+    expect(labels).toEqual(["Ask for a new date or time", "Cancel"]);
+    expect(document.querySelector("[data-job-step-primary]")?.textContent ?? "").toMatch(/^Message /);
     fireEvent.click(screen.getByRole("button", { name: /Ask for a new date or time/ }));
     // Board 66: the ask opens the one Change sheet (new time by request, or cancel).
     expect(await screen.findByText("Change this job")).toBeInTheDocument();

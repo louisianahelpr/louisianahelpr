@@ -21,7 +21,8 @@
  * @mutate supabase/functions/_shared/refundAmount.ts |     return cents(page?.data?.[0]?.total_details?.amount_tax ?? 0); |     return 0;
  * @mutate supabase/functions/_shared/refundAmount.ts |   const keptInBase = Math.max(0, keptCents - (captured - taxBase)); |   const keptInBase = keptCents;
  * @mutate supabase/functions/create-payment/index.ts |             alreadyRefundedCents,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             alreadyRefundedCents,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             alreadyRefundedCents: chargeRefundedCents,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             alreadyRefundedCents: chargeRefundedCents,
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: chargeRefundedCents, taxCents: 0,
+ * @mutate supabase/functions/_shared/posterCancelSplit.ts |     alreadyRefundedCents: c.alreadyRefundedCents,\n    taxCents: c.taxCents, |     alreadyRefundedCents: c.alreadyRefundedCents,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -181,5 +182,19 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
     }
     expect(calls).toBeGreaterThan(7);
     expect(missing).toEqual(NO_TAX_NEEDED);
+  });
+
+  // Boards 66/172 slice 2: the sweep's captured refund and the poster's cancel quote reach
+  // refundToPayerCents through posterCancelSplit (checked above), so each caller must feed it the
+  // charge's real tax: the sweep with chargeTaxCentsFor, the quote with checkoutChargeTaxCents.
+  it("both posterCancelSplit callers pass the charge's tax", () => {
+    const root = join(__dirname, "..", "..");
+    const flat = (f: string) => blankComments(readFileSync(join(root, f), "utf8")).replace(/\s+/g, " ");
+    expect(flat("supabase/functions/void-cancelled-payments/index.ts")).toMatch(
+      /posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents: await chargeTaxCentsFor\(stripe, pi\)/,
+    );
+    const quote = flat("supabase/functions/create-payment/index.ts");
+    expect(quote).toContain("const taxCents = await checkoutChargeTaxCents(stripe, qPi);");
+    expect(quote).toMatch(/posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents \}/);
   });
 });

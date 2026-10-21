@@ -116,7 +116,9 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
 // the block dialog priced an unaccepted offer. The call-site count is EXACT
 // (two-way): a new quoting site has to be looked at and this number moved.
 describe("fee ladder callers never hard-code commitment (Q236 c)", () => {
-  const EXPECTED_CALL_SITES = 4;
+  // 5 since boards 66/172 slice 2: create-payment cancel_quote prices fee_percent with
+  // cancellationFeePercent(helperIsCommitted(qJob), ...), the server's commitment rule.
+  const EXPECTED_CALL_SITES = 5;
   const roots = ["src", "supabase/functions"];
   function walk(dir: string, out: string[]) {
     for (const e of readdirSync(dir, { withFileTypes: true })) {

@@ -5379,11 +5379,12 @@
     "anon": false,
     "args": [
      "p_job_id",
-     "p_reason"
+     "p_reason",
+     "p_expected_fee_cents"
     ],
     "authenticated": true,
-    "nargdefaults": 1,
-    "nargs": 2
+    "nargdefaults": 2,
+    "nargs": 3
    }
   ],
   "poster_crew_block_fee_cents": [

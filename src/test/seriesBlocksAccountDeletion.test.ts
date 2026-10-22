@@ -49,6 +49,7 @@ function fakeAdmin(tables: Tables, missingColumns: string[] = []) {
         },
         not: (c: string, _op: string, v: unknown) => (preds.push((r) => (r[c] ?? null) !== v), q),
         gte: (c: string, v: string) => (preds.push((r) => String(r[c]) >= v), q),
+        gt: (c: string, v: string) => (preds.push((r) => String(r[c]) > v), q),
         in: (c: string, vs: unknown[]) => (preds.push((r) => vs.includes(r[c])), q),
         // findActiveWork's first read: (customer OR helper) AND live. Nothing
         // in these fixtures is a live one-off job, so it matches nothing.

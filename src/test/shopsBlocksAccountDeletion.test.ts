@@ -52,6 +52,7 @@ function fakeAdmin(tables: Tables) {
         is: (c: string, v: unknown) => (preds.push((r) => (r[c] ?? null) === v), q),
         not: () => q,
         gte: () => q,
+        gt: () => q,
         in: (c: string, vs: unknown[]) => (preds.push((r) => vs.includes(r[c])), q),
         or: (expr: string) => {
           if (table !== "shop_orders") return preds.push(() => false), q;

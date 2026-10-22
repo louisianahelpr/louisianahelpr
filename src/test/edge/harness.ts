@@ -173,6 +173,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/publicError.ts";`,
   );
 
+  // Claude caller (owner 2026-10-22): `_shared/claudeMessages.ts` has ZERO
+  // imports and calls the global fetch, which the tests stub. Point at the
+  // real module so the tests see the real request it sends.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/claudeMessages\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/claudeMessages.ts";`,
+  );
+
   // Confirmed-email gate (Q837): `_shared/requireConfirmedEmail.ts` has ZERO
   // imports. Point at the real module so every gated function's tests run the
   // real refusal rule against the mock's user.

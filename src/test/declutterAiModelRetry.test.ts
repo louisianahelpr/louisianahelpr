@@ -5,7 +5,7 @@
  *
  * @mutate supabase/functions/declutter-ai-draft/modelRetry.ts | new Set([503, 529]) | new Set([])
  * @mutate supabase/functions/declutter-ai-draft/modelRetry.ts | export const MAX_ATTEMPTS = 2; | export const MAX_ATTEMPTS = 3;
- * @mutate supabase/functions/declutter-ai-draft/index.ts |   return fetchModelWithRetry(callModel, { |   return callModel(); ({
+ * @mutate supabase/functions/declutter-ai-draft/index.ts |   const response = await fetchModelWithRetry(callModel, { |   const response = await callModel(); ({
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -67,12 +67,12 @@ describe("declutter-ai-draft model retry", () => {
   it("the function sends its model call through the retry, and keeps one user message for a failure", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../../supabase/functions/declutter-ai-draft/index.ts"), "utf8"));
     expect(src).toMatch(/fetchModelWithRetry\(callModel\b/);
-    // Exactly one place calls the model endpoint, and it is inside callModel.
-    const calls = src.match(/generativelanguage\.googleapis\.com/g) ?? [];
+    // Exactly one place calls the model (Claude, owner 2026-10-22), and it is inside callModel.
+    const calls = src.match(/claudeFetch\(/g) ?? [];
     expect(calls.length).toBe(1);
-    expect(src.indexOf("const callModel")).toBeLessThan(src.indexOf("generativelanguage.googleapis.com"));
+    expect(src.indexOf("const callModel")).toBeLessThan(src.indexOf("claudeFetch("));
     // A failure after the retry is still the same answer the app maps to
     // "The photo tool isn't available right now".
-    expect(src).toMatch(/if \(!response\.ok\) \{[\s\S]{0,300}error: "ai_unavailable"/);
+    expect(src).toMatch(/if \(!answer\.ok\) \{[\s\S]{0,300}error: "ai_unavailable"/);
   });
 });

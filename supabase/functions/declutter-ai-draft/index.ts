@@ -44,6 +44,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { DECLUTTER_CATEGORIES, DELIVERY_SIZES, ROOM_MAX_ITEMS, roomPhotosFromBody, sanitizeDraft, sanitizeRoom } from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
+import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
 
 const corsHeaders = {
@@ -77,45 +78,51 @@ const ITEM_SCHEMA = {
 
 const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
 
-type ImagePart = { type: "image_url"; image_url: { url: string } };
-
 /**
- * One model request with its own 25s timeout. A 503/529 "busy" answer is
- * tried once more after a short pause (modelRetry.ts); anything else, and a
- * second busy answer, ends in ai_unavailable at the caller.
+ * One Claude request (owner 2026-10-22: Claude only, Gemini removed) with its
+ * own 25s timeout, asking for JSON in the tool's schema (structured output).
+ * A 503/529 "busy" answer is tried once more after a short pause
+ * (modelRetry.ts); anything else, and a second busy answer, ends in
+ * ai_unavailable at the caller. Returns the parsed answer or null.
  */
-function askModel(
+async function askModel(
   apiKey: string,
   systemPrompt: string,
   userText: string,
-  images: ImagePart[],
+  images: ClaudeImage[],
   tool: { name: string; description: string; parameters: Record<string, unknown> },
-): Promise<Response> {
+): Promise<{ ok: true; parsed: unknown } | { ok: false; status: number; detail: string }> {
   const callModel = async (): Promise<Response> => {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), 25_000);
     try {
-      return await fetch("https://generativelanguage.googleapis.com/v1beta/openai/chat/completions", {
-        signal: ctl.signal,
-        method: "POST",
-        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "gemini-3.6-flash",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: [{ type: "text", text: userText }, ...images] },
-          ],
-          tools: [{ type: "function", function: tool }],
-          tool_choice: { type: "function", function: { name: tool.name } },
-        }),
-      });
+      return await claudeFetch(apiKey, {
+        system: `${systemPrompt}\n\n${tool.description}. Answer only with JSON in the required shape.`,
+        turns: [{ role: "user", content: userText, images }],
+        schema: claudeSchema(tool.parameters),
+      }, ctl.signal);
     } finally {
       clearTimeout(timer);
     }
   };
-  return fetchModelWithRetry(callModel, {
+  const response = await fetchModelWithRetry(callModel, {
     onRetry: (status) => console.warn("[declutter-ai-draft] model busy, retrying once:", status),
   });
+  if (!response.ok) return { ok: false, status: response.status, detail: (await response.text()).slice(0, 300) };
+  return { ok: true, parsed: claudeJson(await response.json()) };
+}
+
+/** Structured outputs take a JSON-schema subset: drop numeric/size bounds (the sanitizers enforce them). */
+function claudeSchema(schema: unknown): Record<string, unknown> {
+  const DROP = new Set(["minimum", "maximum", "minItems", "maxItems", "minLength", "maxLength"]);
+  const walk = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === "object") {
+      return Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([k]) => !DROP.has(k)).map(([k, x]) => [k, walk(x)]));
+    }
+    return v;
+  };
+  return walk(schema) as Record<string, unknown>;
 }
 
 function toBase64(bytes: Uint8Array): string {
@@ -175,7 +182,7 @@ serve(async (req) => {
     }
     if (!photos || photos.length === 0) return json({ error: "ai_photos_required" }, 400);
 
-    const images: ImagePart[] = [];
+    const images: ClaudeImage[] = [];
     for (const p of mode === "check" ? photos : photos.slice(0, DRAFT_PHOTOS)) {
       const { data: blob, error: dlErr } = await admin.storage.from("job-photos").download(p.storage_path);
       if (dlErr || !blob) {
@@ -189,20 +196,19 @@ serve(async (req) => {
         if (mode === "check") return json({ error: "ai_unavailable" }, 502);
         continue;
       }
-      images.push({ type: "image_url", image_url: { url: `data:image/jpeg;base64,${toBase64(bytes)}` } });
+      images.push({ mediaType: "image/jpeg", base64: toBase64(bytes) });
     }
     if (images.length === 0) return json({ error: "ai_unavailable" }, 502);
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const systemPrompt = shopItem ? SHOP_ITEM_SYSTEM_PROMPT : `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
 Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
-${BANNED_RULE}
-Always answer with the draft_listing tool.`;
+${BANNED_RULE}`;
 
-    const response = await askModel(
-      GEMINI_API_KEY,
+    const answer = await askModel(
+      ANTHROPIC_API_KEY,
       systemPrompt,
       mode === "check"
         // The seller's own words are data to judge, not instructions.
@@ -217,14 +223,12 @@ Always answer with the draft_listing tool.`;
         ? SHOP_ITEM_TOOL.function
         : { name: "draft_listing", description: "A draft listing for one used household item", parameters: ITEM_SCHEMA },
     );
-    if (!response.ok) {
-      console.error("[declutter-ai-draft] model error:", response.status, (await response.text()).slice(0, 300));
-      return json({ error: "ai_unavailable" }, response.status === 429 ? 429 : 502);
+    if (!answer.ok) {
+      console.error("[declutter-ai-draft] model error:", answer.status, answer.detail);
+      return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
     }
-    const data = await response.json();
-    const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     if (shopItem) {
-      const shopDraft = args ? sanitizeShopItemDraft(JSON.parse(args)) : null;
+      const shopDraft = answer.parsed ? sanitizeShopItemDraft(answer.parsed) : null;
       if (!shopDraft) return json({ error: "ai_unavailable" }, 502);
       if (mode === "check") {
         const it = item as { kind: string; subtype: string; title: string; description: string };
@@ -253,7 +257,7 @@ Always answer with the draft_listing tool.`;
         flagged: shopDraft.flagged,
       });
     }
-    const draft = args ? sanitizeDraft(JSON.parse(args)) : null;
+    const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
     if (!draft) return json({ error: "ai_unavailable" }, 502);
 
     if (mode === "check") {
@@ -313,18 +317,17 @@ async function roomScan(req: Request, anon: Client, admin: Client, user: Paramet
   const photos = roomPhotosFromBody(body.photos);
   if (!photos) return json({ error: "room_photos_invalid" }, 400);
 
-  const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-  if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
   const systemPrompt = `You help a person in Louisiana who is MOVING OUT sell the USED HOUSEHOLD ITEMS in a room on Louisiana Helpr's Declutter section, from photos of the room.
 List each separate item a buyer could take home (at most ${ROOM_MAX_ITEMS}): furniture, appliances, lamps, decor, tools and the like. Skip the walls, floors, built-in fixtures, people, pets, papers and anything too small to sell on its own.
 For each item write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (1-3 sentences), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
-${BANNED_RULE}
-Always answer with the list_room_items tool.`;
-  const response = await askModel(
-    GEMINI_API_KEY,
+${BANNED_RULE}`;
+  const answer = await askModel(
+    ANTHROPIC_API_KEY,
     systemPrompt,
     "List the items in this room that could be sold.",
-    photos.map((p) => ({ type: "image_url" as const, image_url: { url: `data:image/jpeg;base64,${p}` } })),
+    photos.map((p) => ({ mediaType: "image/jpeg", base64: p })),
     {
       name: "list_room_items",
       description: "The used household items visible in the room photos",
@@ -336,13 +339,11 @@ Always answer with the list_room_items tool.`;
       },
     },
   );
-  if (!response.ok) {
-    console.error("[declutter-ai-draft] room model error:", response.status, (await response.text()).slice(0, 300));
-    return json({ error: "ai_unavailable" }, response.status === 429 ? 429 : 502);
+  if (!answer.ok) {
+    console.error("[declutter-ai-draft] room model error:", answer.status, answer.detail);
+    return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
   }
-  const data = await response.json();
-  const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-  const parsed = args ? JSON.parse(args) : null;
+  const parsed = answer.parsed;
   // No tool call, or no list in it, is a model fault, not an empty room:
   // say so (as the one-item path does) instead of "nothing found".
   if (!parsed || !Array.isArray((parsed as { items?: unknown }).items)) {

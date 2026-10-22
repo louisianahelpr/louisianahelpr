@@ -8,7 +8,7 @@
  *  (b) tell the model to target a title well under the form's exact 32-char
  *      hard cap, not skim it — a model that aims at "max 32" reliably
  *      produces titles that need truncating (reproduced live with
- *      gemini-3.6-flash generating 33 chars against a "max 32" instruction,
+ *      gemini-3.6-flash (the model before Claude, 2026-10-22) generating 33 chars against a "max 32" instruction,
  *      per the comment a few lines below the truncation code in index.ts);
  *  (c) state the canonical-noun rule (the person doing the job is always
  *      "Helpr", capitalized) so generated copy doesn't drift from house style

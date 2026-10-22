@@ -23,8 +23,8 @@ import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock } from "./mocks/stripe";
 
 async function load(): Promise<EdgeHarness> {
-  // GEMINI_API_KEY deliberately UNSET: a payload that passes validation then
-  // throws "GEMINI_API_KEY is not configured" (→ 500) rather than reaching the
+  // ANTHROPIC_API_KEY deliberately UNSET: a payload that passes validation then
+  // throws "ANTHROPIC_API_KEY is not configured" (→ 500) rather than reaching the
   // network, so a "valid input" test can prove validation passed without a
   // real Gemini call.
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key" });
@@ -78,7 +78,7 @@ describe("ai-job-builder — input bounds", () => {
 
   it("lets a valid small payload past validation (500 for the unset key, not 400/413)", async () => {
     // Proves the guard did not break the real shape: a well-formed request
-    // clears validation and only then fails on the missing GEMINI_API_KEY.
+    // clears validation and only then fails on the missing ANTHROPIC_API_KEY.
     const fn = await load();
     const res = await authed(fn, {
       messages: [{ role: "user", content: "I need my lawn mowed this weekend" }],

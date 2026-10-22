@@ -12,7 +12,7 @@
  * Gemini call stubbed: 503 then a good answer must reach the poster as 200.
  *
  * @mutate supabase/functions/ai-job-builder/retry.ts | export const RETRY_DELAYS_MS = [800, 1600]; | export const RETRY_DELAYS_MS: number[] = [];
- * @mutate supabase/functions/ai-job-builder/retry.ts | new Set([500, 502, 503]) | new Set([500, 502])
+ * @mutate supabase/functions/ai-job-builder/retry.ts | new Set([500, 502, 503, 529]) | new Set([500, 502, 529])
  * @mutate supabase/functions/ai-job-builder/retry.ts |     if (now() - started + wait >= deadlineMs) return res; |
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -28,10 +28,11 @@ const busy = () =>
 const good = () =>
   new Response(
     JSON.stringify({
-      choices: [{ message: { tool_calls: [{ function: { arguments: JSON.stringify({
+      stop_reason: "end_turn",
+      content: [{ type: "text", text: JSON.stringify({
         title: "Mow my lawn", description: "Front and back.", category: "yard_work",
         estimated_hours: 2, budget_min: 40, budget_max: 60,
-      }) } }] } }],
+      }) }],
     }),
     { status: 200, headers: { "Content-Type": "application/json" } },
   );
@@ -98,9 +99,9 @@ describe("ai-job-builder handler", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("a single provider 503 reaches the poster as a generated job, not an error", async () => {
-    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", GEMINI_API_KEY: "k" });
-    const gemini = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(good());
-    vi.stubGlobal("fetch", gemini);
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", ANTHROPIC_API_KEY: "k" });
+    const model = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(good());
+    vi.stubGlobal("fetch", model);
     const fn = await loadEdgeFunction("ai-job-builder");
     const res = await fn.fetch(fn.request({
       headers: { Authorization: "Bearer good" },
@@ -108,6 +109,6 @@ describe("ai-job-builder handler", () => {
     }));
     expect(res.status).toBe(200);
     expect((await res.json()).title).toBe("Mow my lawn");
-    expect(gemini).toHaveBeenCalledTimes(2);
+    expect(model).toHaveBeenCalledTimes(2);
   });
 });

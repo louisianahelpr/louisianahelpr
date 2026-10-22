@@ -204,6 +204,7 @@
     }
   ],
   "undated": {
+    "ANTHROPIC_API_KEY": "Anthropic API key (Claude, the AI job builder and Declutter listing help); no expiry date",
     "APNS_BUNDLE_ID": "config, not a credential",
     "APNS_TEAM_ID": "identifier, not a credential",
     "APNS_USE_SANDBOX": "config flag",
@@ -221,7 +222,6 @@
     "EMAIL_UNSUBSCRIBE_SECRET": "self-generated HMAC secret",
     "FASTLANE_APPLE_ID": "identifier, not a credential",
     "FASTLANE_PASSWORD": "Apple ID password; no expiry date (liveness is ios-beta itself)",
-    "GEMINI_API_KEY": "Google AI API key; no expiry date",
     "HELPR_POSTAL_ADDRESS": "config, not a credential",
     "KEYCHAIN_PASSWORD": "self-generated passphrase for a throwaway CI keychain",
     "MARKETING_CLAIM_LIMIT": "config number",

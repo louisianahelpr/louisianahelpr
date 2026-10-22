@@ -16,21 +16,21 @@ reports coverage against THIS file, not against the route list.
 |---|---|---:|
 | Routes (non-redirect) | route | 48 |
 | Redirect-only routes | route | 1 |
-| `?tab=` variants | variant | 31 |
+| `?tab=` variants | variant | 33 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 190 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 926 (across 238 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 928 (across 239 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 30 |
 | Multi-step flows — probable | flow | 21 |
-| Back/next navigation only | flow | 49 |
-| Forms (submittable) | form | 73 |
+| Back/next navigation only | flow | 51 |
+| Forms (submittable) | form | 74 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 150 |
 | Email templates | **exported template** | 21 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **619** |
-| **Copy surfaces** (strings a person may read) | mixed | **965** |
-| **Total auditable surface** | mixed | **1584** |
+| **Navigable surfaces** (places a person can stand) | mixed | **624** |
+| **Copy surfaces** (strings a person may read) | mixed | **967** |
+| **Total auditable surface** | mixed | **1591** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 190 | 130 | agree within method (script counts every menu instance) |
-| Forms | 73 | ~38 | agree |
+| Forms | 74 | ~38 | agree |
 | Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -152,8 +152,10 @@ database and `lh-notifications` must correct it from there.
 - [ ] `?tab=profile:legal`
 - [ ] `?tab=profile:notifications`
 - [ ] `?tab=profile:payment`
+- [ ] `?tab=profile:payout_history`
 - [ ] `?tab=profile:pets`
 - [ ] `?tab=profile:profile`
+- [ ] `?tab=profile:receipts`
 - [ ] `?tab=profile:referral`
 - [ ] `?tab=profile:reviews`
 - [ ] `?tab=profile:saved_helpers`
@@ -481,9 +483,11 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/pages/profile/HelperAnalytics.tsx` | nav-handler |
 | `src/pages/profile/HelprWrapped.tsx` | nav-handler |
 | `src/pages/profile/HomeHistory.tsx` | nav-handler |
+| `src/pages/profile/PayoutHistory.tsx` | nav-handler |
 | `src/pages/profile/PetProfiles.tsx` | nav-handler |
 | `src/pages/profile/Profile.tsx` | nav-handler |
 | `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
+| `src/pages/profile/Receipts.tsx` | nav-handler |
 | `src/pages/profile/SavedSearchesTab.tsx` | nav-handler |
 | `src/pages/profile/StrSettings.tsx` | nav-handler |
 | `src/pages/profile/WorkRecord.tsx` | nav-handler |
@@ -517,6 +521,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/DeclutterQuestions.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterTradeViews.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterWantedViews.tsx` (form tag)
+- [ ] `src/components/declutter/DeliveryRaisePanel.tsx` (form tag)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-22T03:37Z",
+  "measured_at": "2026-10-22T07:27Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,7 +50,7 @@
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39493026086",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39671846391",
         "runTruncated": false
       },
       {
@@ -151,14 +151,6 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
-      },
-      {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 3505
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -521,19 +513,19 @@
         "issue": null
       },
       {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
         "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -583,6 +575,30 @@
         "status": "open",
         "title": "/profile · importing a module script failed.",
         "issue": null
+      },
+      {
+        "fingerprint": "974ed70164ebb7e5e951841b17f361c6",
+        "source_kind": "sentry",
+        "source": "sentry:https://www.louisianahelpr.com/profile",
+        "status": "open",
+        "title": "typeerror: importing a module script failed.",
+        "issue": null
+      },
+      {
+        "fingerprint": "3c528ace98fd0d19c1fcdd1e9fe424e2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: no error message",
+        "issue": null
+      },
+      {
+        "fingerprint": "cae29df0662b839817a9ea111d74efb5",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/declutter · error screen shown: we couldn't load deliveries.",
+        "issue": null
       }
     ]
   },
@@ -629,6 +645,7 @@
     "ledger 3a3460b71be7": "Q1816",
     "ledger 3ab675187ce9": "Q1596",
     "ledger 3c0d6b003e08": "Q1810",
+    "ledger 3c528ace98fd": "Q2350",
     "ledger 40a33605c7c3": "Q1596",
     "ledger 41f88aeb227f": "Q1777",
     "ledger 41fbf0358661": "Q1596",
@@ -666,6 +683,7 @@
     "ledger 8f84bf1e767f": "Q2294",
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
+    "ledger 974ed70164eb": "Q2349",
     "ledger 99390a68ded7": "Q1615",
     "ledger 9a2d993f43d7": "Q1596",
     "ledger a0597e872e21": "Q1698",
@@ -685,6 +703,7 @@
     "ledger c1ad0c081216": "Q1596",
     "ledger c4af5413ec6a": "Q1596",
     "ledger caab19e71ae9": "Q1596",
+    "ledger cae29df0662b": "Q2351",
     "ledger cd2127b53ee7": "Q1596",
     "ledger d1585655d567": "Q1596",
     "ledger d1da98fd3fe3": "Q1596",
@@ -703,7 +722,6 @@
     "ledger e81647556a56": "Q1596",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f2afa1349a3a": "Q2301",
     "ledger f3c752b3230f": "Q1596"
   }

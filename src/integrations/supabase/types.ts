@@ -12425,6 +12425,15 @@ export type Database = {
         Returns: number
       }
       declutter_refund_paid_order: { Args: { p_order_id: string; p_reason: string }; Returns: Json }
+      declutter_refund_party_gone: {
+        Args: {
+          p_amount_cents: number
+          p_card_fee_cents: number
+          p_order_id: string
+          p_payment_intent_id: string
+        }
+        Returns: Json
+      }
       declutter_refund_reversed: {
         Args: { p_refund_id: string; p_stripe_refund_id: string; p_why: string }
         Returns: string
@@ -12480,6 +12489,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_scrub_member: { Args: { p_user_id: string }; Returns: Json }
       declutter_seller_cancel_sale: { Args: { p_item_id: string }; Returns: number }
       declutter_seller_hidden: { Args: { p_seller: string }; Returns: boolean }
       declutter_seller_hidden_sweep: { Args: never; Returns: Json }

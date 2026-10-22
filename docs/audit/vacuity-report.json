@@ -1,11 +1,10 @@
 {
-  "generated": "2026-10-22T01:19:05.658Z",
-  "guards": 2313,
-  "registered": 2313,
+  "generated": "2026-10-22T03:26:44.548Z",
+  "guards": 2322,
+  "registered": 2322,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/refundRequestTakeHome.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -183,24 +182,6 @@
       ],
       "parents": [
         "src/pages/messages/Messages.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/profileEditForm/PhotoNameSection.tsx",
-      "tests": [
-        "src/components/profile/profileEditForm/PhotoNameSection.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/ProfileEditForm.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/profileEditForm/SaveBar.tsx",
-      "tests": [
-        "src/components/profile/profileEditForm/SaveBar.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/ProfileEditForm.tsx"
       ]
     },
     {

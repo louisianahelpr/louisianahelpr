@@ -93,7 +93,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/pages/posts/PostedJobCard.tsx": "Re-Post this job on an expired card; opens the gated form",
   "src/pages/posts/postedJobCard/posterFaceAction.ts": "Post again on a cancelled card's face (board 14); opens the gated form",
   "src/pages/profile/GiftCard.tsx": "Use a received gift on a new job; opens the gated form",
-  "src/pages/user/UserProfile.tsx": "Offer a job directly in a profile's menu; opens the gated form",
+  "src/pages/user/InviteToJobBar.tsx": "Invite to a job on a profile (board 40; was Offer a job directly in its menu); opens the gated form",
 };
 
 /** Call sites that only need the server's refusal in words (no button of their own). */

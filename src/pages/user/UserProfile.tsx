@@ -11,7 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Briefcase, Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { Crown, MoreVertical, Flag, Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
@@ -29,6 +29,8 @@ import { RatingBreakdown } from "./RatingBreakdown";
 import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
 import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
+import { SellingNowRow } from "@/components/declutter/SellingNowRow";
+import { InviteToJobBar } from "./InviteToJobBar";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
 import { computeLastActiveLabel } from "./userProfileHelpers";
@@ -488,11 +490,6 @@ const UserProfile = () => {
                       pure posters with 0 completed and 0 worked jobs — offering
                       a job to someone with no signal they take work is a dead
                       end for the poster and noise for the recipient. */}
-                  {workedJobs.length > 0 && (
-                    <DropdownMenuItem onClick={() => navigate(`/post-job?offerTo=${userId}`)}>
-                      <Briefcase className="w-4 h-4 mr-2" /> Offer a job directly
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem onClick={() => setShowReport(true)}>
                     <Flag className="w-4 h-4 mr-2" /> Report user
                   </DropdownMenuItem>
@@ -626,6 +623,7 @@ const UserProfile = () => {
             }
           />
           <MovingSaleBanner sellerId={userId!} />
+          <SellingNowRow sellerId={userId!} />
 
           {/* "No disputes on record" USED TO RENDER HERE, in green, as the
               positive half of the Track Record card. It is gone, and its
@@ -787,6 +785,8 @@ const UserProfile = () => {
           </div>
 
         </div>
+
+        {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />}
       </div>
 
       {showReport && userId && (

@@ -60,6 +60,7 @@ const SQL_ALLOWED: Record<string, string> = {
   "fn rentals_admin_review_landlord_id": "WRITES the verdict (SET idv_status = 'verified') on an admin's approval, as manual_verify does; not a gate",
   "fn get_safe_profiles": "the \"ID verified\" BADGE (is_id_verified), Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
   "fn get_public_profile_stats": "the \"ID verified\" BADGE (is_id_verified), Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
+  "fn profiles_idv_verified_is_final": "guards the verdict column itself: refuses any move off 'verified' except to 'failed' (Q2334, the out-of-order Stripe webhook flip); a transition rule on the column, not an access gate",
   "fn shop_badges": "the shop's \"ID checked\" BADGE, Stripe Identity only (owner 2026-10-21); a badge, not a gate (idBadgeReadsIdentityOnly)",
 };
 

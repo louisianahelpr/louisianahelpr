@@ -11372,6 +11372,10 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      admin_idv_request_reupload: {
+        Args: { p_note: string; p_user_id: string }
+        Returns: number
+      }
       admin_section_funnel: {
         Args: { p_days?: number; p_parish?: string; p_section?: string }
         Returns: Json

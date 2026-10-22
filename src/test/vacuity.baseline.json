@@ -40,8 +40,6 @@
     "src/components/admin/adminusers/AdminUserRow.tsx",
     "src/components/messages/ChatView.tsx",
     "src/components/messages/ConversationList.tsx",
-    "src/components/profile/profileEditForm/PhotoNameSection.tsx",
-    "src/components/profile/profileEditForm/SaveBar.tsx",
     "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
     "src/pages/jobs/AppliedJobCard.tsx",
     "src/pages/post-job/CheckoutStepView.tsx",

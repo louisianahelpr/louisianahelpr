@@ -14,6 +14,8 @@ import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio";
 import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoNameSection";
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
+import { TrustMarksCard } from "@/components/profile/profileEditForm/TrustMarksCard";
+import { useNavigate } from "react-router-dom";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -141,6 +143,7 @@ export function ProfileEditForm({
     handlePortfolioPick,
     removePortfolioAt,
   } = usePortfolio({ profile, onPortfolioChange });
+  const navigate = useNavigate();
 
   return (
     // Bottom padding clears the sticky save bar (16+44+16 = 76px) plus a
@@ -154,6 +157,17 @@ export function ProfileEditForm({
       <ProfileTabHeader
         title={TAB_TITLES.profile}
         onBack={onBack}
+        // Board 41: "Preview" opens the profile as neighbors see it.
+        rightSlot={profile?.user_id ? (
+          <button
+            type="button"
+            onClick={() => navigate(`/user/${profile.user_id}`)}
+            className="min-h-11 px-2 text-ds-13 font-semibold"
+            style={{ color: "hsl(var(--ink-deep))" }}
+          >
+            Preview
+          </button>
+        ) : undefined}
       />
 
       <form onSubmit={onSave} className="space-y-section">
@@ -189,7 +203,8 @@ export function ProfileEditForm({
                 Measured at 320 / 375 / 1440. */}
             <div className="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_6.25rem] gap-3">
               <div>
-                <Label htmlFor="location" className="text-ds-11 mb-1.5 block">City</Label>
+                {/* Board 41: "Area" (it is shown as an area, never an address). */}
+                <Label htmlFor="location" className="text-ds-11 mb-1.5 block">Area</Label>
                 <div className="relative">
                   <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 px-3 ${locationValid ? "pr-9" : ""}`} />
                   {locationValid && (
@@ -220,6 +235,9 @@ export function ProfileEditForm({
             {/* A ZIP that resolves to nothing must say so — silence used to
                 mean both "still typing" and "you are about to be
                 unreachable". */}
+            <p className="text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Shown as an area, never your address.
+            </p>
             {unknownZip && (
               <p role="status" className="flex items-start gap-1 text-ds-11" style={{ color: "hsl(var(--burnt-sienna))" }}>
                 <MapPin className="w-3 h-3 shrink-0 mt-0.5" aria-hidden />
@@ -285,7 +303,8 @@ export function ProfileEditForm({
             is persisted. */}
         <div className="rounded-2xl liquid-glass p-card space-y-3">
           <div className="flex items-baseline justify-between gap-3">
-            <Label htmlFor="skills" className="text-ds-11 block">Skills &amp; services</Label>
+            {/* Board 41: "I can help with" (the public profile reads it as "Helps with"). */}
+            <Label htmlFor="skills" className="text-ds-11 block">I can help with</Label>
             {skillList.length > 0 && (
               <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
                 <Check className="w-3 h-3" strokeWidth={3} /> {skillList.length} listed
@@ -368,6 +387,9 @@ export function ProfileEditForm({
             5MB each, JPG/PNG/WEBP. Uses the public `avatars` bucket path-
             scoped to the user's id. The user explicitly asked for this in
             their Edit-profile screenshot review. */}
+        {/* Board 41: TRUST MARKS (phone, photo ID, payout bank), each with its next step. */}
+        <TrustMarksCard profile={profile} phone={phone} />
+
         <RecentWorkSection
           anchorId="work-portfolio-card"
           portfolioUrls={portfolioUrls}

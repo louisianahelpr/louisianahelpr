@@ -1,0 +1,58 @@
+import { useNavigate } from "react-router-dom";
+import { Check } from "lucide-react";
+import { identityView, openIdentityCheck } from "@/lib/identityCheck";
+import type { Profile } from "./types";
+
+/**
+ * Board 41, TRUST MARKS: the three things that make neighbors trust a profile,
+ * each with its state and the one step that finishes it.
+ *   - Phone: "Added" once a phone is saved (there is no phone verification,
+ *     so the board's "Done" would claim a check nobody ran); else "Add",
+ *     which focuses the phone field above.
+ *   - Photo ID: from profiles.idv_status (identityView): "Done" when verified,
+ *     "Checking" while Stripe or our team is on it, else "Verify now", which
+ *     opens the ID check sheet.
+ *   - Payout bank: from profiles.stripe_payouts_enabled: "Done", else "Set up",
+ *     which opens Money, where payouts are set up.
+ */
+export function TrustMarksCard({ profile, phone }: { profile: Profile | null; phone: string }) {
+  const navigate = useNavigate();
+  const view = identityView(profile?.idv_status);
+  const rows: { key: string; label: string; done: boolean; state: string; onClick?: () => void }[] = [
+    phone.trim()
+      ? { key: "phone", label: "Phone", done: true, state: "Added" }
+      : { key: "phone", label: "Phone", done: false, state: "Add", onClick: () => document.getElementById("phone")?.focus() },
+    view === "verified"
+      ? { key: "id", label: "Photo ID", done: true, state: "Done" }
+      : view === "checking" || view === "with_team"
+        ? { key: "id", label: "Photo ID", done: false, state: "Checking" }
+        : { key: "id", label: "Photo ID", done: false, state: "Verify now", onClick: () => openIdentityCheck("general") },
+    profile?.stripe_payouts_enabled
+      ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
+      : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
+  ];
+  return (
+    <div data-trust-marks="" className="rounded-2xl liquid-glass p-card">
+      <p className="font-sans uppercase tracking-wider text-ds-11 font-semibold mb-1" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
+        Trust marks
+      </p>
+      <ul className="divide-y" style={{ borderColor: "hsl(var(--border))" }}>
+        {rows.map((r) => (
+          <li key={r.key} className="flex items-center justify-between gap-3 min-h-11 py-1">
+            <span className="text-ds-14 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{r.label}</span>
+            {r.onClick ? (
+              <button type="button" onClick={r.onClick} className="min-h-11 px-1 text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+                {r.state}
+              </button>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-ds-13 font-semibold" style={{ color: r.done ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)" }}>
+                {r.done && <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />}
+                {r.state}
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}

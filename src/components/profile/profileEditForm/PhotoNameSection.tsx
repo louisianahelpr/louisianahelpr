@@ -3,6 +3,7 @@ import { Loader2, Camera, Globe } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Profile } from "./types";
+import { formatName } from "@/lib/utils";
 
 /**
  * What to say under the name, given `<UserAvatar>`'s verdict on the photo.
@@ -132,6 +133,13 @@ export function PhotoNameSection({
           <p className="font-display font-bold leading-tight truncate text-headline-section" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>
             {`${firstName} ${lastName}`.trim() || "Your name"}
           </p>
+          {/* Board 41: what neighbors see of the name (First L., the same formatName every public
+              surface uses). The full name is not editable here: it is the name the ID check matched. */}
+          {`${firstName} ${lastName}`.trim() && (
+            <p data-public-name="" className="font-sans mt-1 leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              Neighbors see &ldquo;{formatName(`${firstName} ${lastName}`)}&rdquo; Your full name stays private.
+            </p>
+          )}
           {/* `aria-live="polite"`: the verdict arrives asynchronously, after
               the bitmap decodes, so a screen-reader user who has already
               moved past this line would otherwise never learn that their

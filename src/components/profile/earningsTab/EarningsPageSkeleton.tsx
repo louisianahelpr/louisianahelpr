@@ -140,11 +140,15 @@ export function EarningsPayoutSetupSkeleton() {
               <Skeleton className="w-5 h-5 shrink-0 mt-0.5 rounded-full" />
               <div>
                 <GhostLine className="font-display font-bold leading-tight text-ds-16" style={{ letterSpacing: "-0.015em" }}>
-                  Connect to start earning
+                  Where should we send your money?
                 </GhostLine>
                 <GhostLine className="font-sans mt-1 text-ds-13">
-                  Set up your payout account through Stripe so completed jobs pay out straight to your bank.
+                  Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
                 </GhostLine>
+                {/* The three PAYOUT_START_POINTS lines (board 87), so the card holds its height. */}
+                <div className="mt-2 space-y-1">
+                  {[0, 1, 2].map((i) => <Skeleton key={i} className="h-4 w-11/12 rounded" />)}
+                </div>
               </div>
             </div>
             <Skeleton className="h-14 w-full rounded-ds-md" />

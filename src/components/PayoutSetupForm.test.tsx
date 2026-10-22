@@ -352,3 +352,56 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
 // @mutate src/components/PayoutSetupForm.tsx | const ok = await requireBiometric("Confirm access to your Stripe payout dashboard");\n    if (!ok) return; | const ok = await requireBiometric("Confirm access to your Stripe payout dashboard");
 // @mutate src/components/PayoutSetupForm.tsx | const ok = await requireBiometric("Confirm removing this payout method");\n    if (!ok) return; | const ok = await requireBiometric("Confirm removing this payout method");
 // @mutate src/components/PayoutSetupForm.tsx | const ok = await requireBiometric("Confirm resetting your payout account");\n    if (!ok) return; | const ok = await requireBiometric("Confirm resetting your payout account");
+
+/**
+ * Board 87, Set up payouts: START (where should we send your money, what adding a bank involves),
+ * CHECKING (all in, payouts not on yet: nothing to press), READY (payouts are on, the bank's last 4),
+ * DIDN'T CONNECT (sent, Stripe wants more). The control labels are unchanged: each opens live Stripe
+ * and the press sweep's never-press list names them.
+ */
+// @mutate src/components/PayoutSetupForm.tsx |   const checking = !!status?.connected && !!status?.details_submitted && !status?.payouts_enabled && (status?.requirements?.length ?? 0) === 0; |   const checking = false;
+// @mutate src/components/PayoutSetupForm.tsx |   const didNotConnect = !!needsMoreInfo && !!status?.details_submitted; |   const didNotConnect = false;
+// @mutate src/components/PayoutSetupForm.tsx |                 Bank ending {payoutBank.last4}. |                 Bank ending.
+// @mutate src/components/PayoutSetupForm.tsx |       {!isFullyOnboarded && !checking && ( |       {!isFullyOnboarded && (
+describe("PayoutSetupForm, board 87's four states", () => {
+  const text = () => (document.body.textContent ?? "").replace(/\s+/g, " ");
+
+  it("START: no account yet says where the money goes and what adding a bank involves", async () => {
+    statusFixture = { connected: false, details_submitted: false, payouts_enabled: false, requirements: [] };
+    renderForm();
+    await screen.findByText("Where should we send your money?");
+    expect(text()).toContain("Add a bank once. Every payout from Jobs, Declutter and your shop goes there.");
+    expect(text()).toContain("Handled by our payments partner. Helpr never sees your login");
+    expect(screen.getByRole("button", { name: /Set up payouts with Stripe/ })).toBeInTheDocument();
+  });
+
+  it("CHECKING: everything sent, payouts not on yet: says so and offers nothing to press", async () => {
+    statusFixture = { connected: true, details_submitted: true, payouts_enabled: false, requirements: [] };
+    renderForm();
+    await screen.findByText("Checking your bank");
+    expect(text()).toContain("Money you earn meanwhile is kept for you.");
+    expect(screen.queryByRole("button", { name: /Set up payouts with Stripe|Complete Stripe verification/ })).toBeNull();
+  });
+
+  it("READY: payouts are on, with the default bank's last 4", async () => {
+    statusFixture = FULLY_ONBOARDED;
+    methodsFixture = TWO_METHODS;
+    renderForm();
+    await screen.findByText("Payouts are on");
+    expect(await screen.findByText("Bank ending 6789.")).toBeInTheDocument();
+  });
+
+  it("DIDN'T CONNECT: sent and refused says nothing was lost, and points to a real person", async () => {
+    statusFixture = { connected: true, details_submitted: true, payouts_enabled: false, requirements: ["external_account"] };
+    renderForm();
+    await screen.findByText("That bank didn't connect");
+    expect(text()).toContain("Nothing was charged and nothing is lost.");
+    expect(text()).toContain("Still stuck? Talk to a real person from You → Help.");
+    expect(screen.getByRole("button", { name: /Complete Stripe verification/ })).toBeInTheDocument();
+  });
+
+  it("an unfinished setup still reads One more step", async () => {
+    renderForm();
+    await screen.findByText("One more step");
+  });
+});

@@ -96,6 +96,18 @@ describe("ProtectedRoute gate order", () => {
     expect(screen.getByText("PROTECTED")).toBeTruthy();
   });
 
+  // Q1803 (owner 2026-10-21, COPPA): an account stamped under_13_blocked_at
+  // sees only the ruling's sentence, ahead of every other gate (the ban too).
+  // @mutate src/components/ProtectedRoute.tsx |     if (profile.under_13_blocked_at) { |     if (false) {
+  it("an under-13 account sees only the block, ahead of the ban and every other gate", () => {
+    renderAt("/post-job", {
+      profile: { ...completeProfile, ban_status: "banned", under_13_blocked_at: "2026-10-21T00:00:00Z" },
+    });
+    expect(screen.getByText("You must be 13 or older to use Louisiana Helpr.")).toBeTruthy();
+    expect(screen.queryByText("PROTECTED")).toBeNull();
+    expect(screen.queryByText("ACCOUNT_BANNED")).toBeNull();
+  });
+
   it("a banned account is still bounced first, incomplete profile or not", () => {
     renderAt("/post-job", {
       profile: { ...emptyProfile, ban_status: "banned" },

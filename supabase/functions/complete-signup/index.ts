@@ -10,6 +10,8 @@ import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVers
 import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import { isLockedOut } from "../_shared/banStatus.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { alertWaitingOnMoney, deleteUnder13Account } from "../_shared/under13.ts";
+import { isFutureBirthday, isUnder13, UNDER_13_CODE, UNDER_13_MESSAGE } from "../_shared/under13Age.ts";
 import {
   avatarObjectKey,
   avatarObjectNameFromUrl,
@@ -548,6 +550,30 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
       );
     }
 
+    // Q1803 (OWNER RULING 2026-10-21, COPPA): a birthday that makes the
+    // member UNDER 13 is never saved, and the account is deleted now through
+    // the normal accountPurge path (deleteUnder13Account). Session-only: the
+    // birthday is not a no-session field, so only the signed-in member can
+    // send it about their own account. Runs before any upload. Money in
+    // flight: the account is locked and blanked, one admin alert is sent, and
+    // under-13-delete finishes once the money clears. Any outcome other than
+    // deleted leaves the account stamped, so the sweep finishes the job.
+    if (signedIn && userId && isUnder13(dateOfBirth)) {
+      const out = await deleteUnder13Account(supabase, userId, alertWaitingOnMoney);
+      if (out.status !== "deleted" && out.status !== "waiting_on_money") {
+        console.error(`[complete-signup] under-13 delete not finished for ${userId}: ${out.detail}`);
+        const { error: stampErr } = await supabase
+          .from("profiles")
+          .update({ under_13_blocked_at: new Date().toISOString() })
+          .eq("user_id", userId);
+        if (stampErr) console.error(`[complete-signup] under-13 stamp failed for ${userId}: ${stampErr.message}`);
+      }
+      return new Response(
+        JSON.stringify({ error: UNDER_13_MESSAGE, code: UNDER_13_CODE }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Runs BEFORE any upload (lh-authz-rls review of a8e881b8c, note b): every
     // value it reads (ageAttested, the saved and the sent birthday) is known
     // here, and a refusal placed after the uploads let a no-session caller
@@ -579,7 +605,8 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
     const effectiveDob: string | null = dateOfBirth || savedDob || null;
     if (effectiveDob) {
       const dob = new Date(effectiveDob);
-      if (isNaN(dob.getTime())) {
+      // A birthday after today is a typo (Q1803 review: never read as a child).
+      if (isNaN(dob.getTime()) || isFutureBirthday(effectiveDob)) {
         return new Response(
           JSON.stringify({ error: "Invalid date of birth." }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }

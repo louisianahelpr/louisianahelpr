@@ -138,7 +138,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // 18 since Q1915 (2026-10-21): void-cancelled-payments' Part D returnShareToPoster refunds a deleted crew
     // member's fee share to the poster (payment_refunds source void_cancelled_payments_crew_share) and tells
     // them through tellPosterMoneyBack under key refund:<id>, the same key charge.refunded claims, so one notice.
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(18);
+    // 19 since Q1929 (2026-10-21): declutter-money refunds a delivery-pay raise on its own charge (metadata.kind
+    // declutter_refund) and tells the buyer itself (tellBuyerRefunded; the SQL bell "Your raise is coming back").
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(19);
     {
       const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
       const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));

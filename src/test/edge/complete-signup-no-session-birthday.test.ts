@@ -33,8 +33,8 @@ import { resetSharedMocks } from "./mocks/shared";
 import { stubSignupCapRead } from "./mocks/signupCapFetch";
 
 const USER_ID = "18041804-1804-1804-1804-180418041804";
-/** Under 18 on any date this suite can run (born 2015). */
-const UNDER_18 = "2015-06-01";
+/** 13-17 on any date this suite can run (about 15; under 13 is deleted, Q1803). */
+const UNDER_18 = `${new Date().getUTCFullYear() - 15}-06-01`;
 const ADULT = "1990-06-01";
 
 async function load(): Promise<EdgeHarness> {

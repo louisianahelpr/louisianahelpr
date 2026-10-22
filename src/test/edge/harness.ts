@@ -120,8 +120,15 @@ function rewriteExternalImports(src: string): string {
   // mocked network-free like slack-alerts rather than pointed at the real file.
   // opsAlertLedger (the ops alert ledger RPC) is mocked the same way.
   out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl|giftCardEmail|opsAlertLedger)\.ts["'];?/g,
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(rate-limit|slack-alerts|cors|appUrl|giftCardEmail|opsAlertLedger|under13)\.ts["'];?/g,
     `import {$1} from "${MOCK.shared}";`,
+  );
+  // Q1803: `_shared/under13Age.ts` has ZERO imports (the ruling's sentence and
+  // the under-13 test), so it points at the REAL module; `_shared/under13.ts`
+  // (the deletion, through accountPurge) is mocked above in mocks/shared.ts.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/under13Age\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/under13Age.ts";`,
   );
 
   // Tiered fee resolver: `_shared/helperFees.ts` is pure TypeScript (it takes

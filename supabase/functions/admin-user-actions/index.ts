@@ -477,13 +477,29 @@ serve(async (req) => {
       // re-upload and then refuse them with attempt_limit_reached — a second
       // dead end dressed up as a fix. An admin asking for a re-upload IS the
       // decision to grant another attempt.
-      const { data: reuploadRows, error: reuploadErr } = await admin.from('profiles').update({
-        idv_status: 'not_started',
-        idv_attempt_count: 0,
-        idv_failure_reason: note || 'ID document was unclear. Please re-upload.',
-      } as any).eq('user_id', targetUserId).select('user_id')
-      if (reuploadErr) throw new Error(`Failed to update IDV status: ${reuploadErr.message}`)
-      if (!reuploadRows || reuploadRows.length === 0) {
+      // Through admin_idv_request_reupload (20261022010525): a VERIFIED ID
+      // leaves 'verified' only by a decision or this admin RPC (the table
+      // trigger zz_profiles_idv_verified_is_final refuses every other writer).
+      // PGRST202 (migration not deployed yet): the direct write it replaces,
+      // which the trigger cannot refuse because the trigger is not there either.
+      const { data: reuploadCount, error: rpcErr } = await admin.rpc('admin_idv_request_reupload', {
+        p_user_id: targetUserId,
+        p_note: note || null,
+      })
+      let reuploadMatched = typeof reuploadCount === 'number' && reuploadCount > 0
+      if (rpcErr?.code === 'PGRST202') {
+        console.warn('[admin-user-actions] admin_idv_request_reupload not deployed yet (PGRST202): direct write')
+        const { data: reuploadRows, error: reuploadErr } = await admin.from('profiles').update({
+          idv_status: 'not_started',
+          idv_attempt_count: 0,
+          idv_failure_reason: note || 'ID document was unclear. Please re-upload.',
+        } as any).eq('user_id', targetUserId).select('user_id')
+        if (reuploadErr) throw new Error(`Failed to update IDV status: ${reuploadErr.message}`)
+        reuploadMatched = !!reuploadRows && reuploadRows.length > 0
+      } else if (rpcErr) {
+        throw new Error(`Failed to update IDV status: ${rpcErr.message}`)
+      }
+      if (!reuploadMatched) {
         throw new Error('Failed to update IDV status: no profile row matched.')
       }
 

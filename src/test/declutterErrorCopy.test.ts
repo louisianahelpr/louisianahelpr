@@ -74,7 +74,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(17);
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(18); // 18: the Declutter ID gate (202226) and the delivery-pay raise (185418), both 2026-10-21
     expect(codes.size).toBeGreaterThan(25);
   });
 

@@ -388,7 +388,8 @@ export const ProfileHeaderCard = ({
                   className="font-sans uppercase tracking-wider text-ds-10 mb-1"
                   style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}
                 >
-                  Skills
+                  {/* Board 40: "Helps with" (what a neighbor can ask them for). */}
+                  Helps with
                 </p>
                 {/* A list, semantically: it is N discrete declared skills, not
                     one sentence — which is also what a screen reader was told

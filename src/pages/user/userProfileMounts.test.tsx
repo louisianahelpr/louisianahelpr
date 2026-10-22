@@ -10,15 +10,24 @@
  * @mutate src/pages/user/ProfileHeaderCard.tsx |           {atAGlance} |
  * @mutate src/pages/user/UserProfile.tsx |             {showReviews && (\n              <ReviewsSection |             {false && (\n              <ReviewsSection
  * @mutate src/pages/user/UserProfile.tsx |             <ProfileHeroSkeleton /> |
+ *
+ * Board 40: "Selling now · N" (the seller's items for sale, two then See all), "Helps with" over the
+ * skills, and the bottom bar "Invite to a job" on someone else's profile who has done work (it was the
+ * ... menu's "Offer a job directly"; no Message button, owner).
+ * @mutate src/pages/user/UserProfile.tsx |           <SellingNowRow sellerId={userId!} /> |
+ * @mutate src/components/declutter/SellingNowRow.tsx | const SELLING_NOW_FIRST = 2; | const SELLING_NOW_FIRST = 12;
+ * @mutate src/pages/user/UserProfile.tsx |         {!isOwnProfile && currentUserId && workedJobs.length > 0 && <InviteToJobBar userId={userId!} />} |
+ * @mutate src/pages/user/InviteToJobBar.tsx |         onClick={() => navigate(`/post-job?offerTo=${userId}`)} |         onClick={() => navigate(`/post-job`)}
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AT_A_GLANCE_GRID } from "./AtAGlanceCard";
 
 const saleReads = vi.hoisted(() => [] as string[]);
-const page = vi.hoisted(() => ({ loading: false }));
+const page = vi.hoisted(() => ({ loading: false, worked: [] as unknown[] }));
+const sellerReads = vi.hoisted(() => [] as string[]);
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
@@ -37,6 +46,7 @@ vi.mock("@/pages/user/useUserProfileData", () => ({
       profile: {
         user_id: "s1", full_name: "Sam Seller", created_at: "2026-01-01T00:00:00Z", subscription_tier: "free",
         portfolio_urls: ["https://example.com/work-1.jpg"],
+        skills: "Furniture assembly, Yard work",
       },
       repeatHirePercent: null,
     },
@@ -51,7 +61,7 @@ vi.mock("@/pages/user/useUserProfileData", () => ({
     reviewsTotalCount: 1,
     loadMoreReviews: vi.fn(),
     postedJobs: [],
-    workedJobs: [],
+    workedJobs: page.worked,
     completedWorkedJobs: [],
     completedWorkedCount: 1,
     badgeStats: {},
@@ -88,6 +98,17 @@ vi.mock("@/components/BlockUserDialog", () => ({ BlockUserDialog: () => null }))
 vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
   photoPublicUrl: (p: string) => p,
+  // Board 40's Selling now row.
+  fetchSellerItems: async (sellerId: string) => {
+    sellerReads.push(sellerId);
+    return sellerId === "s1"
+      ? [
+          { id: "i1", title: "Tool chest", current_price_cents: 4500, category: "tools", status: "live" },
+          { id: "i2", title: "Shop vac", current_price_cents: 2000, category: "tools", status: "live" },
+          { id: "i3", title: "Ladder", current_price_cents: 3000, category: "tools", status: "live" },
+        ]
+      : [];
+  },
   fetchWatching: async () => new Set<string>(),
   setWatch: async () => "watching",
 }));
@@ -110,6 +131,13 @@ vi.mock("@/lib/declutter/movingSale", () => ({
 
 import UserProfile from "./UserProfile";
 
+let navigatedTo = "";
+function Where() {
+  const loc = useLocation();
+  navigatedTo = `${loc.pathname}${loc.search}`;
+  return null;
+}
+
 function renderProfile() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -117,6 +145,7 @@ function renderProfile() {
       <MemoryRouter initialEntries={["/user/s1"]}>
         <Routes>
           <Route path="/user/:userId" element={<UserProfile />} />
+          <Route path="/post-job" element={<Where />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -125,7 +154,42 @@ function renderProfile() {
 
 beforeEach(() => {
   saleReads.length = 0;
+  sellerReads.length = 0;
   page.loading = false;
+  page.worked = [];
+  navigatedTo = "";
+});
+
+describe("board 40: selling now, helps with, invite to a job", () => {
+  it("shows the seller's items for sale now, two at first, then See all", async () => {
+    renderProfile();
+    expect(await screen.findByText("Selling now · 3")).toBeInTheDocument();
+    expect(sellerReads).toEqual(["s1"]);
+    expect(screen.getByText("Tool chest")).toBeInTheDocument();
+    expect(screen.getByText("Shop vac")).toBeInTheDocument();
+    expect(screen.queryByText("Ladder")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "See all" }));
+    expect(screen.getByText("Ladder")).toBeInTheDocument();
+  });
+
+  it("labels the skills Helps with", () => {
+    renderProfile();
+    expect(screen.getByText("Helps with")).toBeInTheDocument();
+    expect(screen.queryByText("Skills")).toBeNull();
+  });
+
+  it("someone who has done work gets the Invite to a job bar (no Message button); it opens a direct offer", () => {
+    page.worked = [{ id: "j1" }];
+    renderProfile();
+    expect(screen.queryByRole("button", { name: /message/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Invite to a job" }));
+    expect(navigatedTo).toBe("/post-job?offerTo=s1");
+  });
+
+  it("no bar for someone with no work on record", () => {
+    renderProfile();
+    expect(screen.queryByRole("button", { name: "Invite to a job" })).toBeNull();
+  });
 });
 
 describe("the public profile mounts its sections", () => {

@@ -52,6 +52,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
@@ -244,6 +245,9 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- B uploaded p.jpg for task T (the 'objects' step).
   ('helpr_task_photo_ok',           NULL, ARRAY['''00000000-0000-4000-8140-000000000601''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid', '''00000000-0000-4000-8140-00000000000b/task/00000000-0000-4000-8140-000000000601/p.jpg'''], ARRAY[1,2,3]),
   -- D is an admin, so reading a well-formed helpr-tasks path is TRUE for D (no task row needed).
+  -- Q1929: O is B's paid delivery order (the 'delivery' step); the task is built in place (jsonb_populate_record):
+  -- open, an hour of window left, its source O (not held), so the non-NULL call with 0 minutes is TRUE.
+  ('declutter_delivery_raise_open', NULL, ARRAY['(SELECT o FROM public.declutter_orders o WHERE o.id = ''00000000-0000-4000-8140-000000000501''::uuid)', 'jsonb_populate_record(NULL::public.helpr_tasks, jsonb_build_object(''id'', ''00000000-0000-4000-8140-000000000602'', ''status'', ''open'', ''open_until'', now() + interval ''1 hour'', ''source_kind'', ''declutter_delivery'', ''source_id'', ''00000000-0000-4000-8140-000000000501''))', '0'], ARRAY[1,2,3]),
   ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
   -- A and B are both real (not test) accounts.
   ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),

@@ -157,7 +157,11 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
 CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid);
 -- Slice 5, Helpr delivery (20261017055505): the photo access, vehicle and task checks read these.
 CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text, helpr_id uuid, customer_id uuid,
-  pickup_contact_id uuid, source_kind text, source_id uuid);
+  pickup_contact_id uuid, source_kind text, source_id uuid,
+  -- Q1929 (20261021185418): declutter_delivery_raise_open reads the task's window end.
+  open_until timestamptz);
+-- Q1929: helpr_task_source_held (a deny helper the raise check calls) reads open problem reports.
+CREATE TABLE public.declutter_problems (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, status text);
 CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean NOT NULL DEFAULT false,
   second_person boolean NOT NULL DEFAULT false, photo_path text);
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
@@ -205,6 +209,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Declutter slice 5 (20261017055505).
   "declutter_delivery_slot_ok", "helpr_task_photo_access", "helpr_task_photo_ok", "helpr_task_same_stripe_mode",
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
+  // Declutter delivery-pay raise (Q1929, 20261021185418).
+  "declutter_delivery_raise_open",
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // SH2b public shop page (20261019042744).
@@ -227,7 +233,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
 const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
-const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job"];
+const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job",
+  // Q1929: declutter_delivery_raise_open's SQL body calls it (validated at CREATE).
+  "helpr_task_source_held"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
 const loaded = [];

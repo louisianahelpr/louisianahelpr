@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-22T03:26Z",
+  "measured_at": "2026-10-22T03:37Z",
   "issues": {
     "readable": true,
     "open": [
@@ -114,6 +114,13 @@
         "title": "nightly-red: feature-switch-audience",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39631239520",
+        "runTruncated": false
+      },
+      {
+        "number": 3540,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39715824587",
         "runTruncated": false
       }
     ]
@@ -598,6 +605,7 @@
     "issue #3487": "Q1816",
     "issue #3491": "Q1816",
     "issue #3527": "Q1816",
+    "issue #3540": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",

@@ -3,7 +3,7 @@ import { wrappedSeasonLabel } from "@/lib/format";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card" | "settings" | "saved_searches";
+export type Tab = "landing" | "profile" | "earnings" | "schedule" | "availability" | "payment" | "security" | "legal" | "reviews" | "referral" | "subscription" | "support" | "notifications" | "warnings" | "credentials" | "saved_helpers" | "accessibility" | "pets" | "work_record" | "home_history" | "str_settings" | "auto_tip" | "wrapped" | "analytics" | "gift_card" | "settings" | "saved_searches" | "payout_history" | "receipts";
 
 /**
  * Human name for each Profile tab, used to build a distinct `document.title`
@@ -80,6 +80,9 @@ export const TAB_TITLES: Record<Exclude<Tab, "landing">, string> = {
   // sibling that was still a route of its own.
   gift_card: "Gift card",
   settings: "Settings",
+  // Board 177: You → Money → Payout history (one payout opens in place, ?payout=po_…) and Receipts.
+  payout_history: "Payout history",
+  receipts: "Receipts",
 };
 
 /**

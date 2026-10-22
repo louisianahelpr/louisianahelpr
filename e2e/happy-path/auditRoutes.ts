@@ -343,6 +343,9 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // and both want auditing; the seeded audit helper is Elite.
   { name: "analytics", url: "/profile?tab=analytics" },
   { name: "auto-tip", url: "/profile?tab=auto_tip" },
+  // Board 177: You → Money → Payout history (one payout opens in place) and Receipts.
+  { name: "profile-payout-history", url: "/profile?tab=payout_history" },
+  { name: "profile-receipts", url: "/profile?tab=receipts" },
   // REMOVED 2026-08-23: Family & Care is behind FAMILY_ENABLED, which is off
   // (owner: "it seems pointless — you literally just post the job on their
   // behalf"). With the routes unregistered both rows rendered NotFound and

@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { isPayoutId, payoutDetail } from "./payoutDetail.ts";
 
 interface PayoutSummary {
   connected: boolean;
@@ -58,6 +59,20 @@ serve(async (req) => {
     const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
     if (unconfirmedEmail) return unconfirmedEmail;
 
+    // Board 177: `{ payout_id }` asks for ONE payout's lines (payoutDetail.ts).
+    // Only the id comes from the body; the account it is read on is the
+    // caller's own, from their profile row below.
+    const body = await req.json().catch(() => ({})) as { payout_id?: unknown };
+    const wantsDetail = body && typeof body === "object" && "payout_id" in body;
+    const payoutId = wantsDetail ? body.payout_id : null;
+    if (wantsDetail) {
+      if (!isPayoutId(payoutId)) {
+        return new Response(JSON.stringify({ error: "That payout couldn't be found." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+        });
+      }
+    }
+
     // Look up Stripe Connect account from profile.
     // maybeSingle: zero rows → { data: null, error: null } (valid "not connected"
     // state); only a real DB failure sets error. This keeps the profileErr guard
@@ -87,6 +102,11 @@ serve(async (req) => {
     };
 
     if (!accountId) {
+      if (wantsDetail) {
+        return new Response(JSON.stringify({ error: "That payout couldn't be found." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
+        });
+      }
       return new Response(JSON.stringify(empty), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -97,6 +117,27 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
       apiVersion: "2025-08-27.basil",
     });
+
+    if (wantsDetail && isPayoutId(payoutId)) {
+      try {
+        const detail = await payoutDetail(stripe, supabaseAdmin, user.id, accountId, payoutId);
+        return new Response(JSON.stringify(detail), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
+      } catch (detailErr) {
+        // A payout that is not on this account (resource_missing), or an
+        // account Stripe will not serve, is "not found" to the caller, not an
+        // outage. The shared classifier decides, so a live object read with a
+        // test key stays a misconfiguration (rethrown, a 500), never a quiet 404.
+        if (isUnusableConnectAccountError(detailErr)) {
+          console.warn(`[stripe-payouts] payout ${payoutId} not readable on ${user.id}'s account:`, detailErr instanceof Error ? detailErr.message : detailErr);
+          return new Response(JSON.stringify({ error: "That payout couldn't be found." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 404,
+          });
+        }
+        throw detailErr;
+      }
+    }
 
     // Fetch account status, balance and recent payouts in parallel.
     //

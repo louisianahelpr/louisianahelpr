@@ -5,7 +5,7 @@
  * category string, any extra key, negative or non-finite numbers all reached
  * the form. The handler now returns sanitizeJob(parsed) or a 502.
  *
- * @mutate supabase/functions/ai-job-builder/index.ts | const jobData = sanitizeJob(JSON.parse(toolCall.function.arguments)); | const jobData = JSON.parse(toolCall.function.arguments);
+ * @mutate supabase/functions/ai-job-builder/index.ts | const jobData = sanitizeJob(claudeJson(await claudeRes.json())); | const jobData = claudeJson(await claudeRes.json()) as ReturnType<typeof sanitizeJob>;
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | ? r.category : "other", | ? r.category : r.category,
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | Math.min(hi, Math.max(lo, v)) | v
  * @mutate supabase/functions/ai-job-builder/sanitize.ts | if (out.length + ch.length > max) break; | if (Array.from(out).length >= max) break;
@@ -23,7 +23,7 @@ const base = { title: "Mow my lawn", description: "Front and back.", category: "
 describe("ai-job-builder output is whitelisted and bounded (A-002)", () => {
   it("the handler returns the sanitised object, never the raw parse", () => {
     const src = readFileSync("supabase/functions/ai-job-builder/index.ts", "utf8");
-    expect(src).toMatch(/const jobData = sanitizeJob\(JSON\.parse\(toolCall\.function\.arguments\)\);/);
+    expect(src).toMatch(/const jobData = sanitizeJob\(claudeJson\(await claudeRes\.json\(\)\)\);/);
   });
 
   it("client location reaches the system prompt as one bounded line", () => {

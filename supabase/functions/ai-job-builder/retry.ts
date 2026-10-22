@@ -17,7 +17,8 @@
 // Every attempt has its own time limit, the whole call has a deadline (no
 // retry starts that could not finish inside it), and the waits are jittered so
 // posters who hit the same overload do not all retry on the same beat.
-const RETRYABLE_STATUSES = new Set([500, 502, 503]);
+// 529 is Anthropic's "overloaded" (Claude path, owner 2026-10-22); Gemini never sends it.
+const RETRYABLE_STATUSES = new Set([500, 502, 503, 529]);
 /** Base wait before attempt 2 and attempt 3; three attempts in all. */
 export const RETRY_DELAYS_MS = [800, 1600];
 /** One attempt may take this long before it is aborted. */

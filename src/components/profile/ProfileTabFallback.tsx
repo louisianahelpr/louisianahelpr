@@ -140,6 +140,10 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // Q2275 (board 91): intro line, the list, Pause all alerts (375, poster-e2e with one saved search, 2026-10-21).
   saved_searches: [{ h: 36 }, { h: 72 }, { h: 60 }],
   analytics: [{ h: 481 }],
+  // Board 177 (375, helper-e2e, 2026-10-21): Payout history's one body row (no payout account: the set-up line;
+  // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).
+  payout_history: [{ h: 68 }],
+  receipts: [{ h: 137 }],
   wrapped: [{ h: 333 }],
   // You › Settings (board 52): Look, Your sections, Alerts, Your account, More, Log out
   // (375, poster-e2e, 2026-10-20).

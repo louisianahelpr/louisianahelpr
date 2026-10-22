@@ -29281,6 +29281,396 @@
       "status": "no-placeholder",
       "note": "no loading placeholder at any settled stage (3 wave(s) of data released)",
       "requests": 25
+    },
+    {
+      "url": "/profile?tab=payout_history",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2427,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=payout_history",
+      "loadingPng": "/Users/lexilombas/.lh-shots/shell-declutter-4/b177/ls-out/helper_profile_tab_payout_history.loading.png",
+      "loading": {
+        "found": 3,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 3,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 136
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 68,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 14,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 3,
+            "text": "Payout history"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/shell-declutter-4/b177/ls-out/helper_profile_tab_payout_history.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 105.7
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 68,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 12,
+            "textLeaves": 2,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 0,
+            "text": "Payout historySet up payouts on the Money page and your bank payouts will show here."
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 136
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 105.7
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": -30.3,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            68,
+            68
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            1
+          ],
+          "textLeaves": [
+            1,
+            2
+          ],
+          "placeholderCount": 3,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": -30.3,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 32
+    },
+    {
+      "url": "/profile?tab=receipts",
+      "persona": "helper",
+      "base": "http://127.0.0.1:4173",
+      "capturedAt": 2425,
+      "stage": {
+        "waves": 0,
+        "ended": "captured"
+      },
+      "finalUrl": "/profile?tab=receipts",
+      "loadingPng": "/Users/lexilombas/.lh-shots/shell-declutter-4/b177/ls-out/helper_profile_tab_receipts.loading.png",
+      "loading": {
+        "found": 3,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "path": "main#main-content > div > div > div",
+            "placeholderCount": 3,
+            "probe": {
+              "px": 187.5,
+              "py": 20,
+              "containerW": 335
+            },
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 205
+            },
+            "containerRect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 137,
+            "rect": {
+              "x": 0,
+              "y": 0,
+              "w": 375,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 14,
+            "textLeaves": 1,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 3,
+            "text": "Receipts"
+          }
+        ]
+      },
+      "shiftsAtLoading": 0,
+      "placeholdersLeft": [],
+      "placeholdersLeftCount": 0,
+      "loadedPng": "/Users/lexilombas/.lh-shots/shell-declutter-4/b177/ls-out/helper_profile_tab_receipts.loaded.png",
+      "loaded": {
+        "found": 0,
+        "docH": 812,
+        "landmarks": {
+          "main#main-content > div > div > div > div > div > div > div:nth-of-type(1) > div > div > div:nth-of-type(2) > h1": {
+            "y": 21.7,
+            "h": 24.6
+          },
+          "div#root > nav": {
+            "y": 748,
+            "h": 64
+          },
+          "testid:dock-create": {
+            "y": 719,
+            "h": 60
+          }
+        },
+        "shifts": [],
+        "clusters": [
+          {
+            "found": true,
+            "rowRect": {
+              "x": 20,
+              "y": 0,
+              "w": 335,
+              "h": 205.3
+            },
+            "containerRect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "rows": 2,
+            "rowH": 137,
+            "rect": {
+              "x": 8,
+              "y": 0,
+              "w": 359,
+              "h": 812
+            },
+            "scrollH": 812,
+            "elements": 17,
+            "textLeaves": 5,
+            "media": 0,
+            "controls": 1,
+            "placeholders": 0,
+            "text": "ReceiptsNothing paid by card yet. Jobs and Declutter buys you pay for show here.Tax forms2026 earnings summaryAvailable in January if you qualify"
+          }
+        ]
+      },
+      "clsTotal": 0,
+      "clsDuringSwap": 0,
+      "clusters": [
+        {
+          "path": "main#main-content > div > div > div",
+          "skeletonBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 205
+          },
+          "realBox": {
+            "x": 20,
+            "y": 0,
+            "w": 335,
+            "h": 205.3
+          },
+          "skeletonContainer": {
+            "x": 0,
+            "y": 0,
+            "w": 375,
+            "h": 812
+          },
+          "realContainer": {
+            "x": 8,
+            "y": 0,
+            "w": 359,
+            "h": 812
+          },
+          "deltaRowPx": 0.3,
+          "deltaContainerPx": 0,
+          "rows": [
+            2,
+            2
+          ],
+          "rowH": [
+            137,
+            137
+          ],
+          "deltaRowH": 0,
+          "media": [
+            0,
+            0
+          ],
+          "controls": [
+            1,
+            1
+          ],
+          "textLeaves": [
+            1,
+            5
+          ],
+          "placeholderCount": 3,
+          "shapeMatch": true
+        }
+      ],
+      "worstDeltaRowPx": 0.3,
+      "worstDeltaRowH": null,
+      "worstDeltaRows": 0,
+      "shapeMismatches": 0,
+      "clustersMeasured": 1,
+      "maxLandmarkShiftPx": 0,
+      "landmarkMoves": [],
+      "landmarksCompared": 2,
+      "docHDelta": 0,
+      "status": "measured",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)",
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "requests": 38
     }
   ],
   "merged": [
@@ -29478,6 +29868,27 @@
         "anon /profile?tab=saved_searches"
       ],
       "replaced": []
+    },
+    {
+      "at": "2026-10-22T00:02:41.902Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "helper /profile?tab=payout_history",
+        "helper /profile?tab=receipts"
+      ],
+      "replaced": []
+    },
+    {
+      "at": "2026-10-22T00:07:08.409Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "helper /profile?tab=receipts",
+        "helper /profile?tab=payout_history"
+      ],
+      "replaced": [
+        "helper /profile?tab=payout_history",
+        "helper /profile?tab=receipts"
+      ]
     }
   ]
 }

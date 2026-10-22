@@ -229,6 +229,10 @@ const EXEMPT: Record<string, string> = {
   "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": "a Shops order's own hold, re-read when a capture is refused, on the order's recorded mode; minted after the live switch",
   "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(piId)": "a Shops order's own hold before it is cancelled, on the order's recorded mode; minted after the live switch",
   "stripe-webhook/handlers/shopCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the completed session's own PaymentIntent, from the event, on the event's mode",
+  // Board 177: ONE PAYOUT. The id is one the member picked from their own payout list (stripe-payouts' list, read on
+  // their own account and key); a test-mode, foreign or stale id is Stripe's resource_missing, which stripe-payouts'
+  // detailErr catch answers as 404 "not found", and an unusable account goes through isUnusableConnectAccountError there.
+  "stripe-payouts/payoutDetail.ts::stripe.payouts.retrieve(payoutId)": "a payout id from the member's own payout list, read on their own account; resource_missing answers 404 not found (detailErr catch), never a 500",
   "charge-recurring-visits/index.ts::stripe.paymentIntents.retrieve(intent.id)": FRESH,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)": OUTER,
   "create-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)#2": OUTER,

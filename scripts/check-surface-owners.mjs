@@ -150,6 +150,9 @@ const OWNERS = {
   "?tab=str_settings": ["lh-long-tail-features"],
   "?tab=analytics": ["lh-long-tail-features"],
   "?tab=auto_tip": ["lh-subscriptions-credits", "lh-money-escrow"],
+  // Board 177: bank payouts and what each carried; receipts, fees owed, tax forms.
+  "?tab=payout_history": ["lh-money-escrow"],
+  "?tab=receipts": ["lh-money-escrow"],
   // You › Settings (board 52): section switches and the account rows. Co-owned like accessibility.
   "?tab=settings": ["lh-input-boundary", "lh-a11y-sensory"],
 

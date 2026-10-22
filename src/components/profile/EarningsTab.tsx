@@ -46,6 +46,7 @@ import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
 import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import { MoneyViewSwitcher, moneyViewFromSearch, type MoneyView } from "@/components/profile/earningsTab/MoneyViewSwitcher";
 import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
+import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRows";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
@@ -365,6 +366,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
 
       {/* SPENT: its own read, its own bones (SpentSection). */}
       {view === "spent" && <SpentSection />}
+      {view === "spent" && <MoneyRecordRows showPayouts={false} />}
 
       {/* EARNED. Nothing renders piecemeal: until the page's own data has
           settled, the half is ONE skeleton with the loaded layout
@@ -443,6 +445,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
             </p>
           )}
 
+          {/* Board 177: Payout history and Receipts, each its own screen. */}
+          <MoneyRecordRows showPayouts={!!stripeData?.connected} />
 
           <SectionRule />
           {/* BOTH ROWS BELOW ARE olivewood/0.7 — subtitles and chevrons alike.

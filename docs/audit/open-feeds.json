@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-10-21T20:33Z",
+  "measured_at": "2026-10-22T03:26Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39285368166",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39617026842",
         "runTruncated": false
       },
       {
@@ -78,7 +78,7 @@
         "number": 3435,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39470586725",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39648983153",
         "runTruncated": false
       },
       {
@@ -99,7 +99,7 @@
         "number": 3487,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39668308098",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39715824462",
         "runTruncated": false
       },
       {
@@ -110,10 +110,10 @@
         "runTruncated": false
       },
       {
-        "number": 3505,
-        "title": "nightly-red: main: Vitest",
+        "number": 3527,
+        "title": "nightly-red: feature-switch-audience",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39660498519",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/39631239520",
         "runTruncated": false
       }
     ]
@@ -175,6 +175,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -287,6 +295,14 @@
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: permission denied for table jobs",
+        "issue": null
+      },
+      {
+        "fingerprint": "79112fbf22c85121a80ec6470b33411f",
+        "source_kind": "workflow",
+        "source": "code-scanning",
+        "status": "open",
+        "title": "github code scanning: open alerts on main",
         "issue": null
       },
       {
@@ -434,6 +450,14 @@
         "issue": null
       },
       {
+        "fingerprint": "a13c4edc69832354d5e579c068462874",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: feature-switch-audience",
+        "issue": 3527
+      },
+      {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -490,19 +514,19 @@
         "issue": null
       },
       {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
         "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
         "source_kind": "sentry",
         "source": "sentry:assets/ProtectedRoute",
         "status": "open",
         "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
+        "issue": null
+      },
+      {
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
+        "status": "open",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -528,6 +552,30 @@
         "status": "open",
         "title": "cron http timeout: stuck-payment-check returned timeout of # ms reached. total time: # ms (dns time: # ms, tcp/ssl handshake time: # ms, http request/response time: # ms)",
         "issue": null
+      },
+      {
+        "fingerprint": "499dcd06f590d3e290a6302081406475",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "identity verification needs review",
+        "issue": null
+      },
+      {
+        "fingerprint": "15cc2d7f63f3c53e80755673bf18e8c0",
+        "source_kind": "sentry",
+        "source": "sentry:assets/app-shared",
+        "status": "open",
+        "title": "error: held a signed-in request while the sign-in refreshed",
+        "issue": null
+      },
+      {
+        "fingerprint": "5cf4543facb7bbed2defe74350a9b384",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/profile · importing a module script failed.",
+        "issue": null
       }
     ]
   },
@@ -549,7 +597,7 @@
     "issue #3462": "Q1816",
     "issue #3487": "Q1816",
     "issue #3491": "Q1816",
-    "issue #3505": "Q1816",
+    "issue #3527": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 0bebf0385b3e": "Q1615",
@@ -558,6 +606,7 @@
     "ledger 11fa6e898f3d": "Q1596",
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
+    "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
     "ledger 1bebf5c8bc35": "Q2319",
@@ -577,11 +626,14 @@
     "ledger 41fbf0358661": "Q1596",
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
+    "ledger 499dcd06f590": "Q2346",
     "ledger 4b5ace7af165": "Q1596",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2344",
     "ledger 59e0e601cc69": "Q2295",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5be6011a46f6": "Q1816",
+    "ledger 5cf4543facb7": "Q2348",
     "ledger 5d35922623b5": "Q1596",
     "ledger 5d96992ce6da": "Q2316",
     "ledger 5e6b09305057": "Q2317",
@@ -595,6 +647,7 @@
     "ledger 708048794e4c": "Q1596",
     "ledger 70c81dfc4f91": "Q1596",
     "ledger 779af65c258e": "Q1596",
+    "ledger 79112fbf22c8": "Q2345",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
@@ -608,6 +661,7 @@
     "ledger 99390a68ded7": "Q1615",
     "ledger 9a2d993f43d7": "Q1596",
     "ledger a0597e872e21": "Q1698",
+    "ledger a13c4edc6983": "Q1816",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger ab736843373b": "Q1596",

@@ -176,6 +176,9 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.cleanup-abandoned-accounts]
     verify_jwt = false
+  # Q1803: called by the profiles trigger (pg_net) and its own cron with the service key (verifyCronSecret).
+  [functions.under-13-delete]
+    verify_jwt = false
   # Cron-authenticated like its siblings (verifyCronSecret), not JWT — no user
   # is present when a recurring visit is charged. That is the point.
   [functions.charge-recurring-visits]

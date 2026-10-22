@@ -68,7 +68,20 @@ export const rateLimitCalls: Array<{ windowMs?: number; maxRequests?: number; ke
 /** Per call, in order: did the Request handed to checkRateLimit carry an Authorization header? */
 export const rateLimitAuthSeen: boolean[] = [];
 
+/** Q1803: what complete-signup's under-13 deletion was asked to do (`_shared/under13.ts` double). */
+export const under13Deletes: string[] = [];
+export const under13State: { outcome: { status: string; detail?: string; reason?: string; firstTime?: boolean } } = { outcome: { status: "deleted" } };
+export const deleteUnder13Account = vi.fn(async (_admin: unknown, userId: string, _alert: unknown) => {
+  under13Deletes.push(userId);
+  return under13State.outcome;
+});
+export const alertWaitingOnMoney = vi.fn(async (_userId: string, _reason: string) => {});
+
 export function resetSharedMocks() {
+  under13Deletes.length = 0;
+  under13State.outcome = { status: "deleted" };
+  deleteUnder13Account.mockClear();
+  alertWaitingOnMoney.mockClear();
   rateLimitCalls.length = 0;
   rateLimitAuthSeen.length = 0;
   rateLimitState.allowed = true;

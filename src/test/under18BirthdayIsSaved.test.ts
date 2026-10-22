@@ -40,6 +40,8 @@ const BIRTHDAY_ENTRY = [
 const NOT_ENTRY: Record<string, string> = {
   "src/integrations/supabase/types.ts": "generated column types, no write",
   "src/pages/profile/Profile.tsx": "re-sends the birthday it loaded (no birthday field); the lock keeps an under-18 one",
+  // Q1803 (owner 2026-10-21, COPPA): blanks the stored birthday of an under-13 account waiting on money to be deleted.
+  "supabase/functions/_shared/under13.ts": "blanks a stored birthday to null while an under-13 account waits on money (Q1803), never a member typing one",
 };
 
 // A refusal of an under-18 birthday, in any of the shapes these files used.

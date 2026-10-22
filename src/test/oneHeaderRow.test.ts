@@ -51,6 +51,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/profile/SupportInline.tsx": "a 'Message sent' confirmation moment, not the page row",
   "src/components/ui/ScreenHeaderRow.tsx": "toolbar row whose title is sr-only on the desktop website (titleSrOnly); phone headers are AppTopBar",
   "src/pages/auth/AccountBanned.tsx": "account-state screen (AuthShell)",
+  "src/components/auth/Under13Blocked.tsx": "account-state screen (AuthShell): the under-13 block, Q1803",
   "src/pages/auth/CompleteProfile.tsx": "signup completion (auth flow)",
   "src/pages/auth/Login.tsx": "signed out",
   "src/pages/auth/Unsubscribe.tsx": "email unsubscribe landing (signed out)",

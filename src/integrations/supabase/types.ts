@@ -7213,6 +7213,8 @@ export type Database = {
           terms_version_accepted: string
           tools_equipment: string | null
           transportation: string | null
+          under_13_blocked_at: string | null
+          under_13_waiting_since: string | null
           updated_at: string
           user_id: string
           verification_email_count: number
@@ -7319,6 +7321,8 @@ export type Database = {
           terms_version_accepted?: string
           tools_equipment?: string | null
           transportation?: string | null
+          under_13_blocked_at?: string | null
+          under_13_waiting_since?: string | null
           updated_at?: string
           user_id: string
           verification_email_count?: number
@@ -7425,6 +7429,8 @@ export type Database = {
           terms_version_accepted?: string
           tools_equipment?: string | null
           transportation?: string | null
+          under_13_blocked_at?: string | null
+          under_13_waiting_since?: string | null
           updated_at?: string
           user_id?: string
           verification_email_count?: number

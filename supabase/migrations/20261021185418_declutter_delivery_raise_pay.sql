@@ -235,10 +235,12 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT COALESCE(p_order.status = 'paid' AND p_order.handover = 'delivery'
-     AND p_task.id IS NOT NULL AND p_task.status = 'open'
-     AND p_task.open_until > now() + make_interval(mins => greatest(COALESCE(p_minutes, 0), 0))
-     AND NOT public.helpr_task_source_held(p_task.source_kind, p_task.source_id), false);
+  -- A NULL argument is never "open" (Q140, nullArgNeverAllows): every caller passes literal minutes.
+  -- Composite arguments are read as (arg).field: a bare p_task.status is a table reference in a SQL function.
+  SELECT COALESCE(p_minutes IS NOT NULL AND (p_order).status = 'paid' AND (p_order).handover = 'delivery'
+     AND (p_task).id IS NOT NULL AND (p_task).status = 'open'
+     AND (p_task).open_until > now() + make_interval(mins => greatest(p_minutes, 0))
+     AND NOT public.helpr_task_source_held((p_task).source_kind, (p_task).source_id), false);
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_delivery_raise_open(public.declutter_orders, public.helpr_tasks, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_delivery_raise_open(public.declutter_orders, public.helpr_tasks, integer) TO service_role;

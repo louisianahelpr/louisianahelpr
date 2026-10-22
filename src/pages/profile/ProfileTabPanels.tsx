@@ -48,6 +48,8 @@ const AutoTipTab = lazy(() => import("@/pages/profile/AutoTip"));
 const SavedSearchesTab = lazy(() => import("@/pages/profile/SavedSearchesTab"));
 const WrappedTab = lazy(() => import("@/pages/profile/HelprWrapped"));
 const AnalyticsTab = lazy(() => import("@/pages/profile/HelperAnalytics"));
+const PayoutHistoryTab = lazy(() => import("@/pages/profile/PayoutHistory"));
+const ReceiptsTab = lazy(() => import("@/pages/profile/Receipts"));
 const GiftCardTab = lazy(() => import("@/pages/profile/GiftCard"));
 const NotificationPreferences = lazy(() => import("@/components/NotificationPreferences"));
 const AccessibilityTab = lazy(() => import("@/components/profile/AccessibilityTab").then(m => ({ default: m.AccessibilityTab })));
@@ -323,6 +325,18 @@ export const ProfileTabPanels = ({
       {tab === "analytics" && (
         <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
           <AnalyticsTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "payout_history" && (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <PayoutHistoryTab onBack={onBackFromTab} />
+        </Suspense>
+      )}
+
+      {tab === "receipts" && (
+        <Suspense fallback={<TabFallback tab={tab} onBack={onBackFromTab} />}>
+          <ReceiptsTab onBack={onBackFromTab} />
         </Suspense>
       )}
 

@@ -22,7 +22,7 @@ const completedAtMs = (j: SpentJobRow) => {
 };
 
 /** A row's date: its job's (above), or a tip's own when it stands alone. */
-const rowMs = (r: SpentRow<SpentJobRow>) =>
+export const rowMs = (r: SpentRow<SpentJobRow>) =>
   r.job ? completedAtMs(r.job) : new Date(r.tip?.created_at ?? 0).getTime();
 
 /**

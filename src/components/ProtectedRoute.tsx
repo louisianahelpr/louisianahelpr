@@ -11,6 +11,7 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { rememberJobIntent } from "@/lib/jobIntent";
 import { hasPreload } from "@/lib/lazyWithPreload";
 import { isLockedOut } from "@/lib/banStatus";
+import { Under13Blocked } from "@/components/auth/Under13Blocked";
 
 // Auth debug logging is dev-only by default. In dev it's still noisy —
 // a single tab hop can print ~15 lines and drown real errors. Devs who
@@ -404,6 +405,12 @@ const ProtectedRoute = ({
   // optimistically; the next render (after the profile fetch lands) will
   // re-evaluate these guards and navigate away if needed.
   if (profile) {
+    // Q1803 (owner 2026-10-21, COPPA): an under-13 birthday was refused on
+    // this account (block_under_13_birthday) and it is being deleted. Nothing
+    // else is reachable, the ban screen included.
+    if (profile.under_13_blocked_at) {
+      return <Under13Blocked />;
+    }
     // Banned users — explain the situation, never bounce back to /login.
     // `isLockedOut` mirrors the server's own carve-out: a `temp_banned` row
     // whose `auto_suspended_until` has already passed is a suspension the

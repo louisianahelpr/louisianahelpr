@@ -29,6 +29,13 @@ import {
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 
+/** Board 87, "Where should we send your money?": what adding a bank involves, said before the tap. */
+const PAYOUT_START_POINTS = [
+  "Your bank login or routing and account number",
+  "Handled by our payments partner. Helpr never sees your login",
+  "Payouts go out on the regular payout schedule",
+] as const;
+
 export function PayoutSetupForm({ onSettled }: {
   /** Fires once the account status and the saved methods have both answered,
    *  i.e. once this form has its final height. EarningsTab holds its page
@@ -207,6 +214,13 @@ export function PayoutSetupForm({ onSettled }: {
 
   const isFullyOnboarded = status?.connected && status?.details_submitted && status?.payouts_enabled;
   const needsMoreInfo = status?.connected && (!status?.details_submitted || (status?.requirements?.length ?? 0) > 0);
+  // Board 87's four states. CHECKING: everything is in and Stripe has not turned payouts on yet (nothing
+  // to do but wait). DIDN'T CONNECT: details were sent and Stripe came back wanting more (a bank it
+  // could not verify lands here). The control labels stay as they are: each opens live Stripe, and the
+  // press sweep's never-press list names them (src/test/pressNeverWritesToLiveStripe.test.ts).
+  const checking = !!status?.connected && !!status?.details_submitted && !status?.payouts_enabled && (status?.requirements?.length ?? 0) === 0;
+  const didNotConnect = !!needsMoreInfo && !!status?.details_submitted;
+  const payoutBank = methods.find((m) => m.type === "bank_account" && m.default_for_currency) ?? methods.find((m) => m.type === "bank_account");
 
   // Funnel: helper finished Stripe Connect — fire once per user, deduped
   // via safeStorage so re-visits to the page don't refire the event.
@@ -340,33 +354,84 @@ export function PayoutSetupForm({ onSettled }: {
               className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              Connect to start earning
+              Where should we send your money?
             </p>
             <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Set up your payout account through Stripe so completed jobs pay out straight to your bank.
+              Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
+            </p>
+            <ul data-payout-start-list className="mt-2 space-y-1">
+              {PAYOUT_START_POINTS.map((t) => (
+                <li key={t} className="flex items-start gap-1.5 font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                  <CheckCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+                  {t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
+      {checking && (
+        <div data-payout-checking className="flex items-start gap-3">
+          <Loader2 className="w-5 h-5 shrink-0 mt-0.5 motion-safe:animate-spin" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden />
+          <div>
+            <p
+              className="font-display font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Checking your bank
+            </p>
+            <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+              This can take a minute. Money you earn meanwhile is kept for you.
             </p>
           </div>
         </div>
       )}
 
+      {isFullyOnboarded && (
+        <div data-payout-ready className="flex items-start gap-3">
+          <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+          <div>
+            <p
+              className="font-display font-bold leading-tight text-ds-16"
+              style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+            >
+              Payouts are on
+            </p>
+            {payoutBank && (
+              <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                Bank ending {payoutBank.last4}.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {needsMoreInfo && (
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3" data-payout-needs={didNotConnect ? "did-not-connect" : "more-info"}>
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-solid))" }} />
           <div>
             <p
               className="font-display font-bold leading-tight text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
             >
-              One more step
+              {didNotConnect ? "That bank didn't connect" : "One more step"}
             </p>
             <p className="font-sans mt-1 text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              Stripe needs a few more details before payouts can run. Pick up where you left off below.
+              {didNotConnect
+                ? "Nothing was charged and nothing is lost. Your earnings are safe while you try again."
+                : "Stripe needs a few more details before payouts can run. Pick up where you left off below."}
             </p>
+            {didNotConnect && (
+              <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                Still stuck? Talk to a real person from You → Help.
+              </p>
+            )}
           </div>
         </div>
       )}
 
-      {!isFullyOnboarded && (
+      {!isFullyOnboarded && !checking && (
         <>
           <Button
             variant="primary"

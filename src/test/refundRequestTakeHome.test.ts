@@ -67,6 +67,7 @@ describe("the Helpr's take-home preview is what the agreed split pays", () => {
     });
   }
   it("compared a real sweep (inventory floor)", () => {
+    expect(cases.length).toBeGreaterThan(3); // 4 fee models measured 2026-10-22
     expect(compared).toBeGreaterThan(200);
   });
 

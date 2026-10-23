@@ -9356,7 +9356,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9366,7 +9366,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 182,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "literal",

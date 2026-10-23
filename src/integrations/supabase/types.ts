@@ -14162,6 +14162,19 @@ export type Database = {
       normalize_name_for_ban: { Args: { p_name: string }; Returns: string }
       normalize_phone7_for_ban: { Args: { p_phone: string }; Returns: string }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
+      notification_admin_full_names: {
+        Args: {
+          p_job_id: string
+          p_link: string
+          p_message: string
+          p_recipient: string
+          p_title: string
+        }
+        Returns: {
+          message: string
+          title: string
+        }[]
+      }
       notification_crosses_seed_boundary: {
         Args: {
           p_actor?: string

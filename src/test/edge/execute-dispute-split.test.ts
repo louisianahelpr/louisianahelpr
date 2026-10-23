@@ -919,6 +919,37 @@ describe("execute-dispute-split edge function", () => {
       expect(opts.idempotencyKey).toBe(`dispute-split-tr-${DISPUTE_ID}-r1`);
     });
 
+    // Q2357: the webhook re-opens a split whose transfer was CANCELED; the re-run must be a new attempt too.
+    // @mutate supabase/functions/execute-dispute-split/index.ts | (r) => r.status === "failed" \|\| r.status === "canceled").length; | (r) => r.status === "failed").length;
+    it("Q2357: a CANCELED leg also salts the retry key (Stripe never replays the canceled transfer)", async () => {
+      seedExecutable(scenario, { helperShare: 0.6 });
+      scenario.reads.payout_transfers = {
+        rows: [{ id: "pt-1", stripe_transfer_id: "tr_canceled", status: "canceled", metadata: OWN_TRANSFER }],
+      };
+      const fn = await load();
+      await invoke(fn);
+      const [, opts] = stripeMock.transfers.create.mock.calls[0];
+      expect(opts.idempotencyKey).toBe(`dispute-split-tr-${DISPUTE_ID}-r1`);
+    });
+
+    // Q2357 review must-fix: the RE-RUN after the webhook re-opened a split whose transfer failed. Neither
+    // recovery source (Stripe's list, the dispute's stamped execution_transfer_id) may adopt the dead transfer.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |           t?.metadata?.dispute_id === disputeId && !deadIds.has(t.id) && | t?.metadata?.dispute_id === disputeId &&
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     if (!recovered && dispute.execution_transfer_id && !deadIds.has(dispute.execution_transfer_id)) { |     if (!recovered && dispute.execution_transfer_id) {
+    it("Q2357: a re-run after the split's transfer failed sends the Helpr's share again, never re-sends the refund", async () => {
+      seedExecutable(scenario, { helperShare: 0.6, job: { payment_status: "released" }, dispute: { execution_status: "failed", execution_transfer_id: "tr_split" } });
+      scenario.reads.payout_transfers = { rows: [{ id: "pt-1", stripe_transfer_id: "tr_split", status: "failed", metadata: OWN_TRANSFER }] };
+      scenario.reads.payment_refunds = { rows: [{ id: "pr-1", stripe_refund_id: "re_prev", source: "dispute_split", metadata: OWN_REFUND }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_split", amount: 5280, amount_reversed: 0, metadata: { dispute_id: DISPUTE_ID } }] });
+      stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_split", amount: 5280 });
+      const fn = await load();
+      await invoke(fn);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const [, opts] = stripeMock.transfers.create.mock.calls[0];
+      expect(opts.idempotencyKey).toBe(`dispute-split-tr-${DISPUTE_ID}-r1`);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
     it("refuses a 0%-to-Helpr split on a job whose payout already settled", async () => {
       // Would refund the poster the whole escrow on top of a transfer that
       // already left — the same money out twice.

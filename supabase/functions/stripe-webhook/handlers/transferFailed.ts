@@ -9,6 +9,7 @@ import type { WebhookContext } from "../context.ts";
 import { isCrewShareFeeTransfer, isSingleHelprFeeTransfer, noteFailedFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
+import { isDisputeSplitLeg, reopenDisputeSplit } from "./_splitLegFailed.ts";
 import { tellCrewShareFailed, tellFeePayeeFailed, tellHelprPayoutFailed } from "./_payoutFailedNotice.ts";
 import { cronRetriesPayout } from "./_payoutRetry.ts";
 
@@ -73,7 +74,7 @@ export async function handleTransferFailed(
       failure_reason: failureReason,
     })
     .eq("stripe_transfer_id", transfer.id)
-    .select("job_id, helper_id, amount_cents")
+    .select("job_id, helper_id, amount_cents, metadata")
     .maybeSingle();
 
   if (ledgerErr) {
@@ -117,7 +118,13 @@ export async function handleTransferFailed(
   // Whether the job really went back to payout_pending (the Helpr is told "we'll
   // try again" only then).
   let requeued = false;
-  if (failedLedger?.job_id) {
+  // Q2357: a dispute split's leg is never re-queued for a full payout; its dispute is re-opened so the
+  // SPLIT is re-run (only the Helpr's share is sent again). See _splitLegFailed.ts.
+  if (failedLedger?.job_id && isDisputeSplitLeg((failedLedger as { metadata?: unknown }).metadata)) {
+    requeueBlocked = true;
+    await reopenDisputeSplit(supabase, failedLedger, transfer.id, String(failureReason), logStep);
+  }
+  if (failedLedger?.job_id && !requeueBlocked) {
     const blockers = await requeueBlockers(supabase, failedLedger.job_id);
     if (blockers.readError) {
       await postSlackOpsAlert({

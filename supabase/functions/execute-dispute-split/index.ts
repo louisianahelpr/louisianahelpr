@@ -866,7 +866,9 @@ serve(async (req) => {
   let settledTransfer: SettledTransfer | undefined = (transferRows ?? []).find((r) =>
     ["pending", "paid", "reversed"].includes(r.status as string) && isOwnRow(r)
   );
-  const failedTransferCount = (transferRows ?? []).filter((r) => r.status === "failed").length;
+  // Q2357: a CANCELED leg (transfer.canceled) is a failed attempt too: without counting it the retry reused
+  // the first key and Stripe replayed the canceled transfer as if it had been sent.
+  const failedTransferCount = (transferRows ?? []).filter((r) => r.status === "failed" || r.status === "canceled").length;
 
   // Last-resort cross-check for the TRANSFER leg, the exact mirror of the
   // refund heal below — and for the exact same reason.
@@ -886,6 +888,14 @@ serve(async (req) => {
   //      on `metadata.dispute_id`, which every transfer here carries.
   // Kept off the first-attempt path, where there is nothing to find.
   if (!settledTransfer && isResume && helperCents > 0) {
+    // Q2357 (lh-money-escrow review must-fix): a leg the ledger records as failed or canceled moved no money.
+    // The webhook re-opens the dispute for a re-run after such a transfer, so neither recovery source may adopt
+    // it as paid (that marked the split executed again with the Helpr unpaid).
+    const deadIds = new Set<string>(
+      (transferRows ?? [])
+        .filter((r) => (r.status === "failed" || r.status === "canceled") && isOwnRow(r) && r.stripe_transfer_id)
+        .map((r) => r.stripe_transfer_id as string),
+    );
     let recovered: string | null = null;
     // What Stripe says the recovered transfer carried (lh-money-escrow
     // re-review of b1730c932 #1): the healed ledger row records THAT, never a
@@ -897,7 +907,9 @@ serve(async (req) => {
         limit: 100,
       });
       const match = (priorTransfers?.data ?? []).find(
-        (t: Stripe.Transfer) => t?.metadata?.dispute_id === disputeId,
+        (t: Stripe.Transfer) =>
+          t?.metadata?.dispute_id === disputeId && !deadIds.has(t.id) &&
+          !(Number(t.amount_reversed ?? 0) > 0 && Number(t.amount_reversed) >= Number(t.amount)),
       );
       if (match) {
         recovered = match.id;
@@ -912,7 +924,7 @@ serve(async (req) => {
     // The dispute row's own record is the second source. Only trusted when
     // Stripe confirms the object exists, so a stale or hand-edited value can
     // never make this function skip a payout that never happened.
-    if (!recovered && dispute.execution_transfer_id) {
+    if (!recovered && dispute.execution_transfer_id && !deadIds.has(dispute.execution_transfer_id)) {
       try {
         const stamped = await stripe.transfers.retrieve(dispute.execution_transfer_id);
         if (stamped?.id) {

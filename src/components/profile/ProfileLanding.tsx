@@ -1,6 +1,7 @@
 import { AppTopBar } from "@/components/sections/AppTopBar";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
+import { useStripeConnectStatus, type PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { YouCard } from "./profileLanding/YouCard";
 import { YouMenu } from "./profileLanding/YouMenu";
@@ -21,10 +22,20 @@ export function ProfileLanding({
   // Owned here rather than passed in — see the note in `types.ts`. Cached,
   // so re-opening Profile in the same session paints the payout state on
   // the first frame instead of re-asking Stripe every mount.
-  const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
+  const { payoutPrompt: stripePrompt, refetchStatus } = useStripeConnectStatus();
   // Owner ruling 2026-10-23: payout setup is paused; the row says so instead
   // of offering "Set up".
   const setupPaused = usePayoutSetupPaused();
+  // PayPal phase 2: with `paypal_payments` on, payout setup is the PayPal email
+  // (Set up opens it), and Stripe's own state no longer decides the row.
+  const paypal = usePayPalPayee();
+  const payoutPrompt: PayoutPrompt = !paypal.on
+    ? stripePrompt
+    : paypal.loading
+      ? { kind: "reserve" }
+      : paypal.ready
+        ? { kind: "none" }
+        : { kind: "setup" };
 
   return (
     <>
@@ -63,7 +74,7 @@ export function ProfileLanding({
             prompt={payoutPrompt}
             onSetUp={() => onSelectTab("payment")}
             onRetry={refetchStatus}
-            setupPaused={setupPaused}
+            setupPaused={setupPaused && !paypal.on}
           />
         </div>
       )}

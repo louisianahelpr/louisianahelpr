@@ -43,10 +43,14 @@ export function acceptMissingFromProfile(profile: {
   stripe_account_id?: string | null;
   stripe_payouts_enabled?: boolean | null;
   idv_status?: string | null;
-}): AcceptMissing[] {
+}, opts: {
+  /** PayPal phase 2 (20261023231647): `paypal_payments` is on and the member saved a payable PayPal email (usePayPalPayee). */
+  paypalReady?: boolean;
+} = {}): AcceptMissing[] {
   if (profile.is_seed === true && profile.stripe_account_id == null) return [];
   const missing: AcceptMissing[] = [];
-  if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) missing.push("payout_setup");
+  // Payout setup: Stripe ready, or a payable PayPal email (paypal_payee_ready on the server).
+  if ((profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) && opts.paypalReady !== true) missing.push("payout_setup");
   // The ID step only while the `identity_check` switch is on (owner 2026-10-23;
   // helper_accept_missing reads the same switch on the server).
   if (identityCheckOn() && !hasIdBadge(profile.idv_status)) missing.push("stripe_id");

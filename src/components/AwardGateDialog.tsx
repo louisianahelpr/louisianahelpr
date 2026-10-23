@@ -23,7 +23,8 @@ import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockR
 import { userFacingError } from "@/lib/userFacingError";
 import { openIdentityCheck } from "@/lib/identityCheck";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
+import { useFeature } from "@/hooks/useFeature";
 
 /**
  * What a Helpr sees when their accept needs Stripe setup first.
@@ -63,12 +64,19 @@ export function AwardGateDialog({
   const payoutPaused = setupPaused && payoutMissing;
   // While paused the "set up payouts, about two minutes" copy would contradict
   // the notice: say what happens to the accept instead (lh-silent-failure #1-2).
-  const title = payoutPaused && !pendingMissing ? "Payout setup is paused" : copy.title;
+  // PayPal phase 2: with `paypal_payments` on, payout setup is a PayPal email
+  // (the notice below links to it), not a pause.
+  const paypal = useFeature("paypal_payments");
+  const title = payoutPaused && !pendingMissing ? (paypal ? "Add your PayPal email" : "Payout setup is paused") : copy.title;
   const body = !payoutPaused
     ? copy.body
-    : pendingMissing
-      ? `You're not booked yet. Your accept is saved and goes through once payout setup is back${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
-      : "This job can be booked for you once payout setup is back.";
+    : paypal
+      ? pendingMissing
+        ? `You're not booked yet. Your accept is saved and goes through once you add your PayPal email${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
+        : "Add the PayPal email we should pay, and this job can be booked for you."
+      : pendingMissing
+        ? `You're not booked yet. Your accept is saved and goes through once payout setup is back${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
+        : "This job can be booked for you once payout setup is back.";
   // Stripe Identity (photo ID + selfie) is its own sheet, not part of payout
   // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
   const openIdCheck = () => {
@@ -121,12 +129,16 @@ export function AwardGateDialog({
 
         <DialogBody>
           <p>{body}</p>
-          {payoutPaused && <PayoutSetupPausedNotice compact className="mt-3" />}
+          {payoutPaused && <PayoutSetupNotice compact className="mt-3" />}
         </DialogBody>
 
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
-          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Paused" : undefined} />
+          <RequirementRow
+            label={paypal ? "PayPal email added" : "Payout account connected"}
+            met={!payoutMissing}
+            unmetLabel={payoutPaused && !paypal ? "Paused" : undefined}
+          />
           {idOn && (
             <RequirementRow
               label={ID_VERIFIED_LABEL}

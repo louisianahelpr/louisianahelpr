@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -239,9 +240,11 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
     ...payoutStatusQueryOptions,
     enabled: !!viewerId && transfers.length === 0,
   });
-  const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled;
+  // PayPal phase 2: a saved PayPal email is payout setup while `paypal_payments` is on.
+  const paypal = usePayPalPayee();
+  const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled && !paypal.ready;
   // Owner ruling 2026-10-23: while payout setup is paused the "Set up payouts"
-  // link gives way to the paused notice.
+  // link gives way to the paused notice (or, with PayPal on, to "Add your PayPal email").
   const setupPaused = usePayoutSetupPaused();
   if (held || (transfers.length > 0 && cents === 0)) {
     return (
@@ -271,9 +274,11 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       {needsPayoutSetup && setupPaused && (
         <>
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Your pay is kept for you and is sent once payout setup is back.
+            {paypal.on
+              ? "Your pay is kept for you and is sent once you add your PayPal email."
+              : "Your pay is kept for you and is sent once payout setup is back."}
           </p>
-          <PayoutSetupPausedNotice compact className="text-left" />
+          <PayoutSetupNotice compact className="text-left" />
         </>
       )}
       {needsPayoutSetup && !setupPaused && (

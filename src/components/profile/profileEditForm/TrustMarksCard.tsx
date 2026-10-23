@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { identityView, openIdentityCheck } from "@/lib/identityCheck";
 import type { Profile } from "./types";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /**
@@ -26,6 +27,9 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
   const setupPaused = usePayoutSetupPaused();
   // Not while the profile is still loading (null is not "not set up").
   const bankPaused = setupPaused && !!profile && !profile.stripe_payouts_enabled;
+  // PayPal phase 2: with `paypal_payments` on, the row is the PayPal email
+  // (Done once saved, else Add, which opens the PayPal email screen).
+  const paypal = usePayPalPayee();
   // ID check off (switch `identity_check`, owner 2026-10-23): a verified ID still
   // reads Done (true); otherwise the Photo ID row is not shown at all.
   const idOn = useIdentityCheckOnStore();
@@ -38,7 +42,11 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
       : view === "checking" || view === "with_team"
         ? { key: "id", label: "Photo ID", done: false, state: "Checking" }
         : { key: "id", label: "Photo ID", done: false, state: "Verify now", onClick: () => openIdentityCheck("general") },
-    profile?.stripe_payouts_enabled
+    paypal.on && !profile?.stripe_payouts_enabled
+      ? paypal.ready
+        ? { key: "bank", label: "PayPal email", done: true, state: "Done" }
+        : { key: "bank", label: "PayPal email", done: false, state: "Add", onClick: () => navigate("/profile?tab=payment") }
+      : profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
       : bankPaused
         ? { key: "bank", label: "Payout bank", done: false, state: "Paused" }
@@ -67,7 +75,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
           </li>
         ))}
       </ul>
-      {bankPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
+      {bankPaused && !paypal.on && <PayoutSetupPausedNotice compact className="mt-2" />}
     </div>
   );
 }

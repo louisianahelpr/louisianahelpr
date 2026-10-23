@@ -3,6 +3,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { HomeMoney } from "./homeMoney";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 
 /** "Fri, Oct 23": the day the approved money reaches the member's wallet. */
 const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -14,11 +15,14 @@ const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { w
  *  - else the REAL soonest date ("First" when the rows arrive on several days);
  *  - no date on any row: the rule, never a made-up date.
  */
-function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean): string {
+function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean, paypal: { on: boolean; ready: boolean } = { on: false, ready: false }): string {
+  // PayPal phase 2: with `paypal_payments` on, a saved PayPal email is the payout account.
+  const hasAccount = c.hasPayoutAccount || paypal.ready;
+  if (!hasAccount && paypal.on) return "Add your PayPal email to get it";
   // Payout setup paused (owner 2026-10-23): no "add your account" ask; the tile
   // opens You › Money, where PayoutSetupPausedNotice says the whole of it.
-  if (!c.hasPayoutAccount && setupPaused) return "Payout setup is paused for now";
-  if (!c.hasPayoutAccount) return "Add your payout account to get it";
+  if (!hasAccount && setupPaused) return "Payout setup is paused for now";
+  if (!hasAccount) return "Add your payout account to get it";
   if (c.overdue) return "Approved, not sent yet";
   if (c.at) return `${c.severalDates ? "First reaches" : "Reaches"} your wallet ${walletDay(c.at)}`;
   return `Sent ${STANDARD_PAYOUT_PHRASE}`;
@@ -56,6 +60,7 @@ export function HomeMoneyTiles({
 }) {
   const navigate = useNavigate();
   const setupPaused = usePayoutSetupPaused();
+  const paypal = usePayPalPayee();
   if (!money.coming && !money.held) return null;
   // A lone tile on the phone takes the row (half a row of empty ground reads as a missing tile);
   // in the desktop column it keeps its half so it lines up with the section tiles under it.
@@ -72,10 +77,10 @@ export function HomeMoneyTiles({
           span={span}
           label="Coming to you"
           cents={money.coming.cents}
-          caption={comingCaption(money.coming, setupPaused)}
+          caption={comingCaption(money.coming, setupPaused, paypal)}
           // No payout account: open the screen that sets one up (the cron's own notification links there),
           // or, while setup is paused, You › Money (its payout card shows the paused notice).
-          onClick={() => (onOpen ? onOpen("coming") : navigate(money.coming!.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment"))}
+          onClick={() => (onOpen ? onOpen("coming") : navigate(money.coming!.hasPayoutAccount || paypal.ready || (setupPaused && !paypal.on) ? "/profile?tab=earnings" : "/profile?tab=payment"))}
         />
       )}
       {money.held && (

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -160,6 +161,8 @@ export default function PayoutHistory({ onBack }: { onBack?: () => void }) {
   const { stripeData, stripeLoading, stripeError, refreshing, handleRefresh } = useEarningsData(user?.id ?? "");
   // Owner ruling 2026-10-23: payout setup is paused; no "set up payouts" ask.
   const setupPaused = usePayoutSetupPaused();
+  // PayPal phase 2: with `paypal_payments` on, the ask is "Add your PayPal email" (PayoutSetupNotice).
+  const paypal = usePayPalPayee();
   const payouts = stripeData?.payouts ?? [];
   const open = payoutId ? payouts.find((p) => p.id === payoutId) : undefined;
 
@@ -197,8 +200,10 @@ export default function PayoutHistory({ onBack }: { onBack?: () => void }) {
           onRetry={handleRefresh}
           retryDisabled={refreshing}
         />
+      ) : !stripeData?.connected && setupPaused && paypal.ready ? (
+        <p className="text-ds-13 px-1" style={quiet}>No payouts yet. We pay you at your PayPal email.</p>
       ) : !stripeData?.connected && setupPaused ? (
-        <PayoutSetupPausedNotice compact />
+        <PayoutSetupNotice compact />
       ) : !stripeData?.connected ? (
         <p className="text-ds-13 px-1" style={quiet}>Set up payouts on the Money page and your bank payouts will show here.</p>
       ) : payouts.length === 0 ? (

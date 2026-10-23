@@ -13236,6 +13236,7 @@ export type Database = {
           window_hours: number
         }[]
       }
+      get_my_paypal_payee: { Args: never; Returns: Json }
       get_my_sms_consent: { Args: never; Returns: Json }
       get_quotes_for_request: {
         Args: { p_request_id: string }
@@ -15701,6 +15702,10 @@ export type Database = {
       }
       session_email_unconfirmed: { Args: never; Returns: boolean }
       set_available_now: { Args: { p_hours?: number }; Returns: string }
+      set_paypal_payee_email: {
+        Args: { p_email: string; p_email_confirm: string }
+        Returns: Json
+      }
       set_sms_consent: {
         Args: { p_opt_in: boolean; p_phone: string }
         Returns: Json

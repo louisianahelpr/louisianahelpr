@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { PayPalPayeeCard } from "@/components/payouts/PayPalPayeeCard";
 
 interface PayoutSummaryRow {
   amount_cents: number;
@@ -81,7 +83,11 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
   // While payout setup is paused (owner 2026-10-23) the "tap Set up payouts"
   // return banner is not shown: the form below shows the paused notice.
   const setupPaused = usePayoutSetupPaused();
-  const showConnectReturn = connectReturn === "success" || (!!connectReturn && !setupPaused);
+  // PayPal Plan A, phase 2: while `paypal_payments` is on for the member, their
+  // payout setup is a PayPal email (PayPalPayeeCard) in place of Stripe's form,
+  // and Stripe's return banner and weekly estimate do not apply.
+  const { on: paypal, settled: paypalSettled } = useFeatureStatus("paypal_payments");
+  const showConnectReturn = !paypal && (connectReturn === "success" || (!!connectReturn && !setupPaused));
   const [formSettled, setFormSettled] = useState(false);
   const markFormSettled = useCallback(() => setFormSettled(true), []);
   const settled = !!user?.id && formSettled && !lastPayoutLoading;
@@ -107,14 +113,20 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
       )}
       <section className="space-y-2">
         <div className="rounded-2xl liquid-glass p-card">
-          <PayoutSetupForm onSettled={markFormSettled} />
+          {!paypalSettled ? (
+            <div className="h-40 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="status" aria-label="Loading your payout details" />
+          ) : paypal ? (
+            <PayPalPayeeCard onSettled={markFormSettled} />
+          ) : (
+            <PayoutSetupForm onSettled={markFormSettled} />
+          )}
         </div>
       </section>
 
       {/* Next expected payout — a Stripe-cadence estimate off the most recent
           paid transfer. Only renders when there's a real paid payout on
           record; pre-payout helpers don't see an empty placeholder. */}
-      {lastPayout && lastPayout.paid_at && (() => {
+      {!paypal && lastPayout && lastPayout.paid_at && (() => {
         const paidAt = new Date(lastPayout.paid_at);
         // Stripe rolls weekly by default (~7 days from the last paid
         // date once the available balance flips). "~" prefix keeps the

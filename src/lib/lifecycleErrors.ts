@@ -1478,6 +1478,18 @@ export const RPC_ERROR_COPY = {
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",
   },
+  // PayPal phase 2 (20261023231647): "Get paid with PayPal" (PayPalPayeeCard).
+  set_paypal_payee_email: {
+    feature_disabled: "Getting paid with PayPal isn't available on your account yet.",
+    not_authenticated: "Sign in again to save your PayPal email.",
+    paypal_email_required: "Enter the email on your PayPal account.",
+    paypal_email_invalid: "That doesn't look like an email address. Check it and try again.",
+    paypal_email_mismatch: "The two emails don't match. Type the same email in both boxes.",
+  },
+  get_my_paypal_payee: {
+    feature_disabled: "Getting paid with PayPal isn't available on your account yet.",
+    not_authenticated: "Sign in again to see your payout details.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

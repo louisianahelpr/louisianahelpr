@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { useFeature } from "@/hooks/useFeature";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -66,6 +67,8 @@ export function SeriesDatesPanel({
   // Owner ruling 2026-10-23: payout setup is paused; a claim that waits on it
   // says so instead of "Set up payouts" (claimSetupStep).
   const setupPaused = usePayoutSetupPaused();
+  // PayPal phase 2: with `paypal_payments` on, setup is the PayPal email, not paused.
+  const paypalOn = useFeature("paypal_payments");
   const key = ["series-dates", jobId, userId];
 
   const { data: view, isError } = useQuery({
@@ -222,7 +225,7 @@ export function SeriesDatesPanel({
                   run(async () => {
                     const r = await claimSeriesDates(jobId, pickedOpen);
                     // ID once (20261020043346): what the Helpr's setup still lacks.
-                    const step = claimSetupStep(r, setupPaused);
+                    const step = claimSetupStep(r, setupPaused && !paypalOn);
                     if (r.claimed.length === 0 && r.alreadyYours.length > 0 && r.taken.length + r.refused.length + r.needsSetup.length === 0) {
                       return r.alreadyYours.length === 1 ? "That date is already yours." : "Those dates are already yours.";
                     }

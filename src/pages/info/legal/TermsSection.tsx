@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
+import { useHelprJobFee } from "@/hooks/useHelprJobFee";
 import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
@@ -55,13 +56,16 @@ export const TermsContent = () => {
   // surface still calling it an "onboarding fee". Null while loading or on
   // failure, in which case the row simply does not quote a number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
+  // The jobs fee a member's new job carries: 8% + $0.70 on the PayPal path (owner ruling
+  // 2026-10-23, switch paypal_payments), else 5% + $0.70. Declutter delivery keeps the 5% phrase.
+  const fee = useHelprJobFee();
   return (
   <div className="space-y-3">
     <TldrCard
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `${POSTER_PAYS_SENTENCE} The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay, the same on every plan, and it covers card processing) is deducted from their payout.`,
+        `${POSTER_PAYS_SENTENCE} The Helpr's fee (${fee.phrase} of their pay, the same on every plan, and it covers ${fee.paypal ? "PayPal's processing fee" : "card processing"}) is deducted from their payout.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -140,7 +144,7 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Posting a job:</strong> {POSTER_PAYS_SENTENCE}</p>
-            <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each Helpr's pay, deducted from the payout, the same on every plan; it covers card processing. A job paid for before October 15, 2026 keeps the fee it was paid under. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
+            <p><strong className="text-foreground">Helpr fee:</strong> {fee.phrase} of each Helpr's pay, deducted from the payout, the same on every plan; it covers {fee.paypal ? "PayPal's processing fee" : "card processing"}. A job paid for before October 15, 2026 keeps the fee it was paid under{fee.paypal ? `, and a job posted before PayPal payments keeps ${HELPR_FLAT_FEE_PHRASE}` : ""}. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
@@ -205,7 +209,7 @@ export const TermsContent = () => {
         body={
           <>
             <p>There are no paid memberships right now. Joining Helpr is free.</p>
-            <p>No plan changes the fee on a job: every job carries the same {HELPR_FLAT_FEE_PHRASE} Helpr fee.</p>
+            <p>No plan changes the fee on a job: every job carries the same {fee.phrase} Helpr fee.</p>
           </>
         }
       />

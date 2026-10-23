@@ -11,7 +11,7 @@ import { openIdentityCheck } from "@/lib/identityCheck";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
 import { JobPrice } from "@/components/dashboard/JobPrice";
 import { TIER_PERKS } from "@/lib/subscriptionTiers";
-import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
+import { useHelprJobFee } from "@/hooks/useHelprJobFee";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { formatShortDate } from "@/lib/format";
@@ -78,6 +78,8 @@ interface NearJob {
  */
 export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; alertsOff: boolean }) {
   const navigate = useNavigate();
+  // 8% + $0.70 on the PayPal path (owner ruling 2026-10-23), else 5% + $0.70.
+  const fee = useHelprJobFee();
   const loc = getCachedUserLocation();
   const near = useQuery({
     queryKey: ["home", "jobs-near-you", loc?.lat ?? null, loc?.lng ?? null],
@@ -181,7 +183,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
         <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
         <p className="text-ds-13 text-muted-foreground">
           The person who posts the job pays when they hire you. It's held, and released only when they approve the work:
-          it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Helpr keeps {HELPR_FLAT_FEE_PHRASE} of a job, and your payout is rounded down to the whole dollar (Helpr keeps the cents; tips are paid in full).
+          it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Helpr keeps {fee.phrase} of a job, and your payout is rounded down to the whole dollar (Helpr keeps the cents; tips are paid in full).
         </p>
       </section>
     </div>

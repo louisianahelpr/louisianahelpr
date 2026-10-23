@@ -75,6 +75,7 @@ import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { readPayPalJobPayment } from "../_shared/payments/paypalJobRefunds.ts";
 
 /**
  * The client type these helpers accept.
@@ -272,6 +273,22 @@ serve(async (req) => {
     return json({ error: "dispute lookup failed — retry" }, 500);
   }
   if (!dispute) return json({ error: "dispute not found" }, 404);
+
+  // ── 1a. Not a PayPal job (PayPal Plan A, phase 5) ───────────────────────
+  // Every leg below is Stripe: to it a PayPal job has no PaymentIntent and reads as "nothing to
+  // refund". An agreed full refund on a PayPal job is settled by paypal-refunds
+  // (refund-request-sweep routes it there); an admin-decided split waits for PayPal phase 7.
+  // Asked before anything writes, so the dispute is left exactly as it was. Fails CLOSED.
+  if (dispute.job_id) {
+    const pp = await readPayPalJobPayment(supabaseAdmin, dispute.job_id);
+    if (pp.error) {
+      console.error(`[execute-dispute-split] PayPal payment read failed for job ${dispute.job_id}: ${pp.error}`);
+      return json({ error: "could not check how this job was paid — nothing was moved, retry" }, 503);
+    }
+    if (pp.payment) {
+      return json({ error: "this job was paid with PayPal: its split is not a Stripe split (agreed full refunds settle through paypal-refunds; other PayPal splits wait for PayPal phase 7) — nothing was moved", code: "paypal_job" }, 409);
+    }
+  }
 
   // ── 1b. The agreement door moves money ONLY on a recorded agreement ──────
   // Asked before any refusal that writes (refuse() stamps the dispute) and

@@ -1,7 +1,7 @@
 import { Percent } from "lucide-react";
 import { TIER_ORDER, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { AdminCard } from "../AdminViewShell";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, PAYPAL_HELPR_FEE_PHRASE } from "@/lib/helprFlatFee";
 
 // The fee-ladder rungs an admin is shown, DERIVED from the tier config rather
 // than restated. `TIER_PERKS` is the same table `tierFeePercent()` resolves a
@@ -68,6 +68,9 @@ export function FeeModelCard({ customerFee, helperFee }: { customerFee: string; 
         <li>Helpr receives: job price − {HELPR_FLAT_FEE_PERCENT}% − ${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}, rounded down to the whole dollar</li>
         <li>Platform keeps {HELPR_FLAT_FEE_PERCENT}% + ${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)} per Helpr payout; Stripe's card cost comes out of it</li>
         <li>Jobs funded before Oct 15, 2026 keep their old fees: the tier commission above and the poster's card-cost fee</li>
+        {/* Owner ruling 2026-10-23: the PayPal path's ONE fee, stamped at post only while
+            paypal_payments is on for the poster (20261023232438); every stamped job keeps its own. */}
+        <li>PayPal path (switch paypal_payments): a new job is stamped {PAYPAL_HELPR_FEE_PHRASE} from each Helpr payout at post; the poster pays the price only, and PayPal's processing fee comes out of it</li>
       </ul>
 
       <div className="space-y-1.5 border-t border-border/60 pt-3">

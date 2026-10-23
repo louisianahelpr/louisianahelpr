@@ -47,6 +47,37 @@ export const PAYPAL_HELPR_FEE_CENTS = 70;
 /** The PayPal-path fee as words ("8% + $0.70"). Read, never retyped. */
 export const PAYPAL_HELPR_FEE_PHRASE = `${PAYPAL_HELPR_FEE_PERCENT}% + $${(PAYPAL_HELPR_FEE_CENTS / 100).toFixed(2)}`;
 
+/** The jobs fee a NEW job gets, in numbers and words: 8% + 70c on the PayPal path, else 5% + 70c. */
+export interface HelprJobFee {
+  percent: number;
+  cents: number;
+  phrase: string;
+  /** True on the PayPal path (paypal_payments on for this member). */
+  paypal: boolean;
+}
+
+/**
+ * The fee a member's NEW job is stamped with: the PayPal path's while `paypal_payments` is on for
+ * them (the database stamps the same at post, enforce_jobs_fee_model_lock), else today's. Copy that
+ * quotes the fee for a job not posted yet reads this (useHelprJobFee); a job that exists is always
+ * priced by its own stamp (helprFlatFeeCents(share, job)).
+ */
+export function helprJobFeeFor(paypalOn: boolean): HelprJobFee {
+  return paypalOn
+    ? { percent: PAYPAL_HELPR_FEE_PERCENT, cents: PAYPAL_HELPR_FEE_CENTS, phrase: PAYPAL_HELPR_FEE_PHRASE, paypal: true }
+    : { percent: HELPR_FLAT_FEE_PERCENT, cents: HELPR_FLAT_FEE_CENTS, phrase: HELPR_FLAT_FEE_PHRASE, paypal: false };
+}
+
+/**
+ * True when the job was posted on the PayPal path: only that path stamps 8% + 70c (a legacy tier
+ * 8% job carries no flat stamp). Its refunds go back through PayPal, less PayPal's processing fee.
+ */
+export function paidOnPayPalPath(job: FlatFeeStamp | null | undefined): boolean {
+  return isFlatFeeJob(job)
+    && Number(job!.helper_fee_flat_cents) === PAYPAL_HELPR_FEE_CENTS
+    && Number(job!.helper_fee_percent) === PAYPAL_HELPR_FEE_PERCENT;
+}
+
 /** The fee as words ("5% + $0.70"), for every page that quotes it (Terms, Help Center). Read, never retyped. */
 export const HELPR_FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
 

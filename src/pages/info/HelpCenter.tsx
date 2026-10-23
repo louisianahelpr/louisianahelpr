@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
@@ -7,11 +7,13 @@ import FaqRow from "@/components/marketing/FaqRow";
 // Help Center and the policy pages cannot drift into two support cards.
 import { PolicyFooter } from "@/pages/info/legal/LegalChrome";
 import { usePageMeta } from "@/hooks/usePageMeta";
+import { useHelprJobFee } from "@/hooks/useHelprJobFee";
+import { helprJobFeeFor } from "@/lib/helprFlatFee";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import {
   TOPICS,
-  FAQ_SECTIONS,
+  faqSectionsFor,
 } from "./helpCenter/helpCenterContent";
 
 /**
@@ -179,6 +181,9 @@ const TopicSection = ({
 
 const HelpCenter = () => {
   const hash = useHashTarget();
+  // The fee answers quote the viewer's jobs fee: 8% + $0.70 on the PayPal path, else 5% + $0.70.
+  const fee = useHelprJobFee();
+  const faqSections = useMemo(() => faqSectionsFor(helprJobFeeFor(fee.paypal)), [fee.paypal]);
   // No search on this page (owner, 2026-08-22). It was a client-side filter
   // over FAQ_SECTIONS — a static array of seven topics — reached through a
   // control that had already been moved three times looking for a place where
@@ -216,7 +221,7 @@ const HelpCenter = () => {
           <div className="space-y-3 sm:space-y-4">
             {/* The store app never shows memberships (useMembershipsOn), so
                 their plans, prices and billing answers are left out there. */}
-            {FAQ_SECTIONS.filter((section) => !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing")).map((section) => (
+            {faqSections.filter((section) => !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing")).map((section) => (
               <TopicSection
                 key={section.topic}
                 section={section}

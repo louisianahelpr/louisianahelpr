@@ -27,7 +27,7 @@ import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeries
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
-import { type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { type FlatFeeStamp, paidOnPayPalPath } from "@/lib/helprFlatFee";
 import { cancelRefundIsLessCardFee, cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
@@ -213,6 +213,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A legacy job moved to the flat Helpr fee keeps its poster's service fee
   // on a cancel (owner 2026-10-21): cancelRefundIsLessCardFee says which copy.
   const flatModel = cancelRefundIsLessCardFee(feeStamp, posterFee);
+  // PayPal path (stamped 8% + 70c at post): the refund goes back through PayPal, less the
+  // processing fee PayPal keeps (paypal-refunds, every 10 minutes).
+  const paypal = paidOnPayPalPath(feeStamp);
 
   const handleCancel = async () => {
     setCancelling(true);
@@ -374,7 +377,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // Nothing charged -> nothing to refund (an unfunded cancel used to be
         // told "the full amount returns to your card"); otherwise the refund
         // sentence for this job's fee model (src/lib/cancelRefundCopy.ts).
-        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }),
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();
@@ -422,14 +425,16 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     while this text promised a "full refund", which is the part
                     that was wrong. */}
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
-                  {flatModel
+                  {paypal
+                    ? "Cancel anytime with no cancellation fee. Your payment is refunded through PayPal, less the processing fee PayPal keeps."
+                    : flatModel
                     ? "Cancel anytime with no cancellation fee. Your payment is refunded, less the card-processing fee Stripe keeps."
                     : "Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn't refundable once payment has been processed."}
                   {keptFeeSentence}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">{flatModel ? "$0 cancellation fee · Refunded less card fee · No consequences" : "$0 cancellation fee · Budget refunded · No consequences"}</span>
+                  <span className="text-ds-11 text-primary font-medium">{paypal ? "$0 cancellation fee · Refunded less PayPal's fee · No consequences" : flatModel ? "$0 cancellation fee · Refunded less card fee · No consequences" : "$0 cancellation fee · Budget refunded · No consequences"}</span>
                 </div>
               </div>
             </div>

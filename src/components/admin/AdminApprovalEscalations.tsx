@@ -115,7 +115,8 @@ export function AdminApprovalEscalations() {
     try {
       if (what === "approve") {
         // Money: the same step-up as Quick Release (AdminDisputes). No-op on web.
-        if (!(await requireBiometric("Confirm approving this job for the poster"))) return;
+        const ok = await requireBiometric("Confirm approving this job for the poster");
+        if (!ok) return;
         const { data: out, error } = await supabase.functions.invoke("create-payment", {
           body: { action: "release", jobId: row.job_id, forPoster: true },
         });

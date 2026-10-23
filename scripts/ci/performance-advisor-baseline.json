@@ -7,6 +7,7 @@
   },
   "unused_index": [
     "public.admin_user_notes.idx_admin_user_notes_admin_id",
+    "public.job_approval_escalations.job_approval_escalations_open_idx",
     "public.sms_consent_events.sms_consent_events_user_idx",
     "public.sms_messages.sms_messages_due_idx",
     "public.sms_messages.sms_messages_recent_idx",

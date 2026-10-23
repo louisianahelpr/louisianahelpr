@@ -4528,6 +4528,8 @@ html.senior-mode *::after {
 html.web-desktop .explore-switcher-bone { display: none; }
 /* ...and the section "+" lives in the top bar on the desktop website only (AppTopBar `explore`). */
 html:not(.web-desktop) .top-bar-add-bone { display: none; }
+/* The Explore header's title bone: the desktop bar's title only (a phone's chips row has no visible title). */
+html:not(.web-desktop) .top-bar-title-bone { display: none; }
 
 /* T2 — cleaner cards: no outline, no inner rim, no blur; a faint soft shadow. */
 .liquid-glass,
@@ -4741,8 +4743,47 @@ html body .app-top-bar h1.text-page-title {
 /* The section shell (owner, 2026-10-19): a title card holding the shared top bar is no card at all, no padding
    and no border, so Jobs and Messages put the bar, toggle and search row exactly where SectionScreen does. */
 .page-title-card:has(.app-top-bar) { padding: 0 !important; border-width: 0 !important; }
+/* The Explore header at rest is that same no-card box on every width (on the desktop website its bar's title moves
+   into the global header, so :has(.app-top-bar) alone missed it and the card kept 16px of padding and a 1px border
+   that the scrolled reset below then took away: the header moved 1px and the list jumped 22px at 1440). */
+.page-title-card:has(.explore-header) { padding: 0 !important; border-width: 0 !important; }
 .container:has(> div > .page-title-card .app-top-bar) .page-panel { border-width: 0 !important; }
 .container:has(> div > .page-title-card .app-top-bar) { padding-top: 0 !important; }
+
+/* THE EXPLORE HEADER IS STEADY (owner, 2026-10-22: "header doesn't collapse ... 3px header nudge = jumpy";
+   2026-10-23: "this was about the top nav not scrolling well"). The iOS large-title rules above turn the title
+   card into a compact blurred bar on scroll (html.page-scrolled): on Jobs that added 2.4px of padding, a border
+   and a centred shrinking h1 under the section header, measured as the header top moving 69 -> 70.4px at 375 and
+   77.4 -> 79.4px at 1440 (WebKit, ~/.lh-shots/ui5-explore). A title card holding the Explore header keeps exactly
+   its resting box. Guard: src/test/exploreHeaderSteady.test.ts. */
+html.page-scrolled .page-title-card:has(.explore-header),
+:root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
+  transition: none !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  border-width: 0 !important;
+  border-radius: 0 !important;
+  background-color: transparent !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+/* The section tabs' one mark (SectionTabs): a 2px olive underline under the selected word. */
+/* The Explore chips row when it scrolls (ExploreSwitcher `more`): the right edge fades so a cut chip reads as "more". */
+.explore-chips-more [role="radiogroup"] {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+}
+.section-tab-selected::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: hsl(var(--bark));
+}
 
 /* ── LANDING PAGE (owner-approved redesign, 2026-10-20; tokens from the owner's
    design spec, ~/.lh-wt/HELPR-DESIGN-SPEC.md §2). Scoped to `.landing-page`

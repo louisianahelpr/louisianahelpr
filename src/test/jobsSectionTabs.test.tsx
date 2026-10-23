@@ -96,13 +96,16 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  it("on a phone the bar is Explore, the Jobs settings gear, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20; the gear is in the header, owner 2026-10-21)", () => {
+  it("on a phone the bar is the section chips, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20); the Jobs settings gear ends the tabs row (the Explore header, owner 2026-10-22)", () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
-    expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Explore");
+    // The page's one h1 still names the section, for a screen reader; the chips say it on screen.
+    expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Jobs");
     const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Jobs settings", "Notifications", "Profile"]);
+    expect(labels).toEqual(["Notifications", "Profile"]);
+    expect(within(bar).getByTestId("explore-switcher")).toBeTruthy();
     expect(within(screen.getByTestId("explore-switcher")).getByRole("radio", { name: "Jobs" }).getAttribute("aria-checked")).toBe("true");
+    expect(within(screen.getByTestId("section-tabs")).getByRole("button", { name: "Jobs settings" })).toBeTruthy();
   });
 
   it("tapping Posted shows the posted list; Browse brings the feed back", () => {

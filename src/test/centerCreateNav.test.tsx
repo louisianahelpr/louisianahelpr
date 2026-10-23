@@ -40,7 +40,9 @@
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
  * @mutate src/components/sections/AppTopBar.tsx |   const phoneExplore = explore && !isWebDesktop; |   const phoneExplore = false;
- * @mutate src/components/sections/SectionScreen.tsx |           {section && <ExploreSwitcher current={section} />} |
+ * @mutate src/components/sections/AppTopBar.tsx |               <ExploreSwitcher current={section} /> |
+ * @mutate src/components/sections/SectionScreen.tsx | <AppTopBar title={title} add={add} explore section={section} /> | <AppTopBar title={title} add={add} explore />
+ * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="sr-only">Explore</h1>
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -295,8 +297,11 @@ describe("Explore", () => {
     const screens = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"];
     expect(screens.length).toBe(3); // vacuity floor (#2894)
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
-    expect(code("src/pages/jobs/JobsSection.tsx")).toContain('<ExploreSwitcher current="jobs" />');
-    expect(code("src/components/sections/SectionScreen.tsx")).toContain("{section && <ExploreSwitcher current={section} />}");
+    // The Explore header (owner, 2026-10-22): the switcher is the top bar's own row, so each screen hands the bar
+    // its section and the bar draws the chips.
+    expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
+    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} add={add} explore section={section} />");
+    expect(code("src/components/sections/AppTopBar.tsx")).toContain("<ExploreSwitcher current={section} />");
   });
 });
 
@@ -322,6 +327,24 @@ describe("a section's phone top bar (mock-up 6)", () => {
     const bar = screen.getByTestId("app-top-bar");
     expect(bar.querySelector("h1")?.textContent).toBe("Explore");
     expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
+  });
+
+  it("on one of the four sections it is the chips row (owner, 2026-10-22): no visible title, no +, no gear; the bell and avatar stay", async () => {
+    vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
+    const { AppTopBar } = await import("@/components/sections/AppTopBar");
+    renderAt(
+      <AppTopBar title="Jobs" add={{ label: "Post a job", path: "/post-job" }} explore section="jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} />,
+      "/jobs",
+    );
+    const bar = screen.getByTestId("app-top-bar");
+    expect(bar.querySelector('[data-testid="explore-switcher"]')).toBeTruthy();
+    const h1 = bar.querySelector("h1");
+    expect(h1?.textContent).toBe("Jobs");
+    expect(h1?.className.split(/\s+/)).toContain("sr-only");
+    expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="section-settings"]')).toBeNull();
+    expect(bar.querySelector('[data-testid="top-bar-bell"]')).toBeTruthy();
     expect(bar.querySelector('[data-testid="top-bar-profile"]')).toBeTruthy();
   });
 });

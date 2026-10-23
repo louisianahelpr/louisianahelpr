@@ -4359,7 +4359,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 139,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4369,7 +4369,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 322,
+      "line": 325,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4389,7 +4389,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 325,
+      "line": 328,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4399,7 +4399,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 330,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4409,7 +4409,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 338,
+      "line": 341,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4419,7 +4419,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 341,
+      "line": 344,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5824,7 +5824,7 @@
     },
     {
       "file": "src/components/mobileNav/useSectionTabs.ts",
-      "line": 65,
+      "line": 62,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -7668,7 +7668,7 @@
     },
     {
       "file": "src/components/rentals/listings/RentBrowse.tsx",
-      "line": 144,
+      "line": 145,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8653,7 +8653,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8663,7 +8663,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "literal",

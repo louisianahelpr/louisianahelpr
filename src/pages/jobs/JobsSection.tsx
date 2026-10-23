@@ -18,11 +18,13 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
-import { AppTopBar } from "@/components/sections/AppTopBar";
-import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
+import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+
+const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };
 
 export const JOBS_TABS = [
   { value: "posted", label: "Posted" },
@@ -43,6 +45,7 @@ export function resolveJobsTab(params: URLSearchParams, picked: string): "browse
 const JobsSection = () => {
   const [params, setParams] = useSearchParams();
   const [picked] = useSectionTab(["posted", "working"]);
+  const isWebDesktop = useIsWebDesktop();
   // An OLD My Jobs link is decided from the URL the section OPENED with, once.
   // Browse writes ?q= (its search) and ?job= (its open job) into the same URL
   // as you use it; read live, typing one letter in Browse's search jumped to
@@ -78,15 +81,17 @@ const JobsSection = () => {
   // THE SECTION SHELL's head (owner, 2026-10-19: "make layout consistent so the shells are in the same
   // place for each"): no inset of its own, the bar 4px over the toggle, exactly SectionScreen's
   // (Declutter, Shops, Homes). Guard: e2e/prod-audit/section-shell-alignment.spec.ts.
+  // THE EXPLORE HEADER (owner, 2026-10-22): the section chips with the bell and the photo, the thin tabs (the
+  // Jobs settings gear at their end on a phone), then the search. It sits in the scaffold's title card, above the
+  // scrolling list, and never changes while the list scrolls (exploreHeaderSteady).
   const header = (
-    <div className="flex flex-col gap-1">
-      <AppTopBar title={section.label} add={section.add} explore settings={{ label: "Jobs settings", path: "/jobs/settings" }} desktopGap={false} />
+    <div data-explore-header="" className="explore-header flex flex-col gap-1">
+      <AppTopBar title={section.label} add={section.add} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
+      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
       {/* ONE search per screen (owner 2026-10-21): Browse has "Search jobs" with
           its filters, so Explore's "Search all sections" shows only on Posted
           and Working. Guard: src/test/browseCategoryGroups.test.tsx. */}
       {tab !== "browse" && <ExploreSearchEntry />}
-      <ExploreSwitcher current="jobs" />
-      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} />
     </div>
   );
 

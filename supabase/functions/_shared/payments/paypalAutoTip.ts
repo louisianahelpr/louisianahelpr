@@ -42,6 +42,8 @@ export type PayPalAutoTipOutcome =
   | { outcome: "charged"; paymentId: string; payoutQueued: boolean; payoutReason: string | null }
   /** The job changed since the candidate list: release the claim (closed: record it unsent). */
   | { outcome: "state_changed"; state: string }
+  /** The Helpr's tip could not be queued for payout yet: nothing charged, release the claim (stays a candidate). */
+  | { outcome: "payout_unsupported" }
   /** The job's state could not be re-read: release the claim, a defect. */
   | { outcome: "state_unreadable"; message: string }
   /** Mark the claim failed with this reason and tell the poster. Nothing was charged. */
@@ -56,6 +58,8 @@ const NO_METHOD_MESSAGE =
 
 export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAutoTipInput): Promise<PayPalAutoTipOutcome> {
   if (i.quote.helperCents !== i.quote.tipCents) throw new Error("a tip pays the Helpr 100% of the tip");
+  // Never take the poster's money for a tip the Helpr's payout cannot be recorded for.
+  if (!deps.queue.supports("auto_tip")) return { outcome: "payout_unsupported" };
   const state = await deps.jobStateNow(i.jobId);
   if (state instanceof Error) return { outcome: "state_unreadable", message: state.message };
   if (state !== "chargeable") return { outcome: "state_changed", state };

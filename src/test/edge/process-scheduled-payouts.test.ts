@@ -22,7 +22,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import {
   scenario,
   resetSupabaseMock,
@@ -133,7 +133,7 @@ function profileUpdates() {
 describe("process-scheduled-payouts edge function", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });
@@ -415,7 +415,7 @@ describe("process-scheduled-payouts edge function", () => {
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       await run();
       const amount = stripeMock.transfers.create.mock.calls[0][0].amount as number;
-      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
 
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       scenario.reads.payout_transfers = { rows: [orphan()] };
@@ -673,7 +673,7 @@ describe("process-scheduled-payouts edge function", () => {
     it("Q1220: a REAL job's test-mode object pages one warning naming the job (session and PaymentIntent)", async () => {
       for (const which of ["session", "pi"] as const) {
         resetSupabaseMock();
-        resetStripeMock();
+        resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
         resetSharedMocks();
         if (which === "session") {
           seedPayableJob(scenario, { job: { stripe_payment_intent_id: null, stripe_session_id: "cs_test_old" } });
@@ -1252,3 +1252,126 @@ describe("process-scheduled-payouts edge function", () => {
 // payout on a job with no frozen percent under-collects the platform fee
 // ($4 on a $200 job) — the fallback this file's `fee fallback` block pins to 12.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts | job.helper_fee_percent ?? DEFAULT_TIER_FEE_PERCENT, | job.helper_fee_percent ?? 10,
+
+// Lead 2026-10-23: Stripe rejected the platform and every connected account,
+// and this sender read no live account state before its transfer. Now one live
+// read must say "payable" before any claim or transfer; anything else holds.
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (!gate.ok) { |         if (false) {
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (holdClosesCache(gate)) { |           if (false) {
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (gate.kind === "cannot_verify") jobDefect( |           if (false) jobDefect(
+// @mutate supabase/functions/_shared/livePayoutGate.ts |     !isRejectedAccount(account); |     true;
+// @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isRejectedAccountError(e)) return { ok: false, kind: "rejected", reason: message }; |
+// @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message }; |
+// @mutate supabase/functions/_shared/livePayoutGate.ts |   return !gate.ok && (gate.kind === "rejected" \|\| gate.kind === "unusable"); |   return !gate.ok;
+describe("process-scheduled-payouts: a payout is held, not attempted, unless Stripe says the account is payable", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  async function run() {
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+    return { res, body: await json(res) };
+  }
+  const heldAlert = () => (slackAlerts as Array<{ oncePerDayKey?: string; fields?: Record<string, unknown> }>)
+    .find((a) => a.oncePerDayKey === "payout-held-not-payable-helper-1");
+
+  it("a payable account is paid (the gate is not a blanket refusal)", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+    const { res, body } = await run();
+    expect(res.status).toBe(200);
+    expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("transferred");
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    expect(heldAlert()).toBeUndefined();
+  });
+
+  it("Stripe rejected the account: no claim, no transfer, cached gate closed, ops told once a day", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT,
+      charges_enabled: false,
+      payouts_enabled: false,
+      capabilities: { transfers: "inactive" },
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+    });
+    const { res, body } = await run();
+    expect(res.status, JSON.stringify(body)).toBe(200);
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "rejected" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    const updates = profileUpdates();
+    // The only profiles write closes the cached gate; the $2 claim never ran.
+    expect(updates).toHaveLength(1);
+    expect(updates[0].payload).toEqual({ stripe_charges_enabled: false, stripe_payouts_enabled: false });
+    expect(updates[0].filters).toEqual(expect.arrayContaining([
+      expect.objectContaining({ column: "user_id", value: "helper-1" }),
+      expect.objectContaining({ column: "stripe_account_id", value: "acct_helper" }),
+    ]));
+    expect(heldAlert()?.fields).toMatchObject({ job_id: "job-1", gate: "rejected" });
+    expect(scenario.writes.some((w) => w.table === "payout_transfers")).toBe(false);
+  });
+
+  it("flags still read enabled but Stripe rejected it: held all the same", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT,
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.fraud" },
+    });
+    const { body } = await run();
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "rejected" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+
+  it("the read is refused with \"the account has been rejected\": held, cached gate closed", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(
+      new Error("An account link cannot be created for this account because the account has been rejected."),
+      { type: "StripeInvalidRequestError", statusCode: 400 },
+    ));
+    const { res, body } = await run();
+    expect(res.status, JSON.stringify(body)).toBe(200);
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "rejected" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(profileUpdates().map((u) => u.payload)).toEqual([{ stripe_charges_enabled: false, stripe_payouts_enabled: false }]);
+  });
+
+  it("Stripe refusing OUR platform: held, cache untouched, no defect, ONE platform alert (not per Helpr)", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(
+      new Error("You cannot create new accounts because your account has been rejected."),
+      { type: "StripeInvalidRequestError", statusCode: 400 },
+    ));
+    const { res, body } = await run();
+    expect(res.status, JSON.stringify(body)).toBe(200);
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "platform_rejected" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(profileUpdates()).toEqual([]);
+    expect((slackAlerts as Array<{ oncePerDayKey?: string }>).map((a) => a.oncePerDayKey)).toContain("payout-held-platform-rejected");
+    expect(heldAlert()).toBeUndefined();
+  });
+
+  it("not payable but not rejected (payouts off): held, the cache is left to the refresh (no flapping writers)", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockResolvedValue({ ...PAYABLE_CONNECT_ACCOUNT, payouts_enabled: false });
+    const { res, body } = await run();
+    expect(res.status, JSON.stringify(body)).toBe(200);
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "not_payable" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(profileUpdates()).toEqual([]);
+    expect(heldAlert()?.fields).toMatchObject({ gate: "not_payable" });
+  });
+
+  it("a read that fails for any other reason is \"cannot verify\": held, never read as payable, a defect, the cache untouched", async () => {
+    seedPayableJob(scenario);
+    stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(new Error("stripe 503"), { statusCode: 503 }));
+    const { res, body } = await run();
+    expect(res.status).toBe(500);
+    expect((body.results as Array<Record<string, unknown>>)[0]).toMatchObject({ status: "payee_not_payable", gate: "cannot_verify" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(profileUpdates()).toEqual([]);
+    expect(heldAlert()?.fields).toMatchObject({ gate: "cannot_verify" });
+  });
+});

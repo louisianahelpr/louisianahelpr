@@ -42,7 +42,7 @@ import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type SupabaseScenario } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
@@ -194,7 +194,7 @@ type Result = { job_id?: string; status?: string; error?: string };
 describe("payouts fail safe when the charge can no longer fund the transfer", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });

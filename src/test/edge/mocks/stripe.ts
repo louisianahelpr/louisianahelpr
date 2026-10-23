@@ -267,6 +267,21 @@ export const stripeMock: StripeMock = {
   },
 };
 
+/**
+ * A Connect account Stripe says is payable (payouts and charges enabled,
+ * transfers active, not rejected). process-scheduled-payouts reads the payee's
+ * account live before every transfer (_shared/livePayoutGate.ts, lead
+ * 2026-10-23); a test about anything else seeds this so the payout goes on.
+ */
+export const PAYABLE_CONNECT_ACCOUNT = {
+  id: "acct_payable",
+  charges_enabled: true,
+  payouts_enabled: true,
+  details_submitted: true,
+  capabilities: { transfers: "active" },
+  requirements: { currently_due: [], eventually_due: [], past_due: [], errors: [], disabled_reason: null },
+};
+
 /** Clears all call history + implementations on the shared Stripe mock. */
 export function resetStripeMock() {
   stripeMock.__key = "";

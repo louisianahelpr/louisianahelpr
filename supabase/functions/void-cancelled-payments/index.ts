@@ -42,6 +42,8 @@ import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { paypalFundedJobIds, settlePayPalCancelledJob } from "./paypalCancel.ts";
+import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1709,6 +1711,12 @@ serve(async (req) => {
     }
 
     const jobs = cancelledJobs;
+    // PayPal phase 6: which cancelled jobs are paid through PayPal. Those are settled by the
+    // PayPal leg at the top of the loop and never reach the Stripe code below. A failed read
+    // (null) lets no job without a Stripe payment through this run: it could be PayPal money.
+    const paypalJobs = await paypalFundedJobIds(supabaseAdmin, (jobs ?? []).map((j) => j.id));
+    if (paypalJobs === null) defects.record("paypal funded-job read failed: jobs with no Stripe payment are not settled this run");
+    let paypalRuntime: ReturnType<typeof paypalRuntimeFromEnv> | null = null;
 
     let voided = 0;
     let refunded = 0;
@@ -1806,6 +1814,40 @@ serve(async (req) => {
     }
 
     for (const job of [...(jobs || []), ...crewRetryJobs, ...feeRetryJobs] as any[]) {
+      // ── PayPal phase 6: a PayPal-paid job takes the PayPal leg, before anything Stripe ──
+      if (!job.crew_share_retry && !job.fee_transfer_retry) {
+        if (paypalJobs === null && !job.stripe_payment_intent_id && !job.stripe_session_id) {
+          results.push({ job_id: job.id, title: job.title, status: "paypal_read_failed_skipped" });
+          continue;
+        }
+        if (paypalJobs?.has(job.id)) {
+          paypalRuntime ??= paypalRuntimeFromEnv();
+          const pp = await settlePayPalCancelledJob(supabaseAdmin, job.id, paypalRuntime);
+          const reason = "reason" in pp ? pp.reason : null;
+          if (pp.outcome === "settled") refunded++;
+          if (pp.outcome === "needs_review" || (pp.outcome === "skipped" && pp.defect) || (pp.outcome === "retry" && reason && !/^payment_disputed|^capture_not_settled/.test(reason))) {
+            defects.record(`paypal cancel ${job.id}: ${pp.outcome}: ${reason}`);
+          }
+          if (pp.outcome === "needs_review") {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "A cancelled PayPal job needs a person",
+              message: `The PayPal cancellation of job ${job.id} stopped: ${reason}. Nothing more moves for it until someone settles it by hand (PayPal dashboard + provider_refunds / provider_payouts).`,
+              fields: { job_id: job.id, reason: String(reason).slice(0, 200) },
+              oncePerDayKey: `paypal-cancel-review:${job.id}`,
+            });
+          }
+          results.push({
+            job_id: job.id,
+            title: job.title,
+            status: `paypal_${pp.outcome}`,
+            ...(reason ? { reason } : {}),
+            ...(pp.outcome === "settled" ? { amount: pp.plan.refundCents / 100, cancellation_fee_transferred: pp.plan.helprPayoutCents > 0 } : {}),
+          });
+          continue;
+        }
+      }
       // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
       let stripe: Stripe;
       try {

@@ -96,6 +96,8 @@ export const DB_ID_COLUMNS = {
     { table: "shop_refunds", column: "stripe_refund_id" },
     { table: "shop_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
     { table: "declutter_delivery_raises", column: "stripe_refund_ref" },
+    // Q2352 (20261026154738): a Declutter setup fee sent back once (setup_fee_state 'refunded').
+    { table: "declutter_orders", column: "setup_fee_refund_id" },
     { table: "payout_settlements", column: "stripe_ref" },
   ],
 };

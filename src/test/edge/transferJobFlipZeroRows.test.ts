@@ -19,7 +19,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/transferCanceled.ts | if ((resetRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/transferFailed.ts | if ((resetRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | } else if ((frozenRows?.length ?? 0) === 0) { | } else if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/transferCanceled.ts | .eq("payment_status", "released")\n      .select("id"); | .eq("payment_status", "released");
+ * @mutate supabase/functions/stripe-webhook/handlers/transferCanceled.ts | .eq("payment_status", "released")\n      .select("id, status, is_group_job, disputed_at, dispute_status"); | .eq("payment_status", "released");
  * @mutate supabase/functions/stripe-webhook/handlers/transferReversed.ts | .eq("payment_status", "released")\n      .select("id"); | .eq("payment_status", "released");
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -97,7 +97,9 @@ describe("Q244: transfer webhook job flips page on a zero-row match", () => {
       await deliver(fn);
       const w = jobUpdates();
       expect(w.length).toBe(1);
-      expect(w[0].selectCols).toBe("id");
+      // failed / canceled also read what the payout cron selects on, so the
+      // Helpr's notice promises a retry only when the cron will make one (Q2355).
+      expect(w[0].selectCols).toBe(type === "transfer.reversed" ? "id" : "id, status, is_group_job, disputed_at, dispute_status");
     });
 
     it(`${type}: zero rows matched pages ops as critical and still acks (no retry storm)`, async () => {

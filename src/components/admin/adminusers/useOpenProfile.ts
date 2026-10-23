@@ -69,7 +69,8 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
       profile.email
         ? supabase.from("email_send_log")
             .select("template_name, message_id, status, created_at")
-            .eq("recipient_email", profile.email)
+            // auth-email-hook logs addresses lowercase (measured 2026-10-23: every row).
+            .eq("recipient_email", profile.email.toLowerCase())
             .order("created_at", { ascending: false })
             .limit(500)
         : Promise.resolve({ data: [] as Pick<Tables<"email_send_log">, "template_name" | "message_id" | "status" | "created_at">[], error: null }),

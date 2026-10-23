@@ -117,6 +117,10 @@ export interface SupabaseScenario {
   /** The verified caller. Confirmed unless `email_confirmed_at` is given (null = unconfirmed, Q837). */
   authUser?: { id: string; email?: string; email_confirmed_at?: string | null } | null;
   authError?: { message: string } | null;
+  /** Every auth.resend(args) call, in order (admin-resend-verification). */
+  authResendCalls?: unknown[];
+  /** What auth.resend answers: null = sent, or Supabase's error shape. */
+  authResendError?: { message: string; status?: number; code?: string } | null;
   /**
    * auth.admin.getUserById(id) lookups, keyed by user id. Absent id → returns
    * a confirmed user (the common prod case) so callers that only care about
@@ -695,6 +699,7 @@ interface SupabaseClientMock {
   storage: { from: (bucket: string) => ReturnType<typeof storageBucket> };
   auth: {
     getUser: ReturnType<typeof vi.fn>;
+    resend: ReturnType<typeof vi.fn>;
     admin: { getUserById: ReturnType<typeof vi.fn> };
   };
   rpc: ReturnType<typeof vi.fn>;
@@ -721,6 +726,12 @@ export function createClient(
         },
         error: scenario.authError,
       })),
+      // auth.resend (admin-resend-verification, Q2354): recorded, answering
+      // scenario.authResendError (null = sent).
+      resend: vi.fn(async (args: unknown) => {
+        (scenario.authResendCalls ??= []).push(args);
+        return { data: {}, error: scenario.authResendError ?? null };
+      }),
       admin: {
         getUserById: vi.fn(async (id: string) => {
           const entry = scenario.adminUsers?.[id];

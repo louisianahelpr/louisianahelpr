@@ -26,6 +26,18 @@ export function EmailsTab({
   resending,
   resendVerificationEmail,
 }: EmailsTabProps) {
+  // Q2354 (owner 2026-10-23): when did the last verify-your-email message go?
+  // email_send_log's 'signup' template is the real record (auth-email-hook logs
+  // the one at sign-up, the member's own resend and an admin's); the profile
+  // counter counted only admin resends and showed "0 / 3" for a member who had
+  // three. The edge refuses a resend within an hour of the last one, so the
+  // button says when the next can go instead of failing on tap.
+  const signupStat = emailSendStats.find((s) => s.template_name === "signup") ?? null;
+  const lastSentMs = signupStat ? new Date(signupStat.last_sent).getTime() : NaN;
+  const nextAllowedMs = Number.isFinite(lastSentMs) ? lastSentMs + 60 * 60 * 1000 : NaN;
+  const waitMin = Number.isFinite(nextAllowedMs) && nextAllowedMs > Date.now()
+    ? Math.max(1, Math.ceil((nextAllowedMs - Date.now()) / 60000))
+    : 0;
   const verificationOpens = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'open');
   const verificationClicks = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'click');
   const awaitingEmail = !isVerifiedEmail(viewProfile);
@@ -38,12 +50,15 @@ export function EmailsTab({
           variant="outline"
           className="w-full"
           onClick={() => resendVerificationEmail(viewProfile)}
-          disabled={resending === viewProfile.id}
+          disabled={resending === viewProfile.id || waitMin > 0}
+          data-verify-resend=""
         >
           <MailIcon className="w-4 h-4 mr-1" />
           {resending === viewProfile.id
             ? "Sending…"
-            : `Resend Verification${(viewProfile.verification_email_count || 0) > 0 ? ` (${viewProfile.verification_email_count}/3)` : ""}`}
+            : waitMin > 0
+              ? `Next reminder can go in ${waitMin} min`
+              : signupStat ? "Send another verification email" : "Send verification email"}
         </Button>
       )}
 
@@ -53,10 +68,10 @@ export function EmailsTab({
           <p className="text-ds-11 font-medium text-foreground flex items-center gap-1.5">
             <MailIcon className="w-3.5 h-3.5" /> Verification Email Status
           </p>
-          <div className="flex items-center justify-between text-ds-11 text-muted-foreground">
-            <span>Emails sent: {viewProfile.verification_email_count || 0} / 3</span>
-            {viewProfile.last_verification_email_at && (
-              <span>Last sent: {formatDistanceToNow(new Date(viewProfile.last_verification_email_at), { addSuffix: true })}</span>
+          <div className="flex items-center justify-between text-ds-11 text-muted-foreground" data-verify-history="">
+            <span>Emails sent: {signupStat?.count ?? 0}</span>
+            {signupStat && (
+              <span>Last sent: {formatDistanceToNow(new Date(signupStat.last_sent), { addSuffix: true })}</span>
             )}
           </div>
           {(verificationOpens.length > 0 || verificationClicks.length > 0) ? (

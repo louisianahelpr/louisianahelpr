@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from "../_shared/buildStamp.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,8 +9,17 @@ const corsHeaders = {
 
 /**
  * Admin-triggered manual resend of the email verification message.
- * Bypasses the auto-cadence (admin can fire whenever) but still increments
- * the counter so it shows up in the admin UI.
+ *
+ * Owner 2026-10-23: "give us a button to push to send another follow
+ * up email". The record of what went out is email_send_log (template
+ * 'signup', written by auth-email-hook for EVERY confirmation: the one at sign
+ * up, the member's own resend and this one), read through
+ * verification_email_history(). A resend is refused while the last one is
+ * less than an hour old (sent or still queued), with the time the next one
+ * may go, so an admin cannot stack reminders on a member; Supabase Auth's own
+ * per-address limit is reported the same way. The link lands on
+ * /signup-pending, exactly like the member's own resend
+ * (getSignupConfirmRedirect), not the project's Site URL.
  */
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -91,6 +101,26 @@ serve(async (req) => {
       })
     }
 
+    // Q2354: the real send record decides when the next one may go.
+    const { data: history, error: historyErr } = await admin.rpc('verification_email_history', { p_user: userId })
+    if (historyErr) {
+      console.error('[admin-resend-verification] send history read failed:', historyErr.message)
+      return new Response(JSON.stringify({ error: "Couldn't read when the last email went out. Please retry." }), {
+        status: 503,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    const nextAllowedAt = (history as { next_allowed_at?: string | null } | null)?.next_allowed_at ?? null
+    if (nextAllowedAt && new Date(nextAllowedAt).getTime() > Date.now()) {
+      return new Response(JSON.stringify({
+        error: `The last verification email went out less than an hour ago. Another one can go in ${Math.max(1, Math.ceil((new Date(nextAllowedAt).getTime() - Date.now()) / 60000))} min.`,
+        next_allowed_at: nextAllowedAt,
+      }), {
+        status: 429,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     if ((profile as any).email_verified) {
       return new Response(JSON.stringify({ error: 'User has already verified their email' }), {
         status: 400,
@@ -108,12 +138,24 @@ serve(async (req) => {
     const { error: resendErr } = await admin.auth.resend({
       type: 'signup',
       email: (profile as any).email,
+      // The member's own resend lands here too (src/lib/authRedirects.ts getSignupConfirmRedirect).
+      options: { emailRedirectTo: `${getAppUrl()}/signup-pending` },
     })
 
     if (resendErr) {
+      // Supabase Auth's own per-address send limit: say so, never "something went wrong" (Q2354).
+      const resendStatus = (resendErr as { status?: number }).status
+      const resendCode = (resendErr as { code?: string }).code
+      if (resendStatus === 429 || resendCode === 'over_email_send_rate_limit') {
+        return new Response(JSON.stringify({
+          error: 'Supabase is limiting emails to this address right now. Try again in a few minutes.',
+          next_allowed_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+        }), { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+      }
       // If already confirmed, flip the flag
       if (resendErr.message?.toLowerCase().includes('already confirmed')) {
-        await admin.from('profiles').update({ email_verified: true }).eq('id', (profile as any).id)
+        const { error: flipErr } = await admin.from('profiles').update({ email_verified: true }).eq('id', (profile as any).id)
+        if (flipErr) console.error('[admin-resend-verification] email_verified flip failed:', flipErr.message)
         return new Response(
           JSON.stringify({ error: 'User has already verified their email' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -126,13 +168,16 @@ serve(async (req) => {
       })
     }
 
-    await admin
+    // The admin-resend counter on the profile (kept for older admin screens). The send record the Emails tab
+    // reads is email_send_log, written by auth-email-hook; a failed counter write is logged, never fatal.
+    const { error: counterErr } = await admin
       .from('profiles')
       .update({
         verification_email_count: ((profile as any).verification_email_count || 0) + 1,
         last_verification_email_at: new Date().toISOString(),
       } as any)
       .eq('id', (profile as any).id)
+    if (counterErr) console.error('[admin-resend-verification] counter write failed:', counterErr.message)
 
     // Audit log (best-effort, but never silent).
     // The try/catch alone was not enough: a PostgREST builder RESOLVES with

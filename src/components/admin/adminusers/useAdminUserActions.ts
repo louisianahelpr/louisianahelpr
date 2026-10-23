@@ -40,6 +40,8 @@ export const makeAdminUserActions = ({
       });
       if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
+      // Q2354: say it went (the button only re-rendered before).
+      toast.success(`Verification email sent to ${profile.email ?? "the member"}.`);
       loadProfiles();
     } catch (err) {
       toast.error(userFacingError(err, "Couldn't resend the verification email — try again."));

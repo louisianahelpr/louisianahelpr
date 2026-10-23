@@ -16169,6 +16169,7 @@ export type Database = {
         Args: { p_reason: string; p_reported_type: string }
         Returns: string
       }
+      verification_email_history: { Args: { p_user: string }; Returns: Json }
       wipe_pre_verification_account: {
         Args: { p_user_id: string }
         Returns: string

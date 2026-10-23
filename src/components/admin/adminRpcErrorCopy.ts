@@ -302,6 +302,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     admin_only: "Only an admin can queue a payout again.",
     payout_not_found: "That payout isn't in the list any more. Refresh the list.",
     payout_not_held: "This payout isn't held any more. Refresh the list.",
+    confirm_no_send_money: "Tick the box to confirm no PayPal Send Money went out for this payout. If one did, mark it paid instead.",
     payout_not_job_pay: "Only job pay can be queued again here.",
     payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
     no_payable_paypal_account: "The Helpr has no PayPal email that can be paid yet.",

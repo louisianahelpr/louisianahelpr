@@ -99,7 +99,8 @@ export function manualPayoutCents(job: PayoutJobFields, helperFeePercent: number
 }
 
 export type QueueOutcome =
-  | { outcome: "queued" | "already_queued"; payout_id?: string; payout_transfer_id?: string; amount_cents?: number; reason?: string }
+  /** queued_held: written, but held until an admin checks a PayPal email changed after the job's approval. */
+  | { outcome: "queued" | "queued_held" | "already_queued"; payout_id?: string; payout_transfer_id?: string; amount_cents?: number; reason?: string }
   | { outcome: "waiting_for_payee" | "held" | "refused"; reason: string }
   | { outcome: "error"; message: string };
 
@@ -147,7 +148,7 @@ export async function queueManualPaypalPayout(
   }
 }
 
-/** queued / already_queued are the answers a release path counts as done. */
+/** The answers a release path counts as done: the claim and the payout row exist (held or not). */
 export function isQueued(o: QueueOutcome): boolean {
-  return o.outcome === "queued" || o.outcome === "already_queued";
+  return o.outcome === "queued" || o.outcome === "queued_held" || o.outcome === "already_queued";
 }

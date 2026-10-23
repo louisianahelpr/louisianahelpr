@@ -12130,7 +12130,7 @@ export type Database = {
         Returns: boolean
       }
       admin_requeue_held_paypal_payout: {
-        Args: { p_payout_id: string }
+        Args: { p_confirm_no_send_money?: boolean; p_payout_id: string }
         Returns: Json
       }
       admin_reverse_violation: {

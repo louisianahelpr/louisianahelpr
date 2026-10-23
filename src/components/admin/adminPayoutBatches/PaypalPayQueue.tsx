@@ -252,11 +252,22 @@ function HeldGroup({ group, onRequeue, onMarkPaid }: { group: PayGroup; onRequeu
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="min-w-0 space-y-1">
           <p className="text-ds-15 font-semibold text-foreground break-words">{group.helperName}</p>
-          <p className="text-ds-12 text-muted-foreground">
-            Changed their PayPal email after this was queued. Don't send to either email until you've checked the change with them.
-          </p>
-          <p className="text-ds-12 text-foreground break-all">Was: {group.destination}</p>
-          <p className="text-ds-12 text-foreground break-all">Now: {group.currentDestination ?? "no PayPal email that can be paid yet"}</p>
+          {group.currentDestination === group.destination ? (
+            <>
+              <p className="text-ds-12 text-muted-foreground">
+                Changed their PayPal email after the job was approved. Check the change with them before you pay.
+              </p>
+              <p className="text-ds-12 text-foreground break-all">New email: {group.destination}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-ds-12 text-muted-foreground">
+                Changed their PayPal email after this was queued. Don't send to either email until you've checked the change with them.
+              </p>
+              <p className="text-ds-12 text-foreground break-all">Was: {group.destination}</p>
+              <p className="text-ds-12 text-foreground break-all">Now: {group.currentDestination ?? "no PayPal email that can be paid yet"}</p>
+            </>
+          )}
         </div>
       </div>
       <Lines group={group} />
@@ -266,7 +277,7 @@ function HeldGroup({ group, onRequeue, onMarkPaid }: { group: PayGroup; onRequeu
       </div>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" onClick={onRequeue} disabled={!group.currentDestination}>
-          Checked it: queue to the new email
+          Checked it: queue to {group.currentDestination === group.destination ? "this email" : "the new email"}
         </Button>
         <Button type="button" size="sm" variant="ghost" onClick={onMarkPaid}>
           Already sent to the old email
@@ -348,12 +359,13 @@ function MarkPaidDialog({ group, held, onClose, onDone }: { group: PayGroup; hel
 
 function RequeueDialog({ group, onClose, onDone }: { group: PayGroup; onClose: () => void; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [nothingSent, setNothingSent] = useState(false);
   const submit = async () => {
-    if (busy) return;
+    if (busy || !nothingSent) return;
     setBusy(true);
     let failed = 0;
     for (const l of group.lines) {
-      const { error } = await supabase.rpc("admin_requeue_held_paypal_payout", { p_payout_id: l.payout_id as string });
+      const { error } = await supabase.rpc("admin_requeue_held_paypal_payout", { p_payout_id: l.payout_id as string, p_confirm_no_send_money: true });
       if (error) {
         failed++;
         report(error, { tags: { source: "PaypalPayQueue.requeue" } });
@@ -368,16 +380,22 @@ function RequeueDialog({ group, onClose, onDone }: { group: PayGroup; onClose: (
   return (
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent>
-        <DialogHero title="Queue to the new PayPal email" />
-        <DialogBody>
-          <p>
-            Check with {group.helperName} that they changed their PayPal email to {group.currentDestination} themselves.
-            The old payout is canceled and {centsLabel(group.totalCents)} is queued to the new email.
-          </p>
-        </DialogBody>
+        <DialogHero title="Queue to the checked PayPal email" />
+        <div className="space-y-3">
+          <DialogBody>
+            <p>
+              Check with {group.helperName} that they set their PayPal email to {group.currentDestination} themselves.
+              The held payout is canceled and {centsLabel(group.totalCents)} is queued to that email, ready to send.
+            </p>
+          </DialogBody>
+          <label className="flex items-start gap-2 text-ds-13 text-foreground">
+            <Checkbox checked={nothingSent} onCheckedChange={(v) => setNothingSent(v === true)} className="mt-0.5" />
+            <span>No PayPal Send Money went out for this payout yet. (If it did, close this and mark it paid instead.)</span>
+          </label>
+        </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>Cancel</DialogSecondaryAction>
-          <DialogPrimaryAction onClick={() => void submit()} disabled={busy}>
+          <DialogPrimaryAction onClick={() => void submit()} disabled={busy || !nothingSent}>
             {busy ? "Queuing…" : "Queue to new email"}
           </DialogPrimaryAction>
         </DialogFooter>

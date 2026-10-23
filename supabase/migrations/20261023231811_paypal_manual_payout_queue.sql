@@ -19,10 +19,11 @@
 --      is a no-op, a different id on a paid row is refused, and one id names one payee + destination. It records who and when, writes admin_audit_log, moves
 --      payout_transfers to 'paid' and the job to 'released', and tells the Helpr. Members never see
 --      "paid" before this: until then payout_transfers says 'pending' and the job 'payout_pending'.
---   4. A Helpr who changes their PayPal email has their pending rows set to 'held' (phase 2). The
+--   4. A Helpr who changes their PayPal email has their pending rows set to 'held' (phase 2), and a
+--      payout queued to a destination changed since the job's approval is written 'held' here. The
 --      queue shows those as "Helpr changed their PayPal email", never as payable;
 --      admin_requeue_held_paypal_payout() cancels the held claim and row and queues a fresh one to
---      the CURRENT payable email after the admin has checked it.
+--      the CURRENT payable email after the admin has checked it AND confirmed no Send Money went out.
 --
 -- THE SWITCH. The three admin RPCs start with require_feature('paypal_payments'). The writer
 -- paypal_queue_manual_payout() is service-role only and has no signed-in user (it runs from the
@@ -35,11 +36,47 @@
 -- REPLAY-SAFETY: CREATE OR REPLACE throughout; no table or column is created or altered.
 
 -- ---------------------------------------------------------------------------------------------
+-- When a member's PayPal destination last changed (Phase 1 review condition, P2 + P4): a new email
+-- resets only `verified`, so the database alone would let a hijacked, freshly changed email be paid.
+-- The queue writer compares this with the job's approval and refuses to queue a pending payout to a
+-- destination changed since then until an admin re-confirms it (the row is written 'held').
+-- ---------------------------------------------------------------------------------------------
+ALTER TABLE public.payee_accounts ADD COLUMN IF NOT EXISTS destination_changed_at timestamptz NOT NULL DEFAULT now();
+
+CREATE OR REPLACE FUNCTION public.payee_accounts_stamp_destination_change()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    NEW.destination_changed_at := now();
+  ELSIF NEW.user_id IS DISTINCT FROM OLD.user_id
+     OR NEW.paypal_email IS DISTINCT FROM OLD.paypal_email
+     OR NEW.paypal_payer_id IS DISTINCT FROM OLD.paypal_payer_id
+     OR NEW.venmo_handle IS DISTINCT FROM OLD.venmo_handle THEN
+    NEW.destination_changed_at := now();
+  ELSE
+    -- Server-owned: no writer moves it by hand.
+    NEW.destination_changed_at := OLD.destination_changed_at;
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.payee_accounts_stamp_destination_change() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_payee_accounts_stamp_destination_change ON public.payee_accounts;
+CREATE TRIGGER trg_payee_accounts_stamp_destination_change
+  BEFORE INSERT OR UPDATE ON public.payee_accounts
+  FOR EACH ROW EXECUTE FUNCTION public.payee_accounts_stamp_destination_change();
+
+-- ---------------------------------------------------------------------------------------------
 -- The destination a manual payout copies: the Helpr's payable PayPal account in the payment's env.
 -- Email first (Send Money is to an email), then payer id, then Venmo handle.
 -- ---------------------------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.paypal_payout_destination(p_user_id uuid, p_env text)
-RETURNS TABLE (destination_kind text, destination_value text)
+RETURNS TABLE (destination_kind text, destination_value text, changed_at timestamptz)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -48,7 +85,8 @@ AS $fn$
   SELECT CASE WHEN a.paypal_email IS NOT NULL THEN 'paypal_email'
               WHEN a.paypal_payer_id IS NOT NULL THEN 'paypal_payer_id'
               ELSE 'venmo_handle' END,
-         COALESCE(a.paypal_email, a.paypal_payer_id, a.venmo_handle)
+         COALESCE(a.paypal_email, a.paypal_payer_id, a.venmo_handle),
+         a.destination_changed_at
     FROM public.payee_accounts a
    WHERE a.user_id = p_user_id
      AND a.provider = 'paypal'
@@ -83,6 +121,7 @@ DECLARE
   v_dest record;
   v_pt_id uuid;
   v_payout_id uuid;
+  v_unconfirmed boolean := false;
 BEGIN
   IF p_job_id IS NULL OR p_helper_id IS NULL THEN
     RAISE EXCEPTION 'job_and_helper_required' USING ERRCODE = '22023';
@@ -93,7 +132,8 @@ BEGIN
 
   -- The job row is the serialization point with the release / refund / dispute writers.
   SELECT j.id, j.status::text AS status, j.payment_status::text AS payment_status, j.helper_id,
-         j.is_group_job, j.helpers_needed, j.disputed_at, j.dispute_status::text AS dispute_status
+         j.is_group_job, j.helpers_needed, j.disputed_at, j.dispute_status::text AS dispute_status,
+         COALESCE(j.poster_completed_at, j.helper_completed_at) AS approved_at
     INTO v_job
     FROM public.jobs j
    WHERE j.id = p_job_id
@@ -167,10 +207,15 @@ BEGIN
                                'provider_payment_id', v_pay.id))
     RETURNING id INTO v_pt_id;
 
+    -- A destination changed after the job was approved is not paid on its own say-so: the row is
+    -- written 'held' (money reserved, refunds blocked) until an admin checks the change and
+    -- re-queues it (admin_requeue_held_paypal_payout).
+    v_unconfirmed := v_job.approved_at IS NOT NULL AND v_dest.changed_at > v_job.approved_at;
     INSERT INTO public.provider_payouts (provider_payment_id, payout_transfer_id, payee_user_id, provider, env,
                                          destination_kind, destination_value, amount_cents, status)
     VALUES (v_pay.id, v_pt_id, p_helper_id, 'manual_paypal', v_pay.env,
-            v_dest.destination_kind, v_dest.destination_value, p_amount_cents, 'pending')
+            v_dest.destination_kind, v_dest.destination_value, p_amount_cents,
+            CASE WHEN v_unconfirmed THEN 'held' ELSE 'pending' END)
     RETURNING id INTO v_payout_id;
   EXCEPTION
     WHEN unique_violation THEN
@@ -187,6 +232,11 @@ BEGIN
       RAISE;
   END;
 
+  IF v_unconfirmed THEN
+    RETURN jsonb_build_object('outcome', 'queued_held', 'reason', 'destination_changed_since_approval',
+                              'payout_id', v_payout_id, 'payout_transfer_id', v_pt_id,
+                              'amount_cents', p_amount_cents, 'env', v_pay.env);
+  END IF;
   RETURN jsonb_build_object('outcome', 'queued', 'payout_id', v_payout_id, 'payout_transfer_id', v_pt_id,
                             'amount_cents', p_amount_cents, 'env', v_pay.env);
 END;
@@ -508,7 +558,7 @@ GRANT EXECUTE ON FUNCTION public.admin_mark_paypal_payout_paid(uuid[], text, big
 --    payout row's destination is frozen (provider_payouts_guard). Job-pay rows only; a tip row's
 --    re-queue belongs to the tips lane (it has no payout_transfers claim).
 -- ---------------------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.admin_requeue_held_paypal_payout(p_payout_id uuid)
+CREATE OR REPLACE FUNCTION public.admin_requeue_held_paypal_payout(p_payout_id uuid, p_confirm_no_send_money boolean DEFAULT false)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -533,6 +583,13 @@ BEGIN
   END IF;
   IF v_pp.status <> 'held' THEN
     RAISE EXCEPTION 'payout_not_held' USING ERRCODE = '42501', DETAIL = format('This payout is %s.', v_pp.status);
+  END IF;
+  -- Cancelling the held row frees nothing for a refund (the new row re-reserves it), but a Send
+  -- Money already made to the OLD destination would be paid again to the new one (Phase 1 review
+  -- condition, P4): the admin must say none went out.
+  IF NOT COALESCE(p_confirm_no_send_money, false) THEN
+    RAISE EXCEPTION 'confirm_no_send_money' USING ERRCODE = '22023',
+      DETAIL = 'Confirm that no PayPal Send Money went out for this payout. If one did, mark it paid instead.';
   END IF;
   IF v_pp.payout_transfer_id IS NULL THEN
     RAISE EXCEPTION 'payout_not_job_pay' USING ERRCODE = '22023';
@@ -580,8 +637,8 @@ BEGIN
   RETURN jsonb_build_object('outcome', 'requeued', 'payout_id', v_new_pp, 'previous_payout_id', v_pp.id);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.admin_requeue_held_paypal_payout(uuid) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.admin_requeue_held_paypal_payout(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.admin_requeue_held_paypal_payout(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_requeue_held_paypal_payout(uuid, boolean) TO authenticated;
 
 -- ---------------------------------------------------------------------------------------------
 -- 6. The Stripe "Payout Queue" lists Stripe jobs only: its Send Payout is a Stripe transfer. A job

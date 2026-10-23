@@ -8,6 +8,7 @@
  *   PLANT=no_evidence      node src/test/pglite/paypalManualPayoutQueue.pglite.mjs   # RED: no txn id / wrong amount accepted
  *   PLANT=no_idempotency   node src/test/pglite/paypalManualPayoutQueue.pglite.mjs   # RED: the same id twice is refused or re-audited
  *   PLANT=no_one_payee     node src/test/pglite/paypalManualPayoutQueue.pglite.mjs   # RED: one txn id marks two people
+ *   PLANT=no_destination_check node src/test/pglite/paypalManualPayoutQueue.pglite.mjs # RED: an email changed after approval is queued payable
  *
  * Proves: both migrations apply 3x; the queue writer is service-role only, idempotent per (job, Helpr),
  * writes the payout_transfers claim AND the provider_payouts row (manual_paypal, pending, destination
@@ -45,6 +46,9 @@ if (process.env.PLANT === "no_evidence") {
 }
 if (process.env.PLANT === "no_idempotency") {
   plant("IF v_pp.external_txn_id IS DISTINCT FROM v_txn THEN", "IF true THEN");
+}
+if (process.env.PLANT === "no_destination_check") {
+  plant("v_unconfirmed := v_job.approved_at IS NOT NULL AND v_dest.changed_at > v_job.approved_at;", "v_unconfirmed := false;");
 }
 if (process.env.PLANT === "no_one_payee") {
   plant("OR o.destination_value IS DISTINCT FROM p_destination", "AND false");
@@ -265,6 +269,11 @@ for (const n of [1, 2, 3, 4, 5, 7]) {
     values ('job', '${J[n]}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:job:${n}:amt10570:a1', 'O-${n}', 'C-${n}', 10570, 'captured')`);
 }
 await db.query(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr}', 'paypal', 'sandbox', 'hal@example.com', true)`);
+// The poster approves AFTER Helpr 1's email was set (clock_timestamp: later than the insert above).
+// Helpr 2 adds an email only after approval (below): the review-condition case.
+await as("postgres");
+await db.exec(`update jobs set poster_completed_at = clock_timestamp() where status = 'completed'`);
+await as("service");
 
 const q = (job, helper, cents = 9430) => `select public.paypal_queue_manual_payout('${job}', '${helper}', ${cents}, 570, 'system', null, 'release') as v`;
 const queue = async (job, helper, cents) => (await db.query(q(job, helper, cents))).rows[0].v;
@@ -358,10 +367,16 @@ check("the paid row still carries the first id", (await one(`select external_txn
 await as("postgres");
 await db.exec(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr2}', 'paypal', 'sandbox', 'hope@example.com', true)`);
 await as("service");
-const P3 = (await queue(J[3], U.helpr2, 5000)).payout_id;
+v = await queue(J[3], U.helpr2, 5000);
+const P3 = v.payout_id;
+const p3row = await one(`select status, destination_value from provider_payouts where id='${P3}'`);
+check("a payout to an email set AFTER the job's approval is queued HELD, never payable (review condition P2+P4)",
+  v.outcome === "queued_held" && v.reason === "destination_changed_since_approval" && p3row.status === "held" && p3row.destination_value === "hope@example.com", { v, p3row });
+check("an email set before approval queues pending (J1)", (await one(`select status from provider_payouts where id='${P1}'`)).status === "success", null);
 await as("admin");
-await expectErr("one PayPal id cannot mark a payout to a different person", mark([P3], TXN, 5000), /txn_id_already_used/);
-await expectErr("one press pays one person", mark([P3, P4], "5PQ11111AA222222B", 6000), /payouts_not_one_payee/);
+await expectErr("a held, unconfirmed payout cannot be marked paid as if it were payable", mark([P3], "5PQ11111AA222222B", 5000), /payout_held_email_changed/);
+await expectErr("one PayPal id cannot mark a payout to a different person", mark([P3], TXN, 5000, true), /txn_id_already_used/);
+await expectErr("one press pays one person", mark([P3, P4], "5PQ11111AA222222B", 6000, true), /payouts_not_one_payee/);
 // a Helpr's job pay and a later line in the SAME Send Money share the id (tips): allowed
 v = (await db.query(mark([P1, P4], TXN, 10430))).rows[0].v;
 check("the same id may cover more lines to the same person (job pay + tip in one Send Money)", v.outcome === "marked_paid" && v.payout_ids.length === 1 && v.payout_ids[0] === P4, v);
@@ -378,17 +393,18 @@ await expectErr("a held row is not marked paid by accident", mark([P3], "5PQ1111
 await as("service");
 await db.query(`update payee_accounts set payable = false where user_id = '${U.helpr2}'`);
 await as("admin");
-await expectErr("re-queue needs a payable new email", `select public.admin_requeue_held_paypal_payout('${P3}')`, /no_payable_paypal_account/);
+await expectErr("re-queue needs a payable new email", `select public.admin_requeue_held_paypal_payout('${P3}', true)`, /no_payable_paypal_account/);
 await as("service");
 await db.query(`update payee_accounts set payable = true where user_id = '${U.helpr2}'`);
 await as("postgres"); await db.exec(`insert into payout_holds(helper_id, reason) values ('${U.helpr2}', 'review')`);
 await as("admin");
-await expectErr("re-queue refused while the Helpr is on a payout hold", `select public.admin_requeue_held_paypal_payout('${P3}')`, /payout_held/);
+await expectErr("re-queue refused while the Helpr is on a payout hold", `select public.admin_requeue_held_paypal_payout('${P3}', true)`, /payout_held/);
 await as("postgres"); await db.exec(`delete from payout_holds`);
 await as("helpr2");
-await expectErr("a non-admin cannot re-queue", `select public.admin_requeue_held_paypal_payout('${P3}')`, /admin_only/);
+await expectErr("a non-admin cannot re-queue", `select public.admin_requeue_held_paypal_payout('${P3}', true)`, /admin_only/);
 await as("admin");
-v = (await db.query(`select public.admin_requeue_held_paypal_payout('${P3}') as v`)).rows[0].v;
+await expectErr("re-queue makes the admin confirm no Send Money went out (review condition P4)", `select public.admin_requeue_held_paypal_payout('${P3}')`, /confirm_no_send_money/);
+v = (await db.query(`select public.admin_requeue_held_paypal_payout('${P3}', true) as v`)).rows[0].v;
 check("re-queued to the new email", v.outcome === "requeued", v);
 const rq = await one(`select (select status from provider_payouts where id='${P3}') old_s,
   (select status from payout_transfers where id=(select payout_transfer_id from provider_payouts where id='${P3}')) old_x,
@@ -423,7 +439,7 @@ check("get_payout_batches lists the Stripe job only", batches.length === 1 && ba
 // --- grants
 await as("postgres");
 for (const [fn, sig] of [["paypal_queue_manual_payout", "uuid, uuid, integer, integer, text, uuid, text"], ["paypal_payout_destination", "uuid, text"],
-  ["admin_mark_paypal_payout_paid", "uuid[], text, bigint, boolean"], ["admin_requeue_held_paypal_payout", "uuid"], ["admin_paypal_payout_queue", ""], ["paypal_txn_names_other_payee", "text, uuid, text, text, uuid"]]) {
+  ["admin_mark_paypal_payout_paid", "uuid[], text, bigint, boolean"], ["admin_requeue_held_paypal_payout", "uuid, boolean"], ["admin_paypal_payout_queue", ""], ["paypal_txn_names_other_payee", "text, uuid, text, text, uuid"]]) {
   const acl = (await one(`select proacl::text a from pg_proc where oid = 'public.${fn}(${sig})'::regprocedure`)).a ?? "";
   const anonOk = !/(^|[{,])=X|anon=X/.test(acl);
   const authOk = fn.startsWith("admin_") ? /authenticated=X/.test(acl) : !/authenticated=X/.test(acl);

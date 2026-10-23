@@ -1,8 +1,8 @@
 /**
  * THE LANDING SAYS WHAT IS OPEN TODAY (owner answers 2026-10-21, via the lead):
- *   - the hero subhead is exactly "Hire help or find work. One account, one
- *     verified ID, real neighbors." (owner, 2026-10-23; it changes again as
- *     the other sections open),
+ *   - the hero subhead is exactly "Hire help or find work. One account, real
+ *     neighbors." (owner pop-up 2026-10-23, when ID verification was turned
+ *     off; it changes again as the other sections open),
  *     and CLAUDE.md's locked-copy rule quotes the same words;
  *   - ONE "Opening soon" line sits above the unopened section cards, never a
  *     pill on each card; the Jobs card keeps its "Browse jobs" link;
@@ -34,7 +34,7 @@ import { SectionsShowcase } from "@/components/landing/SectionsShowcase";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 
 const ROOT = resolve(__dirname, "..", "..");
-const SUBHEAD = "Hire help or find work. One account, one verified ID, real neighbors.";
+const SUBHEAD = "Hire help or find work. One account, real neighbors.";
 
 function renderSections(open: ReadonlySet<string> | null) {
   state.open = open;

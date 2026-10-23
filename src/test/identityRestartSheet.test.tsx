@@ -20,7 +20,8 @@
  */
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 const HOUR = 60 * 60 * 1000;
 const state = {
@@ -58,6 +59,13 @@ vi.mock("@/lib/errorLogger", () => ({ report: () => {} }));
 import { IdentityCheckHost } from "@/components/identity/IdentityCheckSheet";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";
 import { closeIdentityCheck, identityReviewIsStale, openIdentityCheck, IDENTITY_REVIEW_STALE_MS } from "@/lib/identityCheck";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 /** The commit (SheetPrimaryAction, variant "primary") wears the solid olive; the secondary is a tint. */
 const isPrimary = (el: HTMLElement) => el.className.split(/\s+/).includes("btn-grad-primary");

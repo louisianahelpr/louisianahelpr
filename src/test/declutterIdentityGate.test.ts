@@ -13,12 +13,20 @@
 // @mutate supabase/migrations/20261021202226_declutter_identity_first_buy_or_list.sql | (TG_OP = 'INSERT' OR OLD.status IN ('draft', 'paused')) | (TG_OP = 'INSERT' OR OLD.status IS DISTINCT FROM NEW.status)
 // @mutate src/lib/declutter/api.ts |   openIdentitySheetFor(result.error); |   void result;
 // @mutate src/lib/identityCheck.ts |   if (/(^\|[^a-z_])identity_required_to_buy($\|[^a-z_])/.test(m)) return "buy"; |
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { act, renderHook } from "@testing-library/react";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { auth: { getUser: async () => ({ data: { user: null } }) } } }));
 

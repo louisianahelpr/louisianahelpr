@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { ApplicantSuggestedTime } from "./ApplicantSuggestedTime";
 import { useEffect, useState } from "react";
 import { ArrowUp, Ban, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
@@ -100,6 +101,8 @@ export function ApplicantsDesktopTable({
   onReport: (app: EnrichedApplication) => void;
   onBlock: (app: EnrichedApplication) => void;
 }) {
+  // The "verifies their ID when they accept" note only while the ID check is on (owner 2026-10-23: off).
+  const idOn = useIdentityCheckOnStore();
   const completed = (a: EnrichedApplication) => completedCountsMap.get(a.helper_id) ?? 0;
   const inCategory = (a: EnrichedApplication) => (categoryCounts ? categoryCounts.get(a.helper_id) ?? 0 : undefined);
   const distanceOf = (a: EnrichedApplication) => rows.find((r) => r.app.id === a.id)?.distanceBand?.label ?? null;
@@ -176,7 +179,7 @@ export function ApplicantsDesktopTable({
                     </span>
                     <ApplicantProofLine categoryCount={inCategory(app)} totalCount={jobs} idVerified={app.profiles?.is_id_verified === true} category={category} />
                     <ApplicantSuggestedTime app={app} jobStartTime={jobStartTime} />
-                    {app.profiles && app.profiles.is_id_verified !== true && (
+                    {idOn && app.profiles && app.profiles.is_id_verified !== true && (
                       <span className="mt-0.5 block text-ds-11 text-muted-foreground" data-applicant-id-note="">
                         {applicantIdNote(formatName(app.profiles.full_name, ""))}
                       </span>

@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { acceptMissingFromProfile, reasonFromMissing, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 
@@ -42,6 +43,8 @@ import { acceptMissingFromProfile, reasonFromMissing, type AcceptMissing, type A
  */
 export function useAwardBlockReason(): AwardBlockReason | null {
   const { profile } = useCurrentUser();
+  // Re-render when the ID check switch arrives or flips (acceptMissingFromProfile reads it).
+  useIdentityCheckOnStore();
 
   // No profile loaded is not "blocked" — it is "we do not know yet". Saying
   // nothing is the only honest render; `helper_unknown` is a real server
@@ -64,6 +67,7 @@ export function useAwardBlockReason(): AwardBlockReason | null {
  */
 export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | null; missing: AcceptMissing[] } {
   const { profile, isLoading } = useCurrentUser();
+  useIdentityCheckOnStore();
   if (!profile) return { loading: isLoading, reason: null, missing: [] };
   const missing = acceptMissingFromProfile(profile);
   return { loading: false, reason: reasonFromMissing(missing), missing };

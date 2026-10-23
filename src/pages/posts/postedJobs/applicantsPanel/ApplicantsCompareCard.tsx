@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
 import { jobCategoryLabel } from "@/lib/jobCategories";
@@ -32,6 +33,8 @@ export function ApplicantsCompareCard({
   onHire: (app: EnrichedApplication) => void;
   clear: () => void;
 }) {
+  // "not yet" promises a check; with the ID check off (owner 2026-10-23) it is a plain "no".
+  const idOn = useIdentityCheckOnStore();
   const first = (a: EnrichedApplication) => formatName(a.profiles?.full_name, "Helpr").split(" ")[0];
   const joined = (value: (a: EnrichedApplication) => string) => picked.map((a) => `${first(a)} ${value(a)}`).join(" · ");
   const rows: { label: string; text: string }[] = [
@@ -41,7 +44,7 @@ export function ApplicantsCompareCard({
   if (picked.length > 0 && picked.every((a) => categoryCount(a) !== undefined)) {
     rows.push({ label: `${sentenceCaseLabel(jobCategoryLabel(category))} jobs`, text: joined((a) => String(categoryCount(a))) });
   }
-  rows.push({ label: "ID checked", text: joined((a) => (a.profiles?.is_id_verified === true ? "yes" : "not yet")) });
+  rows.push({ label: "ID checked", text: joined((a) => (a.profiles?.is_id_verified === true ? "yes" : idOn ? "not yet" : "no")) });
   if (picked.some((a) => distanceOf(a))) rows.push({ label: "Distance", text: joined((a) => distanceOf(a) ?? "not shared") });
 
   return (

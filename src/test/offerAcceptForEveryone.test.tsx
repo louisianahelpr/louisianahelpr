@@ -25,7 +25,8 @@
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {isExpired ? null : ( |       {isExpired \|\| gate.reason ? null : (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |           disabled={busy}\n          aria-busy={busy}\n          data-offer-primary="accept" |           disabled={busy \|\| gate.loading}\n          aria-busy={busy}\n          data-offer-primary="accept"
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { readFileSync } from "node:fs";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { trackedFiles } from "@/test/helpers/trackedFiles";
@@ -98,6 +99,13 @@ import { useActivityActions } from "@/components/job-card/useActivityActions";
 import { OfferedActions } from "@/pages/jobs/appliedJobCard/OfferedActions";
 import { AwardGateDialog } from "@/components/AwardGateDialog";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 const offerJob = {
   id: "job-1",

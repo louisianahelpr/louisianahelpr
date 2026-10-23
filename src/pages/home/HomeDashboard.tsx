@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRun";
 import { useQueryClient } from "@tanstack/react-query";
@@ -58,6 +59,8 @@ export default function HomeDashboard() {
 const NEXT_UP_MAX_DOTS = 5;
 
 function HomeDashboardScreen() {
+  // Re-render when the ID check switch arrives or flips (needsIdentityCheck reads it).
+  const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
@@ -121,7 +124,7 @@ function HomeDashboardScreen() {
             {firstJob?.isNew && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
 
             {/* Stripe Identity (owner 2026-10-21): a member with a job in play, either side, who still needs it. */}
-            {needsIdentityCheck(profile) && !firstJob?.isNew && (summary.counts.posted > 0 || summary.counts.working > 0) && (
+            {idOn && needsIdentityCheck(profile) && !firstJob?.isNew && (summary.counts.posted > 0 || summary.counts.working > 0) && (
               <IdentityPromptCard idvStatus={profile?.idv_status} />
             )}
 

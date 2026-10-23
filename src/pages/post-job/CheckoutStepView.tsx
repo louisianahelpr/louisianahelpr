@@ -67,7 +67,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         urgentFeeNum={form.urgentFeeNum}
         budgetNum={form.budgetNum}
         helprActivity={form.helprActivity}
-        customerFeeAmount={form.customerFeeAmount}
         urgentCardFeeAmount={form.urgentCardFeeAmount}
         onboardingFeeAmount={form.onboardingFeeAmount}
         totalCharge={form.totalCharge}

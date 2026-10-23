@@ -36,7 +36,7 @@ export function ApplyEarningsBreakdown({
   const [showMath, setShowMath] = useState(false);
   // The maths lives in useApplyTakeHome so the "What next" sheet after applying (board 77)
   // prints the SAME take-home this receipt does, never a second copy of the rules.
-  const { helpers, perHelper, netUrgent, commission, noFee, feeLabel, firstPayoutFee, takeHome, droppedCents, hasUrgent } =
+  const { helpers, perHelper, netUrgent, commission, feeLabel, firstPayoutFee, takeHome, droppedCents, hasUrgent } =
     useApplyTakeHome(confirmApplyJob, platformFee);
 
   // The plain-words summary. Same facts as the receipt, one line, no columns.
@@ -45,7 +45,7 @@ export function ApplyEarningsBreakdown({
     helpers > 1 ? `÷ ${helpers} Helprs` : null,
     // Board 58 (lead): the fee is ONE subtraction, its rule in brackets ("− Helpr fee (5% + $0.70)"),
     // so "5% + $0.70" never reads as minus 5% plus 70¢.
-    noFee ? "no fee" : `− Helpr fee (${feeLabel})`,
+    `− Helpr fee (${feeLabel})`,
     hasUrgent ? "+ urgent bonus" : null,
     firstPayoutFee > 0 ? "− one-time setup fee" : null,
   ]
@@ -92,12 +92,10 @@ export function ApplyEarningsBreakdown({
             <span className="font-sans">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
             <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
           </div>
-          {!noFee && (
-            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              <span className="font-sans">− {feeLabel} platform fee</span>
-              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
-            </div>
-          )}
+          <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span className="font-sans">− {feeLabel} platform fee</span>
+            <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
+          </div>
           {hasUrgent && (
             <div className="flex justify-between">
               <span className="font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>

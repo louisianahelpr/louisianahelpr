@@ -1162,27 +1162,17 @@ async function settleCheckoutSession(
         // lived, which resolved to a rate of 0 for seven ZIP codes.
         //
         // The effective rate is the only honest one: tax over the base it was
-        // charged on: the LABOR line, plus the "Service fee" line on a
-        // poster-fee job in a taxable category (it carries the labor's tax
-        // code; every other fee ships as txcd_00000000), per
+        // charged on: the LABOR line (every fee ships as txcd_00000000), per
         // jobEscrowTaxableBaseCents. Stored as a FRACTION
         // (effectiveSalesTaxRate): the CHECK ck_jobs_sales_tax_rate_range
         // admits 0..1, and the percent this wrote would have failed this very
         // escrow update on the first taxed job.
         const { data: jobRow } = await supabase
           .from("jobs")
-          .select("budget, category, customer_fee_amount, poster_fee_flat_cents")
+          .select("budget, category")
           .eq("id", jobId)
           .maybeSingle();
-        // The fee THIS charge carried (its PaymentIntent's service_fee_cents,
-        // written by create-payment) wins over the row's, which a re-mint at
-        // another price may have changed since (lh-money-escrow review of the
-        // pre-flip items, #2). A PaymentIntent without it reads the row.
-        const piFeeRaw = String((taxPi.metadata as Record<string, string> | undefined)?.service_fee_cents ?? "");
-        const taxedRow = jobRow && /^\d+$/.test(piFeeRaw)
-          ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 }
-          : jobRow;
-        const taxableBaseCents = jobEscrowTaxableBaseCents(taxedRow);
+        const taxableBaseCents = jobEscrowTaxableBaseCents(jobRow);
         if (taxableBaseCents > 0) {
           updateData.sales_tax_rate = effectiveSalesTaxRate(taxCents, taxableBaseCents);
         } else if (taxCents === 0) {

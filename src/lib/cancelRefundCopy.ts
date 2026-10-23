@@ -1,13 +1,11 @@
 import { formatPriceExact } from "@/lib/format";
 import { stripeProcessingCostCents } from "@/lib/stripeFees";
 import { isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
-import { isPosterFeeJob } from "@/lib/posterJobFee";
 
 /**
  * Whether a poster's cancel refund is "what you paid, less the card-processing
  * fee Stripe keeps" (true) or "the budget, less the service fee you paid at
- * checkout" (false). A flat-model job (F3) charged the job price only, and a
- * poster-fee job keeps only the card cost on a cancel (Q2082 (b)). A LEGACY
+ * checkout" (false). A flat-model job (F3) charged the job price only. A LEGACY
  * job moved to the flat Helpr fee after it was paid for (owner 2026-10-21,
  * 20261021142508) carries the flat Helpr stamp but its poster still paid a
  * service fee at checkout, which the cancel keeps (void-cancelled-payments,
@@ -15,10 +13,9 @@ import { isPosterFeeJob } from "@/lib/posterJobFee";
  */
 export function cancelRefundIsLessCardFee(
   feeStamp: FlatFeeStamp | null | undefined,
-  posterFee: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null | undefined,
+  posterFee: { customer_fee_amount?: number | string | null } | null | undefined,
 ): boolean {
   if (!isFlatFeeJob(feeStamp)) return false;
-  if (isPosterFeeJob(posterFee)) return true;
   return !(Number(posterFee?.customer_fee_amount ?? 0) > 0);
 }
 
@@ -80,21 +77,16 @@ export function giftOnJobFromRead(rows: GiftRow[] | null, error: unknown, costCe
 }
 
 /**
- * The poster-side cost redeem_gift_card (20261018031451) compares a gift with,
- * in cents: budget + urgent fee, plus, on a poster-fee job (poster_fee_flat_cents
- * set), the 5% + 70c fee it stamped in customer_fee_amount, which the gift pays
- * first too (Q2082 (d), lh-money-escrow review of slice 4). Null when the
- * urgent fee was not passed (the caller does not know the cost).
+ * The poster-side cost redeem_gift_card compares a gift with, in cents:
+ * budget + urgent fee. Null when the urgent fee was not passed (the caller
+ * does not know the cost).
  */
 export function giftCostCents(
   budget: number,
   urgentFee: number | null | undefined,
-  job?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null,
 ): number | null {
   if (urgentFee === undefined) return null;
-  const stamped = job?.poster_fee_flat_cents != null && job.poster_fee_flat_cents !== "";
-  const feeCents = stamped ? Math.round(Number(job?.customer_fee_amount ?? 0) * 100) : 0;
-  return Math.round((budget + (urgentFee ?? 0)) * 100) + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0);
+  return Math.round((budget + (urgentFee ?? 0)) * 100);
 }
 
 /**

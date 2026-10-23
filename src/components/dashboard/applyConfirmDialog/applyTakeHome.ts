@@ -3,7 +3,7 @@ import { netUrgentFeeDollars } from "@/lib/stripeFees";
 import { useFirstPayoutFeeCents } from "@/hooks/useFirstPayoutFee";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { netAfterFirstPayoutFee } from "@/lib/firstPayoutFee";
-import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 
 /**
  * The Helpr's take-home on a job they apply to: the ONE copy of the maths, read by the apply
@@ -24,9 +24,6 @@ export function useApplyTakeHome(confirmApplyJob: EnrichedJob, platformFee: numb
   const commission = flat
     ? helprFlatFeeCents(Math.round(perHelper * 100) + Math.round(netUrgent * 100), confirmApplyJob) / 100
     : perHelper * platformFee / 100;
-  // Poster-fee model (owner 2026-10-18): the Helpr pays no fee, so no fee
-  // line and no "0% + $0.00" label (lh-money-escrow review #4).
-  const noFee = helprPaysNoFee(confirmApplyJob);
   const feeLabel = flat
     ? `${flatFeePercentOf(confirmApplyJob)}% + $${(Math.round(Number(confirmApplyJob.helper_fee_flat_cents ?? HELPR_FLAT_FEE_CENTS)) / 100).toFixed(2)}`
     : `${platformFee}%`;
@@ -43,5 +40,5 @@ export function useApplyTakeHome(confirmApplyJob: EnrichedJob, platformFee: numb
   const takeHome = floorPayoutDollars(payout);
   const droppedCents = payout > 0 ? Math.round((payout - takeHome) * 100) / 100 : 0;
   const hasUrgent = (confirmApplyJob.urgent_fee ?? 0) > 0;
-  return { helpers, perHelper, netUrgent, flat, commission, noFee, feeLabel, firstPayoutFee, payout, takeHome, droppedCents, hasUrgent };
+  return { helpers, perHelper, netUrgent, flat, commission, feeLabel, firstPayoutFee, payout, takeHome, droppedCents, hasUrgent };
 }

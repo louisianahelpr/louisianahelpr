@@ -180,7 +180,6 @@ interface JobRow {
   customer_fee_amount: number | string | null;
   dispute_status: string | null;
   onboarding_fee_amount?: number | string | null;
-  poster_fee_flat_cents?: number | string | null;
   is_group_job?: boolean | null;
   helper_id?: string | null;
   /** The sales tax the charge carried (Q2082 (a): the tax on a kept part is kept too). */
@@ -190,7 +189,7 @@ interface JobRow {
   blockFeeCents?: number;
 }
 
-const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount";
+const JOB_COLS = "id, customer_id, title, status, cancellation_fee, customer_fee_amount, dispute_status, onboarding_fee_amount, is_group_job, helper_id, sales_tax_amount";
 
 /** "$100" or "$41.87": the poster's money is never rounded (formatExactDollars). */
 export function refundDollars(cents: number): string {

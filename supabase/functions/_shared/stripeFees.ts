@@ -64,8 +64,9 @@ export function actualOrEstimatedFeeCents(
  * stripe.com/pricing/local-payment-methods): Klarna 5.99% + 30c, Afterpay
  * 6% + 30c. About twice the card rate, so a Pay-in-4 refund that withheld the
  * CARD estimate would leave the platform paying ~3% of the charge (Q2082 (c),
- * lh-money-escrow review of slice 4). Only the two methods a job checkout
- * offers (_shared/jobCheckout.ts PAY_IN_FOUR_PAYMENT_METHOD_TYPES; never Affirm).
+ * lh-money-escrow review of slice 4). Pay in 4 was removed from job checkouts
+ * (owner 2026-10-23, #3556) and no charge was ever paid that way; the rates
+ * stay so a charge that reports such a method is never estimated at the card rate.
  */
 const STRIPE_BNPL_PCT: Readonly<Record<string, number>> = {
   klarna: 0.0599,

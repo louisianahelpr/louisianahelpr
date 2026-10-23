@@ -36,7 +36,6 @@ import { refundsSeriesVisitInFull, type SeriesRefundJob } from "./seriesRefund.t
 /** The job columns the split reads (all from `jobs`, plus series_ban_cancelled_at). */
 interface PosterCancelSplitJob extends SeriesRefundJob {
   customer_fee_amount?: number | string | null;
-  poster_fee_flat_cents?: number | string | null;
   onboarding_fee_amount?: number | string | null;
 }
 

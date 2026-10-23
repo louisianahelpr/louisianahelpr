@@ -1,5 +1,4 @@
-// jobCheckout — what a JOB Checkout Session may offer, and which fee model a
-// checkout is on, for the Deno edge runtime.
+// jobCheckout — what a JOB Checkout Session may offer, and the stale-quote check, for the Deno edge runtime.
 //
 // OWNER DECISIONS (2026-10-17/18, relayed by the lead):
 // - Every job Checkout Session names its payment methods explicitly. Left
@@ -9,89 +8,45 @@
 //   about 6% + 30c, more than the 5% + 70c fee covers above a ~$28 job.
 //   Card (Apple Pay / Google Pay ride on it), Link and ACH only. ACH counts
 //   only once it settles (Q1970).
-// - "Pay in 4" is a separate choice made BEFORE checkout: Klarna and Afterpay
-//   only (never Affirm), at 9% + 70c, offered only where the provider takes the
-//   amount (Klarna $1-$2,000, Afterpay $1-$4,000).
+// - Pay in 4 (Klarna / Afterpay at 9% + 70c) and the poster-fee model (5% +
+//   70c, Helpr keeps 100%, behind the `jobs_poster_fee` switch) were REMOVED
+//   (owner 2026-10-23, #3556: "remove it from the app entirely"). Neither was
+//   ever switched on; no job was funded on them. Every job checkout is on the
+//   flat model: the poster pays the job price, the Helpr pays 5% + 70c.
 // - Adaptive Pricing (local-currency presentment) is ON for the account
 //   (measured live 2026-10-17: adaptive_pricing.enabled = true on recent
 //   sessions). It adds a 2-4% conversion fee to what the CUSTOMER pays, so a
 //   job checkout turns it off: the poster pays the dollar total the app showed.
-// - The poster-fee model (5% + 70c, Helpr keeps 100%) is behind ONE server
-//   switch, `jobs_poster_fee`, created OFF. A gift-funded checkout is on it
-//   too: the gift pays the job price + fee first, any rest by card
-//   (redeem_gift_card, 20261018031451). So is a recurring series: its checkout
-//   pays the first visit + fee and charge-recurring-visits charges every later
-//   visit its own fee (the visit row carries the poster stamp).
-// - Stale-client protection: a poster-fee checkout is refused unless the
-//   request carries the fee model and the exact amounts the app showed
-//   (feeQuoteRefusal). An installed app built before the change sends nothing,
-//   so it is refused instead of charging a total its poster never saw.
+// - Stale-client protection: a request that carries a fee quote must quote the
+//   flat model and the job price the server reads (feeQuoteRefusal), so no
+//   poster is charged a total the app never showed them.
 //
 // This MUST stay in lock-step with the client mirror `src/lib/jobCheckout.ts`;
 // `src/lib/jobCheckout.parity.test.ts` fails the build if the two diverge.
 // Zero imports on purpose (the edge harness points at the real module).
 
-/** The feature switch the poster-fee model ships behind (feature_switches.key). */
-export const JOBS_POSTER_FEE_SWITCH = "jobs_poster_fee";
-
 /** The Stripe payment method types a job checkout may name (a subset of Stripe's PaymentMethodType). */
-export type JobCheckoutMethod = "card" | "link" | "us_bank_account" | "klarna" | "afterpay_clearpay";
+export type JobCheckoutMethod = "card" | "link" | "us_bank_account";
 
 /** Card (incl. Apple Pay / Google Pay), Link, US bank account (ACH). Nothing else. */
 export const JOB_CHECKOUT_PAYMENT_METHOD_TYPES: readonly JobCheckoutMethod[] = ["card", "link", "us_bank_account"];
 
-/** Pay in 4: Klarna and Afterpay only. Never Affirm. */
-export const PAY_IN_FOUR_PAYMENT_METHOD_TYPES: readonly JobCheckoutMethod[] = ["klarna", "afterpay_clearpay"];
-
-/** Pay in 4's poster fee percent (plus the same 70c), because those providers cost about 6% + 30c. */
-export const PAY_IN_FOUR_FEE_PERCENT = 9;
-
-/** Each Pay-in-4 provider's accepted charge range, in cents (USD). */
-export const PAY_IN_FOUR_LIMITS: Readonly<Record<string, { minCents: number; maxCents: number }>> = {
-  klarna: { minCents: 100, maxCents: 200_000 },
-  afterpay_clearpay: { minCents: 100, maxCents: 400_000 },
-};
-
-/** The Pay-in-4 methods that accept a charge of `totalCents`; empty = Pay in 4 is not offered. */
-export function payInFourMethodsFor(totalCents: number): JobCheckoutMethod[] {
-  const t = Math.round(Number(totalCents) || 0);
-  return PAY_IN_FOUR_PAYMENT_METHOD_TYPES.filter((m) => {
-    const lim = PAY_IN_FOUR_LIMITS[m];
-    return !!lim && t >= lim.minCents && t <= lim.maxCents;
-  });
-}
-
-/** The fee model a checkout is priced and stamped on. */
-export type JobFeeModel = "poster" | "flat";
-
-export interface JobFeeModelInputs {
-  /** feature_enabled_for_user('jobs_poster_fee', poster) answered exactly true. */
-  switchOn: boolean;
-}
-
-/** Which model a NEW checkout is on. Already-funded jobs keep their stamped model. */
-export function jobFeeModelFor(i: JobFeeModelInputs): JobFeeModel {
-  return i.switchOn ? "poster" : "flat";
-}
-
-/** The poster's service fee percent on a poster-fee checkout. */
-export function posterFeePercentFor(payInFour: boolean): number {
-  return payInFour ? PAY_IN_FOUR_FEE_PERCENT : 5;
-}
+/** The only fee model a checkout is on since the poster-fee model was removed (owner 2026-10-23). */
+export type JobFeeModel = "flat";
 
 /** What the app showed the poster, sent with the escrow request. */
 export interface JobFeeQuote {
   model: JobFeeModel;
-  payInFour: boolean;
+  payInFour: false;
   /**
    * false on a screen that shows no total (the quote booking screens say
-   * "Checkout shows your total before you pay"): only the model and the Pay-in-4
-   * choice are checked. Otherwise both amounts must match.
+   * "Checkout shows your total before you pay"): only the model is checked.
+   * Otherwise the job price must match.
    */
   totalShown?: boolean;
   /** Budget + urgent bonus, in cents. */
   jobPriceCents?: number;
-  /** The service fee line the app showed, in cents (0 on the flat model). */
+  /** The service fee line the app showed, in cents: always 0 on the flat model. */
   serviceFeeCents?: number;
 }
 
@@ -99,53 +54,35 @@ export interface JobFeeQuote {
 export const STALE_FEE_QUOTE_MESSAGE =
   "The price of this job has changed since this screen loaded. Refresh (or update the app) to see the new total before you pay.";
 
-/** The service fee a checkout on `model` charges on `jobPriceCents`. */
-export function serviceFeeCentsFor(model: JobFeeModel, jobPriceCents: number, payInFour: boolean): number {
-  if (model !== "poster") return 0;
-  const base = Math.max(0, Math.round(Number(jobPriceCents) || 0));
-  if (base === 0) return 0;
-  return Math.round((base * posterFeePercentFor(payInFour)) / 100) + 70;
-}
-
 function wholeCents(v: unknown): number | null {
   return typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : null;
 }
 
 /**
- * null when the request may be charged; the refusal sentence otherwise.
- * A missing quote is accepted ONLY on the flat model (an older app quoting the
- * flat price is quoting what the flat checkout charges). Any quote that is
- * present must match the server's model, Pay-in-4 choice and both amounts
- * exactly, both ways: a client showing a higher or a lower total is refused.
+ * null when the request may be charged; the refusal sentence otherwise. A
+ * missing quote is accepted (an older app quoting the flat price is quoting what
+ * the checkout charges). A quote that is present must be the flat model, no
+ * Pay in 4, a service fee of 0 and the job price exactly, both ways.
  */
-export function feeQuoteRefusal(
-  quote: unknown,
-  expected: { model: JobFeeModel; payInFour: boolean; jobPriceCents: number },
-): string | null {
-  if (quote === undefined || quote === null) {
-    return expected.model === "flat" && !expected.payInFour ? null : STALE_FEE_QUOTE_MESSAGE;
-  }
+export function feeQuoteRefusal(quote: unknown, expected: { jobPriceCents: number }): string | null {
+  if (quote === undefined || quote === null) return null;
   if (typeof quote !== "object") return STALE_FEE_QUOTE_MESSAGE;
   const q = quote as Record<string, unknown>;
+  if (q.model !== "flat") return STALE_FEE_QUOTE_MESSAGE;
+  if (q.payInFour === true) return STALE_FEE_QUOTE_MESSAGE;
+  if (q.totalShown === false) return null;
   const price = wholeCents(q.jobPriceCents);
   const fee = wholeCents(q.serviceFeeCents);
-  if (q.model !== expected.model) return STALE_FEE_QUOTE_MESSAGE;
-  if ((q.payInFour === true) !== expected.payInFour) return STALE_FEE_QUOTE_MESSAGE;
-  if (q.totalShown === false) return null;
   if (price === null || price !== Math.round(expected.jobPriceCents)) return STALE_FEE_QUOTE_MESSAGE;
-  if (fee === null || fee !== serviceFeeCentsFor(expected.model, expected.jobPriceCents, expected.payInFour)) {
-    return STALE_FEE_QUOTE_MESSAGE;
-  }
+  if (fee !== 0) return STALE_FEE_QUOTE_MESSAGE;
   return null;
 }
 
 /** The quote a screen sends with its escrow request (see JobFeeQuote). */
-export function buildFeeQuote(i: JobFeeModelInputs & { payInFour?: boolean; jobPriceCents?: number }): JobFeeQuote {
-  const model = jobFeeModelFor(i);
-  const payInFour = model === "poster" && i.payInFour === true;
-  if (i.jobPriceCents === undefined) return { model, payInFour, totalShown: false };
+export function buildFeeQuote(i: { jobPriceCents?: number } = {}): JobFeeQuote {
+  if (i.jobPriceCents === undefined) return { model: "flat", payInFour: false, totalShown: false };
   const jobPriceCents = Math.max(0, Math.round(Number(i.jobPriceCents) || 0));
-  return { model, payInFour, totalShown: true, jobPriceCents, serviceFeeCents: serviceFeeCentsFor(model, jobPriceCents, payInFour) };
+  return { model: "flat", payInFour: false, totalShown: true, jobPriceCents, serviceFeeCents: 0 };
 }
 
 /** A charge's card country, when the charge was paid by card (else null). */

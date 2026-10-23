@@ -43,19 +43,16 @@ import {
 } from "@/lib/quotes/api";
 import { quoteErrorMessage } from "@/lib/quotes/errors";
 import { openEscrowCheckout } from "@/lib/escrowCheckout";
-import { useFeature } from "@/hooks/useFeature";
 import { buildFeeQuote, type JobFeeQuote } from "@/lib/jobCheckout";
 
 /**
- * The fee model these screens pay under (owner 2026-10-18, behind
- * jobs_poster_fee). They show no total ("Checkout shows your total before you
- * pay"), so the quote carries the model only; create-payment refuses a
- * mismatch instead of charging a model this build does not know.
+ * The fee model these screens pay under (the flat model, the only one since
+ * the poster-fee model was removed, owner 2026-10-23). They show no total
+ * ("Checkout shows your total before you pay"), so the quote carries the model
+ * only; create-payment refuses a mismatch instead of charging a model this
+ * build does not know.
  */
-function useQuoteFeeQuote(): JobFeeQuote {
-  const posterFeeOn = useFeature("jobs_poster_fee");
-  return buildFeeQuote({ switchOn: posterFeeOn });
-}
+const QUOTE_FEE_QUOTE: JobFeeQuote = buildFeeQuote();
 import { QuotesSideBySide } from "@/components/quotes/QuotesSideBySide";
 import { QUOTE_STATUS_LABEL, QuotesGate, QuotesNotice, REQUEST_STATUS_LABEL, dayLabel, timeLeft } from "@/components/quotes/quotesUi";
 import { QUOTE_HOMES } from "@/lib/quotes/homes";
@@ -118,7 +115,7 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
   const [open, setOpen] = useState(false);
   const [price, setPrice] = useState("");
   const budget = parseWholeDollars(price);
-  const feeQuote = useQuoteFeeQuote();
+  const feeQuote = QUOTE_FEE_QUOTE;
   const go = useMutation({
     mutationFn: async () => {
       const jobId = await switchToSetPrice(request.id, budget ?? 0);
@@ -192,7 +189,7 @@ function RequestView({ id }: { id: string }) {
     enabled: !!bookedJobId,
     queryFn: () => fetchBookedJobPayment(bookedJobId as string),
   });
-  const feeQuote = useQuoteFeeQuote();
+  const feeQuote = QUOTE_FEE_QUOTE;
 
   const book = useMutation({
     mutationFn: async () => {

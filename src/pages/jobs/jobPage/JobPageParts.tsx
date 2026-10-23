@@ -8,7 +8,7 @@ import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import { flatFeePercentOf, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
+import { flatFeePercentOf, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
@@ -70,7 +70,6 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   // Split only on a group job (helperShareCount; helpersNeededSplitIsGroupGated).
   const helpers = helperShareCount(job);
   const flat = isFlatFeeJob(job);
-  const keepsAll = helprPaysNoFee(job);
   // A fee-stamped job pays by its stamp (5% + 70c); an older unstamped job is
   // charged the viewer's own tier rate at payout, the same rate the feed's
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
@@ -83,9 +82,7 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   // check 2026-10-21: 1 real open job on prod was still legacy-priced).
   const feeLine = !flat
     ? `Helpr's fee (${tierPct}%) comes out of your payout. This job was posted before the flat fee, so the older fee applies.`
-    : keepsAll
-      ? "You keep the whole price."
-      : `Helpr's fee (${pct}% + ${flatCents}¢) comes out of your payout.`;
+    : `Helpr's fee (${pct}% + ${flatCents}¢) comes out of your payout.`;
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">

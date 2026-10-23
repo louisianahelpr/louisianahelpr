@@ -172,8 +172,6 @@ export interface JobCharge extends PosterChargedJob {
   payment_status: string | null;
   poster_completed_at: string | null;
   customer_id: string | null;
-  /** Set on a poster-fee job: customer_fee_amount is then the service fee, not only card processing. */
-  poster_fee_flat_cents?: number | string | null;
   /** A legacy tier service fee (e.g. 12%) was stamped here: customer_fee_amount is that fee. */
   platform_fee_percent?: number | string | null;
   /** The card charge; a job with none was not paid by card. */
@@ -220,7 +218,7 @@ export function deriveMoneyEvents(
   const lines: { label: string; cents: number }[] = [{ label: "Job", cents: cents(job.budget) }];
   if (cents(job.urgent_fee) > 0) lines.push({ label: "Urgent bonus", cents: cents(job.urgent_fee) });
   if (cents(job.customer_fee_amount) > 0) {
-    const serviceFee = job.poster_fee_flat_cents != null || Number(job.platform_fee_percent ?? 0) > 0;
+    const serviceFee = Number(job.platform_fee_percent ?? 0) > 0;
     lines.push({ label: serviceFee ? "Service fee" : "Card processing", cents: cents(job.customer_fee_amount) });
   }
   if (cents(job.sales_tax_amount) > 0) lines.push({ label: "Tax", cents: cents(job.sales_tax_amount) });

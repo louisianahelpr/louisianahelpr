@@ -13,7 +13,6 @@ import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
-import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { feeTransferIdempotencyKey, formatExactDollars, isDefiniteStripeRefusal, formatPayoutDollars, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
@@ -1345,7 +1344,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -2825,9 +2824,7 @@ serve(async (req) => {
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
                 ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
-                // A poster-fee job keeps the card processing cost, not a
-                // service fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
-                : `cancellation refund (minus cancellation + ${isPosterFeeJob(job) ? "card processing" : "service"} fee${setupFeeKeptCents(job) > 0 ? " and the kept $2 setup fee" : ""})`,
+                : `cancellation refund (minus cancellation + service fee${setupFeeKeptCents(job) > 0 ? " and the kept $2 setup fee" : ""})`,
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });

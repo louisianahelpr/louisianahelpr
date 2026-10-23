@@ -1,4 +1,3 @@
-import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -416,11 +415,7 @@ export function usePostJobForm() {
   // Review-gate + pre-submit checks + job-insert/payment flow. Extracted
   // into useJobSubmit; all form state is passed through so this hook stays
   // the single source of truth. Behavior is unchanged.
-  // Jobs poster fee (owner 2026-10-18): ONE read of the switch for the
-  // checkout screen (useJobDerived) and the quote it sends (useJobSubmit).
-  const posterFeeOn = useFeature("jobs_poster_fee");
   const { handleReview, handleSubmit } = useJobSubmit({
-    posterFeeOn,
     saving,
     setSaving,
     setRedirecting,
@@ -511,7 +506,6 @@ export function usePostJobForm() {
     // Only a credit the server would actually accept feeds the money math.
     // An unusable one must quote FULL price, not $0 — being under-quoted and
     // then charged is the failure this whole lane exists to prevent.
-    posterFeeOn,
     giftCardAmount: giftCard.usable ? giftCard.creditAmount : null,
   });
 

@@ -18,9 +18,9 @@ export interface EscrowCheckoutOptions {
   /** Gift card redemption: create-payment settles the gift instead of the full charge. */
   giftCardId?: string | null;
   /**
-   * What this screen showed (owner 2026-10-18): the fee model and amounts.
-   * create-payment refuses a poster-fee checkout whose request lacks or
-   * mismatches it, so a stale screen is never charged a total it did not show.
+   * What this screen showed (owner 2026-10-18): the fee model and the job
+   * price. create-payment refuses a request whose quote mismatches it, so a
+   * stale screen is never charged a total it did not show.
    * Build it with buildFeeQuote (src/lib/jobCheckout.ts).
    */
   feeQuote?: JobFeeQuote;
@@ -46,7 +46,7 @@ export function requestEscrowCheckout(jobId: string, opts: EscrowCheckoutOptions
       native: isNativePlatform,
       saveCardForFuture: !!opts.saveCardForFuture,
       ...(opts.giftCardId ? { giftCardId: opts.giftCardId } : {}),
-      ...(opts.feeQuote ? { feeQuote: opts.feeQuote, payInFour: opts.feeQuote.payInFour } : {}),
+      ...(opts.feeQuote ? { feeQuote: opts.feeQuote } : {}),
       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}),
     },
   });

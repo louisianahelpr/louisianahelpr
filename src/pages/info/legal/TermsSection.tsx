@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
 import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
-import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
+import { buildFeeQuote } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
   URGENT_FEE_FLOOR_DOLLARS,
@@ -27,14 +27,12 @@ import {
 
 /**
  * THE POSTER PAYS NOTHING ON TOP (owner 2026-10-20: the Terms describe the
- * current flat model). Read from the checkout's own fee functions at the
- * DEFAULT switch state (jobs_poster_fee off): if that ever charges a poster
- * fee, this sentence stops claiming none (termsPosterPaysNothing guards it).
- * If jobs_poster_fee is switched on for everyone, the Terms must change first
- * (Q2264): the fallback below is a guard, not a complete Terms text (the Helpr
- * fee lines would also be wrong on the poster-fee model).
+ * flat model, the only one since the poster-fee model was removed, owner
+ * 2026-10-23, #3556). Read from the checkout's own quote: if that ever quotes
+ * a poster fee, this sentence stops claiming none (termsPosterPaysNothing
+ * guards it); the fallback below is a guard, not a complete Terms text.
  */
-const POSTER_FEE_ON_DEFAULT_CENTS = serviceFeeCentsFor(jobFeeModelFor({ switchOn: false }), 10_000, false);
+const POSTER_FEE_ON_DEFAULT_CENTS = buildFeeQuote({ jobPriceCents: 10_000 }).serviceFeeCents ?? 0;
 const POSTER_PAYS_SENTENCE =
   POSTER_FEE_ON_DEFAULT_CENTS === 0
     ? "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and the one-time account setup fee."

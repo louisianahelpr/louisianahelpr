@@ -373,7 +373,7 @@ export function useMessagesData({
         : supabase
             .from("jobs")
             .select(
-              "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by, status, payment_status, budget, urgent_fee, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, poster_fee_flat_cents, platform_fee_percent, stripe_payment_intent_id",
+              "cancelled_at, cancelled_by, customer_id, helper_arrived_at, helper_completed_at, helper_id, helper_on_the_way_at, poster_completed_at, revision_requested_at, disputed_at, disputed_by, status, payment_status, budget, urgent_fee, customer_fee_amount, sales_tax_amount, onboarding_fee_amount, platform_fee_percent, stripe_payment_intent_id",
             )
             .eq("id", convo.jobId)
             .maybeSingle(),

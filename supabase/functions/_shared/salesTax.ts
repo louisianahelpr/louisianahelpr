@@ -49,7 +49,6 @@
 // "covered either way" reason as handyman. The same list is in
 // enforce_funded_category_tax_class and is_category_taxable (migration
 // 20261017055441); src/lib/salesTax.parity.test.ts holds all of them equal.
-import { isPosterFeeJob } from "./posterJobFee.ts";
 
 export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
   "assembly",
@@ -179,24 +178,16 @@ export function salesTaxCents(
 
 /**
  * The base Stripe taxed on a job's escrow checkout, in cents: the labor line
- * (the budget) and, on a poster-fee job in a taxable category, the "Service
- * fee" line, which carries the labor's tax code (create-payment escrow, the
- * owner-adopted tax memo 2026-10-17). The urgent bonus, the setup fee and a
- * flat-model job's lines all ship as NONTAXABLE_TAX_CODE, so they are not in
- * it. Dividing the tax by the budget alone overstated the rate on a taxed
- * poster-fee job (lh-money-escrow review of Q1996 slice 3a, #5).
+ * (the budget). The urgent bonus and the setup fee ship as NONTAXABLE_TAX_CODE,
+ * so they are not in it. (The poster-fee model's taxed "Service fee" line was
+ * removed with that model, owner 2026-10-23, #3556; no job was funded on it.)
  */
 export function jobEscrowTaxableBaseCents(job: {
   budget?: number | string | null;
   category?: string | null;
-  customer_fee_amount?: number | string | null;
-  poster_fee_flat_cents?: number | string | null;
 } | null | undefined): number {
   const budgetCents = Math.round(Number(job?.budget ?? 0) * 100);
-  const laborCents = Number.isFinite(budgetCents) && budgetCents > 0 ? budgetCents : 0;
-  if (!isPosterFeeJob(job) || !isLaborTaxable(job?.category)) return laborCents;
-  const feeCents = Math.round(Number(job?.customer_fee_amount ?? 0) * 100);
-  return laborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0);
+  return Number.isFinite(budgetCents) && budgetCents > 0 ? budgetCents : 0;
 }
 
 /**

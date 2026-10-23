@@ -77,10 +77,9 @@ type CancellationDialogProps = {
   /** The job's fee-model stamp (jobs.helper_fee_flat_cents / helper_fee_percent).
    *  A flat-model job's Helpr pays 5% + 70c on the fee, not a tier percent (Q1839). */
   feeStamp?: FlatFeeStamp | null;
-  /** The poster-fee stamp and the fee it charged (jobs.poster_fee_flat_cents,
-   *  customer_fee_amount). On a poster-fee job a gift pays the 5% + 70c first
-   *  too, so it is part of the cost the toast compares the gift with (Q2082 (d)). */
-  posterFee?: { poster_fee_flat_cents?: number | string | null; customer_fee_amount?: number | string | null } | null;
+  /** The fee the poster paid at checkout (jobs.customer_fee_amount): a legacy
+   *  job's service fee, which its cancel keeps (cancelRefundIsLessCardFee). */
+  posterFee?: { customer_fee_amount?: number | string | null } | null;
   open: boolean;
   onClose: () => void;
   onCancelled: () => void;
@@ -204,7 +203,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A flat-model job (Q1839) is priced from its own stamp, 5% + 70c, the cut
   // void-cancelled-payments takes. Floored to the whole dollar the transfer
   // really pays (Q236), in cancellationHelperShare.
-  const { platformCut, helperPayout, feeLabel, noFee } = cancellationHelperShare(payeeFee, feeStamp);
+  const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp);
   // Q1842: a flat-model job (F3, stamped at funding) was charged the job
   // price only, so there is no service fee to keep: its refund is what was
   // paid less the card-processing fee Stripe keeps (refundToPayerCents in
@@ -345,7 +344,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // A failed read says "unknown" and the toast stays neutral.
       let gift: ReturnType<typeof giftOnJobFromRead> = "unknown";
       let cardShareCents: number | null = null;
-      const costCents = giftCostCents(jobBudget, jobUrgentFee, posterFee);
+      const costCents = giftCostCents(jobBudget, jobUrgentFee);
       try {
         const { data: giftRows, error: giftErr } = await supabase
           .from("gift_cards")
@@ -476,13 +475,10 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     </span>
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
-                  {/* No fee line when the Helpr pays none (poster-fee model). */}
-                  {!noFee && (
-                    <div className="flex justify-between text-ds-11">
-                      <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
-                      <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
-                    </div>
-                  )}
+                  <div className="flex justify-between text-ds-11">
+                    <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
+                    <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
+                  </div>
                   <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
                     <span className="text-muted-foreground">{crewQuote ? "Each hired Helpr receives" : `${helperName || "Helpr"} receives`}</span>
                     <span className="font-semibold tabular-nums text-[hsl(var(--sienna-ink))]">at least ${formatPrice(helperPayout)}</span>

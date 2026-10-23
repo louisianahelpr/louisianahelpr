@@ -67,11 +67,6 @@ export const FEATURE_SWITCH_KEYS = [
   // tenants send maintenance requests that become Helpr jobs. Created OFF by
   // 20261017205605; every rentals_* RPC refuses without it (require_feature).
   "rentals",
-  // Jobs poster fee (owner 2026-10-18): the poster pays 5% + $0.70 at checkout
-  // and the Helpr keeps 100%. Created OFF by 20261017234656; create-payment
-  // prices an escrow checkout on it only when the switch is on for the poster,
-  // and the Post a Job checkout shows the fee line from the same switch.
-  "jobs_poster_fee",
   // Board 188, proof on applicants (builder2f 2026-10-21): each applicant's completed jobs in the job's
   // category, for the job's poster. Created 'testers' by 20261021020444; get_applicant_category_counts
   // refuses without it (require_feature).

@@ -62,7 +62,6 @@ interface CheckoutStepProps {
   budgetNum: number;
   /** Parish-scoped helpr-activity signal, or null when not meaningful. */
   helprActivity: HelprActivity | null;
-  customerFeeAmount: number;
   /** Q362: card fee on the urgent bonus, paid on top so the Helpr gets all of it (dollars). */
   urgentCardFeeAmount?: number;
   /** One-time account-setup fee, in dollars — 0 once the poster has paid it. */
@@ -124,7 +123,6 @@ export function CheckoutStep({
   urgentFeeNum,
   budgetNum,
   helprActivity,
-  customerFeeAmount,
   urgentCardFeeAmount = 0,
   onboardingFeeAmount,
   totalCharge,
@@ -154,12 +152,12 @@ export function CheckoutStep({
   // table, the exact-match lookup missed, and the miss read as a rate of ZERO —
   // so seven ZIP codes were quoted $0 on a charge Stripe taxed at 10%.
   // (owner: "show Stripe's number, delete the table")
-  // The poster's service fee on a taxable job is taxed with it (tax memo,
-  // owner 2026-10-18); 0 on the flat model, so nothing changes there.
-  const taxedAmount = budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0);
+  // Only the labor (the job budget) is taxed: every fee line ships as
+  // txcd_00000000 (create-payment), and a job checkout carries no service fee.
+  const taxedAmount = budgetNum;
   const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
   // J3: the tax note names what is taxed, from the SAME taxedAmount the quote is asked for.
-  const taxedWhat = `$${formatPriceExact(taxedAmount)} ${hasTaxableLine(category) && customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"}`;
+  const taxedWhat = `$${formatPriceExact(taxedAmount)} job budget`;
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
   // and the payment breakdown at the bottom read this — the two used to be
   // computed independently (summary showed `totalCharge`, breakdown added an
@@ -264,7 +262,7 @@ export function CheckoutStep({
                 real one.
 
                 `totalCharge` is rendered here, NOT re-derived. This used to
-                compute `budgetNum + customerFeeAmount + urgentFeeNum +
+                compute `budgetNum + urgentFeeNum +
                 onboardingFeeAmount` inline while the breakdown below rendered
                 the hook's `totalCharge` — the same formula in two places, 150
                 lines apart. They agreed only by coincidence: the moment a fee
@@ -461,12 +459,8 @@ export function CheckoutStep({
           )}
           <CheckoutSummaryRow label="Job budget" amount={formatPriceExact(budgetNum)} />
           {/* Roadmap F3 (owner 2026-10-14/15): the poster pays exactly the job
-              price. No service fee and no card-cost line; the row shows only
-              if a fee is ever passed in (never for a post made today, since
-              useJobDerived prices it at 0 like create-payment). */}
-          {customerFeeAmount > 0 && (
-            <CheckoutSummaryRow label="Service fee" amount={formatPriceExact(customerFeeAmount)} />
-          )}
+              price. No service fee and no card-cost line (the poster-fee
+              model's "Service fee" row was removed, owner 2026-10-23, #3556). */}
           {isUrgent && urgentFeeNum > 0 && (
             <CheckoutSummaryRow labelClassName="flex items-center gap-1" label={<><Zap className="w-3 h-3 text-accent" /> Urgent bonus</>} amount={formatPriceExact(urgentFeeNum)} />
           )}

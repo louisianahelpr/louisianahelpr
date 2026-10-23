@@ -13,7 +13,7 @@
 // "at least" figure promised more than the Helpr is sent.
 
 import { floorPayoutDollars } from "@/lib/helperEarnings";
-import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, helprPaysNoFee, isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_CENTS, flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob, type FlatFeeStamp } from "@/lib/helprFlatFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 
 /** Highest commission on the tier ladder (free = 12%): a legacy quote's floor. */
@@ -24,20 +24,12 @@ export interface CancellationHelperShare {
   platformCut: number;
   /** The whole dollars the Helpr is sent (a floor on a legacy job). */
   helperPayout: number;
-  /** The fee line's label, e.g. "5% + $0.70" or "up to 12%"; "No fee" when the Helpr pays none. */
+  /** The fee line's label, e.g. "5% + $0.70" or "up to 12%". */
   feeLabel: string;
-  /** The Helpr pays no fee on this job (poster-fee model, owner 2026-10-18): hide the fee line. */
-  noFee: boolean;
 }
 
 export function cancellationHelperShare(feeDollars: number, job: FlatFeeStamp | null | undefined): CancellationHelperShare {
   const fee = Number.isFinite(feeDollars) && feeDollars > 0 ? feeDollars : 0;
-  // Poster-fee model (owner 2026-10-18): the Helpr keeps the whole fee. Asked
-  // FIRST: such a job is also a flat job (Helpr stamp 0/0), whose label would
-  // read "0% + $0.00" (lh-money-escrow review #4).
-  if (helprPaysNoFee(job)) {
-    return { platformCut: 0, helperPayout: Math.max(0, floorPayoutDollars(fee)), feeLabel: "No fee", noFee: true };
-  }
   if (isFlatFeeJob(job)) {
     const platformCut = helprFlatFeeCents(Math.round(fee * 100), job) / 100;
     const flatCents = Math.round(Number(job?.helper_fee_flat_cents ?? HELPR_FLAT_FEE_CENTS));
@@ -45,7 +37,6 @@ export function cancellationHelperShare(feeDollars: number, job: FlatFeeStamp | 
       platformCut,
       helperPayout: Math.max(0, floorPayoutDollars(fee - platformCut)),
       feeLabel: `${flatFeePercentOf(job)}% + $${(flatCents / 100).toFixed(2)}`,
-      noFee: false,
     };
   }
   const platformCut = Math.round(fee * MAX_HELPER_FEE_PERCENT) / 100;
@@ -53,6 +44,5 @@ export function cancellationHelperShare(feeDollars: number, job: FlatFeeStamp | 
     platformCut,
     helperPayout: Math.max(0, floorPayoutDollars(fee - platformCut)),
     feeLabel: `up to ${MAX_HELPER_FEE_PERCENT}%`,
-    noFee: false,
   };
 }

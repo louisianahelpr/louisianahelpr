@@ -1,0 +1,23 @@
+-- The jobs poster-fee model is removed from the app (owner 2026-10-23, #3556:
+-- "Remove it from the app entirely"). That model (the poster pays 5% + $0.70
+-- at checkout, 9% + $0.70 for Pay in 4, and the Helpr keeps 100%) shipped
+-- behind the 'jobs_poster_fee' switch, created OFF by 20261017234656 and never
+-- switched on: measured read-only on prod 2026-10-23, the switch's audience is
+-- 'off' and no job carries poster_fee_flat_cents. create-payment no longer
+-- reads the switch (every job checkout is the flat model), and no screen reads
+-- it, so its row goes too: an unused switch in Admin -> Settings would offer a
+-- flip that does nothing.
+--
+-- A shipped app build that still asks for the switch reads it as off: the
+-- client's useFeature and the server's feature_enabled_for_user both answer
+-- false for a key with no row (feature_enabled_for_user COALESCEs to false).
+--
+-- Kept on purpose: the jobs.poster_fee_flat_cents column, its CHECK
+-- jobs_poster_fee_model_consistent and the SQL that reads it (redeem_gift_card,
+-- enforce_jobs_fee_model_lock, enforce_series_columns_client_lock). Shipped app
+-- builds select the column in their whole-row job reads, so dropping it would
+-- break them; nothing writes it any more, so those branches stay dormant.
+--
+-- Replay-safe: a DELETE of a row that is absent is a no-op.
+
+DELETE FROM public.feature_switches WHERE key = 'jobs_poster_fee';

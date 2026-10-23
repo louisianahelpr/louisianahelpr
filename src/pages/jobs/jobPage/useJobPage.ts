@@ -37,7 +37,6 @@ export interface JobPageRow {
   photos: string[] | null;
   helper_fee_flat_cents: number | null;
   helper_fee_percent: number | null;
-  poster_fee_flat_cents: number | null;
   /** The parties' lifecycle stamps, for the one tracker (jobProgress); absent on the public browse read. */
   helper_confirmed_at?: string | null;
   helper_dayof_confirmed_at?: string | null;
@@ -55,13 +54,12 @@ export interface JobPageRow {
 const BASE_COLUMNS =
   "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents";
 const PARTY_COLUMNS =
-  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_id, helper_fee_percent, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, has_active_dispute";
+  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_id, helper_fee_percent, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, has_active_dispute";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
     helper_id: null,
     helper_fee_percent: null,
-    poster_fee_flat_cents: null,
     ...(raw as Partial<JobPageRow>),
     budget: Number(raw.budget ?? 0),
     urgent_fee: raw.urgent_fee == null ? null : Number(raw.urgent_fee),

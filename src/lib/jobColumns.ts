@@ -102,9 +102,10 @@ export const JOB_READABLE_COLUMN_LIST = [
   "poster_confirmed_arrival_at",
   "poster_confirmed_at",
   "poster_confirmed_working_at",
-  // The jobs poster-fee stamp (owner 2026-10-18, 20261017230824; measured
-  // live on prod 2026-10-18: column present, authenticated SELECT granted).
-  // Beside helper_fee_flat_cents so a whole-row read carries both stamps.
+  // The jobs poster-fee stamp (owner 2026-10-18, 20261017230824). That model
+  // was removed (owner 2026-10-23, #3556) and nothing writes the column; it
+  // stays in the table, and in this list, because shipped app builds still
+  // select it in their whole-row reads (dropping it would break them).
   "poster_fee_flat_cents",
   "pricing_mode",
   "proof_after_urls",

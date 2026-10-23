@@ -121,6 +121,8 @@ const LOGS_AT_CALLER = ["charge-recurring-visits/index.ts::stripe.paymentIntents
 /** The retrieves that go through the classifier: EXACT. */
 const CLASSIFIED = [
   "_shared/connectGateSync.ts::stripe.accounts.retrieve(p.stripe_account_id)",
+  "_shared/connectGateSync.ts::stripe.accounts.retrieve(p.stripe_account_id)#2",
+  "_shared/livePayoutGate.ts::stripe.accounts.retrieve(accountId)",
   "auto-release-payment/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",
   "auto-release-payment/index.ts::stripe.paymentIntents.retrieve(paymentIntentId)",
   "auto-resolve-disputes/index.ts::stripe.checkout.sessions.retrieve(job.stripe_session_id)",

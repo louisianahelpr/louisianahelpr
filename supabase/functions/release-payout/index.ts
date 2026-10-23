@@ -42,6 +42,15 @@ import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import {
+  CONNECT_NOT_PAYABLE_CODE,
+  CONNECT_REJECTED_CODE,
+  STRIPE_PLATFORM_REJECTED_CODE,
+  closeCachedConnectGate,
+  isPlatformRejectedError,
+  isRejectedAccount,
+  isRejectedAccountError,
+} from "../_shared/livePayoutGate.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
@@ -508,11 +517,64 @@ serve(async (req) => {
   // reject the transfer with a vague error message later. There is no outer
   // try/catch in this handler, so catch here — a Stripe API hiccup would
   // otherwise become an unhandled rejection with zero diagnostics.
+  // Lead, 2026-10-23 (Stripe rejected the platform and every connected
+  // account; prod gets no Connect events, Q876): a refusal that is a FACT
+  // about the account also closes the cached gate on profiles (towards false
+  // only, _shared/livePayoutGate.ts) and tells ops once a day per Helpr, so a
+  // payout that cannot be sent is never only a 409 in a cron's results.
+  const holdNotPayable = async (reason: string) => {
+    const shut = await closeCachedConnectGate(supabaseAdmin, job.helper_id as string, helper.stripe_account_id as string);
+    if (shut.error) console.error(`[release-payout] closing the cached gate failed for ${job.helper_id}: ${shut.error}`);
+    await postSlackOpsAlert({
+      kind: "payout_wait",
+      severity: "warning",
+      oncePerDayKey: `payout-held-not-payable-${job.helper_id}`,
+      seed: job.is_seed === true,
+      title: "Payout held: Stripe does not say the Helpr's account is payable",
+      message: "Stripe says the Helpr's payout account cannot be paid out now, so release-payout refused the payout without attempting a transfer.",
+      fields: { job_id: job.id, helper_id: job.helper_id, account_id: helper.stripe_account_id, reason: reason.slice(0, 200) },
+    });
+  };
   let account;
   try {
     account = await stripe.accounts.retrieve(helper.stripe_account_id);
   } catch (e) {
     const err = e as { message?: string; type?: string; code?: string };
+    // Stripe refusing OUR platform ("your account has been rejected") says
+    // nothing about this Helpr's account: "cannot verify" (lead, 2026-10-23).
+    // Nothing moved, the cache is left alone, ops hear once a day.
+    if (isPlatformRejectedError(e)) {
+      console.warn(`[release-payout] Stripe refused the platform account reading ${helper.stripe_account_id} (job ${job.id}): ${err?.message ?? ""}`);
+      await postSlackOpsAlert({
+        kind: "payout_wait",
+        severity: "warning",
+        oncePerDayKey: "payout-held-platform-rejected",
+        seed: job.is_seed === true,
+        title: "Payouts held: Stripe refuses the platform's account",
+        message: "Stripe answered that the platform's own account has been rejected, so release-payout cannot verify any Helpr's account and refused the payout without attempting a transfer.",
+        fields: { job_id: job.id, helper_id: job.helper_id, reason: String(err?.message ?? "").slice(0, 200) },
+      });
+      return jsonResponse(
+        {
+          error: "Stripe could not confirm the Helpr's payout account right now, so this payout was not sent. Nothing was moved.",
+          code: STRIPE_PLATFORM_REJECTED_CODE,
+        },
+        409,
+      );
+    }
+    // Stripe refused the read because THIS account was rejected: no retry
+    // changes that answer. 409, nothing moved.
+    if (isRejectedAccountError(e)) {
+      console.warn(`[release-payout] Connect account ${helper.stripe_account_id} was rejected by Stripe (job ${job.id}): ${err?.message ?? ""}`);
+      await holdNotPayable(err?.message ?? "rejected");
+      return jsonResponse(
+        {
+          error: "Stripe rejected the Helpr's payout account, so this payout cannot be sent. Nothing was moved.",
+          code: CONNECT_REJECTED_CODE,
+        },
+        409,
+      );
+    }
     // Q1251: a Connect account the live key can never use (a sandbox account
     // made under the test key, or one Stripe no longer has) is an answer, not
     // an outage: a retry gets the same refusal. 409 with what to do, never a
@@ -533,10 +595,14 @@ serve(async (req) => {
     );
     return jsonResponse({ error: "could not verify Helpr Connect account — retry" }, 502);
   }
-  if (!account.payouts_enabled || !account.charges_enabled) {
+  if (!account.payouts_enabled || !account.charges_enabled || isRejectedAccount(account)) {
+    await holdNotPayable(
+      `payouts_enabled=${account.payouts_enabled === true}, charges_enabled=${account.charges_enabled === true}${account.requirements?.disabled_reason ? `, ${account.requirements.disabled_reason}` : ""}`,
+    );
     return jsonResponse(
       {
         error: "Helpr Connect account is not fully active",
+        code: isRejectedAccount(account) ? CONNECT_REJECTED_CODE : CONNECT_NOT_PAYABLE_CODE,
         payouts_enabled: account.payouts_enabled,
         charges_enabled: account.charges_enabled,
       },

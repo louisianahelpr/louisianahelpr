@@ -512,6 +512,58 @@ describe("release-payout edge function", () => {
       expect(res.status).toBe(409);
       expect((await json(res)).error).toMatch(/not fully active/i);
     });
+
+    // Lead 2026-10-23: Stripe rejected the platform and every connected account.
+    // @mutate supabase/functions/release-payout/index.ts |     if (isRejectedAccountError(e)) { |     if (false) {
+    // @mutate supabase/functions/release-payout/index.ts |   if (!account.payouts_enabled \|\| !account.charges_enabled \|\| isRejectedAccount(account)) { |   if (!account.payouts_enabled \|\| !account.charges_enabled) {
+    // @mutate supabase/functions/release-payout/index.ts |     const shut = await closeCachedConnectGate(supabaseAdmin, job.helper_id as string, helper.stripe_account_id as string); |     const shut = { error: null };
+    const closingWrites = () => scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" &&
+      (w.payload as Record<string, unknown>).stripe_payouts_enabled === false);
+    it("a read Stripe refuses with \"has been rejected\": 409, nothing moved, cached gate closed, ops told", async () => {
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(
+        new Error("An account link cannot be created for this account because the account has been rejected."),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      ));
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("connect_account_rejected");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(closingWrites()).toHaveLength(1);
+      expect((slackAlerts as Array<{ oncePerDayKey?: string }>).some((a) => a.oncePerDayKey === "payout-held-not-payable-helper-1")).toBe(true);
+    });
+
+    // @mutate supabase/functions/release-payout/index.ts |     if (isPlatformRejectedError(e)) { |     if (false) {
+    it("Stripe refusing OUR platform: 409 stripe_platform_rejected, nothing moved, the cache left alone, one platform alert", async () => {
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(
+        new Error("You cannot create new accounts because your account has been rejected."),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      ));
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("stripe_platform_rejected");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(closingWrites()).toHaveLength(0);
+      expect((slackAlerts as Array<{ oncePerDayKey?: string }>).map((a) => a.oncePerDayKey)).toContain("payout-held-platform-rejected");
+    });
+
+    it("an account whose flags read enabled but Stripe rejected it: 409, nothing moved, cached gate closed", async () => {
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        id: "acct_helper",
+        payouts_enabled: true,
+        charges_enabled: true,
+        requirements: { disabled_reason: "rejected.other" },
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(closingWrites()).toHaveLength(1);
+    });
   });
 
   describe("payout math + transfer", () => {

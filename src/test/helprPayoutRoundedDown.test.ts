@@ -101,7 +101,7 @@ const PAYOUT_FORMAT_ARGS: Record<string, string[]> = {
   "supabase/functions/_shared/crewBlockFees.ts": ["payoutCents / 100"],
   "supabase/functions/execute-dispute-split/index.ts": ["helperDollars"],
   "supabase/functions/instant-payout/index.ts": ["netCents"],
-  "supabase/functions/process-scheduled-payouts/index.ts": ["helperPayout", "helperPayout"],
+  "supabase/functions/process-scheduled-payouts/index.ts": ["helperPayout", "helperPayout", "helperPayout"],
   "supabase/functions/void-cancelled-payments/index.ts": ["helperPayout", "memberPayout"],
   "supabase/functions/weekly-helper-report/index.ts": ["weeklyEarnings"],
 };

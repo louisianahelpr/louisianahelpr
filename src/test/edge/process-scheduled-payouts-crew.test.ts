@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
@@ -90,7 +90,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 
@@ -183,7 +183,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     await run();
     expect(unallocated()).toBe(0);
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
     // A roster row from before 20260925154606: no slot, no frozen share.
     seedCrew([["m1", 0, 3334]]);
@@ -434,7 +434,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(shortPages()).toBe(0);
 
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 12, sales_tax_amount: 9 });
@@ -457,7 +457,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     realFeeCents: number | null,
   ) => {
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob(job);
@@ -690,7 +690,7 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 

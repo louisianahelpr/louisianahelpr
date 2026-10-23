@@ -12,8 +12,9 @@
 --     written into this public repo). Readable by no member; admins manage it in SQL.
 --  2. closed_reason gains 'other_helpr_selected' (the CHECK is restated with every existing value).
 --  3. trg_applications_owner_cancel_quiet, AFTER UPDATE: when an application of a job posted by one of
---     those accounts is closed 'job_cancelled', and its applicant is not the job's hired Helpr, the reason
---     becomes 'other_helpr_selected'. AFTER, not BEFORE, on purpose: notify_on_application (also AFTER) has
+--     those accounts is closed 'job_cancelled', and its applicant is not someone the job is told about
+--     (the job's hired Helpr, a pending direct-offer recipient, or a crew member on group_job_helpers: the
+--     same people notify_on_application and poster_cancel_job tell), the reason becomes 'other_helpr_selected'. AFTER, not BEFORE, on purpose: notify_on_application (also AFTER) has
 --     already seen 'job_cancelled' and sent nothing to an unhired applicant; a BEFORE rewrite would have
 --     made it send "was not selected". The second UPDATE leaves status 'rejected' -> 'rejected', which
 --     notify_on_application ignores (it acts only on pending -> rejected), and does not re-fire this trigger
@@ -45,6 +46,27 @@ ALTER TABLE public.applications DROP CONSTRAINT IF EXISTS applications_closed_re
 ALTER TABLE public.applications ADD CONSTRAINT applications_closed_reason_check
   CHECK (closed_reason IS NULL OR closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text, 'not_confirmed'::text, 'other_helpr_selected'::text]));
 
+-- One rule for the trigger and the backfill: the job is posted by one of those accounts, and the applicant
+-- is nobody the cancel tells (notify_on_application's own test: the hired Helpr, or a pending direct offer's
+-- recipient; poster_cancel_job's crew loop: anyone on group_job_helpers).
+CREATE OR REPLACE FUNCTION public.quiet_cancel_applies(p_job_id uuid, p_helper_id uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM public.jobs j
+      JOIN public.quiet_cancel_posters q ON q.user_id = j.customer_id
+     WHERE j.id = p_job_id
+       AND p_helper_id IS DISTINCT FROM j.helper_id
+       AND NOT COALESCE(p_helper_id = j.offered_to_helper_id AND j.direct_offer_status = 'pending', false)
+       AND NOT EXISTS (SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)
+  );
+$function$;
+REVOKE ALL ON FUNCTION public.quiet_cancel_applies(uuid, uuid) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.applications_owner_cancel_quiet()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -54,12 +76,7 @@ AS $function$
 BEGIN
   IF NEW.closed_reason = 'job_cancelled'
      AND OLD.closed_reason IS DISTINCT FROM 'job_cancelled'
-     AND EXISTS (
-       SELECT 1 FROM public.jobs j
-        JOIN public.quiet_cancel_posters q ON q.user_id = j.customer_id
-       WHERE j.id = NEW.job_id
-         AND NEW.helper_id IS DISTINCT FROM j.helper_id
-     ) THEN
+     AND public.quiet_cancel_applies(NEW.job_id, NEW.helper_id) THEN
     UPDATE public.applications SET closed_reason = 'other_helpr_selected' WHERE id = NEW.id;
   END IF;
   RETURN NULL;
@@ -75,8 +92,5 @@ CREATE TRIGGER trg_applications_owner_cancel_quiet
 -- Backfill: those accounts' jobs already cancelled.
 UPDATE public.applications a
    SET closed_reason = 'other_helpr_selected'
-  FROM public.jobs j
-  JOIN public.quiet_cancel_posters q ON q.user_id = j.customer_id
- WHERE a.job_id = j.id
-   AND a.closed_reason = 'job_cancelled'
-   AND a.helper_id IS DISTINCT FROM j.helper_id;
+ WHERE a.closed_reason = 'job_cancelled'
+   AND public.quiet_cancel_applies(a.job_id, a.helper_id);

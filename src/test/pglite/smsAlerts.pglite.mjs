@@ -229,7 +229,7 @@ const nExpired = await ins(A, "warning", "Offer expired", JOB);
 check("a back-out reminder queues nothing", (await row(nExpired)) === undefined);
 const nB = await ins(B, "message", "Lexi L.");
 check("a member who never opted in costs nothing (no row)", (await row(nB)) === undefined);
-check("sms_messages has no phone/body column (only a confirmation's md5 phone_hash)", !(await q(`select column_name from information_schema.columns where table_name='sms_messages'`)).some((r) => r.column_name !== "phone_hash" && /phone|body|title|message$/.test(r.column_name)));
+check("sms_messages has no phone/body column (only a confirmation's md5 phone_hash)", !(await q(`select column_name from information_schema.columns where table_name='sms_messages'`)).some((r) => r.column_name !== "phone_hash" && (/phone|body|title/.test(r.column_name) || r.column_name.endsWith("message"))));
 
 // ── the dispatcher ─────────────────────────────────────────────────────────
 check("sms_dispatch_due: nothing due -> no call", (await one(`select sms_dispatch_due()->>'due'`)) === "0" && (await one(`select count(*)::int from net.calls`)) === 0);

@@ -53,6 +53,12 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # function via resend.webhooks.verify() + RESEND_WEBHOOK_SECRET.
   [functions.resend-webhook]
     verify_jwt = false
+  # PayPal delivers webhooks over plain HTTPS with no Supabase JWT. Authenticity
+  # is enforced INSIDE the function, fail closed: PayPal's verify-webhook-signature
+  # postback, or its certificate when PayPal is unreachable
+  # (_shared/payments/paypalWebhookVerify.ts). Nothing is stored before that.
+  [functions.paypal-webhook]
+    verify_jwt = false
   [functions.create-payment]
     verify_jwt = false
   [functions.process-email-queue]

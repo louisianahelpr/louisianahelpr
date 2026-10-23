@@ -127,7 +127,7 @@ describe("send-sms-notification", () => {
     scenario.rpc.sms_record_result = true;
     const fn = await loadSend(TWILIO_ENV);
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: DRAIN }));
-    expect(fetchCalls.filter((c) => c.url.includes("api.twilio.com"))).toEqual([]);
+    expect(fetchCalls.filter((c) => new URL(c.url).hostname === "api.twilio.com")).toEqual([]);
     expect(await res.json()).toMatchObject({ sent: 0, failed: 1 });
     expect(scenario.rpcCalls?.[1]).toMatchObject({
       name: "sms_record_result", args: { p_sms_id: "sms-jm", p_status: "failed", p_provider_sid: null, p_error_code: "job_match_retired" },

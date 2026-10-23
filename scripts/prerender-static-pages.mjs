@@ -22,20 +22,9 @@ const outPath = path.join(root, "scripts", "generated", "static-pages.js");
 // A minimal config, not vite.config.ts: that file aliases react/react-dom to absolute file paths (one React for the
 // browser bundle), which makes Vite's SSR loader inline React's CommonJS as ESM and fail. Here React stays a plain
 // external dependency of Node. The "@" alias, the JSX runtime and the build-time defines match the app's.
-// React Router's <Link> uses useLayoutEffect, which React reports once per link on a server render. The output is
-// unaffected (static markup has no effects); drop that one message so the build log stays readable.
-const consoleError = console.error;
-console.error = (...args) => {
-  if (typeof args[0] === "string" && args[0].startsWith("Warning: useLayoutEffect does nothing on the server")) return;
-  consoleError(...args);
-};
-// The Supabase client warns when a DEV server points at prod; Vite's SSR loader is a dev server, but nothing here
-// connects to anything (static render, no queries run).
-const consoleWarn = console.warn;
-console.warn = (...args) => {
-  if (typeof args[0] === "string" && args[0].startsWith("[supabase] Local dev is pointed at PRODUCTION")) return;
-  consoleWarn(...args);
-};
+// React Router's <Link> warns about useLayoutEffect once per link on a server render, and the Supabase client
+// warns that a dev server points at prod. Both are harmless here (static markup, no queries run) and are left in
+// the log: a console wrapper that forwards arbitrary arguments is a clear-text-logging sink (CodeQL).
 const server = await createServer({
   root,
   mode: "production",

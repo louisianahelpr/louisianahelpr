@@ -309,7 +309,7 @@ serve(async (req) => {
   // Only 'failed' (money never left) is safely re-payable automatically.
   const { data: ledgerRowsRaw, error: existingErr } = await supabaseAdmin
     .from("payout_transfers")
-    .select("id, stripe_transfer_id, status, created_at, amount_cents")
+    .select("id, stripe_transfer_id, status, created_at, amount_cents, metadata")
     .eq("job_id", job.id);
   if (existingErr) {
     console.error(`[release-payout] duplicate-transfer check failed for job ${job.id}:`, existingErr);
@@ -352,6 +352,28 @@ serve(async (req) => {
         error: "a transfer on this job was reversed — payout refused until an operator clears it",
         reversed_transfer_id: reversedRow.stripe_transfer_id,
       },
+      409,
+    );
+  }
+
+  // Q2357: a job a dispute split settled is paid ONLY by that split. Its leg can come back 'failed' (the
+  // webhook re-opens the dispute instead of re-queueing), and this function would pay the FULL job amount on
+  // top of the poster's refund: its escrow cap ignores refunds. Refuse; the split's Retry settlement re-sends
+  // the Helpr's share.
+  const splitLeg = ledgerRows.find((r) => ((r as { metadata?: { source?: unknown } | null }).metadata ?? {}).source === "execute_dispute_split");
+  if (splitLeg) {
+    console.error(`[release-payout] job ${job.id} refused: it was settled by a dispute split (${splitLeg.stripe_transfer_id ?? splitLeg.id})`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Payout refused — this job was settled by a dispute split",
+      message: "A full payout was requested for a job a dispute split settled. Nothing was sent. If the split's transfer failed, re-run the split (Retry settlement) so only the Helpr's share goes out.",
+      fields: { "Job ID": job.id, "Split transfer": splitLeg.stripe_transfer_id ?? splitLeg.id, "Initiated by": initiatedBy },
+      link: "https://www.louisianahelpr.com/admin?view=disputes",
+      oncePerDayKey: `release-payout-split-leg:${job.id}`,
+    });
+    return jsonResponse(
+      { error: "this job was settled by a dispute split — re-run the split (Retry settlement), not a full payout", split_transfer_id: splitLeg.stripe_transfer_id },
       409,
     );
   }

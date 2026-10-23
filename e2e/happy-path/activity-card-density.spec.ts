@@ -51,6 +51,16 @@ mkdirSync(SHOTS, { recursive: true });
 type Row = Record<string, unknown>;
 
 /** Local "YYYY-MM-DD" `days` from today — matches the `date` wire format. */
+/** A job start `minutes` from now, as Louisiana's date and wall-clock time (the app reads both in America/Chicago). */
+function startInLouisiana(minutes: number): { date_needed: string; start_time: string } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date(Date.now() + minutes * 60_000))
+      .map((x) => [x.type, x.value]),
+  );
+  return { date_needed: `${parts.year}-${parts.month}-${parts.day}`, start_time: `${parts.hour}:${parts.minute}:00` };
+}
+
 function localDate(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() + days);
@@ -556,8 +566,9 @@ test.describe("My Posts — card density + header", () => {
     await installSupabaseMocks(page, {
       user: FAKE_CUSTOMER,
       seed: true,
-      // A HIRED job: the Helpr accepted (helper_confirmed_at), both confirmed the day before, then set off.
-      rules: [jobsRule([{ ...inProgressJobStarting(-1), helper_confirmed_at: new Date(Date.now() - 86_400_000).toISOString(), helper_dayof_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), poster_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), helper_on_the_way_at: new Date().toISOString() }])],
+      // A HIRED job: the Helpr accepted (helper_confirmed_at), both confirmed, then set off. It starts 90 minutes
+      // from now: a start already past with no arrival is a No-show on the tracker (owner 2026-10-22), not "Arr.".
+      rules: [jobsRule([{ ...inProgressJobStarting(0), ...startInLouisiana(90),helper_confirmed_at: new Date(Date.now() - 86_400_000).toISOString(), helper_dayof_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), poster_confirmed_at: new Date(Date.now() - 3_600_000).toISOString(), helper_on_the_way_at: new Date().toISOString() }])],
     });
     await expandCard(page, IN_PROGRESS_ID);
 

@@ -335,9 +335,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await page.goto(`/posts?job=${job.id}`);
         // /posts is a redirect into Explore's Posted tab since the redesign
         // (PostsPage.tsx: /posts?x -> /jobs?tab=posted&x; nightly-red #2436),
-        // keeping ?job=. The screen's one h1 is the section top bar's.
+        // keeping ?job=. The screen's one h1 is the section's name, "Jobs": visible in the desktop title bar, and on a
+        // phone (Q2359, owner 2026-10-22: the bar is the section chips with the bell and photo) screen-reader only.
+        // This project runs at both widths (journeys: Desktop Chrome, journeys-webkit: iPhone 13).
         await expect(page, "/posts did not land on Explore's Posted tab").toHaveURL(/\/jobs\?(?=.*tab=posted)(?=.*job=)/, { timeout: 45_000 });
-        await expect(page.getByRole("heading", { name: "Explore", level: 1 })).toBeVisible({ timeout: 45_000 });
+        await expect(page.getByRole("heading", { name: "Jobs", level: 1 })).toBeAttached({ timeout: 45_000 });
+        await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
         // `?job=` is the app's OWN "take me to this job" link (Activity.tsx):
         // when the id is in `postedJobs` it sets the status filter to that
         // job's live bucket and highlights the card, so the row would be on

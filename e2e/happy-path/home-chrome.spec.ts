@@ -144,9 +144,14 @@ for (const variant of [
     // owner 2026-10-21: PageTitleBar portals into DesktopTopNav's slot) ---
     const bar = isDesktopWeb ? page.locator("[data-desktop-title-slot]") : page.getByTestId("app-top-bar");
     await expect(bar).toBeVisible();
-    // Phone (2026-10-20, mock-up 6): the bar reads "Explore" and has no "+" (the bottom bar's
-    // center "+" creates); the switcher under it names the section. Desktop keeps "Jobs" and its "+".
-    await expect(bar.getByRole("heading", { level: 1, name: isDesktopWeb ? "Jobs" : "Explore" })).toBeVisible();
+    // Phone (Q2359, owner 2026-10-22, the Explore header): no visible title; the bar IS the section chips with the
+    // bell and the photo, and the page's h1 is the section's name, screen-reader only. No "+" (the bottom bar's
+    // center "+" creates). Desktop keeps the visible "Jobs" title and its "+".
+    if (isDesktopWeb) await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
+    else {
+      await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toHaveCount(1);
+      await expect(bar.getByTestId("explore-switcher")).toBeVisible();
+    }
     if (!isDesktopWeb) {
       await expect(bar.getByTestId("section-add"), `no + in the phone bar @ ${variant.tag}`).toHaveCount(0);
       await expect(page.getByTestId("explore-switcher").getByRole("radio", { name: "Jobs" })).toHaveAttribute("aria-checked", "true");

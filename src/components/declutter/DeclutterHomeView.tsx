@@ -49,6 +49,7 @@ import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
+import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { SellItForMeEntry } from "./SellItForMe";
 import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -480,6 +481,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           </div>
         }
       />
+      {/* Seller delivery (20261023130254): only while its switch is on for the member. */}
+      <SellerDeliveryCard />
       <DeliverEntry />
     </div>
   );

@@ -16,14 +16,14 @@
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF v_side <> 'buyer' THEN | IF false THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF o.handover <> 'pickup_home' THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
- * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
+ * @mutate supabase/migrations/20261023130254_declutter_seller_delivery.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
  * @mutate supabase/migrations/20261018184535_declutter_delivery_no_dropoff_code.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
- * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
+ * @mutate supabase/migrations/20261023130254_declutter_seller_delivery.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261023130254_declutter_seller_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
@@ -87,7 +87,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(flat(MIG)).toContain("order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,");
     expect(flat(MIG)).toContain("CONSTRAINT declutter_payouts_amount CHECK (amount_cents = items_cents - debt_cents AND amount_cents >= 0)");
     const done = flat(body("declutter_complete_handover"));
-    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents);");
+    // Seller delivery (20261023130254): the cap is items + the seller's rate (0 on every other handover).
+    expect(done).toContain("v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' || o.id::text, o.items_cents + v_rate);");
     expect(done).toContain("ON CONFLICT (order_id) DO NOTHING");
   });
 
@@ -140,9 +141,11 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
 
   it("owner 2026-10-18: porch auto-pay needs the set-out photo; door pickups end by the seller's \"Picked up\"; no NEW 'code' anywhere; Helpr delivery has no code", () => {
     const sw = flat(body("declutter_handover_sweep"));
-    expect(DEFS.get("declutter_handover_sweep")?.file).toBe(NO_QR_FILE);
-    // both the query and the re-check under the lock
-    expect(sw.split("h.set_out_photo_path IS NOT NULL").length - 1).toBe(2);
+    // Restated by seller delivery (20261023130254) with the porch rule unchanged.
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261023130254_declutter_seller_delivery.sql");
+    // porch: both the query and the re-check under the lock
+    expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
+    expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
     const sp = flat(body("declutter_seller_picked_up"));
     expect(sp).toContain("IF v_side <> 'seller' THEN RAISE EXCEPTION 'wrong_side'");
     expect(sp).toContain("IF o.handover <> 'pickup_home' THEN RAISE EXCEPTION 'not_a_door_pickup'");

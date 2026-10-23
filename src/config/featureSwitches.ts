@@ -82,6 +82,11 @@ export const FEATURE_SWITCH_KEYS = [
   // Board 190, price guidance (builder2f 2026-10-21): what most real completed jobs in a category paid, shown
   // only with 30+ jobs. Created 'testers' by 20261021054721; get_price_guidance refuses without it.
   "price_guidance",
+  // Declutter seller delivery (docs/specs/declutter-seller-delivery.md): the
+  // seller delivers for a flat rate and the buyer picks a date and time.
+  // Created OFF by 20261023130254; its settings, offer and checkout refuse
+  // without it AND 'declutter' (require_feature).
+  "declutter_seller_delivery",
   // Come-back emails (owner yes 2026-10-21): a note from the founder to a member
   // who signed up and never came back (about day 3, one more about day 10).
   // Created OFF by 20261021113827. No screen: SERVER_ONLY below.

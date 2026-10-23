@@ -17,7 +17,8 @@ import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles"
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
-export type Handover = "pickup_home" | "porch" | "delivery";
+/** 20261023130254 adds "seller_delivery": the seller brings it at a time the buyer picks (switch declutter_seller_delivery). */
+export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery";
 
 const DECLUTTER_PHOTO_BUCKET = "job-photos";
 
@@ -642,8 +643,12 @@ export async function startCardSave(): Promise<string> {
 }
 
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */
-export async function startCheckoutPayment(sellerId: string, handover: Handover): Promise<{ url: string | null; paid: boolean }> {
-  const data = await invokeDeclutter("declutter-checkout", { action: "pay", seller_id: sellerId, handover });
+export async function startCheckoutPayment(sellerId: string, handover: Handover, slotStart?: string | null, handoff?: "leave" | "hand" | null): Promise<{ url: string | null; paid: boolean }> {
+  // A seller delivery carries the picked time (held while the payment page is open) and the buyer's door choice.
+  const data = await invokeDeclutter("declutter-checkout", {
+    action: "pay", seller_id: sellerId, handover,
+    ...(handover === "seller_delivery" ? { slot_start: slotStart ?? null, handoff: handoff ?? null } : {}),
+  });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
 }
 

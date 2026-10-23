@@ -90,7 +90,9 @@ CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
   stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
-  ban_status text DEFAULT 'active', auto_suspended_until timestamptz);
+  ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
+  -- Q1803 (20261022002144): the newest is_caller_banned also refuses an under-13 block.
+  under_13_blocked_at timestamptz);
 -- Live columns of public.notifications (information_schema, prod, 2026-10-14).
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, title text NOT NULL,
   message text NOT NULL, type text NOT NULL, read boolean NOT NULL DEFAULT false, link text,

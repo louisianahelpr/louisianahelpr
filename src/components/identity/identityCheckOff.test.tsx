@@ -17,6 +17,8 @@ import { openIdentityCheck, needsIdentityCheck } from "@/lib/identityCheck";
 import { acceptMissingFromProfile } from "@/lib/awardGate";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
+// Payout setup open here: this file is about the ID check (payout pause: src/components/payouts/payoutSetupPaused.test.tsx).
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 
 import { TrustMarksCard } from "@/components/profile/profileEditForm/TrustMarksCard";
 import { IdentityPromptCard } from "@/components/identity/IdentityPromptCard";

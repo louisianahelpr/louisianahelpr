@@ -11,7 +11,7 @@ import {
 import HelprMark from "@/components/HelprMark";
 import { CreateSheet } from "@/components/create/CreateSheet";
 import { leftItems, rightItems, exploreItem, youItem } from "@/components/mobileNav/mobileNavHelpers";
-import { useSectionTabs, comingSoonLabel, sayComingSoon } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel, sayComingSoon, sectionComingSoon } from "@/components/mobileNav/useSectionTabs";
 import type { DockItem } from "@/components/mobileNav/dockItems";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -23,7 +23,6 @@ import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { SoonPill } from "@/components/sections/SoonPill";
-import { PreviewPill } from "@/components/sections/PreviewPill";
 
 /**
  * DesktopSidebarNav — the persistent LEFT sidebar (owner 2026-10-19: left and
@@ -47,7 +46,7 @@ import { PreviewPill } from "@/components/sections/PreviewPill";
  * unread/activity counts stay consistent across the two navs.
  */
 
-type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; preview?: boolean; nested?: boolean };
+type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; soonMark?: boolean; nested?: boolean };
 
 /**
  * Admin — the SAME five destinations for everyone, plus one expandable group
@@ -121,7 +120,7 @@ const DesktopSidebarRail = () => {
       const t = sectionTabs.find((x) => x.path === sec.path);
       // Jobs and Shops carry their share of the To-do count (Explore's badge is the total); Declutter and Homes have no to-dos yet, so none is shown.
       const badgeKey = sec.key === "jobs" ? ("todoJobs" as const) : sec.key === "shops" ? ("todoShops" as const) : undefined;
-      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, preview: t ? t.preview : false, badgeKey };
+      return { path: sec.path, icon: sec.icon, label: sec.label, nested: true, comingSoon: t ? !t.on : false, soonMark: t ? sectionComingSoon(t) : false, badgeKey };
     }),
     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
     youItem,
@@ -220,7 +219,8 @@ const DesktopSidebarRail = () => {
           const { path, icon: Icon, label } = item;
           const badgeKey = "badgeKey" in item ? item.badgeKey : undefined;
           const soon = "comingSoon" in item && !!item.comingSoon;
-          const preview = !soon && "preview" in item && !!item.preview;
+          // "Coming soon" beside the name for a closed section AND a tester-only one (sectionComingSoon); only a closed one is inert.
+          const soonMark = soon || ("soonMark" in item && !!item.soonMark);
           const active = !soon && isActive(path);
           const count = soon ? 0 : badgeFor(badgeKey);
           return (
@@ -265,10 +265,7 @@ const DesktopSidebarRail = () => {
                 >
                   {label}
                 </span>
-                {soon && (
-                  <SoonPill variant="short" aria-hidden="true" className="ml-auto" />
-                )}
-                {preview && <PreviewPill variant="compact" className="ml-auto" />}
+                {soonMark && <SoonPill variant="rail" data-rail-soon="" aria-hidden={soon ? "true" : undefined} className="ml-auto" />}
               </button>
             </li>
           );

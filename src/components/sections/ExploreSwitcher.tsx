@@ -4,7 +4,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
-import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel, sectionComingSoon } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
 import { sectionByKey, type SectionDef, type SectionKey } from "./sectionsConfig";
 import { SoonPill } from "./SoonPill";
@@ -104,7 +104,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     const on = isOn(s);
     // ONE word for a section not open to everyone (owner, 2026-10-22): "Coming soon", for a member (closed: a tap
     // does nothing) and for a tester alike (open to them; inside, the "early preview" banner says why).
-    const soon = !on || isPreview(s);
+    const soon = sectionComingSoon({ on, preview: isPreview(s) });
     return {
       value: s.key,
       label: soon ? (

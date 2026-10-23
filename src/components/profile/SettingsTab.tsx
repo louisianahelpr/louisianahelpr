@@ -19,7 +19,6 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
-import { PreviewPill } from "@/components/sections/PreviewPill";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -182,7 +181,7 @@ export function SettingsTab({
               testId={`section-${s.key}`}
               label={s.label}
               // Beside the name, not the switch: there it squeezed the blurb onto two lines at 375 (looked, 2026-10-21).
-              badge={preview ? <PreviewPill data-section-preview={s.key} /> : undefined}
+              badge={preview ? <SoonPill variant="short" data-section-preview={s.key} /> : undefined}
               sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
               right={
                 on ? (

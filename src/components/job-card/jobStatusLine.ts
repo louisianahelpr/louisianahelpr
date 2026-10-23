@@ -657,6 +657,7 @@ export type HelperWait =
   | "submitted"
   | "revision"
   | "revision_sent"
+  | "overdue_unconfirmed_day"
   | "overdue_not_started"
   | "overdue_not_arrived"
   | "overdue_unfinished"
@@ -737,9 +738,14 @@ export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   /* PAST THE DAY, NAMED BY THE NEXT TRACKER STEP (owner, 2026-10-01). "Mark
      it done or cancel" offered a "mark it done" the Helpr's tracker does not
      have until they are at the job. A Helpr who has not set off owes On My
-     Way (or `helper_cancel_booking`), one on the way owes I've arrived, and
-     one at the job owes finishing and Mark Done. */
-  overdue_not_started: { detail: "Day passed — On My Way or cancel" },
+     Way, one on the way owes I've arrived, and one at the job owes finishing
+     and Mark Done. Not "or cancel" (owner, 2026-10-23): helper_cancel_booking
+     refuses once the start has passed, so the line names only what the card
+     offers: the face's I'm on my way (trackerAgreesWithCard). */
+  overdue_not_started: { detail: "Day passed — tap I'm on my way" },
+  /* Past the day without the Helpr's day-before confirm: On my way needs it (Q1570) and a cancel is refused after
+     the start, so the card offers only Manage job; the line states what happened instead of naming a button. */
+  overdue_unconfirmed_day: { detail: "Day passed — you never confirmed" },
   overdue_not_arrived: { detail: "Day passed — tap I've arrived" },
   overdue_unfinished: { detail: "Day passed — finish and mark it done" },
   /* Past the day, at the job, and the before photo is still the primary. */
@@ -881,7 +887,8 @@ const OVERDUE_ARRIVED: Record<ArrivedWait, HelperWait> = {
 function helperOverdue(job: Job, progress?: HelperCardProgress): HelperWait {
   if (job.helper_arrived_at) return OVERDUE_ARRIVED[arrivedWait(job, progress)];
   if (job.helper_on_the_way_at) return "overdue_not_arrived";
-  return job.status === "in_progress" ? "overdue_unfinished" : "overdue_not_started";
+  if (job.status === "in_progress") return "overdue_unfinished";
+  return job.helper_dayof_confirmed_at ? "overdue_not_started" : "overdue_unconfirmed_day";
 }
 
 export function helperStatusLine(

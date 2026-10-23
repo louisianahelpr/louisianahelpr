@@ -22,7 +22,7 @@
  * @mutate src/index.css | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {\n  transition: none !important; | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="text-page-title">{title}</h1>
- * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
+ * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = sectionComingSoon({ on, preview: isPreview(s) }); |     const soon = !on;
  * @mutate src/components/sections/SectionScreen.tsx | {section && <SectionPreviewBanner section={section} />} |
  */
 import { describe, it, expect } from "vitest";
@@ -110,7 +110,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   it("4. 'Coming soon' for everyone: no Preview mark on the chips; the tester's banner and 'Opens soon'", () => {
     const sw = code("src/components/sections/ExploreSwitcher.tsx");
     expect(sw).not.toMatch(/PreviewPill|previewLabel/);
-    expect(sw).toMatch(/const soon = !on \|\| isPreview\(s\);/);
+    expect(sw).toMatch(/const soon = sectionComingSoon\(\{ on, preview: isPreview\(s\) \}\);/);
     expect(code("src/components/sections/SectionPreviewBanner.tsx")).toContain("Coming soon – early preview");
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
       expect({ f, opensSoon: /preview \? "Opens soon"/.test(code(f)) }).toEqual({ f, opensSoon: true });

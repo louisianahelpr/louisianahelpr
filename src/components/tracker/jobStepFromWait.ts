@@ -121,6 +121,7 @@ export const HELPER_STEP: Record<HelperWait, Entry> = {
   revision: at(6),
   revision_sent: at(7),
   overdue_not_started: OVERDUE,
+  overdue_unconfirmed_day: OVERDUE,
   overdue_not_arrived: OVERDUE,
   overdue_unfinished: OVERDUE,
   overdue_before_photo: OVERDUE_AT(5),

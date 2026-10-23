@@ -26,7 +26,7 @@
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) })); |   return sectionItems.map((s) => ({ ...s, on: true, preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
- * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   return !t.on \|\| t.preview; |   return !t.on;
  * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
  * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER
  * control, tone="quiet", under which the section's own solid switch sits.)

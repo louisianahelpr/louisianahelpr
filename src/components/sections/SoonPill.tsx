@@ -6,11 +6,13 @@
  *  - "full":  "Opening soon" (mock-up 20), where a row has room;
  *  - "short": "Soon", where the row is narrow (the 248px rail) or already says
  *             "Opening soon" beneath the name (Settings, board 52);
+ *  - "rail":    "Coming soon" in the 248px desktop rail (owner, 2026-10-23: the rail says
+ *               "Coming soon", not "Preview"), the compact size the old Preview pill fit;
  *  - "caption": "Coming soon" under a section's name inside its Explore header chip
  *               (owner, 2026-10-22): the chip is already the border, so no pill. It
  *               replaced "badge", the 14px "Soon" the old switcher hung off an icon.
  */
-export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption"; className?: string } & Record<`data-${string}`, string>) {
+export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption" | "rail"; className?: string } & Record<`data-${string}`, string>) {
   if (variant === "caption") {
     return (
       <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}>
@@ -18,9 +20,10 @@ export function SoonPill({ variant = "full", className = "", ...rest }: { varian
       </span>
     );
   }
+  const size = variant === "rail" ? "px-1.5 text-ds-10 leading-[18px]" : "px-2 py-0.5 text-ds-11";
   return (
-    <span {...rest} className={`inline-flex items-center rounded-full border border-border bg-card font-semibold text-muted-foreground shrink-0 px-2 py-0.5 text-ds-11 ${className}`}>
-      {variant === "full" ? "Opening soon" : "Soon"}
+    <span {...rest} className={`inline-flex items-center rounded-full border border-border bg-card font-semibold text-muted-foreground shrink-0 whitespace-nowrap ${size} ${className}`}>
+      {variant === "full" ? "Opening soon" : variant === "rail" ? "Coming soon" : "Soon"}
     </span>
   );
 }

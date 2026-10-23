@@ -28,8 +28,9 @@ export function useSectionTabs() {
 
 /**
  * Is this live section a PREVIEW for the viewer: open to them only because they
- * are a tester (admin or test account), not yet to everyone? Then a small
- * "Preview" mark sits where it is listed (PreviewPill), so the owner sees what
+ * are a tester (admin or test account), not yet to everyone? Then it is listed as
+ * "Coming soon" like a closed one (sectionComingSoon) and opens with the "early
+ * preview" banner inside (owner, 2026-10-22/23), so the owner sees what
  * members cannot. `openToEveryone` is the features_open_to_everyone() answer,
  * null until it has loaded and after any failure: then NOTHING is a preview,
  * never a false mark. A member's live section is always open to everyone, so a
@@ -37,6 +38,16 @@ export function useSectionTabs() {
  */
 export function sectionIsPreview(on: boolean, feature: string, openToEveryone: ReadonlySet<string> | null): boolean {
   return on && openToEveryone !== null && !openToEveryone.has(feature);
+}
+
+/**
+ * THE ONE RULE for "Coming soon" beside a section's name (owner, 2026-10-23: the desktop rail says "Coming soon",
+ * not "Preview", "the same rule as the phone chips, testers included, one source"): a section not open to the viewer,
+ * or open to them only as a tester. Every listing reads it (ExploreSwitcher, DesktopSidebarNav, CreateSheet,
+ * SettingsTab); none says "Preview". Guard: src/test/comingSoonNotPreview.test.tsx.
+ */
+export function sectionComingSoon(t: { on: boolean; preview: boolean }): boolean {
+  return !t.on || t.preview;
 }
 
 /**

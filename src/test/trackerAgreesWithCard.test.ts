@@ -27,6 +27,8 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";
  * @mutate src/pages/jobs/appliedJobCard/HelperCollapsedStrip.tsx | line={withReviewed(helperCardLine(app, job, unsettledDisputeJobIds, tracking), reviewed)} | line={withReviewed(helperStatusLine(app), reviewed)}
+ * @mutate src/components/job-card/jobStatusLine.ts | overdue_not_started: { detail: "Day passed — tap I'm on my way" }, | overdue_not_started: { detail: "Day passed — On My Way or cancel" },
+ * @mutate src/components/job-card/jobStatusLine.ts |   return job.helper_dayof_confirmed_at ? "overdue_not_started" : "overdue_unconfirmed_day"; |   return "overdue_not_started";
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -177,6 +179,15 @@ function agree(side: string, name: string, c: { line: { id: string; tone: string
   const cardSaysYou = c.line.tone === "you" || (c.face?.tone === "primary" && takes(c.face.label, c.bar.stage));
   if (live) expect({ tag, you: c.bar.waitingOnYou }).toEqual({ tag, you: cardSaysYou });
   expect({ tag, problem: c.bar.tone === "problem" }).toEqual({ tag, problem: PROBLEM_ID.test(c.line.id) || c.line.tone === "alarm" });
+  // A Helpr's line names only what the card offers (owner 2026-10-23): "tap X" names the face's button, and past the
+  // start no line offers a cancel (helper_cancel_booking refuses once the start has passed). It said
+  // "Day passed — On My Way or cancel".
+  const detail = (c.line as { detail?: string }).detail ?? "";
+  if (side === "helpr") {
+    const tapped = /\btap ([^,—]+?)\s*(?:,|$)/i.exec(detail)?.[1];
+    if (tapped && c.face) expect({ tag, line: detail, button: c.face.label.toLowerCase() }).toEqual({ tag, line: detail, button: tapped.toLowerCase() });
+    if (c.line.id.startsWith("overdue_")) expect({ tag, line: detail, offersCancel: /cancel/i.test(detail) }).toEqual({ tag, line: detail, offersCancel: false });
+  }
   const lineFor = c.face ? HELPR_BUTTON_LINES[c.face.label] : undefined;
   if (side === "helpr" && lineFor) expect({ tag, label: c.face!.label, lineOk: lineFor.test(c.line.id) }).toEqual({ tag, label: c.face!.label, lineOk: true });
   if (c.face?.tone === "primary") {

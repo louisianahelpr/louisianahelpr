@@ -11,7 +11,6 @@ import { useFeature } from "@/hooks/useFeature";
 import { fetchMyShopId } from "@/lib/shops/api";
 import { hapticLight } from "@/lib/haptics";
 import { SoonPill } from "@/components/sections/SoonPill";
-import { PreviewPill } from "@/components/sections/PreviewPill";
 
 /** The AI post-a-job path (EntryChoice opens its builder on `?start=ai`). */
 const DESCRIBE_IT_PATH = "/post-job?start=ai";
@@ -91,7 +90,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                 <div className="flex items-center gap-2.5 min-h-6">
                   <Icon className="w-5 h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: on ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }} />
                   <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
-                  {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />}
+                  {on && isPreview(s) && <SoonPill data-create-preview={s.key} />}
                   {!on && (
                     <button
                       type="button"

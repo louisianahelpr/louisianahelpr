@@ -13,18 +13,18 @@
  *
  * (a) the pure decision, every case; (b) the real useSectionTabs over a mocked
  * supabase.rpc: tester, member, loading, failed, failed refetch, not deployed,
- * signed out (never asks); (c) every listing draws PreviewPill gated on the
- * section's own preview flag. Explore's header is the one exception (owner, 2026-10-22): its chips say
- * "Coming soon" to every viewer, and a tester's section carries the "early preview" banner inside instead
- * (src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts).
+ * signed out (never asks); (c) every listing marks a tester-only section, gated on its own preview flag.
+ * Since 2026-10-23 (owner: the rail says "Coming soon", not "Preview") that mark is "Coming soon", the same
+ * as a closed section's, and no surface says "Preview" (src/test/comingSoonNotPreview.test.tsx); a tester's
+ * section carries the "early preview" banner inside.
  *
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature); |   return on && !openToEveryone?.has(feature);
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isError ? new Set() : q.data ? new Set(q.data) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isSuccess ? new Set(q.data ?? []) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
  * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals); |   const openToEveryone = useOpenToEveryoneAnswer(true);
- * @mutate src/components/DesktopSidebarNav.tsx |                 {preview && <PreviewPill variant="compact" className="ml-auto" />} |
- * @mutate src/components/create/CreateSheet.tsx |                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />} |                   {on && <PreviewPill data-create-preview={s.key} />}
+ * @mutate src/components/DesktopSidebarNav.tsx | soonMark: t ? sectionComingSoon(t) : false, | soonMark: t ? !t.on : false,
+ * @mutate src/components/create/CreateSheet.tsx | {on && isPreview(s) && <SoonPill data-create-preview={s.key} />} | {on && <SoonPill data-create-preview={s.key} />}
  * @mutate src/components/profile/SettingsTab.tsx |           const preview = s.feature !== null && !!tab?.preview; |           const preview = s.feature !== null && !!tab?.on;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       await queryClient.invalidateQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY }); |
  */
@@ -156,26 +156,20 @@ describe("(b) useSectionTabs `preview`", () => {
   });
 });
 
-describe("(c) every listing draws PreviewPill, gated on the section's own preview flag", () => {
+describe("(c) every listing marks a tester-only section, gated on its own preview flag (\"Coming soon\", owner 2026-10-23)", () => {
   const read = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
   const SITES: Array<[string, RegExp]> = [
-    ["src/components/DesktopSidebarNav.tsx", /\{preview && <PreviewPill\b/],
-    ["src/components/profile/SettingsTab.tsx", /badge=\{preview \? <PreviewPill\b/],
-    ["src/components/create/CreateSheet.tsx", /\{on && isPreview\(s\) && <PreviewPill\b/],
+    ["src/components/DesktopSidebarNav.tsx", /soonMark: t \? sectionComingSoon\(t\) : false/],
+    ["src/components/profile/SettingsTab.tsx", /badge=\{preview \? <SoonPill\b/],
+    ["src/components/create/CreateSheet.tsx", /\{on && isPreview\(s\) && <SoonPill\b/],
+    ["src/components/sections/ExploreSwitcher.tsx", /const soon = sectionComingSoon\(\{ on, preview: isPreview\(s\) \}\);/],
   ];
-  it("inventory: three listings (Explore's chips left on 2026-10-22, see the header note)", () => expect(SITES.length).toBeGreaterThan(2));
+  it("inventory: four listings", () => expect(SITES.length).toBeGreaterThan(3));
   it.each(SITES)("%s", (f, re) => expect(read(f)).toMatch(re));
 
   it("each site's flag comes from useSectionTabs' `preview`", () => {
-    expect(read("src/components/DesktopSidebarNav.tsx")).toMatch(/preview: t \? t\.preview : false/);
     expect(read("src/components/profile/SettingsTab.tsx")).toMatch(/const preview = s\.feature !== null && !!tab\?\.preview;/);
     expect(read("src/components/sections/ExploreSwitcher.tsx")).toMatch(/s\.feature !== null && !!live\.find\(\(t\) => t\.path === s\.path\)\?\.preview/);
-  });
-
-  it("the pill says 'Preview' in sentence case, muted olive", () => {
-    const pill = read("src/components/sections/PreviewPill.tsx");
-    expect(pill).toMatch(/>\s*Preview\s*</);
-    expect(pill).toMatch(/color: "hsl\(var\(--bark\)\)"/);
   });
 
   it("an admin's switch change re-asks which sections are open to everyone", () => {

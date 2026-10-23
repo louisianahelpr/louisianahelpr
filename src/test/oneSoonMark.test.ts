@@ -3,7 +3,7 @@
  * (a bordered pill, plain "Opening soon", plain "Soon", a tiny badge, ink text).
  * Every listing now draws THE one SoonPill.
  *
- * @mutate src/components/DesktopSidebarNav.tsx |                   <SoonPill variant="short" aria-hidden="true" className="ml-auto" /> |                   <span className="ml-auto">Soon</span>
+ * @mutate src/components/DesktopSidebarNav.tsx | <SoonPill variant="rail" data-rail-soon="" aria-hidden={soon ? "true" : undefined} className="ml-auto" /> | <span className="ml-auto">Coming soon</span>
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,6 +27,6 @@ describe("one Soon mark", () => {
   it.each(FILES)("%s draws SoonPill and no hand-made soon label", (f) => {
     const s = blankComments(readFileSync(join(ROOT, f), "utf8"));
     expect(s).toMatch(/<SoonPill\b/);
-    expect(s).not.toMatch(/>\s*(Opening soon|Soon)\s*</);
+    expect(s).not.toMatch(/>\s*(Opening soon|Coming soon|Soon)\s*</);
   });
 });

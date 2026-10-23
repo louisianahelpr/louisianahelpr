@@ -394,7 +394,10 @@ const HELPER_FIXTURES: Record<HelperWait, AppliedApp> = {
     status: "revision_requested", helper_id: HELPER, date_needed: TODAY,
     revision_requested_at: ago(6), helper_completed_at: ago(1), revision_completed_at: ago(1),
   }),
-  overdue_not_started: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
+  // Past the day, confirmed for the day, never set out: On my way is the face's button.
+  overdue_not_started: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), helper_dayof_confirmed_at: ago(30), date_needed: YESTERDAY }),
+  // Past the day without the day-before confirm: no button to name (owner 2026-10-23), the line says what happened.
+  overdue_unconfirmed_day: makeApp({}, { status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), date_needed: YESTERDAY }),
   overdue_not_arrived: makeApp({}, {
     status: "accepted", helper_id: HELPER, helper_confirmed_at: ago(48), helper_on_the_way_at: ago(30), date_needed: YESTERDAY,
   }),

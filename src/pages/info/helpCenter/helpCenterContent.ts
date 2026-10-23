@@ -7,8 +7,7 @@ import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // use; `escrowTiming.copyParity.test.ts` fails if this answer ever goes back to
 // restating the numbers as literals.
 import {
-  COPY_AUTO_RELEASE_HOURS,
-  PAYOUT_HOLD_HOURS,
+  APPROVAL_WINDOW_HOURS,
   STANDARD_PAYOUT_PHRASE,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 // Cancellation percentages and the standard payout window are binding money
@@ -206,25 +205,14 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it confirms (or it completes automatically), then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it approves the work, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
-        // WAS "…about 48 hours after completion". The notification the very
-        // same event sends says 24 (auto-release-payment/index.ts:302-303,
-        // 315-316), so a helper saw both numbers for one payout. Single number,
-        // matching what the push actually promises.
-        //
-        // NOW DERIVED, not retyped. The two numbers are the two legs of the
-        // schedule in `_shared/escrowTiming.ts`: AUTO_COMPLETE_HOURS (the
-        // poster's confirm-or-dispute window, aliased COPY_AUTO_RELEASE_HOURS)
-        // and PAYOUT_HOLD_HOURS (the chargeback buffer before the transfer
-        // fires). Stated as a DELTA — "N hours, then M more" — because that is
-        // the shape the push uses; a total ("48 hours") would read as a third
-        // number beside the notification's two. Interpolating both means a
-        // change to either leg moves this answer with it instead of leaving it
-        // as the one screen still quoting last quarter's clock.
-        a: `If the person who posted the job doesn't confirm within ${COPY_AUTO_RELEASE_HOURS} hours of you marking work done, it auto-completes and payment releases — funds reach your account about ${PAYOUT_HOLD_HOURS} hours after that.`,
+        // Owner 2026-10-23: nothing is released on a timer. Both numbers come
+        // from `_shared/escrowTiming.ts` (APPROVAL_WINDOW_HOURS, then the payout
+        // STANDARD_PAYOUT_PHRASE after the approval), never retyped.
+        a: `Your payment stays held. If the person who posted the job hasn't approved it or asked for a change within ${APPROVAL_WINDOW_HOURS} hours of you marking the work done, Helpr support steps in to resolve it. Once it's approved, your payout is sent ${STANDARD_PAYOUT_PHRASE}.`,
       },
     ],
   },

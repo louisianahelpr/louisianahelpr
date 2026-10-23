@@ -17,15 +17,16 @@ import { LAST_UPDATED } from "./legalSections";
 // reviewable rung. Binding copy in a legal document is the LAST place a
 // restated consequence should live.
 import { RELIABILITY_LADDER_RUNGS, NO_SHOW_LADDER_SENTENCE, CANCELLATION_LADDER_RUNGS } from "@/lib/reliabilityLadder";
-// Derive the escrow auto-release schedule instead of restating it in prose.
+// Derive the approval and payout schedule instead of restating it in prose.
 // These are the platform's binding promises about when money moves, so they
 // must follow the config the cron enforces (guarded by escrowTiming.parity.test).
-// NOTE: the 72h figures in the DISPUTE steps below are a DIFFERENT deadline
-// (dispute_deadline / revision_acceptance_deadline) and are deliberately NOT
-// interpolated from TOTAL_TO_PAYOUT_HOURS — they only coincide numerically.
+// Owner 2026-10-23: nothing is paid without the poster's approval; past the
+// approval window Helpr support steps in, and the payout is sent
+// STANDARD_PAYOUT_PHRASE. NOTE: the 72h figures in the DISPUTE steps below are a
+// DIFFERENT deadline (dispute_deadline / revision_acceptance_deadline).
 import {
-  COPY_AUTO_RELEASE_HOURS,
-  TOTAL_TO_PAYOUT_HOURS,
+  APPROVAL_WINDOW_HOURS,
+  STANDARD_PAYOUT_PHRASE,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 // Budget limits and cancellation percentages are binding money figures. They
 // were restated here as literals ("$10", "25%") while the app enforced
@@ -47,7 +48,7 @@ export const CommunityContent = () => (
     <TldrCard
       items={[
         `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). A no-show is a final warning, then a 7-day restriction an admin reviews.`,
-        `Payment auto-releases ${COPY_AUTO_RELEASE_HOURS} hours after completion if either side doesn't act.`,
+        `Nothing is paid until the person who posted approves the work. If they haven't answered ${APPROVAL_WINDOW_HOURS} hours after it's marked done, Helpr support steps in.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         // WAS "Three strikes = ban." — false, and the single most consequential
         // sentence on the page, sitting in the TL;DR a restricted user reads
@@ -170,12 +171,12 @@ export const CommunityContent = () => (
     >
       <PolicyRowItem
         icon={CheckCircle}
-        title="Mutual confirmation = instant release"
-        body={<p>When both poster and Helpr confirm completion, payment releases immediately.</p>}
+        title="Approval schedules the payout"
+        body={<p>Once the person who posted approves the work, the Helpr's payout is scheduled and sent {STANDARD_PAYOUT_PHRASE}. Both sides are told the date.</p>}
       />
       <PolicyRowItem
         icon={Clock}
-        title={`One-sided confirmation = ${COPY_AUTO_RELEASE_HOURS}-hour window`}
+        title={`Waiting on approval: ${APPROVAL_WINDOW_HOURS}-hour window`}
         // WAS "Both parties are notified every 12 hours." — false twice over,
         // in a binding document. `payment-confirm-reminder` inserts ONE
         // notification, to `job.customer_id` only (index.ts:222-243) — the
@@ -200,12 +201,12 @@ export const CommunityContent = () => (
         // element into unparseable JSX. The file failed `parsecheck --all`
         // while it sat in the tree. Never quote a cron step value inside a
         // block comment.
-        body={<p>If only one party confirms, the other has {COPY_AUTO_RELEASE_HOURS} hours to confirm or request a revision. We send the poster a reminder about 12 hours in.</p>}
+        body={<p>When the Helpr marks the work done, the person who posted has {APPROVAL_WINDOW_HOURS} hours to approve it or request a revision. We send them a reminder about 12 hours in. If the person who posted approves first and the Helpr doesn't confirm, the job completes {APPROVAL_WINDOW_HOURS} hours after the approval.</p>}
       />
       <PolicyRowItem
         icon={CheckCircle}
-        title={`Auto-release after ${COPY_AUTO_RELEASE_HOURS} hours`}
-        body={<p>If neither confirmation nor revision is received within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released to the Helpr (funds reach them about {TOTAL_TO_PAYOUT_HOURS} hours after completion).</p>}
+        title={`No answer in ${APPROVAL_WINDOW_HOURS} hours: Helpr support steps in`}
+        body={<p>If the person who posted neither approves nor requests a revision within {APPROVAL_WINDOW_HOURS} hours, Helpr support reaches out and decides. The payment stays held; nothing is released on a timer.</p>}
       />
       <PolicyRowItem
         icon={FileText}
@@ -233,7 +234,7 @@ export const CommunityContent = () => (
             <ul className="list-disc pl-4 space-y-0.5">
               <li>Helpr has <strong className="text-foreground">72h</strong> to address and mark fixed</li>
               <li>You then have <strong className="text-foreground">72h</strong> to accept or dispute</li>
-              <li>No response in 72h → job auto-completes, payment releases</li>
+              <li>No response in 72h → Helpr support steps in; the payment stays held</li>
               <li>Helpr doesn't fix in 72h → mark complete or file dispute</li>
             </ul>
           </>

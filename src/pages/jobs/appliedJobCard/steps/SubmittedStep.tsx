@@ -1,7 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
-import { AUTO_COMPLETE_HOURS, PAYOUT_HOLD_HOURS, STANDARD_PAYOUT_PHRASE, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS, STANDARD_PAYOUT_PHRASE, hoursToMs, payoutDayLabel } from "../../../../../supabase/functions/_shared/escrowTiming";
 import { JobStepCard } from "@/components/job-card/JobStepCard";
 import type { HelperStepProps } from "./stepContract";
 
@@ -13,9 +13,10 @@ import type { HelperStepProps } from "./stepContract";
  * {@link CardSubPanel}, which is the shape the "Marked complete" box was
  * hand-drawing (a primary-tinted header strip with an icon and a padded body).
  *
- * Approval is NOT payment: the payout is sent STANDARD_PAYOUT_PHRASE (3 days
- * after the job is marked done, Q202), and on the auto-complete path
- * PAYOUT_HOLD_HOURS after the auto-complete. Every figure comes from
+ * Approval is NOT payment: the payout is sent STANDARD_PAYOUT_PHRASE, and once
+ * it is scheduled the card names the DAY (payout_scheduled_at, payoutDayLabel).
+ * Nothing releases on a timer (owner 2026-10-23): past APPROVAL_WINDOW_HOURS
+ * without an answer, Helpr support steps in. Every figure comes from
  * escrowTiming, which the crons read too.
  */
 export function SubmittedStep({
@@ -26,6 +27,7 @@ export function SubmittedStep({
   posterInstantRelease,
 }: HelperStepProps & { posterInstantRelease: boolean }) {
   const fullyComplete = !!job.poster_completed_at;
+  const payDay = payoutDayLabel(job.payout_scheduled_at);
 
   const notice = fullyComplete ? (
     <div className="rounded-ds-sm bg-primary/10 border border-primary/20 px-3 py-2">
@@ -39,8 +41,9 @@ export function SubmittedStep({
         </p>
       ) : (
         <p className="text-ds-10 text-muted-foreground pt-1">
-          Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE},
-          then lands in your bank on your usual payout schedule.
+          {payDay
+            ? <>Approved. Your payout will be sent {payDay}, then lands in your bank on your usual payout schedule.</>
+            : <>Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE}, then lands in your bank on your usual payout schedule.</>}
         </p>
       )}
     </div>
@@ -60,16 +63,16 @@ export function SubmittedStep({
         <p className="text-ds-10 text-muted-foreground pt-1">
           {posterInstantRelease
             ? `They approve instantly. Your payout is sent ${STANDARD_PAYOUT_PHRASE}.`
-            : `If the person who posted this job doesn't respond within ${AUTO_COMPLETE_HOURS} hours, the job completes automatically and your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
+            : `If they haven't answered within ${APPROVAL_WINDOW_HOURS} hours, Helpr support steps in. Your payment stays held until the job is approved, and your payout is sent ${STANDARD_PAYOUT_PHRASE}.`}
         </p>
         {/* No countdown when the poster releases instantly (owner,
             2026-08-24): a 24h timer that ends within minutes is a lie. */}
         {job.helper_completed_at && !posterInstantRelease && (
           <div className="pt-1.5">
             <DeadlineCountdown
-              deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
-              expiredText={`${AUTO_COMPLETE_HOURS} hours passed — completing automatically, payout ${PAYOUT_HOLD_HOURS}h later`}
-              consequenceText={`The job completes automatically when this timer expires. Your payout is released ${PAYOUT_HOLD_HOURS} hours after that.`}
+              deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString()}
+              expiredText={`${APPROVAL_WINDOW_HOURS} hours passed — Helpr support is stepping in. Your payment stays held.`}
+              consequenceText="for them to answer. After that, Helpr support steps in."
               variant="warning"
             />
           </div>

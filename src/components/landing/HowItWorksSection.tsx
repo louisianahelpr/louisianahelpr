@@ -32,8 +32,8 @@ const SIDE_OPTIONS: SegmentedOption<Side>[] = [
 //      of accept_application, accept_group_application,
 //      complete_direct_offer_accept, direct_accept_block_reason and
 //      book_accepted_quote name no identity check (prod, 2026-10-20);
-//   3. escrow is held until the poster approves (or the AUTO_COMPLETE_HOURS
-//      window passes, stated in the money band below).
+//   3. escrow is held until the poster approves; past the APPROVAL_WINDOW_HOURS
+//      window Helpr support steps in (owner 2026-10-23), stated in the money band below.
 // Helpr side is anchored to the real flow, not aspiration:
 //   1. Browse is radius-filtered in miles (JobFilters.tsx `radiusOptions`)
 //      and applying never triggers the ID gate (useApplyFlow.ts), with the

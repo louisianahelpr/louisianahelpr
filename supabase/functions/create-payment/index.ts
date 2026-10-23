@@ -50,7 +50,7 @@ import { COME_BACK_PENDING_MESSAGE, isRefundRequestHoldRefusal, refundComeBackPe
 import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 import { jobBudgetOutOfRange, urgentFeeOverCap, MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS } from "../_shared/jobBudgetLimits.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
-import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
+import { payoutDayLabel, standardPayoutAtIso } from "../_shared/escrowTiming.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cancellationFeePercent, computeCancellationFee, helperIsCommitted, hoursUntilJob, jobLocalMidnightMs } from "../_shared/cancellationFee.ts";
@@ -1385,6 +1385,11 @@ serve(async (req) => {
     if (action === "release") {
       const { jobId } = body;
       if (!jobId) throw new PublicError("Missing jobId");
+      // Owner 2026-10-23: when a poster has not answered in time, Helpr support steps in
+      // (job_approval_escalations). An admin may then approve FOR the poster: the same write as the
+      // poster's own approval, allowed only while that job's escalation is open, never on a job the
+      // admin is part of, and audited.
+      const forPoster = body.forPoster === true;
 
       const { data: firstRead, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
@@ -1392,8 +1397,50 @@ serve(async (req) => {
       // `let`: the conditional write below re-reads on a lost race.
       let job = firstRead;
 
-      const isPoster = job.customer_id === user.id;
-      const isHelper = job.helper_id === user.id;
+      if (forPoster) {
+        const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        if (adminRoleErr) {
+          // Fails closed, and says so: an outage is not "you are not an admin" (lh-silent-failure review #8).
+          console.error("[create-payment] release forPoster has_role check failed:", adminRoleErr.message);
+          throw new PublicError("We couldn't confirm your admin access right now, so nothing was approved. Try again in a minute.");
+        }
+        if (!isAdmin) throw new PublicError("Not authorized — admin only");
+        if (job.customer_id === user.id || job.helper_id === user.id) {
+          throw new PublicError("Another admin must approve a job you are part of.");
+        }
+        // A crew has no lead (jobs.helper_id is NULL, 20260925154606): a member is on the roster
+        // (lh-money-escrow review must-fix 3). Fails closed.
+        if (job.is_group_job === true) {
+          const { data: onCrew, error: crewErr } = await supabaseAdmin
+            .from("group_job_helpers").select("helper_id").eq("job_id", jobId).eq("helper_id", user.id).limit(1);
+          if (crewErr) {
+            console.error("[create-payment] release forPoster crew read failed:", crewErr.message);
+            throw new PublicError("We couldn't check this job's crew right now, so nothing was approved. Try again in a minute.");
+          }
+          if ((onCrew ?? []).length > 0) throw new PublicError("Another admin must approve a job you are part of.");
+        }
+        const { data: esc, error: escErr } = await supabaseAdmin
+          .from("job_approval_escalations").select("job_id").eq("job_id", jobId).is("resolved_at", null).maybeSingle();
+        if (escErr) {
+          console.error("[create-payment] release forPoster escalation read failed:", escErr.message);
+          throw new PublicError("We couldn't check this job's support request right now, so nothing was approved. Try again in a minute.");
+        }
+        if (!esc) throw new PublicError("This job isn't waiting on Helpr support, so it can't be approved on behalf of the person who posted it.");
+        if (!job.helper_completed_at) throw new PublicError("The Helpr hasn't marked this job done, so there is nothing to approve yet.");
+        // The person who posted it sent the work back and the fix is not delivered yet: their "not done" stands
+        // (lh-money-escrow review must-fix 1). The same rule is still_waiting in admin_approval_escalation_queue.
+        if (job.status === "revision_requested" && !job.revision_completed_at) {
+          throw new PublicError("The person who posted this job asked for a change and the Helpr hasn't delivered it yet, so it can't be approved now.");
+        }
+        // ...and once the fix is delivered, their 72 hours to review it run out first (re-review should-fix 1).
+        if (job.status === "revision_requested" &&
+            !(job.revision_acceptance_deadline && Date.parse(job.revision_acceptance_deadline) <= Date.now())) {
+          throw new PublicError("The person who posted this job is still within their time to review the Helpr's fix, so it can't be approved for them yet.");
+        }
+      }
+
+      const isPoster = forPoster || job.customer_id === user.id;
+      const isHelper = !forPoster && job.helper_id === user.id;
       if (!isPoster && !isHelper) throw new PublicError("Not authorized");
       // A duplicate release (double tap, two devices, a retry after a lost
       // response) answers cleanly BEFORE the status gate, which would otherwise
@@ -1615,8 +1662,10 @@ serve(async (req) => {
           }
 
           // Charge confirmed — schedule payout
-          // STANDARD PAY: 3 days after the job was marked done (Q202, was now + 24h).
-          const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at);
+          // STANDARD PAY: 3 days after the POSTER APPROVED (owner 2026-10-23; was 3 days after the Helpr
+          // marked done). The approval is this write when the poster (or an admin for them) is the caller,
+          // else the poster's earlier stamp.
+          const payoutTime = standardPayoutAtIso(isPoster ? null : job.poster_completed_at);
           updateFields.payout_scheduled_at = payoutTime;
           updateFields.status = "completed";
           updateFields.payment_status = "payout_pending";
@@ -1688,7 +1737,7 @@ serve(async (req) => {
       // split across the roster like the budget — else N helpers each get the
       // full urgent bonus against a single fee collected, over-paying N×.
       const helperPayout = perHelperBudget - helperCommission + netUrgentFeeDollars(job.urgent_fee) / helpersCount;
-      if (isPoster && job.helper_id && !helperDone) {
+      if (isPoster && !forPoster && job.helper_id && !helperDone) {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           title: "Job marked complete",
@@ -1707,20 +1756,56 @@ serve(async (req) => {
       }
 
       if (bothDone) {
-        if (job.helper_id) {
+        // A: the DAY the money is sent, never "payment has been captured" (owner 2026-10-23).
+        const payDay = payoutDayLabel(updateFields.payout_scheduled_at);
+        // The same test as notify_on_job_update's crew branch (is_group_job IS TRUE), so no member is told twice.
+        const isCrew = job.is_group_job === true;
+        // A crew's members are each told their share and the day by notify_on_job_update
+        // (20261023143240); this notice would only reach one of them.
+        if (job.helper_id && !isCrew) {
           await insertNotifications(supabaseAdmin, {
             user_id: job.helper_id,
             job_id: job.id,
-            title: "Job completed!",
-            message: `"${job.title}" is complete. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`,
+            title: "Job approved!",
+            message: forPoster
+              ? `Helpr support approved "${job.title}". $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`
+              : `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`,
             type: "payment", link: "/profile?tab=earnings",
           });
         }
-        await insertNotifications(supabaseAdmin, {
-          user_id: job.customer_id,
-          title: "Job completed!",
-          message: `"${job.title}" is complete. Payment has been captured. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
-          type: "payment", link: `/posts?job=${job.id}`,
+        if (job.customer_id) {
+          await insertNotifications(supabaseAdmin, {
+            user_id: job.customer_id,
+            title: forPoster ? "Helpr support approved your job" : "Job complete",
+            message: forPoster
+              ? `You didn't answer, so Helpr support looked at "${job.title}" and approved it. Your Helpr is paid ${payDay}.`
+              : `Thanks for approving "${job.title}". Your Helpr is paid ${payDay}.`,
+            type: "payment", link: `/posts?job=${job.id}`,
+          });
+        }
+      }
+      if (forPoster) {
+        // Close the support request in the same request, and audit the approval. Neither failure undoes the
+        // approval (the money write above is done); each is logged and paged by its helper.
+        const { data: closed, error: closeErr } = await supabaseAdmin
+          .from("job_approval_escalations")
+          .update({ resolved_at: new Date().toISOString(), resolved_by: user.id, resolution: "approved_for_poster" })
+          .eq("job_id", job.id).is("resolved_at", null).select("job_id");
+        if (closeErr || !closed || closed.length === 0) {
+          console.error(`[create-payment] approval escalation for job ${job.id} not closed:`, closeErr?.message ?? "matched 0 rows");
+          await postSlackOpsAlert({
+            kind: "custom",
+            severity: "warning",
+            title: "Approved on behalf of the person who posted it, but the support request stayed open",
+            message: `An admin approved job ${job.id} for the person who posted it and the payout is scheduled, but its job_approval_escalations row was not closed. Close it with Mark reviewed; no money is affected.`,
+            fields: { job_id: job.id, db_error: (closeErr?.message ?? "matched 0 rows").slice(0, 200) },
+          });
+        }
+        await logAdminMoneyAction(supabaseAdmin, {
+          adminId: user.id,
+          action: "approve_for_poster",
+          jobId: job.id,
+          details: { both_done: bothDone, payout_at: updateFields.payout_scheduled_at ?? null, helper_payout: bothDone ? helperPayout : 0 },
         });
       }
 
@@ -1838,7 +1923,7 @@ serve(async (req) => {
       await insertNotifications(supabaseAdmin, {
         user_id: job.customer_id,
         title: "Revision completed — review needed",
-        message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to accept (mark complete) or dispute. If you do nothing, payment auto-releases.`,
+        message: `The helpr has fixed the revision for "${job.title}". You have 72 hours to approve it or open a dispute. If we don't hear from you by then, Helpr support will reach out. Your payment stays held until it's approved.`,
         type: "warning", link: `/posts?job=${job.id}`,
       });
 

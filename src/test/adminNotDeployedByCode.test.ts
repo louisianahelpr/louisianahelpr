@@ -24,7 +24,7 @@
  *
  * @mutate src/components/admin/adminStalledJobs/stalledQueue.ts |   return e.code === "PGRST202" && !e.hint; |   return e.code === "PGRST202";
  * @mutate src/components/admin/adminStalledJobs/stalledQueue.ts |   return e.code === "PGRST202" && !e.hint; |   return e.code === "PGRST202" \|\| e.code === "42883";
- * @mutate src/components/admin/adminRailBadges.ts |       const rows = unwrap(res) ?? [];\n      const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id])); |       if (res.error && /does not exist/.test(res.error.message)) return 0;\n      const rows = unwrap(res) ?? [];\n      const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id]));
+ * @mutate src/components/admin/adminRailBadges.ts |       const stalledRows = unwrap(res) ?? []; |       if (res.error && /does not exist/.test(res.error.message)) return 0;\n      const stalledRows = unwrap(res) ?? [];
  * @mutate src/components/admin/adminRailBadges.ts |       const res = await supabase.from("verification_exceptions").select("user_id").eq("status", "open"); |       const res = await supabase.from("verification_exceptions").select("user_id").eq("status", "open");\n      if (res.error && res.error.code === "PGRST205") return 0;
  * @mutate src/components/admin/AdminBanReview.tsx |       const pending = (unwrap(result) ?? []) as ViolationRow[]; |       if (result.error && result.error.message?.includes("does not exist")) return [];\n      const pending = (unwrap(result) ?? []) as ViolationRow[];
  * @mutate src/components/admin/AdminExceptionQueue.tsx |       const baseRows = unwrap(result) ?? []; |       if (result.error && result.error.code === "PGRST202") return [];\n      const baseRows = unwrap(result) ?? [];

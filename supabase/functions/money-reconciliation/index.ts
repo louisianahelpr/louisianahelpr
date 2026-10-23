@@ -52,7 +52,7 @@ import { computeCancellationFee, helperIsCommitted, hoursUntilJob } from "../_sh
 import { crewCancellationFee, type CrewFeeShareRow } from "../_shared/crewShares.ts";
 import { helperCommissionDollars, feePercentForTier, jobHelprCommissionDollars } from "../_shared/helperFees.ts";
 import { isFlatFeeJob } from "../_shared/helprFlatFee.ts";
-import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
+import { APPROVAL_WINDOW_HOURS } from "../_shared/escrowTiming.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
@@ -403,7 +403,7 @@ serve(async (req) => {
       escrowTerminal: new Check(
         "escrow_on_terminal_job",
         "critical",
-        `payment_status='escrow' on a cancelled/completed job more than ${SETTLE_WINDOW_HOURS}h after it ended (and, for completed jobs, past the ${AUTO_COMPLETE_HOURS}h auto-complete window) — the settlement cron should have moved these and did not.`,
+        `payment_status='escrow' on a cancelled/completed job more than ${SETTLE_WINDOW_HOURS}h after it ended (and, for completed jobs, past the ${APPROVAL_WINDOW_HOURS}h approval window) — the settlement cron should have moved these and did not.`,
       ),
       feeNoHelper: new Check(
         "cancellation_fee_without_helper",
@@ -900,14 +900,14 @@ serve(async (req) => {
       const terminalAt = job.status === "cancelled"
         ? ts(job.cancelled_at)
         // A completed job legitimately holds escrow through the auto-complete
-        // window (one party marked it done, the other still has AUTO_COMPLETE_HOURS
+        // window (one party marked it done, the other still has APPROVAL_WINDOW_HOURS
         // to confirm or dispute) before auto-release-payment touches it.
         : latest(job.poster_completed_at, job.helper_completed_at);
       // Fall back to updated_at rather than skipping: an unknown timestamp must
       // not become a silent exemption.
       const base = terminalAt ?? ts(job.updated_at) ?? 0;
       const graceMs = SETTLE_WINDOW_MS +
-        (job.status === "completed" ? AUTO_COMPLETE_HOURS * 60 * 60 * 1000 : 0);
+        (job.status === "completed" ? APPROVAL_WINDOW_HOURS * 60 * 60 * 1000 : 0);
 
       if (nowMs - base <= graceMs) continue;
 

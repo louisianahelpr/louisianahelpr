@@ -16,13 +16,13 @@ import {
 import { HideOnSearch, TldrCard, PolicyFooter } from "./LegalChrome";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 import { LAST_UPDATED } from "./legalSections";
-// The auto-release window and the total time-to-funds are the platform's
-// binding promises about when money moves; derive them from the same config
-// the cron enforces rather than restating "48"/"72" as prose literals.
+// The approval window and the payout schedule are the platform's binding
+// promises about when money moves; derive them from the same config the cron
+// enforces rather than restating "24"/"3 days" as prose literals. Owner
+// 2026-10-23: nothing is paid without the poster's approval.
 import {
-  COPY_AUTO_RELEASE_HOURS,
+  APPROVAL_WINDOW_HOURS,
   STANDARD_PAYOUT_PHRASE,
-  TOTAL_TO_PAYOUT_HOURS,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 
 /**
@@ -122,8 +122,8 @@ export const TermsContent = () => {
         title="Payment hold & charge timing"
         body={
           <>
-            <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until both parties confirm completion.</p>
-            <p><strong className="text-foreground">Auto-release:</strong> If only one party confirms, the job auto-completes {COPY_AUTO_RELEASE_HOURS} hours later and payment releases to the Helpr (funds land about {TOTAL_TO_PAYOUT_HOURS} hours after completion).</p>
+            <p><strong className="text-foreground">Charged upfront:</strong> Payments are processed via Stripe at booking and held securely (in escrow) until the person who posted the job approves the work.</p>
+            <p><strong className="text-foreground">No release without approval:</strong> Payment is never released on a timer. If the person who posted has not approved the work or asked for a change within {APPROVAL_WINDOW_HOURS} hours of the Helpr marking it done, Helpr support steps in to resolve it, and the payment stays held until then. Once the job is approved, the Helpr's payout is sent {STANDARD_PAYOUT_PHRASE}.</p>
             <p><strong className="text-foreground">Refunds:</strong> Refunds are evaluated case-by-case through the dispute process — see <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules → When something goes wrong</Link>.</p>
           </>
         }

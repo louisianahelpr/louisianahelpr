@@ -155,7 +155,7 @@ describe("the tiles (boards 7, 11)", () => {
 
   it("no date on the rows: the rule, never a made-up date; two jobs read plural", () => {
     show({ coming: coming({ cents: 4600, at: null }), held: { cents: 8000, jobs: 2, only: null } });
-    expect(screen.getByRole("button", { name: /Coming to you/ }).textContent).toMatch(/Sent \d+ days after the job is marked done/);
+    expect(screen.getByRole("button", { name: /Coming to you/ }).textContent).toMatch(/Sent \d+ days after the job is approved/);
     expect(screen.getByRole("button", { name: /^Held for 2 jobs/ }).textContent).toContain("Paid to each Helpr after you confirm their job is done");
   });
 

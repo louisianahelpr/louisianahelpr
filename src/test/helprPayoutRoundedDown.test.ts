@@ -95,9 +95,11 @@ const EXPECTED_TRANSFER_CALLS: Record<string, number> = {
  *  own payout (instant-payout's `netCents` is the Helpr's cash-out net). A
  *  refund, gift or credit figure appearing here is the bug. */
 const PAYOUT_FORMAT_ARGS: Record<string, string[]> = {
-  "supabase/functions/auto-release-payment/index.ts": ["helperPayout", "helperPayout"],
-  // The Quick Release notice quotes the ledger's exact amount (Q2165).
-  "supabase/functions/create-payment/index.ts": ["helperPayout"],
+  // One "Job approved!" notice (owner 2026-10-23: the auto-complete branch is gone).
+  "supabase/functions/auto-release-payment/index.ts": ["helperPayout"],
+  // The Quick Release notice quotes the ledger's exact amount (Q2165). The approval notice has two wordings:
+  // the poster's own approval and an admin's on their behalf (owner 2026-10-23).
+  "supabase/functions/create-payment/index.ts": ["helperPayout", "helperPayout"],
   "supabase/functions/_shared/crewBlockFees.ts": ["payoutCents / 100"],
   "supabase/functions/execute-dispute-split/index.ts": ["helperDollars"],
   "supabase/functions/instant-payout/index.ts": ["netCents"],

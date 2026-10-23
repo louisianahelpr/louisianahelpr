@@ -1675,6 +1675,179 @@ describe("create-payment edge function", () => {
       expect(jobUpdate?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "escrow" });
     });
 
+    // ── Owner 2026-10-23: the payout clock starts at the POSTER'S APPROVAL, and every notice names the day ──
+    const bothDoneRow = (over: Record<string, unknown> = {}) => ({
+      id: "job-1", title: "Mow two lawns", customer_id: POSTER.id, helper_id: HELPER.id, status: "in_progress", budget: 100,
+      urgent_fee: 0, helper_fee_percent: 10, platform_fee_amount: 10, helper_confirmed_at: longAgo,
+      poster_completed_at: null, helper_completed_at: longAgo, stripe_payment_intent_id: "pi_123", payment_status: "escrow",
+      ...over,
+    });
+    const releaseAs = async (body: Record<string, unknown> = {}) => {
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_123", status: "succeeded" });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "release", jobId: "job-1", ...body } }));
+      return { res, out: await json(res) };
+    };
+    const jobUpdatePayload = () =>
+      scenario.writes.find((w) => w.table === "jobs" && w.op === "update")?.payload as Record<string, unknown> | undefined;
+    const notes = () => scenario.writes.filter((w) => w.table === "notifications")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Record<string, unknown>[]);
+    const DAY = /(Mon|Tue|Wed|Thu|Fri|Sat|Sun), [A-Z][a-z]{2} \d{1,2}\./;
+
+    // @mutate supabase/functions/create-payment/index.ts | standardPayoutAtIso(isPoster ? null : job.poster_completed_at) | standardPayoutAtIso(isHelper ? null : job.helper_completed_at)
+    it("the poster's approval starts the payout clock: sent 3 days after NOW, not after the Helpr marked done", async () => {
+      seedAuth(scenario, POSTER);
+      // The Helpr marked done 30 hours ago; the old rule paid 42 hours from now.
+      scenario.reads.jobs = { rows: [bothDoneRow({ helper_completed_at: new Date(Date.now() - 30 * 3600e3).toISOString() })] };
+      const before = Date.now();
+      const { out } = await releaseAs();
+      expect(out.bothDone).toBe(true);
+      const at = Date.parse(String(jobUpdatePayload()?.payout_scheduled_at));
+      expect(at).toBeGreaterThanOrEqual(before + 72 * 3600e3 - 1000);
+      expect(at).toBeLessThanOrEqual(Date.now() + 72 * 3600e3 + 1000);
+    });
+
+    it("the Helpr confirming AFTER the poster approved keeps the approval as the clock", async () => {
+      seedAuth(scenario, HELPER);
+      const approvedAt = Date.now() - 10 * 3600e3;
+      scenario.reads.jobs = { rows: [bothDoneRow({
+        poster_completed_at: new Date(approvedAt).toISOString(), helper_completed_at: null,
+        helper_arrived_at: longAgo, poster_confirmed_arrival_at: longAgo, helper_arrival_verified: true,
+        proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+      })] };
+      const { out } = await releaseAs();
+      expect(out.bothDone).toBe(true);
+      expect(Math.abs(Date.parse(String(jobUpdatePayload()?.payout_scheduled_at)) - (approvedAt + 72 * 3600e3))).toBeLessThan(1000);
+    });
+
+    // @mutate supabase/functions/create-payment/index.ts | `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.` | `"${job.title}" is complete. Payment has been captured.`
+    it("the approval notices name the DAY and never say 'captured' or 'being processed'", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [bothDoneRow()] };
+      await releaseAs();
+      const toHelper = notes().filter((n) => n.user_id === HELPER.id);
+      const toPoster = notes().filter((n) => n.user_id === POSTER.id);
+      expect(toHelper.map((n) => n.title)).toEqual(["Job approved!"]);
+      expect(String(toHelper[0].message)).toMatch(/^"Mow two lawns" was approved\. \$90 will be sent to your account /);
+      expect(String(toHelper[0].message)).toMatch(DAY);
+      expect(String(toPoster[0].message)).toMatch(DAY);
+      expect(notes().some((n) => /captured|being processed|days after/i.test(String(n.message)))).toBe(false);
+    });
+
+    describe("an admin approves for the poster (Helpr support stepped in)", () => {
+      const ADMIN = { id: "admin-9", email: "admin@test.com" };
+
+      it("refuses a caller who is not an admin", async () => {
+        seedAuth(scenario, { id: "stranger", email: "x@test.com" });
+        scenario.rpc.has_role = false;
+        scenario.reads.jobs = { rows: [bothDoneRow()] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/admin only/i);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | if (!esc) throw new PublicError("This job isn't waiting on Helpr support, so it can't be approved on behalf of the person who posted it."); | if (false) throw new PublicError("x");
+      it("refuses a job with no open support request", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow()] };
+        scenario.reads.job_approval_escalations = { rows: [] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/isn't waiting on Helpr support/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("refuses an admin who is the Helpr on the job", async () => {
+        seedAuth(scenario, HELPER);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow()] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/Another admin/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("an unreadable admin check fails closed and says so (not 'admin only')", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpcErrors = { has_role: { message: "timeout" } };
+        scenario.reads.jobs = { rows: [bothDoneRow()] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/couldn't confirm your admin access/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // lh-money-escrow review must-fix 3: a crew has no lead, so "is the Helpr" is the roster.
+      // @mutate supabase/functions/create-payment/index.ts | if ((onCrew ?? []).length > 0) throw new PublicError("Another admin must approve a job you are part of."); | if (false) throw new PublicError("x");
+      it("refuses an admin who is on the crew", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow({ helper_id: null, is_group_job: true, helpers_needed: 2 })] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        scenario.reads.group_job_helpers = { rows: [{ helper_id: ADMIN.id }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/Another admin/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      // lh-money-escrow review must-fix 1: the poster's "not done" stands until the fix is delivered.
+      // @mutate supabase/functions/create-payment/index.ts | if (job.status === "revision_requested" && !job.revision_completed_at) { | if (false) {
+      it("refuses while the poster's requested fix is not delivered", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow({ status: "revision_requested", revision_requested_at: longAgo, revision_completed_at: null })] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/asked for a change/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("refuses while the poster's 72 hours to review a delivered fix are still running", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow({ status: "revision_requested", revision_requested_at: longAgo,
+          revision_completed_at: longAgo, revision_acceptance_deadline: new Date(Date.now() + 5 * 3600e3).toISOString() })] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/still within their time to review/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("refuses a job the Helpr has not marked done", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow({ helper_completed_at: null })] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { out } = await releaseAs({ forPoster: true });
+        expect(String(out.error)).toMatch(/hasn't marked this job done/);
+        expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      });
+
+      it("approves: the poster's stamp, the payout 3 days out, the request closed, audited, both sides told", async () => {
+        seedAuth(scenario, ADMIN);
+        scenario.rpc.has_role = true;
+        scenario.reads.jobs = { rows: [bothDoneRow()] };
+        scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-1" }] };
+        const { res, out } = await releaseAs({ forPoster: true });
+        expect(res.status).toBe(200);
+        expect(out.bothDone).toBe(true);
+        const p = jobUpdatePayload();
+        expect(p?.status).toBe("completed");
+        expect(p?.payment_status).toBe("payout_pending");
+        expect(p?.poster_completed_at).toBeTruthy();
+        expect(Date.parse(String(p?.payout_scheduled_at))).toBeGreaterThan(Date.now() + 71 * 3600e3);
+        const closed = scenario.writes.find((w) => w.table === "job_approval_escalations" && w.op === "update");
+        expect(closed?.payload).toMatchObject({ resolved_by: ADMIN.id, resolution: "approved_for_poster" });
+        const audit = scenario.writes.find((w) => w.table === "admin_audit_log");
+        expect(audit?.payload).toMatchObject({ admin_id: ADMIN.id, action: "approve_for_poster", target_id: "job-1" });
+        expect(notes().find((n) => n.user_id === POSTER.id)?.title).toBe("Helpr support approved your job");
+        expect(String(notes().find((n) => n.user_id === HELPER.id)?.message)).toMatch(DAY);
+        // The admin never receives the poster's "Helpr marked it complete" ask.
+        expect(notes().some((n) => n.user_id === ADMIN.id)).toBe(false);
+      });
+    });
+
     // Q1415 (b): an open ban settlement review refuses escrow -> payout_pending
     // (trg_refuse_payout_pending_during_ban_review, 'ban_review_open'). The
     // release used to answer "Failed to update the job status, please try

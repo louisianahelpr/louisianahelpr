@@ -217,7 +217,7 @@ it("offerClock() still reads the two columns it stands in for", () => {
 /**
  * A file shows a clock when it renders `<DeadlineCountdown` (or the
  * `<CountdownRows` panel) AND reads the
- * source: by column name, by `AUTO_COMPLETE_HOURS`, through a shared reader
+ * source: by column name, by `APPROVAL_WINDOW_HOURS`, through a shared reader
  * (VIA_READERS), or through posterDeadline/helperDeadline for a state the
  * collapsed map says carries it.
  */
@@ -225,7 +225,7 @@ function expandedShows(tree: string, side: Side, source: DeadlineSource): string
   const viaIds = [...(collapsed[side].get(source) ?? [])].map(
     (id) => `${side === "poster" ? "posterDeadline" : "helperDeadline"}("${id}"`,
   );
-  const needles = [source === "auto_complete" ? "AUTO_COMPLETE_HOURS" : source, ...(VIA_READERS[source] ?? []), ...viaIds];
+  const needles = [source === "auto_complete" ? "APPROVAL_WINDOW_HOURS" : source, ...(VIA_READERS[source] ?? []), ...viaIds];
   return walk(tree)
     .filter((p) => !isTest(p))
     .filter((p) => {

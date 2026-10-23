@@ -9,7 +9,7 @@ import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { CompletionChoiceSheet } from "@/pages/posts/CompletionChoiceSheet";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 import { hasJobStarted } from "@/lib/dateUtils";
-import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../../../supabase/functions/_shared/escrowTiming";
 import {
   STALLED_APPROVE_DETAIL_TITLE,
   STALLED_APPROVE_DISABLED_DETAIL,
@@ -211,9 +211,8 @@ export function InProgressStep(ctx: PosterStepCtx) {
               labelled the "Confirm they're working" button that sits directly
               under it, so it asked the question the button already answers,
               while the tracker beside it already shows which step is current. */}
-          {/* The deadline reads the shared constant — 24h, TIGHTENED from 48 on
-              2026-08-24. Do not "restore" a 48: that would double every
-              poster's review window and delay every helper payout by a day. */}
+          {/* The deadline reads the shared constant (24h). Past it Helpr support
+              steps in; nothing releases on a timer (owner 2026-10-23). */}
           {awaitingApproval && instantReleaseOn && (
             <div
               className="flex items-center gap-2 text-ds-11 px-2.5 py-1.5 rounded-ds-sm"
@@ -221,18 +220,18 @@ export function InProgressStep(ctx: PosterStepCtx) {
             >
               <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
               <span className="font-medium">
-                Instant Release is on — payment releases within minutes. Request a revision now if something's wrong.
+                Instant Release is on — the work is approved for you within minutes. Request a revision now if something's wrong.
               </span>
             </div>
           )}
           {awaitingApproval && !instantReleaseOn && job.helper_completed_at && (
             <DeadlineCountdown
-              deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString()}
-              expiredText={`${AUTO_COMPLETE_HOURS} hours passed — payment auto-released to Helpr`}
+              deadline={new Date(new Date(job.helper_completed_at).getTime() + hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString()}
+              expiredText={`${APPROVAL_WINDOW_HOURS} hours passed — Helpr support will reach out. Your payment stays held.`}
               // One line (owner). The Approve sheet itself walks through
               // release vs revision, so the banner only owes the deadline and
               // its consequence.
-              consequenceText="to review — payment auto-releases after"
+              consequenceText="to review — then Helpr support steps in"
               inline
               variant="warning"
             />

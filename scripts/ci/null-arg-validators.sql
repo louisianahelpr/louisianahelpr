@@ -169,6 +169,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('release_dispute_settlement_claim','action', 'RPC'),
   ('report_stale_dispute_settlement_claim','action','RPC'),
   ('resolve_stalled_job_flag',      'action',   'RPC'),
+  ('resolve_approval_escalation',   'action',   'RPC'),
+  ('file_approval_escalation',      'action',   'approval queue (20261023143240): service-only, files or re-opens a job''s escalation (writes; TRUE = this call filed it)'),
   ('stamp_dispute_settlement_claim','action',   'RPC'),
   ('toggle_thread_mute',            'action',   'RPC'),
   ('series_give_up_strike',         'action',   'writes a reliability strike (internal to the series give-up RPCs; true = a strike was recorded)'),

@@ -769,6 +769,8 @@ serve(async (req) => {
       helper_amount: number | string | null;
       created_at: string | null;
       updated_at: string | null;
+      /** Q2356: this fee's transfers Stripe reported failed or canceled (no money left for them). */
+      failed_transfer_ids?: string[] | null;
     };
     // Hits are held until the end so a hit on an is_seed job outside the
     // default scan can be routed like every other seed hit (see Emit).
@@ -778,7 +780,7 @@ serve(async (req) => {
     const feeScan = await scanAll<FeeLedgerRow>("cancellation_fee_transfers", (countOpt) =>
       admin
         .from("cancellation_fee_transfers")
-        .select("id, job_id, helper_id, status, stripe_transfer_id, helper_amount, created_at, updated_at", countOpt)
+        .select("id, job_id, helper_id, status, stripe_transfer_id, helper_amount, created_at, updated_at, failed_transfer_ids", countOpt)
         .order("id", { ascending: true }),
     );
     const feeLedgerDefect = feeScan.error
@@ -2006,26 +2008,33 @@ serve(async (req) => {
               .filter((v): v is string => typeof v === "string" && v.length > 0),
           ),
         ];
-        const shareById = new Map<string, { id: string; stripe_transfer_id: string | null }>();
+        const shareById = new Map<string, { id: string; stripe_transfer_id: string | null; failed_transfer_ids?: string[] | null }>();
         let shareReadFailed = false;
         for (let i = 0; i < shareIds.length; i += 200) {
           const { data: shares, error: sErr } = await admin
             .from("crew_cancellation_fee_shares")
-            .select("id, stripe_transfer_id")
+            .select("id, stripe_transfer_id, failed_transfer_ids")
             .in("id", shareIds.slice(i, i + 200));
           if (sErr) {
             shareReadFailed = true;
             notes.push(`cancellation-fee crew share lookup failed: ${sErr.message}`);
             break;
           }
-          for (const sh of (shares ?? []) as Array<{ id: string; stripe_transfer_id: string | null }>) {
+          for (const sh of (shares ?? []) as Array<{ id: string; stripe_transfer_id: string | null; failed_transfer_ids?: string[] | null }>) {
             shareById.set(sh.id, sh);
           }
         }
         const shareTransferIds = new Set(
           [...shareById.values()].map((sh) => sh.stripe_transfer_id).filter((v): v is string => !!v),
         );
+        // Q2356 (review should-fix 3): a transfer a fee row or share remembers as failed or canceled moved no
+        // money, so it is accounted for (it is not "money the books don't show"), after the retry paid a new one.
+        const failedFeeIds = new Set<string>([
+          ...feeRows.flatMap((r) => r.failed_transfer_ids ?? []),
+          ...[...shareById.values()].flatMap((sh) => sh.failed_transfer_ids ?? []),
+        ]);
         for (const t of feeTransfers) {
+          if (failedFeeIds.has(t.id)) continue;
           const md = (t.metadata ?? {}) as Record<string, string>;
           const base = {
             job_id: md.job_id ?? null,

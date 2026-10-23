@@ -365,6 +365,7 @@ export type Database = {
           commission_percent: number
           created_at: string
           failure_reason: string | null
+          failed_transfer_ids: string[]
           fee_amount: number
           helper_amount: number
           helper_id: string | null
@@ -380,6 +381,7 @@ export type Database = {
           commission_percent: number
           created_at?: string
           failure_reason?: string | null
+          failed_transfer_ids?: string[]
           fee_amount: number
           helper_amount: number
           helper_id?: string | null
@@ -395,6 +397,7 @@ export type Database = {
           commission_percent?: number
           created_at?: string
           failure_reason?: string | null
+          failed_transfer_ids?: string[]
           fee_amount?: number
           helper_amount?: number
           helper_id?: string | null
@@ -643,6 +646,7 @@ export type Database = {
         Row: {
           committed: boolean
           created_at: string
+          failed_transfer_ids: string[]
           fee_percent: number
           helper_id: string | null
           id: string
@@ -656,6 +660,7 @@ export type Database = {
         Insert: {
           committed: boolean
           created_at?: string
+          failed_transfer_ids?: string[]
           fee_percent: number
           helper_id?: string | null
           id?: string
@@ -669,6 +674,7 @@ export type Database = {
         Update: {
           committed?: boolean
           created_at?: string
+          failed_transfer_ids?: string[]
           fee_percent?: number
           helper_id?: string | null
           id?: string
@@ -14185,6 +14191,10 @@ export type Database = {
       normalize_name_for_ban: { Args: { p_name: string }; Returns: string }
       normalize_phone7_for_ban: { Args: { p_phone: string }; Returns: string }
       normalize_phone_for_ban: { Args: { p_phone: string }; Returns: string }
+      note_failed_fee_transfer: {
+        Args: { p_kind: string; p_reason: string; p_row: string; p_transfer: string }
+        Returns: string
+      }
       notification_admin_full_names: {
         Args: {
           p_job_id: string

@@ -137,6 +137,8 @@ export function collectDbIds(kind, valuesByColumn) {
  * with the reason. Two-way with types.ts in the test.
  */
 export const NOT_MATCHED = {
+  "cancellation_fee_transfers.failed_transfer_ids": "Q2356 (20261023151810): transfers of this fee Stripe reported failed or canceled, kept so a retry never counts them as paid; the row's stripe_transfer_id is the matched record of the one that paid",
+  "crew_cancellation_fee_shares.failed_transfer_ids": "Q2356 (20261023151810): the same for a crew share; the share's stripe_transfer_id is the matched record",
   "shop_pickup_addresses.stripe_tax_location_id": "a cache of a Stripe Tax location made from the row's own address; after a restore shop-checkout simply makes (or, by idempotency key, gets back) a fresh one, nothing to reconcile",
   "shop_pickup_addresses.stripe_tax_location_mode": "the Stripe mode of that cached location (live/test), not a Stripe id",
   "stuck_payment_stripe_checks.stripe_session_id": "a cache of Stripe's answer about jobs.stripe_session_id, rewritten every 15 minutes by stuck-payment-check; the job row is the record",

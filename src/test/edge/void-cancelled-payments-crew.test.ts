@@ -251,6 +251,36 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     expect(slackAlerts).toHaveLength(0);
   });
 
+  // Q2356: a crew share's failed transfer (the webhook marked the share failed and remembered it) is not a
+  // payment: Part D sends a NEW transfer instead of marking the share paid with the failed one.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id && !knownFailed.has(t.id)) | .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id)
+  it("Q2356: Part D sends a FAILED share again even though Stripe still lists its failed transfer", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_crew" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-2", job_id: "job-crew", helper_id: "member-b", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "failed", stripe_transfer_id: "tr_failed_b", failed_transfer_ids: ["tr_failed_b"] }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_crew", status: "succeeded", latest_charge: "ch_crew" });
+    stripeMock.transfers.list.mockResolvedValue({
+      data: [{ id: "tr_failed_b", amount: 4400, amount_reversed: 0, reversed: false, metadata: { job_id: "job-crew", helper_id: "member-b", type: "cancellation_fee", share_id: "share-2" } }],
+    });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers().map((t) => t.helper)).toEqual(["member-b"]);
+    expect(ledgerFlips()[0]).toEqual(expect.objectContaining({ status: "paid", stripe_transfer_id: "tr_member-b" }));
+    // Review should-fix 1: the paid mark skips a share whose failure the webhook already recorded for this transfer.
+    // @mutate supabase/functions/void-cancelled-payments/index.ts |           flip = flip.not("failed_transfer_ids", "cs", `{${patch.stripe_transfer_id}}`); |           void 0;
+    const flip = scenario.writes.find((w) => w.table === "crew_cancellation_fee_shares" && w.op === "update");
+    expect(flip?.filters).toContainEqual(expect.objectContaining({ op: "not", column: "failed_transfer_ids", operator: "cs", value: "{tr_member-b}" }));
+  });
+
   // Q1381 review (lh-money-escrow, MEDIUM): a PENDING share whose transfer
   // times out may have been paid; it is not marked failed, so its next attempt
   // keeps the unsalted key and Stripe dedupes it.

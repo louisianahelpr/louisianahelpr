@@ -71,7 +71,16 @@ export async function settleCancellationFeeTransfer(
     q = q.eq("stripe_transfer_id", transfer.id);
   }
   // Never re-point a row that already records a DIFFERENT transfer.
-  q = q.or(`stripe_transfer_id.is.null,stripe_transfer_id.eq.${transfer.id}`);
+  if (outcome === "paid") {
+    // Q2356 (lh-money-escrow review must-fix): a transfer this row remembers as failed or canceled is never
+    // marked paid, whatever order Stripe delivers transfer.created and transfer.failed in. And a FAILED row's
+    // retry (a new transfer, the row still naming the failed one) is accepted, so a successful retry does
+    // not page "no matching ledger row" (should-fix 2).
+    q = q.not("failed_transfer_ids", "cs", `{${transfer.id}}`)
+      .or(`stripe_transfer_id.is.null,stripe_transfer_id.eq.${transfer.id},status.eq.failed`);
+  } else {
+    q = q.or(`stripe_transfer_id.is.null,stripe_transfer_id.eq.${transfer.id}`);
+  }
   const { data, error } = await q.select("id");
 
   if (error) {
@@ -107,4 +116,34 @@ export async function settleCancellationFeeTransfer(
   }
   logStep(`Cancellation fee ledger row ${outcome}`, { transferId: transfer.id, rowId });
   return rowId;
+}
+
+/** A crew cancellation-fee SHARE transfer (metadata.share_id). */
+export function isCrewShareFeeTransfer(transfer: Stripe.Transfer): boolean {
+  const md = (transfer.metadata ?? {}) as Record<string, string | undefined>;
+  return md.type === "cancellation_fee" && !!md.share_id;
+}
+
+/**
+ * Q2356: remember a failed or canceled fee transfer on its own ledger row (note_failed_fee_transfer,
+ * 20261023151810), so void-cancelled-payments never counts it as "already paid" when it asks Stripe what
+ * the job's transfer group holds (a failed transfer is not `reversed`). For a crew share it also marks the
+ * share 'failed', so the hourly run's share retry pays it. Throws on a DB error so the webhook answers 500
+ * and Stripe redelivers. Returns the row id it touched, or null when no row matched.
+ */
+export async function noteFailedFeeTransfer(
+  transfer: Stripe.Transfer,
+  kind: "fee" | "share",
+  rowId: string,
+  { supabase, logStep }: Pick<WebhookContext, "supabase" | "logStep">,
+  reason: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc("note_failed_fee_transfer", {
+    p_kind: kind, p_row: rowId, p_transfer: transfer.id, p_reason: reason.slice(0, 500),
+  });
+  if (error) {
+    throw new Error(`note_failed_fee_transfer (${kind} ${rowId}) failed for transfer ${transfer.id}: ${error.message}`);
+  }
+  logStep("Fee transfer remembered as failed", { transferId: transfer.id, kind, rowId, matched: data ?? null });
+  return (data as string | null) ?? null;
 }

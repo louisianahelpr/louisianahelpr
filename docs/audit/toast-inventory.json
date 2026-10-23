@@ -676,7 +676,7 @@
     },
     {
       "file": "src/components/JobConfirmation.tsx",
-      "line": 297,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10801,7 +10801,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10811,7 +10811,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10831,7 +10831,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 272,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10841,7 +10841,7 @@
     },
     {
       "file": "src/pages/posts/CompletionChoiceSheet.tsx",
-      "line": 434,
+      "line": 435,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

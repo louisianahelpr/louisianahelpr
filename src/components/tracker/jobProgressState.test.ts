@@ -64,8 +64,8 @@ describe("jobProgress (the one tracker)", () => {
     expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: true });
     // Both in: Confirmed is done; On the way is next.
     expect(poster({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "You're both confirmed. Jolie taps On my way when they leave" });
-    // Both in: On the way is the Helpr's move (their button is "I'm on my way").
-    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: true, next: "Tap I'm on my way when you leave" });
+    // Both in, a day out: On the way is next; the face offers "I'm on my way" only from 3 hours before (owner 2026-10-23).
+    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "You're scheduled" });
     // Only the Helpr in: Confirmed lights on BOTH (the old rail's rule, kept), so it waits on the poster; the
     // Helpr's early "I'm on my way" does not make Confirmed theirs.
     expect(helpr({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm" });

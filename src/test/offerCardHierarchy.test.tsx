@@ -257,10 +257,15 @@ describe("2. the start clock shows on the collapsed card, both sides", () => {
     expect(document.querySelector('[data-countdown-inline="deadline"]')).not.toBeNull();
   });
 
-  it("Helpr: collapsed confirmed card draws the start clock in its strip", () => {
+  it("Helpr: collapsed accepted card, confirm window open: ONE clock, the confirm deadline, in its strip (owner, 2026-10-23, card critique item 7)", () => {
     const confirmed = { ...offerJob, helper_confirmed_at: "2026-10-05T17:00:00Z" } as unknown as Job;
     renderApplied({ ...offerApp, job: confirmed } as unknown as AppliedApp, false);
-    expect(stripRows()).toContain("start");
+    // The line's own clock is the one shown; the start no longer stacks under it.
+    expect(stripRows()).toEqual([]);
+    const strip = document.querySelector("[data-job-status-strip]")!;
+    expect(strip.textContent).toMatch(/Confirm you'll be at the job/);
+    // The confirm deadline's own clock (DeadlineCountdown, mocked here) is the one clock drawn.
+    expect(strip.querySelectorAll('[data-testid="answer-clock"]')).toHaveLength(1);
     expect(document.querySelector("[data-collapsed-start-clock]")).toBeNull();
   });
 });

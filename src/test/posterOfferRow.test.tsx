@@ -13,7 +13,7 @@
  * @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx |         canAsk && !askedOfMe && ( |         false && (
  * @mutate src/components/series/JobSeriesCardControls.tsx | viewer={viewer} expanded={expanded} hideAsk /> | viewer={viewer} expanded={expanded} />
  * @mutate src/components/job-card/JobCardMetaRow.tsx |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0" |     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0 md:mr-auto"
- * @mutate src/components/job-card/JobCardMetaRow.tsx | fullAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap" | fullAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
+ * @mutate src/components/job-card/JobCardMetaRow.tsx | wrapAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap" | wrapAddress ? "flex-wrap gap-y-1" : "flex-nowrap"
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";

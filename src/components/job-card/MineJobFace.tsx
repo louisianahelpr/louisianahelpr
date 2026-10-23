@@ -26,6 +26,8 @@ export interface MineFaceAction {
   tone: "primary" | "secondary";
   /** A Helpr tracker step this button takes (helperFaceNextStep's key): the 8-step bar reads it (cardBar). */
   step?: string;
+  /** A waiting card's quiet second control, drawn as a small text link ("Manage job"). */
+  also?: { label: string; onClick: () => void };
   disabled?: boolean;
 }
 
@@ -117,7 +119,9 @@ export function MineJobFace({
             )}
           </span>
           <span className="min-w-0 flex-1">
-            <span className="flex items-start justify-between gap-3">
+            {/* From 768px the price sits beside the title, not ~800px away at the far edge (owner, 2026-10-23,
+                card critique item 14). */}
+            <span className="flex items-start justify-between gap-3 md:justify-start md:gap-4">
               <span
                 data-mine-face-title=""
                 className="line-clamp-2 min-w-0 text-ds-16 font-bold leading-snug text-foreground [overflow-wrap:anywhere]"
@@ -130,7 +134,9 @@ export function MineJobFace({
                     {money}
                   </span>
                   {moneyCaption && (
-                    <span className="block text-ds-11 text-muted-foreground">
+                    // Short and small (owner, 2026-10-23, card critique item 12): "you take home" beside the price
+                    // squeezed the title onto two lines.
+                    <span className="block whitespace-nowrap text-ds-10 leading-tight text-muted-foreground">
                       {moneyCaption}
                     </span>
                   )}
@@ -171,7 +177,36 @@ export function MineJobFace({
           </div>
         )}
       </div>
-      {action && (
+      {action?.also ? (
+        // A waiting card (owner, 2026-10-23, card critique item 13): its one button is "Message <name>", and the
+        // card's controls are a small text link beside it, not a second full-width pill.
+        <div className="order-3 mt-3 flex items-center gap-3 md:order-none md:mt-0 md:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            data-mine-face-action={action.tone}
+            size="sm"
+            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick();
+            }}
+          >
+            {action.label}
+          </Button>
+          <button
+            type="button"
+            data-mine-face-also=""
+            className="link-standard shrink-0 text-ds-13 font-semibold text-muted-foreground"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.also?.onClick();
+            }}
+          >
+            {action.also.label}
+          </button>
+        </div>
+      ) : action && (
         <Button
           type="button"
           variant={action.tone === "primary" ? "primary" : "outline"}

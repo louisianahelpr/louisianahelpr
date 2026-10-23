@@ -52,7 +52,8 @@ describe("one job, start to finish, both sides", () => {
   it("4 Accepted (window not open): both Scheduled; 'Lexi accepted'; no poster arrival button yet", () => {
     const j = job(accepted);
     const now = T("2032-10-11T12:00:00Z");
-    expect(poster(j, now)).toEqual({ tab: "scheduled", line: "Lexi accepted" });
+    // What is next, said on the line (owner, 2026-10-23, card critique item 5).
+    expect(poster(j, now)).toEqual({ tab: "scheduled", line: "Lexi accepted · confirms the day before" });
     expect(posterConfirmationRung(j, "scheduled", now)).toBeNull();
   });
 
@@ -64,7 +65,7 @@ describe("one job, start to finish, both sides", () => {
 
   it("6 Confirmed (both tapped): poster back in Scheduled, 'Lexi confirmed'", () => {
     const j = job({ ...accepted, helper_dayof_confirmed_at: "2032-10-13T13:00:00Z", poster_confirmed_at: "2032-10-13T14:00:00Z" });
-    expect(poster(j, T("2032-10-14T10:00:00Z"))).toEqual({ tab: "scheduled", line: "Lexi confirmed" });
+    expect(poster(j, T("2032-10-14T10:00:00Z"))).toEqual({ tab: "scheduled", line: "Lexi confirmed · taps On my way when leaving" });
   });
 
   const confirmed = { ...accepted, helper_dayof_confirmed_at: "2032-10-13T13:00:00Z", poster_confirmed_at: "2032-10-13T14:00:00Z" };

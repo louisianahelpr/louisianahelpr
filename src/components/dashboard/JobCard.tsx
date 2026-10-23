@@ -3,7 +3,7 @@ import { MapPin, Calendar, Clock, Star, Zap, Rocket, Timer, Repeat } from "lucid
 import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
-import { JobHelprsChip } from "@/components/job-card/JobCardMetaRow";
+import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";

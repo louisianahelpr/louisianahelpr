@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { MessageApplicantButton } from "@/components/jobs/MessageApplicantButton";
 import { formatJobDate } from "@/lib/dateUtils";
-import { formatName } from "@/lib/utils";
+import { endSentence, formatName } from "@/lib/utils";
 import { hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
 import {
@@ -260,7 +260,7 @@ export function SeriesDatesPanel({
                             onClick={() =>
                               run(async () => {
                                 const r = await offerSeriesDates(jobId, a.id);
-                                return `Offered ${r.openDates} open date${r.openDates === 1 ? "" : "s"} to ${a.name}.`;
+                                return `Offered ${r.openDates} open date${r.openDates === 1 ? "" : "s"} to ${endSentence(a.name)}`;
                               })
                             }
                             className="min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"

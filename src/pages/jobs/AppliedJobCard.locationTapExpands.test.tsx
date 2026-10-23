@@ -210,9 +210,10 @@ describe("/jobs card: a tap opens the job, it never opens Apple Maps", () => {
     expect(link.getAttribute("href")).not.toMatch(/-?\d+\.\d{3,}/);
   });
 
-  it("still prints the whole street address where the city used to be", () => {
+  it("still prints the street where the city used to be, the whole address in the control's title (collapsed: one line, owner 2026-10-23 card critique item 11)", () => {
     renderCard();
-    expect(screen.getByText(ADDRESS)).toBeInTheDocument();
+    expect(screen.getByText(ADDRESS.split(",")[0])).toBeInTheDocument();
+    expect(document.querySelector(`[title="${ADDRESS}"]`) ?? document.querySelector(`[aria-label*="${ADDRESS}"]`)).toBeTruthy();
   });
 });
 

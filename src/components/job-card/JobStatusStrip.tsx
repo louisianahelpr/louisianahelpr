@@ -132,6 +132,10 @@ export function JobStatusStrip({
   // An unanswered offer reads as ONE line, its answer clock beside the
   // sentence, with the start clock under it (owner, 2026-10-08).
   const deadlineInline = line.id === "unconfirmed" && !!line.deadline;
+  // ONE CLOCK, THE NEXT ONE (owner, 2026-10-23, card critique item 7): a line whose own clock is a row (a confirm
+  // or approve deadline) shows that row alone, not the start under it as well. An answer clock riding the sentence
+  // keeps the start row under it (owner, 2026-10-08: two lines). Guard: src/test/jobCardPolish.test.tsx.
+  const rowClocks = line.deadline && !deadlineInline ? null : extraClocks;
   const Root = variant === "line" ? "span" : "p";
   return (
     <Root
@@ -176,9 +180,11 @@ export function JobStatusStrip({
         under "Needs You" to actually being the reader's move. Dropping the
         field rather than the rendering would have retired that check.
       */}
-      <span className="sr-only">{line.eyebrow} — </span>
+      {/* A DISPUTE SAYS SO on the card's face (owner, 2026-10-23, card critique item 15): "Dispute open ·
+          Payment on hold". Its eyebrow IS the reason, the exception to the rule above. */}
+      {!(variant === "line" && line.tone === "alarm") && <span className="sr-only">{line.eyebrow} — </span>}
       <span className={variant === "line" ? "font-sans text-ds-13 font-semibold" : "font-sans text-ds-11"} style={{ color: `hsl(var(${ink}))` }}>
-        {line.detail}
+        {variant === "line" && line.tone === "alarm" ? `${line.eyebrow} · ${line.detail}` : line.detail}
       </span>
       {deadlineInline && line.deadline && (
         <span className="inline-flex items-center gap-1.5" data-countdown-inline="deadline" style={{ color: `hsl(var(${ink}))` }}>
@@ -201,17 +207,9 @@ export function JobStatusStrip({
       )}
       {/* The state's clock, on its own row under the sentence: the same
           countdown the expanded tracker shows, in its bare form. */}
-      {extraClocks && extraClocks.length > 0 ? (
+      {rowClocks && rowClocks.length > 0 ? (
         <span className="basis-full" style={{ color: `hsl(var(${ink}))` }}>
-          <CountdownRows
-            variant="bare"
-            clocks={[
-              ...(line.deadline && !deadlineInline
-                ? [{ id: "deadline", at: line.deadline.at, text: line.deadline.consequenceText, expiredText: line.deadline.expiredText }]
-                : []),
-              ...extraClocks,
-            ]}
-          />
+          <CountdownRows variant="bare" clocks={rowClocks} />
         </span>
       ) : line.deadline && !deadlineInline && (
         <span className="basis-full" style={{ color: `hsl(var(${ink}))` }}>

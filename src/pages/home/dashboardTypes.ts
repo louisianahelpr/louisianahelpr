@@ -21,6 +21,8 @@ export type ApplyVars = {
   helperId: string;
   message: string;
   files: File[];
+  /** "Suggest another time" on the apply sheet; absent/null = the job's day and time work. */
+  suggestion?: { date: string; time: string | null } | null;
 };
 
 export type ApplySnapshot = {

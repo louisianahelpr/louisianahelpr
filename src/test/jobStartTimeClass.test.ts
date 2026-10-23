@@ -207,9 +207,10 @@ describe("job start time — one rule, every surface", () => {
   });
 
   it("the shared rule itself answers the three cases", () => {
-    // 1. A clock time is a clock time, on a 12-hour clock, both flag states.
+    // 1. A clock time is a clock time, on a 12-hour clock.
     expect(jobStartTimeLabel("14:30:00", false)).toBe("2:30 PM");
-    expect(jobStartTimeLabel("14:30:00", true)).toBe("2:30 PM");
+    // Owner 2026-10-23: an hour AND the Flexible tick both show, on every surface.
+    expect(jobStartTimeLabel("14:30:00", true)).toBe(`2:30 PM · ${FLEXIBLE_TIME_LABEL}`);
     expect(jobStartTimeLabel("00:05", false)).toBe("12:05 AM");
     expect(jobStartTimeLabel("12:00", false)).toBe("12:00 PM");
     // 2. No time + the poster's own flag → the word.

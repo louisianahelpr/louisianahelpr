@@ -90,6 +90,12 @@ const EXACT: Record<string, string> = {
   applicant_blocked: "This job isn't available to you.",
   // Q1586(c): a saved birthday under 18 (refuse_under_18_member, apply_to_job).
   under_18: "You must be 18 or older to apply for jobs.",
+  // 20261023134752 (owner 2026-10-23): a trigger on applications, so it sits on the apply path's table.
+  // A Helpr never sees it from applying (it fires only when a poster hires); worded for whoever does.
+  suggested_time_not_agreed: "This applicant suggested a different day or time. Hiring them agrees to it.",
+  suggestion_not_allowed: "This job keeps one time for everyone, so a different time can't be suggested.",
+  suggestion_date_invalid: "Pick a day from today to 90 days out for the time you suggest.",
+  suggestion_same_as_job: "That's the job's own day and time. Choose \"Yes, that works\" instead.",
   // The same refusal told to anyone but the member (a poster seating or
   // hiring a minor, a server finishing an accept): it never names the age.
   helper_unavailable: "This job isn't available to you.",

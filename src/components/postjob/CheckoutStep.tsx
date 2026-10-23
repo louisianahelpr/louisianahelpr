@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { payNextLine } from "@/lib/walletsLive";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
-import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
+import { jobStartTimeLabel } from "@/lib/jobDate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -328,9 +328,8 @@ export function CheckoutStep({
                   // Both facts are true when a poster picks an hour AND ticks
                   // Flexible, so both print. One expression, so the whole
                   // "when" suffix has exactly one place it can be wrong.
-                  return `${timeLabel ? ` · ${timeLabel}` : ""}${
-                    isFlexibleSchedule && timeLabel !== FLEXIBLE_TIME_LABEL ? " · Flexible" : ""
-                  }`;
+                  // The ONE rule now prints both itself ("2:00 PM · Flexible", owner 2026-10-23).
+                  return timeLabel ? ` · ${timeLabel}` : "";
                 })()}
                 {estimatedHours ? ` · ${estimatedHours}h est.` : ""}
               </p>

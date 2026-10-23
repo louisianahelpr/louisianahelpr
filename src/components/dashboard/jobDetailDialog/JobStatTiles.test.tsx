@@ -74,13 +74,12 @@ describe("JobStatTiles — the compact row never reserves an empty cell", () => 
     expect(screen.getByText("Flexible")).toBeTruthy();
   });
 
-  it("a real start time wins over the flag and prints the clock", () => {
+  it("a real start time prints the clock, and the Flexible tick beside it (owner 2026-10-23)", () => {
     const { cols, cells } = renderTiles(
       makeJob({ start_time: "14:30:00", is_flexible_schedule: true }),
     );
     expect(cols).toBe(cells.length);
-    expect(screen.getByText("2:30 PM")).toBeTruthy();
-    expect(screen.queryByText("Flexible")).toBeNull();
+    expect(screen.getByText("2:30 PM · Flexible")).toBeTruthy();
   });
 
   it("holds with the fourth (Helprs) tile too", () => {

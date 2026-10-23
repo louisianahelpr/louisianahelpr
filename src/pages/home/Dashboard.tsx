@@ -301,6 +301,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   const {
     confirmApplyJobId, setConfirmApplyJobId, confirmApplyJob,
     applyMessage, setApplyMessage, applyLoading, applyFiles, setApplyFiles,
+    applyTimeSuggestion, setApplyTimeSuggestion,
     handleApplyRequest, handleApplyConfirm,
     applicationSent, closeApplicationSent, viewApplication,
   } = useApplyFlow({ user, allJobs });
@@ -798,6 +799,8 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
                   platformFee={platformFee}
                   applyMessage={applyMessage}
                   setApplyMessage={setApplyMessage}
+                  applyTimeSuggestion={applyTimeSuggestion}
+                  setApplyTimeSuggestion={setApplyTimeSuggestion}
                   applyFiles={applyFiles}
                   setApplyFiles={setApplyFiles}
                   applyLoading={applyLoading}
@@ -868,6 +871,8 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
             platformFee={platformFee}
             applyMessage={applyMessage}
             setApplyMessage={setApplyMessage}
+            applyTimeSuggestion={applyTimeSuggestion}
+            setApplyTimeSuggestion={setApplyTimeSuggestion}
             applyFiles={applyFiles}
             setApplyFiles={setApplyFiles}
             applyLoading={applyLoading}

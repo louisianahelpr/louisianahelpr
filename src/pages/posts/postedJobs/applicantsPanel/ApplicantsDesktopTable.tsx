@@ -1,3 +1,4 @@
+import { ApplicantSuggestedTime } from "./ApplicantSuggestedTime";
 import { useEffect, useState } from "react";
 import { ArrowUp, Ban, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
@@ -70,6 +71,7 @@ export function ApplicantsDesktopTable({
   topHelperId,
   jobId,
   category,
+  jobStartTime,
   completedCountsMap,
   categoryCounts,
   compare,
@@ -87,6 +89,8 @@ export function ApplicantsDesktopTable({
   topHelperId: string | null;
   jobId: string;
   category: string;
+  /** The job's own start time: a day-only suggestion keeps it (owner 2026-10-23). */
+  jobStartTime?: string | null;
   completedCountsMap: Map<string, number>;
   categoryCounts: Map<string, number> | null | undefined;
   compare: { ids: string[]; toggle: (id: string) => void; clear: () => void };
@@ -171,6 +175,7 @@ export function ApplicantsDesktopTable({
                       <ApplicantAvailableNow until={app.profiles?.available_until} />
                     </span>
                     <ApplicantProofLine categoryCount={inCategory(app)} totalCount={jobs} idVerified={app.profiles?.is_id_verified === true} category={category} />
+                    <ApplicantSuggestedTime app={app} jobStartTime={jobStartTime} />
                     {app.profiles && app.profiles.is_id_verified !== true && (
                       <span className="mt-0.5 block text-ds-11 text-muted-foreground" data-applicant-id-note="">
                         {applicantIdNote(formatName(app.profiles.full_name, ""))}

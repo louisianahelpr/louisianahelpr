@@ -51,6 +51,17 @@
  *       one: exactly the link checks FAIL and every other check holds. A
  *       planted QUOTES2_MIGRATION run leaves LINKS out too (it would overwrite
  *       the planted bodies) unless QUOTE_LINKS_MIGRATION is given.
+ *   remind (20261023120308_quote_reminders_by_email.sql, Q2120, applied after
+ *       LINKS): both 48 h reminders and the "Quotes are closed" notice are
+ *       emailed as type 'quote_reminder' (send-notification-email gates it on
+ *       notification_preferences.email_quote_reminders, default true) while
+ *       the in-app row keeps type 'new_offers'; the close notice counts the
+ *       quotes waiting on the poster (pending, 48 h left, a quoter on it, the
+ *       poster's turn) apart from the ones that came in, and past the 2-hour
+ *       start rule offers nothing; a new quote's
+ *       email stays 'new_offers'. --remind-before leaves it out (and
+ *       --links-before leaves it out too, since it builds on LINKS): exactly
+ *       the remind checks FAIL. QUOTE_REMIND_MIGRATION plants a copy.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -75,6 +86,10 @@ const LINKS_SQL = readFileSync(process.env.QUOTE_LINKS_MIGRATION ?? DIR + LINKS,
 // leaves LINKS out unless a planted LINKS copy (QUOTE_LINKS_MIGRATION) is given.
 const LINKS_BEFORE = process.argv.includes("--links-before") ||
   (!!process.env.QUOTES2_MIGRATION && !process.env.QUOTE_LINKS_MIGRATION);
+// Q2120 (applied after LINKS, which it builds on): --remind-before leaves it out.
+const REMIND = "20261023120308_quote_reminders_by_email.sql";
+const REMIND_SQL = readFileSync(process.env.QUOTE_REMIND_MIGRATION ?? DIR + REMIND, "utf8");
+const REMIND_BEFORE = process.argv.includes("--remind-before") || LINKS_BEFORE;
 
 const DEFS = effectiveDefs(DIR, { before: BASE });
 // Main's newest bodies BEFORE this migration (train J's direct-offer funding
@@ -155,6 +170,7 @@ ALTER TABLE public.user_blocks ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can create their own blocks" ON public.user_blocks FOR INSERT WITH CHECK (auth.uid() = blocker_id);
 GRANT INSERT ON public.user_blocks TO authenticated;
 CREATE TABLE public.stub_unready (user_id uuid PRIMARY KEY);
+CREATE TABLE public.notification_preferences (user_id uuid PRIMARY KEY, email_new_offers boolean NOT NULL DEFAULT true);
 
 CREATE FUNCTION public.feature_enabled_for_user(p_key text, p_uid uuid) RETURNS boolean LANGUAGE sql STABLE AS
   $$ SELECT EXISTS (SELECT 1 FROM public.feature_switches WHERE key = p_key AND audience = 'everyone') $$;
@@ -191,6 +207,7 @@ if (!BEFORE) {
   for (let i = 0; i < (REPLAY ? 3 : 1); i++) {
     await db.exec(MIGRATION);
     if (!LINKS_BEFORE) await db.exec(LINKS_SQL);
+    if (!REMIND_BEFORE) await db.exec(REMIND_SQL);
   }
 }
 await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'quotes'");
@@ -198,8 +215,9 @@ await db.exec("UPDATE public.feature_switches SET audience = 'everyone' WHERE ke
 const results = [];
 // control: holds on main too (no FAIL-before); it pins what the change must NOT do.
 // links: a check of the quoter's own link (LINKS); --links-before must fail exactly these.
-const check = (name, ok, detail = "", control = false, links = false) => {
-  results.push({ name, ok, control, links });
+// remind: a Q2120 check (REMIND); --remind-before must fail exactly these.
+const check = (name, ok, detail = "", control = false, links = false, remind = false) => {
+  results.push({ name, ok, control, links, remind });
   console.log(`${ok ? "PASS" : "FAIL"} ${name}${detail ? `  (${detail})` : ""}`);
 };
 const as = async (uid, sql) => {
@@ -583,6 +601,95 @@ await step("links: decline and counter, both ways round", async () => {
 });
 
 // Q1357: the sweep's clock edges on a FIXED clock (fixedClock.mjs). The newest
+// ---- remind (Q2120): reminders and the close notice by email, own switch
+// Emails sent since `mark` (net.calls is not cleared: the links checks below read every email of the run).
+const callMark = async () => (await db.query("SELECT COALESCE(max(id), 0) AS m FROM net.calls")).rows[0].m;
+const emailsSince = async (mark) =>
+  (await db.query(`SELECT body FROM net.calls WHERE url LIKE '%/send-notification-email' AND id > ${mark}`)).rows.map((r) => r.body);
+const remindStep = (name, fn) => step(name, async () => {
+  await svc("UPDATE public.job_quote_requests SET status = 'cancelled' WHERE status = 'open'");
+  await fn(await callMark());
+});
+const remindCheck = (name, ok, detail) => check(name, ok, detail, false, false, true);
+
+await remindStep("remind: both 48 h reminders are emailed as quote_reminder; the in-app row stays new_offers", async (mark) => {
+  const req = await newRequest();
+  const q = (await one(QA, `SELECT public.submit_job_quote('${req}', 30000, 'Two coats', 'Any weekday') AS id`)).id;
+  const afterQuote = await emailsSince(mark);
+  await svc(`UPDATE public.job_quotes SET respond_until = now() + interval '3 hours' WHERE id = '${q}'`);
+  await svc("SELECT public.sweep_quote_alerts()");
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q}', 'counter', 28000)`);
+  await svc(`UPDATE public.job_quotes SET respond_until = now() + interval '2 hours' WHERE id = '${q}'`);
+  await svc("SELECT public.sweep_quote_alerts()");
+  const all = await emailsSince(mark);
+  const toPoster = all.filter((b) => b.title === "A quote is waiting on you");
+  const toQuoter = all.filter((b) => b.title === "A counter-offer is waiting on you");
+  const ids = [...toPoster, ...toQuoter].map((b) => `'${b.notification_id}'`).join(",") || "NULL";
+  const rowTypes = (await svc(`SELECT DISTINCT type FROM public.notifications WHERE id = ANY (ARRAY[${ids}]::uuid[])`)).map((r) => r.type);
+  remindCheck(
+    "remind: both 48 h reminders are emailed as quote_reminder; the in-app row stays new_offers",
+    afterQuote.length === 1 && afterQuote[0].type === "new_offers" &&
+      toPoster.length === 1 && toPoster[0].user_id === POSTER && toPoster[0].type === "quote_reminder" &&
+      toPoster[0].link === `/quotes?request=${req}&user=${QA}` &&
+      toQuoter.length === 1 && toQuoter[0].user_id === QA && toQuoter[0].type === "quote_reminder" &&
+      rowTypes.length === 1 && rowTypes[0] === "new_offers",
+    `quote=${afterQuote.map((b) => b.type)} poster=${JSON.stringify(toPoster.map((b) => [b.type, b.link]))} quoter=${toQuoter.map((b) => b.type)} rows=${rowTypes}`,
+  );
+});
+
+await remindStep("remind: the close notice is emailed and counts the quotes waiting on the poster", async () => {
+  // mixed: one declined, one waiting on the poster, one whose 48 h ran out.
+  const mixed = await newRequest();
+  const q1 = (await one(QA, `SELECT public.submit_job_quote('${mixed}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  await as(QB, `SELECT public.submit_job_quote('${mixed}', 26000, 'Paint included', 'Sunday')`);
+  const q3 = (await one(QC, `SELECT public.submit_job_quote('${mixed}', 27000, 'Paint included', 'Monday') AS id`)).id;
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q1}', 'decline')`);
+  await svc(`UPDATE public.job_quotes SET respond_until = now() - interval '1 minute' WHERE id = '${q3}'`);
+  // theirs: the poster countered, so it waits on the quoter (not_your_turn for the poster).
+  const theirs = await newRequest();
+  const q4 = (await one(QA, `SELECT public.submit_job_quote('${theirs}', 25000, 'Paint included', 'Saturday') AS id`)).id;
+  await as(POSTER, `SELECT public.respond_to_job_quote('${q4}', 'counter', 22000)`);
+  const live = await newRequest();
+  await as(QA, `SELECT public.submit_job_quote('${live}', 25000, 'Paint included', 'Saturday')`);
+  // late: the window closed at the 2-hour start rule; nothing can be agreed or posted.
+  const late = await newRequest();
+  await as(QB, `SELECT public.submit_job_quote('${late}', 25000, 'Paint included', 'Saturday')`);
+  const lateEmpty = await newRequest();
+  await svc(`UPDATE public.job_quote_requests SET date_needed = ((now() AT TIME ZONE 'America/Chicago') - interval '1 day')::date
+    WHERE id IN ('${late}', '${lateEmpty}')`);
+  await svc(`UPDATE public.job_quote_requests SET quotes_close_at = now() - interval '5 minutes'
+    WHERE id IN ('${mixed}', '${theirs}', '${live}', '${late}', '${lateEmpty}')`);
+  const mark = await callMark();
+  await svc("SELECT public.sweep_quote_alerts()");
+  await svc("SELECT public.sweep_quote_alerts()");
+  const closed = (await emailsSince(mark)).filter((b) => b.title === "Quotes are closed");
+  const by = (id) => closed.filter((b) => b.link.startsWith(`/quotes?request=${id}`)).map((b) => b.message);
+  const [m, t, l, z, ze] = [by(mixed), by(theirs), by(live), by(late), by(lateEmpty)];
+  remindCheck(
+    "remind: the close notice is emailed and counts the quotes waiting on the poster",
+    closed.length === 5 && closed.every((b) => b.type === "quote_reminder" && b.user_id === POSTER) &&
+      m.length === 1 && /^3 quotes came in for ".*", and 1 is waiting on you\. Accept it/.test(m[0]) &&
+      t.length === 1 && /^1 quote came in for ".*", and none is waiting on you\. You can set your own price/.test(t[0]) &&
+      l.length === 1 && /^1 quote came in for ".*"\. Accept it, counter it/.test(l[0]) &&
+      z.length === 1 && /^1 quote came in for ".*", but the job starts too soon to agree on one now\.$/.test(z[0]) &&
+      ze.length === 1 && /^No quotes came in for "[^"]*"\.$/.test(ze[0]),
+    JSON.stringify({ n: closed.length, types: closed.map((b) => b.type), m, t, l, z, ze }),
+  );
+});
+
+await step("remind: the email switch exists, defaults on, and quote_notify_to has one 9-argument form", async () => {
+  await svc(`INSERT INTO public.notification_preferences (user_id) VALUES ('${QC}') ON CONFLICT DO NOTHING`);
+  const pref = await svc(`SELECT email_quote_reminders AS v FROM public.notification_preferences WHERE user_id = '${QC}'`)
+    .then((r) => r[0]?.v, () => "missing");
+  const sigs = (await svc(`SELECT p.oid::regprocedure::text AS s FROM pg_proc p
+     WHERE p.pronamespace = 'public'::regnamespace AND p.proname = 'quote_notify_to'`)).map((r) => r.s);
+  remindCheck(
+    "remind: the email switch exists, defaults on, and quote_notify_to has one 9-argument form",
+    pref === true && sigs.length === 1 && sigs[0] === "quote_notify_to(uuid,text,text,uuid,boolean,uuid,uuid,boolean,text)",
+    `pref=${pref} sigs=${JSON.stringify(sigs)}`,
+  );
+});
+
 // "sweep_quote_alerts" body is reloaded with every now() pointed at
 // _probe_now(), so each boundary is exact: a reply window ending exactly 4 h out
 // reminds and one a second later does not; a quote window closed exactly now
@@ -596,7 +703,7 @@ await step("10 the sweep's 4 h reminder and 1-day close-notice edges, on a fixed
   // Whichever migration defined it last in THIS run: LINKS (real or planted)
   // when it was applied, else THIS one (real or planted).
   const SWEEP = /CREATE OR REPLACE FUNCTION public\.sweep_quote_alerts\(\)[\s\S]*?\$fn\$[\s\S]*?\$fn\$;/;
-  const sweepStmt = LINKS_BEFORE ? SWEEP.exec(MIGRATION)[0] : SWEEP.exec(LINKS_SQL)[0];
+  const sweepStmt = LINKS_BEFORE ? SWEEP.exec(MIGRATION)[0] : REMIND_BEFORE ? SWEEP.exec(LINKS_SQL)[0] : SWEEP.exec(REMIND_SQL)[0];
   await db.exec(onFixedClock(sweepStmt));
   const T = "2030-06-01T12:00:00Z";
   await setClock(db, T);
@@ -717,9 +824,12 @@ await step("grants: the new helpers and the sweep are not client-callable", asyn
 });
 
 const failed = results.filter((r) => !r.ok).length;
-console.log(`\n${BEFORE ? "BEFORE (main only)" : LINKS_BEFORE ? "LINKS BEFORE (without " + LINKS + ")" : REPLAY ? "AFTER (migrations x3)" : "AFTER (migrations x1)"}: ${results.length - failed}/${results.length} pass`);
+console.log(`\n${BEFORE ? "BEFORE (main only)" : LINKS_BEFORE ? "LINKS BEFORE (without " + LINKS + ")" : REMIND_BEFORE ? "REMIND BEFORE (without " + REMIND + ")" : REPLAY ? "AFTER (migrations x3)" : "AFTER (migrations x1)"}: ${results.length - failed}/${results.length} pass`);
 // Links before: exactly the link checks fail; everything else holds.
-if (LINKS_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !r.links) ? 0 : 1);
+// (REMIND builds on LINKS, so its checks fail there too.)
+if (LINKS_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !(r.links || r.remind)) ? 0 : 1);
+// Remind before: exactly the Q2120 checks fail.
+if (REMIND_BEFORE && !BEFORE) process.exit(results.every((r) => r.ok === !r.remind) ? 0 : 1);
 // Before: every behaviour check fails; the controls hold on main too.
 if (BEFORE) process.exit(results.filter((r) => !r.control).every((r) => !r.ok) && results.filter((r) => r.control).every((r) => r.ok) ? 0 : 1);
 process.exit(failed === 0 ? 0 : 1);

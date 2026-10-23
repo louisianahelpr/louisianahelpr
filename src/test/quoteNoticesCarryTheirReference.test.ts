@@ -38,8 +38,8 @@
  *
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | ' on "' \|\| v_req.title \|\| '".', v_uid, true,\n      v_req.id, NULL, false); | ' on "' \|\| v_req.title \|\| '".', v_uid, true,\n      NULL, NULL, false);
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, true); | Finish your payout setup and ID check and you''re booked.',\n        NEW.customer_id, false, NULL, NEW.id, false);
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | WHEN p_request_id IS NOT NULL THEN '/quotes?request=' \|\| p_request_id::text | WHEN p_request_id IS NOT NULL THEN '/quotes?view=mine'
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, p_job_id) |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, NULL)
+ * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql | WHEN p_request_id IS NOT NULL THEN '/quotes?request=' \|\| p_request_id::text | WHEN p_request_id IS NOT NULL THEN '/quotes?view=mine'
+ * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, p_job_id) |   VALUES (p_user, p_title, p_message, 'new_offers', v_link, NULL)
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | DROP FUNCTION IF EXISTS public.quote_notify_about(uuid, text, text, uuid, boolean);\n | \n
  * @mutate src/lib/quotes/homes.ts |   return isPoster ? | return true ?
  * @mutate src/components/quotes/QuotesHubRedirect.tsx | <Navigate to={quoteRequestTarget(requestId, own.data)} replace /> | <Navigate to={quotesHubTarget(search)} replace />
@@ -109,14 +109,17 @@ const REQUEST_REF: Record<string, string[]> = {
 };
 
 describe("quote notices carry a reference; the reader's side picks the place when opened", () => {
-  it("quote_notify_to is the only quote notice helper; every call passes all 8 arguments (cannot pass vacuously)", () => {
+  it("quote_notify_to is the only quote notice helper; every call passes all 8 arguments, or 9 with its email type (cannot pass vacuously)", () => {
     expect(EFFECTIVE.has("quote_notify_about"), "quote_notify_about is dropped").toBe(false);
     expect(EFFECTIVE.has("quote_notify"), "quote_notify is dropped").toBe(false);
     expect(sites.length).toBeGreaterThan(9);
     expect(new Set(sites.map((s) => s.fn))).toEqual(
       new Set(["submit_job_quote", "respond_to_job_quote", "quote_job_funded_hires_quoter", "sweep_quote_alerts"]),
     );
-    expect(sites.filter((s) => s.callee !== "quote_notify_to" || s.args.length !== 8).map(label)).toEqual([]);
+    // Q2120 (20261023120308): the 9th argument names the email type; only the
+    // sweep's reminders and close notice pass one ('quote_reminder').
+    expect(sites.filter((s) => s.callee !== "quote_notify_to" ||
+      !(s.args.length === 8 || (s.args.length === 9 && s.args[8] === "'quote_reminder'"))).map(label)).toEqual([]);
   });
 
   it("each notice names the request it is about, or (the hire trigger) the paid job; only 'Finish setup to start' opens payout setup", () => {
@@ -144,7 +147,7 @@ describe("quote notices carry a reference; the reader's side picks the place whe
     expect(b).toContain(
       "INSERT INTO public.notifications (user_id, title, message, type, link, job_id) VALUES (p_user, p_title, p_message, 'new_offers', v_link, p_job_id) RETURNING id, link INTO v_id, v_link;",
     );
-    expect(b).toContain("'type', 'new_offers', 'link', v_link)");
+    expect(b).toContain("'type', COALESCE(p_email_type, 'new_offers'), 'link', v_link)");
     expect(b).toContain("jsonb_build_object('source', 'quote_notify_to', 'origin', 'server')");
     // No function writes a '/quotes' link of its own (a '/quotes' or
     // '/quotes?…' literal; submit_job_quote's '<uid>/quotes/%' photo path is

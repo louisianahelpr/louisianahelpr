@@ -15,7 +15,7 @@ import {
 import { CheckCircle2, CalendarClock } from "lucide-react";
 import { CONFIRM_DEADLINE_HOURS_BEFORE_START, confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
-import { slotLabel } from "@/lib/jobProgress";
+import { slotLabel } from "@/components/tracker/jobProgressState";
 import { JOB_TIMEZONE } from "../../supabase/functions/_shared/cancellationFee";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";

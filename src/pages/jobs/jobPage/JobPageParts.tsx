@@ -15,7 +15,7 @@ import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard"
 import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
-import { jobProgress } from "@/lib/jobProgress";
+import { jobProgress } from "@/components/tracker/jobProgressState";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";

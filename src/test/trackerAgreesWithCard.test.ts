@@ -6,7 +6,7 @@
  *  (b) past-due no-shows and never-confirmed jobs drew a yellow "Confirmed" under "Hallie never arrived — No-Show?".
  *
  * Now each card computes its status line ONCE (posterStatusLine / helperCardLine) and hands that line and its one
- * face button to the bar (jobProgress `card`), which places it through src/lib/jobStepFromWait.ts. This walks
+ * face button to the bar (jobProgress `card`), which places it through src/components/tracker/jobStepFromWait.ts. This walks
  * every journey state, both sides, through the REAL card functions (line, button, bar) and fails when:
  *  - the bar's step or look differs from the expected matrix below (the independent statement of truth);
  *  - the bar says "your move" while neither the line nor the button does, or the other way round;
@@ -15,14 +15,14 @@
  *  - the job page's bar (no card handed in) differs from the card's;
  *  - either card stops handing the bar its own line and button.
  *
- * @mutate src/lib/jobStepFromWait.ts |   return { ...step, waitingOnYou: live && (card.line.tone === "you" \|\| faceTakesStep(card.face, step.stage ?? -1)) }; |   return { ...step, waitingOnYou: live };
- * @mutate src/lib/jobStepFromWait.ts |   confirm_arrival: at(5), |   confirm_arrival: at(6),
- * @mutate src/lib/jobStepFromWait.ts |   overdue_no_show: NO_SHOW, |   overdue_no_show: at(3),
- * @mutate src/lib/jobStepFromWait.ts |   overdue_not_started: NO_SHOW, |   overdue_not_started: at(4),
- * @mutate src/lib/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return 3; |
- * @mutate src/lib/jobStepFromWait.ts |   return face.step ? (FACE_STEP_STAGES[face.step] ?? []).includes(stage) : true; |   return true;
- * @mutate src/lib/jobProgress.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
- * @mutate src/lib/jobProgress.ts |     next: sameStep \|\| offPath ? base.next : card.line.detail, |     next: base.next,
+ * @mutate src/components/tracker/jobStepFromWait.ts |   return { ...step, waitingOnYou: live && (card.line.tone === "you" \|\| faceTakesStep(card.face, step.stage ?? -1)) }; |   return { ...step, waitingOnYou: live };
+ * @mutate src/components/tracker/jobStepFromWait.ts |   confirm_arrival: at(5), |   confirm_arrival: at(6),
+ * @mutate src/components/tracker/jobStepFromWait.ts |   overdue_no_show: NO_SHOW, |   overdue_no_show: at(3),
+ * @mutate src/components/tracker/jobStepFromWait.ts |   overdue_not_started: NO_SHOW, |   overdue_not_started: at(4),
+ * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return 3; |
+ * @mutate src/components/tracker/jobStepFromWait.ts |   return face.step ? (FACE_STEP_STAGES[face.step] ?? []).includes(stage) : true; |   return true;
+ * @mutate src/components/tracker/jobProgressState.ts |   const card = o.card ?? cardFaceFor(job, o, now); |   const card = cardFaceFor(job, o, now);
+ * @mutate src/components/tracker/jobProgressState.ts |     next: sameStep \|\| offPath ? base.next : card.line.detail, |     next: base.next,
  * @mutate src/pages/posts/PostedJobCard.tsx | rescheduled, card: { line: cardLine, face: faceAction } })} | rescheduled })}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | \|\| null, card: { line: cardLine, face: faceAction } }) : null} | \|\| null }) : null}
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   const started = wait ? WORK_UNDERWAY.has(wait) : tracking?.status === "working"; |   const started = tracking?.status === "working";
@@ -31,8 +31,8 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { jobProgress, type JobProgressState, type ProgressJob } from "@/lib/jobProgress";
-import { HELPER_STEP, POSTER_STEP } from "@/lib/jobStepFromWait";
+import { jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
+import { HELPER_STEP, POSTER_STEP } from "@/components/tracker/jobStepFromWait";
 import { HELPER_WAIT_IDS, POSTER_WAIT_IDS, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import { helperCardLine } from "@/pages/jobs/appliedJobCard/HelperCollapsedStrip";
 import { helperFaceAction, helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";

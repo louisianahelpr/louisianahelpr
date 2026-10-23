@@ -563,7 +563,7 @@ test.describe("My Posts — card density + header", () => {
 
     // ONE tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps 2026-10-22): chat, the job page and both
     // cards draw JobProgress, Posted · Offered · Hired · Confirmed · On the way · Arrived · Working · Done, in
-    // short words at 375 (src/lib/jobProgress.ts).
+    // short words at 375 (src/components/tracker/jobProgressState.ts).
     const tracker = page.locator("[data-job-progress]");
     await expect(tracker).toHaveCount(1);
     await tracker.scrollIntoViewIfNeeded();

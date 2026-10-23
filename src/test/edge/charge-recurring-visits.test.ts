@@ -3881,3 +3881,40 @@ describe("charge-recurring-visits edge function", () => {
     });
   });
 });
+
+// PayPal phase 6: a series whose first visit was paid through PayPal is never charged through
+// Stripe. With PayPal unconfigured (as here) nothing is charged and the run reports it.
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (paypalSeries) { | if (false) {
+// @mutate supabase/functions/charge-recurring-visits/index.ts | if (paypalSeries instanceof Error) { | if (false) {
+describe("charge-recurring-visits: a PayPal-paid series (phase 6)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("takes the PayPal leg after every eligibility rule: no Stripe charge, no visit without money", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.provider_payments = { rows: [{ id: "pay-series" }] };
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(b.funded).toBe(0);
+    expect(reasons(b)).toContain("PayPal visit needs_review: paypal_not_configured");
+  });
+
+  it("an unreadable PayPal ledger charges nothing (fail closed)", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    scenario.reads.provider_payments = { error: { message: "ledger down", code: "08006" } };
+    const b = await body(await runOn(fn, "2026-09-01"));
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+    expect(insertedVisits()).toHaveLength(0);
+    expect(reasons(b)).toContain("could not read whether it was paid through PayPal");
+  });
+});

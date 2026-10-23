@@ -97,6 +97,9 @@ import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
+import { paypalFundedJob } from "../_shared/payments/paypalFundedJob.ts";
+import { fundPayPalVisitFromCron } from "./paypalVisit.ts";
 
 /**
  * The client type these helpers accept.
@@ -572,6 +575,8 @@ serve(async (req) => {
    * incomplete series scan (work never seen). Both answered `200 ok:true`.
    */
   const defects = defectTracker();
+  /** PayPal phase 6: built on first use, only when a series was paid through PayPal. */
+  let paypalRuntime: ReturnType<typeof paypalRuntimeFromEnv> | null = null;
   /**
    * Record one defect. Always both counters — a reason without a count is
    * invisible to the status code, and a count without a reason is a 500 with
@@ -1533,6 +1538,8 @@ serve(async (req) => {
         }
       }
 
+      /** PayPal phase 6: read once per series, on the first date that reaches the charge. */
+      let paypalSeries: boolean | Error | null = null;
       for (const visitDate of dueNow) {
         if (alreadyThere.has(visitDate)) { results.skippedExisting++; continue; }
         const hold = holders.get(visitDate);
@@ -1594,6 +1601,40 @@ serve(async (req) => {
         const visitPayment = visitPayments.get(visitDate);
         if (visitPayment?.status === "pending") {
           results.awaitingPayment++;
+          continue;
+        }
+
+        // ── PayPal phase 6: a series whose first visit was paid through PayPal is funded
+        // through the poster's saved PayPal method, never the Stripe charge below. Every
+        // eligibility rule above has already run for it, unchanged. Unreadable = no charge.
+        paypalSeries ??= await paypalFundedJob(supabase, String(parent.id));
+        if (paypalSeries instanceof Error) {
+          fail(`series ${parent.id}: could not read whether it was paid through PayPal (${paypalSeries.message}); nothing charged`);
+          break;
+        }
+        if (paypalSeries) {
+          if (dryRun) {
+            console.log("[charge-recurring-visits] would charge (PayPal)", { series: parent.id, visitDate });
+            results.funded++;
+            continue;
+          }
+          paypalRuntime ??= paypalRuntimeFromEnv();
+          const pv = await fundPayPalVisitFromCron(supabase, paypalRuntime, parent as never, visitDate, holderId);
+          switch (pv.outcome) {
+            case "funded": results.funded++; break;
+            case "exists": results.skippedExisting++; break;
+            case "awaiting_settlement": results.awaitingPayment++; break;
+            case "no_saved_method":
+            case "declined":
+              results.declined++;
+              (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, pv.outcome === "declined" ? `paypal_declined: ${pv.reason}` : "no_saved_paypal_method")).forEach(fail);
+              break;
+            case "refused":
+            case "retry":
+            case "needs_review":
+              fail(`series ${parent.id} ${visitDate}: PayPal visit ${pv.outcome}: ${pv.reason}`);
+              break;
+          }
           continue;
         }
         const paidRow = visitPayment?.status === "paid" && visitPayment.stripe_payment_intent_id

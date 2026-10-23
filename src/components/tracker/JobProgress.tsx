@@ -150,7 +150,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 // line is already on screen, and its words must not read as one of the card's own buttons).
                 aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
                 {...tip.handlers(key)}
-                className="block w-full min-h-11 !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+                className="block w-full min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
               >
                 <span aria-hidden="true">{body}</span>
               </button>

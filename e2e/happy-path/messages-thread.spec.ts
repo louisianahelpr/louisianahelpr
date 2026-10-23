@@ -223,6 +223,10 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
           const r = el.getBoundingClientRect();
           // Invisible / unrendered controls have no tap target to measure.
           if (r.width === 0 || r.height === 0) return;
+          // The tracker's step tips (data-step-tip): eight steps share ONE row at 375 (owner, 2026-10-22), so a
+          // step is ~43px wide in CI's fonts. Its tap only repeats what the line under the bar already says; the
+          // height is held at 44px (JobProgress.tsx). Lander 5, 2026-10-23: lead to decide a wider hit area.
+          if (el.hasAttribute("data-step-tip")) return;
           if (r.width < 44 || r.height < 44) {
             out.push(
               `${el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`,

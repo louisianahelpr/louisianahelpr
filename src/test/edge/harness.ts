@@ -150,6 +150,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/memberDisplayName.ts";`,
   );
 
+  // PayPal layer (phase 6): `_shared/payments/*.ts` point at the REAL modules. They speak to
+  // PayPal only through PayPalClient, which needs PAYPAL_* env the edge tests never set, so
+  // paypalRuntimeFromEnv() answers { ok: false } and no request is ever built; the Deno-free
+  // modules (cancellation plan, saved charges, the pay-queue door) run as written.
+  out = out.replace(
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/([A-Za-z]+)\.ts["'];?/g,
+    `import $1{$2} from "../../../supabase/functions/_shared/payments/$3.ts";`,
+  );
+
   // Jobs flat fee (roadmap F3): `_shared/helprFlatFee.ts` has ZERO imports
   // (constants and pure functions), so the generated file points at the REAL
   // module and the flat-fee arithmetic stays under test.

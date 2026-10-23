@@ -195,3 +195,21 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
     },
   };
 }
+
+/**
+ * PayPal's own fee on one capture, in cents (GET /v2/payments/captures/{id},
+ * seller_receivable_breakdown.paypal_fee), or null when PayPal does not say. Phase 6's cancel
+ * sweep keeps exactly this fee from a poster's refund ("we never absorb any fee", owner
+ * 2026-10-14; PayPal returns none of it on a refund, MEASURED #02). A failed read throws; the
+ * caller retries next run rather than guessing a fee.
+ */
+export function createCaptureFeeReader(client: PayPalClient): (providerCaptureId: string) => Promise<number | null> {
+  return async (providerCaptureId: string) => {
+    if (!/^[A-Z0-9]+$/.test(providerCaptureId)) throw new Error(`not a PayPal capture id: ${providerCaptureId}`);
+    const cap = await client.request<PayPalCapture>("GET", `/v2/payments/captures/${providerCaptureId}`);
+    const fee = cap?.seller_receivable_breakdown?.paypal_fee;
+    if (!fee) return null;
+    if (fee.currency_code !== "USD") throw new Error(`paypal capture ${providerCaptureId} fee is ${fee.currency_code}, not USD`);
+    return dollarsToCents(fee.value);
+  };
+}

@@ -136,7 +136,10 @@ describe("job card polish (owner 2026-10-23)", () => {
 
   it("9: the approve clock reads forwards", () => {
     const line = posterStatusLine(job({ status: "in_progress", helper_on_the_way_at: T, helper_arrived_at: T, poster_confirmed_arrival_at: T, helper_completed_at: T }), 0, NOW);
-    expect(line.deadline?.consequenceText).toBe("left to approve, then it pays automatically");
+    // Reads forwards ("2h 6m to review — then Helpr support steps in"); since payout-after-approval
+    // (owner 2026-10-23) nothing pays automatically, so the clock never promises a release.
+    expect(line.deadline?.consequenceText).toBe("to review — then Helpr support steps in");
+    expect(line.deadline?.consequenceText).not.toMatch(/automatic/);
   });
 
   it("10: filed where the line says, and the Helpr's waiting group says Waiting", () => {

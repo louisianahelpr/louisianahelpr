@@ -1,0 +1,14 @@
+{
+ "_note": "Self-signed TEST certificate and signature made with openssl on 2026-10-23 for paypalWebhookVerify.test.ts. Not PayPal's key; the private key was discarded.",
+ "certPem": "-----BEGIN CERTIFICATE-----\nMIIDEjCCAfqgAwIBAgIUX16/zFB4X8nRRp2LrxFgAuAF3SMwDQYJKoZIhvcNAQEL\nBQAwKTEnMCUGA1UEAwwebGgtcGF5cGFsLXdlYmhvb2stdGVzdC1maXh0dXJlMB4X\nDTI2MTAyMzIyMzg1NloXDTM2MTAyMDIyMzg1NlowKTEnMCUGA1UEAwwebGgtcGF5\ncGFsLXdlYmhvb2stdGVzdC1maXh0dXJlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A\nMIIBCgKCAQEAzNDmJydbQPrqHPUXYtdSonivZw7ptmQL8nEYcF2SmQDpUf1jv32j\n8GbBR4gRL8dikoMHD5iTEa5sjBUI5dsPAj3OFVfjLBeSCXtfrohay/v1KX+3Gzju\nDUr3eAJFTqIEH82t5tds9CeIqvgxqJg+ROKCTHu2vcAV9n/lSAK5qVq4FV0KR23A\n+/SOahQnNG5RUjqu6oZ41K0izSY+qRhS8OQ/VGsbtKDdh9ND4a97Cy8AtNqY72sU\nIT86nfvyFAtvrl6xH4+EyClFDC5wyHaK+XnGqWJzJmFY4tWdTz7eqN7ctbWgjdNR\nK+ApLSALaItXuHKR+bSBuMuv3Wj+JqaxtwIDAQABozIwMDAdBgNVHQ4EFgQUPUg9\neY/UsI2xHIFAUZuEJ2LS2+wwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsF\nAAOCAQEARndSXI0TUxERcAIauzTwlgSGBzkmfezgIY6dWzvooAnTcpkx0wX/rUjW\niwoxNUMpsRnEuXOLhFjMRmSUwWJD8tEJhZZ4XDY0M/+gKMlmHER6VBG+gw+MpI00\ngRa86YDKwRxClZuGgLGaa8Qa1b6gRsAIm8yigUcIqOjIoBVCpyYAd2xkSqXXkbee\nJ2K5pRw5DLCkiiAr18FlA0sGMLjSowea4HjoDpUSy6kBaW5JxLNjT1kv5IZCSIId\n+EPFg0TkgyKFlxEpVEEKkEj4dAr+2cKNObjh/nT2LD59bb+etKc0HgBCLn6AXH9E\nL/qHu94JdBeD/lf7+rlzQmPnx6qj0w==\n-----END CERTIFICATE-----\n",
+ "rawBody": "{\"id\":\"WH-TEST-1A2B3C\",\"event_version\":\"1.0\",\"create_time\":\"2026-10-23T23:00:00Z\",\"resource_type\":\"capture\",\"event_type\":\"PAYMENT.CAPTURE.COMPLETED\",\"summary\":\"Payment completed for $ 105.70 USD\",\"resource\":{\"id\":\"54X10121KX896733B\",\"status\":\"COMPLETED\",\"amount\":{\"currency_code\":\"USD\",\"value\":\"105.70\"},\"custom_id\":\"lh-design-test-job1\"}}",
+ "webhookId": "8PT597110X687430LKGECATA",
+ "headers": {
+  "paypal-transmission-id": "b5f1c4a0-91f3-11f0-9a4b-0f1d2c3e4a5b",
+  "paypal-transmission-time": "2026-10-23T23:00:01Z",
+  "paypal-transmission-sig": "ebgZxEGzkjzD9lW028GbPy27YTwpxp6ENXawNcHJoe+8FXGfEUVGgg0/U/j2WhAxog5OSBs4dN+0ulOVWdGOKQTMf0gbzRDNm3sT/ol2niwrgDXJqiyuATNH9K8ZaOekP61vVlH9vBRlzK+p8VxK3pwMtM5THlTd5WCVyzJgV7V/cFnThYrqlGMfgElL9fkk/IUHznG+rII0wp+qcCWXOkSb1iZxCacwM7LtgrwPIM+7V2cb8aVRISjUJ0FTlwDpRBR8utRFV7e/jfa+DtYqyOBTEg96/fbBY1yn0g38KKWpgjBBiMuF+nh6siK4HpuZJHp3S4Fw3NZiDpr5UqL4RA==",
+  "paypal-cert-url": "https://api.sandbox.paypal.com/v1/notifications/certs/CERT-360caa42-fca2a594-test",
+  "paypal-auth-algo": "SHA256withRSA"
+ },
+ "crc32": 3040822806
+}

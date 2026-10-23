@@ -106,6 +106,13 @@ export const FEATURE_SWITCH_KEYS = [
   // helper_accept_missing() drops 'stripe_id'; the app shows no ID prompt
   // (useIdentityCheckOn). An admin turns it back on for a new provider.
   "identity_check",
+  // PayPal payments, Plan A (owner 2026-10-23, after Stripe closed the platform
+  // account; design ~/.lh-wt/paypal-design.md). Created OFF by 20261023223419.
+  // Phase 1 has no screen yet: SERVER_ONLY below. The database refuses a PayPal
+  // payment or payout destination for a member it is off for
+  // (paypal_entry_requires_switch). Phase 2 adds the first screen and moves it
+  // out of SERVER_ONLY.
+  "paypal_payments",
 ] as const;
 
 /**
@@ -118,7 +125,7 @@ export const FEATURE_SWITCH_KEYS = [
  * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
  * ...); every other key is read by useFeature.
  */
-export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails"];
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

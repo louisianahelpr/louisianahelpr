@@ -348,6 +348,9 @@ describe("every fixture literal could be inserted", () => {
     // attributable to recurring_visit_payments, and a Stripe Identity `dob: { year, month, day }` to the alerts table.
     { file: "src/test/edge/shop-checkout.test.ts", keys: ["mode", "payment_intent", "payer_id", "status"] },
     { file: "src/test/edge/stripe-idv-webhook.test.ts", keys: ["year", "month", "day"] },
+    // A function result in a @mutate line (`return { status: 409, body: { error: ... } }`), not a disputes row: once
+    // paypal_webhook_events (20261023223419) shared `error`, only disputes' `status` marker was left.
+    { file: "src/test/edge/clearTestModeDisputeRecords.test.ts", keys: ["status", "body", "error"] },
     // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
   ];

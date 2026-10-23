@@ -1475,12 +1475,6 @@ export const RPC_ERROR_COPY = {
     invalid_phone: "Enter a 10-digit US mobile number.",
     not_authenticated: "Sign in again to change text alerts.",
   },
-  set_sms_job_match_texts: {
-    account_restricted: "Your account is restricted right now, so you can't turn on texts about new jobs. You can still turn them off.",
-    feature_disabled: "Text alerts aren't available on your account yet.",
-    invalid_value: "We couldn't save that. Try again.",
-    not_authenticated: "Sign in again to change text alerts.",
-  },
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",
   },

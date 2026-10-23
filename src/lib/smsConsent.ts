@@ -1,17 +1,18 @@
 /**
  * SMS alerts consent (owner, 2026-10-20). The exact wording next to the
  * unticked box, and the version the SERVER stamps on every opt-in
- * (public.set_sms_consent writes consent_text_version = 'sms-v1').
+ * (public.set_sms_consent writes consent_text_version = 'sms-v2'; v1 offered nearby-job texts, dropped by the
+ * owner 2026-10-23, migration 20261023181442).
  *
  * Changing the wording means a new version here AND in the migration
  * (src/test/smsAlerts.test.ts keeps them equal), and the same text is what the
  * owner submitted to Twilio's toll-free verification.
  */
-export const SMS_CONSENT_TEXT_VERSION = "sms-v1";
+export const SMS_CONSENT_TEXT_VERSION = "sms-v2";
 
 /** The consent sentence, split so the two legal links can be real links. */
 export const SMS_CONSENT_TEXT_BEFORE_LINKS =
-  "Text me alerts from Louisiana Helpr about my jobs, offers, nearby jobs and new messages at this number. Message frequency varies. Msg & data rates may apply. Reply STOP to cancel, HELP for help. Consent is not a condition of using Louisiana Helpr. See our";
+  "Text me alerts from Louisiana Helpr about my jobs, offers and new messages at this number. Message frequency varies. Msg & data rates may apply. Reply STOP to cancel, HELP for help. Consent is not a condition of using Louisiana Helpr. See our";
 
 export interface SmsConsent {
   phone_e164: string | null;
@@ -22,8 +23,6 @@ export interface SmsConsent {
   /** Asked for in the last 24 h and waiting for the phone to reply YES. */
   pending_phone: string | null;
   pending_since: string | null;
-  /** "New job near you" texts, their own switch (owner 2026-10-22); on unless turned off. */
-  job_match_texts: boolean;
 }
 
 /** US numbers only, mirroring public.sms_normalize_phone. Null when invalid. */
@@ -50,6 +49,5 @@ export function parseSmsConsent(data: unknown): SmsConsent {
     opt_out_source: str(o.opt_out_source),
     pending_phone: str(o.pending_phone),
     pending_since: str(o.pending_since),
-    job_match_texts: o.job_match_texts !== false,
   };
 }

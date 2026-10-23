@@ -74,6 +74,29 @@ export const PUBLIC_PAGE_META = {
     ogDescription:
       "Browse open jobs across Louisiana — cleaning, yard work, moving, errands, and more. No signup required to look.",
   },
+  // Owner 2026-10-23: Twilio's A2P campaign form needs a public link showing how members opt in to texts.
+  "/sms-opt-in": {
+    title: "How to opt in to Louisiana Helpr text alerts — Helpr",
+    description: "How members turn on Louisiana Helpr text alerts: the opt-in box, the confirmation text, STOP and HELP.",
+    canonical: `${SITE_ORIGIN}/sms-opt-in`,
+    ogTitle: "How to opt in to Louisiana Helpr text alerts",
+    ogDescription: "The Louisiana Helpr text alerts opt-in, step by step.",
+  },
+  // Owner 2026-10-23: the Terms and the Privacy Policy as one open page each, for Twilio's A2P review (LegalFullText).
+  "/terms/full": {
+    title: "Terms of Service, full text — Louisiana Helpr",
+    description: "The complete Louisiana Helpr Terms of Service on one page, every section open, including the SMS Terms.",
+    canonical: `${SITE_ORIGIN}/terms/full`,
+    ogTitle: "Louisiana Helpr Terms of Service (full text)",
+    ogDescription: "Every section of the Louisiana Helpr Terms of Service on one page.",
+  },
+  "/privacy/full": {
+    title: "Privacy Policy, full text — Louisiana Helpr",
+    description: "The complete Louisiana Helpr Privacy Policy on one page, every section open, including text messages.",
+    canonical: `${SITE_ORIGIN}/privacy/full`,
+    ogTitle: "Louisiana Helpr Privacy Policy (full text)",
+    ogDescription: "Every section of the Louisiana Helpr Privacy Policy on one page.",
+  },
   "/help": {
     title: "Help center — Helpr",
     description:

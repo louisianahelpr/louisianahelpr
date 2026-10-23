@@ -174,6 +174,9 @@ export const ANON_SCREENS: ScreenSpec[] = [
   // so they are the routes a stranger and a search crawler actually hit.
   { name: "help", url: "/help" },
   { name: "support", url: "/support" },
+  { name: "sms-opt-in", url: "/sms-opt-in" },
+  { name: "terms-full", url: "/terms/full" },
+  { name: "privacy-full", url: "/privacy/full" },
   // REMOVED 2026-08-24: /accessibility. The standalone page was orphaned —
   // no link anywhere reached it — and its one real control (Simple Mode)
   // duplicated the Profile Accessibility tab's Senior mode. Accessibility

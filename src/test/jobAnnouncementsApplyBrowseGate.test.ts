@@ -131,10 +131,9 @@ const EDGE_MENTIONS: Record<string, "producer" | "not-a-producer"> = {
   "supabase/functions/send-notification-email/index.ts": "not-a-producer",
   // ALLOWED_TYPES for an admin's free text; no template emits job_match (asserted).
   "supabase/functions/create-notification/index.ts": "not-a-producer",
-  // SMS alerts (20261021193738): the fixed text for a 'job_match' notification
-  // row that already exists (deliver_job_match wrote it, gated above); the text
-  // goes only to that row's recipient, via sms_claim_due on its queued row.
-  "supabase/functions/_shared/smsPolicy.ts": "not-a-producer",
+  // SMS alerts: names job_match only to REFUSE it. No nearby-job text is ever sent (owner 2026-10-23,
+  // 20261023181442; src/test/edge/sms-alerts.test.ts).
+  "supabase/functions/send-sms-notification/index.ts": "not-a-producer",
 };
 
 function walk(dir: string): string[] {

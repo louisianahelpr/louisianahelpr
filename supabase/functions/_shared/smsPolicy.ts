@@ -11,15 +11,15 @@
 /**
  * What a text is about: public.sms_kind_for() (20261021193738) decides it from
  * the notification's type and exact title. SMS_KIND_PHRASES lists exactly the
- * kinds that function returns, plus 'confirm' (src/test/smsAlerts.test.ts).
+ * kinds that function returns, plus 'confirm' (src/test/smsAlerts.test.ts). There is no nearby-job kind: a
+ * job_match notification is never texted (owner 2026-10-23, migration 20261023181442).
  */
 export type SmsKind =
-  | "message" | "job_match" | "job_offer" | "application" | "starting_soon" | "reschedule"
+  | "message" | "job_offer" | "application" | "starting_soon" | "reschedule"
   | "dispute" | "job_cancelled" | "money_problem" | "job_update" | "confirm";
 
 export const SMS_KIND_PHRASES: Record<SmsKind, string> = {
   message: "You have a new message.",
-  job_match: "A new job was posted near you.",
   job_offer: "New job offer. Answer before it expires.",
   application: "Someone applied to your job.",
   starting_soon: "Your job starts soon.",
@@ -93,6 +93,14 @@ export function buildSmsBody(input: {
 /** The reply to HELP (sent as TwiML by twilio-inbound). */
 export const SMS_HELP_REPLY =
   "Louisiana Helpr alerts: help at louisianahelpr.com/support or admin@louisianahelpr.com. Msg & data rates may apply. Reply STOP to cancel.";
+
+/**
+ * The reply to a confirmed opt-in ("YES <code>" that sms_inbound_keyword accepted). Twilio's A2P campaign review
+ * requires an opt-in confirmation auto-reply (owner, 2026-10-23). One GSM-7 segment (<= 160).
+ * Guard: src/test/smsPolicy.test.ts, src/test/edge/sms-alerts.test.ts.
+ */
+export const SMS_OPTED_IN_REPLY =
+  "Louisiana Helpr: You're now signed up for job alert texts. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.";
 
 export type InboundAction = "stop" | "start" | "help" | null;
 

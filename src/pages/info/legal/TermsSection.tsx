@@ -103,11 +103,13 @@ export const TermsContent = () => {
           </>
         }
       />
-      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). */}
+      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). 2026-10-23: Twilio's A2P
+          campaign review needs a section titled "SMS Terms", the brand name Louisiana Helpr and "Message and data
+          rates may apply". Guard: src/test/smsLegalCopyForTwilio.test.ts. */}
       <PolicyRowItem
         icon={MessageSquareText}
-        title="Text alerts"
-        body={<p>Text alerts are optional. Message frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel or HELP for help, or contact admin@louisianahelpr.com (our support inbox). Carriers are not liable for delayed or undelivered messages.</p>}
+        title="SMS Terms"
+        body={<p>Louisiana Helpr text alerts are optional. Message frequency varies. Message and data rates may apply. Reply STOP to cancel or HELP for help, or contact admin@louisianahelpr.com (our support inbox). Carriers are not liable for delayed or undelivered messages.</p>}
       />
     </PolicySection>
 

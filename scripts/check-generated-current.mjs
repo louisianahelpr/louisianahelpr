@@ -298,6 +298,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/audit/walk-every-control.mjs": "~/.lh-shots/lh-audit",
   "scripts/audit/measurement-from-log.mjs": "a TRANSPORT, not a generator: rebuilds the loading-states EVIDENCE output (docs/audit/loading-states/measurements.json, produced by measure-loading-states.mjs) byte-for-byte from a loading-states-refresh branch run's log, sha256-checked, for a session that cannot reach the artifact host (#1773)",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
+  "scripts/prerender-static-pages.mjs": "scripts/generated/static-pages.js (gitignored build output, like og-shell.js; api/share.ts imports it)",
   "scripts/canary/shared-accounts-busy.mjs": "GITHUB_OUTPUT only (the Q61 canary's stand-down verdict)",
   "scripts/vacuity/scope.mjs": "Q551: GITHUB_OUTPUT only (vacuity.yml's `scope` job: have_e2e / e2e_count / unit_count), never a repo file",
   "scripts/check-changed.mjs": "docs/audit/prepush-skips.log (untracked local log)",

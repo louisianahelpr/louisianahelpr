@@ -73,7 +73,8 @@ function shown(body: string): string[] {
 const TITLE_PROPS = /<(PageHeader|PublicHeaderPage|EmptyState|ProfileTabHeader|AppPage|PageTitleBar|SectionHeader|ProfileBadge|Badge)\b[^>]*?\b(?:title|label)="([^"]+)"/g;
 
 /** Product and badge NAMES, written as names everywhere they appear (exact text). */
-const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated"]);
+// "Terms of Service": the legal document's name, the H1 of /terms/full (lead, 2026-10-23, Twilio's A2P review).
+const NAMES = new Set(["Licensed & Insured", "Licensed & Insured Only", "Top Rated", "Terms of Service"]);
 
 function findings(): string[] {
   const bad: string[] = [];

@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 939,
+    "calls": 936,
     "files": 241,
-    "rendering": 807,
-    "suppressedByPolicy": 132,
+    "rendering": 805,
+    "suppressedByPolicy": 131,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 65,
-      "toast.error": 674,
+      "toast.error": 672,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 136,
+      "toast.success": 135,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 436,
+      "literal": 435,
       "template": 100,
-      "dynamic": 452,
+      "dynamic": 450,
       "jsx": 0
     }
   },
@@ -5894,7 +5894,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 79,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5904,7 +5904,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 87,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5914,7 +5914,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 92,
+      "line": 91,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5927,46 +5927,6 @@
           {
             "form": "literal",
             "text": "Text alerts are off."
-          }
-        ]
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 103,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rpcErrorMessage(\"set_sms_job_match_texts\", res.error) ?? \"We couldn't save that. Try again.\""
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 108,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "We couldn't save that. Try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 112,
-      "kind": "toast.success",
-      "title": {
-        "form": "dynamic",
-        "text": "on ? \"Texts about new jobs near you are on.\" : \"Texts about new jobs near you are off.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Texts about new jobs near you are on."
-          },
-          {
-            "form": "literal",
-            "text": "Texts about new jobs near you are off."
           }
         ]
       },

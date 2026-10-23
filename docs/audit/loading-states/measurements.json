@@ -29671,6 +29671,45 @@
         "Failed to load resource: the server responded with a status of 404 (Not Found)"
       ],
       "requests": 38
+    },
+    {
+      "url": "/privacy/full",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/privacy/full",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/terms/full",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 1,
+        "ended": "empty"
+      },
+      "finalUrl": "/terms/full",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (1 wave(s) of data released)",
+      "requests": 0
+    },
+    {
+      "url": "/sms-opt-in",
+      "persona": "anon",
+      "base": "http://127.0.0.1:4173",
+      "stage": {
+        "waves": 0,
+        "ended": "empty"
+      },
+      "finalUrl": "/sms-opt-in",
+      "status": "no-placeholder",
+      "note": "no loading placeholder at any settled stage (0 wave(s) of data released)",
+      "requests": 0
     }
   ],
   "merged": [
@@ -29889,6 +29928,16 @@
         "helper /profile?tab=payout_history",
         "helper /profile?tab=receipts"
       ]
+    },
+    {
+      "at": "2026-10-23T20:22:28.660Z",
+      "base": "http://127.0.0.1:4173",
+      "surfaces": [
+        "anon /privacy/full",
+        "anon /terms/full",
+        "anon /sms-opt-in"
+      ],
+      "replaced": []
     }
   ]
 }

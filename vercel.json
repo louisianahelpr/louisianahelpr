@@ -64,8 +64,20 @@
       "destination": "/api/share?_og=page&_id=support"
     },
     {
+      "source": "/sms-opt-in",
+      "destination": "/api/share?_og=page&_id=sms-opt-in"
+    },
+    {
       "source": "/legal",
       "destination": "/api/share?_og=page&_id=legal"
+    },
+    {
+      "source": "/terms/full",
+      "destination": "/api/share?_og=page&_id=terms/full"
+    },
+    {
+      "source": "/privacy/full",
+      "destination": "/api/share?_og=page&_id=privacy/full"
     },
     {
       "source": "/terms",

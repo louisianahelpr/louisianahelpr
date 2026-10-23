@@ -10,13 +10,13 @@
 // STOP-family words opt the number out (public.sms_inbound_keyword). "YES
 // 4821" (the code from the confirmation text) opts in the account that
 // confirmation was sent for; a bare START re-subscribes the account that last
-// left by STOP; a bare YES gets a hint to add the code. HELP gets the fixed
+// left by STOP; a bare YES gets a hint to add the code; a confirmed "YES 4821" gets SMS_OPTED_IN_REPLY. HELP gets the fixed
 // help reply. Every other message is ignored (empty TwiML).
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from '../_shared/buildStamp.ts'
 import { timingSafeEqual } from '../_shared/safe-strings.ts'
-import { SMS_CONFIRM_HINT, SMS_HELP_REPLY, classifyInboundKeyword, parseConfirmCode, twilioSignature, twiml } from '../_shared/smsPolicy.ts'
+import { SMS_CONFIRM_HINT, SMS_HELP_REPLY, SMS_OPTED_IN_REPLY, classifyInboundKeyword, parseConfirmCode, twilioSignature, twiml } from '../_shared/smsPolicy.ts'
 
 const XML = { 'Content-Type': 'text/xml' }
 
@@ -66,6 +66,13 @@ serve(async (req) => {
     // a carrier keyword that Twilio answers itself, so it gets no extra reply.
     if (action === 'start' && code === null && changed === 0 && /^\s*yes\b/i.test(params.Body ?? '')) {
       return new Response(twiml(SMS_CONFIRM_HINT), { status: 200, headers: XML })
+    }
+    // A YES <code> that left this number opted in: the confirmation auto-reply Twilio's A2P review requires (owner,
+    // 2026-10-23). 1 row = opted in now: the code matched, or (wrong code) a number that sent STOP in the last 30 days
+    // was re-subscribed (sms_inbound_keyword's START branch). 0 = nothing changed, no reply. A bare START gets none:
+    // Twilio answers that carrier keyword itself.
+    if (action === 'start' && code !== null && changed === 1) {
+      return new Response(twiml(SMS_OPTED_IN_REPLY), { status: 200, headers: XML })
     }
   }
   // STOP/START replies are sent by Twilio's own opt-out handling.

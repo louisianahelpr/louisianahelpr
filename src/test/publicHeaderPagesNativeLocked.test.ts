@@ -12,10 +12,17 @@
  * The inventory comes from source: the pages that render <PublicHeaderPage>,
  * and the paths App.tsx mounts each at.
  *
- * @mutate src/hooks/useAppShellViewport.ts | "/browse", "/help", "/support"]; | "/browse"];
+ * The page list is every page under src/pages that renders <PublicHeaderPage> (2026-10-23: it was a hand-typed
+ * three, so /sms-opt-in and the /terms/full, /privacy/full pages were outside it), and a route counts as listed the
+ * way useAppShellViewport matches it: the entry itself or a path under it.
+ *
+ * @mutate src/hooks/useAppShellViewport.ts | "/browse", "/help", "/support", "/sms-opt-in"]; | "/browse"];
+ * @mutate src/hooks/useAppShellViewport.ts | "/support", "/sms-opt-in"]; | "/support"];
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
+// Lists src/ from the tracked index, not the disk (Q1142: a transient fixture cannot vanish mid-walk).
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -23,7 +30,12 @@ const root = process.cwd();
 const read = (rel: string) => blankComments(readFileSync(join(root, rel), "utf8"));
 const app = read("src/App.tsx");
 const hook = read("src/hooks/useAppShellViewport.ts");
-const PAGES = ["src/pages/info/Legal.tsx", "src/pages/info/HelpCenter.tsx", "src/pages/info/Support.tsx"];
+const PAGES = (readdirSync(join(root, "src/pages"), { recursive: true }) as string[])
+  .filter((f) => f.endsWith(".tsx") && !/\.(test|spec)\.tsx$/.test(f))
+  .map((f) => `src/pages/${f}`)
+  .filter((f) => /<PublicHeaderPage\b/.test(read(f)));
+const listed = (list: string[], route: string) =>
+  list.some((x) => (x === "/" ? route === "/" : route === x || route.startsWith(`${x}/`)));
 
 const arr = (name: string) =>
   [...(new RegExp(`${name} = \\[([^\\]]*)\\]`).exec(hook)?.[1] ?? "").matchAll(/"([^"]+)"/g)].map((m) => m[1]);
@@ -46,12 +58,14 @@ describe("PublicHeaderPage routes are html-locked on native (Q965)", () => {
   });
 
   it("finds the inventory (floor)", () => {
-    expect(routes.length).toBeGreaterThanOrEqual(6);
+    expect(PAGES).toEqual(expect.arrayContaining(["src/pages/info/Legal.tsx", "src/pages/info/SmsOptIn.tsx", "src/pages/info/LegalFullText.tsx"]));
+    expect(routes).toEqual(expect.arrayContaining(["/sms-opt-in", "/terms/full", "/privacy/full"]));
+    expect(routes.length).toBeGreaterThanOrEqual(9);
     expect(native.length).toBeGreaterThan(3);
   });
 
   it("every one of them that scrolls the document on web is locked on native", () => {
-    const missing = routes.filter((r) => docScroll.includes(r) && !native.includes(r));
+    const missing = routes.filter((r) => listed(docScroll, r) && !listed(native, r));
     expect(missing).toEqual([]);
   });
 });

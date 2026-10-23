@@ -6,7 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
+import { isCrewShareFeeTransfer, isSingleHelprFeeTransfer, noteFailedFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
 import { tellCrewShareFailed, tellFeePayeeFailed, tellHelprPayoutFailed } from "./_payoutFailedNotice.ts";
@@ -25,18 +25,20 @@ export async function handleTransferCanceled(
   logStep("Transfer CANCELED", { id: transfer.id, amount: transfer.amount });
 
   // A single-Helpr cancellation fee is not a job payout (LOW-2): mark its own
-  // ledger row failed (void-cancelled-payments is meant to retry failed rows; Q2356: it may not) and page.
+  // ledger row failed, remember the transfer (Q2356: the retry never counts it as paid) and page.
   // It must not touch payout_transfers or re-queue the refunded job.
   if (isSingleHelprFeeTransfer(transfer)) {
     const rowId = await settleCancellationFeeTransfer(transfer, "failed", { supabase, logStep }, "transfer_canceled");
     if (rowId) {
+      // Q2356: remembered on the row, so the hourly retry sends it again instead of counting it as paid.
+      await noteFailedFeeTransfer(transfer, "fee", rowId, { supabase, logStep }, "transfer_canceled");
       // Tell the Helpr (lead 2026-10-22: only Slack heard before).
       await tellFeePayeeFailed(supabase, transfer, logStep);
       await postSlackOpsAlert({
         kind: "payout_failed",
         severity: "critical",
         title: "Helpr cancellation-fee transfer canceled",
-        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was canceled before it settled. The fee ledger row is marked failed, but void-cancelled-payments may count this unreversed transfer as already paid and not send it again (Q2356): check the Helpr was paid, else pay it by hand.`,
+        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was canceled before it settled. The fee ledger row is marked failed and remembers this transfer, so the hourly void-cancelled-payments run sends the fee again (Q2356). If it fails again, pay it by hand.`,
         fields: {
           "Transfer ID": transfer.id,
           "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
@@ -44,6 +46,19 @@ export async function handleTransferCanceled(
         },
       });
     }
+    return;
+  }
+
+  // Q2356: a crew cancellation-fee share is not a job payout either. Mark its share row failed and remember
+  // the transfer (the hourly run's share retry then pays it), tell its Helpr and page ops. It must not touch
+  // payout_transfers or re-queue the job.
+  if (isCrewShareFeeTransfer(transfer)) {
+    const shareId = String((transfer.metadata ?? {}).share_id);
+    // A share id that is not a uuid matches no row (and would make the RPC throw forever): not recorded.
+    const matched = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(shareId)
+      ? await noteFailedFeeTransfer(transfer, "share", shareId, { supabase, logStep }, "transfer_canceled")
+      : null;
+    await tellCrewShareFailed(supabase, transfer, { recorded: !!matched });
     return;
   }
 
@@ -200,8 +215,9 @@ export async function handleTransferCanceled(
       transferId: transfer.id,
     });
   } else {
-    // A crew cancellation-fee share matches no payout_transfers row: tell its
-    // Helpr and page ops critical (nothing else records or retries it).
+    // A transfer that matched no payout_transfers row. Since Q2356 a crew cancellation-fee share is handled
+    // (recorded and retried) before the ledger update and never reaches here; this call is a fallback that
+    // answers false, and does nothing, for any other transfer.
     await tellCrewShareFailed(supabase, transfer);
   }
 

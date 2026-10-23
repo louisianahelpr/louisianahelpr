@@ -531,8 +531,21 @@ serve(async (req) => {
       commission_percent: number | string;
       platform_cut: number | string;
       helper_amount: number | string;
+      /** Q2356: every transfer of this fee Stripe reported failed or canceled (the stripe-webhook records them). */
+      failed_transfer_ids?: string[] | null;
     };
-    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount";
+    const FEE_ROW_COLUMNS = "id, status, stripe_transfer_id, created_at, fee_amount, commission_percent, platform_cut, helper_amount, failed_transfer_ids";
+    /**
+     * Q2356: the transfers of a fee ledger row (single fee or crew share) that are NOT payments: every one the
+     * webhook remembered as failed or canceled, and the row's own current transfer while the row says failed.
+     * A failed or canceled transfer is not `reversed` in Stripe, so a dedupe that only skipped reversed ones
+     * marked the row paid with the Helpr never paid.
+     */
+    const failedFeeTransferIds = (row: { status: string; stripe_transfer_id: string | null; failed_transfer_ids?: string[] | null }): Set<string> => {
+      const ids = new Set<string>(row.failed_transfer_ids ?? []);
+      if (row.status === "failed" && row.stripe_transfer_id) ids.add(row.stripe_transfer_id);
+      return ids;
+    };
     /** A claim younger than this belongs to a run still in flight. */
     const FEE_CLAIM_INFLIGHT_MS = 2 * 60 * 1000;
 
@@ -742,9 +755,12 @@ serve(async (req) => {
       try {
         const priorFeeTransfers = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
         groupTransfers = priorFeeTransfers.data ?? [];
+        // Q2356: a transfer this row remembers as failed or canceled is not a payment.
+        const knownFailed = failedFeeTransferIds(feeRow);
         const alreadyPaidFee = priorFeeTransfers.data.find(
           (t) =>
             t.metadata?.type === "cancellation_fee" && !t.reversed && !t.metadata?.share_id &&
+            !knownFailed.has(t.id) &&
             (!t.metadata?.helper_id || t.metadata.helper_id === helperId),
         );
         if (alreadyPaidFee) {
@@ -912,10 +928,15 @@ serve(async (req) => {
       share_amount: number | string | null;
       status: string;
       stripe_transfer_id: string | null;
+      /** Q2356: every transfer of this share Stripe reported failed or canceled (the stripe-webhook records them). */
+      failed_transfer_ids?: string[] | null;
     };
-    /** Q1915: a live cancellation_fee transfer Stripe shows for this exact share (its metadata.share_id). */
-    const shareTransferInStripe = (transfers: Stripe.Transfer[], shareId: string): Stripe.Transfer | undefined =>
-      transfers.find((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.share_id === shareId);
+    /** Q1915: a live cancellation_fee transfer Stripe shows for this exact share (its metadata.share_id).
+     *  Q2356: never one the share remembers as failed or canceled. */
+    const shareTransferInStripe = (transfers: Stripe.Transfer[], share: CrewShare): Stripe.Transfer | undefined => {
+      const knownFailed = failedFeeTransferIds(share);
+      return transfers.find((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.share_id === share.id && !knownFailed.has(t.id));
+    };
     /**
      * Q1915 (owner 2026-10-21): BEFORE a cancelled crew is priced, every unpaid
      * share whose member deleted their account (helper_id NULL) is voided, so
@@ -955,7 +976,7 @@ serve(async (req) => {
       let ok = true;
       for (const row of gone) {
         // Paid in Stripe already: payCrewCancellationFees repairs the ledger.
-        if (shareTransferInStripe(transfers, row.id)) continue;
+        if (shareTransferInStripe(transfers, row)) continue;
         const { data, error } = await supabaseAdmin
           .from("crew_cancellation_fee_shares")
           .update({ status: "void" })
@@ -1007,9 +1028,11 @@ serve(async (req) => {
       try {
         const prior = await stripe.transfers.list({ transfer_group: feeGroup, limit: 100 });
         groupTransfers = prior.data ?? [];
+        // Q2356: a transfer any of this job's shares remembers as failed or canceled is not a payment.
+        const knownFailed = new Set<string>(shares.flatMap((sh) => [...failedFeeTransferIds(sh)]));
         priorByHelper = new Map(
           prior.data
-            .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id)
+            .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id && !knownFailed.has(t.id))
             .map((t) => [String(t.metadata.helper_id), t.id]),
         );
       } catch (listErr) {
@@ -1025,12 +1048,17 @@ serve(async (req) => {
           : Number(job.helper_fee_percent);
 
       const markShare = async (share: CrewShare, patch: Record<string, unknown>, stage: string) => {
-        const { data, error } = await supabaseAdmin
+        let flip = supabaseAdmin
           .from("crew_cancellation_fee_shares")
           .update(patch)
           .eq("id", share.id)
-          .neq("status", "paid")
-          .select("id");
+          .neq("status", "paid");
+        // Q2356 (review should-fix 1): if the webhook recorded THIS transfer as failed between the transfer and
+        // this mark, the share stays failed (zero rows: paged below) instead of being marked paid.
+        if (patch.status === "paid" && typeof patch.stripe_transfer_id === "string") {
+          flip = flip.not("failed_transfer_ids", "cs", `{${patch.stripe_transfer_id}}`);
+        }
+        const { data, error } = await flip.select("id");
         if (!error && data && data.length > 0) return true;
         {
           console.error(
@@ -1212,7 +1240,7 @@ serve(async (req) => {
           // Anonymised by account deletion (Q1915). A transfer Stripe already
           // shows for this share went out before the deletion: repair the
           // ledger, never refund it as well (review #2).
-          const sent = shareTransferInStripe(groupTransfers, share.id);
+          const sent = shareTransferInStripe(groupTransfers, share);
           if (sent) {
             await markShare(share, { status: "paid", stripe_transfer_id: sent.id, paid_at: new Date().toISOString() }, "was already paid in Stripe");
             continue;
@@ -1701,7 +1729,7 @@ serve(async (req) => {
     const crewRetryJobs: Array<Record<string, unknown>> = [];
     const { data: owedShares, error: owedErr } = await supabaseAdmin
       .from("crew_cancellation_fee_shares")
-      .select("id, job_id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id")
+      .select("id, job_id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id, failed_transfer_ids")
       .in("status", ["pending", "failed"])
       .gt("share_amount", 0)
       .limit(200);
@@ -2040,7 +2068,7 @@ serve(async (req) => {
       if (job.is_group_job && !job.helper_id) {
         const { data: shareRows, error: shareErr } = await supabaseAdmin
           .from("crew_cancellation_fee_shares")
-          .select("id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id")
+          .select("id, helper_id, committed, share_basis_cents, share_amount, status, stripe_transfer_id, failed_transfer_ids")
           .eq("job_id", job.id);
         // DEPLOY ORDER (money review MEDIUM-5): before 20260925154606 the
         // ledger does not exist, and no crew without a lead can exist either

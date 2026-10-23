@@ -212,7 +212,7 @@ describe("void-cancelled-payments Part A: a deleted crew member's share goes bac
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (shareTransferInStripe(transfers, row.id)) continue; |         if (false) continue;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (shareTransferInStripe(transfers, row)) continue; |         if (false) continue;
   it("review #2: a share Stripe already shows a transfer for is not voided; the ledger is repaired to paid", async () => {
     seedCard();
     stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_gone", metadata: { type: "cancellation_fee", share_id: "share-3", job_id: "job-crew" }, reversed: false, amount: 4400 }] });
@@ -377,7 +377,7 @@ describe("void-cancelled-payments Part D: a member deleted AFTER the crew settle
     expect(shareFlips().some((p) => p.status === "void")).toBe(false);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const sent = shareTransferInStripe(groupTransfers, share.id); |           const sent = undefined;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const sent = shareTransferInStripe(groupTransfers, share); |           const sent = undefined;
   it("review #2: a transfer Stripe already shows for the share repairs it to paid; nothing is refunded", async () => {
     seedSettled("pi_crew");
     stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_gone", metadata: { type: "cancellation_fee", share_id: "share-3", job_id: "job-crew" }, reversed: false, amount: 4400 }] });

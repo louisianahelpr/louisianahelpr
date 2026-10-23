@@ -176,7 +176,9 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // (owner 2026-10-18; measured on prod 2026-10-18).
 // last_edit_notice_at: server-owned hour of the last open-job edit notice (board 66/172 s4, 20261021111723).
 // Listed for coverage only; no client reads it.
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at"] as const;
+// tax_kind: the poster's taxed-kind answer (owner 2026-10-23, #3555, 20261023192154). Written at
+// posting; read by the server (create-payment, the recurring charge). Listed for coverage.
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "tax_kind"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

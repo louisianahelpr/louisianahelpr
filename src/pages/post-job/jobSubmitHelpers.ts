@@ -43,6 +43,10 @@ export interface BuildJobInsertPayloadInput {
    * (useJobSubmit). jobs.special_requirements is no longer written at all.
    */
   materialsNote?: string | null;
+  /** The poster's answer: the job fixes an item / cleans carpet, furniture or
+   *  clothes (jobs.tax_kind, owner 2026-10-23, #3555); null = neither. Taxes
+   *  the labor outside the 14 taxed categories. */
+  taxKind?: "item_repair" | "fabric_cleaning" | null;
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;
@@ -116,6 +120,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     estimatedHours,
     budget,
     materialsNote,
+    taxKind,
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
@@ -170,9 +175,9 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // never collected and the admin revenue rollups then summed. Store the
   // EFFECTIVE rate (0 when the category is exempt) so rate x budget always
   // reconciles with the amount.
-  const lockedSalesTaxRate = isLaborTaxable(category) ? salesTaxRate : 0;
+  const lockedSalesTaxRate = isLaborTaxable(category, taxKind) ? salesTaxRate : 0;
   const lockedSalesTaxAmount =
-    salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate) / 100;
+    salesTaxCents(Math.round(parseFloat(budget) * 100), category, salesTaxRate, taxKind) / 100;
 
   return {
     customer_id: userId,
@@ -198,6 +203,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // db-deploy (the series_split_ok pattern below; the deploy-lag retry in
     // useJobSubmit also strips it).
     ...(materialsNote?.trim() ? { materials_note: materialsNote.trim() } : {}),
+    // Sent ONLY when answered, for the same deploy-lag reason as the note.
+    ...(taxKind ? { tax_kind: taxKind } : {}),
     is_recurring: isRecurring,
     recurrence_interval: isRecurring ? recurrenceInterval : null,
     // DERIVED from the schedule, not typed. The poster picks weekdays and a

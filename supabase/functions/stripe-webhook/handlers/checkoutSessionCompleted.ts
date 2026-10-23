@@ -1203,18 +1203,19 @@ async function settleCheckoutSession(
     if (typeof sessionTaxCents === "number" && sessionTaxCents === 0 && !isGiftShortfall) {
       const { data: taxJob } = await supabase
         .from("jobs")
-        .select("budget, category, is_seed")
+        .select("budget, category, tax_kind, is_seed")
         .eq("id", jobId)
         .maybeSingle();
       const billingState = session.customer_details?.address?.state ?? null;
       const taxJobBudgetCents = Math.round(Number(taxJob?.budget ?? 0) * 100);
-      if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, taxJobBudgetCents, taxJob?.category, billingState)) {
+      // A taxed category, or the poster's taxed-kind answer (owner 2026-10-23, #3555).
+      if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, taxJobBudgetCents, taxJob?.category, billingState, taxJob?.tax_kind)) {
         await postSlackOpsAlert({
           kind: "custom",
           severity: "warning",
           title: "Taxable job charged $0 Louisiana sales tax",
           message: "Stripe Tax returned $0 on a taxable labor line billed to a Louisiana address. Check Stripe Tax > Registrations for Louisiana in this mode (docs/OPEN.md Q441).",
-          fields: { job_id: jobId, category: taxJob?.category ?? "(none)", session_id: session.id, livemode: String(session.livemode) },
+          fields: { job_id: jobId, category: taxJob?.category ?? "(none)", tax_kind: taxJob?.tax_kind ?? "(none)", session_id: session.id, livemode: String(session.livemode) },
           oncePerDayKey: `taxable-zero-tax:${session.livemode ? "live" : "test"}`,
           seed: taxJob?.is_seed === true,
         });

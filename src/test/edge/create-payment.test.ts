@@ -941,7 +941,7 @@ describe("create-payment edge function", () => {
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
-    // @mutate supabase/functions/create-payment/index.ts |             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category), |             + 0,
+    // @mutate supabase/functions/create-payment/index.ts |             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category, job.tax_kind), |             + 0,
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();

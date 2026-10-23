@@ -242,7 +242,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   // cannot cross between taxed and untaxed categories (the server refuses it:
   // trg_funded_category_tax_class). Same funded test as the money lock.
   const funded = (job.payment_status ?? "unpaid") !== "unpaid" || !!job.stripe_session_id;
-  const crossesTaxClass = (value: string) => funded && isLaborTaxable(value) !== isLaborTaxable(job.category);
+  // The poster's taxed-kind answer counts too (owner 2026-10-23, #3555). When
+  // this read carries no tax_kind it reads as none: that can only block an edit
+  // the server would allow, never allow one it refuses.
+  const jobTaxKind = (job as { tax_kind?: string | null }).tax_kind ?? null;
+  const crossesTaxClass = (value: string) => funded && isLaborTaxable(value, jobTaxKind) !== isLaborTaxable(job.category, jobTaxKind);
 
   return (
     <>

@@ -281,6 +281,8 @@ export interface UseJobSubmitParams {
   title: string;
   description: string;
   category: string;
+  /** jobs.tax_kind: the poster's taxed-kind answer (owner 2026-10-23, #3555). */
+  taxKind?: "item_repair" | "fabric_cleaning" | null;
   /** Pet profile ids to attach after the insert (pet-care jobs). */
   selectedPetIds?: string[];
   // Logistics fields
@@ -590,6 +592,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         // Stripped on the deploy-lag retry, like credentialTier: that retry
         // exists for a prod that predates the column.
         materialsNote: opts.withExtras ? materialsNote : null,
+        // Stripped on the deploy-lag retry too (a prod that predates the column).
+        taxKind: opts.withExtras ? (params.taxKind ?? null) : null,
         isRecurring,
         recurrenceInterval,
         recurrenceEndDate,

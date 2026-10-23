@@ -270,6 +270,8 @@ export function FormStep({ form }: FormStepProps) {
             detailsComplete={form.detailsComplete}
             credentialTier={form.credentialTier}
             setCredentialTier={form.setCredentialTier}
+            taxKind={form.taxKind}
+            setTaxKind={form.setTaxKind}
             requirePhotoProof={form.requirePhotoProof}
             setRequirePhotoProof={form.setRequirePhotoProof}
             scopeVideoUrl={form.scopeVideoPreviewUrl}

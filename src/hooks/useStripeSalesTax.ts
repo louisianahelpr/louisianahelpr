@@ -28,6 +28,8 @@ export function useStripeSalesTax(
   budget: number,
   category: string | null | undefined,
   zip: string | null | undefined,
+  /** The poster's taxed-kind answer (jobs.tax_kind, owner 2026-10-23, #3555); null = neither. */
+  taxKind: string | null = null,
 ): { salesTax: number | null; loading: boolean; jurisdiction: string | null } {
   const [salesTax, setSalesTax] = useState<number | null>(null);
   const [jurisdiction, setJurisdiction] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export function useStripeSalesTax(
     // An exempt category is a known zero and needs no round trip. Resolved from
     // the SAME module create-payment uses, so the two cannot disagree about
     // which categories are taxable.
-    if (!isLaborTaxable(category)) {
+    if (!isLaborTaxable(category, taxKind)) {
       setSalesTax(0);
       setJurisdiction(null);
       setLoading(false);
@@ -55,7 +57,7 @@ export function useStripeSalesTax(
     void (async () => {
       try {
         const { data, error } = await supabase.functions.invoke("calculate-tax", {
-          body: { budget, category, zip, state: "LA" },
+          body: { budget, category, zip, state: "LA", ...(taxKind ? { taxKind } : {}) },
         });
         if (cancelled) return;
         if (error || typeof data?.taxCents !== "number") {
@@ -84,7 +86,7 @@ export function useStripeSalesTax(
     return () => {
       cancelled = true;
     };
-  }, [budget, category, zip]);
+  }, [budget, category, zip, taxKind]);
 
   return { salesTax, loading, jurisdiction };
 }

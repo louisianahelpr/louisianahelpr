@@ -67,9 +67,22 @@ export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
   "pressure_washing",
 ]);
 
-/** Whether the job's LABOR line is subject to LA sales tax. */
-export function isLaborTaxable(category: string | null | undefined): boolean {
-  return TAXABLE_CATEGORIES.has(category ?? "");
+/**
+ * The per-job answer that ALSO taxes the labor (owner 2026-10-23, #3555,
+ * "BOTH": keep the 14 categories above AND tax what the tax memo says is
+ * taxable). Asked at posting, stored in jobs.tax_kind (migration
+ * 20261023192154):
+ *   item_repair      the job fixes an item (appliance, furniture, bike,
+ *                    electronics, small engine, vehicle): R.S. 47:301.3 item 7;
+ *   fabric_cleaning  it cleans carpet, rugs, upholstery, furniture or clothes
+ *                    (laundry, pressing, alterations): item 5.
+ * null = neither. The SQL rule is_job_labor_taxable holds the same list.
+ */
+export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning"]);
+
+/** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
+export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {
+  return TAXABLE_CATEGORIES.has(category ?? "") || TAXED_KINDS.has(taxKind ?? "");
 }
 
 // ─── Stripe tax codes: the ONE place each is written (ME-043) ───
@@ -119,9 +132,25 @@ export const FOOD_FOR_HOME_TAX_CODE = "txcd_40040000";
  */
 export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005";
 
-/** The Stripe tax code for a job's labor line, from the category rule above. */
-export function laborTaxCode(category: string | null | undefined): string {
-  return isLaborTaxable(category) ? TAXABLE_LABOR_TAX_CODE : NONTAXABLE_TAX_CODE;
+/**
+ * Stripe "Cleaning of Tangible Personal Property" (tax memo Q4: carpet, rug,
+ * upholstery cleaning; laundry, pressing, alterations), the code on a
+ * fabric_cleaning job's labor line. NOT yet measured on live Stripe Tax (the
+ * account cannot calculate today); TAXABLE_LABOR_TAX_CODE was measured taxed,
+ * this one is the memo's code and must be measured before it is relied on
+ * (docs/OPEN.md, the #3555 item).
+ */
+export const CLEANING_TPP_TAX_CODE = "txcd_20010003";
+
+/**
+ * The Stripe tax code for a job's labor line: a taxed category keeps the
+ * measured repair code; otherwise a taxed kind picks its own; else nontaxable.
+ */
+export function laborTaxCode(category: string | null | undefined, taxKind?: string | null): string {
+  if (TAXABLE_CATEGORIES.has(category ?? "")) return TAXABLE_LABOR_TAX_CODE;
+  if (taxKind === "fabric_cleaning") return CLEANING_TPP_TAX_CODE;
+  if (taxKind === "item_repair") return TAXABLE_LABOR_TAX_CODE;
+  return NONTAXABLE_TAX_CODE;
 }
 
 /**
@@ -133,8 +162,8 @@ export function laborTaxCode(category: string | null | undefined): string {
  */
 const LA_SALES_TAX_CEILING_RATE = 0.15;
 
-export function salesTaxCeilingCents(budgetCents: number, category: string | null | undefined): number {
-  const base = taxableBaseCents(budgetCents, category);
+export function salesTaxCeilingCents(budgetCents: number, category: string | null | undefined, taxKind?: string | null): number {
+  const base = taxableBaseCents(budgetCents, category, taxKind);
   return base > 0 ? Math.ceil(base * LA_SALES_TAX_CEILING_RATE) : 0;
 }
 
@@ -147,8 +176,8 @@ export function salesTaxCeilingCents(budgetCents: number, category: string | nul
  * line is the only line tax can ever land on. If a fee's tax code changes, this
  * is the one place that has to change with it.
  */
-export function hasTaxableLine(category: string | null | undefined): boolean {
-  return isLaborTaxable(category);
+export function hasTaxableLine(category: string | null | undefined, taxKind?: string | null): boolean {
+  return isLaborTaxable(category, taxKind);
 }
 
 /**
@@ -157,8 +186,8 @@ export function hasTaxableLine(category: string | null | undefined): boolean {
  * @param budgetCents the job budget (the labor line's unit_amount)
  * @param category    the job category
  */
-function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
-  return isLaborTaxable(category) ? budgetCents : 0;
+function taxableBaseCents(budgetCents: number, category: string | null | undefined, taxKind?: string | null): number {
+  return isLaborTaxable(category, taxKind) ? budgetCents : 0;
 }
 
 /**
@@ -170,8 +199,9 @@ export function salesTaxCents(
   budgetCents: number,
   category: string | null | undefined,
   totalRatePercent: number,
+  taxKind?: string | null,
 ): number {
-  const base = taxableBaseCents(budgetCents, category);
+  const base = taxableBaseCents(budgetCents, category, taxKind);
   if (base <= 0 || !(totalRatePercent > 0)) return 0;
   return Math.round((base * totalRatePercent) / 100);
 }
@@ -221,9 +251,10 @@ export function taxedZeroOnTaxableLouisianaLabor(
   budgetCents: number,
   category: string | null | undefined,
   billingState: string | null | undefined,
+  taxKind?: string | null,
 ): boolean {
   return taxCents === 0
     && budgetCents > 0
-    && isLaborTaxable(category)
+    && isLaborTaxable(category, taxKind)
     && (billingState ?? "").trim().toUpperCase() === "LA";
 }

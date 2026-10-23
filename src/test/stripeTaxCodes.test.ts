@@ -32,9 +32,9 @@
  * @mutate supabase/functions/_shared/salesTax.ts | export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005"; | export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
  * @mutate supabase/functions/create-bgc-payment/index.ts | ...(customerId ? { customer_update: { address: "auto" as const } } : {}), | ...({}),
  * @mutate supabase/functions/create-payment/index.ts | description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE }, | description: "Added so your Helpr receives the full tip." },
- * @mutate supabase/functions/calculate-tax/index.ts | tax_code: TAXABLE_LABOR_TAX_CODE, | tax_code: "txcd_20030000",
+ * @mutate supabase/functions/calculate-tax/index.ts | tax_code: laborTaxCode(category, taxKind), | tax_code: "txcd_20030000",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts |           tax_behavior: "exclusive",\n | \n
- * @mutate supabase/functions/_shared/salesTax.ts |   return isLaborTaxable(category) ? TAXABLE_LABOR_TAX_CODE : NONTAXABLE_TAX_CODE; |   return NONTAXABLE_TAX_CODE;
+ * @mutate supabase/functions/_shared/salesTax.ts |   if (TAXABLE_CATEGORIES.has(category ?? "")) return TAXABLE_LABOR_TAX_CODE; |   if (TAXABLE_CATEGORIES.has(category ?? "")) return NONTAXABLE_TAX_CODE;
  * @mutate supabase/functions/_shared/salesTax.ts |     && (billingState ?? "").trim().toUpperCase() === "LA"; |     && billingState === "Louisiana";
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, | if (false && taxedZeroOnTaxableLouisianaLabor(sessionTaxCents,
  */
@@ -46,6 +46,7 @@ import { relative, resolve } from "node:path";
 import {
   effectiveSalesTaxRate,
   laborTaxCode,
+  CLEANING_TPP_TAX_CODE,
   salesTaxCeilingCents,
   NONTAXABLE_TAX_CODE,
   TAXABLE_CATEGORIES,
@@ -209,6 +210,22 @@ describe("Stripe tax codes (ME-043)", () => {
     expect(LA_UNTAXED_CODES_MEASURED).not.toContain(TAXABLE_LABOR_TAX_CODE);
     expect(LA_TAXED_LABOR_CODES.has(TAXABLE_LABOR_TAX_CODE), TAXABLE_LABOR_TAX_CODE).toBe(true);
     for (const c of TAXABLE_CATEGORIES) expect(LA_TAXED_LABOR_CODES.has(laborTaxCode(c)), c).toBe(true);
+  });
+
+  // #3555 (owner 2026-10-23): a job the poster says cleans carpet, rugs,
+  // furniture or clothes takes the tax memo's "Cleaning of Tangible Personal
+  // Property" code. NOT measured on live Stripe Tax yet (the platform account
+  // cannot calculate today); pinned so a change is deliberate. Measuring it is
+  // open on docs/OPEN.md Q2083. A job that fixes an item takes the measured
+  // repair code.
+  it("the fabric-cleaning code is the memo's Cleaning of TPP code, and none measured exempt", () => {
+    expect(CLEANING_TPP_TAX_CODE).toBe("txcd_20010003");
+    expect(LA_UNTAXED_CODES_MEASURED).not.toContain(CLEANING_TPP_TAX_CODE);
+    expect(laborTaxCode("cleaning", "fabric_cleaning")).toBe(CLEANING_TPP_TAX_CODE);
+    expect(laborTaxCode("other", "item_repair")).toBe(TAXABLE_LABOR_TAX_CODE);
+    expect(LA_TAXED_LABOR_CODES.has(laborTaxCode("other", "item_repair"))).toBe(true);
+    expect(salesTaxCeilingCents(10_000, "cleaning", "fabric_cleaning")).toBe(1_500);
+    expect(taxedZeroOnTaxableLouisianaLabor(0, 10_000, "cleaning", "LA", "fabric_cleaning")).toBe(true);
   });
 
   it("the pre-Checkout tax ceiling covers the measured Louisiana rate and is 0 on exempt labor (Q1658)", () => {

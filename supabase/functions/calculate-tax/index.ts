@@ -4,7 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { isLaborTaxable, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { isLaborTaxable, laborTaxCode } from "../_shared/salesTax.ts";
 
 /**
  * The sales tax the poster will ACTUALLY be charged — from Stripe, not from us.
@@ -84,7 +84,10 @@ serve(async (req: Request) => {
     const key = Deno.env.get("STRIPE_SECRET_KEY");
     if (!key) return errorResponse("Stripe is not configured", 503, corsHeaders);
 
-    const { budget, category, zip, state } = await req.json();
+    const { budget, category, zip, state, taxKind: rawTaxKind } = await req.json();
+    // The poster's taxed-kind answer on Post a Job (owner 2026-10-23, #3555);
+    // anything but a known kind reads as none.
+    const taxKind = rawTaxKind === "item_repair" || rawTaxKind === "fabric_cleaning" ? rawTaxKind : null;
 
     const budgetCents = Math.round(Number(budget || 0) * 100);
     if (!Number.isFinite(budgetCents) || budgetCents <= 0) {
@@ -99,7 +102,7 @@ serve(async (req: Request) => {
     // Only the LABOR line can carry tax — the service fee, urgent tip and
     // setup fee all ship as txcd_00000000 in create-payment. Sending them here
     // would quote tax on lines that are never taxed.
-    if (!isLaborTaxable(category)) {
+    if (!isLaborTaxable(category, taxKind)) {
       return jsonResponse({ taxCents: 0, exempt: true }, 200, corsHeaders);
     }
 
@@ -114,7 +117,7 @@ serve(async (req: Request) => {
           tax_behavior: TAX_BEHAVIOR,
           // Same code create-payment assigns the labor line, so the preview and
           // the charge are computed from identical inputs.
-          tax_code: TAXABLE_LABOR_TAX_CODE,
+          tax_code: laborTaxCode(category, taxKind),
         },
       ],
       customer_details: {

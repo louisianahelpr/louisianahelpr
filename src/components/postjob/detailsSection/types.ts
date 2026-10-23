@@ -20,6 +20,10 @@ export interface DetailsSectionProps {
    *  Only shown for CREDENTIAL_TIER_CATEGORIES; all others stay at 0. */
   credentialTier: number;
   setCredentialTier: (tier: number) => void;
+  /** jobs.tax_kind, asked only outside the 14 taxed categories (owner
+   *  2026-10-23, #3555). Absent = the question is not shown. */
+  taxKind?: "item_repair" | "fabric_cleaning" | null;
+  setTaxKind?: (next: "item_repair" | "fabric_cleaning" | null) => void;
   /** Does the helper have to upload before AND after photos before they can
    *  mark this job complete? Pre-set from the category in usePostJobForm and
    *  overridable here; persisted to jobs.require_photo_proof and read by the

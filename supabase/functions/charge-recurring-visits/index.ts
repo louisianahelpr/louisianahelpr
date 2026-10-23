@@ -86,7 +86,7 @@ import {
 import { flatFeePercentOf, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
 import { POSTER_SERVICE_FEE_PERCENT, posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
-import { effectiveSalesTaxRate, isLaborTaxable, jobEscrowTaxableBaseCents, TAXABLE_LABOR_TAX_CODE } from "../_shared/salesTax.ts";
+import { effectiveSalesTaxRate, isLaborTaxable, jobEscrowTaxableBaseCents, laborTaxCode } from "../_shared/salesTax.ts";
 import { recurringVisitDates } from "../_shared/recurringSchedule.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { cronResult, defectTracker } from "../_shared/cron-result.ts";
@@ -620,7 +620,7 @@ serve(async (req) => {
     const q = supabase
       .from("jobs")
       .select(
-        "id, customer_id, business_id, title, description, category, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents, platform_fee_percent",
+        "id, customer_id, business_id, title, description, category, tax_kind, budget, start_time, location, parish, zip_code, latitude, longitude, estimated_hours, special_requirements, photos, is_flexible_schedule, date_needed, recurrence_days, recurrence_weeks, recurring_helper_id, helper_id, status, series_ended_on, payment_status, dispute_status, stripe_payment_intent_id, helper_fee_percent, helper_fee_flat_cents, platform_fee_percent",
         countOpt,
       )
       // Offset paging over an unordered result is sampling, not paging.
@@ -1648,7 +1648,8 @@ serve(async (req) => {
         // automatic_tax, so nothing else ever reports this tax).
         let taxCalculationId: string | null = paidRow ? paidRow.tax_calculation_id : null;
         // A paid row carries the tax the payer was charged; no new calculation.
-        if (!paidRow && isLaborTaxable(parent.category as string)) {
+        // A taxed category, or the series' taxed-kind answer (owner 2026-10-23, #3555).
+        if (!paidRow && isLaborTaxable(parent.category as string, parent.tax_kind as string | null)) {
           try {
             const calc = await stripe.tax.calculations.create({
               currency: "usd",
@@ -1656,7 +1657,7 @@ serve(async (req) => {
                 amount: budgetCents,
                 reference: "labor",
                 tax_behavior: "exclusive",
-                tax_code: TAXABLE_LABOR_TAX_CODE,
+                tax_code: laborTaxCode(parent.category as string, parent.tax_kind as string | null),
               }],
               customer_details: {
                 address: {
@@ -2204,6 +2205,8 @@ serve(async (req) => {
             title: parent.title,
             description: parent.description,
             category: parent.category,
+            // The series' taxed-kind answer: the visit is the same work.
+            tax_kind: parent.tax_kind ?? null,
             // budgetCents is parent.budget in cents, or the budget the payer
             // paid on-session for a Q210(b) visit.
             budget: budgetCents / 100,

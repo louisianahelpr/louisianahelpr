@@ -733,6 +733,8 @@ serve(async (req) => {
         // taxed and untaxed categories; before that, this pin does (review of
         // 91927c016, #6).
         pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category);
+        // The poster's taxed-kind answer picks it too (owner 2026-10-23, #3555).
+        pinned = job.tax_kind == null ? pinned.is("tax_kind", null) : pinned.eq("tax_kind", job.tax_kind);
         return pinned;
       };
 
@@ -1116,7 +1118,8 @@ serve(async (req) => {
       // everything", which overstated the total by ~10% on every exempt
       // category — i.e. nearly every job. See that module for the LA R.S.
       // 47:301(14) reasoning.
-      const laborTaxable = isLaborTaxable(job.category);
+      // A taxed category, or the poster's taxed-kind answer (owner 2026-10-23, #3555).
+      const laborTaxable = isLaborTaxable(job.category, job.tax_kind);
 
       const lineItems: any[] = [
         {
@@ -1130,7 +1133,7 @@ serve(async (req) => {
                 : `Secure escrow payment for exempt service (${job.category}). Funds release once both parties confirm completion.`,
               // Assembly/installation of tangible personal property: LA repair/install code.
               // All other categories: pass-through (no LA state tax on the labor).
-              tax_code: laborTaxCode(job.category),
+              tax_code: laborTaxCode(job.category, job.tax_kind),
             },
             unit_amount: Math.round(job.budget * 100),
           },
@@ -1216,7 +1219,7 @@ serve(async (req) => {
         // (tax is only known once Checkout has the address; it can only add).
         payment_method_options: threeDSecureOptions(
           lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0)
-            + salesTaxCeilingCents(Math.round(job.budget * 100), job.category),
+            + salesTaxCeilingCents(Math.round(job.budget * 100), job.category, job.tax_kind),
         ),
         payment_intent_data: paymentIntentExtras,
         success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),

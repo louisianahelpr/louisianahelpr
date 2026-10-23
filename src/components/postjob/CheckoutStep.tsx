@@ -29,7 +29,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 import { formatPriceExact } from "@/lib/format";
 import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
-import { hasTaxableLine } from "@/lib/salesTax";
+import { hasTaxableLine, TAXABLE_CATEGORIES } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
@@ -42,6 +42,8 @@ interface CheckoutStepProps {
    *  `categoryLabel` is the display string and can't be matched against the
    *  taxable-category list. */
   category: string;
+  /** The poster's taxed-kind answer (jobs.tax_kind, owner 2026-10-23, #3555); null = neither. */
+  taxKind?: string | null;
   imagePreviews: string[];
   streetAddress: string;
   city: string;
@@ -105,6 +107,7 @@ export function CheckoutStep({
   description,
   categoryLabel,
   category,
+  taxKind = null,
   imagePreviews,
   streetAddress,
   city,
@@ -155,7 +158,7 @@ export function CheckoutStep({
   // Only the labor (the job budget) is taxed: every fee line ships as
   // txcd_00000000 (create-payment), and a job checkout carries no service fee.
   const taxedAmount = budgetNum;
-  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
+  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode, taxKind);
   // J3: the tax note names what is taxed, from the SAME taxedAmount the quote is asked for.
   const taxedWhat = `$${formatPriceExact(taxedAmount)} job budget`;
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
@@ -558,7 +561,7 @@ export function CheckoutStep({
                 </>
               );
             }
-            const taxable = hasTaxableLine(category);
+            const taxable = hasTaxableLine(category, taxKind);
             const tax = salesTax;
             // Exempt category (the common case): tax is a known $0, so the
             // total is exact, not an estimate. No $0.00 tax row and no
@@ -642,7 +645,11 @@ export function CheckoutStep({
                       every Handyman checkout was telling the poster "Assembly is
                       taxable labor," a category their job wasn't. Caught live posting
                       a Handyman job with Licensed+Insured selected. */}
-                  {categoryLabel} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
+                  {TAXABLE_CATEGORIES.has(category)
+                    ? categoryLabel
+                    : taxKind === "fabric_cleaning"
+                      ? "Cleaning carpet, rugs, furniture or clothes"
+                      : "Fixing an item"} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );

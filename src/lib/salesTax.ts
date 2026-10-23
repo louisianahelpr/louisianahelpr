@@ -40,9 +40,13 @@ export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
   "pressure_washing",
 ]);
 
-/** Whether the job's LABOR line is subject to LA sales tax. */
-export function isLaborTaxable(category: string | null | undefined): boolean {
-  return TAXABLE_CATEGORIES.has(category ?? "");
+/** Mirror of `TAXED_KINDS` in `_shared/salesTax.ts` (owner 2026-10-23, #3555): the
+ *  poster's answer at posting that also taxes the labor. */
+export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning"]);
+
+/** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
+export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {
+  return TAXABLE_CATEGORIES.has(category ?? "") || TAXED_KINDS.has(taxKind ?? "");
 }
 
 /**
@@ -50,13 +54,13 @@ export function isLaborTaxable(category: string | null | undefined): boolean {
  * looks: the service fee, urgent tip and one-time setup fee are all
  * `txcd_00000000`, so the labor line is the only line tax can land on.
  */
-export function hasTaxableLine(category: string | null | undefined): boolean {
-  return isLaborTaxable(category);
+export function hasTaxableLine(category: string | null | undefined, taxKind?: string | null): boolean {
+  return isLaborTaxable(category, taxKind);
 }
 
 /** The taxable base in cents — the labor line only, never the fees. */
-function taxableBaseCents(budgetCents: number, category: string | null | undefined): number {
-  return isLaborTaxable(category) ? budgetCents : 0;
+function taxableBaseCents(budgetCents: number, category: string | null | undefined, taxKind?: string | null): number {
+  return isLaborTaxable(category, taxKind) ? budgetCents : 0;
 }
 
 /** Sales tax in cents at a combined (state + local) percentage rate. */
@@ -64,8 +68,9 @@ export function salesTaxCents(
   budgetCents: number,
   category: string | null | undefined,
   totalRatePercent: number,
+  taxKind?: string | null,
 ): number {
-  const base = taxableBaseCents(budgetCents, category);
+  const base = taxableBaseCents(budgetCents, category, taxKind);
   if (base <= 0 || !(totalRatePercent > 0)) return 0;
   return Math.round((base * totalRatePercent) / 100);
 }
@@ -84,8 +89,9 @@ export function estimatedSalesTax(
   budget: number,
   category: string | null | undefined,
   totalRatePercent: number | null,
+  taxKind?: string | null,
 ): number | null {
-  if (!hasTaxableLine(category)) return 0;
+  if (!hasTaxableLine(category, taxKind)) return 0;
   if (totalRatePercent === null) return null;
-  return salesTaxCents(Math.round(budget * 100), category, totalRatePercent) / 100;
+  return salesTaxCents(Math.round(budget * 100), category, totalRatePercent, taxKind) / 100;
 }

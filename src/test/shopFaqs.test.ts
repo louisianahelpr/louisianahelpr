@@ -225,7 +225,7 @@ describe("SH12 FAQs: both shop pages show them, at the end", () => {
     expect(dash).toMatch(/<ShopPayoutRow \/>/);
     const row = blankComments(read("src/components/shops/ShopPayoutRow.tsx"));
     expect(row).toMatch(/useStripeConnectStatus\(\)/);
-    expect(row).toMatch(/<PayoutStatusRow prompt=\{payoutPrompt\}/);
+    expect(row).toMatch(/<PayoutStatusRow\s+prompt=\{payoutPrompt\}/);
     expect(row).toMatch(/navigate\("\/profile\?tab=payment"\)/);
   });
 });

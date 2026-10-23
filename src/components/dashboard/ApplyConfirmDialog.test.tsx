@@ -12,6 +12,10 @@ import { POPUP_DIALOG_CLS, POPUP_SHEET_CLS } from "@/components/ui/popupFooter";
 // `toast` is a thin stub. `dismiss` is real to these tests: ApplyBody takes
 // down its own "You're offline" toast when the network returns (Q131).
 const toastDismiss = vi.fn();
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), dismiss: (...a: unknown[]) => toastDismiss(...a) }),
 }));

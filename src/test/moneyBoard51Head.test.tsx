@@ -10,13 +10,17 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           onClick={() => (onOpen ? onOpen("held") : navigate("/profile?tab=earnings&view=spent"))} |           onClick={() => navigate("/profile?tab=earnings&view=spent")}
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   const span = money.coming && money.held ? "" : placement === "side" ? "" : "col-span-2"; |   const span = money.coming && money.held ? "" : placement === "main" ? "col-span-2" : "";
  */
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
 import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 
 afterEach(cleanup);
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
@@ -46,6 +50,8 @@ describe("You › Money opens on board 51's two tiles", () => {
     fireEvent.click(screen.getByRole("button", { name: /^Held for 1 job/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Coming to you/ }));
     expect(opened).toEqual(["held", "coming"]);
+    // ...and the Money tab's own onOpen sends "held" to Spent (EarningsTab is not rendered here).
+    expect(read("components/profile/EarningsTab.tsx")).toMatch(/if \(kind === "held"\) setView\("spent"\);/);
     cleanup();
     render(<MemoryRouter><HomeMoneyTiles money={{ coming: null, held: { cents: 4000, jobs: 1, only: null } }} placement="money" /></MemoryRouter>);
     expect((document.querySelector('[data-money-tile="held"]') as HTMLElement).className).toContain("col-span-2");

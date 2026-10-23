@@ -13,6 +13,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));

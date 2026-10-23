@@ -5,6 +5,7 @@ import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
+import { PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
 
 /**
  * Who holds each visit date of a recurring series (20260927012806,
@@ -162,10 +163,15 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
  * The Helpr's "verify your ID to accept" step after a claim (owner 2026-10-20:
  * ID once, at the accept), or null when nothing is missing.
  */
-export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">): string | null {
+export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">, setupPaused = false): string | null {
   if (r.missing.length === 0) return null;
   const id = r.missing.includes("stripe_id");
   const payout = r.missing.includes("payout_setup");
+  // Payout setup paused (owner ruling 2026-10-23; the caller reads
+  // usePayoutSetupPaused): no "set up payouts" ask, the paused notice instead.
+  if (payout && setupPaused) {
+    return `A date is booked only once payout setup is back${id ? " and your ID is verified" : ""}. ${PAYOUT_SETUP_PAUSED_COPY}`;
+  }
   const what = id && payout ? "Verify your ID and set up payouts" : id ? "Verify your ID" : "Set up payouts";
   return `${what} to finish accepting. A date is booked only once that's done; one that comes up first goes back to the series. You only do it once.`;
 }

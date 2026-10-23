@@ -4807,30 +4807,16 @@ html body .app-top-bar h1.text-page-title {
   border-radius: 20px;
   box-shadow: var(--lp-shadow);
 }
-/* The search: on a phone the field is the pill and Search sits under it,
-   full width; from 640px the whole form is one pill with the button inside. */
-.landing-search-field {
+/* The search: ONE pill at every width with the button inside it (owner,
+   2026-10-23: on a phone the Search button is a round icon in the box). */
+.landing-search {
   background: var(--lp-surface);
   box-shadow: var(--lp-shadow);
   border-radius: 999px;
 }
-.landing-search-field:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
-@media (min-width: 640px) {
-  .landing-search {
-    background: var(--lp-surface);
-    box-shadow: var(--lp-shadow);
-    border-radius: 999px;
-  }
-  .landing-search .landing-search-field { background: transparent; box-shadow: none; }
-  .landing-search .landing-search-field:focus-within { outline: none; }
-  .landing-search:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
-}
-.landing-chip {
-  background: var(--lp-surface);
-  border: 1px solid var(--lp-line-strong);
-  color: var(--lp-ink);
-}
-.landing-chip:hover { border-color: var(--lp-action); }
+.landing-search .landing-search-field { background: transparent; box-shadow: none; }
+.landing-search .landing-search-field:focus-within { outline: none; }
+.landing-search:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
 .landing-money-chip {
   background: var(--lp-money-tint);
   color: var(--lp-money);

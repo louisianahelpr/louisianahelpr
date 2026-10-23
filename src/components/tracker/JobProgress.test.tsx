@@ -11,7 +11,7 @@
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
 import { JobProgress, jobStepsLabel } from "@/components/tracker/JobProgress";
-import { JOB_PROGRESS_STEPS } from "@/lib/jobProgress";
+import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
 
 const states = (c: HTMLElement) => [...c.querySelectorAll("[data-step-state]")].map((e) => e.getAttribute("data-step-state"));
 const bar = (c: HTMLElement, i: number) => c.querySelectorAll("[data-step-state]")[i].querySelector("[data-step-seg]") as HTMLElement;

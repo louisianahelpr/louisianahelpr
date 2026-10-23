@@ -9,7 +9,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { deriveLiveNow, deriveWaiting } from "@/pages/home/homeDashboard/nextUpStates";
-import { JOB_PROGRESS_STEPS } from "@/lib/jobProgress";
+import { JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressState";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 
 const job = (over: Partial<Job>): Job =>

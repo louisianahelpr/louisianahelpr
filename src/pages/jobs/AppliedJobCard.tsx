@@ -8,7 +8,7 @@ import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/lib/jobProgress";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";

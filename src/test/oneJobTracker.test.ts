@@ -1,7 +1,7 @@
 /**
  * ONE job tracker (owner, 2026-10-21: "we need 1 tracker"). Chat, the job page and the job cards (poster and
  * Helpr) each drew their own: 4 bars twice and an 8-icon stepper. Every job-progress render goes through
- * <JobProgress> (src/components/tracker/JobProgress.tsx) fed by jobProgress (src/lib/jobProgress.ts); no other
+ * <JobProgress> (src/components/tracker/JobProgress.tsx) fed by jobProgress (src/components/tracker/jobProgressState.ts); no other
  * file keeps a job step list, and StepTracker is used for jobs only through JobProgress.
  * @mutate src/components/messages/chatView/DealCard.tsx | <JobProgress progress={stage} compact /> | <StepTracker steps={["Posted", "Hired", "Working", "Done"]} at={0} />
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <JobProgress progress={progress} /> |       <ol aria-label="Job progress">{["Posted", "Hired", "Working", "Done"].map((s) => <li key={s}>{s}</li>)}</ol>
@@ -60,7 +60,7 @@ describe("one job tracker (owner 2026-10-21)", () => {
 
   it("no file but jobProgress.ts keeps a job step list (Posted … Done)", () => {
     const lists = files
-      .filter((f) => f !== "src/lib/jobProgress.ts")
+      .filter((f) => f !== "src/components/tracker/jobProgressState.ts")
       .filter((f) => /\[[^\]]*"Posted"[^\]]*"(?:Hired|Offered|Accepted)"[^\]]*"(?:Done|Released)"[^\]]*\]/.test(read(f)));
     expect(lists).toEqual([]);
   });

@@ -9,7 +9,7 @@ import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice } from "@/lib/format";
 import type { Conversation } from "../types";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
-import { jobProgress, type ProgressJob } from "@/lib/jobProgress";
+import { jobProgress, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { JobProgress } from "@/components/tracker/JobProgress";
 
 /**

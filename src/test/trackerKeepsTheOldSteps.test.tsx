@@ -27,7 +27,7 @@
  * @mutate src/hooks/useStepTooltip.ts |       if (hoverOpened.current === key) { |       if (false) {
  * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length; |   const pulses = false;
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
- * @mutate src/lib/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
+ * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
  * @mutate src/components/JobTracking.tsx |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
  */
 import { describe, it, expect, afterEach } from "vitest";
@@ -36,7 +36,7 @@ import { resolve } from "node:path";
 import { render, fireEvent, cleanup } from "@testing-library/react";
 import { CalendarCheck, CheckCircle2, Clock, FileText, MapPin, PartyPopper, Truck, Wrench } from "lucide-react";
 import { JobProgress, JOB_STEP_ICONS } from "@/components/tracker/JobProgress";
-import { JOB_PROGRESS_STEPS, jobProgress, type JobProgressState, type ProgressJob } from "@/lib/jobProgress";
+import { JOB_PROGRESS_STEPS, jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");

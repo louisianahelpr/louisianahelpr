@@ -16,9 +16,11 @@
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite.
  */
 import os from "node:os";
+import { readFileSync } from "node:fs";
 import { setupStatements, liveItemSql, CARDS_SQL, USERS, FEE_F1_FILE, SLICE4_FILE } from "../../../scripts/declutter/slice3Harness.mjs";
 
 const NEW_FILE = "20261023142333_declutter_refund_requests.sql";
+const SETUP_FEE_FILE = "20261023123549_declutter_setup_fee_once.sql";
 const BEFORE = [
   "20261017055500_declutter_refund_hand_settle.sql",
   "20261017055502_declutter_handover_private_bucket.sql",
@@ -32,6 +34,8 @@ const BEFORE = [
   "20261021181118_helpr_delivery_payout_round_down.sql",
   "20261021185418_declutter_delivery_raise_pay.sql",
   "20261021204947_declutter_sales_outlive_a_deleted_party.sql",
+  // Q2352: the one-time setup fee; it restated declutter_mark_order_paid, which this change restates again.
+  SETUP_FEE_FILE,
 ];
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
@@ -69,7 +73,21 @@ stmts.splice(2, 0, `
     RETURN jsonb_build_object('action', p_rungs[1]);
   END $$;
   REVOKE ALL ON FUNCTION public.apply_consequence_ladder(uuid, text, text, uuid, int, text[], text[], jsonb, boolean, int, boolean, text, text) FROM PUBLIC, anon, authenticated;`);
+// What prod holds that the slice chain lacks and the setup-fee migration reads (the same stubs as
+// declutterSetupFeeOnce.pglite.mjs): shipping S1's column, the account fee flag and the platform's live fee (200).
+const feeAt = stmts.indexOf(readFileSync(new URL(`../../../supabase/migrations/${SETUP_FEE_FILE}`, import.meta.url), "utf8"));
+if (feeAt < 0) throw new Error("setup-fee migration not in the chain");
+stmts.splice(feeAt, 0, `
+  ALTER TABLE public.declutter_orders ADD COLUMN IF NOT EXISTS shipping_cents integer NOT NULL DEFAULT 0;
+  ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS onboarding_fee_paid boolean NOT NULL DEFAULT false,
+    ADD COLUMN IF NOT EXISTS onboarding_fee_charged_at timestamptz;
+  CREATE TABLE IF NOT EXISTS public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    onboarding_fee_cents integer NOT NULL DEFAULT 200);
+  INSERT INTO public.platform_settings (onboarding_fee_cents) VALUES (200);`);
 for (const sql of stmts) await db.exec(sql);
+// Every member here already paid the one-time setup fee, so each order's total is the sale's own (the last
+// section turns one buyer's flag off to show a refund after the handover never returns that fee).
+await db.exec(`UPDATE public.profiles SET onboarding_fee_paid = true`);
 await db.exec(CARDS_SQL);
 await db.exec(`INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
   SELECT s, d, '00:00', '23:59' FROM unnest(ARRAY['${SELLER}', '${SELLER2}']::uuid[]) s, generate_series(0, 6) d;`);

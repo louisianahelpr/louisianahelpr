@@ -91,7 +91,7 @@
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -215,6 +215,9 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   },
   { file: "supabase/functions/charge-recurring-visits/index.ts", key: "visitRefundKey(stripe, intent.id)", kind: "own-mistake", why: "a second charge for one visit (our double charge; owner pop-up 2026-10-14 ~3 PM CT)" },
   { file: "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts", key: "ONBOARDING_FEE_CENTS", kind: "own-mistake", why: "the $2 setup fee charged twice" },
+  // Q2352 (owner 2026-10-22, terms #9: charged ONCE per account): a Declutter order that carried the setup fee
+  // after the account had paid it elsewhere first sends exactly that fee back (declutter_claim_setup_fee: refund_due).
+  { file: "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", key: "payment_intent: feeIntentId", kind: "own-mistake", why: "the $2 setup fee charged a second time on a Declutter order (Q2352)" },
   { file: "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts", key: "duplicate-funding-refund:", kind: "own-mistake", why: "a second payment for an already-funded job" },
   { file: "supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts", key: "recurring-visit-refund:", kind: "own-mistake", why: "a visit checkout we could not settle" },
   {
@@ -338,6 +341,8 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   // Q1929 raise_pay: the raise row's card fee (decided by declutter_delivery_raise_start in SQL) is checked to add up
   // and sent as its own Stripe line the BUYER pays; the order is READ for its two parties. No refund, no write.
@@ -351,6 +356,12 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2307: the same Stripe fee handed to declutter_refund_party_gone (an order a party has left), then to mark_order_paid.
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: p_card_fee_cents: fee,",
+  // Q2352 rebase reviews: the receipt reads whether the claim won (read only); a hand refund of exactly a fee owed
+  // back is found (read only) and recorded through declutter_setup_fee_refunded, never as a refund of the sale.
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("setup_fee_state").eq("id", orderId).maybeSingle()',
+  // Q2352: reads the setup fee owed back (state refund_due); writes nothing, the refund is recorded by RPC.
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle()',
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
   // A10: the card fee Stripe kept on a seller-fault setup job's charge, billed to the seller after the full refund.
   "supabase/functions/void-cancelled-payments/index.ts: p_card_fee_cents: cardFeeCents,",
 ];
@@ -485,13 +496,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status
       // lists only; diffed line by line by lander42, TRAIN25); the refund reasons and fee are unchanged.
-      declutter_mark_order_paid: "20261020064354_declutter_manage_listing.sql 6628bdc8c4d63e60",
+      declutter_mark_order_paid: "20261026154738_declutter_setup_fee_once.sql 3f390bdaa955645d",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).
       declutter_refund_party_gone: "20261021204947_declutter_sales_outlive_a_deleted_party.sql 59570f1f27aa5011",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
-      declutter_order_refunds_recorded_cents: "20261017055505_declutter_helpr_delivery.sql 180fd5a89917ba6d",
+      declutter_order_refunds_recorded_cents: "20261026154738_declutter_setup_fee_once.sql 22359b307c0f6993",
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
       declutter_record_refund: "20261017060455_declutter_seller_out_pays_fee.sql f85f29c34b2fda23",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
@@ -1294,7 +1305,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     const stale = REFUND_SITES.filter((e) => sites.filter((s) => s.file === e.file && s.call.includes(e.key)).length !== 1);
     expect(stale.map((e) => `${e.file} ${e.key}`), "stale REFUND_SITES entry: remove it").toEqual([]);
     // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
-    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(6);
+    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(7);
   });
 
   // Boards 66/172 slice 2: posterCancelSplit (the sweep's refund and the poster's quote) is a HELPER above only

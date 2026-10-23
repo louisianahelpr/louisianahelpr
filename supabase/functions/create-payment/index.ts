@@ -58,7 +58,7 @@ import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
-import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { holdUnlessPayable, noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
@@ -1955,7 +1955,14 @@ serve(async (req) => {
       // Stripe's card fee on the whole charge.
       const tipQuote = tipChargeBreakdown(tipCents);
 
-      const session = await stripe.checkout.sessions.create({
+      // A tip is a DESTINATION charge (transfer_data to the Helpr's account):
+      // Stripe refuses it, before any money moves, when that account cannot
+      // receive money. Not live-gated (lead 2026-10-23): the refusal is made
+      // LOUD instead, a plain sentence for the poster and an ops alert
+      // (error_logs) once a day (_shared/livePayoutHold.ts).
+      let session;
+      try {
+        session = await stripe.checkout.sessions.create({
         customer: await payerWalletCustomer(),
         line_items: [
           {
@@ -2023,6 +2030,16 @@ serve(async (req) => {
           ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
           : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
       });
+      } catch (tipErr) {
+        const refused = await noteDestinationChargeRefused(tipErr, {
+          fn: "create-payment",
+          what: "A tip checkout",
+          helperId,
+          fields: { job_id: jobId, tip_cents: tipCents },
+        });
+        if (refused) throw new PublicError(refused);
+        throw tipErr;
+      }
 
       // Ledger row for the webhook to reconcile against. The idempotency key
       // above can return an EXISTING session on a retry, so dedupe on

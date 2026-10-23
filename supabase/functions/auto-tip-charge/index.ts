@@ -36,6 +36,7 @@ import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
 import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -844,6 +845,22 @@ serve(async (req) => {
           );
           results.failed++;
           log("charge outcome unknown", { jobId, error: message });
+          continue;
+        }
+        // A tip is a DESTINATION charge: Stripe refuses it, before any money
+        // moves, when the Helpr's account cannot receive money. That is told
+        // as what it is (not "no saved card") and to ops once a day
+        // (error_logs), lead 2026-10-23 (_shared/livePayoutHold.ts).
+        const refused = await noteDestinationChargeRefused(err, {
+          fn: "auto-tip-charge",
+          what: "An automatic tip",
+          helperId: c.helper_id ? String(c.helper_id) : null,
+          fields: { job_id: jobId },
+        });
+        if (refused) {
+          await giveUp(`payee_not_payable: ${message}`.slice(0, 200), true, `${refused} You can send it in a tap once they're set up.`);
+          results.failed++;
+          log("charge refused: the Helpr's account cannot receive money", { jobId, error: message });
           continue;
         }
         // Card declines land here (authentication_required, card_declined…).

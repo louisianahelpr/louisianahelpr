@@ -839,7 +839,7 @@ serve(async (req) => {
         what: "a cancellation fee",
         then: "The hourly run retries it.",
         seed: job.is_seed === true,
-        fields: { job_id: job.id, fee_transfer_id: String(feeRow.id), amount: helperPayout },
+        fields: { job_id: job.id, fee_row: `${feeRow.id}`, amount: helperPayout },
       });
       if (feeLive.held) {
         // The row stays 'pending' (Part E retries it) and says why, so the
@@ -1414,7 +1414,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days, is_seed")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, is_seed, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 

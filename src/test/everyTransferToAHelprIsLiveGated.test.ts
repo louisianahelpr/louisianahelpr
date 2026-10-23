@@ -58,15 +58,24 @@ const SENDERS: Record<string, Entry> = {
 
 /**
  * Destination charges (`transfer_data`) also send money to a Connect account,
- * as part of the CHARGE, not a transfer. Listed (exact, both ways) and not gated
- * here: Stripe's API refuses a destination charge whose destination cannot
- * receive transfers, so no payer is charged and nothing moves. That is Stripe's
- * documented contract, NOT measured on prod; gating them is an open question
- * for the lead (lh-money-escrow review of this guard, #6).
+ * as part of the CHARGE, not a transfer. Listed (exact, both ways) and NOT
+ * live-gated (lead 2026-10-23): Stripe refuses a destination charge whose
+ * destination cannot receive money, before any money moves ("Stripe-refused,
+ * handled"). Each site turns that refusal into a plain sentence for the member
+ * and an ops alert (error_logs) through noteDestinationChargeRefused, proven by
+ * the named test. (The exact refusal sentence on our account is not measured.)
  */
-const DESTINATION_CHARGES: Record<string, number> = {
-  "supabase/functions/create-payment/index.ts": 1,
-  "supabase/functions/auto-tip-charge/index.ts": 1,
+const DESTINATION_CHARGES: Record<string, { sites: number; test: string; proof: string }> = {
+  "supabase/functions/create-payment/index.ts": {
+    sites: 1,
+    test: "src/test/edge/create-payment.test.ts",
+    proof: "Stripe-refused, handled",
+  },
+  "supabase/functions/auto-tip-charge/index.ts": {
+    sites: 1,
+    test: "src/test/edge/auto-tip-charge.test.ts",
+    proof: "Stripe-refused, handled",
+  },
 };
 
 function codeOf(file: string): string {
@@ -90,8 +99,15 @@ describe("every transfer to a Connect account is live-gated", () => {
       const n = (codeOf(f).match(/\btransfer_data\s*:/g) ?? []).length;
       if (n > 0) found[path.relative(ROOT, f).split(path.sep).join("/")] = n;
     }
-    expect(found).toEqual(DESTINATION_CHARGES);
+    expect(found).toEqual(Object.fromEntries(Object.entries(DESTINATION_CHARGES).map(([f, e]) => [f, e.sites])));
   });
+
+  for (const [file, e] of Object.entries(DESTINATION_CHARGES)) {
+    it(`${file}: Stripe's refusal is handled out loud, and a test proves it`, () => {
+      expect(codeOf(path.join(ROOT, file))).toMatch(/\bnoteDestinationChargeRefused\(/);
+      expect(readSource(path.join(ROOT, e.test)) ?? "").toContain(e.proof);
+    });
+  }
 
   for (const [file, e] of Object.entries(SENDERS)) {
     if (!e.gated) {

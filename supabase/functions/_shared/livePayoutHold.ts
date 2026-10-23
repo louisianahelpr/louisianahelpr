@@ -16,7 +16,7 @@
 // and moves no money. Never throws.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type ConnectAccountFacts, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import { closeCachedConnectGate, holdClosesCache, isPlatformRejectedError, readLivePayoutGate, type ConnectAccountFacts, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
 
 export type LivePayoutHold =
   | { held: false; account: ConnectAccountFacts }
@@ -83,4 +83,42 @@ export async function holdUnlessPayable(i: LivePayoutHoldInput): Promise<LivePay
   });
   if (gate.kind === "cannot_verify") defects.push(`live payout gate ${i.helperId ?? i.accountId}: ${gate.reason}`);
   return { held: true, kind: gate.kind, reason: gate.reason, defect: defects.length ? defects.join("; ") : null };
+}
+
+/**
+ * Stripe refusing a DESTINATION charge (a tip paid straight to the Helpr's
+ * account with transfer_data) because that account cannot receive money:
+ * "Your destination account needs to have at least one of the following
+ * capabilities enabled: transfers, ..." (Stripe's documented refusal; the exact
+ * sentence on our account is NOT yet measured), a rejected account, or Stripe
+ * refusing OUR platform. Destination charges are not live-gated (lead,
+ * 2026-10-23): Stripe refuses them before any money moves, and this makes the
+ * refusal LOUD. It tells ops once a day (error_logs + Slack via
+ * postSlackOpsAlert) and returns the plain sentence the member is shown, or
+ * null when the error is something else (the caller handles that as before).
+ */
+const DESTINATION_NOT_PAYABLE =
+  /destination account needs to have at least one of the following capabilities|\bhas been rejected\b|cannot currently make live charges|destination.*(?:not|cannot|can't).*(?:transfer|payout|receive)/i;
+
+export async function noteDestinationChargeRefused(
+  err: unknown,
+  i: { fn: string; what: string; helperId: string | null; seed?: boolean; fields?: Record<string, string | number | null | undefined> },
+): Promise<string | null> {
+  const message = String((err as { message?: unknown })?.message ?? "");
+  const platformRefused = isPlatformRejectedError(err);
+  if (!platformRefused && !DESTINATION_NOT_PAYABLE.test(message)) return null;
+  await postSlackOpsAlert({
+    kind: "payout_wait",
+    severity: "warning",
+    oncePerDayKey: platformRefused ? "destination-charge-platform-rejected" : `destination-charge-refused-${i.helperId ?? "unknown"}`,
+    seed: i.seed === true,
+    title: platformRefused
+      ? "Stripe refuses the platform's account: a tip could not be charged"
+      : "A tip could not be charged: Stripe refuses the Helpr's payout account",
+    message: `${i.what} was refused by Stripe before any money moved (${message.slice(0, 160)}). The member was told; nothing was charged.`,
+    fields: { ...i.fields, fn: i.fn, helper_id: i.helperId, reason: message.slice(0, 200) },
+  });
+  return platformRefused
+    ? "Payments are paused right now, so your tip wasn't sent. Nothing was charged."
+    : "Your Helpr's payout account can't receive tips right now, so your tip wasn't sent. Nothing was charged.";
 }

@@ -310,6 +310,26 @@ describe("card-dispute clawback (Q202)", () => {
       expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).status === "repaid")).toBe(false);
     });
 
+    // Review r1 #1: a member who deleted their account (helper_id null) whose
+    // account Stripe rejected: no cache write keyed on a non-UUID, no
+    // "payout hold could not be read" critical page; held like the rest.
+    // @mutate supabase/functions/_shared/livePayoutHold.ts |   if (holdClosesCache(gate) && i.helperId) { |   if (holdClosesCache(gate)) {
+    it("WON for a deleted member's rejected account: held, no profiles write, no hold-read page", async () => {
+      const fn = await load();
+      event("evt_w_rej_del", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ helper_id: null })] };
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+      expect((slackAlerts as Array<{ title?: string }>).some((a) => /could not be read/.test(String(a.title)))).toBe(false);
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => typeof payload(w).held_repay_owed_at === "string")).toBe(true);
+    });
+
     it("WON pays each reversed amount back once, returns the job to 'released', tells the payee", async () => {
       const fn = await load();
       event("evt_w1", "charge.dispute.closed", dispute("won"));

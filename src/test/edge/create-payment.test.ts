@@ -1978,6 +1978,27 @@ describe("create-payment edge function", () => {
         scenario.writes.some((w) => w.table === "tips" && w.op === "insert"),
       ).toBe(true);
     });
+
+    // Lead 2026-10-23: a tip is a destination charge; Stripe refuses it when
+    // the Helpr's account cannot receive money. Loud, not silent: the poster
+    // gets a plain sentence (not the generic 500) and ops an alert (error_logs);
+    // no tips row is written. Stripe-refused, handled.
+    // @mutate supabase/functions/create-payment/index.ts |         if (refused) throw new PublicError(refused); |         if (false) throw new PublicError(refused);
+    it("a tip to a Helpr whose account Stripe refuses: a plain sentence, an ops alert, no tips row (Stripe-refused, handled)", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", title: "Mow lawn" }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      stripeMock.checkout.sessions.create.mockRejectedValue(Object.assign(
+        new Error("Your destination account needs to have at least one of the following capabilities enabled: transfers, crypto_transfers, legacy_payments"),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      ));
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15 } }));
+      expect(res.status).not.toBe(200);
+      expect((await json(res)).error).toBe("Your Helpr's payout account can't receive tips right now, so your tip wasn't sent. Nothing was charged.");
+      expect(scenario.writes.some((w) => w.table === "tips" && w.op === "insert")).toBe(false);
+      expect((slackAlerts as Array<{ oncePerDayKey?: string }>).some((a) => a.oncePerDayKey === `destination-charge-refused-${HELPER.id}`)).toBe(true);
+    });
   });
 
   // A crew has no lead (Q407): the poster tips a named MEMBER of the roster.

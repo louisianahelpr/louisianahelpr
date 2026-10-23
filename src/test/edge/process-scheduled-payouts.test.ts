@@ -1276,9 +1276,9 @@ describe("process-scheduled-payouts edge function", () => {
 // and this sender read no live account state before its transfer. Now one live
 // read must say "payable" before any claim or transfer; anything else holds.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (live.held) { |         if (false) {
-// @mutate supabase/functions/_shared/livePayoutHold.ts |   if (holdClosesCache(gate)) { |   if (false) {
+// @mutate supabase/functions/_shared/livePayoutHold.ts |   if (holdClosesCache(gate) && i.helperId) { |   if (false) {
 // @mutate supabase/functions/_shared/livePayoutHold.ts |   if (gate.kind === "cannot_verify") defects.push( |   if (false) defects.push(
-// @mutate supabase/functions/_shared/livePayoutHold.ts |     oncePerDayKey: platformRefused ? "payout-held-platform-rejected" : `payout-held-not-payable-${i.helperId}`, |     oncePerDayKey: `payout-held-not-payable-${i.helperId}`,
+// @mutate supabase/functions/_shared/livePayoutHold.ts |       ? "payout-held-platform-rejected"\n      : `payout-held-not-payable-${i.helperId ?? `account-${i.accountId}`}`, |       ? `payout-held-not-payable-${i.helperId}`\n      : `payout-held-not-payable-${i.helperId ?? `account-${i.accountId}`}`,
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     !isRejectedAccount(account); |     true;
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isRejectedAccountError(e)) return { ok: false, kind: "rejected", reason: message }; |
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message }; |

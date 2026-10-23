@@ -844,9 +844,10 @@ export async function repayClawback(
       fields: { job_id: row.job_id, original_transfer_id: row.original_transfer_id, amount_cents: row.reversed_cents },
     });
     if (live.held) {
+      const owedNow = new Date().toISOString();
       const { error: liveMarkErr } = await supabase
         .from("chargeback_clawbacks")
-        .update({ held_repay_owed_at: new Date().toISOString(), failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() })
+        .update({ held_repay_owed_at: owedNow, failure_reason: HELD_REPAY_MARKER, updated_at: owedNow })
         .eq("id", row.id)
         .in("status", ["reversed", "repay_failed", "repaying"])
         .is("held_repay_owed_at", null)

@@ -587,7 +587,10 @@ serve(async (req) => {
             const { data, error } = await supabase.rpc("auto_tip_job_state", { p_job_id: id });
             return error || typeof data !== "string" ? new Error(error?.message ?? "no answer") : data;
           },
-        }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, quote: tipQuote });
+        }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, quote: tipQuote })
+          // A database read/write that threw mid-way: the outcome is unknown, so the claim stays
+          // 'pending' with the reason and the run pages (never a second charge on retry).
+          .catch((e: unknown) => ({ outcome: "ambiguous" as const, reason: `threw: ${caughtMessage(e)}` }));
         switch (pp.outcome) {
           case "charged":
             await settleTip(

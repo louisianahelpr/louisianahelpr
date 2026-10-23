@@ -9,6 +9,7 @@
  *   ./webhook/refundEvents.ts    phase 5   PAYMENT.CAPTURE.REFUNDED (and PAYMENT.REFUND.*)
  *   ./webhook/payoutEvents.ts    phase 4/8 PAYMENT.PAYOUTS-ITEM.*
  *   ./webhook/tipEvents.ts       tips      (tip orders, if they need their own lines)
+ *   ./webhook/vaultEvents.ts     phase 6   VAULT.PAYMENT-TOKEN.DELETED (saved methods)
  * One event type belongs to one file: dispatch refuses a type two files claim.
  *
  * HANDLER RULES
@@ -41,6 +42,7 @@ import { CHECKOUT_EVENT_HANDLERS } from "./webhook/checkoutEvents.ts";
 import { REFUND_EVENT_HANDLERS } from "./webhook/refundEvents.ts";
 import { PAYOUT_EVENT_HANDLERS } from "./webhook/payoutEvents.ts";
 import { TIP_EVENT_HANDLERS } from "./webhook/tipEvents.ts";
+import { VAULT_EVENT_HANDLERS } from "./webhook/vaultEvents.ts";
 
 export type DispatchResult =
   | { kind: "unhandled" }
@@ -53,6 +55,7 @@ const SOURCES: ReadonlyArray<readonly [string, PayPalEventHandlers]> = [
   ["refundEvents", REFUND_EVENT_HANDLERS],
   ["payoutEvents", PAYOUT_EVENT_HANDLERS],
   ["tipEvents", TIP_EVENT_HANDLERS],
+  ["vaultEvents", VAULT_EVENT_HANDLERS],
 ];
 
 /** The one dispatch table. Throws at load if two files claim one event type. */

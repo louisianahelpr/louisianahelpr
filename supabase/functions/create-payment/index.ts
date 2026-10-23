@@ -63,6 +63,7 @@ import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/str
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
+import { jobPaypalPayment, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
 import {
   giftCardStripeMode,
   jobMoneyMode,
@@ -1719,6 +1720,28 @@ serve(async (req) => {
         throw new PublicError("This job changed while we were saving. Refresh and try again.");
       }
       console.log("Job updated successfully:", jobId, updateFields);
+
+      // PayPal Plan A, phase 4: the approval just scheduled this job's payout. A job paid through
+      // PayPal is paid by hand from the admin "Pay this Helpr" queue, so it is queued now (one
+      // transaction: the payout_transfers claim + a pending manual payout to the Helpr's PayPal email).
+      // The approval already stands; a failed queue write is logged and healed by auto-release-payment
+      // and process-scheduled-payouts (the writer is idempotent).
+      if (bothDone) {
+        const paypalPayment = await jobPaypalPayment(supabaseAdmin, jobId);
+        if (paypalPayment.kind === "error") {
+          console.error(`[create-payment] release: provider_payments read failed for job ${jobId}: ${paypalPayment.message}`);
+        } else if (paypalPayment.kind === "paypal") {
+          const queued = await queueManualPaypalPayout(supabaseAdmin, {
+            jobId,
+            // forPoster: an admin approving on the poster's behalf.
+            initiatedBy: forPoster ? "admin" : "system",
+            initiatedByUserId: forPoster ? user.id : null,
+            source: "approval",
+          });
+          if (queued.outcome === "error") console.error(`[create-payment] release: PayPal pay queue write failed for job ${jobId}: ${queued.message}`);
+          else console.log(`[create-payment] release: job ${jobId} PayPal pay queue: ${queued.outcome}${"reason" in queued && queued.reason ? ` (${queued.reason})` : ""}`);
+        }
+      }
 
       // Calculate helper payout: budget/helpers - helperCommission + urgent_fee
       // Commission tax is already collected at checkout — no deduction here

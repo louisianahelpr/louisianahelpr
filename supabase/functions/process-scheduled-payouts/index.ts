@@ -32,6 +32,7 @@ import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRea
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import { paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
 
 
 serve(async (req) => {
@@ -124,9 +125,18 @@ serve(async (req) => {
       .or("disputed_at.is.null,and(is_group_job.is.true,dispute_status.in.(resolved,auto_resolved))")
       .lte("payout_scheduled_at", now);
     if (!includeSeed) jobQuery = jobQuery.eq("is_seed", false);
-    const { data: jobs, error } = await jobQuery;
+    const { data: selectedJobs, error } = await jobQuery;
 
     if (error) throw error;
+
+    // PayPal Plan A, phase 4: a job paid through PayPal is never paid by a Stripe transfer here. It
+    // goes to the admin "Pay this Helpr" queue (idempotent; normally already queued at approval, so
+    // this is the heal path). Unreadable = no payout this run (fail closed): a PayPal job paid by
+    // Stripe would pay the Helpr twice.
+    const paypalIds = await paypalJobIds(supabaseAdmin, (selectedJobs ?? []).map((j) => j.id as string));
+    if (!paypalIds.ok) throw new Error(`provider_payments read failed, no payout sent this run: ${paypalIds.message}`);
+    const paypalJobs = (selectedJobs ?? []).filter((j) => paypalIds.ids.has(j.id as string));
+    const jobs = (selectedJobs ?? []).filter((j) => !paypalIds.ids.has(j.id as string));
 
     // ── Seed subjects never page (docs/OPEN.md Q91) ──────────────────────────
     // On an `?include_seed=1` run `jobs` holds fixtures, and every per-job page
@@ -152,6 +162,12 @@ serve(async (req) => {
 
     let processed = 0;
     const results: any[] = [];
+
+    for (const job of paypalJobs) {
+      const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "system", source: "process-scheduled-payouts" });
+      if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+      results.push({ job_id: job.id, status: "paypal_pay_queue", ...queued });
+    }
 
     // Load onboarding fee setting once. A dropped error here previously
     // defaulted to a hardcoded 200 (¢) — if the real configured fee differs,

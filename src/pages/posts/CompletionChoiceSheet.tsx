@@ -17,7 +17,7 @@
  */
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronLeft, X, Upload, AlertTriangle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -96,6 +96,31 @@ export function CompletionChoiceSheet({
   onConfirm,
   onRevisionSubmitted,
 }: CompletionChoiceSheetProps) {
+  // THE PHOTOS AS THEY ARE NOW (owner, 2026-10-23: the poster SEES the before and after photos before approving;
+  // report "ben also did not receive any before or after pictures", Mow two lawns 7c6deb77). The card hands the
+  // sheet the list it loaded, which can predate the Helpr's photos; the sheet reads the job's own columns when it
+  // opens and shows those. Guard: src/test/approveSheetReadsThePhotos.test.tsx.
+  const [fresh, setFresh] = useState<{ before: string[]; after: string[] } | null>(null);
+  useEffect(() => {
+    if (!open || groupJob) return;
+    let live = true;
+    void supabase
+      .from("jobs")
+      .select("proof_before_urls, proof_after_urls")
+      .eq("id", jobId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (!live) return;
+        if (error) {
+          report(error, { severity: "warning", tags: { source: "CompletionChoiceSheet.photos" }, context: { jobId } });
+          return;
+        }
+        if (data) setFresh({ before: data.proof_before_urls ?? [], after: data.proof_after_urls ?? [] });
+      });
+    return () => { live = false; };
+  }, [open, jobId, groupJob]);
+  const beforeUrls = fresh?.before ?? proofBeforeUrls;
+  const afterUrls = fresh?.after ?? proofAfterUrls;
   const [mode, setMode] = useState<"choice" | "revision">("choice");
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
@@ -271,15 +296,15 @@ export function CompletionChoiceSheet({
             {/* Board 65: the Helpr's name, never he/she; the decision with its evidence on screen. */}
             <SheetHero title={`${helperName} says it's done`} />
 
-            {(proofBeforeUrls.length > 0 || proofAfterUrls.length > 0) && (
-              <div className="space-y-1.5 mb-3">
+            {(beforeUrls.length > 0 || afterUrls.length > 0) && (
+              <div className="space-y-1.5 mb-3" data-approve-photos="">
                 <p className="font-sans leading-snug text-ds-12 text-muted-foreground">
                   {helperName}'s photos of the work.
                 </p>
                 <PhotoProofGroup
                   jobId={jobId}
-                  beforeUrls={proofBeforeUrls}
-                  afterUrls={proofAfterUrls}
+                  beforeUrls={beforeUrls}
+                  afterUrls={afterUrls}
                   canUpload={false}
                 />
               </div>

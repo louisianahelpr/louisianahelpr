@@ -154,6 +154,7 @@ export const NOT_MATCHED = {
   "shop_hand_refunds.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",
+  "declutter_refund_requests.refund_id": "our own declutter_refunds row id (the refund a settled Declutter refund request wrote, 20261023142333), not a Stripe id",
   "payout_payee_waits.payout_id": "our own payout / refund row id (uuid) whose transfer waits for the payee's Stripe setup (payout readiness, 20261019070737), not a Stripe id",
   "payout_send_marks.payout_id": "our own payout / refund row id (uuid) marked as sending (payout readiness, 20261019070737), not a Stripe id",
   "payout_settlements.off_stripe_note": "free text saying how money was paid outside Stripe ('other: ...'), not a Stripe id",

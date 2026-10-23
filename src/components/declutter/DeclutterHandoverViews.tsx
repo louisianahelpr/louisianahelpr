@@ -30,6 +30,7 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeature } from "@/hooks/useFeature";
 import type { CartLine } from "@/lib/declutter/api";
 import {
   bookPickup,
@@ -62,6 +63,8 @@ import { DateTimeField } from "@/components/DateTimeField";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
+// Board 141 (Declutter side): the refund request after the handover loads with a handed-over order only.
+const RefundRequestPanel = lazy(() => import("./DeclutterRefundRequest").then((m) => ({ default: m.RefundRequestPanel })));
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -148,7 +151,8 @@ export function PaidOrdersSection({ cart, heading, label }: { cart: CartLine[]; 
 }
 
 const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
-  pending: "Your payout is on its way.",
+  // 141d: the payout waits until the sale is final (20261023142333).
+  pending: "We send it once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.",
   failed: "Your payout didn't go through yet. We'll keep trying. Check that your payout account is set up.",
   succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
   nothing_due: "Nothing to pay out: this sale covered a card fee you owed.",
@@ -161,6 +165,8 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
   const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
   const [problemOpen, setProblemOpen] = useState(false);
+  // Board 141 (Declutter side, 20261023142333): ask for / answer a refund in the 24 hours after the handover.
+  const refundRequests = useFeature("declutter_refund_requests");
   return (
     <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
       {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming and which side you are. */}
@@ -187,12 +193,19 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
       )}
       {done ? (
         <>
-          {order.handover === "delivery" && <p className="text-sm font-medium">Handed over. The sale is final.</p>}
+          {order.handover === "delivery" && <p className="text-sm font-medium">Handed over.</p>}
           {order.side === "seller" && payout && (
             <p className="text-sm">
               {formatPrice(payout.amount_cents)}
-              {payout.debt_cents > 0 ? ` (${formatPrice(payout.items_cents)} minus ${formatPrice(payout.debt_cents)} you owed)` : ""}. {PAYOUT_WORDS[payout.status]}
+              {payout.amount_cents + payout.debt_cents < payout.items_cents
+                ? " after the buyer's refund"
+                : payout.debt_cents > 0 ? ` (${formatPrice(payout.items_cents)} minus ${formatPrice(payout.debt_cents)} you owed)` : ""}. {PAYOUT_WORDS[payout.status]}
             </p>
+          )}
+          {refundRequests && (
+            <Suspense fallback={null}>
+              <RefundRequestPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} />} />
+            </Suspense>
           )}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
         </>
@@ -322,7 +335,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
   const pickedUp = useMutation({
     mutationFn: async () => sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null),
     onSuccess: () => {
-      toast.success("Picked up. You're being paid.");
+      toast.success("Picked up. You're paid in 24 hours, unless the buyer asks for a refund.");
       setPhoto(null);
       setAsking(false);
       invalidate(qc, order.orderId);
@@ -333,7 +346,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     if (order.handover !== "pickup_home") {
       return (
         <p className="text-sm text-muted-foreground">
-          You're paid when the buyer taps "I got it" or takes their pickup photo, or automatically 24 hours after the pickup time if you posted the porch photo and no problem is reported.
+          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported.
         </p>
       );
     }
@@ -342,14 +355,14 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     if (Date.now() < new Date(slotStart).getTime()) {
       return (
         <p className="text-sm text-muted-foreground">
-          You're paid when the buyer taps "I got it", or you tap "Picked up" from the pickup time, or automatically 24 hours after the pickup time unless a problem is reported.
+          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it", or you tap "Picked up" from the pickup time, or 24 hours after the pickup time unless a problem is reported.
         </p>
       );
     }
     return (
       <div className="space-y-2">
         <p className="text-sm text-muted-foreground">
-          You're paid when the buyer taps "I got it" or you tap "Picked up", or automatically 24 hours after the pickup time unless a problem is reported.
+          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported.
         </p>
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional)</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
@@ -414,7 +427,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
       setPreview(null);
       if (r.result === "set_out") toast.success(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
-      else toast.success("Picked up. The seller is paid and the sale is final.");
+      else toast.success("Picked up. If something is wrong, you can ask for a refund within 24 hours.");
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -437,7 +450,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         </>
       )}
       <label htmlFor={fileId} className="sr-only">
-        {order.side === "seller" ? "Photo of the item on your porch (\"Left on porch\": needed before you can be paid automatically)" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller)"}
+        {order.side === "seller" ? "Photo of the item on your porch (\"Left on porch\": needed before you can be paid automatically)" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller 24 hours later)"}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
@@ -447,7 +460,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
       </button>
       <p className="text-ds-12 text-muted-foreground">
-        {order.side === "seller" ? "One photo where the buyer will find it. You need it before you can be paid automatically." : "Taken at the address. It tells the seller you have it, and pays them."}
+        {order.side === "seller" ? "One photo where the buyer will find it. You need it before you can be paid automatically." : "Taken at the address. It tells the seller you have it; they're paid 24 hours later."}
       </p>
       {order.side === "seller" && (
         <PutItOutSheet

@@ -110,7 +110,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   already_picked_up: "The buyer already picked up this item.",
   seller_set_out: "The seller set the item out. If it isn't there, report a problem.",
   too_early: "You can report a no-show 15 minutes after the booked time.",
-  sale_final: "The seller was paid, so this sale is final.",
+  // 141d (20261023142333): a handed-over sale is final once its 24-hour window is over.
+  sale_final: "The time to report a problem is over, so this sale is final.",
   invalid_reason: "Pick what went wrong.",
   note_required: "Tell us what happened (up to 1,000 characters).",
   not_authorized: "Only Louisiana Helpr staff can do this.",
@@ -123,6 +124,20 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   review_contact_info: "Reviews can't include phone numbers, emails or links.",
   refund_amount_unknown: "We couldn't work out this refund. Louisiana Helpr will sort it out.",
   refund_not_found: "That refund wasn't found.",
+  // Board 141, Declutter side (20261023142333): a refund request after the handover.
+  refund_before_handover: "You can ask for a refund once you have the item. Before that, report a problem.",
+  refund_already_asked: "You already asked for a refund on this sale.",
+  refund_window_over: "The 24 hours to ask for a refund are over, so this sale is final.",
+  refund_already_answered: "This refund request was already answered.",
+  refund_answer_late: "The 24 hours to answer are over, so Louisiana Helpr decides this one.",
+  invalid_answer: "Pick an answer.",
+  invalid_amount: "Offer an amount above $0 and below the item price. To give it all back, choose Refund in full.",
+  part_refund_unavailable: "A part refund isn't possible on this sale. Refund it in full, or say no and Louisiana Helpr decides.",
+  payout_already_sent: "The seller was already paid for this sale. Louisiana Helpr will sort it out.",
+  // Service-only (declutter_refund_after_handover / declutter_rebook_payout); worded for the ops log.
+  payout_missing: "This sale has no payout row to change.",
+  already_refunded: "This sale was already refunded.",
+  order_not_handed_over: "This sale isn't handed over yet.",
   // Service-only (the webhook records a refund's Stripe mode); worded for the ops log.
   invalid_mode: "That refund's payment mode is missing.",
   refund_mode_conflict: "That refund was already recorded in the other payment mode.",

@@ -88,7 +88,9 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   subscription_tier text, subscription_expires_at timestamptz, ban_status text, auto_suspended_until timestamptz,
   is_seed boolean DEFAULT false,
   -- is_identity_verified (20261019051407) reads the two identity verdict columns.
-  idv_status text, stripe_identity_verified boolean DEFAULT false);
+  idv_status text, stripe_identity_verified boolean DEFAULT false,
+  -- Q1803 (20261022002144): the newest is_caller_banned also refuses an under-13 block.
+  under_13_blocked_at timestamptz);
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL,
   UNIQUE (user_id, role));
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text NOT NULL,
@@ -152,7 +154,17 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
   -- slice 5 (20261017055505): declutter_delivery_slot_ok reads the handover and the paid time; the class SQL's
   -- 'delivery' fixture step writes a paid delivery order with its amounts.
   handover text, paid_at timestamptz, items_cents integer, premium_cents integer, tax_cents integer, delivery_cents integer,
-  total_cents integer, stripe_payment_intent_id text);
+  total_cents integer, stripe_payment_intent_id text,
+  -- Board 141 (20261023142333): the sale-final / window checks read the handover time; the 'handed_over' step writes them.
+  handed_over_at timestamptz, closed_at timestamptz, close_reason text);
+-- Board 141 (20261023142333): what declutter_payout_unsent / declutter_sale_decided / declutter_sale_final read, with
+-- the columns the class SQL's 'handed_over' fixture step writes.
+CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
+  items_cents integer, debt_cents integer, amount_cents integer, status text, stripe_transfer_id text, attempts integer NOT NULL DEFAULT 0);
+CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
+CREATE TABLE public.declutter_handovers (order_id uuid PRIMARY KEY, confirmed_by text);
+CREATE TABLE public.declutter_refund_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, status text,
+  declined_at timestamptz);
 -- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261017055505.
 CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid);
 -- Slice 5, Helpr delivery (20261017055505): the photo access, vehicle and task checks read these.
@@ -211,6 +223,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "helpr_task_source_slot_ok", "helpr_task_vehicle_fits",
   // Declutter delivery-pay raise (Q1929, 20261021185418).
   "declutter_delivery_raise_open",
+  // Board 141, Declutter side (20261023142333); payout_unsent before problem_window_open, which calls it.
+  "declutter_payout_unsent", "declutter_problem_window_open", "declutter_sale_final",
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // SH2b public shop page (20261019042744).
@@ -235,7 +249,9 @@ const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visi
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job",
   // Q1929: declutter_delivery_raise_open's SQL body calls it (validated at CREATE).
-  "helpr_task_source_held"];
+  "helpr_task_source_held",
+  // Board 141: a deny helper the window and final checks call (validated at CREATE).
+  "declutter_sale_decided"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
 const loaded = [];

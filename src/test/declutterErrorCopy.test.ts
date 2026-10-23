@@ -52,6 +52,8 @@ const DECLUTTER_FILES = [
   "20261021185418_declutter_delivery_raise_pay.sql",
   // Q2352: the one-time setup fee at the first listing (setup_fee_required_to_list).
   "20261023123549_declutter_setup_fee_once.sql",
+  // Board 141, Declutter side: the refund request after the handover (refund_window_over, invalid_amount, ...).
+  "20261023142333_declutter_refund_requests.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -78,7 +80,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(19); // 19: + the one-time setup fee (20261023123549, Q2352)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(20); // 20: + the one-time setup fee (20261023123549, Q2352) + board 141's refund request after the handover (20261023142333, 2026-10-23)
     expect(codes.size).toBeGreaterThan(25);
   });
 

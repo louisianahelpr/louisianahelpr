@@ -252,12 +252,19 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
  * the member's order filed about them (RLS lets both parties read a problem),
  * without the reporter's id, photos or the deciding admin.
  */
-export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stripped: string[] }> = {
+export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stripped: string[]; noPersonColumn?: true }> = {
   declutter_problems_about_me: {
     table: "declutter_problems",
     scope:
       "WHERE t.reporter_id IS DISTINCT FROM v_uid AND EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND (o.buyer_id = v_uid OR o.seller_id = v_uid))",
     stripped: ["decided_by", "reporter_id", "photo_paths"],
+  },
+  // Board 141, Declutter side (20261023142334): refund requests on the member's own sales (no person column; the buyer's words).
+  declutter_refund_requests: {
+    table: "declutter_refund_requests",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: [],
+    noPersonColumn: true,
   },
 };
 
@@ -483,6 +490,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_strikes.removed_by": { reason: "the staff member who removed a Declutter strike; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },
+  "declutter_refund_requests.answer_by": { reason: "a deadline timestamp (when the seller must answer a refund request), not a person; the table has no person column (keyed by order_id; the buyer and seller are the order's, exported by declutter_orders.buyer_id/seller_id; 20261023142333)" },
+  "declutter_refund_requests.offer_answer_by": { reason: "a deadline timestamp (when the buyer must answer the seller's part offer), not a person; the table has no person column (keyed by order_id; 20261023142333)" },
   "declutter_cart_items.checkout_by": { reason: "a deadline timestamp (when checkout must happen), not a person; the line is exported by declutter_cart_items.buyer_id/seller_id (20261014210518)" },
   "helpr_tasks.customer_id": { reason: "the buyer of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by buyer_id), and the Helpr's task row holds the seller's address, which is never the buyer's data (20261017055505)" },
   "helpr_tasks.pickup_contact_id": { reason: "the seller of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by seller_id), and the Helpr's task row holds the buyer's drop-off address, which is never the seller's data (20261017055505)" },

@@ -1272,7 +1272,7 @@ export type Database = {
           id: string
           is_seed: boolean
           livemode: boolean | null
-          order_id: string
+          order_id: string | null
           paid_at: string | null
           paid_cents: number | null
           payout_transfer_id: string | null
@@ -1298,7 +1298,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
-          order_id: string
+          order_id?: string | null
           paid_at?: string | null
           paid_cents?: number | null
           payout_transfer_id?: string | null
@@ -1324,7 +1324,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           livemode?: boolean | null
-          order_id?: string
+          order_id?: string | null
           paid_at?: string | null
           paid_cents?: number | null
           payout_transfer_id?: string | null

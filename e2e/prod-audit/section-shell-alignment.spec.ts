@@ -20,8 +20,8 @@
  * Proven red 2026-10-19 on the mutations below (the old Jobs inset; a section
  * that adds an extra row under its toggle; the old Jobs gap under the bar).
  *
- * @mutate src/pages/jobs/JobsSection.tsx |     <div className="flex flex-col gap-1"> |     <div className="flex flex-col gap-1 px-1">
- * @mutate src/pages/jobs/JobsSection.tsx |     <div className="flex flex-col gap-1"> |     <div className="flex flex-col gap-3">
+ * @mutate src/pages/jobs/JobsSection.tsx | className="explore-header flex flex-col gap-1"> | className="explore-header flex flex-col gap-1 px-1">
+ * @mutate src/pages/jobs/JobsSection.tsx | className="explore-header flex flex-col gap-1"> | className="explore-header flex flex-col gap-3">
  * @mutate src/components/shops/ShopsHomeView.tsx |       <SectionSearchRow\n        value={query} |       <div className="h-10" />\n      <SectionSearchRow\n        value={query}
  */
 import { test, expect, type Browser } from "../prodTest";

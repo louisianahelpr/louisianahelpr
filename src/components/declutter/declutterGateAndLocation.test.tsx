@@ -62,12 +62,15 @@ vi.mock("@/components/AppPage", () => ({
     </main>
   ),
 }));
+// The tester-only "early preview" read (useSectionTabs) stubbed as not loaded (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
   // Honours globalSearch like the real one (default on), so a Browse that forgets to turn Explore's
   // "Search all sections" off shows a second search here too.
-  SectionScreen: ({ title, children, globalSearch = true }: { title: string; children: React.ReactNode; globalSearch?: boolean }) => (
+  SectionScreen: ({ title, children, tabs, globalSearch = true }: { title: string; children: React.ReactNode; tabs?: React.ReactNode; globalSearch?: boolean }) => (
     <main>
       <h1>{title}</h1>
+      {tabs}
       {globalSearch && <div role="search" data-testid="explore-search-entry" />}
       {children}
     </main>
@@ -327,7 +330,7 @@ describe("Declutter location ask", () => {
     at("/declutter", <DeclutterPage />);
     await screen.findByText("Oak rocking chair");
     // ONE search on Browse: "Search items" with its filters, never Explore's "Search all sections" above it.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | add={sectionByKey("declutter").add} globalSearch={view !== "browse"}> | add={sectionByKey("declutter").add}>
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "browse"} | globalSearch={true}
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     expect(screen.getAllByRole("search")).toHaveLength(1);
     // No chip row on the page: no category, porch-pickup or price-drop chip outside the sheet.

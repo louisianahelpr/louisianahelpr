@@ -16,7 +16,7 @@
  *
  * @mutate src/components/dashboard/MainFeedSection.tsx |       className="px-0 lg:px-4 pt-1 lg:pt-3" |       className="px-1 lg:px-4 pt-1 lg:pt-3"
  * @mutate src/components/job-card/JobListPage.tsx | "flex-1 min-h-0 px-0 lg:px-4 pt-1 lg:pt-3 pb-0" | "flex-1 min-h-0 px-4 pt-1 lg:pt-3 pb-0"
- * @mutate src/pages/jobs/JobsSection.tsx |     <div className="flex flex-col gap-1"> |     <div className="flex flex-col gap-1 px-1">
+ * @mutate src/pages/jobs/JobsSection.tsx | className="explore-header flex flex-col gap-1"> | className="explore-header flex flex-col gap-1 px-1">
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,7 +28,7 @@ const INSET = "px-0 lg:px-4";
 
 describe("Jobs lists line up with the section header, on the shared section gutter (Q2222)", () => {
   it("the header has no phone inset of its own", () => {
-    expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<div className="flex flex-col gap-1">/);
+    expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<div data-explore-header="" className="explore-header flex flex-col gap-1">/);
   });
 
   it("the feed, its bones, Posted / Working and their bones all use that (no) inset", () => {

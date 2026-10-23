@@ -25,6 +25,7 @@ import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -108,10 +109,10 @@ function ShopSettings() {
 
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
+  const tabs = <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />;
   return (
     // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs (owner 2026-10-21).
-    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add} globalSearch={tab !== "browse"}>
-      <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />
+    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add} tabs={tabs} globalSearch={tab !== "browse"}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (
@@ -125,6 +126,8 @@ export default function ShopsHomeView() {
 
 function ShopsBrowse() {
   const [group, setGroup] = useState<string | null>(null);
+  // A tester inside Shops before it opens to everyone: no shops yet "Opens soon" (owner, 2026-10-22).
+  const preview = useSectionPreview("shops");
   // No location prompt on landing: miles come from what the app already knows.
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
@@ -195,7 +198,7 @@ function ShopsBrowse() {
         <EmptyState
           variant="bare"
           icon={Store}
-          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : "No shops here yet."}
+          title={words && (shops.data ?? []).length > 0 ? "No shops match that search." : preview ? "Opens soon" : "No shops here yet."}
           body={words && (shops.data ?? []).length > 0 ? "Try another word." : "Be the first: open a free shop for your business or the things you make."}
         />
       ) : (

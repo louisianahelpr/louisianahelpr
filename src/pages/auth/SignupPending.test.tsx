@@ -1,5 +1,6 @@
+// @mutate src/pages/auth/SignupPending.tsx |           {resent && ( |           {false && (
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, waitFor, fireEvent, act } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent, act, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import SignupPending from "./SignupPending";
 
@@ -115,6 +116,32 @@ describe("SignupPending", () => {
       expect(button).toBeDisabled();
     });
 
+    // Member report 2026-10-23 (iPhone Safari, signed out, an address ALREADY
+    // confirmed): "I press resend but nothing happens". Supabase answers that
+    // resend with success and sends nothing, and the only sign was the button
+    // label. Every success now shows a visible result with the way out.
+    it("every success shows a visible result naming the address, with a Log in button for an already-confirmed address", async () => {
+      renderWithRouterState(EMAIL);
+      fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
+
+      const status = await screen.findByRole("status");
+      expect(status.textContent).toContain(EMAIL);
+      expect(status.textContent).toMatch(/new link is on its way/i);
+      expect(status.textContent).toMatch(/already confirmed your email\? log in to continue/i);
+      const login = within(status).getByRole("link", { name: /^log in$/i });
+      expect(login).toHaveAttribute("href", "/login");
+    });
+
+    it("the result never says which case it is (signed out, it must not reveal whether an address has an account)", async () => {
+      resendMock.mockResolvedValue({ error: { message: "User not found" } });
+      renderWithRouterState(EMAIL);
+      fireEvent.click(await screen.findByRole("button", { name: /resend/i }));
+
+      const status = await screen.findByRole("status");
+      expect(status.textContent).toMatch(/^If /);
+      expect(status.textContent).not.toMatch(/no account|not found|is confirmed|isn't confirmed/i);
+    });
+
     it("surfaces a rate limit — 'slow down' is actionable", async () => {
       resendMock.mockResolvedValue({ error: { message: "Email rate limit exceeded" } });
       renderWithRouterState(EMAIL);
@@ -123,6 +150,8 @@ describe("SignupPending", () => {
       await waitFor(() => expect(toastError).toHaveBeenCalled());
       // Still offering the retry it just told them to make.
       expect(screen.getByRole("button", { name: /^resend$/i })).toBeInTheDocument();
+      // A failure is the toast, never the "on its way" result.
+      expect(screen.queryByRole("status")).not.toBeInTheDocument();
     });
 
     it("hides every other failure — this screen is not an account oracle", async () => {

@@ -6,6 +6,7 @@
  *   node src/test/pglite/paypalTips.pglite.mjs
  *   PLANT=no_link_guard node src/test/pglite/paypalTips.pglite.mjs   # RED: a tip payout can pay out of the wrong money / to the wrong member
  *   PLANT=no_amount_check node src/test/pglite/paypalTips.pglite.mjs # RED: a short capture reads as a paid tip
+ *   PLANT=no_admin_check node src/test/pglite/paypalTips.pglite.mjs  # RED: a member can re-queue a tip payout
  *
  * Proves: both migrations apply 3x; a tip opens as one pending tips row + one
  * provider_payments row (subject 'tip'), and a retry of the same attempt finds
@@ -22,7 +23,9 @@
  * a job payout cannot pay out of a tip's payment, exactly one of claim row /
  * tip is set; phase 1's refund rule holds for tips (no refund once the tip
  * payout is queued; refunds before it are capped at the payment); members and
- * the anon key cannot call either function.
+ * the anon key cannot call either function; only an admin re-queues a held
+ * tip payout (or an owed tip with no row) to the Helpr's CURRENT email, after
+ * confirming no Send Money went out, never past a hold, audited.
  *
  * Prod-shaped: tips columns, constraints and notify_helper_on_tip are prod's
  * (information_schema / pg_get_functiondef, 2026-10-23); service_role has
@@ -37,6 +40,7 @@ const readMig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`,
 const base = readMig("20261023223419_paypal_provider_foundation.sql");
 let mig = readMig("20261023232059_paypal_tips.sql");
 if (process.env.PLANT === "no_link_guard") mig = mig.replace(/CREATE TRIGGER trg_provider_payouts_tip_link_guard[\s\S]*?;/, "");
+if (process.env.PLANT === "no_admin_check") mig = mig.replace("IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN", "IF false THEN");
 if (process.env.PLANT === "no_amount_check") mig = mig.replace(/IF p_amount_cents IS DISTINCT FROM v_pay\.amount_cents THEN/, "IF false THEN");
 
 const db = new PGlite();
@@ -91,6 +95,18 @@ AS $function$
 $function$;
 REVOKE ALL ON FUNCTION public.feature_enabled_for_user(text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.feature_enabled_for_user(text, uuid) TO service_role;
+-- prod definitions of feature_enabled_for / require_feature (20261012031120)
+CREATE OR REPLACE FUNCTION public.feature_enabled_for(p_key text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $function$ SELECT public.feature_enabled_for_user(p_key, (SELECT auth.uid())); $function$;
+CREATE OR REPLACE FUNCTION public.require_feature(p_key text) RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT public.feature_enabled_for(p_key) THEN
+    RAISE EXCEPTION 'feature_disabled' USING ERRCODE = '42501', DETAIL = format('feature %s is not available to this account', p_key);
+  END IF;
+END;
+$function$;
+create table public.admin_audit_log(id uuid primary key default gen_random_uuid(), admin_id uuid not null, action text not null, target_type text, target_id text, details jsonb, created_at timestamptz not null default now());
 create table public.payout_transfers(id uuid primary key default gen_random_uuid());
 create table public.jobs(id uuid primary key, title text);
 create table public.profiles(user_id uuid primary key, full_name text);
@@ -156,6 +172,8 @@ const expectOk = async (label, sql) => {
   try { await db.query(sql); r[label] = "ok"; } catch (e) { r[label] = `bad: ${e.message}`; }
 };
 const one = async (sql) => (await db.query(sql)).rows[0];
+/** Like one(), but a thrown error becomes a named failure instead of crashing the run (a PLANT can make a call throw). */
+const oneJ = async (label, sql) => { try { return (await one(sql)).j; } catch (e) { r[label] = `bad: threw ${e.message}`; return {}; } };
 const check = (label, cond, got) => { r[label] = cond ? "ok" : `bad: ${JSON.stringify(got)}`; };
 
 for (let i = 1; i <= 3; i++) { await db.exec(base); await db.exec(mig); }
@@ -214,7 +232,7 @@ check("a late 'declined' never undoes settled money", late.payment_status === "c
 await expectErr("the tip payout's destination is frozen (phase 1)", `update provider_payouts set destination_value='thief@example.com' where tip_id='${o1.tip_id}'`, /payout_destination_is_frozen/);
 await expectErr("the tip payout's link is frozen", `update provider_payouts set tip_id=null where tip_id='${o1.tip_id}'`, /payout_link_is_frozen|claim_or_tip/);
 await expectErr("no refund once the tip payout is queued (phase 1)", `insert into provider_refunds(provider_payment_id, idempotency_key, amount_cents) values ('${o1.provider_payment_id}', 'rf-t1', 100)`, /refund_after_payout_queued/);
-await expectErr("a second payout for the same tip is refused", `insert into provider_payouts(provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents) values ('${o1.provider_payment_id}', '${o1.tip_id}', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'helpr@example.com', 68)`, /one_per_tip|duplicate key/);
+await expectErr("a second live payout for the same tip is refused", `insert into provider_payouts(provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents) values ('${o1.provider_payment_id}', '${o1.tip_id}', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'helpr@example.com', 68)`, /one_live_per_tip|duplicate key/);
 
 // --- a short capture never reads as paid
 const K2 = "lh:tip:job1:checkout:amt1087:a2";
@@ -260,6 +278,40 @@ await expectErr("a tip payout cannot go to another member", `insert into provide
 await expectErr("a job payout cannot pay out of a tip's payment", `insert into provider_payouts(provider_payment_id, payout_transfer_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents) values ('${o6.provider_payment_id}', 'c0000000-0000-4000-8000-000000000009', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'helpr@example.com', 400)`, /tip_payment_needs_tip_payout/);
 await expectOk("a job payout out of the job's payment still works (claim row)", `insert into provider_payouts(provider_payment_id, payout_transfer_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents) values ('${jobPayId}', 'c0000000-0000-4000-8000-000000000009', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'helpr@example.com', 8000)`);
 
+// --- admin re-queue of a held tip payout (o5: held Helpr) and of an owed tip with no row (o6)
+const requeue = (tip, confirm) => `select public.admin_requeue_paypal_tip_payout('${tip}', ${confirm}) j`;
+await db.exec("reset role");
+for (const [label, who] of [["an ordinary member", U.ordinary], ["the Helpr", U.heldHelpr]]) {
+  await db.exec(`set role authenticated; set request.jwt.claim.sub = '${who}'`);
+  await expectErr(`re-queue: ${label} is refused`, requeue(o5.tip_id, true), /admin_only|feature_disabled/);
+  await db.exec("reset role");
+}
+await db.exec(`set role authenticated; set request.jwt.claim.sub = '${U.admin}'`);
+await expectErr("re-queue: refused while the Helpr is still on hold", requeue(o5.tip_id, true), /payout_held/);
+await db.exec("reset role; delete from payout_holds where helper_id='" + U.heldHelpr + "'");
+await db.exec(`set role authenticated; set request.jwt.claim.sub = '${U.admin}'`);
+await expectErr("re-queue: the admin must confirm no Send Money went out", requeue(o5.tip_id, false), /confirm_no_send_money/);
+const rq = await oneJ("re-queue o5 ran", requeue(o5.tip_id, true));
+check("re-queue: the held row is canceled and a pending one queued", rq.outcome === "requeued" && rq.previous_payout_id && rq.payout_id !== rq.previous_payout_id, rq);
+await expectErr("re-queue: a pending (not held) tip payout is not re-queued", requeue(o5.tip_id, true), /tip_payout_not_held/);
+await expectErr("re-queue: no payable email -> refused (tip 6's Helpr removed theirs)", requeue(o6.tip_id, true), /no_payable_paypal_account/);
+await expectErr("re-queue: a declined tip is never paid out", requeue(o3.tip_id, true), /tip_not_captured/);
+await db.exec("reset role");
+await db.exec(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr}', 'paypal', 'sandbox', 'helpr-new@example.com', true)`);
+await db.exec(`set role authenticated; set request.jwt.claim.sub = '${U.admin}'`);
+const rq6 = await oneJ("re-queue o6 ran", requeue(o6.tip_id, false));
+check("re-queue: an owed tip with no payout row is queued once the Helpr has an email", rq6.outcome === "requeued" && rq6.previous_payout_id === null, rq6);
+await db.exec("reset role");
+try {
+const held5 = await one(`select (select status from provider_payouts where id='${rq.previous_payout_id}') old, (select status from provider_payouts where id='${rq.payout_id}') new, (select count(*)::int from admin_audit_log where action='paypal_tip_payout_requeued') audits`);
+check("re-queue: old canceled, new pending, both audited", held5.old === "canceled" && held5.new === "pending" && held5.audits === 2, held5);
+const p6 = await one(`select destination_value d, amount_cents::int a from provider_payouts where id='${rq6.payout_id}'`);
+check("re-queue: to the CURRENT email, exactly the tip", p6.d === "helpr-new@example.com" && p6.a === 400, p6);
+} catch (e) { r["re-queue rows read back"] = `bad: threw ${e.message}`; }
+await db.exec("set role service_role");
+const again5 = await oneJ("o5 replay ran", record(o5.provider_payment_id, "ORD5", "completed", "CAP5", 568));
+check("a late webhook replay after a re-queue changes nothing", again5.payout_id === rq.payout_id && again5.payout_reason === "already_queued", again5);
+
 // --- the switch going off later never strands money already taken
 await db.exec("reset role; update feature_switches set audience='off' where key='paypal_payments'; set role service_role");
 await expectErr("off later: no new tip", open(U.helpr2, 500, 568, "lh:tip:job1:checkout:amt568:a7", "ORD7"), /feature_disabled/);
@@ -274,9 +326,13 @@ for (const role of ["authenticated", "anon"]) {
   await expectErr(`${role} cannot record a capture`, record(o1.provider_payment_id, "ORD1", "completed", "CAP1", 568), /permission denied/);
   await db.exec("reset role");
 }
-for (const fn of ["paypal_open_tip", "paypal_record_tip_capture", "provider_payouts_tip_link_guard"]) {
+for (const fn of ["paypal_open_tip", "paypal_record_tip_capture", "provider_payouts_tip_link_guard", "admin_requeue_paypal_tip_payout"]) {
   const acl = (await db.query(`select proacl::text a from pg_proc where proname='${fn}'`)).rows[0].a;
-  r[`${fn} acl`] = !/(^|[{,])=X|anon=X|authenticated=X/.test(acl ?? "") ? `ok (${acl})` : `bad (${acl})`;
+  // The admin RPC is callable by signed-in members (it refuses non-admins itself); the rest by the server only.
+  const ok = fn.startsWith("admin_")
+    ? !/(^|[{,])=X|anon=X/.test(acl ?? "") && /authenticated=X/.test(acl ?? "")
+    : !/(^|[{,])=X|anon=X|authenticated=X/.test(acl ?? "");
+  r[`${fn} acl`] = ok ? `ok (${acl})` : `bad (${acl})`;
 }
 
 const bad = Object.entries(r).filter(([, v]) => !String(v).startsWith("ok"));

@@ -25,7 +25,7 @@
 -- metadata source 'chargeback-repay' (measured 2026-10-23, pg_indexes) would collide with the
 -- job's own claim, and payout_transfers rows are read as JOB payouts by earnings and
 -- reconciliation. So a tip payout names its tip instead: tip_id UNIQUE is the tip's
--- one-live-payout lock, and exactly one of payout_transfer_id / tip_id is set (lead approved
+-- one-live-payout lock (provider_payouts_one_live_per_tip), and exactly one of payout_transfer_id / tip_id is set (lead approved
 -- 2026-10-23). Phase 1's guards still apply per payment: a tip payout is never more than the tip's
 -- own payment, and the tip is never refunded once its payout is queued.
 --
@@ -41,8 +41,11 @@
 ALTER TABLE public.provider_payouts
   ADD COLUMN IF NOT EXISTS tip_id uuid REFERENCES public.tips(id) ON DELETE RESTRICT;
 ALTER TABLE public.provider_payouts ALTER COLUMN payout_transfer_id DROP NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS provider_payouts_one_per_tip
-  ON public.provider_payouts (tip_id) WHERE tip_id IS NOT NULL;
+-- One LIVE payout per tip: a held one is canceled and re-queued to the Helpr's current email by an
+-- admin (admin_requeue_paypal_tip_payout below), never edited (the destination is frozen).
+CREATE UNIQUE INDEX IF NOT EXISTS provider_payouts_one_live_per_tip
+  ON public.provider_payouts (tip_id)
+  WHERE tip_id IS NOT NULL AND status NOT IN ('failed', 'returned', 'canceled');
 
 DO $do$
 BEGIN
@@ -259,8 +262,10 @@ BEGIN
   UPDATE public.tips SET payment_status = 'paid', failure_reason = NULL
    WHERE id = v_tip.id AND payment_status <> 'paid';
 
-  -- The tip's one payout (tip_id UNIQUE). Already queued: report it, change nothing.
-  SELECT id, status INTO v_payout_id, v_payout_status FROM public.provider_payouts WHERE tip_id = v_tip.id;
+  -- The tip's payout. Any row at all (live, or canceled by an admin re-queue, or returned): report
+  -- the newest, change nothing. Only the first settle queues; after that only an admin re-queues.
+  SELECT id, status INTO v_payout_id, v_payout_status FROM public.provider_payouts
+   WHERE tip_id = v_tip.id ORDER BY created_at DESC LIMIT 1;
   IF FOUND THEN
     RETURN jsonb_build_object('tip_id', v_tip.id, 'payment_status', v_pay.status, 'tip_status', 'paid',
                               'payout_id', v_payout_id, 'payout_status', v_payout_status, 'payout_reason', 'already_queued');
@@ -306,5 +311,82 @@ $fn$;
 REVOKE ALL ON FUNCTION public.paypal_record_tip_capture(uuid, text, text, text, bigint) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_record_tip_capture(uuid, text, text, text, bigint) TO service_role;
 
+-- Step 3 (admin): a tip payout that is 'held' (the Helpr changed their PayPal email, phase 2; or a
+-- payout hold at capture time), or a captured tip with no payout row yet (no payable email then), is
+-- queued to the Helpr's CURRENT payable PayPal email, after the admin has checked. The held row is
+-- canceled, never edited (its destination is frozen). Mirrors phase 4's
+-- admin_requeue_held_paypal_payout for job pay, which leaves tip rows to this lane.
+CREATE OR REPLACE FUNCTION public.admin_requeue_paypal_tip_payout(p_tip_id uuid, p_confirm_no_send_money boolean DEFAULT false)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+DECLARE
+  v_admin uuid := auth.uid();
+  v_tip public.tips%ROWTYPE;
+  v_pay public.provider_payments%ROWTYPE;
+  v_old public.provider_payouts%ROWTYPE;
+  v_dest text;
+  v_new uuid;
+BEGIN
+  PERFORM public.require_feature('paypal_payments');
+  IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO v_tip FROM public.tips WHERE id = p_tip_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'tip_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  SELECT * INTO v_pay FROM public.provider_payments
+   WHERE subject_kind = 'tip' AND subject_id = p_tip_id AND status = 'captured' FOR UPDATE;
+  IF NOT FOUND OR v_tip.payment_status <> 'paid' THEN
+    RAISE EXCEPTION 'tip_not_captured' USING ERRCODE = '42501',
+      DETAIL = 'Only a tip PayPal captured (and not refunded or disputed) is paid out.';
+  END IF;
+  SELECT * INTO v_old FROM public.provider_payouts
+   WHERE tip_id = p_tip_id AND status NOT IN ('failed', 'returned', 'canceled') FOR UPDATE;
+  IF FOUND THEN
+    IF v_old.status <> 'held' THEN
+      RAISE EXCEPTION 'tip_payout_not_held' USING ERRCODE = '42501', DETAIL = format('This tip''s payout is %s.', v_old.status);
+    END IF;
+    -- A Send Money already made to the OLD destination would be paid again to the new one.
+    IF NOT COALESCE(p_confirm_no_send_money, false) THEN
+      RAISE EXCEPTION 'confirm_no_send_money' USING ERRCODE = '22023',
+        DETAIL = 'Confirm that no PayPal Send Money went out for this tip. If one did, mark it paid instead.';
+    END IF;
+  END IF;
+  SELECT a.paypal_email INTO v_dest FROM public.payee_accounts a
+   WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env
+     AND a.payable AND a.paypal_email IS NOT NULL;
+  IF v_dest IS NULL THEN
+    RAISE EXCEPTION 'no_payable_paypal_account' USING ERRCODE = '42501',
+      DETAIL = 'The Helpr has no PayPal email that can be paid yet.';
+  END IF;
+  IF EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = v_tip.helper_id)
+     OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q
+                 WHERE q.review_state = 'open' AND q.user_id IN (v_tip.helper_id, v_tip.tipper_id)) THEN
+    RAISE EXCEPTION 'payout_held' USING ERRCODE = '23514', DETAIL = 'This Helpr''s payouts are on hold. Release the hold first.';
+  END IF;
+
+  IF v_old.id IS NOT NULL THEN
+    UPDATE public.provider_payouts SET status = 'canceled', updated_at = now() WHERE id = v_old.id;
+  END IF;
+  INSERT INTO public.provider_payouts
+    (provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents, status)
+  VALUES (v_pay.id, v_tip.id, v_tip.helper_id, 'manual_paypal', v_pay.env, 'paypal_email', v_dest,
+          round(v_tip.amount * 100)::bigint, 'pending')
+  RETURNING id INTO v_new;
+
+  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+  VALUES (v_admin, 'paypal_tip_payout_requeued', 'tips', v_tip.id::text,
+          jsonb_build_object('new_payout_id', v_new, 'previous_payout_id', v_old.id, 'job_id', v_tip.job_id,
+                             'helper_id', v_tip.helper_id, 'amount_cents', round(v_tip.amount * 100)::bigint));
+  RETURN jsonb_build_object('outcome', 'requeued', 'payout_id', v_new, 'previous_payout_id', v_old.id);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.admin_requeue_paypal_tip_payout(uuid, boolean) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_requeue_paypal_tip_payout(uuid, boolean) TO authenticated;
+
 COMMENT ON COLUMN public.provider_payouts.tip_id IS
-  'Set on a tip payout (instead of payout_transfer_id): the tip it pays. UNIQUE: one payout per tip. Pays out of that tip''s own provider_payments row, to its Helpr, exactly the tip (the poster paid the processing cost on top).';
+  'Set on a tip payout (instead of payout_transfer_id): the tip it pays. One LIVE payout per tip (provider_payouts_one_live_per_tip). Pays out of that tip''s own provider_payments row, to its Helpr, exactly the tip (the poster paid the processing cost on top).';

@@ -7644,7 +7644,7 @@ export type Database = {
           marked_paid_at: string | null
           marked_paid_by: string | null
           payee_user_id: string | null
-          payout_transfer_id: string
+          payout_transfer_id: string | null
           provider: string
           provider_batch_id: string | null
           provider_item_id: string | null
@@ -7652,6 +7652,7 @@ export type Database = {
           return_ref: string | null
           sender_batch_id: string | null
           status: string
+          tip_id: string | null
           updated_at: string
         }
         Insert: {
@@ -7666,7 +7667,7 @@ export type Database = {
           marked_paid_at?: string | null
           marked_paid_by?: string | null
           payee_user_id?: string | null
-          payout_transfer_id: string
+          payout_transfer_id?: string | null
           provider: string
           provider_batch_id?: string | null
           provider_item_id?: string | null
@@ -7674,6 +7675,7 @@ export type Database = {
           return_ref?: string | null
           sender_batch_id?: string | null
           status?: string
+          tip_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -7688,7 +7690,7 @@ export type Database = {
           marked_paid_at?: string | null
           marked_paid_by?: string | null
           payee_user_id?: string | null
-          payout_transfer_id?: string
+          payout_transfer_id?: string | null
           provider?: string
           provider_batch_id?: string | null
           provider_item_id?: string | null
@@ -7696,6 +7698,7 @@ export type Database = {
           return_ref?: string | null
           sender_batch_id?: string | null
           status?: string
+          tip_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7711,6 +7714,13 @@ export type Database = {
             columns: ["provider_payment_id"]
             isOneToOne: false
             referencedRelation: "provider_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_payouts_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
             referencedColumns: ["id"]
           },
         ]

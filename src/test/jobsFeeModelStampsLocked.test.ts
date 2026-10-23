@@ -69,8 +69,11 @@ describe("jobs fee-model stamps are server-only", () => {
     const m = /ADD\s+CONSTRAINT\s+jobs_poster_fee_model_consistent\s+CHECK\s*\(([\s\S]*?)\)\s*;/i.exec(allSql);
     expect(m, "jobs_poster_fee_model_consistent exists").toBeTruthy();
     const check = m![1].replace(/\s+/g, " ");
-    // A 0c flat stamp exists ONLY with the poster stamp (helprPaysNoFee relies
-    // on it), and a poster-fee job's Helpr percent is exactly 0.
+    // A 0c flat stamp exists ONLY with the poster stamp, and a poster-fee job's
+    // Helpr percent is exactly 0. The poster-fee model was removed from the
+    // app (owner 2026-10-23) but the column and this CHECK stay in the DB
+    // (shipped builds still select the column), so a 0c Helpr stamp can never
+    // appear without it.
     expect(check).toMatch(/\(poster_fee_flat_cents IS NULL\) = \(helper_fee_flat_cents IS DISTINCT FROM 0\)/i);
     expect(check).toMatch(/poster_fee_flat_cents IS NULL OR helper_fee_percent IS NOT DISTINCT FROM 0/i);
   });

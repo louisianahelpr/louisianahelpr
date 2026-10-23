@@ -127,7 +127,6 @@ describe("Order Summary review card (owner 2026-10-01)", () => {
 // service fee, no card-cost line, and the urgent bonus is part of the price
 // with no card fee of its own (F3b, 2026-10-15; it replaced Q362's fold).
 // useJobDerived prices both at 0, as create-payment does.
-// @mutate src/components/postjob/CheckoutStep.tsx | {customerFeeAmount > 0 && ( | {(customerFeeAmount >= 0) && (
 // @mutate src/components/postjob/CheckoutStep.tsx | {isUrgent && urgentCardFeeAmount > 0 && ( | {isUrgent && urgentCardFeeAmount >= 0 && (
 describe("the poster pays the job price only (F3)", () => {
   it("an urgent post shows the bonus and no service fee or card-fee row", () => {

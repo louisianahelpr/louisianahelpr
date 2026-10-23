@@ -158,13 +158,6 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helprFlatFee.ts";`,
   );
 
-  // Jobs poster fee (owner 2026-10-18): `_shared/posterJobFee.ts` has ZERO
-  // imports, so the generated file points at the REAL module.
-  out = out.replace(
-    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/posterJobFee\.ts["'];?/g,
-    `import {$1} from "../../../supabase/functions/_shared/posterJobFee.ts";`,
-  );
-
   // Job checkout payment methods + fee-model decision (owner 2026-10-18):
   // `_shared/jobCheckout.ts` has ZERO imports, so point at the REAL module.
   out = out.replace(
@@ -396,8 +389,8 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/threeDSecure.ts";`,
   );
   // Shops tax codes (Shops M1, owner O1): `_shared/shopTaxCodes.ts` imports only
-  // `./salesTax.ts` (itself pure apart from ./posterJobFee.ts; both run as real
-  // modules), so the REAL table runs.
+  // `./salesTax.ts` (itself pure; both run as real modules), so the REAL
+  // table runs.
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/shopTaxCodes\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/shopTaxCodes.ts";`,

@@ -48,13 +48,6 @@ describe("board 181: tip pills and the payer's receipt", () => {
     }
   });
 
-  it("a poster-fee job's fee line is the service fee, not card processing", () => {
-    const r = deriveMoneyEvents(job({ poster_fee_flat_cents: 70 }), [], POSTER, "Andre", JOB, CARD).find((e) => e.kind === "receipt")!.receipt!;
-    expect(r.lines.map((l) => l.label)).toContain("Service fee");
-    expect(r.lines.map((l) => l.label)).not.toContain("Card processing");
-    const legacy = deriveMoneyEvents(job({ platform_fee_percent: 12 }), [], POSTER, "Andre", JOB, CARD).find((e) => e.kind === "receipt")!.receipt!;
-    expect(legacy.lines.map((l) => l.label)).toContain("Service fee");
-  });
 
   it("no receipt when the charge may not be the price: a gift, a dispute, no card charge, or an unknown gift read", () => {
     const none = (over: Partial<JobCharge>, ctx = CARD) => !deriveMoneyEvents(job(over), [], POSTER, "Andre", JOB, ctx).some((e) => e.kind === "receipt");

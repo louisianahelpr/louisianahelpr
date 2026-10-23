@@ -11,15 +11,14 @@
  * (escrow, gift shortfall, tip, recurring visit):
  *   - sets `payment_method_types`, never offering Affirm, and the escrow and
  *     gift-shortfall sessions take it from the shared allowlist
- *     (JOB_CHECKOUT_PAYMENT_METHOD_TYPES: card, Link, ACH) or, for Pay in 4,
- *     from payInFourMethodsFor (Klarna + Afterpay only);
+ *     (JOB_CHECKOUT_PAYMENT_METHOD_TYPES: card, Link, ACH). Pay in 4 (Klarna
+ *     + Afterpay) was removed with the poster-fee model (owner 2026-10-23);
  *   - sets `adaptive_pricing: { enabled: false }`.
  * The inventory is read from the source, exact: a new Checkout Session in
  * create-payment without both fails here.
  *
  * @mutate supabase/functions/create-payment/index.ts |           payment_method_types: [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES],\n          adaptive_pricing: { enabled: false }, |           adaptive_pricing: { enabled: false },
  * @mutate supabase/functions/create-payment/index.ts |         payment_method_types: TIP_PAYMENT_METHOD_TYPES,\n        adaptive_pricing: { enabled: false }, |         payment_method_types: TIP_PAYMENT_METHOD_TYPES,
- * @mutate supabase/functions/_shared/jobCheckout.ts | export const PAY_IN_FOUR_PAYMENT_METHOD_TYPES: readonly JobCheckoutMethod[] = ["klarna", "afterpay_clearpay"]; | export const PAY_IN_FOUR_PAYMENT_METHOD_TYPES: readonly string[] = ["klarna", "afterpay_clearpay", "affirm"];
  * @mutate supabase/functions/_shared/jobCheckout.ts | export const JOB_CHECKOUT_PAYMENT_METHOD_TYPES: readonly JobCheckoutMethod[] = ["card", "link", "us_bank_account"]; | export const JOB_CHECKOUT_PAYMENT_METHOD_TYPES: readonly string[] = ["card", "link", "us_bank_account", "klarna"];
  */
 import { describe, it, expect } from "vitest";
@@ -27,7 +26,6 @@ import { readFileSync } from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 import {
   JOB_CHECKOUT_PAYMENT_METHOD_TYPES,
-  PAY_IN_FOUR_PAYMENT_METHOD_TYPES,
 } from "../../supabase/functions/_shared/jobCheckout";
 
 const FILE = "supabase/functions/create-payment/index.ts";
@@ -74,13 +72,12 @@ describe("job Checkout Sessions name their payment methods and present dollars o
     }
   });
 
-  it("the escrow and gift-shortfall sessions take the shared allowlist (Pay in 4 only via payInFourMethods)", () => {
-    const shared = calls.filter((c) => /payment_method_types:\s*(?:payInFour \? payInFourMethods : )?\[\.\.\.JOB_CHECKOUT_PAYMENT_METHOD_TYPES\]/.test(c));
+  it("the escrow and gift-shortfall sessions take the shared allowlist", () => {
+    const shared = calls.filter((c) => /payment_method_types:\s*\[\.\.\.JOB_CHECKOUT_PAYMENT_METHOD_TYPES\]/.test(c));
     expect(shared.length).toBe(2);
   });
 
-  it("the allowlists are card + Link + ACH, and Klarna + Afterpay for Pay in 4, never Affirm", () => {
+  it("the allowlist is card + Link + ACH: no Pay in 4, never Affirm", () => {
     expect([...JOB_CHECKOUT_PAYMENT_METHOD_TYPES]).toEqual(["card", "link", "us_bank_account"]);
-    expect([...PAY_IN_FOUR_PAYMENT_METHOD_TYPES]).toEqual(["klarna", "afterpay_clearpay"]);
   });
 });

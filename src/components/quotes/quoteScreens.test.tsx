@@ -12,7 +12,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
- * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!posterFee.settled \|\| posterFee.on \|\| !feeKnown) return null; |   if (posterFee.on) return null;
+ * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!feeKnown) return null; |   if (false) return null;
  * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
  * @mutate src/components/quotes/QuotesSideBySide.tsx |   if (live.length < 2) return null; |   return null;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError) { |   if (reqs.isError \|\| quotes.isError) {
@@ -49,7 +49,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   feature: true,
-  posterFee: true,
   feeKnown: true,
   /** false: the switch's answer has not arrived (the gate's loading frame). */
   switchSettled: true,
@@ -61,11 +60,11 @@ const state = {
   job: null as null | { payment_status: string; status?: string } | Error,
 };
 
-// 'jobs_poster_fee' is off on prod (2026-10-21): a booked quote is on the flat Helpr fee model.
+// A booked quote is on the flat Helpr fee model, the only one (owner 2026-10-23).
 vi.mock("@/hooks/useFeature", async (orig) => ({
   ...(await orig<typeof import("@/hooks/useFeature")>()),
-  useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : state.feature),
-  useFeatureStatus: (key: string) => ({ on: key === "jobs_poster_fee" ? state.posterFee : state.feature, settled: state.switchSettled, lastAnswer: null }),
+  useFeature: () => state.feature,
+  useFeatureStatus: () => ({ on: state.feature, settled: state.switchSettled, lastAnswer: null }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeKnown: () => state.feeKnown }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -167,7 +166,6 @@ beforeEach(() => {
   state.invokes = [];
   state.opened = [];
   state.job = null;
-  state.posterFee = true;
   state.feeKnown = true;
 });
 
@@ -213,7 +211,6 @@ describe("the 'quotes' switch", () => {
 describe("board 43: the take-home waits for its reads (lh-money-escrow review #4)", () => {
   it("hides the figure while the setup fee is not known yet", async () => {
     state.rpc.list_open_quote_requests = [OPEN];
-    state.posterFee = false;
     state.feeKnown = false;
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
     fireEvent.change(await screen.findByLabelText("Your price in whole dollars"), { target: { value: "120" } });
@@ -297,7 +294,7 @@ describe("the poster's quotes on a request", () => {
     expect(state.calls.find((c) => c.fn === "book_accepted_quote")?.args).toEqual({ p_request_id: "r1" });
     expect(state.invokes).toEqual([
       // Q1862: a cancelled quote checkout comes back to this request page.
-      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false, feeQuote: { model: "poster", payInFour: false, totalShown: false }, payInFour: false, returnPath: "/quotes/request/r1" } },
+      { name: "create-payment", body: { action: "escrow", jobId: "job-77", native: false, saveCardForFuture: false, feeQuote: { model: "flat", payInFour: false, totalShown: false }, returnPath: "/quotes/request/r1" } },
     ]);
   });
 });
@@ -314,7 +311,7 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.com/c/pay/cs_test"]));
     expect(state.invokes).toEqual([
       // Q1862: a cancelled quote checkout comes back to this request page.
-      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false, feeQuote: { model: "poster", payInFour: false, totalShown: false }, payInFour: false, returnPath: "/quotes/request/r1" } },
+      { name: "create-payment", body: { action: "escrow", jobId: "job-88", native: false, saveCardForFuture: false, feeQuote: { model: "flat", payInFour: false, totalShown: false }, returnPath: "/quotes/request/r1" } },
     ]);
     // A closed request refuses book_accepted_quote (no_agreed_quote): paying never goes through it.
     expect(state.calls.some((c) => c.fn === "book_accepted_quote")).toBe(false);
@@ -407,7 +404,6 @@ describe("the quoter's send-a-quote form", () => {
   it("sends price, note, when and photos only once all three are filled", async () => {
     state.rpc.list_open_quote_requests = [OPEN];
     state.rpc.submit_job_quote = "q9";
-    state.posterFee = false; // the flat model, as on prod today
     at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
     expect(await screen.findByText("Mow and edge a corner lot")).toBeInTheDocument();
     const send = screen.getByRole("button", { name: /Send quote/ });

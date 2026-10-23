@@ -64,35 +64,6 @@ describe("refund amount: never absorb a fee (owner, 2026-10-14)", () => {
     expect(edgeCrew({ customerFeeCents: 1200, actualFeeCents: 900, proRataCents: 600 })).toBe(300);
   });
 
-  // Jobs poster fee (Q2082 slice 4; owner-approved wording 2026-10-18: "the
-  // poster gets back what they paid (tax included) less the card-processing
-  // cost"): a poster's own cancel of a poster-fee job keeps only Stripe's real
-  // fee, never the whole 5% + 70c; every other job keeps the fee it was paid.
-  // @mutate supabase/functions/_shared/refundAmount.ts |   if (stamp != null && stamp !== "") return 0; |   if (stamp != null && stamp !== "") return cents(Math.round(Number(job?.customer_fee_amount ?? 0) * 100));
-  it("a poster's cancel of a poster-fee job keeps the card cost only: $105.70 paid, $102.33 back", () => {
-    const P = { customer_fee_amount: 5.7, poster_fee_flat_cents: 70, platform_fee_percent: 5 };
-    expect(edgePosterCancelKept(P)).toBe(0);
-    expect(edgePosterCancelKept({ ...P, poster_fee_flat_cents: "70" })).toBe(0);
-    const captured = 10_570;
-    const r = edgeRefund({ capturedCents: captured, actualFeeCents: stripeProcessingCostCents(captured), customerFeeCents: edgePosterCancelKept(P) });
-    expect(r.feeKeptCents).toBe(337); // 2.9% of $105.70 + $0.30
-    expect(r.refundCents).toBe(10_233);
-    // Pay in 4: Stripe's real (higher) fee is what is kept, not the 9% + 70c.
-    const payInFour = { ...P, platform_fee_percent: 9, customer_fee_amount: 9.7 };
-    expect(edgeRefund({ capturedCents: 10_970, actualFeeCents: 687, customerFeeCents: edgePosterCancelKept(payInFour) }).refundCents).toBe(10_970 - 687);
-    // A legacy or flat job keeps the fee its poster paid, as before.
-    const legacy = { customer_fee_amount: 12, platform_fee_percent: 12 };
-    const flat = { customer_fee_amount: 0, platform_fee_percent: 0, poster_fee_flat_cents: null };
-    expect(edgePosterCancelKept(legacy)).toBe(1200);
-    expect(edgePosterCancelKept(flat)).toBe(0);
-    expect(edgePosterCancelKept({ customer_fee_amount: "1.06" })).toBe(106);
-    expect(edgePosterCancelKept(null)).toBe(0);
-    // The cancel dialog and its toast (CancellationDialog flatModel,
-    // cancelRefundToast) say "refunded less card fee" on a job isFlatFeeJob
-    // calls flat; a poster-fee job (Helpr stamp 0) reads that copy, which is
-    // now what the server does.
-    expect(isFlatFeeJob({ helper_fee_flat_cents: 0 })).toBe(true);
-  });
 
   it("UI mirror and edge module agree on a grid", () => {
     let n = 0;

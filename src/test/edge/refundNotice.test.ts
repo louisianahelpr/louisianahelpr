@@ -104,19 +104,6 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     stripeMock.refunds.list.mockResolvedValue({ data: [OWNER_REFUND] });
   });
 
-  // Q2082 slice 4 (lh-money-escrow review #4): a cancelled poster-fee job
-  // keeps only the card processing fee, so a fallback notice never says a
-  // service fee was kept.
-  // @mutate supabase/functions/_shared/refundNotice.ts |     const serviceCents = posterCancelKeptFeeCents(job); |     const serviceCents = cents(job.customer_fee_amount);
-  it("a cancelled poster-fee job ($105.70, $102.33 back): the fallback names the card processing fee, not a service fee", async () => {
-    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70 }] };
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_233 }] });
-    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 10_233 });
-    const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $3.37: the card processing fee, which can't be returned.");
-    expect(msg).not.toMatch(/service fee/);
-  });
-
   // Q2082 (f), slice-4 delta re-review #1: a cancelled crew's kept remainder
   // includes the block fees void-cancelled-payments withheld; the fallback
   // names them on their own and calls only the rest the card processing fee.
@@ -124,9 +111,9 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // @mutate supabase/functions/_shared/refundNotice.ts |       job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0 |       false
   // The read only sees a crew when the job query SELECTS is_group_job (the mock
   // returns seeded columns whatever is selected, so the base row lacks it).
-  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount"; | poster_fee_flat_cents, helper_id, sales_tax_amount";
-  it("a cancelled poster-fee CREW: the fallback names the block fees, and only the rest as the card processing fee (Q2082 f)", async () => {
-    const crewJob = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true };
+  // @mutate supabase/functions/_shared/refundNotice.ts | onboarding_fee_amount, is_group_job, helper_id, sales_tax_amount"; | onboarding_fee_amount, helper_id, sales_tax_amount";
+  it("a cancelled CREW: the fallback names the block fees, and only the rest as the card processing fee (Q2082 f)", async () => {
+    const crewJob = { ...OWNER_JOB, customer_fee_amount: "0.00", is_group_job: true };
     const { is_group_job: _g, ...noFlag } = crewJob;
     void _g;
     scenario.reads.jobs = { rows: [noFlag], selectOverrides: [{ includes: "is_group_job", result: { rows: [crewJob] } }] };
@@ -134,18 +121,18 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
       { id: "bf1", job_id: OWNER_JOB.id, fee_cents: 500, status: "paid" },
       { id: "bf2", job_id: OWNER_JOB.id, fee_cents: 300, status: "void" },
     ] };
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733 }] });
-    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 9_733 });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_210 }] });
+    await deliverChargeRefunded({ amount: 10_000, amount_refunded: 9_210 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $8.37: $5 for the crew spots you closed close to the start and $3.37 card processing fee, which can't be returned.");
+    expect(msg).toContain("We kept $7.90: $5 for the crew spots you closed close to the start and $2.90 card processing fee, which can't be returned.");
     expect(msg).not.toMatch(/service fee/);
   });
 
   it("a crew's block-fee read that fails sends no mislabelled notice and pages ops to tell the poster by hand (Q2082 f)", async () => {
-    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true }] };
+    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "0.00", is_group_job: true }] };
     scenario.reads.crew_block_fees = { rows: null, error: { code: "57014", message: "statement timeout" } } as never;
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733 }] });
-    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 9_733 });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_210 }] });
+    await deliverChargeRefunded({ amount: 10_000, amount_refunded: 9_210 });
     expect(posterNotices()).toHaveLength(0);
     expect(JSON.stringify(slackAlerts)).toContain("not fully told");
   });
@@ -155,26 +142,26 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // only for a crew with no lead (the crews the sweep withholds block fees on).
   // @mutate supabase/functions/_shared/refundNotice.ts |     const keptWordsFromJob = !input.keptReason && !md.kept_reason && !md.dispute_id && |     const keptWordsFromJob = true && !md.dispute_id &&
   it("a refund that carries its own kept reason never reads block fees, so a failing read cannot fail it (Q2082 f)", async () => {
-    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true }] };
+    scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "0.00", is_group_job: true }] };
     scenario.reads.crew_block_fees = { rows: null, error: { code: "57014", message: "statement timeout" } } as never;
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733, metadata: { kept_reason: "the card processing fee" } }] });
-    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 9_733 });
-    expect(String(posterNotices()[0]?.message)).toContain("We kept $8.37: the card processing fee.");
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_210, metadata: { kept_reason: "the card processing fee" } }] });
+    await deliverChargeRefunded({ amount: 10_000, amount_refunded: 9_210 });
+    expect(String(posterNotices()[0]?.message)).toContain("We kept $7.90: the card processing fee.");
   });
 
   // @mutate supabase/functions/_shared/refundNotice.ts |       job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0 |       job.is_group_job === true && Number(input.keptCents ?? 0) > 0
   // The lead is only seen when the job query SELECTS helper_id (the base row lacks it).
-  // @mutate supabase/functions/_shared/refundNotice.ts | poster_fee_flat_cents, is_group_job, helper_id, sales_tax_amount"; | poster_fee_flat_cents, is_group_job, sales_tax_amount";
+  // @mutate supabase/functions/_shared/refundNotice.ts | onboarding_fee_amount, is_group_job, helper_id, sales_tax_amount"; | onboarding_fee_amount, is_group_job, sales_tax_amount";
   it("a crew with a lead (old-style, the sweep withholds no block fees) is not read (Q2082 f)", async () => {
-    const leadCrew = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true, helper_id: "lead-1" };
+    const leadCrew = { ...OWNER_JOB, customer_fee_amount: "0.00", is_group_job: true, helper_id: "lead-1" };
     const { helper_id: _h, ...noLead } = leadCrew;
     void _h;
     scenario.reads.jobs = { rows: [noLead], selectOverrides: [{ includes: "helper_id", result: { rows: [leadCrew] } }] };
     scenario.reads.crew_block_fees = { rows: [{ id: "bf1", job_id: OWNER_JOB.id, fee_cents: 500, status: "paid" }] };
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_233 }] });
-    await deliverChargeRefunded({ amount: 10_570, amount_refunded: 10_233 });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_710 }] });
+    await deliverChargeRefunded({ amount: 10_000, amount_refunded: 9_710 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $3.37: the card processing fee, which can't be returned.");
+    expect(msg).toContain("We kept $2.90: the card processing fee, which can't be returned.");
   });
 
   it("the owner's case: a $100.00 partial refund of $112.00 sends ONE notice and ONE email with the card, reference, timing and the kept fee", async () => {
@@ -387,13 +374,13 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // whatever is selected).
   // @mutate supabase/functions/_shared/refundNotice.ts | helper_id, sales_tax_amount"; | helper_id";
   // @mutate supabase/functions/_shared/refundNotice.ts |     const andTax = taxed ? " and the sales tax on what we kept" : ""; |     const andTax = "";
-  it("a cancelled TAXED poster-fee job: the fallback names the sales tax kept with the card processing fee (Q2082 a)", async () => {
-    const taxedJob = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, sales_tax_amount: "11.05" };
+  it("a cancelled TAXED job: the fallback names the sales tax kept with the card processing fee (Q2082 a)", async () => {
+    const taxedJob = { ...OWNER_JOB, customer_fee_amount: "0.00", sales_tax_amount: "10.45" };
     const { sales_tax_amount: _t, ...noTax } = taxedJob;
     void _t;
     scenario.reads.jobs = { rows: [noTax], selectOverrides: [{ includes: "sales_tax_amount", result: { rows: [taxedJob] } }] };
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 11_267 }] });
-    await deliverChargeRefunded({ amount: 11_675, amount_refunded: 11_267 });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_637 }] });
+    await deliverChargeRefunded({ amount: 11_045, amount_refunded: 10_637 });
     const msg = String(posterNotices()[0]?.message);
     expect(msg).toContain("We kept $4.08: the card processing fee and the sales tax on what we kept, which can't be returned.");
   });

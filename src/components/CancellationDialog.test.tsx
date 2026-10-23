@@ -143,4 +143,4 @@ describe("CancellationDialog fee breakdown", () => {
 // share stops being a floor — the exact shape that told a poster $54.00 on a
 // job where void-cancelled-payments transferred $55.20.
 // @mutate src/lib/cancellationHelperShare.ts |   const platformCut = Math.round(fee * MAX_HELPER_FEE_PERCENT) / 100; |   const platformCut = Math.round(fee * 8) / 100;
-// @mutate src/components/CancellationDialog.tsx |   const { platformCut, helperPayout, feeLabel, noFee } = cancellationHelperShare(payeeFee, feeStamp); |   const { platformCut, helperPayout, feeLabel, noFee } = cancellationHelperShare(payeeFee, null);
+// @mutate src/components/CancellationDialog.tsx |   const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, feeStamp); |   const { platformCut, helperPayout, feeLabel } = cancellationHelperShare(payeeFee, null);

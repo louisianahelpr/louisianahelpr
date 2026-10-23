@@ -386,7 +386,7 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
   // fee its customer_fee_amount IS that card cost ($3.55 on $112), so the
   // unfilled share gets the budget and tax back but none of the fee, and the
   // poster is told why.
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: crewStripeFeeCents, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
   it("owner 2026-10-14: 2 of 3 filled on a no-service-fee job: 3333 + 0 of the $3.55 card fee + 299 tax = 3632c", async () => {
     seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
     setJob({ customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 });
@@ -399,30 +399,6 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(shortPages()).toBe(0);
   });
 
-  // Jobs poster fee (Q2082 slice 4, lh-money-escrow review #1): the 5% + 70c
-  // is a percent of the budget, not the card cost, so the unfilled share of it
-  // comes back whole and only that share of Stripe's fee is kept, once. The
-  // stamp is served only to a read that names poster_fee_flat_cents.
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeHoldsCardFee = !isPosterFeeJob(job); |       const feeHoldsCardFee = true;
-  // @mutate supabase/functions/process-scheduled-payouts/index.ts | customer_fee_amount, poster_fee_flat_cents, is_seed") | customer_fee_amount, is_seed")
-  it("a poster-fee crew, 1 of 3 filled: 6666 + floor(570*6666/10000)=379 of the fee - floor(337*6666/10000)=224 card fee = 6821c", async () => {
-    seedCrew([["m1", 0, 3334]], { paidAll: true });
-    const rows = (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows;
-    const P = { ...rows[0], customer_fee_amount: 5.7, poster_fee_flat_cents: 70, platform_fee_percent: 5, helper_fee_flat_cents: 0, helper_fee_percent: 0, platform_fee_amount: 0, sales_tax_amount: 0 };
-    const { poster_fee_flat_cents: _drop, ...unstampedP } = P;
-    void _drop;
-    scenario.reads.jobs = { rows: [unstampedP], selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [P] } }] };
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({
-      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 10_570, amount_received: 10_570,
-    });
-    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 6821, currency: "usd" });
-    await run();
-    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
-      { payment_intent: "pi_1", amount: 6821 },
-      { idempotencyKey: "crew-unfilled-refund-job-crew" },
-    );
-    expect(shortPages()).toBe(0);
-  });
 
   // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (priorCents < owedThen) return shortRefund(row.stripe_refund_id, priorCents, false, owedThen); | if (false) return shortRefund(row.stripe_refund_id, priorCents, false, owedThen);
   it("MQ31(C) re-run: a prior refund at the full 4031c is not sent again and does not page; one at the old base-only 3333c pages as short", async () => {

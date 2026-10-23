@@ -180,12 +180,6 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.getByText(new RegExp(`Helpr's fee \\(${pct}%\\) comes out of your payout`))).toBeTruthy();
   });
 
-  it("a poster-fee job: the Helpr keeps the whole price", () => {
-    state.job = row({ helper_fee_flat_cents: 0, helper_fee_percent: 0, poster_fee_flat_cents: 520 });
-    renderPage();
-    expect(screen.getByText("$90")).toBeTruthy();
-    expect(screen.getByText(/You keep the whole price\./)).toBeTruthy();
-  });
 });
 
 describe("job page, poster side (boards 15, 168)", () => {

@@ -103,25 +103,3 @@ describe("ApplyEarningsBreakdown — flat-model jobs (Q1839)", () => {
   });
 });
 
-// lh-money-escrow review #4 (jobs poster fee, owner 2026-10-18): a poster-fee
-// job's Helpr pays nothing, so there is no fee line and no "0% + $0.00" label.
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |     noFee ? "no fee" : `− Helpr fee (${feeLabel})`, |     `− Helpr fee (${feeLabel})`,
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |           {!noFee && ( |           {true && (
-describe("ApplyEarningsBreakdown — poster-fee jobs show no Helpr fee (review #4)", () => {
-  it("a poster-fee job: take-home is the whole budget, no fee row, the summary says no fee", () => {
-    profileMock.mockReturnValue({ onboarding_fee_paid: true });
-    feeCentsMock.mockReturnValue(200);
-    renderBreakdown(job({ poster_fee_flat_cents: 70, helper_fee_flat_cents: 0, helper_fee_percent: 0 } as Partial<EnrichedJob>));
-    expect(screen.getAllByText("$100").length).toBeGreaterThan(0);
-    expect(screen.queryByText(/platform fee/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/0% \+ \$0\.00/)).not.toBeInTheDocument();
-    expect(screen.getByText(/no fee/)).toBeInTheDocument();
-  });
-
-  it("an F3 flat job still shows its 5% + $0.70 fee row", () => {
-    profileMock.mockReturnValue({ onboarding_fee_paid: true });
-    feeCentsMock.mockReturnValue(200);
-    renderBreakdown(job({ helper_fee_flat_cents: 70, helper_fee_percent: 5 } as Partial<EnrichedJob>));
-    expect(screen.getByText(/5% \+ \$0\.70 platform fee/)).toBeInTheDocument();
-  });
-});

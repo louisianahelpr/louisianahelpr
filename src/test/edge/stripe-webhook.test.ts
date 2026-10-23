@@ -292,41 +292,26 @@ describe("stripe-webhook edge function", () => {
       expect(Number(p.sales_tax_rate)).toBeLessThanOrEqual(1);
     });
 
-    // Q1996 (lh-money-escrow review of slice 3a, #5): on a poster-fee job in a
-    // taxable category the "Service fee" line is taxed with the labor, so the
-    // rate is tax over budget + fee. Dividing by the budget alone stored
-    // 0.1105 for a 10.45% rate.
-    // @mutate supabase/functions/_shared/salesTax.ts |   return laborCents + (Number.isFinite(feeCents) && feeCents > 0 ? feeCents : 0); |   return laborCents;
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         const taxableBaseCents = jobEscrowTaxableBaseCents(taxedRow); |         const taxableBaseCents = Math.round(Number(jobRow?.budget ?? 0) * 100);
-    // The edge mock ignores select lists, so the fee columns come ONLY through
-    // a selectOverride keyed on them: a select that drops them reads the plain
-    // row (no fee) and the rate goes wrong (review of the pre-flip items, #1).
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | .select("budget, category, customer_fee_amount, poster_fee_flat_cents") | .select("budget, category")
-    // The charge's own fee (PaymentIntent metadata) wins over a re-priced row (#2).
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           ? { ...jobRow, customer_fee_amount: Number(piFeeRaw) / 100 } |           ? jobRow
+    // The rate is the tax over the base Stripe taxed: the labor (the budget).
+    // Every fee line ships as txcd_00000000, and a job checkout carries no
+    // service fee since the poster-fee model was removed (owner 2026-10-23).
+    // @mutate supabase/functions/_shared/salesTax.ts |   return Number.isFinite(budgetCents) && budgetCents > 0 ? budgetCents : 0; |   return 0;
     it.each([
       // [label, job, taxCents, rate]
-      ["a taxed poster-fee job divides by budget + the taxed fee", { budget: 100, category: "assembly", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1105, 0.1045],
-      ["an exempt poster-fee job's fee is not in the base", { budget: 100, category: "yard_work", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 }, 1045, 0.1045],
-      ["a flat-model job divides by the budget", { budget: 100, category: "assembly", customer_fee_amount: 0, poster_fee_flat_cents: null }, 1045, 0.1045],
-      // The row was re-priced to Pay in 4 ($9.70) after this $5.70 charge opened.
-      ["the charge's own fee wins over a re-priced row", { budget: 100, category: "assembly", customer_fee_amount: 9.7, poster_fee_flat_cents: 70, piFee: "570" }, 1105, 0.1045],
-    ] as Array<[string, Record<string, unknown>, number, number]>)("%s", async (_label, jobIn, taxCents, rate) => {
+      ["a taxed job divides by the budget", { budget: 100, category: "assembly" }, 1045, 0.1045],
+      ["a $250 taxed job divides by its own budget", { budget: 250, category: "assembly" }, 2613, 0.10452],
+    ] as Array<[string, Record<string, unknown>, number, number]>)("%s", async (_label, job, taxCents, rate) => {
       const fn = await loadConfigured();
-      const { piFee, ...job } = jobIn;
-      const { budget, category, customer_fee_amount, poster_fee_flat_cents, ...rest } = job;
-      // Plain rows carry the budget only; the fee columns arrive only for a select naming them.
+      const { budget, category } = job;
       scenario.reads.jobs = {
-        rows: [{ id: "job-tax-p", is_seed: false, budget, ...rest }],
-        selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [{ id: "job-tax-p", is_seed: false, budget, category, customer_fee_amount, poster_fee_flat_cents }] } }],
+        rows: [{ id: "job-tax-p", is_seed: false, budget, category }],
       };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_tax_p",
         amount_details: { tax: { total_tax_amount: taxCents } },
-        ...(piFee ? { metadata: { service_fee_cents: piFee } } : {}),
       });
       stripeMock.webhooks.constructEventAsync.mockResolvedValue({
-        id: `evt_tax_rate_p_${String(category)}_${String(poster_fee_flat_cents)}_${String(piFee ?? "")}`,
+        id: `evt_tax_rate_p_${String(budget)}`,
         type: "checkout.session.completed",
         data: {
           object: {
@@ -344,7 +329,6 @@ describe("stripe-webhook edge function", () => {
       const res = await fn.fetch(webhookRequest(fn, "{}"));
       expect(res.status).toBe(200);
       const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && (x.payload as Record<string, unknown>).payment_status === "escrow");
-      // 1105 = 10.45% of the $100 labor (1045) + of the $5.70 fee (60): 1105 / 10570.
       expect(Number((w?.payload as Record<string, unknown>).sales_tax_rate)).toBeCloseTo(rate, 4);
     });
 

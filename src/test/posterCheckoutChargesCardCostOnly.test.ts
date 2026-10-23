@@ -118,11 +118,11 @@ describe("every poster checkout charges the card cost only (owner, 2026-10-11)",
   it("each poster-job checkout prices no poster fee (F3) or, for a pre-F3 series only, the card cost; and reads no tier", () => {
     const cp = blankComments(readFileSync(resolve(FUNCTIONS, "create-payment/index.ts"), "utf8"));
     expect(cp, "create-payment prices a poster card-cost fee again (F3: the poster pays the job price)").not.toMatch(/\bposterCardCostFeeCents\s*\(/);
-    // The flat model (switch off) charges no poster fee; the poster-fee model
-    // (owner 2026-10-18, behind jobs_poster_fee) charges exactly the shared
-    // rule's fee (src/test/edge/create-payment-poster-fee.test.ts).
-    expect(cp).toMatch(/const customerFeeAmount = isPosterFee \? posterFeeCents \/ 100 : 0;/);
-    expect(cp).toMatch(/const posterFeeCents = serviceFeeCentsFor\(feeModel, jobPriceCents, payInFour\);/);
+    // The flat model charges no poster fee; it is the only model since the
+    // poster-fee model was removed (owner 2026-10-23,
+    // src/test/edge/create-payment-flat-only.test.ts).
+    expect(cp).toMatch(/const customerFeeAmount = 0;/);
+    expect(cp).not.toMatch(/\bposterFeeCents\b|\bserviceFeeCentsFor\s*\(/);
     const crv = blankComments(readFileSync(resolve(FUNCTIONS, "charge-recurring-visits/index.ts"), "utf8"));
     // Exactly one fee site, and it is behind the series' fee-model stamp.
     expect([...crv.matchAll(/\bposterCardCostFeeCents\s*\(/g)].length).toBe(1);

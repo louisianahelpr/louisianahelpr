@@ -80,9 +80,6 @@ describe("the cancel copy of a restamped legacy job keeps naming its service fee
   it("a flat-model job funded at the job price only: refunded less the card fee", () => {
     expect(cancelRefundIsLessCardFee({ helper_fee_flat_cents: 70, helper_fee_percent: 5 }, { poster_fee_flat_cents: null, customer_fee_amount: 0 })).toBe(true);
   });
-  it("a poster-fee job: refunded less the card fee", () => {
-    expect(cancelRefundIsLessCardFee({ helper_fee_flat_cents: 0, helper_fee_percent: 0 }, { poster_fee_flat_cents: 570, customer_fee_amount: 5.7 })).toBe(true);
-  });
   it("a legacy job never restamped: the service-fee copy", () => {
     expect(cancelRefundIsLessCardFee({ helper_fee_flat_cents: null, helper_fee_percent: 12 }, { poster_fee_flat_cents: null, customer_fee_amount: 7.2 })).toBe(false);
   });

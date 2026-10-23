@@ -1045,7 +1045,7 @@ describe("create-payment edge function", () => {
       // budget + bonus and nothing for the card; the Helpr's 5% + 70c is priced
       // on the whole amount at payout. This replaced Q362 / MQ11's card fee on
       // top (folded into the Service fee line 2026-10-09).
-      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0.45;
+      // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 0.45;
       // @mutate supabase/functions/create-payment/index.ts |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount); |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), 0, escrowHelprCount);
       it("F3b: an urgent post charges budget + bonus only, and stores no card fee", async () => {
         for (const [budget, urgent] of [[100, 15], [20, 250]] as const) {
@@ -1146,9 +1146,8 @@ describe("create-payment edge function", () => {
     // src/test/posterCheckoutChargesCardCostOnly.test.ts inventories every
     // Stripe charge site in supabase/functions and requires this describe (and
     // its recurring-visit twin) to exist for the poster-job ones.
-    // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = isPosterFee ? posterFeePercent : POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = isPosterFee ? posterFeePercent : 12;
-    // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; |       const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 1;
-    // @mutate supabase/functions/create-payment/index.ts |         helper_fee_flat_cents: isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS,\n        // Every model column |         // Every model column
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeePercent = POSTER_SERVICE_FEE_PERCENT; |       const customerFeePercent = 12;
+    // @mutate supabase/functions/create-payment/index.ts |       const customerFeeAmount = 0; |       const customerFeeAmount = 1;
     // Q1867 + Q1862: a job booked from an agreed quote is charged only the
     // accepted quote's price, and a quote checkout may come back to its request
     // page; any other returnPath is refused before Stripe is called.
@@ -1215,18 +1214,17 @@ describe("create-payment edge function", () => {
       });
 
       // lh-money-escrow review of the salvage rebase (2026-10-18, should-fix 1):
-      // under the poster-fee model the charge is budget + urgent bonus + fee,
-      // but the agreed price is the BUDGET (book_accepted_quote books it from
-      // price_cents). An urgent quote job with the switch on is still charged.
+      // the charge is budget + urgent bonus, but the agreed price is the BUDGET
+      // (book_accepted_quote books it from price_cents). An urgent quote job is
+      // still charged.
       // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget); | jobId, jobPriceCents / 100);
-      it("an urgent quote job on the poster-fee model compares the budget, not the charged total", async () => {
+      it("an urgent quote job compares the budget, not the charged total", async () => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
         scenario.reads.jobs = {
           rows: [{ id: "job-q", customer_id: POSTER.id, budget: 250, category: "cleaning", title: "Quote job", status: "open",
             payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
         };
-        scenario.rpc.feature_enabled_for_user = true;
-        const feeQuote = buildFeeQuote({ switchOn: true, jobPriceCents: 26_000, payInFour: false });
+        const feeQuote = buildFeeQuote({ jobPriceCents: 26_000 });
         const { res, body } = await escrow({ feeQuote });
         expect(body.error).toBeUndefined();
         expect(res.status).toBe(200);
@@ -1427,7 +1425,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts | pinned = job.category == null ? pinned.is("category", null) : pinned.eq("category", job.category); |
       // @mutate supabase/functions/create-payment/index.ts |         pinned = job.is_urgent == null ? pinned.is("is_urgent", null) : pinned.eq("is_urgent", job.is_urgent); |
       // @mutate supabase/functions/create-payment/index.ts | const guarded = () => pinnedToReadPrice(supabaseAdmin | const guarded = () => (supabaseAdmin
-      // @mutate supabase/functions/create-payment/index.ts | const modelStamp = oneOffWhenPayInFour(pinnedToReadPrice(supabaseAdmin | const modelStamp = oneOffWhenPayInFour((supabaseAdmin
+      // @mutate supabase/functions/create-payment/index.ts | const modelStamp = pinnedToReadPrice(supabaseAdmin | const modelStamp = (supabaseAdmin
       it("the fee-model stamp and the session stamp are both pinned to the price the request read (Q1846)", async () => {
         const CASES: Array<Record<string, unknown>> = [
           { budget: 100 },
@@ -1462,7 +1460,7 @@ describe("create-payment edge function", () => {
 
       // Review of 91927c016 #1: the retry after a refused stamp is at a new
       // price and must not reuse the old session's idempotency key.
-      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`,
+      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-mflat${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-mflat${checkoutKeySuffix}`,
       it("the checkout's idempotency key carries the price, so a new price never replays an old session (Q1846)", async () => {
         const keys: string[] = [];
         for (const budget of [100, 150]) {

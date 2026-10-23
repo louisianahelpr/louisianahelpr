@@ -6,7 +6,7 @@
  * "Buy now" over "$40.60 total with fee") names the CHECKOUT total, computed by
  * buyNowTotalCents, which is checkoutAmounts (src/lib/declutter/money.ts, the
  * rule declutter_start_checkout freezes, pinned to the server by
- * money.test.ts and posterJobFee.parity.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
+ * money.test.ts), in exact cents (formatPrice, the cart's own formatter: "$42.70", "$28").
  *
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(priceCents))} total with fee | {formatPrice(priceCents)} total with fee
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;

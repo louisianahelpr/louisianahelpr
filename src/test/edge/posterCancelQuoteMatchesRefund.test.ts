@@ -116,15 +116,6 @@ describe("cancel_quote == the sweep's refund (posterCancelSplit, called from bot
     expect(stripeMock.refunds.create.mock.calls[0][0].amount).toBe(q.back_to_you_cents);
   });
 
-  it("a free cancel (48 h out) on a poster-fee job: only Stripe's real fee is kept", async () => {
-    const job = baseJob({ date_needed: "2024-10-23", start_time: "10:00:00", customer_fee_amount: 5.7, poster_fee_flat_cents: 70 });
-    const pi = captured(10570, 337);
-    const q = await quote(job, pi);
-    expect(q).toMatchObject({ fee_cents: 0, charge_state: "captured" });
-    expect(q.back_to_you_cents).toBe(10570 - 337);
-    await sweep(job, pi, 0);
-    expect(stripeMock.refunds.create.mock.calls[0]?.[0]?.amount).toBe(q.back_to_you_cents);
-  });
 
   it("a late cancel on an uncaptured hold: back to you is the part of the hold the sweep does not capture", async () => {
     const job = baseJob();

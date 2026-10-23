@@ -231,71 +231,7 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
     expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
   });
 
-  // Q2082 (b), lh-money-escrow review of slice 4 #3: a poster's cancel of a
-  // poster-fee job keeps Stripe's real card fee only, never the 5% + 70c, so
-  // the ceiling must not allow the margin. The base read lacks the stamp; only
-  // a read that SELECTS poster_fee_flat_cents sees it.
-  // @mutate supabase/functions/money-reconciliation/index.ts | posterCancelKeptFeeCents(job as { customer_fee_amount?: number \| string \| null; poster_fee_flat_cents?: number \| string \| null }), | Math.round(money(job.customer_fee_amount) * 100),
-  // @mutate supabase/functions/money-reconciliation/index.ts | helper_fee_flat_cents, poster_fee_flat_cents, is_group_job | helper_fee_flat_cents, is_group_job
-  it("a cancelled poster-fee job may keep Stripe's card fee only, never the 5% + 70c (Q2082 b)", async () => {
-    // $40 job + $2.70 poster fee = 4270 captured; Stripe's real fee 154c.
-    const stampless = cancelledJob({ budget: 40, customer_fee_amount: 2.7, payment_status: "refunded" });
-    const job = { ...stampless, poster_fee_flat_cents: 70, helper_fee_percent: 0, helper_fee_flat_cents: 0 };
-    const seedPosterFee = (ledger: number) => {
-      seed(stampless, ledger);
-      scenario.reads.jobs = { rows: [stampless], selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [job] } }] };
-    };
-    // Refunded all but the card fee: clean.
-    let fn = await load();
-    seedPosterFee(4270 - 154);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ captured: 4270, refunded: 4270 - 154, fee: 154 }));
-    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
 
-    // Kept the whole $2.70 (the margin too): an under-refund.
-    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
-    fn = await load();
-    seedPosterFee(4270 - 270);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ captured: 4270, refunded: 4270 - 270, fee: 154 }));
-    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
-
-    // A legacy job (no stamp) still keeps its whole card-cost service fee.
-    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
-    fn = await load();
-    seed(stampless, 4270 - 270);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(refundedPi({ captured: 4270, refunded: 4270 - 270, fee: 154 }));
-    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
-  });
-
-  // Q2082 (a), owner 2026-10-18: a refund also keeps the sales tax on what it
-  // keeps (refundToPayerCents taxKeptCents), so the ceiling allows that and
-  // not a cent more.
-  // @mutate supabase/functions/money-reconciliation/index.ts |             + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents }); |             + 0;
-  it("a cancelled TAXED poster-fee job may keep the card fee plus the tax on it, and not a cent more (Q2082 a)", async () => {
-    // $100 job + $5.70 fee + $11.05 tax = 11675 captured; Stripe's real fee 369c;
-    // the tax on it ceil(369 x 1105 / 10570) = 39c.
-    const stampless = cancelledJob({ budget: 100, customer_fee_amount: 5.7, payment_status: "refunded" });
-    const job = { ...stampless, poster_fee_flat_cents: 70, helper_fee_percent: 0, helper_fee_flat_cents: 0 };
-    const seedTaxed = (ledger: number) => {
-      seed(stampless, ledger);
-      scenario.reads.jobs = { rows: [stampless], selectOverrides: [{ includes: "poster_fee_flat_cents", result: { rows: [job] } }] };
-    };
-    // basil PIs carry no tax figure: the Checkout Session's total_details does.
-    const taxedPi = (refunded: number) => {
-      stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: 1105 } }] });
-      return refundedPi({ captured: 11675, refunded, fee: 369 });
-    };
-    let fn = await load();
-    seedTaxed(11675 - 369 - 39);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taxedPi(11675 - 369 - 39));
-    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toBeUndefined();
-
-    // Two cents more kept than the fee and its tax: an under-refund.
-    resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
-    fn = await load();
-    seedTaxed(11675 - 369 - 41);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue(taxedPi(11675 - 369 - 41));
-    expect(finding((await run(fn)).b, "stripe_charge_not_refunded_on_cancelled_job")).toMatchObject({ count: 1 });
-  });
 
   it("does not grade a job whose refund an executed dispute split decided", async () => {
     // Prod job e7e09075 (2026-09-23): dispute decided {poster:1,helper:0},

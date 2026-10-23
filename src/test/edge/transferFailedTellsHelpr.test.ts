@@ -135,6 +135,38 @@ describe("a payout transfer that fails or is canceled tells the Helpr", () => {
       expect(page?.severity).toBe("critical");
     });
 
+    // Q2356: the share row is marked failed and remembers the transfer, so the hourly run pays it again.
+    // @mutate supabase/functions/stripe-webhook/handlers/transferFailed.ts |       ? await noteFailedFeeTransfer(transfer, "share", shareId, { supabase, logStep }, failureReason) |       ? null
+    it(`${type}: Q2356 a crew share with a real share id is recorded failed on its row, never touches payout_transfers`, async () => {
+      const fn = await load();
+      scenario.reads.notifications = { rows: [] };
+      const SHARE = "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbbbbbb";
+      scenario.rpc.note_failed_fee_transfer = SHARE;
+      await deliver(fn, `evt_${type}_share_q2356`, type, {
+        id: "tr_share_q", amount: 900, destination: "acct_helper", failure_message: "closed",
+        metadata: { type: "cancellation_fee", job_id: "job-crew", helper_id: HELPR, share_id: SHARE },
+      });
+      const call = (scenario.rpcCalls ?? []).find((c) => c.name === "note_failed_fee_transfer");
+      expect(call?.args).toMatchObject({ p_kind: "share", p_row: SHARE, p_transfer: "tr_share_q" });
+      expect((scenario.writes as W[]).some((w) => w.table === "payout_transfers")).toBe(false);
+      const page = slackAlerts.find((a) => /Crew cancellation-fee share/.test(String((a as { title?: string }).title))) as { message?: string } | undefined;
+      expect(String(page?.message)).toMatch(/sends it again/);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/transferFailed.ts |       await noteFailedFeeTransfer(transfer, "fee", rowId, { supabase, logStep }, failureReason); |       void 0;
+    it(`${type}: Q2356 a single fee's failed transfer is remembered on its ledger row`, async () => {
+      const fn = await load();
+      scenario.reads.notifications = { rows: [] };
+      scenario.writeSelectRows.cancellation_fee_transfers = [{ id: "cft-9" }];
+      scenario.rpc.note_failed_fee_transfer = "cft-9";
+      await deliver(fn, `evt_${type}_fee_q2356`, type, {
+        id: "tr_fee_q", amount: 1200, destination: "acct_helper", failure_message: "closed",
+        metadata: { type: "cancellation_fee", job_id: "job-x", helper_id: HELPR, fee_transfer_id: "cft-9" },
+      });
+      const call = (scenario.rpcCalls ?? []).find((c) => c.name === "note_failed_fee_transfer");
+      expect(call?.args).toMatchObject({ p_kind: "fee", p_row: "cft-9", p_transfer: "tr_fee_q" });
+    });
+
     it(`${type}: a single Helpr's job with a CLOSED dispute goes back to payout_pending but is not promised a retry (the cron skips it)`, async () => {
       const fn = await load();
       scenario.writeSelectRows.payout_transfers = [{ job_id: "job-res", helper_id: HELPR, amount_cents: 4000 }];

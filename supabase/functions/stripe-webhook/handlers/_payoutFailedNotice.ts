@@ -151,14 +151,16 @@ export async function tellFeePayeeFailed(
 
 /**
  * A crew cancellation-fee SHARE transfer (metadata.share_id) that failed or was
- * canceled: no ledger row moves for it (it is neither a payout_transfers row
- * nor the single-Helpr fee ledger), so nothing retries it. The share's Helpr
- * is told "we're looking into it" and ops is paged critical to pay it by hand
+ * canceled. Since Q2356 the webhook marks its crew_cancellation_fee_shares row
+ * failed first (`recorded`), and the hourly run's share retry sends it again;
+ * when no row matched, nothing retries it and ops must pay it by hand. The
+ * share's Helpr is told "we're looking into it" and ops is paged critical
  * (lh-silent-failure review, should-fix 3). Returns whether it was a share.
  */
 export async function tellCrewShareFailed(
   supabase: Db,
   transfer: { id: string; amount: number; metadata?: Record<string, string> | null },
+  { recorded = false }: { recorded?: boolean } = {},
 ): Promise<boolean> {
   const md = transfer.metadata ?? {};
   if (md.type !== "cancellation_fee" || !md.share_id) return false;
@@ -172,7 +174,7 @@ export async function tellCrewShareFailed(
     kind: "payout_failed",
     severity: "critical",
     title: "Crew cancellation-fee share transfer did not settle",
-    message: `Stripe transfer ${transfer.id} (crew share ${md.share_id}) did not settle and no ledger row records it, so nothing retries it. ${known ? "The Helpr was told we are looking into it." : "No Helpr is named on the transfer, so nobody was told."} Pay it by hand.`,
+    message: `Stripe transfer ${transfer.id} (crew share ${md.share_id}) did not settle. ${recorded ? "The share is marked failed and remembers this transfer, so the hourly void-cancelled-payments run sends it again (Q2356); if it fails again, pay it by hand." : "No crew_cancellation_fee_shares row matched it, so nothing retries it. Pay it by hand."} ${known ? "The Helpr was told we are looking into it." : "No Helpr is named on the transfer, so nobody was told."}`,
     fields: { "Transfer ID": transfer.id, "Share": String(md.share_id), "Job": jobId ?? "—", "Helpr": known ? helpr : "—" },
   });
   return true;

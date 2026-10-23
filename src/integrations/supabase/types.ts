@@ -6585,6 +6585,45 @@ export type Database = {
           },
         ]
       }
+      payee_accounts: {
+        Row: {
+          created_at: string
+          env: string
+          payable: boolean
+          paypal_email: string | null
+          paypal_payer_id: string | null
+          provider: string
+          updated_at: string
+          user_id: string
+          venmo_handle: string | null
+          verified: boolean
+        }
+        Insert: {
+          created_at?: string
+          env: string
+          payable?: boolean
+          paypal_email?: string | null
+          paypal_payer_id?: string | null
+          provider: string
+          updated_at?: string
+          user_id: string
+          venmo_handle?: string | null
+          verified?: boolean
+        }
+        Update: {
+          created_at?: string
+          env?: string
+          payable?: boolean
+          paypal_email?: string | null
+          paypal_payer_id?: string | null
+          provider?: string
+          updated_at?: string
+          user_id?: string
+          venmo_handle?: string | null
+          verified?: boolean
+        }
+        Relationships: []
+      }
       payment_fingerprints: {
         Row: {
           fingerprint_kind: string
@@ -6985,6 +7024,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      paypal_webhook_events: {
+        Row: {
+          env: string
+          error: string | null
+          event_id: string
+          event_type: string
+          payload: Json
+          processed_at: string | null
+          received_at: string
+          resource_id: string | null
+          resource_type: string | null
+        }
+        Insert: {
+          env: string
+          error?: string | null
+          event_id: string
+          event_type: string
+          payload: Json
+          processed_at?: string | null
+          received_at?: string
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Update: {
+          env?: string
+          error?: string | null
+          event_id?: string
+          event_type?: string
+          payload?: Json
+          processed_at?: string | null
+          received_at?: string
+          resource_id?: string | null
+          resource_type?: string | null
+        }
+        Relationships: []
       }
       pet_profiles: {
         Row: {
@@ -7504,6 +7579,185 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: []
+      }
+      provider_payments: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          currency: string
+          env: string
+          id: string
+          idempotency_key: string
+          payer_id: string | null
+          provider: string
+          provider_capture_id: string | null
+          provider_order_id: string
+          status: string
+          subject_id: string
+          subject_kind: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          currency?: string
+          env: string
+          id?: string
+          idempotency_key: string
+          payer_id?: string | null
+          provider: string
+          provider_capture_id?: string | null
+          provider_order_id: string
+          status?: string
+          subject_id: string
+          subject_kind: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          currency?: string
+          env?: string
+          id?: string
+          idempotency_key?: string
+          payer_id?: string | null
+          provider?: string
+          provider_capture_id?: string | null
+          provider_order_id?: string
+          status?: string
+          subject_id?: string
+          subject_kind?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      provider_payouts: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          destination_kind: string
+          destination_value: string
+          env: string
+          external_txn_id: string | null
+          fee_cents: number | null
+          id: string
+          marked_paid_at: string | null
+          marked_paid_by: string | null
+          payee_user_id: string | null
+          payout_transfer_id: string
+          provider: string
+          provider_batch_id: string | null
+          provider_item_id: string | null
+          provider_payment_id: string
+          return_ref: string | null
+          sender_batch_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          destination_kind: string
+          destination_value: string
+          env: string
+          external_txn_id?: string | null
+          fee_cents?: number | null
+          id?: string
+          marked_paid_at?: string | null
+          marked_paid_by?: string | null
+          payee_user_id?: string | null
+          payout_transfer_id: string
+          provider: string
+          provider_batch_id?: string | null
+          provider_item_id?: string | null
+          provider_payment_id: string
+          return_ref?: string | null
+          sender_batch_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          destination_kind?: string
+          destination_value?: string
+          env?: string
+          external_txn_id?: string | null
+          fee_cents?: number | null
+          id?: string
+          marked_paid_at?: string | null
+          marked_paid_by?: string | null
+          payee_user_id?: string | null
+          payout_transfer_id?: string
+          provider?: string
+          provider_batch_id?: string | null
+          provider_item_id?: string | null
+          provider_payment_id?: string
+          return_ref?: string | null
+          sender_batch_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_payouts_payout_transfer_id_fkey"
+            columns: ["payout_transfer_id"]
+            isOneToOne: true
+            referencedRelation: "payout_transfers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_payouts_provider_payment_id_fkey"
+            columns: ["provider_payment_id"]
+            isOneToOne: false
+            referencedRelation: "provider_payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      provider_refunds: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          idempotency_key: string
+          provider_payment_id: string
+          provider_refund_id: string | null
+          reason: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          provider_payment_id: string
+          provider_refund_id?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          provider_payment_id?: string
+          provider_refund_id?: string | null
+          reason?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_refunds_provider_payment_id_fkey"
+            columns: ["provider_payment_id"]
+            isOneToOne: false
+            referencedRelation: "provider_payments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_tokens: {
         Row: {

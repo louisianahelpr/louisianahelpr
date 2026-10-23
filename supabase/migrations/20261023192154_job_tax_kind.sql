@@ -2,17 +2,22 @@
 -- via the lead: "BOTH"). A job's labor is taxed when EITHER
 --   1. its category is one of the 14 taxed today (assembly, handyman and the
 --      twelve trades; owner Q374 / Q1831, unchanged), OR
---   2. the poster says, at posting, that the job fixes an item or cleans
---      carpet, rugs, furniture or clothes: the services R.S. 47:301.3 items 5
---      and 7 tax (tax memo ~/.lh-wt/handoffs-1017/tax-research-memo.md Q4).
+--   2. the poster says, at posting, that the job fixes an item, cleans
+--      carpet, rugs, upholstery or furniture, or alters clothes: services R.S.
+--      47:301.3 items 5 and 7 tax (tax memo ~/.lh-wt/handoffs-1017/
+--      tax-research-memo.md Q4; the split by Stripe code chosen by the owner
+--      2026-10-23, option A). Laundry and pressing of clothes stay untaxed for
+--      the owner's accountant to confirm (docs/OPEN.md Q2083).
 --
 -- The answer is jobs.tax_kind:
 --   NULL               neither (or not asked: every job before this, every
 --                      job in one of the 14, a quote-booked job);
 --   'item_repair'      fixes an item (appliance, furniture, bike, electronics,
 --                      small engine, vehicle): Stripe code txcd_20080005;
---   'fabric_cleaning'  cleans carpet, rugs, upholstery, furniture or clothes
---                      (laundry, pressing, alterations): txcd_20010003.
+--   'fabric_cleaning'  cleans carpet, rugs, upholstery or furniture:
+--                      txcd_20010003 (Stripe: "cleaning of tangible personal
+--                      property, other than motor vehicles or clothing");
+--   'clothing_alterations' alters clothes: txcd_20090002.
 -- The same rule lives in supabase/functions/_shared/salesTax.ts
 -- (isJobLaborTaxable / jobLaborTaxCode) and its client mirror; the parity test
 -- holds the SQL below to it.
@@ -37,12 +42,12 @@ BEGIN
     WHERE conrelid = 'public.jobs'::regclass AND conname = 'jobs_tax_kind_valid'
   ) THEN
     ALTER TABLE public.jobs
-      ADD CONSTRAINT jobs_tax_kind_valid CHECK (tax_kind IS NULL OR tax_kind IN ('item_repair', 'fabric_cleaning'));
+      ADD CONSTRAINT jobs_tax_kind_valid CHECK (tax_kind IS NULL OR tax_kind IN ('item_repair', 'fabric_cleaning', 'clothing_alterations'));
   END IF;
 END $$;
 
 COMMENT ON COLUMN public.jobs.tax_kind IS
-  'The poster''s answer at posting: item_repair (fixes an item) or fabric_cleaning (cleans carpet, rugs, furniture or clothes); NULL = neither. Taxes the labor line even outside the 14 taxed categories (owner 2026-10-23, #3555). is_job_labor_taxable.';
+  'The poster''s answer at posting: item_repair (fixes an item), fabric_cleaning (cleans carpet, rugs, upholstery or furniture) or clothing_alterations (alters clothes); NULL = neither. Taxes the labor line even outside the 14 taxed categories (owner 2026-10-23, #3555). is_job_labor_taxable.';
 
 GRANT SELECT (tax_kind) ON public.jobs TO authenticated;
 DO $$
@@ -61,11 +66,11 @@ IMMUTABLE
 SET search_path = public
 AS $$
   SELECT COALESCE(_category::text = ANY (ARRAY['assembly', 'handyman', 'electrical', 'plumbing', 'hvac', 'roofing', 'welding', 'carpentry', 'auto_repair', 'appliance_repair', 'flooring', 'concrete_masonry', 'fencing', 'pressure_washing']), false)
-      OR COALESCE(_tax_kind = ANY (ARRAY['item_repair', 'fabric_cleaning']), false);
+      OR COALESCE(_tax_kind = ANY (ARRAY['item_repair', 'fabric_cleaning', 'clothing_alterations']), false);
 $$;
 
 COMMENT ON FUNCTION public.is_job_labor_taxable(public.job_category, text) IS
-'True exactly when a job''s labor line is charged LA sales tax: its category is in supabase/functions/_shared/salesTax.ts TAXABLE_CATEGORIES, or its tax_kind is item_repair or fabric_cleaning (owner 2026-10-23, #3555). Read by get_helper_earnings_export; enforce_funded_category_tax_class writes the same rule out.';
+'True exactly when a job''s labor line is charged LA sales tax: its category is in supabase/functions/_shared/salesTax.ts TAXABLE_CATEGORIES, or its tax_kind is item_repair, fabric_cleaning or clothing_alterations (owner 2026-10-23, #3555). Read by get_helper_earnings_export; enforce_funded_category_tax_class writes the same rule out.';
 
 REVOKE ALL ON FUNCTION public.is_job_labor_taxable(public.job_category, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.is_job_labor_taxable(public.job_category, text) TO service_role;
@@ -82,7 +87,7 @@ SET search_path TO 'public'
 AS $$
 DECLARE
   taxable CONSTANT text[] := ARRAY['assembly', 'handyman', 'electrical', 'plumbing', 'hvac', 'roofing', 'welding', 'carpentry', 'auto_repair', 'appliance_repair', 'flooring', 'concrete_masonry', 'fencing', 'pressure_washing'];
-  taxed_kinds CONSTANT text[] := ARRAY['item_repair', 'fabric_cleaning'];
+  taxed_kinds CONSTANT text[] := ARRAY['item_repair', 'fabric_cleaning', 'clothing_alterations'];
 BEGIN
   IF public.is_server_context()
      OR auth.uid() IS DISTINCT FROM OLD.customer_id THEN

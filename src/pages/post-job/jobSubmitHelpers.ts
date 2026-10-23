@@ -43,10 +43,10 @@ export interface BuildJobInsertPayloadInput {
    * (useJobSubmit). jobs.special_requirements is no longer written at all.
    */
   materialsNote?: string | null;
-  /** The poster's answer: the job fixes an item / cleans carpet, furniture or
-   *  clothes (jobs.tax_kind, owner 2026-10-23, #3555); null = neither. Taxes
-   *  the labor outside the 14 taxed categories. */
-  taxKind?: "item_repair" | "fabric_cleaning" | null;
+  /** The poster's answer: the job fixes an item / cleans carpet, rugs or
+   *  furniture / alters clothes (jobs.tax_kind, owner 2026-10-23, #3555, option
+   *  A); null = neither. Taxes the labor outside the 14 taxed categories. */
+  taxKind?: "item_repair" | "fabric_cleaning" | "clothing_alterations" | null;
   isRecurring: boolean;
   recurrenceInterval: string;
   recurrenceEndDate: string;

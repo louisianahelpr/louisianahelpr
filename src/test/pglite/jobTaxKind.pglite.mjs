@@ -2,7 +2,7 @@
 /**
  * PGlite proof for 20261023192154_job_tax_kind (owner 2026-10-23, #3555 /
  * Q2083: a job is taxed when its category is one of the 14 OR the poster says
- * it fixes an item or cleans carpet, rugs, furniture or clothes).
+ * it fixes an item, cleans carpet, rugs, upholstery or furniture, or alters clothes).
  *
  *   node src/test/pglite/jobTaxKind.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/jobTaxKind.pglite.mjs   # RED without the file
@@ -79,8 +79,8 @@ const { rows: col } = await db.query(`SELECT count(*)::int AS n FROM information
 check("jobs.tax_kind exists", col[0].n === 1);
 const badKind = await tryQ(`INSERT INTO public.jobs (category, tax_kind) VALUES ('cleaning', 'sofa')`);
 check("the CHECK refuses an unknown kind", badKind !== null && /jobs_tax_kind_valid|check/i.test(badKind), badKind ?? "accepted");
-check("the CHECK accepts both kinds and NULL",
-  (await tryQ(`INSERT INTO public.jobs (category, tax_kind) VALUES ('cleaning', 'fabric_cleaning'), ('other', 'item_repair'), ('cleaning', NULL)`)) === null);
+check("the CHECK accepts the three kinds and NULL",
+  (await tryQ(`INSERT INTO public.jobs (category, tax_kind) VALUES ('cleaning', 'fabric_cleaning'), ('other', 'item_repair'), ('other', 'clothing_alterations'), ('cleaning', NULL)`)) === null);
 
 // 2. is_job_labor_taxable: the 14 categories, or a taxed kind.
 let wrong = [];
@@ -88,10 +88,10 @@ try {
   const { rows } = await db.query(
     `SELECT c::text AS c, k, public.is_job_labor_taxable(c, k) AS t
        FROM unnest(enum_range(NULL::public.job_category)) c
-       CROSS JOIN unnest(ARRAY[NULL, 'item_repair', 'fabric_cleaning', 'other']::text[]) k`,
+       CROSS JOIN unnest(ARRAY[NULL, 'item_repair', 'fabric_cleaning', 'clothing_alterations', 'laundry']::text[]) k`,
   );
-  wrong = rows.filter((r) => r.t !== (TAXABLE.includes(r.c) || r.k === "item_repair" || r.k === "fabric_cleaning")).map((r) => `${r.c}/${r.k}=${r.t}`);
-  check("is_job_labor_taxable = a taxed category OR a taxed kind, over every enum value x kind", rows.length === 96 && wrong.length === 0, `${rows.length} rows; ${wrong.join(", ")}`);
+  wrong = rows.filter((r) => r.t !== (TAXABLE.includes(r.c) || ["item_repair", "fabric_cleaning", "clothing_alterations"].includes(r.k))).map((r) => `${r.c}/${r.k}=${r.t}`);
+  check("is_job_labor_taxable = a taxed category OR a taxed kind (laundry is not one), over every enum value x kind", rows.length === 120 && wrong.length === 0, `${rows.length} rows; ${wrong.join(", ")}`);
 } catch (e) {
   check("is_job_labor_taxable exists", false, String(e.message));
 }

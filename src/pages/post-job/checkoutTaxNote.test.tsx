@@ -63,7 +63,7 @@ describe("J3: the tax note names exactly what is taxed", () => {
     try {
       render(<CheckoutStepView form={makeForm({ category: "cleaning", categoryLabel: "Cleaning", taxKind: "fabric_cleaning", totalCharge: 100 })} />);
       const note = screen.getByText(/so tax applies to the/i);
-      expect(note.textContent).toContain("Cleaning carpet, rugs, furniture or clothes is taxable labor in Louisiana");
+      expect(note.textContent).toContain("Cleaning carpet, rugs or furniture is taxable labor in Louisiana");
       expect(note.textContent).toContain("$100 job budget");
     } finally {
       mockTax = null;

@@ -103,10 +103,9 @@ export function usePostJobForm() {
   // select other"). Submit already refuses an empty one ("Pick a category.").
   const [category, setCategory] = useState<string>("");
   /* The poster's answer that ALSO taxes the labor (owner 2026-10-23, #3555,
-     "BOTH"): does the job fix an item, or clean carpet, rugs, furniture or
-     clothes? Asked only outside the 14 taxed categories (those are taxed
+     "BOTH"): does the job fix an item, or clean carpet, rugs or furniture, or alter clothes? Asked only outside the 14 taxed categories (those are taxed
      anyway), so moving into one of them clears it. null = neither / not asked. */
-  const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | null>(null);
+  const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | "clothing_alterations" | null>(null);
   useEffect(() => {
     if (TAXABLE_CATEGORIES.has(category)) setTaxKind(null);
   }, [category]);

@@ -87,7 +87,7 @@ serve(async (req: Request) => {
     const { budget, category, zip, state, taxKind: rawTaxKind } = await req.json();
     // The poster's taxed-kind answer on Post a Job (owner 2026-10-23, #3555);
     // anything but a known kind reads as none.
-    const taxKind = rawTaxKind === "item_repair" || rawTaxKind === "fabric_cleaning" ? rawTaxKind : null;
+    const taxKind = rawTaxKind === "item_repair" || rawTaxKind === "fabric_cleaning" || rawTaxKind === "clothing_alterations" ? rawTaxKind : null;
 
     const budgetCents = Math.round(Number(budget || 0) * 100);
     if (!Number.isFinite(budgetCents) || budgetCents <= 0) {

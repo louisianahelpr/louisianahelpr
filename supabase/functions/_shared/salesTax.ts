@@ -74,11 +74,14 @@ export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
  * 20261023192154):
  *   item_repair      the job fixes an item (appliance, furniture, bike,
  *                    electronics, small engine, vehicle): R.S. 47:301.3 item 7;
- *   fabric_cleaning  it cleans carpet, rugs, upholstery, furniture or clothes
- *                    (laundry, pressing, alterations): item 5.
- * null = neither. The SQL rule is_job_labor_taxable holds the same list.
+ *   fabric_cleaning  it cleans carpet, rugs, upholstery or furniture: item 5;
+ *   clothing_alterations  it alters clothes: item 5.
+ * null = neither. Laundry and pressing of clothes are NOT asked or taxed (owner
+ * 2026-10-23, option A): Stripe has no consumer code for them, and the
+ * Louisiana treatment is for the owner's accountant to confirm (docs/OPEN.md
+ * Q2083). The SQL rule is_job_labor_taxable holds the same list.
  */
-export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning"]);
+export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning", "clothing_alterations"]);
 
 /** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
 export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {
@@ -133,14 +136,26 @@ export const FOOD_FOR_HOME_TAX_CODE = "txcd_40040000";
 export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005";
 
 /**
- * Stripe "Cleaning of Tangible Personal Property" (tax memo Q4: carpet, rug,
- * upholstery cleaning; laundry, pressing, alterations), the code on a
- * fabric_cleaning job's labor line. NOT yet measured on live Stripe Tax (the
- * account cannot calculate today); TAXABLE_LABOR_TAX_CODE was measured taxed,
- * this one is the memo's code and must be measured before it is relied on
- * (docs/OPEN.md, the #3555 item).
+ * The code on a fabric_cleaning job's labor line (carpet, rugs, upholstery,
+ * furniture). Stripe's public tax-code list (docs.stripe.com/tax/tax-codes,
+ * read 2026-10-23), verbatim: txcd_20010003 "Cleaning of Tangible Personal
+ * Property": "A charge for the cleaning of tangible personal property, other
+ * than motor vehicles or clothing." Live calculation not measured: platform
+ * account closed 2026-10-23 (docs/OPEN.md Q2083).
  */
 export const CLEANING_TPP_TAX_CODE = "txcd_20010003";
+
+/**
+ * The code on a clothing_alterations job's labor line. Stripe's public
+ * tax-code list (docs.stripe.com/tax/tax-codes, read 2026-10-23), verbatim:
+ * txcd_20090002 "Garment Alterations - separate from purchase of garment": "A
+ * charge to perform an alteration on a item of clothing by a service provider
+ * other than vendor of the article. The alteration is not linked to the
+ * clothing purchase. Alterations could include hemming of a dress, shortening
+ * of pants, adjusting the waistline of a garment, and so on." Live calculation
+ * not measured: platform account closed 2026-10-23 (docs/OPEN.md Q2083).
+ */
+export const GARMENT_ALTERATIONS_TAX_CODE = "txcd_20090002";
 
 /**
  * The Stripe tax code for a job's labor line: a taxed category keeps the
@@ -149,6 +164,7 @@ export const CLEANING_TPP_TAX_CODE = "txcd_20010003";
 export function laborTaxCode(category: string | null | undefined, taxKind?: string | null): string {
   if (TAXABLE_CATEGORIES.has(category ?? "")) return TAXABLE_LABOR_TAX_CODE;
   if (taxKind === "fabric_cleaning") return CLEANING_TPP_TAX_CODE;
+  if (taxKind === "clothing_alterations") return GARMENT_ALTERATIONS_TAX_CODE;
   if (taxKind === "item_repair") return TAXABLE_LABOR_TAX_CODE;
   return NONTAXABLE_TAX_CODE;
 }

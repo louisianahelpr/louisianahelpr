@@ -2,21 +2,23 @@ import { useRef } from "react";
 import { Label } from "@/components/ui/label";
 import { hapticLight } from "@/lib/haptics";
 
-export type JobTaxKind = "item_repair" | "fabric_cleaning";
+export type JobTaxKind = "item_repair" | "fabric_cleaning" | "clothing_alterations";
 
 /**
  * Owner 2026-10-23 (#3555, "BOTH"): keep taxing the 14 taxed categories AND
  * tax the work the tax memo says Louisiana taxes (R.S. 47:301.3 items 5 and 7):
- * fixing an item, and cleaning carpet, rugs, furniture or clothes. A category
+ * fixing an item, cleaning carpet, rugs, upholstery or furniture, and altering
+ * clothes (option A: laundry and pressing are not asked, Q2083). A category
  * cannot tell those apart (a "cleaning" job may be a house or a sofa), so the
  * poster answers here. Shown only outside the 14 taxed categories; the answer
  * is jobs.tax_kind and the checkout prices tax from it (create-payment
  * laborTaxCode, the same rule the checkout screen quotes).
  */
 const OPTIONS: Array<{ value: JobTaxKind | null; label: string; sub: string }> = [
-  { value: null, label: "Neither", sub: "House, yard, moving, errands and most other jobs." },
+  { value: null, label: "Neither", sub: "House, yard, moving, errands, laundry and most other jobs." },
   { value: "item_repair", label: "It fixes an item", sub: "An appliance, furniture, a bike, electronics, a small engine or a vehicle." },
-  { value: "fabric_cleaning", label: "It cleans carpet, rugs, furniture or clothes", sub: "Upholstery, laundry, pressing or alterations." },
+  { value: "fabric_cleaning", label: "It cleans carpet, rugs or furniture", sub: "Carpet, rug, upholstery or furniture cleaning." },
+  { value: "clothing_alterations", label: "It alters clothes", sub: "Hemming, taking in, letting out or other tailoring." },
 ];
 
 export function TaxKindQuestion({
@@ -41,7 +43,7 @@ export function TaxKindQuestion({
   return (
     <div className="space-y-2.5" data-tax-kind-question="">
       <div className="space-y-0.5">
-        <Label id="tax-kind-label">Does this job fix an item or clean fabric?</Label>
+        <Label id="tax-kind-label">Is this one of these jobs?</Label>
         <p className="text-ds-11 font-sans leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           Louisiana charges sales tax on this kind of work. Checkout shows the tax before you pay.
         </p>

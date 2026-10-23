@@ -42,7 +42,7 @@ export const TAXABLE_CATEGORIES: ReadonlySet<string> = new Set([
 
 /** Mirror of `TAXED_KINDS` in `_shared/salesTax.ts` (owner 2026-10-23, #3555): the
  *  poster's answer at posting that also taxes the labor. */
-export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning"]);
+export const TAXED_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning", "clothing_alterations"]);
 
 /** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
 export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {

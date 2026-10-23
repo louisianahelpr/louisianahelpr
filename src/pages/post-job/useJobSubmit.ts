@@ -282,7 +282,7 @@ export interface UseJobSubmitParams {
   description: string;
   category: string;
   /** jobs.tax_kind: the poster's taxed-kind answer (owner 2026-10-23, #3555). */
-  taxKind?: "item_repair" | "fabric_cleaning" | null;
+  taxKind?: "item_repair" | "fabric_cleaning" | "clothing_alterations" | null;
   /** Pet profile ids to attach after the insert (pet-care jobs). */
   selectedPetIds?: string[];
   // Logistics fields

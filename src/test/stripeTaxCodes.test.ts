@@ -47,6 +47,7 @@ import {
   effectiveSalesTaxRate,
   laborTaxCode,
   CLEANING_TPP_TAX_CODE,
+  GARMENT_ALTERATIONS_TAX_CODE,
   salesTaxCeilingCents,
   NONTAXABLE_TAX_CODE,
   TAXABLE_CATEGORIES,
@@ -212,14 +213,18 @@ describe("Stripe tax codes (ME-043)", () => {
     for (const c of TAXABLE_CATEGORIES) expect(LA_TAXED_LABOR_CODES.has(laborTaxCode(c)), c).toBe(true);
   });
 
-  // #3555 (owner 2026-10-23): a job the poster says cleans carpet, rugs,
-  // furniture or clothes takes the tax memo's "Cleaning of Tangible Personal
-  // Property" code. NOT measured on live Stripe Tax yet (the platform account
-  // cannot calculate today); pinned so a change is deliberate. Measuring it is
-  // open on docs/OPEN.md Q2083. A job that fixes an item takes the measured
-  // repair code.
-  it("the fabric-cleaning code is the memo's Cleaning of TPP code, and none measured exempt", () => {
+  // #3555 (owner 2026-10-23, option A): cleaning carpet, rugs, upholstery or
+  // furniture takes Stripe's "Cleaning of Tangible Personal Property" (which
+  // excludes clothing, per Stripe's own description); altering clothes takes
+  // "Garment Alterations - separate from purchase of garment". Read from
+  // docs.stripe.com/tax/tax-codes 2026-10-23. Live calculation not measured:
+  // platform account closed 2026-10-23 (docs/OPEN.md Q2083). A job that fixes
+  // an item takes the measured repair code.
+  it("the cleaning and alterations codes are Stripe's published ones, none measured exempt", () => {
     expect(CLEANING_TPP_TAX_CODE).toBe("txcd_20010003");
+    expect(GARMENT_ALTERATIONS_TAX_CODE).toBe("txcd_20090002");
+    expect(LA_UNTAXED_CODES_MEASURED).not.toContain(GARMENT_ALTERATIONS_TAX_CODE);
+    expect(laborTaxCode("other", "clothing_alterations")).toBe(GARMENT_ALTERATIONS_TAX_CODE);
     expect(LA_UNTAXED_CODES_MEASURED).not.toContain(CLEANING_TPP_TAX_CODE);
     expect(laborTaxCode("cleaning", "fabric_cleaning")).toBe(CLEANING_TPP_TAX_CODE);
     expect(laborTaxCode("other", "item_repair")).toBe(TAXABLE_LABOR_TAX_CODE);

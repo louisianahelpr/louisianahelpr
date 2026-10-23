@@ -648,8 +648,10 @@ export function CheckoutStep({
                   {TAXABLE_CATEGORIES.has(category)
                     ? categoryLabel
                     : taxKind === "fabric_cleaning"
-                      ? "Cleaning carpet, rugs, furniture or clothes"
-                      : "Fixing an item"} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
+                      ? "Cleaning carpet, rugs or furniture"
+                      : taxKind === "clothing_alterations"
+                        ? "Altering clothes"
+                        : "Fixing an item"} is taxable labor in Louisiana, so tax applies to the {taxedWhat}. The exact rate is set by the billing address you enter at checkout.
                 </p>
               </>
             );

@@ -83,8 +83,7 @@ export function DetailsSection({
       )}
 
       {/* Owner 2026-10-23 (#3555): outside the 14 taxed categories, the poster
-          says whether the job fixes an item or cleans carpet, rugs, furniture
-          or clothes, the work Louisiana taxes (jobs.tax_kind). */}
+          says whether the job fixes an item or cleans carpet, rugs or furniture, or alters clothes, the work Louisiana taxes (jobs.tax_kind). */}
       {setTaxKind && category && !TAXABLE_CATEGORIES.has(category) && (
         <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
       )}

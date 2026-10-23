@@ -19,6 +19,7 @@ import {
   TAXED_KINDS as edgeTaxedKinds,
   laborTaxCode as edgeLaborTaxCode,
   CLEANING_TPP_TAX_CODE,
+  GARMENT_ALTERATIONS_TAX_CODE,
   NONTAXABLE_TAX_CODE,
   TAXABLE_LABOR_TAX_CODE,
 } from "../../supabase/functions/_shared/salesTax";
@@ -112,8 +113,9 @@ describe("LA taxability rules", () => {
 // @mutate supabase/migrations/20261017055441_trades_taxed_like_handyman.sql | 'fencing', 'pressure_washing']), false) | 'fencing']), false)
 // @mutate supabase/migrations/20261023192154_job_tax_kind.sql |      AND (COALESCE(OLD.category::text, '') | (COALESCE(OLD.category, '')
 // @mutate supabase/migrations/20261023192154_job_tax_kind.sql | 'fencing', 'pressure_washing'];\n  taxed_kinds | 'fencing'];\n  taxed_kinds
-// @mutate supabase/migrations/20261023192154_job_tax_kind.sql |   taxed_kinds CONSTANT text[] := ARRAY['item_repair', 'fabric_cleaning']; |   taxed_kinds CONSTANT text[] := ARRAY['item_repair'];
-// @mutate supabase/migrations/20261023192154_job_tax_kind.sql |       OR COALESCE(_tax_kind = ANY (ARRAY['item_repair', 'fabric_cleaning']), false); |       OR false;
+// @mutate supabase/migrations/20261023192154_job_tax_kind.sql |   taxed_kinds CONSTANT text[] := ARRAY['item_repair', 'fabric_cleaning', 'clothing_alterations']; |   taxed_kinds CONSTANT text[] := ARRAY['item_repair', 'fabric_cleaning'];
+// @mutate supabase/migrations/20261023192154_job_tax_kind.sql |       OR COALESCE(_tax_kind = ANY (ARRAY['item_repair', 'fabric_cleaning', 'clothing_alterations']), false); |       OR false;
+// @mutate supabase/functions/_shared/salesTax.ts |   if (taxKind === "clothing_alterations") return GARMENT_ALTERATIONS_TAX_CODE; |
 // @mutate supabase/migrations/20261023192154_job_tax_kind.sql |   BEFORE UPDATE OF category, tax_kind ON public.jobs |   BEFORE UPDATE OF category ON public.jobs
 // @mutate supabase/functions/_shared/salesTax.ts |   if (taxKind === "fabric_cleaning") return CLEANING_TPP_TAX_CODE; |
 // @mutate src/lib/salesTax.ts |   return TAXABLE_CATEGORIES.has(category ?? "") \|\| TAXED_KINDS.has(taxKind ?? ""); |   return TAXABLE_CATEGORIES.has(category ?? "");
@@ -156,12 +158,12 @@ describe("the database's taxable lists are TAXABLE_CATEGORIES (Q1831, Q1833)", (
 });
 
 // Owner 2026-10-23 (#3555, "BOTH"): a job is ALSO taxed when the poster says it
-// fixes an item or cleans carpet, rugs, furniture or clothes (jobs.tax_kind).
+// fixes an item, cleans carpet, rugs or furniture, or alters clothes (jobs.tax_kind).
 describe("the poster's taxed-kind answer taxes the labor too (#3555)", () => {
-  const KINDS = [null, undefined, "", "item_repair", "fabric_cleaning", "other"];
+  const KINDS = [null, undefined, "", "item_repair", "fabric_cleaning", "clothing_alterations", "laundry", "other"];
 
-  it("the kind lists are the same on both runtimes, exactly item_repair + fabric_cleaning", () => {
-    expect([...edgeTaxedKinds]).toEqual(["item_repair", "fabric_cleaning"]);
+  it("the kind lists are the same on both runtimes, exactly item_repair + fabric_cleaning + clothing_alterations (owner option A)", () => {
+    expect([...edgeTaxedKinds]).toEqual(["item_repair", "fabric_cleaning", "clothing_alterations"]);
     expect([...uiTaxedKinds]).toEqual([...edgeTaxedKinds]);
   });
 
@@ -190,6 +192,9 @@ describe("the poster's taxed-kind answer taxes the labor too (#3555)", () => {
     expect(edgeLaborTaxCode("assembly", "fabric_cleaning")).toBe(TAXABLE_LABOR_TAX_CODE);
     expect(edgeLaborTaxCode("other", "item_repair")).toBe(TAXABLE_LABOR_TAX_CODE);
     expect(edgeLaborTaxCode("cleaning", "fabric_cleaning")).toBe(CLEANING_TPP_TAX_CODE);
+    expect(edgeLaborTaxCode("other", "clothing_alterations")).toBe(GARMENT_ALTERATIONS_TAX_CODE);
+    // Laundry and pressing are not a taxed kind (owner option A; Q2083).
+    expect(edgeLaborTaxCode("other", "laundry")).toBe(NONTAXABLE_TAX_CODE);
     expect(edgeLaborTaxCode("cleaning", null)).toBe(NONTAXABLE_TAX_CODE);
     expect(edgeLaborTaxCode("cleaning", "other")).toBe(NONTAXABLE_TAX_CODE);
   });

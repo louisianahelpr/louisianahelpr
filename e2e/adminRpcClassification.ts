@@ -29,7 +29,7 @@ import { join } from "node:path";
  * INSERT/UPDATE/DELETE in its body.
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -61,6 +61,8 @@ export const WRITE_RPC = new Set([
   "admin_delete_review",
   "admin_reverse_violation",
   "resolve_stalled_job_flag",
+  // payout-after-approval (2026-10-23, migration 20261023143240): has_role admin, UPDATEs job_approval_escalations + INSERTs admin_audit_log
+  "resolve_approval_escalation",
   "review_credential",
   "rpc_decide_dispute",
   // Q764 (2026-10-04): the server-side payout hold. Each writes payout_holds and

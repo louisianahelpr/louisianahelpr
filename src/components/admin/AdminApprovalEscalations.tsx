@@ -263,7 +263,7 @@ export function AdminApprovalEscalations() {
               This approves "{confirming.title ?? "this job"}" as if the poster had: the ${formatPriceExact(Number(confirming.budget ?? 0))} held is scheduled to the Helpr and sent {STANDARD_PAYOUT_PHRASE}. Both sides are told the date. This can't be undone from here.
             </>
           }
-          primaryLabel="Approve and schedule the payout"
+          primaryLabel="Approve and pay"
           onPrimary={() => { const row = confirming; setConfirming(null); void run(row, "approve"); }}
           secondaryLabel="Cancel"
         />

@@ -7,9 +7,8 @@
  *                            A late-cancel fee (25/50%), a crew or a series waits for phase 6 and
  *                            pages ops once a day; the money stays held, never half-refunded.
  *   adminRefundPayPalJob     an admin's refund, full (the job is cancelled) or partial.
- *   settleRefundAgreement    an agreed refund request (Board 141). Phase 5 settles a FULL agreement;
- *                            a partial one needs phase 4's payout queue for the Helpr's part and is
- *                            refused with "needs phase 4" until then (lead, 2026-10-23).
+ *   settleRefundAgreement    an agreed refund request (Board 141): the poster's part refunded first,
+ *                            then (a partial one) the Helpr's rest queued in phase 4's pay queue.
  *
  * WHAT A REFUND KEEPS (owner 2026-10-14: "if admin refunds we keep the fee also. we should never
  * absorb any fee"): PayPal keeps its processing fee on every refund (sandbox 2026-10-23: refund
@@ -23,7 +22,11 @@
  * refund-request-sweep): to those paths a PayPal job has no PaymentIntent and would read as "no
  * money was ever taken" (src/test/stripePathsSkipPayPalJobs.test.ts).
  */
+import { roundPayoutDownCents } from "../money.ts";
 import { refundToPayerCents } from "../refundAmount.ts";
+import { agreedRushRefundCents } from "../refundRush.ts";
+import { netUrgentFeeDollars } from "../stripeFees.ts";
+import { helprFlatFeeCents } from "../helprFlatFee.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../refundNotice.ts";
 import type { PayPalClient } from "./paypalClient.ts";
 import { readCapture } from "./paypalReads.ts";
@@ -325,48 +328,85 @@ export async function adminRefundPayPalJob(deps: JobRefundDeps, input: AdminRefu
   return { status: 200, body: { refunded: true, amountCents: out.amountCents, paypalRefundId: out.providerRefundId, settled: out.settled, replay: out.replay, full } };
 }
 
-/** An agreed refund request (Board 141) on a PayPal job. Service only. */
+/**
+ * An agreed refund request (Board 141) on a PayPal job. Service only (refund-request-sweep).
+ *
+ *   all  the poster gets back everything refundable (less PayPal's fee); the job is cancelled
+ *        (refund_agreements_due already flipped it) and marked refunded.
+ *   part the poster gets the agreed amount back, plus the rush fee in the same share
+ *        (refundRush.ts), exactly as execute-dispute-split's agreement path; then the Helpr's rest,
+ *        after their fee and rounded down to the dollar (Q236), is queued for the admin pay queue
+ *        (phase 4: paypal_queue_manual_payout, source 'refund_request_remainder'). REFUND FIRST: the
+ *        database refuses a refund once a payout is queued. A taxed charge is left to an admin, as on
+ *        Stripe (Q1998).
+ * The dispute is claimed ('executing') before any money moves, marked executed only when both legs
+ * are done (the payout queued, queued_held or already_queued), and set back to 'failed' with the
+ * reason otherwise; a re-run is a no-op for every leg already done (the refund key replays).
+ */
 export async function settleRefundAgreement(deps: JobRefundDeps, disputeId: string): Promise<{ status: number; body: Record<string, unknown> }> {
   const proof = await deps.db.rpc("refund_agreement_for_dispute", { p_dispute_id: disputeId });
   if (proof.error) return { status: 503, body: { error: `agreement read failed: ${proof.error.message}` } };
-  const ag = proof.data as { job_id?: string; amount_cents?: number; budget_cents?: number } | null;
-  if (!ag?.job_id) return { status: 409, body: { error: "no recorded agreement for this dispute" } };
+  const ag = proof.data as { job_id?: string; helper_id?: string; amount_cents?: number; budget_cents?: number } | null;
+  if (!ag?.job_id || !ag.helper_id) return { status: 403, body: { error: "no recorded agreement for this dispute" } };
+  const partial = Number(ag.amount_cents) < Number(ag.budget_cents);
   const markFailed = async (why: string) => {
-    await deps.db.from("disputes").update({ execution_status: "failed", execution_error: why.slice(0, 500) })
+    const { error } = await deps.db.from("disputes").update({ execution_status: "failed", execution_error: why.slice(0, 500) })
       .eq("id", disputeId).eq("execution_status", "executing").select("id");
+    if (error) console.error(`[paypal-refunds] dispute ${disputeId} could not be marked failed: ${error.message}`);
   };
-  if (Number(ag.amount_cents) !== Number(ag.budget_cents)) {
-    // A partial agreement pays the Helpr the rest through phase 4's queue (paypal_queue_manual_payout).
-    return { status: 409, body: { error: "needs phase 4: a partial refund agreement on a PayPal job waits for the Helpr payout queue", partial: true } };
-  }
   // Claim the dispute's execution (one settler at a time; a failed run is claimable again).
   const claim = await deps.db.from("disputes").update({ execution_status: "executing", execution_started_at: new Date().toISOString() })
     .eq("id", disputeId).eq("status", "decided").or("execution_status.is.null,execution_status.in.(pending,failed)")
-    .is("execution_refund_id", null).select("id");
+    .select("id");
   if (claim.error) return { status: 503, body: { error: `claim failed: ${claim.error.message}` } };
   if ((claim.data ?? []).length === 0) return { status: 409, body: { error: "this dispute is not claimable (settled or being settled)" } };
-  const { data: job, error: jobErr } = await deps.db.from("jobs").select(JOB_COLS).eq("id", ag.job_id).maybeSingle();
-  if (jobErr || !job) { await markFailed(`job read failed: ${jobErr?.message ?? "missing"}`); return { status: 503, body: { error: "job read failed" } }; }
+
+  const { data: jobRow, error: jobErr } = await deps.db.from("jobs")
+    .select(`${JOB_COLS}, budget, urgent_fee, helper_id, helper_fee_flat_cents, helper_fee_percent, poster_fee_flat_cents`)
+    .eq("id", ag.job_id).maybeSingle();
+  if (jobErr || !jobRow) { await markFailed(`job read failed: ${jobErr?.message ?? "missing"}`); return { status: 503, body: { error: "job read failed" } }; }
+  const job = jobRow as JobMoneyRow & { budget: number | null; urgent_fee: number | null; helper_id: string | null; helper_fee_flat_cents: number | null; helper_fee_percent: number | null; poster_fee_flat_cents: number | null };
   const found = await readPayPalJobPayment(deps.db, ag.job_id);
   if (found.error || !found.payment || !REFUNDABLE.has(found.payment.status)) {
     const why = found.error ? `payment read failed: ${found.error}` : `no refundable PayPal payment (${found.payment?.status ?? "none"})`;
     await markFailed(why);
     return { status: found.error ? 503 : 409, body: { error: why } };
   }
+  const payment = found.payment;
+  if (partial && cents(job.sales_tax_amount) > 0) {
+    const why = "an agreed part refund on a taxed charge is settled by an admin (as on Stripe, Q1998); nothing was moved";
+    await markFailed(why);
+    return { status: 409, body: { error: why } };
+  }
+  if (partial && Number(ag.budget_cents) !== cents(job.budget)) {
+    const why = "the agreed refund's price is not this job's price; nothing was moved, an admin settles it";
+    await markFailed(why);
+    return { status: 409, body: { error: why } };
+  }
   let amounts;
   try {
-    amounts = await refundableNow(deps, found.payment, job as JobMoneyRow, null);
+    amounts = await refundableNow(deps, payment, job, null);
   } catch (e) {
     const why = `amount unknown: ${e instanceof Error ? e.message : String(e)}`;
     await markFailed(why);
     return { status: 503, body: { error: why } };
   }
-  const out = amounts.refundCents > 0
+  const rushCents = Math.round(netUrgentFeeDollars(job.urgent_fee) * 100);
+  const rushBackCents = partial ? agreedRushRefundCents(rushCents, Number(ag.amount_cents), Number(ag.budget_cents)) : 0;
+  // The poster's part: the agreed amount (+ its rush share), or everything refundable for 'all'.
+  // Earlier refunds of this payment count against the ceiling (refundableNow's remaining).
+  const wantCents = partial ? Number(ag.amount_cents) + rushBackCents : amounts.remainingCents;
+  if (partial && wantCents > amounts.remainingCents) {
+    const why = `the agreed refund (${wantCents}c) is more than this payment can return (${amounts.remainingCents}c); nothing was moved, an admin settles it`;
+    await markFailed(why);
+    return { status: 409, body: { error: why } };
+  }
+  const out = wantCents > 0
     ? await refundProviderPayment(deps.db, deps.provider, {
-      paymentId: found.payment.id,
+      paymentId: payment.id,
       idempotencyKey: `lh:dispute:${disputeId}:refund`,
-      amountCents: amounts.refundCents,
-      reason: "agreed refund request (all)",
+      amountCents: wantCents,
+      reason: `agreed refund request (${partial ? "part" : "all"})`,
       noteToPayer: "Your Helpr agreed to refund this job. PayPal keeps its processing fee.",
     })
     : null;
@@ -375,18 +415,54 @@ export async function settleRefundAgreement(deps: JobRefundDeps, disputeId: stri
     await markFailed(out.kind === "refused" ? `${out.code}: ${out.message}` : out.message);
     return { status: out.kind === "retry" ? 503 : 409, body: { error: out.message } };
   }
-  await deps.db.from("jobs").update({ payment_status: "refunded" }).eq("id", ag.job_id).eq("status", "cancelled").select("id");
+
+  // The Helpr's part (partial only): budget less the agreed amount, plus the rush they keep, less
+  // their fee (the job's stamp), rounded down to the dollar.
+  let payout: Record<string, unknown> | null = null;
+  if (partial) {
+    const shareCents = Number(ag.budget_cents) - Number(ag.amount_cents) + (rushCents - rushBackCents);
+    const feeCents = helprFlatFeeCents(shareCents, job);
+    const helperCents = roundPayoutDownCents(Math.max(0, shareCents - feeCents));
+    if (helperCents > 0) {
+      const q = await deps.db.rpc("paypal_queue_manual_payout", {
+        p_job_id: ag.job_id,
+        p_helper_id: ag.helper_id,
+        p_amount_cents: helperCents,
+        p_platform_fee_cents: feeCents,
+        p_initiated_by: "system",
+        p_initiated_by_user_id: null,
+        p_source: "refund_request_remainder",
+      });
+      const outcome = (q.data as { outcome?: string; reason?: string } | null)?.outcome ?? null;
+      if (q.error || !outcome || !["queued", "queued_held", "already_queued"].includes(outcome)) {
+        // PGRST202 (phase 4 not deployed), waiting_for_payee, held, refused: the refund leg is done and
+        // replays as a no-op; the remainder is retried on the next hand-out (or by an admin).
+        const why = q.error ? `remainder not queued: ${q.error.message}` : `remainder not queued: ${outcome ?? "no answer"}${(q.data as { reason?: string } | null)?.reason ? ` (${(q.data as { reason?: string }).reason})` : ""}`;
+        await markFailed(why);
+        await deps.alert({ kind: "money_at_risk", severity: "warning", title: "Agreed PayPal refund: the Helpr's part is not queued", message: `Dispute ${disputeId}, job ${ag.job_id}: the poster's part is refunded; ${why}. The next sweep retries.`, oncePerDayKey: `paypal-agreement-remainder:${disputeId}` });
+        return { status: 409, body: { error: why, refunded: out?.amountCents ?? 0 } };
+      }
+      payout = { outcome, amountCents: helperCents, platformFeeCents: feeCents };
+    }
+  } else {
+    const flip = await deps.db.from("jobs").update({ payment_status: "refunded" }).eq("id", ag.job_id).eq("status", "cancelled").select("id");
+    if (flip.error || (flip.data ?? []).length === 0) {
+      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement refunded, job not marked refunded", message: `Job ${ag.job_id}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-agreement-flip:${ag.job_id}` });
+    }
+  }
   const done = await deps.db.from("disputes").update({
     execution_status: "executed",
     executed_at: new Date().toISOString(),
     execution_refund_id: out?.providerRefundId ?? null,
     execution_refund_cents: out?.amountCents ?? 0,
-    execution_helper_cents: 0,
+    execution_helper_cents: Number(payout?.amountCents ?? 0),
     execution_error: null,
   }).eq("id", disputeId).eq("execution_status", "executing").select("id");
   if (done.error || (done.data ?? []).length === 0) {
-    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement refunded, dispute not marked executed", message: `Dispute ${disputeId}: ${done.error?.message ?? "matched no row"}. The refund key makes a re-run a no-op.`, oncePerDayKey: `paypal-agreement-mark:${disputeId}` });
+    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement settled, dispute not marked executed", message: `Dispute ${disputeId}: ${done.error?.message ?? "matched no row"}. Every leg replays as a no-op.`, oncePerDayKey: `paypal-agreement-mark:${disputeId}` });
   }
-  if (out?.kind === "refunded") await tellPayer(deps, job as JobMoneyRow, out, Math.max(0, found.payment.amount_cents - out.amountCents), amounts.taxKeptCents, true);
-  return { status: 200, body: { settled: true, refundCents: out?.amountCents ?? 0, paypalRefundId: out?.providerRefundId ?? null } };
+  if (out?.kind === "refunded") {
+    await tellPayer(deps, job, out, Math.max(0, payment.amount_cents - out.amountCents), amounts.taxKeptCents, !partial);
+  }
+  return { status: 200, body: { settled: true, refundCents: out?.amountCents ?? 0, paypalRefundId: out?.providerRefundId ?? null, payout } };
 }

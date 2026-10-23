@@ -9,7 +9,8 @@
  *        fee, a crew or a series waits for phase 6 and pages ops once a day.
  *     2. claims whose PayPal answer was lost: asked again with the same key (same refund back).
  *   {"action":"settle_refund_agreement","dispute_id":"<uuid>"}  refund-request-sweep's door for an
- *     agreed refund request on a PayPal job (a full one; a partial one needs phase 4).
+ *     agreed refund request on a PayPal job: the poster's part refunded first, then (a partial
+ *     one) the Helpr's rest queued in phase 4's admin pay queue (paypal_queue_manual_payout).
  *
  * Crons have no user: this acts only on rows that already exist (provider_payments, which the
  * database lets exist only for members the paypal_payments switch is on for). While no PayPal rows

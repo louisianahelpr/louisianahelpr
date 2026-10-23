@@ -489,7 +489,7 @@ const AdminSupport = () => {
                 })()}
 
                 {replies.isError ? (
-                  <p className="text-ds-11 text-destructive">Couldn't load the replies on this ticket. Reload the page before replying again.</p>
+                  <p className="text-ds-11 text-destructive-ink">Couldn't load the replies on this ticket. Reload the page before replying again.</p>
                 ) : repliesPending(ticket.id) ? (
                   <p className="text-ds-11 text-muted-foreground">Loading replies…</p>
                 ) : (

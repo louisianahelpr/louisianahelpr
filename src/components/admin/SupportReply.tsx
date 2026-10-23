@@ -126,7 +126,7 @@ export function SupportThread({ replies }: { replies: SupportReplyRow[] }) {
           </p>
           <p className="text-ds-11 text-foreground whitespace-pre-wrap break-words">{r.body}</p>
           <p className="text-ds-10 text-muted-foreground">
-            {!r.outcome_recorded && <span className="text-destructive">Delivery not fully recorded: check before resending · </span>}
+            {!r.outcome_recorded && <span className="text-destructive-ink">Delivery not fully recorded: check before resending · </span>}
             {r.notified === null ? "In-app notice not recorded" : r.notified ? "In-app notice delivered" : "In-app notice not delivered"}
             {" · "}
             {emailStatusLabel(r.email_status)}
@@ -222,7 +222,7 @@ export function SupportReplyComposer({
         aria-invalid={tooLong || undefined}
         disabled={sending}
       />
-      <p id={countId} className={tooLong ? "text-ds-10 text-destructive" : "text-ds-10 text-muted-foreground"}>
+      <p id={countId} className={tooLong ? "text-ds-10 text-destructive-ink" : "text-ds-10 text-muted-foreground"}>
         {trimmed.length}/{SUPPORT_REPLY_MAX_CHARS}
         {tooLong && " · too long to send"}
       </p>

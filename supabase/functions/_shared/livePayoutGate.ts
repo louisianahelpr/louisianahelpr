@@ -30,7 +30,9 @@
 // refresh (syncConnectGate), so the two writers never disagree on an account
 // whose transfers capability alone is off (lh-money-escrow review #3); the
 // unverifiable kinds leave the cache as it is.
-import type Stripe from "https://esm.sh/stripe@18.5.0";
+// No remote import on purpose: src/test/livePayoutGateClassifiesRejections.test.ts
+// imports this module, so the app project compiles it (tsconfig.app.json lists
+// it). The Stripe shapes it reads are declared structurally below.
 import { isTestObjectUnderLiveKey, isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 
 /**
@@ -44,8 +46,22 @@ export const CONNECT_NOT_PAYABLE_CODE = "connect_account_not_payable";
 export const STRIPE_PLATFORM_REJECTED_CODE = "stripe_platform_rejected";
 export const CONNECT_HELD_CODES: ReadonlySet<string> = new Set([CONNECT_REJECTED_CODE, CONNECT_NOT_PAYABLE_CODE, STRIPE_PLATFORM_REJECTED_CODE]);
 
+/** The fields of a Stripe Account this module reads (Stripe.Account satisfies it). */
+export interface ConnectAccountFacts {
+  id?: string;
+  payouts_enabled?: boolean | null;
+  charges_enabled?: boolean | null;
+  capabilities?: { transfers?: string | null } | null;
+  requirements?: { disabled_reason?: string | null } | null;
+}
+
+/** The one Stripe call this module makes (a Stripe client satisfies it). */
+export interface ConnectAccountReader {
+  accounts: { retrieve(id: string): Promise<unknown> };
+}
+
 export type LivePayoutGate =
-  | { ok: true; account: Stripe.Account }
+  | { ok: true; account: ConnectAccountFacts }
   | { ok: false; kind: "not_payable" | "rejected" | "unusable" | "platform_rejected" | "cannot_verify"; reason: string };
 
 function messageOf(err: unknown): string {
@@ -74,13 +90,13 @@ export function isRejectedAccountError(err: unknown): boolean {
 }
 
 /** Stripe rejected this account (requirements.disabled_reason "rejected.*"). */
-export function isRejectedAccount(account: Pick<Stripe.Account, "requirements"> | null | undefined): boolean {
+export function isRejectedAccount(account: Pick<ConnectAccountFacts, "requirements"> | null | undefined): boolean {
   const reason = account?.requirements?.disabled_reason;
   return typeof reason === "string" && reason.startsWith("rejected");
 }
 
 /** The live account may receive a payout: every fact true, and not rejected. */
-function livePayable(account: Pick<Stripe.Account, "payouts_enabled" | "charges_enabled" | "capabilities" | "requirements">): boolean {
+function livePayable(account: ConnectAccountFacts): boolean {
   return account.payouts_enabled === true &&
     account.charges_enabled === true &&
     account.capabilities?.transfers === "active" &&
@@ -92,10 +108,10 @@ function errMessage(e: unknown): string {
 }
 
 /** Read one account live and decide. Never throws. */
-export async function readLivePayoutGate(stripe: Stripe, accountId: string): Promise<LivePayoutGate> {
-  let account: Stripe.Account;
+export async function readLivePayoutGate(stripe: ConnectAccountReader, accountId: string): Promise<LivePayoutGate> {
+  let account: ConnectAccountFacts;
   try {
-    account = await stripe.accounts.retrieve(accountId);
+    account = (await stripe.accounts.retrieve(accountId)) as ConnectAccountFacts;
   } catch (e) {
     const message = errMessage(e);
     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message };

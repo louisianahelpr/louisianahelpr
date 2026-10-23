@@ -4,7 +4,7 @@ import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { applicantIdNote } from "@/lib/awardGate";
-import UserAvatar from "@/components/UserAvatar";
+import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
@@ -390,38 +390,7 @@ export function ApplicantsPanel({
                             Below `sm` a pending card wraps and its right column dissolves
                             (`contents`), so the Hire row drops under the name: ApplicantHireRow. */}
                         <div className={app.status === "pending" ? "flex flex-wrap sm:flex-nowrap items-start gap-3" : "flex items-start gap-3"}>
-                          {/* Migrated onto the shared `<UserAvatar>` (2026-08-31): a hiring decision gave a
-                              candidate whose upload is a flat block NO identity (every blank avatar on prod
-                              returns 200, so the initials never showed). See `src/lib/avatarImage.ts`.
-
-                              The <a> keeps the link, the halo ring (top-pick /
-                              verified) and the 44px tap target; the avatar
-                              inside is now the app-wide one. `ring-0` cancels
-                              `UserAvatar`'s own hairline so the halo is the
-                              only edge. */}
-                          <a
-                            href={`/user/${app.helper_id}`}
-                            // The avatar inside is `aria-hidden`, so this label is the
-                            // link's only accessible name (it had none with a photo before).
-                            aria-label={`View ${helperName}'s profile`}
-                            className="shrink-0 w-11 h-11 rounded-full overflow-hidden inline-flex items-center justify-center"
-                            style={{
-                              boxShadow: haloColor
-                                ? `0 0 0 2.5px ${haloColor}`
-                                : "0 0 0 1px hsl(var(--olivewood) / 0.18)",
-                            }}
-                          >
-                            <UserAvatar
-                              userId={app.helper_id}
-                              src={app.profiles?.avatar_url}
-                              name={helperName}
-                              initials={helperInitials}
-                              pixelSize={44}
-                              aria-hidden
-                              className="w-full h-full"
-                              fallbackClassName="text-ds-14 ring-0"
-                            />
-                          </a>
+                          <ApplicantAvatarLink helperId={app.helper_id} avatarUrl={app.profiles?.avatar_url} helperName={helperName} initials={helperInitials} haloColor={haloColor} />
 
                           <div className="flex-1 min-w-0">
                             {/* Name + tier badge */}

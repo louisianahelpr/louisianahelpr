@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261023134752_application_suggests_a_time.sql |   BEFORE UPDATE OF status ON public.applications | --
  * @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     const agreesToSuggestion = !isGroupJob && !!deadlineDialogApp.suggested_date; |     const agreesToSuggestion = false;
  * @mutate src/pages/home/useApplyFlow.ts |       const { data: rpcData, error: rpcError } = suggestion\n | const { data: rpcData, error: rpcError } = false\n
- * @mutate src/components/ResponseDeadlineDialog.tsx |           {suggestedTime && (when || suggestedLabel) && ( |           {false && (
+ * @mutate src/components/ResponseDeadlineDialog.tsx |           {suggestedTime && (when \|\| suggestedLabel) && ( |           {false && (
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                             <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} /> |
  */
 import { readFileSync } from "node:fs";

@@ -16,7 +16,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : faceAction} | action={faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
- * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id); | void 0;
+ * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | if (!a.isExpanded) toggle(job.id);\n      setCompletionRequest | void 0;\n      setCompletionRequest
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: "Leave a review", onClick: h.review, tone: "primary" }; | return { label: "Manage job", onClick: h.manage, tone: "secondary" };
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" }; | return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "primary" };
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts | if (s.isMinimalCard \|\| s.isOffered) return null; | if (s.isMinimalCard) return null;
@@ -171,13 +171,15 @@ describe("the Posted card face (board 14)", () => {
     expect(h.onReview).toHaveBeenCalledTimes(1);
   });
 
-  it("only waiting: the quiet fallback, Manage job, opens the controls in place", () => {
+  it("only waiting: the quiet fallback is 'Message <name>', with a small Manage job link that opens the controls in place (owner, 2026-10-23, card critique item 13)", () => {
     const waiting = { ...base, status: "accepted", helper_confirmed_at: null, helper_arrived_at: null } as unknown as Job;
     const h = renderCard(waiting);
     const [btn] = faceButtons();
-    expect(btn.textContent).toBe("Manage job");
+    expect(btn.textContent).toMatch(/^Message /);
     expect(btn.getAttribute("data-mine-face-action")).toBe("secondary");
-    fireEvent.click(btn);
+    const manage = document.querySelector("[data-mine-face-also]") as HTMLButtonElement;
+    expect(manage.textContent).toBe("Manage job");
+    fireEvent.click(manage);
     expect(h.toggle).toHaveBeenCalledWith("job-1");
   });
 
@@ -194,6 +196,7 @@ describe("every poster state has a face button", () => {
   const h = {
     pendingApplicants: 2, helperName: "Hallie H.", confirmingArrival: false, completing: false,
     openApplicants: vi.fn(), confirmArrival: vi.fn(), approve: vi.fn(), review: vi.fn(), tip: vi.fn(), postAgain: vi.fn(), message: vi.fn(), manage: vi.fn(),
+    confirm: vi.fn(), noShow: vi.fn(), cancel: vi.fn(), viewDispute: vi.fn(),
   };
   it("the inventory is real", () => expect(POSTER_WAIT_IDS.length).toBeGreaterThan(20));
   it("a stalled job (Needs you) offers Message, never a release the poster cannot make", () => {

@@ -54,6 +54,16 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * End a sentence on `text`: its period, unless it already ends in one (lead, 2026-10-23: "released to Hallie H.."). A
+ * member's name is "First L." (formatName, member_display_name), so a sentence that ends on it must not add a second.
+ * Guard: src/test/nameEndsSentenceOnce.test.ts.
+ */
+export function endSentence(text: string): string {
+  const t = text.trimEnd();
+  return /[.!?]$/.test(t) ? t : `${t}.`;
+}
+
 /** Format a full name as "First L." for privacy. */
 export function formatName(fullName: string | null | undefined, fallback = "A neighbor"): string {
   // Trim FIRST, then check for emptiness — without this, a whitespace-only

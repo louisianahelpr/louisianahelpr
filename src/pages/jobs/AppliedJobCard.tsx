@@ -300,7 +300,7 @@ function AppliedJobCardInner({
            server that leaked could not leak through it; printing `location`
            whole removes that. Keeping the old mount's condition keeps it.
            src/test/enRouteAddressVisible.test.tsx pins both halves. */
-        showFullAddress={isOffered || isConfirmed || isActive || isDisputed}
+        showFullAddress={isOffered || isConfirmed || isActive || isDisputed} oneLine={!isExpanded}
         latitude={job.latitude}
         longitude={job.longitude}
         expiresAt={isPending && !job.helper_id ? job.expires_at : null}
@@ -320,9 +320,9 @@ function AppliedJobCardInner({
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
   const cardLine = helperCardLine(app, job, unsettledDisputeJobIds, initialTracking); // ONE line: the strip, the face's button (board 21), the 8-step bar
   const faceAction = helperFaceAction({
-    isMinimalCard, isOffered, isPending,
+    isMinimalCard, isOffered, isPending, message: (isConfirmed || isActive || isDisputed) && !job.is_group_job && posterId ? { name: (app.posterName ?? "").split(" ")[0] || "them", onClick: () => navigate(`/messages?jobId=${job.id}&userId=${posterId}`) } : undefined,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
-    review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"),
+    review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"), wait: cardLine.id, jobId: job.id, viewDispute: () => onViewDispute(job),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
     step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
   });
@@ -358,7 +358,7 @@ function AppliedJobCardInner({
             // FLOORED, matching JobPrice (owner, 2026-08-19): a take-home never
             // reads above the payout. What this Helpr takes home (board 21).
             money={`$${formatPriceFloor(payout)}`}
-            moneyCaption="you take home"
+            moneyCaption="take-home"
             status={
               !isMinimalCard && !isExpanded ? (
                 <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} />

@@ -26,7 +26,15 @@ export interface CountdownClock {
   text: string;
   /** Shown in place of the row once the instant has passed. */
   expiredText: string;
+  /** More than 2 days out, a DATE, not a minute-precise timer (owner, 2026-10-23, card critique item 7):
+   *  "Starts" -> "Starts Thu, Nov 12". */
+  farLabel?: string;
 }
+
+/** Beyond this the bare (collapsed) row says a date instead of counting. */
+const FAR_CLOCK_MS = 48 * 60 * 60 * 1000;
+/** "Thu, Nov 12" in Louisiana time. */
+const farDay = (at: Date | string) => new Date(at).toLocaleDateString("en-US", { timeZone: "America/Chicago", weekday: "short", month: "short", day: "numeric" });
 
 /** The instant a job starts: its start time in the job's zone, or the END of
  *  its day when it has none ("sometime that day" has not run out until the
@@ -82,6 +90,8 @@ export function CountdownRows({
         <Timer className={variant === "box" ? "w-3.5 h-3.5 shrink-0" : "w-3 h-3 shrink-0"} aria-hidden />
         {left <= 0 ? (
           <span>{c.expiredText}</span>
+        ) : variant === "bare" && c.farLabel && left > FAR_CLOCK_MS ? (
+          <span data-countdown-far="">{c.farLabel} {farDay(c.at)}</span>
         ) : (
           <span>
             <span className="tabular-nums">{formatCountdown(left)}</span> {c.text}

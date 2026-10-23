@@ -288,7 +288,7 @@ function PostedJobCardInner({
     job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
     pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
     confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
-    onLoadApplications, onConfirmArrival, onReview, onTip,
+    onLoadApplications, onConfirmArrival, onReview, onTip, onNoShow, onCancel, onViewDispute,
   });
 
   return (

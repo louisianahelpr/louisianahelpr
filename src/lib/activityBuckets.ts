@@ -142,7 +142,9 @@ export const POSTED_GROUP_LABEL: Record<ActivityBucket, string> = {
 };
 export const WORKING_GROUP_LABEL: Record<ActivityBucket, string> = {
   needs_you: "Needs you",
-  waiting: "Applied",
+  // "Waiting", not "Applied" (owner, 2026-10-23, card critique item 10): submitted work and an arrival waiting on
+  // the poster's confirm sit here too, and read as applications under "Applied". An application is waiting too.
+  waiting: "Waiting",
   scheduled: "Booked",
   done: "Done",
   cancelled: "Not picked",

@@ -127,7 +127,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it("the card says how many spots are open, read from the view after the main list (a missing column never breaks browse)", () => {
-    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobCardMetaRow.tsx"), "utf8"));
+    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobHelprsChip.tsx"), "utf8"));
     expect(chip).toMatch(/spot\$\{open === 1 \? "" : "s"\} open/);
     const card = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/JobCard.tsx"), "utf8"));
     expect(card).toMatch(/<JobHelprsChip\s+helpersNeeded=\{job\.helpers_needed\}\s+spotsOpen=\{job\.crew_spots_open\}/);
@@ -147,7 +147,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     // The detail dialog's Helprs tile reads the same rule as the browse chip.
     const tiles = blankComments(readFileSync(resolve(ROOT, "src/components/dashboard/jobDetailDialog/JobStatTiles.tsx"), "utf8"));
     expect(tiles).toMatch(/openCrewSpots\(job\.helpers_needed, job\.crew_spots_open\)/);
-    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobCardMetaRow.tsx"), "utf8"));
+    const chip = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobHelprsChip.tsx"), "utf8"));
     expect(chip).toMatch(/const open = openCrewSpots\(count, spotsOpen\)/);
     // A pin opened from the map (not in the loaded feed) reads the count after its row.
     const pin = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/fetchJobForPin.ts"), "utf8"));

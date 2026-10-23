@@ -71,7 +71,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/dashboard/filterSheet/PayRangeSlider.tsx` | input×2 | range |  | pay-range · Lowest price · Highest price |
 | `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-countdown-slot |
-| `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 | `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
 
 ## /complete-profile
@@ -166,6 +165,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1 | file | 1000 | dispute-details · dispute-details-requirement · Remove file |
 | `src/components/DisputeTimelineDialog.tsx` | input×1 | file |  | Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |
+| `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |

@@ -26,6 +26,7 @@ import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 // matches the Tipped / Reviewed boxes rather than inventing a fourth grey.
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { helperDayOfConfirmation } from "@/components/job-card/helperDayOfConfirmation";
+import { takeFaceAction } from "@/components/job-card/faceActionRequest";
 
 /** The Helpr's day-before step, on its button (owner, 2026-10-08). */
 const HELPER_CONFIRM_LABEL = "Confirm you'll be at the job";
@@ -119,6 +120,12 @@ export function JobConfirmation({
     return () => clearInterval(id);
   }, []);
   void tick;
+  // The collapsed card's face asked for this confirm (faceActionRequest, owner 2026-10-23): open the SAME dialog
+  // this card's own button opens, only while the confirm is open and still owed by this viewer.
+  useEffect(() => {
+    const owed = !(isOwner ? posterConfirmedAt : helperDayofConfirmedAt) && Date.now() >= confirmOpensMs(dateNeeded);
+    if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true);
+  }, [jobId, isOwner, posterConfirmedAt, helperDayofConfirmedAt, dateNeeded]);
 
   const jobDate = jobDayStart(dateNeeded);
   const now = new Date();

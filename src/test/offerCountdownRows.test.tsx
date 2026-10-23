@@ -71,9 +71,15 @@ describe("which clocks a booked card carries", () => {
     expect(collapsedClocks(job(false), true).map((c) => c.id)).toEqual(["start"]);
   });
 
-  it("an accepted job days out: the start and 'until confirmation opens'", () => {
-    expect(collapsedClocks(job(true), true).map((c) => c.id)).toEqual(["start", "confirm-opens"]);
-    expect(orderClocks(collapsedClocks(job(true), false)).map((c) => c.id)).toEqual(["confirm-opens", "start"]);
+  it("an accepted job days out: ONE clock, the next one, 'confirmation opens' (owner, 2026-10-23, card critique item 7)", () => {
+    expect(collapsedClocks(job(true), true).map((c) => c.id)).toEqual(["confirm-opens"]);
+    expect(collapsedClocks(job(true), false).map((c) => c.id)).toEqual(["confirm-opens"]);
+  });
+
+  it("where a card does stack clocks (the expanded tracker's rows), the one ending first is listed first", () => {
+    const later = { id: "start", at: new Date(Date.now() + 4 * 86_400_000), text: "until the job starts", expiredText: "Job time has arrived" };
+    const sooner = { id: "confirm-opens", at: new Date(Date.now() + 3 * 86_400_000), text: "until confirmation opens", expiredText: "Confirmation is open" };
+    expect(orderClocks([later, sooner]).map((c) => c.id)).toEqual(["confirm-opens", "start"]);
   });
 
   it("'confirmation opens' is a clock only while the window is shut", () => {

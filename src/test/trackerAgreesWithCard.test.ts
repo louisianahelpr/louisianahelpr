@@ -74,7 +74,9 @@ const STATES: Record<string, State> = {
   // Confirmed lights on BOTH confirms (the old rail's rule, kept): the Helpr may already set out (their button is
   // "I'm on my way", helper_mark_on_the_way), but the Confirmed step itself waits on the poster.
   helpr_confirmed_only: { job: { ...conf, helper_dayof_confirmed_at: T }, poster: [3, "you"], helpr: [3, "them"] },
-  both_confirmed: { job: { ...both }, poster: [4, "them"], helpr: [4, "you"] },
+  // A day out the Helpr's face offers no "I'm on my way" yet (3 hours before the start, owner 2026-10-23).
+  both_confirmed: { job: { ...both }, poster: [4, "them"], helpr: [4, "them"] },
+  both_confirmed_soon: { job: { ...both, date_needed: "2037-10-21", start_time: "12:00:00" }, poster: [4, "them"], helpr: [4, "you"] },
   on_the_way: { job: { ...both, status: "in_progress", helper_on_the_way_at: T }, poster: [4, "them"], helpr: [4, "you"] },
   arrived_claimed: { job: { ...both, status: "in_progress", helper_on_the_way_at: T, helper_arrived_at: T }, tracking: tr("arrived"), poster: [5, "you"], helpr: [5, "them"] },
   // (a) the reported card: the geofence stamp alone is NOT working; the poster still owes the arrival confirm.
@@ -119,6 +121,8 @@ const PROBLEM_ID = /^(overdue_|stalled$|dispute$|dispute_escalated$|dispute_sett
  *  (Confirmed lights on BOTH confirms, the old rail's rule). */
 const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^Review \d+ applicants?$/, [0], []],
+  // The day-before confirm, on the face (owner, 2026-10-23, card critique item 1).
+  [/^(I'm still on|Confirm you'll be at the job)$/, [3], []],
   [/^Confirm(ing…| arrival)$/, [5], []],
   [/^Approve and release$/, [7], []],
   [/^I'm on my way$/, [4], [3]],
@@ -137,6 +141,7 @@ const noop = () => {};
 const posterHandlers = (applicants: number) => ({
   pendingApplicants: applicants, helperName: "Hallie", confirmingArrival: false, completing: false,
   openApplicants: noop, confirmArrival: noop, approve: noop, review: noop, tip: noop, postAgain: noop, message: noop, manage: noop,
+  confirm: noop, noShow: noop, cancel: noop, viewDispute: noop,
 });
 const mark = (p: JobProgressState): Mark =>
   p.tone === "cancelled" ? "cancelled" : p.tone === "problem" ? "problem" : p.stage === 8 ? "done" : p.waitingOnYou ? "you" : "them";
@@ -158,7 +163,8 @@ function helprCard(s: State) {
   const live = ["accepted", "in_progress", "revision_requested", "disputed"].includes(String(job.status)) && !!job.helper_confirmed_at;
   const face = helperFaceAction({
     isMinimalCard: job.status === "cancelled", isOffered: false, owesReview: false, review: noop, manage: noop, open: noop,
-    step: live ? helperFaceNextStep(job, s.tracking ?? null, line.id as HelperWait) : null,
+    step: live ? helperFaceNextStep(job, s.tracking ?? null, line.id as HelperWait) : null, wait: line.id, jobId: "j", viewDispute: noop,
+    message: live ? { name: "Pat", onClick: noop } : undefined,
   });
   const bar = jobProgress(job as unknown as ProgressJob, { viewer: "helpr", otherFirst: "Pat", card: { line, face } });
   return { line, face, bar };

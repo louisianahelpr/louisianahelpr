@@ -2,7 +2,12 @@ import type { MineFaceAction } from "@/components/job-card/MineJobFace";
 import type { TrackingData } from "@/components/JobTracking";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";
+import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 import type { HelperWait } from "@/components/job-card/jobStatusLine";
+import { jobStartDateTime } from "@/lib/dateUtils";
+
+/** How long before the start the face offers "I'm on my way" (owner, 2026-10-23: 3 hours). */
+export const ON_MY_WAY_LEAD_MS = 3 * 60 * 60 * 1000;
 
 /** The card lines that say work has started (helperProgress' workUnderway): the next tap is Mark done. */
 const WORK_UNDERWAY: ReadonlySet<string> = new Set<HelperWait>(["working", "after_photo", "overdue_unfinished", "overdue_after_photo"]);
@@ -36,7 +41,7 @@ const PHOTO_WAITS: Readonly<Record<string, "before" | "after">> = {
  * sentence and the 8-step bar all say it is the other person's move (lead review 2026-10-22).
  */
 export function helperFaceNextStep(
-  job: { id: string; status?: string | null; helper_dayof_confirmed_at?: string | null; helper_on_the_way_at?: string | null; helper_arrived_at?: string | null; helper_completed_at?: string | null },
+  job: { id: string; status?: string | null; date_needed?: string | null; start_time?: string | null; helper_dayof_confirmed_at?: string | null; helper_on_the_way_at?: string | null; helper_arrived_at?: string | null; helper_completed_at?: string | null },
   tracking: TrackingData | null | undefined,
   wait?: HelperWait | (string & {}),
 ): HelperFaceStep | null {
@@ -44,7 +49,14 @@ export function helperFaceNextStep(
   if (job.status === "revision_requested" || job.status === "disputed") return null;
   if (wait === "arrival_unconfirmed" || wait === "overdue_arrival_unconfirmed") return null;
   if (!job.helper_dayof_confirmed_at || job.helper_completed_at) return null;
-  if (!job.helper_on_the_way_at) return { jobId: job.id, key: "on_the_way", label: "I'm on my way" };
+  if (!job.helper_on_the_way_at) {
+    // "I'm on my way" on the face from 3 hours before the start (owner, 2026-10-23, card critique item 3): a day
+    // early it invited a tap that tells the poster the Helpr has left. Before that the face keeps "Manage job"
+    // (the open card's tracker still offers the step, its gates unchanged).
+    const start = job.date_needed ? jobStartDateTime(job.date_needed, job.start_time ?? null) : null;
+    if (start && start.getTime() - Date.now() > ON_MY_WAY_LEAD_MS) return null;
+    return { jobId: job.id, key: "on_the_way", label: "I'm on my way" };
+  }
   if (!job.helper_arrived_at) return { jobId: job.id, key: "arrived", label: "I've arrived" };
   const photo = wait ? PHOTO_WAITS[wait] : undefined;
   if (photo === "before") return { jobId: job.id, key: "before_photo", label: "Take the before photo" };
@@ -83,15 +95,29 @@ export function helperFaceAction(s: {
   /** Opens the card (never closes it), for a direct step. */
   open?: () => void;
   step?: HelperFaceStep | null;
+  /** The card's own line id (helperCardLine): the confirm and the dispute buttons follow it. */
+  wait?: string;
+  /** The job: the confirm button opens the card and asks its JobConfirmation (faceActionRequest). */
+  jobId?: string;
+  /** The dispute's timeline and evidence. */
+  viewDispute?: () => void;
+  /** The poster, once this Helpr is on the job: a waiting card's one button messages them. */
+  message?: { name: string; onClick: () => void };
 }): MineFaceAction | null {
   if (s.isMinimalCard || s.isOffered) return null;
   if (s.owesReview)
     return { label: "Leave a review", onClick: s.review, tone: "primary" };
   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" };
+  // THE BUTTON DOES WHAT THE LINE ASKS (owner, 2026-10-23, card critique items 1 and 15).
+  const jobId = s.jobId;
+  if (s.wait === "confirm_day" && jobId) return { label: "Confirm you'll be at the job", onClick: () => { requestFaceAction(jobId, "confirm"); (s.open ?? s.manage)(); }, tone: "primary", step: "confirm" };
+  if ((s.wait === "dispute" || s.wait === "dispute_escalated") && s.viewDispute) return { label: "Open the dispute", onClick: s.viewDispute, tone: "secondary" };
   const step = s.step;
   if (step) {
     const ask = () => (step.key === "before_photo" ? requestPhotoCapture(step.jobId, "before") : step.key === "after_photo" ? requestPhotoCapture(step.jobId, "after") : requestHelperStep(step.jobId, step.key));
     return { label: step.label, onClick: () => { ask(); (s.open ?? s.manage)(); }, tone: "primary", step: step.key };
   }
+  // WAITING ON THE POSTER (item 13; board 14): message them; "Manage job" is a small text link beside it.
+  if (s.message) return { label: `Message ${s.message.name}`, onClick: s.message.onClick, tone: "secondary", also: { label: "Manage job", onClick: s.manage } };
   return { label: "Manage job", onClick: s.manage, tone: "secondary" };
 }

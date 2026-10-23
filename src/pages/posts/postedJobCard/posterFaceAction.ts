@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { PosterWait } from "@/components/job-card/jobStatusLine";
 import type { MineFaceAction } from "@/components/job-card/MineJobFace";
 import type { Job } from "../../../components/job-card/activityConstants";
+import { requestFaceAction } from "@/components/job-card/faceActionRequest";
 
 /**
  * The ONE button on the poster's Posted card face (board 14; lead 2026-10-20:
@@ -32,6 +33,14 @@ export interface PosterFaceHandlers {
   postAgain: () => void;
   message: () => void;
   manage: () => void;
+  /** Opens the card and asks its JobConfirmation for the day-before confirm (faceActionRequest). */
+  confirm: () => void;
+  /** The card's own No-Show dialog (ActivityDialogs). */
+  noShow: () => void;
+  /** The card's own Cancel job dialog. */
+  cancel: () => void;
+  /** The dispute's timeline and evidence (the card's View dispute). */
+  viewDispute: () => void;
 }
 
 /** "Hallie H." -> "Hallie": a button label names the person, short. */
@@ -39,7 +48,7 @@ const first = (name: string) => name.trim().split(/\s+/)[0] || name;
 
 export function posterFaceAction(
   wait: PosterWait,
-  job: Pick<Job, "is_group_job">,
+  job: Pick<Job, "is_group_job"> & { helper_id?: string | null },
   h: PosterFaceHandlers,
 ): MineFaceAction {
   switch (wait) {
@@ -78,8 +87,27 @@ export function posterFaceAction(
       return { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary" };
     case "cancelled":
       return { label: "Post again", onClick: h.postAgain, tone: "secondary" };
+    /* THE BUTTON DOES WHAT THE LINE ASKS (owner, 2026-10-23, card critique items 1, 2, 15). The day-before
+       confirm is owed: the confirm itself, through the card's own dialog. Past the day: the line's own action
+       (No-Show? / cancel?), secondary because it is not the job's next step. A dispute: open it. */
+    case "confirm_still_on":
+      return { label: "I'm still on", onClick: h.confirm, tone: "primary" };
+    case "overdue_no_show":
+      return { label: "Report no-show", onClick: h.noShow, tone: "secondary" };
+    case "overdue_unhired":
+    case "overdue_unconfirmed":
+    case "overdue_not_started":
+    case "overdue_not_arrived":
+      return { label: "Cancel job", onClick: h.cancel, tone: "secondary" };
+    case "dispute":
+    case "dispute_escalated":
+      return { label: "Open the dispute", onClick: h.viewDispute, tone: "secondary" };
     default:
-      return { label: "Manage job", onClick: h.manage, tone: "secondary" };
+      // WAITING ON THE HELPR (owner, 2026-10-23, card critique item 13; board 14): the one button talks to them,
+      // and "Manage job" (the card's controls) is a small text link beside it. No Helpr yet, or a crew: Manage job.
+      return job.helper_id && !job.is_group_job
+        ? { label: `Message ${first(h.helperName)}`, onClick: h.message, tone: "secondary", also: { label: "Manage job", onClick: h.manage } }
+        : { label: "Manage job", onClick: h.manage, tone: "secondary" };
   }
 }
 
@@ -98,6 +126,9 @@ export function usePosterFaceAction(a: {
   onConfirmArrival: (jobId: string) => void;
   onReview: (job: Job) => void;
   onTip: (jobId: string, helperName: string) => void;
+  onNoShow: (jobId: string) => void;
+  onCancel: (job: Job) => void;
+  onViewDispute: (job: Job) => void;
 }): { faceAction: MineFaceAction; completionRequest: number } {
   const { job, toggle } = a;
   // Bumped by "Approve and release": PostedJobActions opens its completion sheet.
@@ -118,6 +149,13 @@ export function usePosterFaceAction(a: {
     postAgain: () => a.navigate(`/post-job?rebook=${job.id}`),
     message: () => a.navigate(job.helper_id ? `/messages?jobId=${job.id}&userId=${job.helper_id}` : "/messages"),
     manage: () => toggle(job.id),
+    confirm: () => {
+      requestFaceAction(job.id, "confirm");
+      if (!a.isExpanded) toggle(job.id);
+    },
+    noShow: () => a.onNoShow(job.id),
+    cancel: () => a.onCancel(job),
+    viewDispute: () => a.onViewDispute(job),
   });
   return { faceAction, completionRequest };
 }

@@ -171,6 +171,7 @@ function cardFaceFor(job: ProgressJob, o: ProgressOpts, now: Date): CardFace | n
     const face = posterFaceAction(line.id as PosterWait, row, {
       pendingApplicants: o.application === "pending" ? 1 : 0, helperName: o.otherFirst ?? "", confirmingArrival: false, completing: false,
       openApplicants: noop, confirmArrival: noop, approve: noop, review: noop, tip: noop, postAgain: noop, message: noop, manage: noop,
+      confirm: noop, noShow: noop, cancel: noop, viewDispute: noop,
     });
     return { line, face };
   }

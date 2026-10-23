@@ -5,6 +5,8 @@ import { useExpiryClock } from "@/lib/useExpiryClock";
 import { isDirectOffer, offerClock } from "@/components/job-card/offerClock";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { arrivalEstablished } from "@/lib/arrivalGate";
+import { beforePhotoIsThePrimary } from "@/components/job-card/primaryPhotoAsk";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import {
   BUCKET_ORDER,
@@ -242,6 +244,7 @@ export function postedActivityBucket(
     status: string;
     helper_id?: string | null;
     helper_confirmed_at?: string | null;
+    helper_dayof_confirmed_at?: string | null;
     helper_completed_at?: string | null;
     poster_completed_at?: string | null;
     revision_requested_at?: string | null;
@@ -291,7 +294,10 @@ export function postedActivityBucket(
   }
   if (j.status === "in_progress") return workIsBackWithHelper(j) ? "scheduled" : "needs_you";
   if (j.status === "accepted" && j.helper_confirmed_at) {
-    return agreedJobStage(j, "poster", now) === "scheduled" ? "scheduled" : "needs_you";
+    if (agreedJobStage(j, "poster", now) !== "scheduled") return "needs_you";
+    // FILED WHERE THE LINE SAYS (owner, 2026-10-23, card critique item 10): the confirm window is open, the poster
+    // is in and the Helpr is not, so the card says "Waiting on Hallie to confirm by ..." and sits under Waiting.
+    return j.date_needed && now.getTime() >= confirmOpensMs(j.date_needed) && !j.helper_dayof_confirmed_at ? "waiting" : "scheduled";
   }
   if (j.status === "accepted") {
     // Booked and confirmed is scheduled; booked and unconfirmed is me waiting
@@ -367,6 +373,10 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
     // poster side so the same job never reads "Scheduled" to one party and
     // overdue to the other.
     if (jobIsOverdue({ status: jobStatus, date_needed: app.job?.date_needed })) return "needs_you";
+    // ARRIVED, WAITING ON THE POSTER'S CONFIRM (item 10): Start working is locked on the arrival rule and the card
+    // says "Waiting on <name> to confirm you arrived", so it is filed under Waiting, not Needs you. An owed before
+    // photo is still this Helpr's move.
+    if (app.job?.helper_arrived_at && !arrivalEstablished(app.job) && !beforePhotoIsThePrimary(app.job)) return "waiting";
     // TODAY IS LIVE — the helper's half of the owner's 2026-09-19 reorder.
     // Scheduled now sits BELOW Waiting, so a job happening today cannot be
     // filed in the calmer of the two on either side of the marketplace. The

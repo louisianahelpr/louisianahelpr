@@ -19,8 +19,8 @@ const job = (over: Record<string, unknown>) =>
 const line = (j: Job, name: string | null = "Lexi Lombas") => posterStatusLine(j, 0, NOW, undefined, false, name).detail;
 
 describe("the poster's collapsed sentence names the Helpr", () => {
-  it("accepted -> 'Lexi accepted' (no 'Booked')", () => {
-    expect(line(job({ helper_confirmed_at: "2032-10-13T00:00:00Z" }))).toBe("Lexi accepted");
+  it("accepted -> 'Lexi accepted', and what is next (no 'Booked'; owner 2026-10-23, card critique item 5)", () => {
+    expect(line(job({ helper_confirmed_at: "2032-10-13T00:00:00Z" }))).toBe("Lexi accepted · confirms the day before");
   });
   it("on the way -> 'Lexi is on the way'", () => {
     expect(line(job({ status: "in_progress", helper_confirmed_at: "x", helper_on_the_way_at: "2032-10-14T11:00:00Z", date_needed: "2032-10-14" }))).toBe("Lexi is on the way");

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
-import { JobHelprsChip } from "./JobCardMetaRow";
+import { JobHelprsChip } from "./JobHelprsChip";
 
 // Q1409: a booked crew's re-listed spot says how many spots are open.
-// @mutate src/components/job-card/JobCardMetaRow.tsx |   return spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null; |   return null;
-// @mutate src/components/job-card/JobCardMetaRow.tsx | {`${open} spot${open === 1 ? "" : "s"} open`} | {`${open}`}
+// @mutate src/components/job-card/JobHelprsChip.tsx |   return spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null; |   return null;
+// @mutate src/components/job-card/JobHelprsChip.tsx | {`${open} spot${open === 1 ? "" : "s"} open`} | {`${open}`}
 
 describe("JobHelprsChip", () => {
   it("a crew of 3 with 1 spot open says so", () => {

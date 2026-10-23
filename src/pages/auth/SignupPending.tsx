@@ -12,6 +12,7 @@ import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
+import { Button } from "@/components/ui/button";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -185,6 +186,15 @@ const SignupPending = () => {
       // Fall through: this screen must not reveal whether an address has an
       // account, so every other failure reads as success (see ForgotPassword).
     }
+    // Member report 2026-10-23 (iPhone Safari, signed out): "I press resend
+    // but nothing happens". Her address was ALREADY confirmed, and Supabase
+    // answers a signup resend for a confirmed address with success and sends
+    // nothing; the only sign of it was this button's label turning "Resent".
+    // Now every success shows the result panel below, which also offers the
+    // way out for an already-confirmed address (Log in). It cannot say which
+    // case this is: signed out, that would tell anyone whether an address has
+    // a confirmed account. (Signed in AND confirmed never stays here: the poll
+    // above takes that session into the app.)
     setResent(true);
     setResendCooldown(RESEND_COOLDOWN_S);
   };
@@ -319,6 +329,24 @@ const SignupPending = () => {
                 {resending ? "Sending…" : resent ? `Resent${resendCooldown > 0 ? ` (${resendCooldown}s)` : ""}` : "Resend"}
               </button>
             </p>
+          )}
+          {resent && (
+            <div
+              role="status"
+              data-resend-result=""
+              className="rounded-ds-md px-3 py-3 text-left space-y-2"
+              style={{ background: "hsl(var(--bark) / 0.06)" }}
+            >
+              <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+                If <span className="font-semibold break-all">{prefillEmail}</span> still needs confirming, a new link is on its way. Check your spam folder too.
+              </p>
+              <p className="text-ds-13 font-sans" style={{ color: "hsl(var(--ink-deep))" }}>
+                Already confirmed your email? Log in to continue.
+              </p>
+              <Button asChild variant="primary" size="sm" className="w-full rounded-ds-md">
+                <Link to="/login">Log in</Link>
+              </Button>
+            </div>
           )}
           {/* Wrong-address escape hatch — re-entering the address is the only
               practical fix once the auth row exists against a typo. */}

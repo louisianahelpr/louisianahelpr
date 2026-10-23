@@ -76,7 +76,8 @@ function seedDueJob() {
     ],
     rows: [{
       id: "job-1", title: "Assemble a bookshelf", helper_id: HELPR, customer_id: POSTER, budget: 40, platform_fee_amount: 2,
-      urgent_fee: 0, poster_completed_at: null, helper_completed_at: new Date(Date.now() - 48 * 3600e3).toISOString(),
+      // The poster approved (owner 2026-10-23: an unapproved job is escalated, never released).
+      urgent_fee: 0, poster_completed_at: new Date(Date.now() - 26 * 3600e3).toISOString(), helper_completed_at: new Date(Date.now() - 48 * 3600e3).toISOString(),
       stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "in_progress", is_group_job: false,
       helpers_needed: 1, helper_fee_percent: 8, is_seed: false,
     }],

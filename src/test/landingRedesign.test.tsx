@@ -114,8 +114,8 @@ describe("landing redesign: the honesty fixes hold", () => {
 
   it("the money band's hours are the cron's number, and Declutter claims no price-drop timing", () => {
     const blocks = read("src/components/landing/SectionsShowcase.tsx");
-    expect(blocks).toMatch(/import \{ AUTO_COMPLETE_HOURS \} from "\.\.\/\.\.\/\.\.\/supabase\/functions\/_shared\/escrowTiming";/);
-    expect(blocks).toMatch(/\$\{AUTO_COMPLETE_HOURS\} hours/);
+    expect(blocks).toMatch(/import \{ APPROVAL_WINDOW_HOURS \} from "\.\.\/\.\.\/\.\.\/supabase\/functions\/_shared\/escrowTiming";/);
+    expect(blocks).toMatch(/\$\{APPROVAL_WINDOW_HOURS\} hours/);
     expect(blocks).not.toMatch(/\b\d+ hours\b/);
     expect(blocks).not.toMatch(/each evening|every evening|drop each/i);
   });

@@ -4120,6 +4120,58 @@ export type Database = {
           },
         ]
       }
+      job_approval_escalations: {
+        Row: {
+          created_at: string
+          escalated_at: string
+          job_id: string
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          escalated_at?: string
+          job_id: string
+          reason: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          escalated_at?: string
+          job_id?: string
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_approval_escalations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_approval_escalations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_approval_escalations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_completion_nudges: {
         Row: {
           created_at: string
@@ -11632,6 +11684,26 @@ export type Database = {
         Args: { p_id: string }
         Returns: undefined
       }
+      admin_approval_escalation_queue: {
+        Args: { p_include_resolved?: boolean }
+        Returns: {
+          budget: number
+          customer_id: string
+          escalated_at: string
+          helper_completed_at: string
+          helper_id: string
+          is_group_job: boolean
+          job_id: string
+          payment_status: string
+          reason: string
+          resolution: string
+          resolved_at: string
+          revision_completed_at: string
+          status: string
+          still_waiting: boolean
+          title: string
+        }[]
+      }
       admin_idv_request_reupload: {
         Args: { p_note: string; p_user_id: string }
         Returns: number
@@ -12864,6 +12936,10 @@ export type Database = {
         Returns: undefined
       }
       facilitator_threshold_check: { Args: never; Returns: Json }
+      file_approval_escalation: {
+        Args: { p_anchor: string; p_job_id: string; p_reason: string }
+        Returns: boolean
+      }
       get_my_job_quotes: {
         Args: never
         Returns: {
@@ -14319,6 +14395,7 @@ export type Database = {
       ops_alert_sentry_source: { Args: { p_source: string }; Returns: string }
       ops_alert_verify: { Args: never; Returns: Json }
       ops_route_key: { Args: { p_route: string }; Returns: string }
+      payout_day_label: { Args: { p_at: string }; Returns: string }
       payout_defer: {
         Args: { p_kind: string; p_minutes: number; p_payout_id: string }
         Returns: undefined
@@ -15097,6 +15174,10 @@ export type Database = {
         Returns: Json
       }
       require_feature: { Args: { p_key: string }; Returns: undefined }
+      resolve_approval_escalation: {
+        Args: { p_job_id: string }
+        Returns: boolean
+      }
       resolve_auto_tip: {
         Args: { _budget: number; _user: string }
         Returns: number

@@ -32,6 +32,7 @@ import {
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { TestTag } from "@/components/admin/TestTag";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
 
 /**
  * STUCK JOBS — the human half of the stalled-completion sweep.
@@ -273,6 +274,8 @@ const StalledJobsInner = () => {
           </div>
         )}
       </AdminCard>
+      {/* Owner 2026-10-23: jobs whose poster did not approve in time. Same screen, its own queue. */}
+      <AdminApprovalEscalations />
     </AdminViewShell>
   );
 };

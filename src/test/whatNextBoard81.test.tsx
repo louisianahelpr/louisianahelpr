@@ -15,21 +15,23 @@ import { act, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { toast } from "sonner";
 import { announceTransition, HelperDoneWhatNextHost } from "@/components/whatNext/HelperDoneWhatNext";
-import { AUTO_COMPLETE_HOURS } from "../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn() } }));
 const code = (f: string) => readFileSync(resolve(__dirname, "../..", f), "utf8");
 
 describe("board 81: what next after marking done", () => {
-  it("Done opens the sheet: confirm is Now, auto-complete hours are the real rule, no amount", () => {
+  it("Done opens the sheet: approve is Now, the approval window is the real rule, no amount", () => {
     render(<MemoryRouter><HelperDoneWhatNextHost /></MemoryRouter>);
     act(() => announceTransition("done", "Payout requested.", { jobId: "j1", at: "2026-10-20T21:12:00Z" }));
     const sheet = screen.getByTestId("what-next-sheet");
     expect(screen.getByRole("heading", { name: "Nice work" })).toBeTruthy();
     const steps = within(sheet).getAllByRole("listitem");
     expect(steps.map((s) => s.getAttribute("data-state"))).toEqual(["done", "now", "later", "later"]);
-    expect(steps[1].textContent).toContain(`after ${AUTO_COMPLETE_HOURS} hours`);
+    // Owner 2026-10-23: nothing completes on its own; Helpr support steps in.
+    expect(steps[1].textContent).toContain(`in ${APPROVAL_WINDOW_HOURS} hours, Helpr support steps in`);
+    expect(sheet.textContent).not.toMatch(/on its own|automatically/);
     expect(sheet.textContent).not.toMatch(/\$/);
     expect(sheet.textContent).not.toMatch(/\b(he|she|his|her)\b/i);
     expect(toast.success).not.toHaveBeenCalled();

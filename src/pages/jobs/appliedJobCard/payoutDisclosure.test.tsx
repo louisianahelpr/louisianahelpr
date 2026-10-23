@@ -5,7 +5,7 @@
 // the poster approves, `create-payment` sets:
 //
 //     payment_status     = 'payout_pending'
-//     payout_scheduled_at = now + PAYOUT_HOLD_HOURS
+//     payout_scheduled_at = approval + STANDARD_PAYOUT_HOURS_AFTER_APPROVAL (owner 2026-10-23)
 //
 // and `process-scheduled-payouts` fires the transfer only once that passes.
 // The helper is paid a DAY after approval. Every string around that moment
@@ -27,9 +27,8 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "../../../test/helpers/blankNonCode";
 import {
-  AUTO_COMPLETE_HOURS,
-  PAYOUT_HOLD_HOURS,
-  TOTAL_TO_PAYOUT_HOURS,
+  APPROVAL_WINDOW_HOURS,
+  STANDARD_PAYOUT_HOURS_AFTER_APPROVAL,
 } from "../../../../supabase/functions/_shared/escrowTiming";
 import { readdirSync } from "../../../test/helpers/trackedFiles";
 
@@ -99,13 +98,12 @@ function terminalBranch(): string {
 }
 
 describe("the helper is told when the money actually moves", () => {
-  it("states the payout hold rather than implying payment at approval", () => {
-    // The number must be INTERPOLATED from escrowTiming, never retyped: the
-    // cron reads that constant, so a hardcoded "24" is a second registry that
-    // goes stale silently the moment the hold changes.
-    expect(code).toContain("PAYOUT_HOLD_HOURS");
-    const interpolations = code.match(/\$\{PAYOUT_HOLD_HOURS\}|\{PAYOUT_HOLD_HOURS\}/g) ?? [];
+  it("states when the payout is sent rather than implying payment at approval", () => {
+    // INTERPOLATED from escrowTiming, never retyped (owner 2026-10-23: the payout is sent
+    // STANDARD_PAYOUT_PHRASE after the approval, and once scheduled the card names the DAY).
+    const interpolations = code.match(/\$\{STANDARD_PAYOUT_PHRASE\}|\{STANDARD_PAYOUT_PHRASE\}/g) ?? [];
     expect(interpolations.length).toBeGreaterThanOrEqual(3);
+    expect(code).toMatch(/payoutDayLabel\(job\.payout_scheduled_at\)/);
   });
 
   it("never tells the helper the money is already on its way at approval", () => {
@@ -116,13 +114,16 @@ describe("the helper is told when the money actually moves", () => {
     expect(code).not.toContain("it's on its way");
     expect(code).not.toMatch(/payment will automatically be released to you/i);
     expect(code).not.toMatch(/Payment will auto-release to you when this timer expires/i);
+    // Owner 2026-10-23: nothing is released on a timer.
+    expect(code).not.toMatch(/completes automatically/i);
   });
 
   it("says something about money in the completed state", () => {
     // The regression that hurt most was SILENCE. Assert the terminal branch
     // still speaks to the payout rather than reverting to a bare chip.
     expect(terminalBranch()).toMatch(/payout/i);
-    // Q202: approval is not the clock any more; the job being marked done is.
+    // Owner 2026-10-23: the DAY once it is scheduled, else the rule.
+    expect(terminalBranch()).toContain("{payDay}");
     expect(terminalBranch()).toContain("STANDARD_PAYOUT_PHRASE");
   });
 
@@ -133,30 +134,29 @@ describe("the helper is told when the money actually moves", () => {
 });
 
 describe("the schedule the copy describes is the one the cron runs", () => {
-  it("keeps the two legs distinct", () => {
-    // Approval window and payout hold are different clocks. Copy that collapses
-    // them is how "released to you in 24 hours" came to describe a 48-hour trip.
-    expect(TOTAL_TO_PAYOUT_HOURS).toBe(AUTO_COMPLETE_HOURS + PAYOUT_HOLD_HOURS);
-    expect(PAYOUT_HOLD_HOURS).toBeGreaterThan(0);
+  it("keeps the two clocks distinct", () => {
+    // The poster's approval window and the payout clock are different clocks. Copy that collapses
+    // them is how "released to you in 24 hours" came to describe a 72-hour trip.
+    expect(APPROVAL_WINDOW_HOURS).toBe(24);
+    expect(STANDARD_PAYOUT_HOURS_AFTER_APPROVAL).toBe(72);
   });
 
   it("matches the schedule create-payment actually writes", () => {
     // The source of the whole finding was an unconditional +24h at the release
-    // write. Since Q202 (2026-09-23) the release write schedules the standard
-    // payout 3 days after the job was marked done, from the shared function
-    // the copy's STANDARD_PAYOUT_PHRASE is built from. A literal comes back → red.
+    // write. The release write schedules the standard payout 3 days after the
+    // poster's APPROVAL (owner 2026-10-23), from the shared function the copy's
+    // STANDARD_PAYOUT_PHRASE is built from. A literal comes back → red.
     const fn = readFileSync(
       resolve(process.cwd(), "supabase/functions/create-payment/index.ts"),
       "utf8",
     );
-    expect(fn).toMatch(/const payoutTime = standardPayoutAtIso\(/);
+    expect(fn).toMatch(/const payoutTime = standardPayoutAtIso\(isPoster \? null : job\.poster_completed_at\);/);
     expect(fn).not.toContain("Date.now() + 24 * 60 * 60 * 1000");
-    expect(PAYOUT_HOLD_HOURS).toBe(48);
   });
 });
 
 // SILENCE IN THE COMPLETED STATE — the regression this file exists for. Until
 // 2026-09-21 this exact mutation SURVIVED (terminalBranch() ran to the end of
 // the file and read the other branch's copy); it now fails on the missing
-// STANDARD_PAYOUT_PHRASE inside the approved arm (PAYOUT_HOLD_HOURS before Q202).
-// @mutate src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx | Approved. Your payout is sent {STANDARD_PAYOUT_PHRASE}, | Approved.
+// day inside the approved arm (STANDARD_PAYOUT_PHRASE before 2026-10-23, PAYOUT_HOLD_HOURS before Q202).
+// @mutate src/pages/jobs/appliedJobCard/steps/SubmittedStep.tsx | <>Approved. Your payout will be sent {payDay}, then lands | <>Approved. then lands

@@ -80,8 +80,22 @@ export function HelperCollapsedStrip({
   if (hideStatus) return clock;
   const strip = isCrewLive
     ? <CrewStatusStrip app={app} job={job} userId={userId} unsettledDisputeJobIds={unsettledDisputeJobIds} />
-    : <JobStatusStrip line={withReviewed(helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app, false, { workUnderway: helperProgress(job, tracking?.status).workUnderway }), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} variant={variant} />;
+    : <JobStatusStrip line={withReviewed(helperCardLine(app, job, unsettledDisputeJobIds, tracking), reviewed)} extraClocks={showStartClock ? collapsedClocks(job, false) : null} variant={variant} />;
   return <>{clock}{strip}</>;
+}
+
+/**
+ * THE Helpr card's status line, computed ONCE per card: the strip prints it, the face button's step is vetoed
+ * by its id (helperFaceNextStep) and the 8-step bar reads it (jobProgress `card`), so the three never disagree
+ * (lead review 2026-10-22). Guard: src/test/trackerAgreesWithCard.test.ts.
+ */
+export function helperCardLine(
+  app: AppliedApp,
+  job: Job,
+  unsettledDisputeJobIds: Parameters<typeof withDisputeSettling>[1],
+  tracking: TrackingData | null | undefined,
+): ReturnType<typeof helperStatusLine> {
+  return helperStatusLine(app.job ? { ...app, job: withDisputeSettling(app.job, unsettledDisputeJobIds) } : app, false, { workUnderway: helperProgress(job, tracking?.status).workUnderway });
 }
 
 /** "Done · payout pending" + " · Reviewed" on a finished job this Helpr reviewed. */

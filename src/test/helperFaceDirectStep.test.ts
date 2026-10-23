@@ -7,6 +7,7 @@
  * @mutate src/components/job-card/helperStepRequest.ts |   return req.step === step && Date.now() - req.at < REQUEST_TTL_MS; |   return Date.now() - req.at < REQUEST_TTL_MS;
  * @mutate src/components/JobTracking.tsx |         if (takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext); |         if (takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);
  * @mutate src/pages/jobs/AppliedJobCard.tsx | open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); }, | open: () => toggleExpandedJobId(app.job_id),
+ * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (wait === "arrival_unconfirmed" \|\| wait === "overdue_arrival_unconfirmed") return null; |
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -60,6 +61,13 @@ describe("Helpr face: the real next step, taken through the tracker", () => {
     expect(src).toMatch(/onClick=\{runNext\}/);
     expect(src).toMatch(/disabled=\{ctaDisabled\}/);
     expect(code("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/open: \(\) => \{ if \(!isExpanded\) toggleExpandedJobId\(app\.job_id\); \}/);
-    expect(code("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/step: \(isConfirmed \|\| isActive\) && !isCrewLive && !job\.is_group_job \? helperFaceNextStep\(job, initialTracking\) : null/);
+    expect(code("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/step: \(isConfirmed \|\| isActive\) && !isCrewLive && !job\.is_group_job \? helperFaceNextStep\(job, initialTracking, cardLine\.id\) : null/);
+  });
+
+  it("no Start working while the card's own line says it is locked on the arrival rule (lead review 2026-10-22)", () => {
+    const arrived = { ...base, helper_on_the_way_at: T, helper_arrived_at: T };
+    expect(helperFaceNextStep(arrived, null, "start_working")?.label).toBe("Start working");
+    expect(helperFaceNextStep(arrived, null, "arrival_unconfirmed")).toBeNull();
+    expect(helperFaceNextStep(arrived, null, "overdue_arrival_unconfirmed")).toBeNull();
   });
 });

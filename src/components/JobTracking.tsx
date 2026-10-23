@@ -1528,22 +1528,16 @@ export function JobTracking({
       <JobProgress
         progress={jobProgress(
           {
-            status: jobStatus ?? null,
-            helper_id: helperId,
-            date_needed: jobDateNeeded,
-            start_time: jobStartTime ?? null,
-            helper_confirmed_at: helperConfirmedAt,
-            helper_dayof_confirmed_at: helperDayofConfirmedAt,
-            poster_confirmed_at: posterConfirmedAt,
+            id: jobId, status: jobStatus ?? null, helper_id: helperId, date_needed: jobDateNeeded, start_time: jobStartTime ?? null,
+            helper_confirmed_at: helperConfirmedAt, helper_dayof_confirmed_at: helperDayofConfirmedAt, poster_confirmed_at: posterConfirmedAt,
             helper_on_the_way_at: jobStamps.onTheWayAt ?? (tracking?.status === "on_the_way" ? tracking.updated_at : null),
-            helper_arrived_at: jobStamps.arrivedAt,
-            helper_arrival_verified_at: jobStamps.arrivalVerifiedAt,
-            poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt,
-            poster_confirmed_working_at: posterConfirmedWorkingAt,
-            helper_completed_at: jobStamps.helperCompletedAt,
-            poster_completed_at: jobStamps.posterCompletedAt,
+            helper_arrived_at: jobStamps.arrivedAt, helper_arrival_verified_at: jobStamps.arrivalVerifiedAt,
+            poster_confirmed_arrival_at: jobStamps.posterConfirmedArrivalAt, poster_confirmed_working_at: posterConfirmedWorkingAt,
+            helper_completed_at: jobStamps.helperCompletedAt, poster_completed_at: jobStamps.posterCompletedAt,
+            // The open card reads the same Helpr line and button as its collapsed face (photo rule, tracking row).
+            require_photo_proof: requirePhotoProof, proof_before_urls: proofBeforeUrls, proof_after_urls: proofAfterUrls,
           },
-          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null, rescheduled },
+          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null, rescheduled, workUnderway: currentStatusIdx >= STATUS_IDX.working, tracking },
         )}
       />
 

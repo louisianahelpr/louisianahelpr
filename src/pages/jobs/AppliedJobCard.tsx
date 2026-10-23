@@ -8,7 +8,7 @@ import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
 import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/lib/jobProgress";
 import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
 import { PersonTile } from "@/components/PersonTile";
 import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
@@ -26,7 +26,7 @@ import { ActiveJobSection } from "./appliedJobCard/ActiveJobSection";
 import { DisputedSection } from "./appliedJobCard/DisputedSection";
 import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
 import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
-import { HelperCollapsedStrip } from "./appliedJobCard/HelperCollapsedStrip";
+import { HelperCollapsedStrip, helperCardLine } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
@@ -97,7 +97,6 @@ function AppliedJobCardInner({
   const viewerFeePercent = tierFeePercent(viewerProfile?.subscription_tier, viewerProfile?.subscription_expires_at ?? null);
 
   useHighlightPulse(highlight, cardRef);
-
   /* The person slot, opened BEFORE the `if (!job)` early return below (rules
      of hooks). The tile is built once the card knows the poster. */
   const { claim: personClaim, stepCarriesTile } = useJobCardPersonSlot();
@@ -319,13 +318,13 @@ function AppliedJobCardInner({
 
   // The states the server already hands the full address to (the meta row's own gate).
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
-  // The face's ONE button (board 21; helperFaceAction.ts).
+  const cardLine = helperCardLine(app, job, unsettledDisputeJobIds, initialTracking); // ONE line: the strip, the face's button (board 21), the 8-step bar
   const faceAction = helperFaceAction({
     isMinimalCard, isOffered, isPending,
     owesReview: isCompleted && !isFullyDone && canLeaveReview && !helperReviewedJobIds.has(app.job_id),
     review: () => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job"),
     manage: () => toggleExpandedJobId(app.job_id), open: () => { if (!isExpanded) toggleExpandedJobId(app.job_id); },
-    step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking) : null,
+    step: (isConfirmed || isActive) && !isCrewLive && !job.is_group_job ? helperFaceNextStep(job, initialTracking, cardLine.id) : null,
   });
 
   return (
@@ -366,6 +365,7 @@ function AppliedJobCardInner({
               ) : null
             }
             action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
+            progress={!isExpanded && job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: (app.posterName ?? "").split(" ")[0] || null, card: { line: cardLine, face: faceAction } }) : null} /* the 8 steps on the card (owner, 2026-10-22) */
           />
           {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
 

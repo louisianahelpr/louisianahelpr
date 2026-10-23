@@ -28,7 +28,7 @@ export function JobTracker({ job, side }: { job: JobPageRow; side: "poster" | "h
   const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
   if (!side) return null;
   const progress = jobProgress(job, { viewer: side, rescheduled });
-  if (progress.step === null && !progress.next) return null;
+  if (progress.stage === null && !progress.next) return null;
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">
       <JobProgress progress={progress} />

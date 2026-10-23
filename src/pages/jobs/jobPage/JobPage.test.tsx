@@ -198,7 +198,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByText("Paid when you posted. We hold it until the job is done.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Nothing is charged|take home|takes home/i);
     expect(screen.getByText("3 applicants")).toBeTruthy();
-    expect(screen.getByLabelText("Step 1 of 4: Posted")).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
     expect(screen.getByText("Pick your Helpr")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}`);
@@ -213,7 +213,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     state.job = row({ customer_id: ME, status: "completed", payment_status: "payout_pending" });
     renderPage();
     expect(document.querySelector("[data-poster-money] p.mt-1\\.5")).toBeNull();
-    expect(screen.getByLabelText("Step 4 of 4: Done")).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress: all 8 steps done/)).toBeTruthy();
   });
 
   it("a cancelled job says so instead of drawing a tracker", () => {
@@ -223,7 +223,8 @@ describe("job page, poster side (boards 15, 168)", () => {
     // The one tracker (owner 2026-10-21): off the path it is the line alone, no step bar.
     expect(screen.getByText(/This job was cancelled/)).toBeTruthy();
     expect(screen.getByText("Refunded to your card.")).toBeTruthy();
-    expect(screen.queryByLabelText(/^Step \d of 4/)).toBeNull();
+    // No misleading progress colour (lead review 2026-10-22): an all-grey bar that says Cancelled.
+    expect(screen.getByLabelText(/^Job progress: Cancelled/).getAttribute("data-tone")).toBe("cancelled");
   });
 });
 
@@ -232,7 +233,7 @@ describe("job page, the hired Helpr", () => {
     state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z", poster_confirmed_arrival_at: "2026-10-21T12:00:00Z" });
     state.party = true;
     renderPage();
-    expect(screen.getByLabelText("Step 3 of 4: Working")).toBeTruthy();
+    expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Mark it done when you finish")).toBeTruthy();
     expect(screen.queryByText("The street address is shared after you're hired.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));

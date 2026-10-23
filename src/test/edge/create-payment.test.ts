@@ -904,12 +904,12 @@ describe("create-payment edge function", () => {
     // ME-043: every line carries a tax code and tax behaviour; the labor code
     // follows the category rule in _shared/salesTax.ts, both ways.
     it("gives every escrow line a tax_code and tax_behavior, labor coded by category", async () => {
-      const codeFor = async (category: string) => {
+      const codeFor = async (category: string, taxKind: string | null = null) => {
         resetSupabaseMock();
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, tax_kind: taxKind, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
         };
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
@@ -936,6 +936,13 @@ describe("create-payment edge function", () => {
       };
       expect(await codeFor("handyman")).toBe("txcd_20080005");
       expect(await codeFor("yard_work")).toBe("txcd_00000000");
+      // Owner 2026-10-23 (#3555, "BOTH"): the poster's answer taxes an
+      // otherwise untaxed category, each kind with its own code.
+      // @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxCode(job.category, job.tax_kind), |               tax_code: laborTaxCode(job.category),
+      expect(await codeFor("cleaning", "fabric_cleaning")).toBe("txcd_20010003");
+      expect(await codeFor("other", "item_repair")).toBe("txcd_20080005");
+      expect(await codeFor("cleaning", null)).toBe("txcd_00000000");
+      expect(await codeFor("handyman", "fabric_cleaning")).toBe("txcd_20080005");
     });
 
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales

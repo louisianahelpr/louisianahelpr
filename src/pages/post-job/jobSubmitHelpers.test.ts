@@ -55,6 +55,19 @@ describe("buildJobInsertPayload — sales tax", () => {
     expect(p.sales_tax_amount).toBeCloseTo(10.45, 2);
   });
 
+  // Owner 2026-10-23 (#3555, "BOTH"): the poster's answer taxes an untaxed
+  // category, and it rides on the row only when given (deploy-lag safe).
+  // @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(taxKind ? { tax_kind: taxKind } : {}), |
+  it("writes the poster's taxed-kind answer, and taxes an untaxed category with it", () => {
+    const p = buildJobInsertPayload({ ...base, category: "cleaning", taxKind: "fabric_cleaning" }) as Record<string, unknown>;
+    expect(p.tax_kind).toBe("fabric_cleaning");
+    expect(p.sales_tax_rate).toBe(0.1045);
+    expect(p.sales_tax_amount).toBeCloseTo(10.45, 2);
+    const none = buildJobInsertPayload({ ...base, category: "cleaning", taxKind: null }) as Record<string, unknown>;
+    expect(none).not.toHaveProperty("tax_kind");
+    expect(none.sales_tax_amount).toBe(0);
+  });
+
   it("writes zero when the parish rate is unknown (0), not a guess", () => {
     const p = buildJobInsertPayload({ ...base, category: "assembly", salesTaxRate: 0 }) as Record<string, unknown>;
     expect(p.sales_tax_rate).toBe(0);

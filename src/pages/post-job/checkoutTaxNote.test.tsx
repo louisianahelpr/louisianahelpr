@@ -54,4 +54,24 @@ describe("J3: the tax note names exactly what is taxed", () => {
       mockTax = null;
     }
   });
+
+  // Owner 2026-10-23 (#3555): a cleaning job the poster says cleans fabric is
+  // taxed, and the note names the WORK, not the (untaxed) category.
+  // @mutate src/components/postjob/CheckoutStep.tsx |             const taxable = hasTaxableLine(category, taxKind); |             const taxable = hasTaxableLine(category);
+  it("a fabric-cleaning answer on an untaxed category is quoted as taxable work", () => {
+    mockTax = 10.45;
+    try {
+      render(<CheckoutStepView form={makeForm({ category: "cleaning", categoryLabel: "Cleaning", taxKind: "fabric_cleaning", totalCharge: 100 })} />);
+      const note = screen.getByText(/so tax applies to the/i);
+      expect(note.textContent).toContain("Cleaning carpet, rugs, furniture or clothes is taxable labor in Louisiana");
+      expect(note.textContent).toContain("$100 job budget");
+    } finally {
+      mockTax = null;
+    }
+  });
+
+  it("an untaxed category with no answer shows no tax note", () => {
+    render(<CheckoutStepView form={makeForm({ category: "cleaning", categoryLabel: "Cleaning", taxKind: null })} />);
+    expect(screen.queryByText(/tax applies to the/i)).toBeNull();
+  });
 });

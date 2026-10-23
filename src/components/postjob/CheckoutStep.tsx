@@ -605,8 +605,8 @@ export function CheckoutStep({
                         already typed their ZIP to "add your ZIP" reads as a
                         failure of their input. */}
                     {taxLoading
-                      ? `This category is taxable in Louisiana — checking the exact amount for your address. Tax applies to the ${taxedWhat}.`
-                      : `This category is taxable in Louisiana. Add your ZIP and we'll show the exact amount — tax applies to the ${taxedWhat}.`}
+                      ? `${TAXABLE_CATEGORIES.has(category) ? "This category" : "This job"} is taxable in Louisiana — checking the exact amount for your address. Tax applies to the ${taxedWhat}.`
+                      : `${TAXABLE_CATEGORIES.has(category) ? "This category" : "This job"} is taxable in Louisiana. Add your ZIP and we'll show the exact amount — tax applies to the ${taxedWhat}.`}
                   </p>
                 </>
               );

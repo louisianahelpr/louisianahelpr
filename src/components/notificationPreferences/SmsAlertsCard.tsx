@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import {
   SMS_CONSENT_TEXT_BEFORE_LINKS,
@@ -95,26 +94,6 @@ export default function SmsAlertsCard() {
     }
   };
 
-  const saveJobMatches = async (on: boolean) => {
-    setSaving(true);
-    try {
-      const res = await supabase.rpc("set_sms_job_match_texts", { p_on: on });
-      if (res.error) {
-        toast.error(rpcErrorMessage("set_sms_job_match_texts", res.error) ?? "We couldn't save that. Try again.");
-        return;
-      }
-      const next = parseSmsConsent(res.data);
-      if (next.job_match_texts !== on) {
-        toast.error("We couldn't save that. Try again.");
-        return;
-      }
-      queryClient.setQueryData([...QUERY_KEY, user.id], next);
-      toast.success(on ? "Texts about new jobs near you are on." : "Texts about new jobs near you are off.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <section
       aria-labelledby={`${consentId}-title`}
@@ -179,20 +158,6 @@ export default function SmsAlertsCard() {
               changes and problems on your jobs, payment or payout problems, and new messages. Nothing non-urgent
               between 9pm and 8am (it waits until morning). Texts never include names or addresses. Reply STOP to any text to stop.
             </p>
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor={`${consentId}-matches`} className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep) / 0.85)" }}>
-                New jobs near you
-                <span className="block text-ds-12" style={{ color: "hsl(var(--ink-deep) / 0.65)" }}>
-                  At most 1 an hour and 3 a day, never at night.
-                </span>
-              </Label>
-              <Switch
-                id={`${consentId}-matches`}
-                checked={consent?.job_match_texts !== false}
-                disabled={saving}
-                onCheckedChange={(on) => { void saveJobMatches(on); }}
-              />
-            </div>
             <Button variant="outline" className="w-full" disabled={saving} onClick={() => { void save(false); }}>
               Turn off text alerts
             </Button>

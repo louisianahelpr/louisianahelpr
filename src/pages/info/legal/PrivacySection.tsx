@@ -170,11 +170,13 @@ export const PrivacyContent = () => (
         title="What we never do"
         body={<p>We never sell your personal information to third parties for advertising or marketing purposes.</p>}
       />
-      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). */}
+      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). 2026-10-23: Twilio's A2P
+          campaign review needs the exact "We do not sell or share your SMS opt-in data ..." sentence and the
+          registered brand name, Louisiana Helpr. Guard: src/test/smsLegalCopyForTwilio.test.ts. */}
       <PolicyRowItem
         icon={MessageSquareText}
         title="Text messages"
-        body={<p>If you choose to get text alerts, we use your mobile number only to send the alerts you asked for. We do not sell or share your mobile number or your text opt-in with third parties or affiliates for marketing. Our texting provider (Twilio) processes the number only to deliver our texts. Reply STOP to stop at any time.</p>}
+        body={<p>If you choose to get text alerts from Louisiana Helpr, we use your mobile number only to send the alerts you asked for. We do not sell or share your SMS opt-in data or personal information with third parties for marketing purposes. That covers your mobile number, and affiliates as well as third parties. Our texting provider (Twilio) processes the number only to deliver our texts. Reply STOP to stop at any time.</p>}
       />
     </PolicySection>
 

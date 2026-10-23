@@ -29,6 +29,8 @@ interface PublicHeaderPageProps {
    *  and Support, which have no title-row actions, so their headers are
    *  byte-identical to before. */
   titleActions?: ReactNode;
+  /** Forwarded to PageHeader: let a long title wrap instead of truncating. */
+  wrapTitle?: boolean;
   /** Forwarded to PublicLayout's `footer`: false while the body is still
    *  loading (Q1312), so the page needs no screen-tall reserve under it. */
   footer?: boolean;
@@ -57,6 +59,7 @@ export function PublicHeaderPage({
   bottomPaddingClassName,
   headerWrapperClassName,
   titleActions,
+  wrapTitle = false,
   footer = true,
   children,
 }: PublicHeaderPageProps) {
@@ -67,6 +70,7 @@ export function PublicHeaderPage({
       width={width}
       topInsetHandled
       titleActions={titleActions}
+      wrapTitle={wrapTitle}
     />
   );
   return (

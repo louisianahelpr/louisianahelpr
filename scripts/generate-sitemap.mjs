@@ -85,10 +85,13 @@ const WEIGHTS = {
   "/": { changefreq: "weekly", priority: "1.0" },
   "/browse": { changefreq: "daily", priority: "0.8" },
   "/help": { changefreq: "monthly", priority: "0.6" },
+  "/sms-opt-in": { changefreq: "yearly", priority: "0.2" },
   "/support": { changefreq: "monthly", priority: "0.5" },
   "/legal": { changefreq: "monthly", priority: "0.4" },
   "/legal?tab=community": { changefreq: "monthly", priority: "0.4" },
   "/legal?tab=privacy": { changefreq: "monthly", priority: "0.4" },
+  "/terms/full": { changefreq: "monthly", priority: "0.4" },
+  "/privacy/full": { changefreq: "monthly", priority: "0.4" },
   "/login": { changefreq: "monthly", priority: "0.3" },
   "/signup": { changefreq: "monthly", priority: "0.3" },
 };

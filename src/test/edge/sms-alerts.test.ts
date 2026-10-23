@@ -26,7 +26,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { SMS_CONFIRM_HINT, smsConfirmText, twilioSignature } from "../../../supabase/functions/_shared/smsPolicy";
+import { SMS_CONFIRM_HINT, SMS_OPTED_IN_REPLY, smsConfirmText, twilioSignature } from "../../../supabase/functions/_shared/smsPolicy";
 
 const SID = "AC" + "0".repeat(32);
 const MG = "MG" + "1".repeat(32);
@@ -120,6 +120,20 @@ describe("send-sms-notification", () => {
     );
   });
 
+  // Owner 2026-10-23: no text is ever sent for a nearby or matching job, even if a claim for one reached the sender.
+  // @mutate supabase/functions/send-sms-notification/index.ts |     if (claim.kind === 'job_match') { |     if (false) {
+  it("a nearby-job (job_match) claim is refused and recorded, and Twilio is never called", async () => {
+    scenario.rpc.sms_claim_due = [{ sms_id: "sms-jm", phone: "+12255550123", kind: "job_match", job_id: JOB, first_text: false }];
+    scenario.rpc.sms_record_result = true;
+    const fn = await loadSend(TWILIO_ENV);
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: DRAIN }));
+    expect(fetchCalls.filter((c) => c.url.includes("api.twilio.com"))).toEqual([]);
+    expect(await res.json()).toMatchObject({ sent: 0, failed: 1 });
+    expect(scenario.rpcCalls?.[1]).toMatchObject({
+      name: "sms_record_result", args: { p_sms_id: "sms-jm", p_status: "failed", p_provider_sid: null, p_error_code: "job_match_retired" },
+    });
+  });
+
   it("records a Twilio refusal with its error code (21610 = recipient replied STOP)", async () => {
     stubTwilio({ status: 400, body: { code: 21610, message: "Attempt to send to unsubscribed recipient" } });
     scenario.rpc.sms_claim_due = [{ sms_id: "sms-2", phone: "+12255550123", kind: "message", job_id: null, first_text: false }];
@@ -209,6 +223,23 @@ describe("twilio-inbound", () => {
     expect(scenario.rpcCalls).toEqual([
       expect.objectContaining({ name: "sms_inbound_keyword", args: { p_phone: "+12255550123", p_action: "start", p_code: "0427" } }),
     ]);
+  });
+
+  // @mutate supabase/functions/twilio-inbound/index.ts |     if (action === 'start' && code !== null && changed === 1) { |     if (false) {
+  it("a confirmed YES <code> gets the opt-in confirmation reply Twilio's A2P review requires (owner 2026-10-23)", async () => {
+    scenario.rpc.sms_inbound_keyword = 1;
+    const res = await post({ From: "+12255550123", Body: "YES 0427", MessageSid: "SM5" });
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("You&apos;re now signed up for job alert texts");
+    expect(body).toContain("Reply HELP for help, STOP to opt out.");
+    expect(SMS_OPTED_IN_REPLY).toBe("Louisiana Helpr: You're now signed up for job alert texts. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to opt out.");
+  });
+
+  it("a YES <code> the database did not accept (wrong or expired code) gets no confirmation", async () => {
+    scenario.rpc.sms_inbound_keyword = 0;
+    const res = await post({ From: "+12255550123", Body: "YES 9999", MessageSid: "SM6" });
+    expect(await res.text()).not.toContain("signed up");
   });
 
   it("a bare YES that changed nothing gets the hint to add the code", async () => {

@@ -14,6 +14,12 @@ export const PolicySearchContext = createContext<string>("");
 // lives. Empty string = normal single-tab browsing (no origin chip).
 export const PolicyTabContext = createContext<string>("");
 
+// The full-text pages (/terms/full, /privacy/full; owner 2026-10-23, Twilio's A2P review wants the Terms and the
+// Privacy Policy readable at a URL with nothing to tap) render the SAME TermsContent / PrivacyContent with this set:
+// every PolicySection and PolicyRowItem then renders as plain headings and text, open on load, no accordion.
+// Guard: src/test/legalFullText.test.tsx.
+export const PolicyFullTextContext = createContext<boolean>(false);
+
 // Wrap any case-insensitive occurrences of `query` in the given text with a
 // highlight <mark>, so search results visibly point at the matched term.
 const highlight = (text: string, query: string): React.ReactNode => {
@@ -109,6 +115,7 @@ const matches = (query: string, haystack: string) =>
 export const policySearchMatches = matches;
 
 export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: PolicyRow) => {
+  const fullText = useContext(PolicyFullTextContext);
   const query = useContext(PolicySearchContext);
   const isSearching = !!query.trim();
   const [open, setOpen] = useState(false);
@@ -122,6 +129,21 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
   // When searching, only render matching rows AND force them open so
   // the user can read the matching body without an extra tap.
   if (isSearching && !hit) return null;
+  if (fullText) {
+    return (
+      <div data-policy-row className="px-3 py-2.5">
+        <h3 className="m-0 flex items-center gap-2.5 text-ds-13 font-semibold text-foreground leading-snug">
+          <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-primary/10 text-primary" data-warning={warning ? "" : undefined}>
+            <Icon className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
+          </span>
+          {title}
+        </h3>
+        <div className="pl-3 pt-2 text-ds-13 text-muted-foreground space-y-1.5 border-l-2 border-border/40 ml-5 mt-1">
+          {body}
+        </div>
+      </div>
+    );
+  }
   const effectiveOpen = isSearching ? true : open;
 
   return (
@@ -177,6 +199,7 @@ interface PolicySectionProps {
 }
 
 export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpen = false, anchorId, children }: PolicySectionProps) => {
+  const fullText = useContext(PolicyFullTextContext);
   const query = useContext(PolicySearchContext);
   const tabLabel = useContext(PolicyTabContext);
   const isSearching = !!query.trim();
@@ -220,6 +243,38 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
   // While searching, a section that matches nothing (header or any row)
   // removes itself entirely so the results read as a tight list.
   if (isSearching && !sectionHit) return null;
+
+  // Full text: the same card, open, with a plain heading instead of a trigger (PolicyFullTextContext).
+  if (fullText) {
+    return (
+      <section
+        data-policy-section
+        id={anchorId}
+        className="rounded-[20px] border border-border bg-card overflow-hidden scroll-mt-24"
+      >
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <span className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary">
+            <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-2 flex-wrap">
+              <h2 className="m-0 font-sans font-bold text-foreground leading-tight text-ds-15">{title}</h2>
+              {warning && (
+                <span
+                  className="shrink-0 rounded-full border px-2 py-0.5 text-ds-11 font-sans font-semibold"
+                  style={{ borderColor: "hsl(var(--bark) / 0.45)", color: "hsl(var(--sage-ink))" }}
+                >
+                  Read carefully
+                </span>
+              )}
+            </span>
+            <span className="block text-ds-11 text-muted-foreground leading-snug">{subtitle}</span>
+          </span>
+        </div>
+        <div className="px-2 pb-2 pt-1 space-y-0.5 border-t border-border/50">{children}</div>
+      </section>
+    );
+  }
 
   // Force-open while searching so matching rows are visible without
   // the user having to tap each section header. Outside of search,

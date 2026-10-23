@@ -15,6 +15,7 @@ import {
   twilioSignature,
   twiml,
   SMS_HELP_REPLY,
+  SMS_OPTED_IN_REPLY,
   type SmsKind,
   SMS_KIND_PHRASES,
 } from "../../supabase/functions/_shared/smsPolicy";
@@ -120,5 +121,11 @@ describe("twiml", () => {
     expect(twiml("a & <b>")).toContain("<Message>a &amp; &lt;b&gt;</Message>");
     expect(twiml()).toContain("<Response></Response>");
     expect(SMS_HELP_REPLY.length).toBeLessThanOrEqual(160);
+    // The opt-in confirmation (Twilio A2P review, owner 2026-10-23): one GSM-7 segment, plain ASCII, the brand
+    // name, frequency, rates, HELP and STOP.
+    expect(SMS_OPTED_IN_REPLY.length).toBeLessThanOrEqual(160);
+    expect(SMS_OPTED_IN_REPLY).toMatch(/^[\x20-\x7e]+$/);
+    expect(SMS_OPTED_IN_REPLY).toMatch(/^Louisiana Helpr: /);
+    expect(SMS_OPTED_IN_REPLY).toMatch(/Msg frequency varies\. Msg & data rates may apply\. Reply HELP for help, STOP to opt out\.$/);
   });
 });

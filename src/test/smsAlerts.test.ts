@@ -18,13 +18,13 @@
  * (70 checks, migration 20261021193738) and in src/test/edge/sms-alerts.test.ts.
  */
 // @mutate src/lib/smsConsent.ts |   const e = d.length === 10 ? `+1${d}` : d.length === 11 && d.startsWith("1") ? `+${d}` : null; |   const e = d.length >= 10 ? `+1${d.slice(-10)}` : null;
-// @mutate src/lib/smsConsent.ts | export const SMS_CONSENT_TEXT_VERSION = "sms-v1"; | export const SMS_CONSENT_TEXT_VERSION = "sms-v2";
+// @mutate src/lib/smsConsent.ts | export const SMS_CONSENT_TEXT_VERSION = "sms-v2"; | export const SMS_CONSENT_TEXT_VERSION = "sms-v3";
 // @mutate supabase/functions/send-sms-notification/index.ts | jobId: claim.job_id, | jobId: claim.job_id, title: (claim as { title?: string }).title,
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
-import { SMS_CONSENT_TEXT_VERSION, normalizeUsPhone } from "@/lib/smsConsent";
+import { SMS_CONSENT_TEXT_BEFORE_LINKS, SMS_CONSENT_TEXT_VERSION, normalizeUsPhone } from "@/lib/smsConsent";
 import { SMS_KIND_PHRASES } from "../../supabase/functions/_shared/smsPolicy";
 
 const ROOT = resolve(__dirname, "../..");
@@ -77,8 +77,8 @@ describe("SMS alerts source rules", () => {
     expect(src).not.toMatch(/from\(\s*['"]notifications['"]/);
   });
 
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     WHEN p_type = 'warning' AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type = 'warning' THEN 'dispute'
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
+  // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |     WHEN p_type = 'warning' AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' |     WHEN p_type = 'warning' THEN 'dispute'
+  // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'application' |     WHEN p_type = 'application' AND p_title = 'New application' THEN 'applied'
   it("the classifier reaches warning/payment/financial types only by exact title, never admin/system/review", () => {
     const trg = newestTrigger("notifications_fan_out_to_sms");
     expect(trg).toMatch(/AFTER\s+INSERT\s+ON\s+public\.notifications/i);
@@ -104,6 +104,23 @@ describe("SMS alerts source rules", () => {
     expect([...kinds].sort()).toEqual(Object.keys(SMS_KIND_PHRASES).filter((k) => k !== "confirm").sort());
   });
 
+  // NO TEXT FOR A NEARBY OR MATCHING JOB (owner ruling 2026-10-23, Twilio A2P). Behaviour (a waiting one skipped, a
+  // new one never queued, the claim never hands one out) is proved in src/test/pglite/smsNoNearbyJobTexts.pglite.mjs;
+  // the sender's refusal in src/test/edge/sms-alerts.test.ts. These are the anchors.
+  // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |     WHEN p_type = 'job_match' THEN NULL | WHEN p_type = 'job_match' THEN 'job_match'
+  // @mutate supabase/functions/_shared/smsPolicy.ts |   job_offer: "New job offer. Answer before it expires.", |   job_offer: "New job offer. Answer before it expires.",\n  job_match: "A new job was posted near you.",
+  it("a nearby-job (job_match) notification is never texted, and no text can be built for one", () => {
+    const body = newestFunctionBody("sms_kind_for").replace(/\s+/g, " ");
+    // The FIRST branch, so no later branch (e.g. info/success with a job) can catch one.
+    expect(body).toMatch(/^ ?SELECT CASE WHEN p_type = 'job_match' THEN NULL WHEN /);
+    expect(body).not.toMatch(/THEN 'job_match'/);
+    expect(Object.keys(SMS_KIND_PHRASES)).not.toContain("job_match");
+    const retire = blankSqlComments(readFileSync(resolve(MIG_DIR, "20261023181442_sms_no_nearby_job_texts.sql"), "utf8"));
+    expect(retire.replace(/\s+/g, " ")).toContain("UPDATE public.sms_messages SET status = 'skipped', reason = 'job_match_texts_retired' WHERE status = 'pending' AND kind = 'job_match';");
+    // The consent wording no longer offers them.
+    expect(SMS_CONSENT_TEXT_BEFORE_LINKS).not.toMatch(/nearby|near you|new jobs/i);
+  });
+
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     ELSIF n.read IS TRUE THEN | ELSIF false THEN
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql | v_kind, 'pending', now() + interval '3 minutes') | v_kind, 'pending', now())
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql |     v_urgent := r.kind IN ('job_offer', 'starting_soon'); |     v_urgent := false;
@@ -125,7 +142,7 @@ describe("SMS alerts source rules", () => {
 
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
+  // @mutate supabase/migrations/20261023181442_sms_no_nearby_job_texts.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
   it("Download My Data never says whether a number is used on another account (lh-authz-rls review)", () => {
     const ex = newestFunctionBody("export_my_data").replace(/\s+/g, " ");
     expect(ex.length).toBeGreaterThan(5000);

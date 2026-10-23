@@ -53,6 +53,12 @@ interface PageHeaderProps {
    * scrolling, since it reads the h1's text.
    */
   phoneHidesTitle?: boolean;
+  /**
+   * Let a long title wrap onto a second line instead of ending in "..." (default: one line, truncated). For a
+   * public page whose title is a sentence, e.g. /sms-opt-in "How to opt in to Louisiana Helpr text alerts", which
+   * truncated to "How to opt in to Louisia..." at 375 (measured 2026-10-23).
+   */
+  wrapTitle?: boolean;
   hideBack?: boolean;
   /**
    * Keep the back button's BOX when `hideBack` is set, empty and inert.
@@ -201,7 +207,7 @@ const WIDTH_CLASS: Record<NonNullable<PageHeaderProps["width"]>, WidthSpec> = {
 // `meta` stays destructured-but-unpainted per the 2026-08-13 owner decision
 // recorded in the retirement note below (title only; ~15 call sites still pass it).
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
+const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phoneHidesTitle = false, wrapTitle = false, hideBack = false, reserveBackSlot = false, showBrand = false, width = "default", topInsetHandled = false }: PageHeaderProps) => {
   // `eyebrow` is accepted by PageHeaderProps for call-site compatibility but
   // intentionally not destructured/rendered — see the removal note below.
   const { outer, inner } = WIDTH_CLASS[width];
@@ -341,7 +347,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
                   Prop kept for the same reason as `eyebrow`: ~15 call sites
                   pass it, and neither churning them nor breaking their types
                   buys anything. One line restores it. */}
-              <h1 className={`text-page-title leading-tight truncate${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
+              <h1 className={`text-page-title leading-tight ${wrapTitle ? "break-words" : "truncate"}${phoneHidesTitle ? " max-sm:sr-only" : ""}`}>
                 {title}
               </h1>
             </div>

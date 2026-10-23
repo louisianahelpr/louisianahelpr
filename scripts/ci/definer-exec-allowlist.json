@@ -26,7 +26,6 @@
     "admin_sms_status()": "client",
     "get_my_sms_consent()": "client",
     "set_sms_consent(boolean, text)": "client",
-    "set_sms_job_match_texts(boolean)": "client",
     "ack_backout_notice(uuid)": "client",
     "admin_ban_settlement_reviews()": "client",
     "admin_confirm_ban_settlement(uuid)": "client",

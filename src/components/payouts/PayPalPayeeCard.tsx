@@ -97,7 +97,9 @@ export function PayPalPayeeCard({ onSettled }: { onSettled?: () => void } = {}) 
       setTouched(false);
       const done = saved.acceptsCompleted + saved.crewConfirmsCompleted;
       toast.success(
-        saved.heldPayouts > 0
+        !saved.payable
+          ? "Saved. Your payouts are still on hold. Write to us from Help and we'll sort it out."
+          : saved.heldPayouts > 0
           ? "Saved. Money already on its way to your old email waits until our team checks the change."
           : done > 0
             ? `Saved. ${done === 1 ? "The job you accepted is" : `The ${done} jobs you accepted are`} now confirmed.`
@@ -137,7 +139,7 @@ export function PayPalPayeeCard({ onSettled }: { onSettled?: () => void } = {}) 
           </div>
           {!payee.payable && (
             <MoneyNote>
-              <p role="status">Payouts to this email are on hold. Write to us from Help and we'll sort it out.</p>
+              <p role="status">Your payouts are on hold. Write to us from Help and we'll sort it out.</p>
             </MoneyNote>
           )}
           <Button variant="outline" className="w-full" onClick={() => setEditing(true)}>

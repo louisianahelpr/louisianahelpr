@@ -24,8 +24,8 @@
 --     require_feature('paypal_payments'); the member is auth.uid(), never an id from the request;
 --     takes no verified/payable from the caller. A new or changed email is made payable by this
 --     function (verified stays false: that means PayPal itself confirmed the account, a later
---     phase). Saving the same email again changes nothing, so an admin who turned a destination off
---     is not overridden by a re-save. A CHANGED email holds every queued manual payout to the old
+--     phase). Saving the same email again changes nothing, and neither a re-save nor a new email
+--     overrides an admin who turned the member's payouts off. A CHANGED email holds every queued manual payout to the old
 --     one (status 'held'; the destination on a payout is frozen, so an admin re-queues it to the new
 --     email after checking). Then the Helpr's waiting accepts and crew Confirms complete.
 --   * get_my_paypal_payee(): the member's own state, the email masked (payee_accounts stays
@@ -336,6 +336,7 @@ DECLARE
   v_env     text := public.paypal_payee_env();
   v_email   text := lower(btrim(coalesce(p_email, '')));
   v_old     text;
+  v_old_ok  boolean;
   v_found   boolean;
   v_changed boolean := false;
   v_held    integer := 0;
@@ -361,7 +362,7 @@ BEGIN
   -- an Accept tapped while this runs waits, then sees the saved email and completes at once.
   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR NO KEY UPDATE;
 
-  SELECT a.paypal_email INTO v_old
+  SELECT a.paypal_email, a.payable INTO v_old, v_old_ok
     FROM public.payee_accounts a
    WHERE a.user_id = v_uid AND a.provider = 'paypal' AND a.env = v_env
      FOR UPDATE;
@@ -388,9 +389,10 @@ BEGIN
     GET DIAGNOSTICS v_held = ROW_COUNT;
   END IF;
 
-  -- A new or changed email is payable; the same email again changes nothing (an admin who turned
-  -- this destination off is not overridden by a re-save).
-  IF v_changed THEN
+  -- A first email, or a change from a payable one, is payable. Neither a re-save nor a change
+  -- overrides an admin who turned this member's payouts off (a hijacked account must not re-point
+  -- the money by typing a new email): that stays off until an admin turns it back on.
+  IF v_changed AND (NOT v_found OR v_old_ok) THEN
     UPDATE public.payee_accounts
        SET payable = true, updated_at = now()
      WHERE user_id = v_uid AND provider = 'paypal' AND env = v_env;

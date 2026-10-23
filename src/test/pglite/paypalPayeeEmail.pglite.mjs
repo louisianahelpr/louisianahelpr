@@ -8,6 +8,7 @@
  *   PLANT=no_hold node src/test/pglite/paypalPayeeEmail.pglite.mjs           # RED: an email change holds nothing
  *   PLANT=no_require_feature node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: the read RPC skips the switch
  *   PLANT=same_email_reenables node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: a re-save overrides an admin's stop
+ *   PLANT=change_overrides_stop node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: a new email overrides an admin's stop
  *
  * Proves, on the phase 1 migration (20261023223419) plus this one, each applied 3x:
  *   the switch (off: everyone refused; testers: an ordinary account refused, a test account allowed);
@@ -59,7 +60,8 @@ if (PLANT === "no_require_feature") {
   const parts = phase2.split("CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()");
   phase2 = parts[0] + "CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()" + parts[1].replace("  PERFORM public.require_feature('paypal_payments');\n", "");
 }
-if (PLANT === "same_email_reenables") plant("  IF v_changed THEN\n    UPDATE public.payee_accounts", "  IF true THEN\n    UPDATE public.payee_accounts");
+if (PLANT === "same_email_reenables") plant("  IF v_changed AND (NOT v_found OR v_old_ok) THEN", "  IF true THEN");
+if (PLANT === "change_overrides_stop") plant("  IF v_changed AND (NOT v_found OR v_old_ok) THEN", "  IF v_changed THEN");
 
 const U = {
   ordinary: "11111111-1111-4111-8111-111111111111",
@@ -223,6 +225,10 @@ await db.exec(`update public.payee_accounts set payable = false where user_id = 
 await expectOk("same email again: unchanged", "tester", save("t.tester@example.com"), (rows) => rows[0].j.changed === false);
 r["same email again: the admin's stop stands"] = (await one(`select payable from public.payee_accounts where user_id = '${U.tester}'`)).payable === false ? "ok" : "bad";
 r["stopped destination: payout_setup missing again"] = JSON.stringify(await missing(U.tester)).includes("payout_setup") ? "ok" : "bad";
+await expectOk("stopped destination: a NEW email saves but stays stopped", "tester", save("other.tester@example.com"), (rows) => rows[0].j.changed === true && rows[0].j.payable === false);
+r["stopped destination: still missing payout_setup"] = JSON.stringify(await missing(U.tester)).includes("payout_setup") ? "ok" : "bad";
+await expectOk("back to the first email (still stopped)", "tester", save("t.tester@example.com"), (rows) => rows[0].j.payable === false);
+await db.exec(`update public.payee_accounts set payable = true where user_id = '${U.tester}'`); // an admin turns it back on
 
 // --- a change holds queued manual payouts to the old email
 await db.exec(`

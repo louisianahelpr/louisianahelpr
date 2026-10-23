@@ -7,6 +7,7 @@ import { renderEmail } from '../_shared/email-templates/render.ts'
 import { checkRateLimit, rateLimitResponse } from '../_shared/rate-limit.ts'
 import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { serve } from "../_shared/buildStamp.ts";
+import { caughtMessage } from '../_shared/caughtMessage.ts'
 
 /**
  * An admin's reply to a support ticket (owner 2026-10-23, via the lead).
@@ -258,7 +259,7 @@ serve(async (req) => {
       }
     } catch (stepErr) {
       failedPartWay = true
-      console.error('[admin-support-reply] stopped part-way after the reply was recorded:', stepErr instanceof Error ? stepErr.message : String(stepErr))
+      console.error('[admin-support-reply] stopped part-way after the reply was recorded:', caughtMessage(stepErr))
     } finally {
       // The outcome and the audit row are written whatever happened above.
       // Finished only when every outcome above was recorded too (r2 #1): a lost
@@ -288,7 +289,7 @@ serve(async (req) => {
             fields: { action: 'support_reply', admin_id: adminId, reply_id: replyId, db_error: why.slice(0, 200) },
           })
         } catch (alertErr) {
-          console.error('[admin-support-reply] audit-loss alert failed:', alertErr instanceof Error ? alertErr.message : String(alertErr))
+          console.error('[admin-support-reply] audit-loss alert failed:', caughtMessage(alertErr))
         }
       }
     }
@@ -312,7 +313,7 @@ serve(async (req) => {
       outcome_recorded: outcomeOk,
     })
   } catch (err) {
-    console.error('[admin-support-reply] unexpected error:', err instanceof Error ? err.message : String(err))
+    console.error('[admin-support-reply] unexpected error:', caughtMessage(err))
     return json({ error: 'Something went wrong sending the reply. Check the ticket before trying again.' }, 500)
   }
 })

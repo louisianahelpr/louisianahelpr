@@ -3,6 +3,7 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import type { SupportReplyRow } from "@/components/admin/SupportReply";
 
 /**
@@ -21,7 +22,7 @@ export function useSupportReplies(ticketIds: string[]) {
     placeholderData: keepPreviousData,
     queryFn: async (): Promise<SupportReplyRow[]> => {
       const res = await supabase.rpc("admin_support_replies", { p_report_ids: ticketIds });
-      if (res.error?.code === "PGRST202") {
+      if (isMissingRpcNamed(res.error, "admin_support_replies")) {
         report(res.error, { severity: "warning", tags: { source: "AdminSupport.repliesRpcMissing" } });
         return [];
       }

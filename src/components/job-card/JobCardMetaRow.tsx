@@ -1,5 +1,6 @@
 import { useCallback, useRef, type ReactNode } from "react";
-import { Calendar, Clock, MapPin, Timer, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Timer } from "lucide-react";
+import { JobHelprsChip } from "./JobHelprsChip";
 import { differenceInHours } from "date-fns";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
@@ -31,84 +32,6 @@ const LOCATION_MAP_PRESS_MS = 500;
  * visibly moved — a scroll that begins on the location can never open the map.
  */
 const LOCATION_MAP_MOVE_TOLERANCE = 8;
-
-/**
- * "👥 3" — how many Helprs the job needs, as ONE component for every surface
- * that states it.
- *
- * Owner, 2026-08-30: "3 helprs needed goes to the right of time." On the
- * applied card the count used to render as its own line at the very BOTTOM of
- * the card, under the Edit/Withdraw row, detached from the facts it belongs
- * with and reading like a footer — while the browse feed already had it inline
- * in the meta row right after the time. Two surfaces, two answers, for one
- * fact. It is the same chip in both places now.
- *
- * Only the two metrics the HOST ROW already sets for every other chip in it are
- * parameterised — the feed's meta row runs 10px icons and a tighter gap, the
- * activity cards' runs 12px and `gap-1.5` — so the chip matches its neighbours
- * without inventing a second visual language. Markup, colour, weight and
- * accessible name are fixed here and cannot drift between the two.
- *
- * The count is the only VISIBLE text: "3 Helprs needed" spelled out is ~90px of
- * a `flex-nowrap` row that has none to give at 320, and the person icon carries
- * the noun. The words survive for assistive tech in the `sr-only` span — an
- * `aria-label` on the wrapper would be ignored, since a bare <span> has no
- * role for one to name.
- */
-/**
- * Q1409/Q1464: how many of a crew's spots to call "open", or null to show the
- * crew's size. Only a count below the size is news (a booked crew a member
- * left, re-listed for that spot); a staffing crew has every spot open and an
- * unknown count is unknown. The browse chip and the detail dialog's Helprs
- * tile both read this, so a job never says two things a tap apart.
- */
-export function openCrewSpots(size: number | null | undefined, spotsOpen: number | null | undefined): number | null {
-  const count = size && size > 0 ? size : 2;
-  return spotsOpen != null && spotsOpen > 0 && spotsOpen < count ? spotsOpen : null;
-}
-
-export function JobHelprsChip({
-  helpersNeeded,
-  spotsOpen,
-  className = "gap-1.5",
-  iconClassName = "w-3 h-3",
-}: {
-  helpersNeeded?: number | null;
-  /**
-   * Q1409: on a browse card, how many spots on the crew are open now
-   * (public.crew_spots_open). When fewer than the crew's size, the chip says
-   * "1 spot open" instead of the size: a booked crew a member left is
-   * re-listed for that spot only. Omitted (or equal to the size): the size.
-   */
-  spotsOpen?: number | null;
-  /** Gap + any outer margin. Supplied by the row so it matches its siblings. */
-  className?: string;
-  iconClassName?: string;
-}) {
-  /* 2 is the floor a group job can have — `is_group_job` with a null
-     `helpers_needed` is an older row, and "1 Helpr" is not a group. */
-  const count = helpersNeeded && helpersNeeded > 0 ? helpersNeeded : 2;
-  const open = openCrewSpots(count, spotsOpen);
-  return (
-    <span
-      className={`inline-flex items-center shrink-0 whitespace-nowrap ${className}`}
-      style={{ color: "hsl(var(--primary))" }}
-    >
-      <Users className={`${iconClassName} shrink-0`} strokeWidth={2.25} aria-hidden="true" />
-      {open != null ? (
-        <>
-          <span className="font-sans font-medium">{`${open} spot${open === 1 ? "" : "s"} open`}</span>
-          <span className="sr-only">{` on a crew of ${count}`}</span>
-        </>
-      ) : (
-        <>
-          <span className="font-sans font-medium">{count}</span>
-          <span className="sr-only"> Helprs needed</span>
-        </>
-      )}
-    </span>
-  );
-}
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
@@ -206,6 +129,9 @@ interface JobCardMetaRowProps {
    * this row behaves EXACTLY as it always has and prints the city.
    */
   showFullAddress?: boolean;
+  /** The full street address on ONE line, ellipsized, date and time beside it (a collapsed Helpr card; owner,
+   *  2026-10-23, card critique item 11): the whole address stays in the text and opens the map on hold. */
+  oneLine?: boolean;
 }
 
 /**
@@ -224,6 +150,7 @@ export function JobCardMetaRow({
   trailing,
   locationPressToMap = false,
   showFullAddress = false,
+  oneLine = false,
 }: JobCardMetaRowProps) {
   const mapHref = mapsSearchUrl(location);
   // Re-renders the countdown the moment its text changes (incl. at expiry).
@@ -285,6 +212,10 @@ export function JobCardMetaRow({
    */
   const fullAddress = showFullAddress && hasStreetAddress(location);
   const city = fullAddress ? location.trim() : getCity(location);
+  // The full address wraps onto its own lines, except on a collapsed card's one line (item 11), which shows the
+  // STREET ("4412 Highland Rd") beside the date and time; the whole address stays in the label and the map.
+  const wrapAddress = fullAddress && !oneLine;
+  const shown = fullAddress && oneLine ? city.split(",")[0].trim() || city : city;
 
   /* ── WHY A STREET ADDRESS TAKES A WHOLE LINE, WITH THE ARITHMETIC ─────────
    *
@@ -326,8 +257,10 @@ export function JobCardMetaRow({
   // it, the row's own gap apart, not pushed to the far edge (owner, 2026-10-08, Q1549: "date and time should be side
   // by side with location, not all the way to the right"). Phones keep the stacked layout. Guard:
   // posterOfferRow.test.tsx (8).
-  const cityFlex = fullAddress
+  const cityFlex = wrapAddress
     ? "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0"
+    : fullAddress
+      ? "shrink min-w-0" // one line: the address gives way, date and time stay (item 11)
     : expiresAt
       ? "shrink-0 max-w-[50%]"
       : "shrink";
@@ -367,8 +300,8 @@ export function JobCardMetaRow({
           rule that says the location ellipsizes assumes an ellipsis a reader
           can act on; one character is not that. */}
       <div
-        className={`job-meta-row flex items-center gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5 min-w-0 flex-1 overflow-hidden ${
-          fullAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap"
+        className={`job-meta-row flex items-center ${oneLine ? "gap-x-2.5" : "gap-x-2 min-[360px]:gap-x-3 sm:gap-x-5"} min-w-0 flex-1 overflow-hidden ${
+          wrapAddress ? "flex-wrap gap-y-1 md:flex-nowrap" : "flex-nowrap"
         }`}
       >
       {/* Location → date → time, matching the home feed ("Browse Tasks")
@@ -442,7 +375,7 @@ export function JobCardMetaRow({
             {/* The noun the deleted `JobAddressLine` used to carry. A street
                 address read aloud with no label is a string of digits. */}
             {fullAddress && <span className="sr-only">Job address: </span>}
-            <span className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
+            <span className={wrapAddress ? "whitespace-normal break-words" : "truncate"}>{shown}</span>
           </button>
           {/* THE ACCESSIBLE MAP ACTION, and the thing the hold actually clicks.
 
@@ -499,11 +432,12 @@ export function JobCardMetaRow({
         >
           <MapPin className="w-3 h-3 shrink-0" />
           {fullAddress && <span className="sr-only">Job address: </span>}
-          <span title={city} className={fullAddress ? "whitespace-normal break-words" : "truncate"}>{city}</span>
+          <span title={city} className={wrapAddress ? "whitespace-normal break-words" : "truncate"}>{shown}</span>
         </a>
       ))}
       <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-        <Calendar className="w-3 h-3 shrink-0" />
+        {/* The one-line row (item 11) drops the date and clock glyphs so the street keeps its width. */}
+        {!oneLine && <Calendar className="w-3 h-3 shrink-0" />}
         {formatJobDate(dateNeeded)}
       </span>
       {/* THE START TIME IS THE FIRST THING THIS ROW DROPS WHEN IT IS FULL, and
@@ -532,7 +466,7 @@ export function JobCardMetaRow({
           below 400px it is the COUNTDOWN that goes (see the countdown below). */}
       {timeLabel && (
         <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
-          <Clock className="w-3 h-3 shrink-0" />
+          {!oneLine && <Clock className="w-3 h-3 shrink-0" />}
           {timeLabel}
         </span>
       )}

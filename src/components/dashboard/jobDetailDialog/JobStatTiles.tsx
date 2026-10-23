@@ -7,7 +7,7 @@ import { jobDateMs, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "../types";
 import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
-import { openCrewSpots } from "@/components/job-card/JobCardMetaRow";
+import { openCrewSpots } from "@/components/job-card/JobHelprsChip";
 
 interface JobStatTilesProps {
   job: EnrichedJob;

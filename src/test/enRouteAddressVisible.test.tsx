@@ -96,6 +96,9 @@ import { openMore } from "@/test/helpers/openMore";
 pinJobClock();
 
 const ADDRESS = "1103 Center St, New Iberia, LA 70560";
+/** The collapsed card's ONE line shows the street beside the date and time (owner, 2026-10-23, card critique
+ *  item 11); the whole address is in the location control's label and title, and printed in full once open. */
+const STREET = "1103 Center St";
 
 const baseJob = {
   id: "job-1",
@@ -192,8 +195,10 @@ describe("the helper can read the job's street address at the en-route moment", 
     const progress = document.querySelector("[data-job-status-strip]")!;
     expect(progress, "no status line on the collapsed card — re-check the fixture").not.toBeNull();
     expect(screen.queryByTestId("tracker"), "the full tracker is back on a collapsed card").toBeNull();
-    const line = screen.getByText(ADDRESS);
+    const line = screen.getByText(STREET);
     expect(line).toBeInTheDocument();
+    // The whole address is still on the collapsed card, in the place control's own words.
+    expect(document.querySelector(`[title="${ADDRESS}"]`) ?? document.querySelector(`[aria-label*="${ADDRESS}"]`)).toBeTruthy();
     // Not inside the progress block, and before it.
     expect(progress.contains(line)).toBe(false);
     expect(line.compareDocumentPosition(progress) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -202,13 +207,18 @@ describe("the helper can read the job's street address at the en-route moment", 
     // AND IT IS SAID ONCE. The whole report was that it was said twice: the
     // city in the meta row and the street on a row of its own beneath it.
     expect(
-      screen.getAllByText((_t, el) => el?.textContent?.trim() === ADDRESS && el.children.length === 0),
+      screen.getAllByText((_t, el) => el?.textContent?.trim() === STREET && el.children.length === 0),
       "the address is printed more than once on one card",
     ).toHaveLength(1);
   });
 
   it("in progress + COLLAPSED: still on the card", () => {
     renderCard({ ...baseJob, status: "in_progress" } as unknown as Job, { status: "accepted" });
+    expect(screen.getByText(STREET)).toBeInTheDocument();
+  });
+
+  it("OPEN: the full address is printed, wrapping as it needs (item 11 keeps one line for the collapsed card only)", () => {
+    renderCard(baseJob, {}, true);
     expect(screen.getByText(ADDRESS)).toBeInTheDocument();
   });
 
@@ -234,6 +244,7 @@ describe("the helper can read the job's street address at the en-route moment", 
     const openJob = { ...baseJob, status: "open", helper_id: null, helper_confirmed_at: null } as unknown as Job;
     const { unmount } = renderCard(openJob, { status: "pending" });
     expect(screen.queryByText(ADDRESS)).toBeNull();
+    expect(screen.queryByText(STREET)).toBeNull();
     expect(screen.queryByText("Job address:")).toBeNull();
     unmount();
     renderCard(openJob, { status: "pending" }, true);

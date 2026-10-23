@@ -17,6 +17,7 @@ import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
 import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
+import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -136,7 +137,9 @@ export type DeadlineSource =
   | "revision_deadline"
   | "revision_acceptance_deadline"
   | "dispute_deadline"
-  | "auto_complete";
+  | "auto_complete"
+  /** The day-before confirm's deadline (confirmDeadlineMs, the server's rule): 2 hours before the start. */
+  | "confirm_deadline";
 
 /**
  * The reason shown after "Cancelled ·", or null.
@@ -163,6 +166,13 @@ function noteOrNull(note: string | null | undefined): string | null {
   if (typeof note !== "string") return null;
   const t = note.trim();
   return t.length > 0 ? t : null;
+}
+
+/** The day-before confirm's clock: "1d 5h left to confirm" (item 6). */
+function confirmDeadline(job: Job): StatusDeadline | null {
+  if (!job.date_needed) return null;
+  const ms = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
+  return Number.isNaN(ms) ? null : { source: "confirm_deadline", at: new Date(ms).toISOString(), consequenceText: "left to confirm", expiredText: "Confirm window passed" };
 }
 
 function columnDeadline(
@@ -609,6 +619,9 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
       return columnDeadline("response_deadline", job.response_deadline, "left to accept", "Accept window passed");
     case "revision_out":
       return columnDeadline("revision_deadline", job.revision_deadline, "left for their fix", "Fix deadline passed");
+    // In the confirm window the clock that matters is the confirm's own deadline, not the start (item 6).
+    case "confirm_still_on":
+      return confirmDeadline(job);
     case "revision_fixed":
       return columnDeadline(
         "revision_acceptance_deadline",
@@ -624,7 +637,8 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
         ? {
             source: "auto_complete",
             at,
-            consequenceText: "to review — payment auto-releases after",
+            // Item 9 (owner, 2026-10-23): "2h 6m to review — payment auto-releases after" read backwards.
+            consequenceText: "left to approve, then it pays automatically",
             expiredText: "Payment auto-releasing",
           }
         : null;
@@ -920,6 +934,8 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
       return columnDeadline("response_deadline", job.response_deadline, "left to confirm", "Confirm window passed");
     case "revision":
       return columnDeadline("revision_deadline", job.revision_deadline, "left to send the fix", "Fix deadline passed");
+    case "confirm_day":
+      return confirmDeadline(job);
     case "revision_sent":
       return columnDeadline(
         "revision_acceptance_deadline",
@@ -951,10 +967,18 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
    is not known; these replace only the states that are about the other
    person. ── */
 const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
+/** "Sat 1:00 PM" in Louisiana time. */
+const dayTime = (ms: number) => new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
 const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => string>> = {
   offer_out: (n) => `Your offer is with ${firstName(n)}`,
   unconfirmed: (n) => `Offer sent — ${firstName(n)} hasn't accepted yet`,
-  confirmed: (n, job) => `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"}`,
+  // WHAT IS NEXT, AND BY WHEN (owner, 2026-10-23, card critique item 5): not just "Hallie accepted".
+  confirmed: (n, job) => {
+    const f = firstName(n);
+    if (job.helper_dayof_confirmed_at) return job.poster_confirmed_at ? `${f} confirmed · taps On my way when leaving` : `${f} confirmed`;
+    if (!job.date_needed || Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`;
+    return `Waiting on ${f} to confirm by ${dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null))}`;
+  },
   confirm_still_on: (n, job) =>
     `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,
   on_the_way: (n) => `${firstName(n)} is on the way`,

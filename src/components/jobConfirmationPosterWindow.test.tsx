@@ -23,6 +23,7 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 
 import { JobConfirmation } from "./JobConfirmation";
+import { requestFaceAction, takeFaceAction } from "./job-card/faceActionRequest";
 
 // 2:00 PM Central on 2032-10-14 = 19:00Z (CDT).
 const poster = (startTime: string | null) => (
@@ -57,5 +58,32 @@ describe("the poster can say the job is still on until it starts", () => {
     at("2032-10-14T22:00:00Z");
     render(poster(null));
     expect(screen.getByRole("button", { name: /I'm still on/ })).toBeTruthy();
+  });
+});
+
+/**
+ * Card critique item 1 (owner, 2026-10-23): the collapsed card's "I'm still on" opens the card and leaves a
+ * one-shot request; THIS control then opens its own "Commit to this job?" dialog, so its gates still decide.
+ * @mutate src/components/JobConfirmation.tsx |     if (owed && takeFaceAction(jobId, "confirm")) setShowConfirmDialog(true); |     if (owed) takeFaceAction(jobId, "confirm");
+ * @mutate src/components/JobConfirmation.tsx | && Date.now() >= confirmOpensMs(dateNeeded); | ;
+ */
+describe("the face's confirm request opens this card's own dialog", () => {
+  it("a request while the confirm is owed opens 'Commit to this job?'", () => {
+    at("2032-10-14T18:00:00Z");
+    requestFaceAction("job-1", "confirm");
+    render(poster("14:00:00"));
+    expect(screen.getByText("Commit to this job?")).toBeTruthy();
+  });
+  it("no request, no dialog", () => {
+    at("2032-10-14T18:00:00Z");
+    render(poster("14:00:00"));
+    expect(screen.queryByText("Commit to this job?")).toBeNull();
+  });
+  it("before the confirm opens, a request opens nothing and is not swallowed (the card only takes a confirm it owes)", () => {
+    at("2032-10-10T18:00:00Z");
+    requestFaceAction("job-1", "confirm");
+    render(poster("14:00:00"));
+    expect(screen.queryByText("Commit to this job?")).toBeNull();
+    expect(takeFaceAction("job-1", "confirm")).toBe(true);
   });
 });

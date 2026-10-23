@@ -266,8 +266,11 @@ describe("Jobs: a collapsed card hides the tracker and the action row", () => {
 
   it("collapsed: the street address SURVIVES (the owner's carve-out)", () => {
     // A Helpr heading out must not expand a card to see where they are going.
+    // The collapsed card's one line shows the STREET beside the date and time (owner, 2026-10-23, card critique
+    // item 11); the whole address is the location control's title.
     renderApplied(makeApp(), false);
-    expect(screen.getByText(ADDRESS)).toBeInTheDocument();
+    expect(screen.getByText(ADDRESS.split(",")[0])).toBeInTheDocument();
+    expect(document.querySelector(`[title="${ADDRESS}"]`) ?? document.querySelector(`[aria-label*="${ADDRESS}"]`)).toBeTruthy();
   });
 
   it("collapsed + disputed: the panel is hidden but the DISPUTE is announced", () => {

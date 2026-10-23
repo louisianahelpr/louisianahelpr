@@ -232,7 +232,7 @@ export function InProgressStep(ctx: PosterStepCtx) {
               // One line (owner). The Approve sheet itself walks through
               // release vs revision, so the banner only owes the deadline and
               // its consequence.
-              consequenceText="to review — payment auto-releases after"
+              consequenceText="left to approve, then it pays automatically"
               inline
               variant="warning"
             />

@@ -84,6 +84,9 @@ export function captureFromOrder(order: PayPalOrder): CaptureResult {
     amountCents: dollarsToCents(cap.amount.value),
     feeCents: fee ? dollarsToCents(fee.value) : null,
     vaultId: order.payment_source?.card?.attributes?.vault?.id ?? order.payment_source?.paypal?.attributes?.vault?.id ?? null,
+    vaultSource: order.payment_source?.card?.attributes?.vault?.id
+      ? "card"
+      : order.payment_source?.paypal?.attributes?.vault?.id ? "paypal" : null,
   };
 }
 
@@ -145,6 +148,9 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
 
     async chargeSaved(input): Promise<CaptureResult> {
       if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) throw new Error("amountCents must be a positive integer");
+      if (input.vaultSource !== undefined && input.vaultSource !== "card" && input.vaultSource !== "paypal") {
+        throw new Error(`unknown vault source: ${String(input.vaultSource)}`);
+      }
       assertOrderKeyNamesAmount(input.idempotencyKey, input.amountCents);
       const order = await client.request<PayPalOrder>("POST", "/v2/checkout/orders", {
         idempotencyKey: input.idempotencyKey,
@@ -152,12 +158,17 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
         body: {
           intent: "CAPTURE",
           purchase_units: [{ reference_id: input.referenceId, custom_id: input.referenceId, amount: usd(input.amountCents) }],
-          payment_source: {
-            card: {
-              vault_id: input.vaultId,
-              stored_credential: { payment_initiator: "MERCHANT", payment_type: "UNSCHEDULED", usage: "SUBSEQUENT" },
+          // A PayPal-wallet token is charged as payment_source.paypal (vaulted with usage_type
+          // MERCHANT at checkout); a card token as payment_source.card with the stored-credential
+          // flags (MEASURED #12). Charging one as the other is refused by PayPal, never charged.
+          payment_source: (input.vaultSource ?? "card") === "paypal"
+            ? { paypal: { vault_id: input.vaultId } }
+            : {
+              card: {
+                vault_id: input.vaultId,
+                stored_credential: { payment_initiator: "MERCHANT", payment_type: "UNSCHEDULED", usage: "SUBSEQUENT" },
+              },
             },
-          },
         },
       });
       return captureFromOrder(order);

@@ -1,0 +1,119 @@
+/**
+ * The ONE door phase 6 uses to put a Helpr's money on the admin "Pay this Helpr"
+ * queue (PayPal Plan A; the queue and its writer are phase 4's, lane pp-phase4).
+ *
+ * STUB INTERFACE, BUILT AGAINST THE LEAD'S CONTRACT (2026-10-23), because phase 4's
+ * writer was not on origin when phase 6 was built:
+ *
+ *   public.paypal_queue_manual_payout(
+ *     p_job_id uuid, p_helper_id uuid, p_amount_cents integer, p_platform_fee_cents integer,
+ *     p_initiated_by text DEFAULT 'system', p_initiated_by_user_id uuid DEFAULT NULL,
+ *     p_source text DEFAULT 'release') RETURNS jsonb
+ *   -> { outcome: queued|already_queued|waiting_for_payee|held|refused, reason, payout_id,
+ *        payout_transfer_id, amount_cents, env }     service_role only.
+ *
+ * Phase 6 calls it with p_source 'cancellation_fee' (a late-cancel fee's Helpr share) and
+ * 'auto_tip' (an automatic tip, 100% to the Helpr). Phase 4's preconditions today are
+ * status='completed' AND payment_status='payout_pending', so BOTH sources need phase 4 to
+ * widen them (the exact states are listed in PHASE6_QUEUE_PRECONDITIONS below and in the
+ * phase 6 report). Until then the RPC answers `refused` (or is missing), which callers treat
+ * as "not settled, retry next run": no money is lost, the poster's side is never re-done.
+ *
+ * Callers depend on the `ManualPayoutQueue` interface, never on the RPC name, so swapping the
+ * stub for phase 4's real writer (or a later payout API) touches this file only.
+ */
+
+export type ManualPayoutSource = "cancellation_fee" | "auto_tip";
+
+export interface QueueManualPayoutInput {
+  jobId: string;
+  helperId: string;
+  /** What the Helpr receives, integer cents (> 0). */
+  amountCents: number;
+  /** What the platform keeps out of the gross this payout comes from, integer cents (>= 0). */
+  platformFeeCents: number;
+  source: ManualPayoutSource;
+  /**
+   * The provider_payments row the money sits in. For a cancellation fee it is the job's own
+   * payment (the RPC can find it by job). For an auto-tip it is the TIP's payment, which the
+   * RPC cannot find by job id: phase 4 must accept it (see PHASE6_QUEUE_PRECONDITIONS).
+   */
+  providerPaymentId: string;
+}
+
+export type QueueOutcome = "queued" | "already_queued" | "waiting_for_payee" | "held" | "refused";
+
+export interface QueueManualPayoutResult {
+  outcome: QueueOutcome;
+  reason: string | null;
+  payoutId: string | null;
+  /** True when a provider_payouts row now holds this money (queued, already_queued, held). */
+  recorded: boolean;
+}
+
+export interface ManualPayoutQueue {
+  queue(input: QueueManualPayoutInput): Promise<QueueManualPayoutResult>;
+}
+
+/**
+ * The job/payment states each phase 6 source arrives in, for phase 4 to widen its
+ * preconditions to (the lead asked for these exactly).
+ */
+export const PHASE6_QUEUE_PRECONDITIONS: Readonly<Record<ManualPayoutSource, string>> = {
+  cancellation_fee:
+    "jobs.status = 'cancelled' AND jobs.payment_status = 'escrow' (the sweep queues the fee BEFORE it flips the job to 'refunded'); " +
+    "provider_payments (subject_kind 'job' for the job, or 'recurring_visit' with funds_job_id = the job) in 'partially_refunded' (or 'captured' when nothing went back); " +
+    "jobs.helper_id = p_helper_id and jobs.helper_confirmed_at IS NOT NULL",
+  auto_tip:
+    "jobs.status = 'completed' with any payment_status (the job's payout may already be queued or paid); " +
+    "the tip's own provider_payments row (subject_kind 'tip', subject_id = tips.id) 'captured'; " +
+    "a payout claim that is NOT the job's payout_transfers claim (one claim per job+Helpr is already the job's own)",
+};
+
+/** The supabase-js call this needs (service-role client). */
+export interface RpcClient {
+  rpc(fn: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: { message: string; code?: string } | null }>;
+}
+
+function cents(n: number, what: string, min: number): number {
+  if (!Number.isInteger(n) || n < min) throw new Error(`${what} must be an integer >= ${min}: ${n}`);
+  return n;
+}
+
+/** The default queue: phase 4's RPC. A missing RPC or an error is `refused`, never `queued`. */
+export function rpcManualPayoutQueue(db: RpcClient): ManualPayoutQueue {
+  return {
+    async queue(input) {
+      cents(input.amountCents, "amountCents", 1);
+      cents(input.platformFeeCents, "platformFeeCents", 0);
+      const { data, error } = await db.rpc("paypal_queue_manual_payout", {
+        p_job_id: input.jobId,
+        p_helper_id: input.helperId,
+        p_amount_cents: input.amountCents,
+        p_platform_fee_cents: input.platformFeeCents,
+        p_initiated_by: "system",
+        p_initiated_by_user_id: null,
+        p_source: input.source,
+      });
+      if (error) {
+        // PGRST202 / 42883: phase 4 not deployed yet. Anything else: an error. Neither queued money.
+        const missing = error.code === "PGRST202" || error.code === "42883";
+        return { outcome: "refused", reason: missing ? "queue_writer_not_deployed" : `rpc_error: ${error.message}`, payoutId: null, recorded: false };
+      }
+      return parseQueueAnswer(data);
+    },
+  };
+}
+
+const OUTCOMES: readonly QueueOutcome[] = ["queued", "already_queued", "waiting_for_payee", "held", "refused"];
+
+/** Reads the RPC's jsonb answer. Anything unrecognised is `refused` (fail closed). */
+export function parseQueueAnswer(data: unknown): QueueManualPayoutResult {
+  const d = (data ?? {}) as { outcome?: unknown; reason?: unknown; payout_id?: unknown };
+  const outcome = OUTCOMES.find((o) => o === d.outcome);
+  if (!outcome) return { outcome: "refused", reason: `unrecognised_answer: ${JSON.stringify(data)?.slice(0, 120)}`, payoutId: null, recorded: false };
+  const payoutId = typeof d.payout_id === "string" ? d.payout_id : null;
+  // "Recorded" means a provider_payouts row holds the money: claimed by an id we can name.
+  const recorded = (outcome === "queued" || outcome === "already_queued" || outcome === "held") && payoutId !== null;
+  return { outcome, reason: typeof d.reason === "string" ? d.reason : null, payoutId, recorded };
+}

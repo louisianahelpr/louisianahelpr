@@ -2,7 +2,7 @@
  * providerFees — the ONE place PayPal's processing rates live (lead 2026-10-23:
  * "read the rates from one place"; phases 3 and 5 read this too).
  *
- * Published US rates, https://www.paypal.com/us/business/paypal-business-fees
+ * Published US rates, PayPal's US business fees page (paypal.com, /us/business/paypal-business-fees)
  * (read for the design doc on 2026-10-23, ~/.lh-wt/paypal-design.md §2). The
  * SANDBOX charges a different rate (MEASURED 2026-10-23: 2.59% + $0.49 on cards,
  * e.g. a $3.62 sandbox capture cost $0.58), so these are the live figures we

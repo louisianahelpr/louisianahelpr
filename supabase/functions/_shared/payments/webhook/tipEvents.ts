@@ -15,7 +15,7 @@ import { PayPalEventFinal, PayPalEventRetry, type PayPalEventHandler, type PayPa
 export const TIP_EVENT_HANDLERS: PayPalEventHandlers = {};
 
 /** The event types a tip order produces (handled through phase 3's handlers for them). */
-export const TIP_ORDER_EVENT_TYPES: readonly string[] = [
+const TIP_ORDER_EVENT_TYPES: readonly string[] = [
   "CHECKOUT.ORDER.APPROVED",
   "PAYMENT.CAPTURE.COMPLETED",
   "PAYMENT.CAPTURE.PENDING",
@@ -24,7 +24,7 @@ export const TIP_ORDER_EVENT_TYPES: readonly string[] = [
 ];
 
 /** The PayPal order an event is about: an order event names it; a capture event names it in related_ids. */
-export function orderIdOfEvent(event: Pick<StoredPayPalEvent, "event_type" | "payload">): string | null {
+function orderIdOfEvent(event: Pick<StoredPayPalEvent, "event_type" | "payload">): string | null {
   const resource = (event.payload as { resource?: { id?: unknown; supplementary_data?: { related_ids?: { order_id?: unknown } } } } | null)?.resource;
   const id = event.event_type.startsWith("CHECKOUT.ORDER.") ? resource?.id : resource?.supplementary_data?.related_ids?.order_id;
   return typeof id === "string" && /^[A-Z0-9]{5,40}$/.test(id) ? id : null;

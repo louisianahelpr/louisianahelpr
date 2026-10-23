@@ -53,7 +53,7 @@ interface TipPaymentRow {
 }
 
 /** What paypal_record_tip_capture answered. */
-export interface TipCaptureRecord {
+interface TipCaptureRecord {
   tip_id: string;
   payment_status: string;
   tip_status: "pending" | "paid" | "failed";
@@ -79,7 +79,7 @@ interface PayPalOrderLite {
 /** Statuses after which the capture is already on our row (settled or later). */
 const RECORDED = new Set(["captured", "partially_refunded", "refunded", "disputed", "reversed"]);
 
-export function tipCaptureKey(providerPaymentId: string): string {
+function tipCaptureKey(providerPaymentId: string): string {
   return `lh:pp:${providerPaymentId}:capture`;
 }
 

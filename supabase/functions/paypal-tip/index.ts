@@ -89,6 +89,7 @@ serve(async (req) => {
     const refused = await requireFeature(admin, "paypal_payments", user, corsHeaders);
     if (refused) return refused;
 
+    // A body that is not JSON is answered "Invalid request" just below, never ignored.
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object") throw new PublicError("Invalid request");
 

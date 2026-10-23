@@ -12102,6 +12102,10 @@ export type Database = {
         Args: { p_helper_id: string }
         Returns: boolean
       }
+      admin_requeue_paypal_tip_payout: {
+        Args: { p_confirm_no_send_money?: boolean; p_tip_id: string }
+        Returns: Json
+      }
       admin_resolve_ban_evasion_match: {
         Args: { p_match_id: string }
         Returns: boolean
@@ -14711,6 +14715,29 @@ export type Database = {
       payout_send_marks_for: {
         Args: { p_ids: string[]; p_kind: string }
         Returns: string[]
+      }
+      paypal_open_tip: {
+        Args: {
+          p_charge_cents: number
+          p_env: string
+          p_helper_id: string
+          p_idempotency_key: string
+          p_job_id: string
+          p_order_id: string
+          p_tip_cents: number
+          p_tipper_id: string
+        }
+        Returns: Json
+      }
+      paypal_record_tip_capture: {
+        Args: {
+          p_amount_cents: number
+          p_capture_id: string
+          p_order_id: string
+          p_outcome: string
+          p_provider_payment_id: string
+        }
+        Returns: Json
       }
       poster_cancel_job: {
         Args: { p_expected_fee_cents?: number; p_job_id: string; p_reason?: string }

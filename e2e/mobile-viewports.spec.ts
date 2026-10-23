@@ -86,7 +86,7 @@ for (const vp of VIEWPORTS) {
     // one, and this repo deliberately treats clipped wide elements as correct
     // (`clippedWideElements` in auditRoutes.ts, reported and not failed). So the
     // first verdict was measuring a case the codebase does not call a defect.
-    // @mutate src/components/landing/HeroSection.tsx |   const [loggedIn, setLoggedIn] = useState(false); |   const [loggedIn, setLoggedIn] = useState(false);\n  (null as unknown as { boom(): void }).boom();
+    // @mutate src/components/landing/HeroSection.tsx |   const [query, setQuery] = useState(""); |   const [query, setQuery] = useState("");\n  (null as unknown as { boom(): void }).boom();
     for (const page of PAGES) {
       test(`${page.label} — no horizontal scroll, no JS error`, async ({ page: p }) => {
         const errors: string[] = [];

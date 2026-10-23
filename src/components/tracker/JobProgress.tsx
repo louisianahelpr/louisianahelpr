@@ -150,7 +150,13 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 // line is already on screen, and its words must not read as one of the card's own buttons).
                 aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
                 {...tip.handlers(key)}
-                className="block w-full min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+                // THE HIT AREA REACHES INTO HALF THE GAP ON EACH SIDE (Q2369): eight steps share one row at 375
+                // (owner, 2026-10-22), so a column is ~43px in CI's fonts, under the 44px tap target. The grid's gap
+                // is 4px (gap-1 above), so the button is 4px wider than its column with -2px margins: 2px of the gap
+                // on each side, which a neighbour never claims (it takes its own 2px), so targets meet and never
+                // overlap. px-[2px] keeps the step's icon, bar and word exactly where they were. The row's layout
+                // does not change. Guard: e2e/happy-path/messages-thread.spec.ts (44px, no overlap).
+                className="block w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
               >
                 <span aria-hidden="true">{body}</span>
               </button>

@@ -26,6 +26,23 @@ export const HELPR_FLAT_FEE_PERCENT = 5;
 /** The fixed part of the flat fee, in cents, per Helpr payout. */
 export const HELPR_FLAT_FEE_CENTS = 70;
 
+/**
+ * THE PayPal-path jobs fee (owner ruling 2026-10-23): ONE fee, 8% + $0.70, taken
+ * from the Helpr's pay; the poster pays the job price only (no poster fee, no
+ * card-cost line). NEW jobs only, and only while `paypal_payments` is on for the
+ * poster: the database stamps helper_fee_percent = 8 and helper_fee_flat_cents = 70
+ * AT POST (enforce_jobs_fee_model_lock's INSERT branch). A job already stamped
+ * keeps its own numbers (5% + 70c on every job stamped before), because every
+ * payout path prices a stamped job by its STAMP (helprFlatFeeCents), never by
+ * these constants. PayPal's processing cost comes out of this fee.
+ * PayPal funding (phase 3): keep the job's stamp; stamp these two only when the
+ * job has none; never the poster-fee model on this path.
+ */
+export const PAYPAL_HELPR_FEE_PERCENT = 8;
+
+/** The fixed part of the PayPal-path fee, in cents, per Helpr payout. */
+export const PAYPAL_HELPR_FEE_CENTS = 70;
+
 /** A job row's fee-model stamp, as create-payment writes it. */
 export interface FlatFeeStamp {
   helper_fee_flat_cents?: number | string | null;

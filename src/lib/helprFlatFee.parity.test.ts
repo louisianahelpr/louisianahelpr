@@ -31,6 +31,18 @@ describe("Helpr flat fee (F3): edge and client agree, and match the owner's numb
     }
   });
 
+  it("the PayPal-path fee (owner ruling 2026-10-23) is 8% + $0.70 in both runtimes", () => {
+    expect(client.PAYPAL_HELPR_FEE_PERCENT).toBe(8);
+    expect(client.PAYPAL_HELPR_FEE_CENTS).toBe(70);
+    expect(edge.PAYPAL_HELPR_FEE_PERCENT).toBe(client.PAYPAL_HELPR_FEE_PERCENT);
+    expect(edge.PAYPAL_HELPR_FEE_CENTS).toBe(client.PAYPAL_HELPR_FEE_CENTS);
+    expect(client.PAYPAL_HELPR_FEE_PHRASE).toBe("8% + $0.70");
+    // A job stamped 8/70 (at post, on the PayPal path) is priced by its stamp: $100 pays $91.30.
+    const paypal = { helper_fee_flat_cents: edge.PAYPAL_HELPR_FEE_CENTS, helper_fee_percent: edge.PAYPAL_HELPR_FEE_PERCENT };
+    for (const m of [client, edge]) expect(m.helprFlatFeeCents(10_000, paypal)).toBe(870);
+    expect(client.helprFlatTakeHomeCents(10_000, paypal)).toBe(9_130);
+  });
+
   it("constants and every price agree between the two runtimes", () => {
     expect(client.HELPR_FLAT_FEE_PERCENT).toBe(edge.HELPR_FLAT_FEE_PERCENT);
     expect(client.HELPR_FLAT_FEE_CENTS).toBe(edge.HELPR_FLAT_FEE_CENTS);

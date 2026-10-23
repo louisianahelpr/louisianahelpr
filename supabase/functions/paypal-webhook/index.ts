@@ -1,19 +1,21 @@
 /**
  * paypal-webhook: PayPal's event deliveries (PayPal Plan A, phase 1).
  *
- * PHASE 1 STORES, IT DOES NOT MOVE MONEY. A delivery is verified (fail closed,
- * _shared/payments/paypalWebhookVerify.ts) and only then written to
- * public.paypal_webhook_events (event id = primary key, so PayPal's
- * redeliveries are no-ops). Acting on events (capture completed, payout
- * unclaimed, dispute opened) arrives with the phases that own those flows, and
- * will re-read each resource from PayPal rather than trust the event body.
+ * A delivery is verified (fail closed, _shared/payments/paypalWebhookVerify.ts)
+ * and only then written to public.paypal_webhook_events (event id = primary
+ * key). Then it is handed to _shared/payments/webhookHandlers.ts, where each
+ * phase owns one handler file; a handler re-reads the resource from PayPal and
+ * acts on that, never on the event body. processed_at marks a finished event:
+ * a redelivery of a finished one is a no-op, of an unfinished one re-runs it.
+ * An event type nobody handles yet stays stored, unprocessed.
  *
  * Answers:
- *   200  verified and stored (or already stored)
+ *   200  verified and stored (or already stored), and handled if a handler exists
  *   400  not from PayPal: missing headers, foreign cert URL, signature refused.
  *        Nothing is stored.
  *   503  we cannot decide now (not configured, PayPal unreachable, DB write
- *        failed): PayPal redelivers, up to 25 times over 3 days (DOCS).
+ *        failed, a handler could not finish): PayPal redelivers, up to 25
+ *        times over 3 days (DOCS).
  *
  * No user calls this (verify_jwt = false in config.toml), so there is no
  * feature-switch check here: PayPal only sends events for objects we created,
@@ -29,6 +31,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { PayPalClient } from "../_shared/payments/paypalClient.ts";
 import { parseProviderEnv } from "../_shared/payments/registry.ts";
 import { isAllowedCertUrl, verifyPayPalWebhook } from "../_shared/payments/paypalWebhookVerify.ts";
+import { dispatchPayPalEvent } from "../_shared/payments/webhookHandlers.ts";
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -154,8 +157,9 @@ serve(async (req) => {
   // stored copy must be from the same environment: a sandbox event id reappearing under live (or
   // the reverse) means crossed configuration, and the live event would otherwise be dropped.
   const fresh = Array.isArray(stored) && stored.length > 0;
+  let alreadyProcessed = false;
   if (!fresh) {
-    const { data: prior, error: readErr } = await supabase.from("paypal_webhook_events").select("env").eq("event_id", event.id).maybeSingle();
+    const { data: prior, error: readErr } = await supabase.from("paypal_webhook_events").select("env, processed_at").eq("event_id", event.id).maybeSingle();
     if (readErr || !prior || prior.env !== env) {
       const why = readErr ? readErr.message : !prior ? "row not found after a conflict" : `stored as ${prior.env}, received as ${env}`;
       console.error(`[paypal-webhook] duplicate ${event.id} does not match the stored copy: ${why}`);
@@ -168,7 +172,52 @@ serve(async (req) => {
       });
       return json(503, { error: "event_clash" });
     }
+    alreadyProcessed = prior.processed_at != null;
   }
   console.log(`[paypal-webhook] ${fresh ? "stored" : "already stored"} ${event.event_type} ${event.id} (verified via ${outcome.via})`);
-  return json(200, { received: true });
+  if (alreadyProcessed) return json(200, { received: true, processed: true });
+
+  // Act on it (_shared/payments/webhookHandlers.ts: each phase owns one handler file). A handler
+  // re-reads the resource from PayPal and is idempotent, so a redelivery of an event that was not
+  // finished simply runs it again.
+  const result = await dispatchPayPalEvent(
+    {
+      event_id: event.id,
+      event_type: event.event_type,
+      resource_type: typeof event.resource_type === "string" ? event.resource_type : null,
+      resource_id: typeof event.resource?.id === "string" ? event.resource.id : null,
+      payload: event,
+    },
+    { supabase, client, env },
+  );
+  if (result.kind === "unhandled") {
+    // Stored for the phase that will own it; processed_at stays NULL.
+    return json(200, { received: true, handled: false });
+  }
+  if (result.kind === "retry") {
+    console.error(`[paypal-webhook] ${event.event_type} ${event.id} not finished (503, PayPal redelivers): ${result.note}`);
+    const { error: noteErr } = await supabase.from("paypal_webhook_events")
+      .update({ error: result.note.slice(0, 1000) }).eq("event_id", event.id).is("processed_at", null).select("event_id");
+    if (noteErr) console.error(`[paypal-webhook] could not record the error on ${event.id}: ${noteErr.message}`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "PayPal webhook event not processed",
+      message: `paypal-webhook could not finish ${event.event_type} ${event.id}: ${result.note.slice(0, 300)}. PayPal redelivers for 3 days; after that, re-run it by hand.`,
+      oncePerDayKey: `paypal-webhook-retry:${event.event_type}`,
+    });
+    return json(503, { error: "processing_failed" });
+  }
+  // done or final: mark processed (final also keeps why).
+  const { data: marked, error: markErr } = await supabase.from("paypal_webhook_events")
+    .update({ processed_at: new Date().toISOString(), error: result.kind === "final" ? result.note.slice(0, 1000) : null })
+    .eq("event_id", event.id).is("processed_at", null).select("event_id");
+  if (markErr) {
+    // The work is done but not marked: 503 so PayPal redelivers and the (idempotent) handler re-runs.
+    console.error(`[paypal-webhook] could not mark ${event.id} processed: ${markErr.message}`);
+    return json(503, { error: "mark_failed" });
+  }
+  // Zero rows: a racing delivery marked it first. Same end state (handlers are idempotent).
+  console.log(`[paypal-webhook] ${result.kind} ${event.event_type} ${event.id}${(marked?.length ?? 0) === 0 ? " (marked by a racing delivery)" : ""}: ${result.note.slice(0, 200)}`);
+  return json(200, { received: true, processed: true });
 });

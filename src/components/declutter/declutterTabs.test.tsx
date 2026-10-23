@@ -46,6 +46,8 @@ vi.mock("@/hooks/useFeature", () => ({
 }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
+// Q2352: the cart's one-time setup fee answer (the live platform setting) is not this spec's subject: paid.
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeKnown: () => true }));
 // The whole hook shape: Sell it for me (on Selling) reads explain + gatedProps too.
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
 vi.mock("@/hooks/useUserLocation", () => ({

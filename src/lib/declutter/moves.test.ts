@@ -292,6 +292,21 @@ describe("scanRoom", () => {
 });
 
 describe("publishMany", () => {
+  // lh-silent-failure review of the Q2352 rebase #3: the setup fee is an account refusal; stop at the first one.
+  // @mutate src/lib/declutter/moves.ts |       if (setupFeeRefusal(error)) { |       if (false) {
+  it("stops at the first setup_fee_required_to_list: no more photo checks spent on items that would be refused too", async () => {
+    h.api.publishItem.mockRejectedValue(new Error("setup_fee_required_to_list"));
+    const checks: string[] = [];
+    h.api.requestAiCheck.mockImplementation(async (id: string) => void checks.push(id));
+    const progress: string[] = [];
+    let now = 0;
+    const out = await publishMany(["a", "b", "c"], (d, t) => progress.push(`${d}/${t}`), async (ms) => void (now += ms), () => now);
+    expect(checks).toEqual(["a"]);
+    expect(out.map((o) => o.id)).toEqual(["a", "b", "c"]);
+    expect(out.every((o) => "error" in o)).toBe(true);
+    expect(progress[progress.length - 1]).toBe("3/3");
+  });
+
   it("lists each item through the one-item calls, in order, reporting progress", async () => {
     const calls: string[] = [];
     h.api.attestItem.mockImplementation(async (id: string) => void calls.push(`attest ${id}`));

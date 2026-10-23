@@ -104,6 +104,23 @@ export async function handleChargeRefundUpdated(
     });
     return;
   }
+  if (meta.kind === "declutter_refund" && meta.setup_fee_order_id) {
+    // Q2352: the one-time setup fee sent back on its own (settleSetupFee) failed after Stripe took it. The order
+    // owes it again (refund_due, no longer a known refund) and a person sends it: nothing retries it on its own.
+    const { data: reopened, error: sErr } = await supabase.rpc("declutter_setup_fee_refund_reversed", {
+      p_order_id: meta.setup_fee_order_id,
+      p_stripe_refund_id: refund.id,
+    });
+    if (sErr) throw new Error(`declutter_setup_fee_refund_reversed failed for ${refund.status} refund ${refund.id}: ${sErr.message}`);
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: reopened === "reopened" ? "critical" : "warning",
+      title: reopened === "reopened" ? "Declutter setup fee refund failed after Stripe took it: refund it by hand" : "Declutter setup fee refund failed (order not reopened)",
+      message: `Stripe moved setup-fee refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${reopened === "reopened" ? "The buyer had already paid the fee elsewhere and has NOT been repaid: refund exactly this amount by hand in the Stripe Dashboard; the webhook records a hand refund of exactly the fee on the order, so the seller is still paid." : "The order did not record this refund: nothing changed."}`,
+      fields: { Order: meta.setup_fee_order_id },
+    });
+    return;
+  }
   if (meta.kind === "declutter_refund") {
     if (!meta.refund_id) throw new Error(`Declutter refund ${refund.id} turned ${refund.status} without its refund_id`);
     const { data: reopened, error: dErr } = await supabase.rpc("declutter_refund_reversed", {

@@ -117,6 +117,16 @@ export async function settleOnboardingFee(
 
     if (feeErr) {
       logStep("ERROR atomic flip onboarding fee", { error: feeErr.message });
+      // Q2352 (lh-money-escrow review #4): the standalone fee page is now on a member's first Declutter listing,
+      // so a paid fee the flag did not record keeps their listing refused and the next payment would win the
+      // claim. Paged, never only logged: a person sets the flag (or refunds) by hand.
+      await postSlackOpsAlert({
+        kind: "stripe_webhook_error",
+        severity: "critical",
+        title: "Setup fee paid but not recorded on the account: set it by hand",
+        message: `Checkout ${session.id} collected the one-time setup fee, but marking profiles.onboarding_fee_paid failed (${feeErr.message}). Set it for the member by hand, or they may be asked to pay again.`,
+        fields: { Member: posterId, Session: session.id },
+      });
     } else if (flipped && flipped.length > 0) {
       logStep("Onboarding fee marked paid for poster", { posterId });
       await stampJobSetupFee(session, posterId, { supabase, logStep });
@@ -203,6 +213,14 @@ export async function settleOnboardingFee(
           error: (refundErr as Error).message,
           posterId,
           sessionId: session.id,
+        });
+        // Q2352 (lh-money-escrow review #4): a fee charged twice that was not sent back is money we owe.
+        await postSlackOpsAlert({
+          kind: "stripe_webhook_error",
+          severity: "critical",
+          title: "Duplicate setup fee NOT refunded: refund it by hand",
+          message: `Checkout ${session.id} charged the one-time setup fee to a member who had already paid it, and the automatic refund failed (${(refundErr as Error).message}). Refund it by hand.`,
+          fields: { Member: posterId, Session: session.id },
         });
       }
     }

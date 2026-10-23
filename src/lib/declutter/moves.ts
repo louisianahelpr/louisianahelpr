@@ -14,6 +14,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto } from "@/lib/declutter/photos";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheck, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
+import { setupFeeRefusal } from "@/lib/declutter/setupFee";
 
 // The calendar helpers live in moveDates.ts (shared with the banner).
 export { daysBetween, formatMoveDate, louisianaToday };
@@ -262,6 +263,13 @@ export async function publishMany(
       // Not swallowed: the refusal is returned for this item, and the screen
       // tells the seller how many were not listed and why.
       out.push({ id, error });
+      // lh-silent-failure review of the Q2352 rebase #3: the one-time setup fee is an ACCOUNT refusal, so every
+      // later item would be refused the same way after spending its own photo check. Stop at the first.
+      if (setupFeeRefusal(error)) {
+        for (const rest of itemIds.slice(i + 1)) out.push({ id: rest, error });
+        onProgress(itemIds.length, itemIds.length);
+        break;
+      }
     }
     onProgress(i + 1, itemIds.length);
   }

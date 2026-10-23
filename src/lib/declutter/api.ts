@@ -13,6 +13,7 @@ import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from 
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
+import { promptAccountSetupFee, setupFeeRefusal } from "@/lib/declutter/setupFee";
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
@@ -25,6 +26,8 @@ const DECLUTTER_PHOTO_BUCKET = "job-photos";
 function openIdentitySheetFor(err: unknown): void {
   const kind = identityRefusal(err);
   if (kind === "buy" || kind === "list") openIdentityCheck(kind);
+  // Q2352: the first listing's one-time setup fee (after the ID check): offer the fee page.
+  else if (setupFeeRefusal(err)) promptAccountSetupFee();
 }
 
 /**

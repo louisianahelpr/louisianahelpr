@@ -31,6 +31,7 @@ import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRead.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
 
 
 serve(async (req) => {
@@ -141,6 +142,8 @@ serve(async (req) => {
       (jobs ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
     );
     const seedDefects: string[] = [];
+    /** One live Connect read per payee account per run (_shared/livePayoutGate.ts). */
+    const liveGates = new Map<string, Promise<LivePayoutGate>>();
     /** A defect about ONE job: counted, unless that job is a seed fixture. */
     const jobDefect = (jobId: string, reason: string) => {
       if (seedJobIds.has(jobId)) seedDefects.push(reason);
@@ -1461,6 +1464,60 @@ serve(async (req) => {
         console.log(`[process-scheduled-payouts] Payout already exists for job ${job.id} (${blockingPayout.stripe_transfer_id}/${blockingPayout.status}); skipping.`);
         results.push({ job_id: job.id, status: "already_transferred", transfer_id: blockingPayout.stripe_transfer_id });
         continue;
+      }
+
+      // ── Live payout gate (lead, 2026-10-23) ──
+      // Stripe rejected the platform and every connected account; prod gets
+      // no Connect events (Q876), so the cached gate on profiles can read
+      // payable when Stripe says otherwise. Before ANY claim or transfer, one
+      // live read must say the account is payable; anything else (not
+      // payable, rejected, gone, or a read that failed: "cannot verify") HOLDS
+      // this payout without calling transfers.create. Nothing is claimed or
+      // written for the job, so it stays payout_pending and the next run asks
+      // again. A rejected or gone account also closes the cached gate
+      // (towards false only), and ops hear once a day per Helpr.
+      // After the already-transferred check on purpose: a transfer that went
+      // out still heals its flip whatever the account reads now.
+      {
+        const acct = helperProfile.stripe_account_id as string;
+        let gateRead = liveGates.get(acct);
+        if (!gateRead) {
+          gateRead = readLivePayoutGate(stripe, acct);
+          liveGates.set(acct, gateRead);
+        }
+        const gate = await gateRead;
+        if (!gate.ok) {
+          console.warn(`[process-scheduled-payouts] payout HELD for job ${job.id}, Helpr ${helperId}: Connect account ${acct} ${gate.kind} (${gate.reason}); no transfer attempted.`);
+          if (holdClosesCache(gate)) {
+            const shut = await closeCachedConnectGate(supabaseAdmin, helperId, acct);
+            if (shut.error) jobDefect(job.id, `cached gate close ${helperId}: ${shut.error}`);
+          }
+          // Stripe refusing OUR platform holds every payout alike: ONE alert a
+          // day for the platform, not one per Helpr, and no per-job defect (it
+          // would turn every run red for a condition ops already know).
+          const platformRefused = gate.kind === "platform_rejected";
+          await postSlackOpsAlert({
+            kind: "payout_wait",
+            severity: "warning",
+            oncePerDayKey: platformRefused ? "payout-held-platform-rejected" : `payout-held-not-payable-${helperId}`,
+            seed: seedJobIds.has(job.id),
+            title: platformRefused
+              ? "Payouts held: Stripe refuses the platform's account"
+              : "Payout held: Stripe does not say the Helpr's account is payable",
+            message: platformRefused
+              ? "Stripe answered that the platform's own account has been rejected, so no Helpr's account can be verified and every scheduled payout is held, not sent. They are tried again on every run."
+              : gate.kind === "cannot_verify"
+                ? "The Helpr's payout account could not be read from Stripe, so the payout was held, not sent. It is tried again on the next run."
+                : "Stripe says the Helpr's payout account cannot be paid out now, so the payout was held, not sent. It is tried again on the next run.",
+            fields: { job_id: job.id, helper_id: helperId, account_id: acct, gate: gate.kind, reason: gate.reason, amount: formatPayoutDollars(helperPayout) },
+          });
+          results.push({ job_id: job.id, status: "payee_not_payable", gate: gate.kind, reason: gate.reason });
+          // A read that failed for an unknown reason is worth a red run; a
+          // known not-payable account or a refused platform is a held payout,
+          // already told to ops.
+          if (gate.kind === "cannot_verify") jobDefect(job.id, `live payout gate ${job.id}/${helperId}: ${gate.reason}`);
+          continue;
+        }
       }
 
       // ── Onboarding-fee claim (deferred to HERE, immediately before the

@@ -35,7 +35,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { PRO_ONE_TIME_AMOUNT_CENTS, PRO_PRICE_MAP, PRO_RECURRING_AMOUNT_CENTS } from "../../../supabase/functions/_shared/proTiers";
@@ -62,7 +62,7 @@ function writeShape() {
 
 beforeEach(() => {
   resetEnv();
-  resetStripeMock();
+  resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
   resetSupabaseMock();
   resetSharedMocks();
 });
@@ -151,7 +151,7 @@ describe("auto-release-payment ?include_seed=1", () => {
   it("seed vs real: identical results, writes and Stripe calls — only routing differs", async () => {
     const run = async (isSeed: boolean) => {
       resetSupabaseMock();
-      resetStripeMock();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
       resetSharedMocks();
       seedVerifyFailing(isSeed);
       // A capture that SUCCEEDS, so the release write and notifications run too.
@@ -300,7 +300,7 @@ describe("process-scheduled-payouts ?include_seed=1", () => {
   it("Q93: a SEED job whose charge was not captured puts nothing in the admins' inbox; unknown is_seed does", async () => {
     for (const [isSeed, want] of [[true, 0], [undefined, 1]] as const) {
       resetSupabaseMock();
-      resetStripeMock();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
       resetSharedMocks();
       seedTransferFailing(isSeed);
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "requires_capture", latest_charge: "ch_1", amount: 11200, amount_received: 0 });
@@ -315,7 +315,7 @@ describe("process-scheduled-payouts ?include_seed=1", () => {
   it("seed vs real: the same transfer is attempted with the same arguments", async () => {
     const run = async (isSeed: boolean) => {
       resetSupabaseMock();
-      resetStripeMock();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
       resetSharedMocks();
       seedTransferFailing(isSeed);
       stripeMock.transfers.create.mockResolvedValue({ id: "tr_1" });

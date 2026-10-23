@@ -23,7 +23,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 
@@ -65,7 +65,7 @@ const callsOn = (key: string, method: string) => stripeMock.__calls.filter((c) =
 describe("money crons choose each job's Stripe client by its mode (owner 2026-10-12)", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
     stripeMock.__trackClients = true;

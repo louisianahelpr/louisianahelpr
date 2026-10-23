@@ -20,6 +20,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { enforceConnectAccountFingerprints } from "../_shared/paymentFingerprint.ts";
 import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { closeCachedConnectGate, isPlatformRejectedError, isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
 
 interface GateProfile {
   stripe_account_id: string;
@@ -30,8 +31,9 @@ interface GateProfile {
 
 type GateSyncOutcome =
   | { kind: "banned" }
-  /** `opened`: this write moved the gate INTO enabled (the Helpr was told). */
-  | { kind: "synced"; opened: boolean; writeError: string | null };
+  /** `opened`: this write moved the gate INTO enabled (the Helpr was told).
+   *  `closed`: this write moved an enabled gate OUT of enabled. */
+  | { kind: "synced"; opened: boolean; closed: boolean; writeError: string | null };
 
 export async function syncConnectGate(
   stripe: Stripe,
@@ -120,8 +122,12 @@ export async function syncConnectGate(
   // write that moves the cache INTO enabled sends it. Zero rows is still
   // legitimate (a concurrent writer — the webhook or a second `status` —
   // got there first and owns the notice, or the account was replaced).
-  const nowCharges = account.charges_enabled === true;
-  const nowPayouts = account.payouts_enabled === true;
+  // A REJECTED account (requirements.disabled_reason "rejected.*") is never
+  // cached as payable, whatever its flags read (lead, 2026-10-23: Stripe
+  // rejected the platform and every connected account; _shared/livePayoutGate.ts).
+  const rejected = isRejectedAccount(account);
+  const nowCharges = account.charges_enabled === true && !rejected;
+  const nowPayouts = account.payouts_enabled === true && !rejected;
   const wasEnabled = profile.stripe_charges_enabled === true && profile.stripe_payouts_enabled === true;
   const { data: cacheRows, error: cacheErr } = fpCheckFailed && !wasEnabled
     ? { data: [] as Array<{ id: string }>, error: null }
@@ -145,9 +151,10 @@ export async function syncConnectGate(
       .select("id");
   if (cacheErr) {
     console.error(`[stripe-connect] status cache write-back failed for ${userId}:`, cacheErr);
-    return { kind: "synced", opened: false, writeError: String(cacheErr.message ?? cacheErr) };
+    return { kind: "synced", opened: false, closed: false, writeError: String(cacheErr.message ?? cacheErr) };
   }
   const opened = (cacheRows?.length ?? 0) === 1 && nowCharges && nowPayouts && !wasEnabled;
+  const closed = (cacheRows?.length ?? 0) === 1 && wasEnabled && !(nowCharges && nowPayouts);
   if (opened) {
     // insertNotifications logs its own failure and returns false; the
     // status answer does not depend on the notice.
@@ -159,7 +166,7 @@ export async function syncConnectGate(
       link: "/profile?tab=payment",
     });
   }
-  return { kind: "synced", opened, writeError: null };
+  return { kind: "synced", opened, closed, writeError: null };
 }
 
 /** Most Helprs one scheduled run re-reads (one Stripe read each). */
@@ -170,6 +177,10 @@ interface PendingAcceptRecheck {
   checked: number;
   opened: number;
   skipped: number;
+  /** Reads Stripe refused because OUR platform was rejected (counted into the run's platform alert). */
+  platform_rejected: number;
+  /** Cached gates closed because Stripe rejected the account (counted into the run's closed alert). */
+  closed: number;
   defects: string[];
 }
 
@@ -192,8 +203,10 @@ export async function recheckPendingAccepts(
   stripeFor: (helperId: string) => Promise<Stripe>,
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any,
+  /** Filled with every Helpr this pass asked Stripe about (refreshAllConnectGates skips them). */
+  seen?: Set<string>,
 ): Promise<PendingAcceptRecheck> {
-  const out: PendingAcceptRecheck = { waiting: 0, checked: 0, opened: 0, skipped: 0, defects: [] };
+  const out: PendingAcceptRecheck = { waiting: 0, checked: 0, opened: 0, skipped: 0, platform_rejected: 0, closed: 0, defects: [] };
   const { data: pending, error: pendingErr } = await supabaseAdmin
     .from("job_accept_pending")
     .select("helper_id")
@@ -231,10 +244,27 @@ export async function recheckPendingAccepts(
       out.defects.push(`Helpr ${p.user_id}: no Stripe mode (${caughtMessage(e)})`);
       continue;
     }
+    seen?.add(p.user_id);
     let account: Stripe.Account;
     try {
       account = await stripe.accounts.retrieve(p.stripe_account_id);
     } catch (e) {
+      // Lead 2026-10-23: Stripe refusing OUR platform is "cannot verify" (no
+      // write, and not a defect every 15 minutes for a condition ops already
+      // know: refreshAllConnectGates alerts once a day); a rejected ACCOUNT
+      // closes its cached gate, towards false only.
+      if (isPlatformRejectedError(e)) {
+        out.skipped++;
+        out.platform_rejected++;
+        continue;
+      }
+      if (isRejectedAccountError(e)) {
+        out.skipped++;
+        const shut = await closeCachedConnectGate(supabaseAdmin, p.user_id, p.stripe_account_id);
+        if (shut.error) out.defects.push(`Helpr ${p.user_id}: closing the cached gate failed (${shut.error})`);
+        else if (shut.closed) out.closed++;
+        continue;
+      }
       if (isTestObjectUnderLiveKey(e) || isUnusableConnectAccountError(e)) {
         if (isTestObjectUnderLiveKey(e)) {
           logTestObjectUnderLiveKey("recheck-pending-accepts", { helper_id: p.user_id, object: "account", id: p.stripe_account_id });
@@ -250,6 +280,119 @@ export async function recheckPendingAccepts(
     if (gate.kind === "synced") {
       if (gate.writeError) out.defects.push(`Helpr ${p.user_id}: gate write-back failed (${gate.writeError})`);
       if (gate.opened) out.opened++;
+    }
+  }
+  return out;
+}
+
+/** Most Connect accounts one scheduled refresh re-reads (one Stripe read each, one at a time). */
+const CONNECT_GATE_REFRESH_CAP = 300;
+
+interface ConnectGateRefresh {
+  accounts: number;
+  checked: number;
+  closed: number;
+  opened: number;
+  cannot_verify: number;
+  /** Reads Stripe refused because OUR platform was rejected ("cannot verify"; not a defect). */
+  platform_rejected: number;
+  /** A test-mode object under the live key (a standing state, not a defect). */
+  skipped: number;
+  defects: string[];
+}
+
+/**
+ * Lead, 2026-10-23: the cached gate of EVERY Helpr with a Connect account
+ * follows Stripe's live state, not only the Helprs who open Profile/Activity
+ * or wait on an accept. Stripe rejected the platform and every connected
+ * account (~07:33Z), prod gets no Connect events (Q876), and 13 of the 34
+ * profiles with an account still read stripe_payouts_enabled = true
+ * (measured read-only 2026-10-23).
+ *
+ * One read per account, SEQUENTIAL (no burst against Stripe's rate limit),
+ * at most CONNECT_GATE_REFRESH_CAP per run; more is a defect (the rest wait).
+ *   - the read works: the same writer the Helpr's own `status` call runs
+ *     (syncConnectGate: follows Stripe both ways; a rejected account never
+ *     reads payable);
+ *   - the read is refused with "the account has been rejected", or the
+ *     account is gone / a sandbox account under the live key: the cached gate
+ *     is CLOSED (closeCachedConnectGate, towards false only);
+ *   - the read is refused with "YOUR account has been rejected" (Stripe
+ *     refusing our platform): "cannot verify", counted as platform_rejected,
+ *     nothing written and no defect (the caller alerts once a day);
+ *   - a test-mode object under the live key: skipped (a standing state; a
+ *     defect would keep every run red);
+ *   - a Helpr whose Stripe mode cannot be decided (a failed lookup or a
+ *     missing test key, _shared/stripeMode.ts): "cannot verify", a defect;
+ *   - any other failed read is "cannot verify": a defect, and nothing is
+ *     written (never read as enabled; the payout senders re-read live before
+ *     every transfer, _shared/livePayoutGate.ts).
+ * The cap does not rotate: past it, the defect says so every run.
+ * `skip` holds the Helprs this run already re-read (the pending-accept pass).
+ */
+export async function refreshAllConnectGates(
+  stripeFor: (helperId: string) => Promise<Stripe>,
+  // deno-lint-ignore no-explicit-any
+  supabaseAdmin: any,
+  skip: ReadonlySet<string> = new Set(),
+): Promise<ConnectGateRefresh> {
+  const out: ConnectGateRefresh = { accounts: 0, checked: 0, closed: 0, opened: 0, cannot_verify: 0, platform_rejected: 0, skipped: 0, defects: [] };
+  const { data: profiles, error } = await supabaseAdmin
+    .from("profiles")
+    .select("stripe_account_id, user_id, stripe_identity_verified, stripe_charges_enabled, stripe_payouts_enabled")
+    .not("stripe_account_id", "is", null)
+    .order("user_id", { ascending: true })
+    .limit(CONNECT_GATE_REFRESH_CAP + 1);
+  if (error) {
+    out.defects.push(`profiles read failed: ${error.message}`);
+    return out;
+  }
+  const rows = (profiles ?? []) as Array<GateProfile & { user_id: string }>;
+  out.accounts = rows.length;
+  if (rows.length > CONNECT_GATE_REFRESH_CAP) {
+    out.defects.push(`more than ${CONNECT_GATE_REFRESH_CAP} Connect accounts; only ${CONNECT_GATE_REFRESH_CAP} are refreshed per run`);
+  }
+  for (const p of rows.slice(0, CONNECT_GATE_REFRESH_CAP)) {
+    if (skip.has(p.user_id)) continue;
+    let stripe: Stripe;
+    try {
+      stripe = await stripeFor(p.user_id);
+    } catch (e) {
+      out.cannot_verify++;
+      out.defects.push(`Helpr ${p.user_id}: no Stripe mode (${caughtMessage(e)})`);
+      continue;
+    }
+    let account: Stripe.Account;
+    try {
+      account = await stripe.accounts.retrieve(p.stripe_account_id);
+    } catch (e) {
+      if (isPlatformRejectedError(e)) {
+        out.platform_rejected++;
+        continue;
+      }
+      if (isTestObjectUnderLiveKey(e)) {
+        logTestObjectUnderLiveKey("recheck-pending-accepts", { helper_id: p.user_id, object: "account", id: p.stripe_account_id });
+        out.skipped++;
+        continue;
+      }
+      const knownClosed = isRejectedAccountError(e) || isUnusableConnectAccountError(e);
+      if (!knownClosed) {
+        out.cannot_verify++;
+        out.defects.push(`Helpr ${p.user_id}: Connect account ${p.stripe_account_id} could not be verified (${caughtMessage(e)})`);
+        continue;
+      }
+      out.checked++;
+      const shut = await closeCachedConnectGate(supabaseAdmin, p.user_id, p.stripe_account_id);
+      if (shut.error) out.defects.push(`Helpr ${p.user_id}: closing the cached gate failed (${shut.error})`);
+      else if (shut.closed) out.closed++;
+      continue;
+    }
+    out.checked++;
+    const synced = await syncConnectGate(stripe, supabaseAdmin, p.user_id, p, account);
+    if (synced.kind === "synced") {
+      if (synced.writeError) out.defects.push(`Helpr ${p.user_id}: gate write-back failed (${synced.writeError})`);
+      if (synced.opened) out.opened++;
+      if (synced.closed) out.closed++;
     }
   }
   return out;

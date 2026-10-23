@@ -23,7 +23,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type SupabaseScenario } from "./mocks/supabase";
 import { resetSharedMocks, postSlackOpsAlert } from "./mocks/shared";
 import { stampDisputePayout } from "../../../supabase/functions/_shared/disputePayoutStamp.ts";
@@ -101,7 +101,7 @@ const disputeWrites = () => scenario.writes.filter((w) => w.table === "disputes"
 describe("release-payout stamps the closed dispute it settles (Q153)", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });
@@ -200,7 +200,7 @@ describe("release-payout stamps the closed dispute it settles (Q153)", () => {
 describe("process-scheduled-payouts stamps the closed dispute it settles (Q153)", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });

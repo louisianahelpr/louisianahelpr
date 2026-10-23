@@ -26,7 +26,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type SupabaseScenario } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 
@@ -98,7 +98,7 @@ const claimMeta = () =>
 describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
     scenario.rpcCalls = [];
@@ -169,7 +169,7 @@ describe("Q2082 (b): a Helpr-fault card fee comes out of the next payout", () =>
       expect(fullCents).toBeGreaterThan(1000);
       expect(stripeMock.transfers.create.mock.calls[0][0].metadata.helpr_fault_fee_cents).toBe("0");
 
-      resetStripeMock();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
       resetSupabaseMock();
       scenario.rpcCalls = [];
       seedScheduled(scenario);

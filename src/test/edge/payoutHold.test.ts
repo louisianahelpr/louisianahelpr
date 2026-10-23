@@ -37,7 +37,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock, type SupabaseScenario } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 
@@ -48,7 +48,7 @@ const ledgerInserts = () => scenario.writes.filter((w) => w.table === "payout_tr
 
 beforeEach(() => {
   resetEnv();
-  resetStripeMock();
+  resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
   resetSupabaseMock();
   resetSharedMocks();
 });
@@ -156,7 +156,7 @@ describe("release-payout honours the payout hold", () => {
       { rows: [{ ...HELD, helper_id: "helper-2" }] },
       { error: { message: 'relation "public.payout_holds" does not exist', code: "42P01" } },
     ]) {
-      resetStripeMock();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
       resetSupabaseMock();
       seedPayable(scenario);
       scenario.reads.payout_holds = holds;
@@ -415,6 +415,23 @@ describe("auto-release-payment honours the payout hold", () => {
     expect(failedAttempts()).toHaveLength(0);
     expect(res.status).toBe(200);
   });
+
+  // Lead 2026-10-23: release-payout refused because Stripe does not say the
+  // Helpr's account is payable (or refuses the platform). Held, told to ops by
+  // release-payout once a day: no failed attempt, so no give-up page per job.
+  // @mutate supabase/functions/auto-release-payment/index.ts |           } else if (typeof json.code === "string" && CONNECT_HELD_CODES.has(json.code)) { |           } else if (false) {
+  for (const code of ["connect_account_rejected", "connect_account_not_payable", "stripe_platform_rejected"]) {
+    it(`release-payout answering ${code} is a held payout, not a failed attempt`, async () => {
+      seed(scenario);
+      scenario.reads.payout_holds = { rows: [] };
+      vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "not payable", code }), { status: 409 })));
+      const res = await run();
+      const body = await json(res);
+      expect((body.payoutResults as Array<{ status: string }>)[0].status).toBe("payee_not_payable");
+      expect(failedAttempts()).toHaveLength(0);
+      expect(res.status).toBe(200);
+    });
+  }
 
   it("an unreadable hold attempts NO payout this run and is a defect", async () => {
     seed(scenario);

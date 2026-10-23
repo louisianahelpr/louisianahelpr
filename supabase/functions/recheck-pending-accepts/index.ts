@@ -1,6 +1,8 @@
-// seed-policy: raises no alert of its own. Its only alerts are the ban-evasion
+// seed-policy: pages for seed accounts too. Its alerts are the ban-evasion
 // pages inside syncConnectGate, which concern a real bank account whoever owns
-// the profile; a defect answers 500 and sweep_cron_http_failures reports it.
+// the profile, and one "payout accounts closed" note a day, which counts real
+// Stripe accounts (a seed profile's Connect account is a Stripe account like
+// any other); a defect answers 500 and sweep_cron_http_failures reports it.
 //
 // Q1186: a pending accept completes without the Helpr coming back to the app.
 //
@@ -15,6 +17,12 @@
 // Every run re-reads each waiting Helpr's Connect account and syncs it through
 // the same writer `status` uses (_shared/connectGateSync.ts). Scheduled every
 // 15 minutes by cron job recheck-pending-accepts.
+//
+// Then (lead, 2026-10-23) it refreshes EVERY other Helpr with a Connect
+// account the same way (refreshAllConnectGates): Stripe rejected the platform
+// and every connected account, and with no Connect events (Q876) the cached
+// gate of a Helpr who never opens the app read payable forever. A refresh
+// that closes any gate tells ops once a day.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { serve } from "../_shared/buildStamp.ts";
@@ -22,7 +30,8 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { recheckPendingAccepts } from "../_shared/connectGateSync.ts";
+import { recheckPendingAccepts, refreshAllConnectGates } from "../_shared/connectGateSync.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { createStripeModeResolver } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -43,11 +52,42 @@ serve(async (req) => {
     // Stripe mode (owner 2026-10-12): each Helpr's Connect account is read with
     // the key of that Helpr's own mode (a test account: the test key).
     const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
-    const { defects, ...counts } = await recheckPendingAccepts(
-      async (helperId) => (await stripes.clientForParties([helperId])).stripe,
-      supabase,
+    const stripeFor = async (helperId: string) => (await stripes.clientForParties([helperId])).stripe;
+    const seen = new Set<string>();
+    const { defects, ...counts } = await recheckPendingAccepts(stripeFor, supabase, seen);
+    const { defects: refreshDefects, ...refresh } = await refreshAllConnectGates(stripeFor, supabase, seen);
+    // The pending pass asked some Helprs first (the refresh skips them): its
+    // closes and platform refusals count toward the run's alerts too (review r2 #2).
+    const closedThisRun = refresh.closed + counts.closed;
+    const platformRejectedThisRun = refresh.platform_rejected + counts.platform_rejected;
+    if (closedThisRun > 0) {
+      // Once a day: a closed gate is a Helpr who can no longer be paid out.
+      await postSlackOpsAlert({
+        kind: "payout_wait",
+        severity: "warning",
+        oncePerDayKey: "connect-gates-closed",
+        title: "Stripe closed Helprs' payout accounts",
+        message: `${closedThisRun} Helpr payout account(s) read payable in the app but Stripe now says they cannot be paid out; their cached gate was closed. Payouts to them are held until Stripe says otherwise.`,
+        fields: { closed: closedThisRun, accounts: refresh.accounts, cannot_verify: refresh.cannot_verify },
+      });
+    }
+    if (platformRejectedThisRun > 0) {
+      await postSlackOpsAlert({
+        kind: "payout_wait",
+        severity: "warning",
+        oncePerDayKey: "connect-refresh-platform-rejected",
+        title: "Stripe refuses the platform's account: Helpr payout accounts cannot be verified",
+        message: `Stripe answered "your account has been rejected" for ${platformRejectedThisRun} Helpr payout account read(s), so their cached state could not be checked. Every payout sender re-reads Stripe before a transfer and holds when it cannot verify.`,
+        fields: { platform_rejected: platformRejectedThisRun, accounts: refresh.accounts },
+      });
+    }
+    const allDefects = [...defects, ...refreshDefects];
+    return cronResult(
+      "recheck-pending-accepts",
+      { ...counts, refresh },
+      { count: allDefects.length, reasons: allDefects },
+      corsHeaders,
     );
-    return cronResult("recheck-pending-accepts", counts, { count: defects.length, reasons: defects }, corsHeaders);
   } catch (e) {
     return cronError("recheck-pending-accepts", caughtMessage(e), corsHeaders);
   }

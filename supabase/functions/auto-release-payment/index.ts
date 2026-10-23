@@ -12,6 +12,7 @@ import { APPROVAL_WINDOW_HOURS, hoursToMs, payoutDayLabel, standardPayoutAtIso }
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
@@ -884,6 +885,13 @@ serve(async (req) => {
             // The hold landed between the read above and release-payout's own
             // check. Same outcome as above: not a failed attempt, no page.
             payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: json.error });
+          } else if (typeof json.code === "string" && CONNECT_HELD_CODES.has(json.code)) {
+            // Lead 2026-10-23: release-payout refused before any transfer
+            // because Stripe does not say the Helpr's account is payable (or
+            // refuses the platform). A held payout, already told to ops once a
+            // day by release-payout: not a failed attempt, so no give-up page
+            // per job while it waits (lh-money-escrow review #4).
+            payoutResults.push({ job_id: job.id, status: "payee_not_payable", detail: `${json.code}: ${json.error ?? ""}` });
           } else {
             const detail = json.error ?? `HTTP ${resp.status}`;
             // release-payout writes its own failed row only when

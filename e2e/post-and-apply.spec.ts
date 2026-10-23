@@ -81,7 +81,7 @@ test.describe("post + apply baseline", () => {
     // it names. It went unnoticed because NOTHING RUNS THIS SPEC: the chromium
     // project is only ever invoked with an explicit file list
     // (e2e-real-backend.yml) and this file is in none of them.
-    // 2026-10-19: the hero's quiet text link says "Browse local jobs" again.
+    // 2026-10-23: the "Browse local jobs" link moved from the hero to the Live now section under it.
     const cta = page.getByRole("link", { name: /browse local jobs/i }).first();
     await cta.waitFor({ timeout: 10_000 });
 

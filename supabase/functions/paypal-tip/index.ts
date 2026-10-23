@@ -36,12 +36,11 @@ import { PublicError, publicErrorMessage } from "../_shared/publicError.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
-import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, paypalTipChargeBreakdown } from "../_shared/tipFees.ts";
 import { PayPalClient } from "../_shared/payments/paypalClient.ts";
 import { parseProviderEnv, paymentProviderFor } from "../_shared/payments/registry.ts";
-import { settlePayPalTip, type TipSettleDb, type TipSettleOutcome } from "../_shared/payments/tipSettle.ts";
+import { alertIfTipOwedWithoutDestination, settlePayPalTip, type TipSettleDb, type TipSettleOutcome } from "../_shared/payments/tipSettle.ts";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PAYER_UNDER_REVIEW = "This payment can't go through right now. Please contact support.";
@@ -211,15 +210,7 @@ serve(async (req) => {
       if (!pay || pay.subject_kind !== "tip" || pay.payer_id !== user.id) return json(404, { error: "We couldn't find that tip." });
 
       const outcome = await settlePayPalTip(admin as unknown as TipSettleDb, provider, client, pay.id);
-      if (outcome.state === "recorded" && outcome.record.payout_reason === "no_payable_destination") {
-        await postSlackOpsAlert({
-          kind: "money_at_risk",
-          severity: "warning",
-          title: "PayPal tip captured, Helpr has no PayPal email",
-          message: `Tip ${outcome.record.tip_id} was paid through PayPal but the Helpr has no payable PayPal email, so no payout is queued. It queues on the next settle once they add one.`,
-          oncePerDayKey: `paypal-tip-no-destination:${outcome.record.tip_id}`,
-        });
-      }
+      await alertIfTipOwedWithoutDestination(outcome);
       return json(200, describeForPoster(outcome));
     }
 

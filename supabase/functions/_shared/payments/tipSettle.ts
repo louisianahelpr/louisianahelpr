@@ -4,9 +4,8 @@
  * ~/.lh-wt/paypal-design.md §6a). Called from two places, any number of times,
  * in any order:
  *   - paypal-tip "capture", when the poster returns from PayPal;
- *   - the webhook processor, for CHECKOUT.ORDER.APPROVED / PAYMENT.CAPTURE.*
- *     (tipWebhookHandlers below; the dispatcher in _shared/payments/
- *     webhookHandlers.ts is pp-phase5's, lead 2026-10-23).
+ *   - paypal-webhook, for CHECKOUT.ORDER.APPROVED / PAYMENT.CAPTURE.* on a tip
+ *     order (tipOrderEventHandler, ./webhook/tipEvents.ts).
  *
  * Idempotent end to end:
  *   - PayPal: the capture always carries PayPal-Request-Id `lh:pp:<id>:capture`,
@@ -22,6 +21,7 @@
 import { ProviderApiError, type CaptureResult, type PaymentProvider } from "./types.ts";
 import { captureFromOrder } from "./paypalCheckout.ts";
 import type { PayPalClient } from "./paypalClient.ts";
+import { postSlackOpsAlert } from "../slack-alerts.ts";
 
 /** The two calls this needs from the service-role supabase-js client. */
 export interface TipSettleDb {
@@ -165,47 +165,17 @@ export async function settlePayPalTip(
 }
 
 /**
- * Webhook routing for tips (lead 2026-10-23: pp-phase5's dispatcher calls these
- * for subject_kind 'tip'). Each finds our tip payment by the PayPal ORDER id in
- * the verified event, then settles from PayPal's current state.
- * Returns null when the event is not about a tip payment (another handler's).
+ * A captured tip whose Helpr has no payable PayPal email has no payout row yet (money owed, nowhere
+ * to send it). Both callers alert ops; the next settle (any return-page retry or redelivery, or a
+ * later sweep) queues it once the Helpr adds an email.
  */
-export const TIP_WEBHOOK_EVENT_TYPES = [
-  "CHECKOUT.ORDER.APPROVED",
-  "PAYMENT.CAPTURE.COMPLETED",
-  "PAYMENT.CAPTURE.PENDING",
-  "PAYMENT.CAPTURE.DENIED",
-  "PAYMENT.CAPTURE.DECLINED",
-] as const;
-
-interface VerifiedEventLite {
-  event_type: string;
-  resource?: { id?: unknown; supplementary_data?: { related_ids?: { order_id?: unknown } } };
-}
-
-/** The PayPal order an event is about: an order event names it; a capture event names it in related_ids. */
-export function orderIdOfEvent(event: VerifiedEventLite): string | null {
-  const id = event.event_type.startsWith("CHECKOUT.ORDER.")
-    ? event.resource?.id
-    : event.resource?.supplementary_data?.related_ids?.order_id;
-  return typeof id === "string" && /^[A-Z0-9]+$/.test(id) ? id : null;
-}
-
-export async function handleTipWebhookEvent(
-  db: TipSettleDb,
-  provider: PaymentProvider,
-  client: PayPalClient,
-  event: VerifiedEventLite,
-): Promise<TipSettleOutcome | null> {
-  if (!(TIP_WEBHOOK_EVENT_TYPES as readonly string[]).includes(event.event_type)) return null;
-  const orderId = orderIdOfEvent(event);
-  if (!orderId) return null;
-  // provider_payments is UNIQUE (provider, provider_order_id), and paypal_checkout is its only provider.
-  const { data: row, error } = await db.from("provider_payments")
-    .select("id, subject_kind, subject_id, env, provider_order_id, provider_capture_id, amount_cents, status")
-    .eq("provider_order_id", orderId)
-    .maybeSingle();
-  if (error) throw new Error(`provider_payments read failed for order ${orderId}: ${error.message}`);
-  if (!row || row.subject_kind !== "tip") return null;
-  return await settlePayPalTip(db, provider, client, row.id);
+export async function alertIfTipOwedWithoutDestination(outcome: TipSettleOutcome): Promise<void> {
+  if (outcome.state !== "recorded" || outcome.record.payout_reason !== "no_payable_destination") return;
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "warning",
+    title: "PayPal tip captured, Helpr has no PayPal email",
+    message: `Tip ${outcome.record.tip_id} was paid through PayPal but the Helpr has no payable PayPal email, so no payout is queued. It queues on the next settle once they add one.`,
+    oncePerDayKey: `paypal-tip-no-destination:${outcome.record.tip_id}`,
+  });
 }

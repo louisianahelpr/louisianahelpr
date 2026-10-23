@@ -263,6 +263,9 @@ for (const { width, height, label } of [
       rules: [
         mockRpc("get_public_platform_settings", [{ helper_fee_percent: 10 }]),
         mockRpc("get_safe_profiles", [POSTER_PROFILE]),
+        // Payout setup OPEN (switch payout_setup on): while it is paused (owner 2026-10-23) the apply sheet shows
+        // the paused notice instead of the "Set up payouts" one this spec measures.
+        mockRpc("feature_switches_for_me", { payout_setup: true }),
         mockTable("open_jobs_browse", [BASE_JOB]),
         mockTable("helper_availability", []),
         mockTable("applications", []),

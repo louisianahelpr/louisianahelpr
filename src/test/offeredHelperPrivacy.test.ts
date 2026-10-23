@@ -212,6 +212,10 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // 20261021072502 (owner 2026-10-21, cancel notice): a trigger (RETURNS trigger) that reads
     // the offeree only to decide who still hears a cancel (a pending direct offer); returns NEW.
     "function:notify_on_application": "no-return",
+    // 20261023130742 (Q2365): reads the offeree only as a candidate name to spell out in full in a
+    // notification addressed to an ADMIN; returns only that row's title/message, never the id.
+    // REVOKEd from PUBLIC, anon and authenticated (called by the notifications trigger).
+    "function:notification_admin_full_names": "no-return",
     "function:get_my_pending_direct_offers": "own-row-only",
     "function:get_jobs_for_my_applications": "returns-guarded",
     "view:open_jobs_browse": "returns-guarded",

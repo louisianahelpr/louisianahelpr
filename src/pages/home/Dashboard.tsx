@@ -411,6 +411,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   // to /account-pending are gone. Verification still gates the moments that
   // need it (IDV-before-accept in Activity.tsx, payout setup).
 
+  // The apply step's fields, the same for the detail sheet's ApplyBody and the ApplyConfirmDialog.
+  const applyFieldProps = { platformFee, applyMessage, setApplyMessage, applyTimeSuggestion, setApplyTimeSuggestion, applyFiles, setApplyFiles, applyLoading };
+
   return (
     <>
     <PageScaffold
@@ -796,14 +799,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
                   open
                   onClose={() => setConfirmApplyJobId(null)}
                   confirmApplyJob={detailJob}
-                  platformFee={platformFee}
-                  applyMessage={applyMessage}
-                  setApplyMessage={setApplyMessage}
-                  applyTimeSuggestion={applyTimeSuggestion}
-                  setApplyTimeSuggestion={setApplyTimeSuggestion}
-                  applyFiles={applyFiles}
-                  setApplyFiles={setApplyFiles}
-                  applyLoading={applyLoading}
+                  {...applyFieldProps}
                   hideEarnings
                   handleApplyConfirm={async () => {
                     const accepted = await handleApplyRequest(detailJob.id);
@@ -868,14 +864,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
             open={!!confirmApplyJobId}
             onClose={() => setConfirmApplyJobId(null)}
             confirmApplyJob={confirmApplyJob}
-            platformFee={platformFee}
-            applyMessage={applyMessage}
-            setApplyMessage={setApplyMessage}
-            applyTimeSuggestion={applyTimeSuggestion}
-            setApplyTimeSuggestion={setApplyTimeSuggestion}
-            applyFiles={applyFiles}
-            setApplyFiles={setApplyFiles}
-            applyLoading={applyLoading}
+            {...applyFieldProps}
             handleApplyConfirm={handleApplyConfirm}
           />
         </Suspense>

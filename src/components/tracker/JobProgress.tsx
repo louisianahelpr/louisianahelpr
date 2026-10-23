@@ -45,7 +45,7 @@ const TEXT: Record<StepState, string> = {
   you: "font-semibold text-[hsl(var(--amber-ink))]",
   them: "font-semibold text-[hsl(var(--amber-ink))]",
   problem: "font-semibold text-[hsl(var(--sienna-ink))]",
-  alarm: "font-semibold text-destructive",
+  alarm: "font-semibold text-destructive-ink",
   todo: "text-muted-foreground",
 };
 

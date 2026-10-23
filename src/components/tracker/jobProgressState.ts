@@ -10,6 +10,7 @@
  */
 import { confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
+import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
@@ -74,8 +75,8 @@ export type JobProgressState = {
 
 const at = (stage: Stage | null, waitingOnYou: boolean, word: string, next: string, held: boolean): JobProgressState => ({ stage, waitingOnYou, tone: "progress", word, next, held });
 
-/** Statuses the card's rule knows (job_status, minus nothing): anything else keeps the line's own answer. */
-const CARD_STATUSES = new Set(["open", "accepted", "in_progress", "revision_requested", "completed", "cancelled", "disputed", "pending_approval"]);
+/** Statuses the card's rule knows (every job_status, derived from the exhaustive label record): anything else keeps the line's own answer. */
+const CARD_STATUSES = new Set<string>(Object.keys(JOB_STATUS_LABELS));
 
 const LIVE = new Set(["accepted", "in_progress", "revision_requested"]);
 

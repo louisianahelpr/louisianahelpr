@@ -220,7 +220,13 @@ describe("a crew has no lead (Q407)", () => {
       .filter((p) => /[{,]\s*proof_(before|after)_urls\s*:/.test(blankComments(readFileSync(p, "utf8"))))
       .map((p) => p.slice(root.length + 1));
     expect(writers.length).toBeGreaterThan(0);
-    expect(writers, "a new client writer of jobs.proof_*_urls: route a crew through rpc_group_member_set_proof").toEqual(["src/components/PhotoProof.tsx"]);
+    // Files whose proof_*_urls object literal is a READ, never a write, each with its reason. Exact:
+    // an entry that stops matching is stale and fails below.
+    const NOT_WRITERS: Record<string, string> = {
+      "src/components/JobTracking.tsx": "hands the job's proof URLs (read by its own select) to jobProgress for the card's photo line; it writes no proof column",
+    };
+    expect(Object.keys(NOT_WRITERS).filter((f) => !writers.includes(f)), "stale NOT_WRITERS entry").toEqual([]);
+    expect(writers.filter((f) => !(f in NOT_WRITERS)), "a new client writer of jobs.proof_*_urls: route a crew through rpc_group_member_set_proof").toEqual(["src/components/PhotoProof.tsx"]);
     const photo = blankComments(read("src/components/PhotoProof.tsx"));
     expect(photo).toMatch(/if \(crew\) \{\s*const \{ data, error \} = await supabase\.rpc\(\s*"rpc_group_member_set_proof"/);
     const ask = blankComments(read("src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx"));

@@ -43,7 +43,7 @@ export function LandingProof() {
             2 yards in New Iberia
           </span>
           <span className="text-ds-13 lg:text-ds-17" style={{ color: "var(--lp-body)" }}>
-            <span aria-label="5 stars" style={{ color: "var(--lp-money)" }}>★★★★★</span> · $20 tip
+            <span role="img" aria-label="5 stars" style={{ color: "var(--lp-money)" }}>★★★★★</span> · $20 tip
           </span>
         </div>
       </li>

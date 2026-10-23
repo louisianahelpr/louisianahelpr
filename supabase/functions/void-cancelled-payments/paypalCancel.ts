@@ -75,6 +75,17 @@ export async function settlePayPalCancelledJob(db: Db, jobId: string, runtime: P
   if ((gifts ?? []).length > 0) return { outcome: "needs_review", reason: "gift_card_on_paypal_job_not_ported" };
 
   const pj: PayPalCancelJob = { ...job, series_ban_cancelled_at: seriesBan };
+  try {
+    return await settleOne(db, runtime, pj, sellerFault);
+  } catch (e) {
+    // A database refusal or read failure mid-settlement (e.g. refund_after_payout_queued): what
+    // was recorded stays recorded, nothing else moves for this job, and one job never stops the
+    // run. A person looks (the caller pages on needs_review).
+    return { outcome: "needs_review", reason: `settlement_threw: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300) };
+  }
+}
+
+async function settleOne(db: Db, runtime: Extract<PayPalRuntime, { ok: true }>, pj: PayPalCancelJob, sellerFault: boolean): Promise<SettleOutcome> {
   return await settlePayPalCancellation(
     {
       store: supabaseCancellationStore(db),

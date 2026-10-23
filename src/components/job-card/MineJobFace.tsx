@@ -15,6 +15,8 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
+import { JobProgress } from "@/components/tracker/JobProgress";
+import type { JobProgressState } from "@/lib/jobProgress";
 
 /** The card's one button: the real next step, or the quiet fallback that opens the card's controls. */
 export interface MineFaceAction {
@@ -22,6 +24,8 @@ export interface MineFaceAction {
   onClick: () => void;
   /** "primary" for a real next step; "secondary" for the fallback (spec §3 buttons). */
   tone: "primary" | "secondary";
+  /** A Helpr tracker step this button takes (helperFaceNextStep's key): the 8-step bar reads it (cardBar). */
+  step?: string;
   disabled?: boolean;
 }
 
@@ -50,6 +54,7 @@ export function MineJobFace({
   moneyCaption,
   action,
   extra,
+  progress,
   onCollapse,
 }: {
   jobId: string;
@@ -69,6 +74,9 @@ export function MineJobFace({
   /** Under the face, above the button, OUTSIDE the link (it may hold controls):
    *  a hired Helpr's street address row (owner, 2026-09-19 en-route carve-out). */
   extra?: ReactNode;
+  /** THE one tracker's bar on a collapsed card (owner, 2026-10-22: the 8 steps ON the job cards); the status
+   *  line above already says what happens next. Null/absent, or off the path, draws nothing. */
+  progress?: JobProgressState | null;
   /** The card is open: a small chevron beside the title shuts it (owner, 2026-10-21: no "Close" link). */
   onCollapse?: () => void;
 }) {
@@ -77,9 +85,9 @@ export function MineJobFace({
   const navigate = useNavigate();
   const onOpen = () => navigate(`/jobs/${encodeURIComponent(jobId)}`);
   return (
-    <div data-mine-face="" className="p-4 md:flex md:items-center md:gap-6">
+    <div data-mine-face="" className="flex flex-col p-4 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-3">
       {/* From 768px the one button sits to the right of the face, not across a 1500px card. */}
-      <div className="min-w-0 md:flex-1">
+      <div className="order-1 min-w-0 md:order-none md:flex-1">
         <div className="flex items-start gap-1">
         <Link
           to={`/jobs/${encodeURIComponent(jobId)}`}
@@ -170,7 +178,7 @@ export function MineJobFace({
           disabled={action.disabled}
           data-mine-face-action={action.tone}
           size="sm"
-          className="mt-3 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0"
+          className="order-3 mt-3 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
           onClick={(e) => {
             e.stopPropagation();
             action.onClick();
@@ -178,6 +186,13 @@ export function MineJobFace({
         >
           {action.label}
         </Button>
+      )}
+      {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
+          eight full step names fit beside the rail. */}
+      {progress && progress.stage !== null && (
+        <div className="order-2 pt-3 md:order-none md:basis-full md:pt-0" data-mine-face-progress="" onClick={onOpen}>
+          <JobProgress progress={progress} barOnly />
+        </div>
       )}
     </div>
   );

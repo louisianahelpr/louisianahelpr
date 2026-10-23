@@ -18,9 +18,9 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/lib/jobProgress";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
-import { derivePosterWait } from "@/components/job-card/jobStatusLine";
+import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { PostedJobDetails } from "./postedJobCard/PostedJobDetails";
@@ -82,7 +82,6 @@ function PostedJobCardInner({
   initialTracking,
   initialGroupHelpers,
   onActionComplete,
-
 }: PostedJobCardProps) {
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
@@ -283,10 +282,10 @@ function PostedJobCardInner({
             </>
   );
 
-  // The face's ONE button (board 14): the same wait the status line prints.
+  // ONE line per card: the strip prints it, the face's one button (board 14) and the 8-step bar read it.
+  const cardLine = posterStatusLine(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]);
   const { faceAction, completionRequest } = usePosterFaceAction({
-    job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate,
-    wait: derivePosterWait(withDisputeSettling(job, unsettledDisputeJobIds), pendingApplicantCounts?.[job.id] ?? 0, undefined, completedJobMeta[job.id]),
+    job, isExpanded, helperName, toggle: toggleExpandedJobId, navigate, wait: cardLine.id as PosterWait,
     pendingApplicants: pendingApplicantCounts?.[job.id] ?? 0,
     confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
     onLoadApplications, onConfirmArrival, onReview, onTip,
@@ -327,6 +326,7 @@ function PostedJobCardInner({
                 />
               )}
               action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
+              progress={isExpanded ? null : jobProgress(job, { viewer: "poster", otherFirst: helperName.split(" ")[0], rescheduled, card: { line: cardLine, face: faceAction } })} /* the 8 steps on the card (owner, 2026-10-22) */
             />
             {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
 

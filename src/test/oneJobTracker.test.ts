@@ -5,6 +5,11 @@
  * file keeps a job step list, and StepTracker is used for jobs only through JobProgress.
  * @mutate src/components/messages/chatView/DealCard.tsx | <JobProgress progress={stage} compact /> | <StepTracker steps={["Posted", "Hired", "Working", "Done"]} at={0} />
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |       <JobProgress progress={progress} /> |       <ol aria-label="Job progress">{["Posted", "Hired", "Working", "Done"].map((s) => <li key={s}>{s}</li>)}</ol>
+ * EIGHT steps on the job cards too (owner, 2026-10-22): MineJobFace draws the bar under a collapsed card's face,
+ * fed by jobProgress on both the poster's Posted card and the Helpr's Working card.
+ * @mutate src/pages/posts/PostedJobCard.tsx |               progress={isExpanded ? null : jobProgress(job, | progress={null && jobProgress(job,
+ * @mutate src/pages/jobs/AppliedJobCard.tsx |             progress={!isExpanded && job.helper_id === userId ? jobProgress(job, | progress={false && job.helper_id === userId ? jobProgress(job,
+ * @mutate src/components/job-card/MineJobFace.tsx |             <JobProgress progress={progress} barOnly /> |             <span />
  * @mutate src/components/JobTracking.tsx |       <JobProgress\n        progress={jobProgress( |       <div role="group" aria-label="Job progress">{displaySteps.map((s) => s.label)}</div>\n      <JobProgress\n        progress={jobProgress(
  */
 import { describe, it, expect } from "vitest";
@@ -25,9 +30,8 @@ const RENDERERS = [
 /** Surfaces that render <JobProgress> with a state they already hold (Home's Live now carries jobProgress from
  *  nextUpStates.ts; the payment screen shows its step with a caption). */
 const ALSO_RENDER = ["src/pages/home/HomeDashboard.tsx", "src/components/postjob/PaymentLifecycleSteps.tsx"];
-/** StepTracker users that are NOT a job's progress (Declutter delivery and porch handover), plus JobProgress itself. */
+/** StepTracker users, none of them a job's progress (Declutter delivery and porch handover): jobs draw JobStepBar. */
 const STEP_TRACKER_OK = [
-  "src/components/tracker/JobProgress.tsx",
   "src/components/declutter/DeclutterDeliveryViews.tsx",
   "src/components/declutter/DeclutterPorchHandover.tsx",
 ];
@@ -67,7 +71,13 @@ describe("one job tracker (owner 2026-10-21)", () => {
     expect(src).not.toMatch(/displaySteps\.map\(/);
   });
 
-  it("StepTracker is used for jobs only through JobProgress (exact, two-way)", () => {
+  it("both job cards hand the face the one tracker, collapsed", () => {
+    expect(read("src/pages/posts/PostedJobCard.tsx")).toMatch(/progress=\{isExpanded \? null : jobProgress\(job, \{ viewer: "poster"/);
+    expect(read("src/pages/jobs/AppliedJobCard.tsx")).toMatch(/progress=\{!isExpanded && job\.helper_id === userId \? jobProgress\(job, \{ viewer: "helpr"/);
+    expect(read("src/components/job-card/MineJobFace.tsx")).toMatch(/<JobProgress progress=\{progress\} barOnly \/>/);
+  });
+
+  it("StepTracker is not used for jobs at all (exact, two-way)", () => {
     const users = files.filter((f) => /<StepTracker\b/.test(read(f))).sort();
     expect(users).toEqual([...STEP_TRACKER_OK].sort());
   });

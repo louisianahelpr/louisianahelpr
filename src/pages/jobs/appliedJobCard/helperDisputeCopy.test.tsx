@@ -333,7 +333,10 @@ describe("the poster's collapsed card announces the dispute", () => {
       // hideStatus={isOffered} (owner, 2026-10-05): an offer card says its own state; a disputed card is never an offer.
       // Since 2026-10-20 (board 21) the strip is the card face's status line, mounted collapsed only.
       /!isMinimalCard && !isExpanded \? \(\s*<HelperCollapsedStrip/.test(src) &&
-        /<JobStatusStrip line=\{(withReviewed\()?helperStatusLine\(/.test(strip),
+        // Since 2026-10-23 the line is computed once per card by helperCardLine (the 8-step bar reads it too),
+        // which is helperStatusLine with the card's settling flag and tracking progress.
+        /<JobStatusStrip line=\{(withReviewed\()?helperCardLine\(/.test(strip) &&
+        /return helperStatusLine\(/.test(strip),
       "AppliedJobCard no longer draws a collapsed-card status strip. A Helpr scrolling " +
         "My Jobs cannot tell that one of these jobs has a 72-hour clock running on their pay.",
     ).toBe(true);

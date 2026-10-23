@@ -3302,6 +3302,19 @@ button,
    custom props (the job tracker's "current step" dot changes color by
    status — bark/green/amber/red — so the animation can't hardcode one hue
    the way urgent-pulse hardcodes burnt-sienna). */
+/* THE 8-STEP TRACKER SIZES ITS WORDS TO ITS OWN WIDTH, not the screen's (JobProgress.tsx). With a viewport
+   breakpoint the job page's 420px side panel at 1440 drew the full names and cut them ("Post...", "On the ..."):
+   below a 640px-wide tracker each step shows its short word ("Conf.", "Way"); from 640px, eight equal columns with
+   the full name, and the check on a done step and the alert on a problem step. */
+.job-steps { container-type: inline-size; }
+.job-step-full, .job-step-wide { display: none; }
+@container (min-width: 640px) {
+  .job-step-short { display: none; }
+  .job-step-full { display: inline; }
+  .job-step-wide { display: block; }
+  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
+}
+
 @keyframes step-current-pulse {
   0%, 100% {
     transform: scale(1);

@@ -748,10 +748,12 @@ const CASES: Array<{
   },
 ];
 
-/** Content, not the card's moves: the step rail's per-step timestamp tooltips,
- *  an open inline form, and dialogs. */
+/** Content, not the card's moves: the step rail's per-step timestamp tooltips (the old rail's "Job progress"
+ *  group, and the 8-step tracker's done/current steps since 2026-10-23, [data-job-steps]), an open inline form,
+ *  and dialogs. */
 const isContent = (el: Element) =>
   !!el.closest('[role="group"][aria-label="Job progress"]') ||
+  !!el.closest("[data-job-steps]") ||
   !!el.closest("[data-job-step-form]") ||
   !!el.closest('[role="dialog"]');
 

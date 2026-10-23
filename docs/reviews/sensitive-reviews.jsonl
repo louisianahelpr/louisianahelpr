@@ -170,3 +170,4 @@
 {"sha":"473418c9f65642b6675d4351c6d141d1c28d6f71","reviewer":"lh-silent-failure","verdict":"LGTM: only adds is_seed to SELECT and passes seed flag to postSlackOpsAlert; no payment state transitions or money mutations","date":"2026-10-16"}
 {"sha":"c4af15921a9dd207c67ac635186912ef98e9a32d","reviewer":"lh-money-escrow","verdict":"APPROVED: copy-only change to the Q1972 helper notice in cancel_job_after_failed_bank_payment (two %s, two args, quotes doubled; live body verified on prod)","date":"2026-10-18"}
 {"sha":"971207fb9e9b4b30410e5f0998dd5df6b65bdf39","reviewer":"lh-money-escrow","verdict":"APPROVED: is_seed (boolean not null, prod) added to the select only routes the ACH-already-funded alert to the seed digest; no money write touched","date":"2026-10-18"}
+{"sha":"59c0b8cc209712d2b4946a20fe8bce51bbad6061","reviewer":"lh-money-escrow","verdict":"APPROVE WITH NOTES (lead-run review of _splitLegFailed decided filter, 2026-10-23)","date":"2026-10-23"}

@@ -70,6 +70,26 @@ describe("Q2357: a failed dispute-split transfer is re-run as the split, never p
     });
   }
 
+  // lh-money-escrow (lead-run, 2026-10-23) should-fix: the zero-row follow-up read counted any 'failed'
+  // dispute as re-opened, so a superseded one (execution record kept as history) paged "Retry settlement
+  // re-sends the Helpr's share", which no retry can do (it re-claims status 'decided' alone).
+  it("a superseded dispute already 'failed' is NOT counted as re-opened: the page says reconcile by hand", async () => {
+    const fn = await webhook();
+    scenario.reads.notifications = { rows: [] };
+    scenario.writeSelectRows.payout_transfers = [{ job_id: "job-1", helper_id: "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaaaaaa", amount_cents: 5280, metadata: SPLIT_LEG }];
+    scenario.writeSelectRows.disputes = [];
+    scenario.reads.disputes = { rows: [{ status: "superseded", execution_status: "failed" }] };
+    scenario.reads.jobs = { rows: [{ id: "job-1", status: JOB_DONE, payment_status: "released", dispute_status: "resolved", disputed_at: "2026-10-20T00:00:00Z" }] };
+    const res = await deliver(fn, "transfer.failed", { id: "tr_split", amount: 5280, destination: "acct_helper", failure_message: "closed", metadata: { job_id: "job-1", dispute_id: DISPUTE } });
+    expect(res.status).toBe(200);
+    expect(writesTo("jobs")).toEqual([]);
+    expect(writesTo("disputes")[0].filters).toEqual(expect.arrayContaining([expect.objectContaining({ op: "eq", column: "status", value: "decided" })]));
+    const page = slackAlerts.find((a) => /Dispute split transfer did not settle/.test(String((a as { title?: string }).title))) as { message?: string } | undefined;
+    expect(page?.message).toMatch(/Reconcile by hand/);
+    expect(page?.message).toMatch(/status superseded/);
+    expect(page?.message).not.toMatch(/Retry settlement re-sends/);
+  });
+
   it("control: an ordinary payout's failed transfer is still re-queued", async () => {
     const fn = await webhook();
     scenario.reads.notifications = { rows: [] };

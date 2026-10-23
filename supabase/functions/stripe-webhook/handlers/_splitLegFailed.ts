@@ -51,11 +51,14 @@ export async function reopenDisputeSplit(
     reopened = (data ?? []).length > 0;
     if (!reopened) {
       const { data: now, error: readErr } = await supabase
-        .from("disputes").select("execution_status").eq("id", disputeId).maybeSingle();
+        .from("disputes").select("status, execution_status").eq("id", disputeId).maybeSingle();
       if (readErr) throw new Error(`dispute ${disputeId} state read failed after split transfer ${transferId}: ${readErr.message}`);
-      stateNow = (now as { execution_status?: string | null } | null)?.execution_status ?? "missing";
-      // A second event for the same dead transfer (failed, then canceled; or a redelivery): already re-opened.
-      if (stateNow === "failed") reopened = true;
+      const row = now as { status?: string | null; execution_status?: string | null } | null;
+      stateNow = row ? `${row.execution_status ?? "null"} (status ${row.status ?? "null"})` : "missing";
+      // A second event for the same dead transfer (failed, then canceled; or a redelivery): already re-opened,
+      // but only on a live ruling. A superseded or withdrawn dispute that reads 'failed' is history that no
+      // Retry settlement can re-claim (it re-claims status 'decided' alone), so it pages "reconcile by hand".
+      if (row?.status === "decided" && row.execution_status === "failed") reopened = true;
     }
   }
   logStep("Dispute split leg failed — not re-queued", { jobId: ledger.job_id, disputeId, reopened });
@@ -67,7 +70,7 @@ export async function reopenDisputeSplit(
     title: "Dispute split transfer did not settle — re-run the split",
     message: reopened
       ? `Stripe transfer ${transferId} (the Helpr's share of a dispute split) did not settle: ${reason}. The job was NOT re-queued for a full payout; its dispute is back to 'failed', so Retry settlement re-sends the Helpr's share only.`
-      : `Stripe transfer ${transferId} (the Helpr's share of a dispute split) did not settle: ${reason}. The job was NOT re-queued for a full payout, and the dispute could not be re-opened (its execution_status is ${stateNow ?? "unknown: no dispute id on the transfer"}${stateNow === "executing" ? "; a run is in flight and may mark it executed over this dead leg" : ""}), so nothing retries it. Reconcile by hand.`,
+      : `Stripe transfer ${transferId} (the Helpr's share of a dispute split) did not settle: ${reason}. The job was NOT re-queued for a full payout, and the dispute could not be re-opened (its execution_status is ${stateNow ?? "unknown: no dispute id on the transfer"}${stateNow?.startsWith("executing ") ? "; a run is in flight and may mark it executed over this dead leg" : ""}), so nothing retries it. Reconcile by hand.`,
     fields: {
       "Transfer ID": transferId,
       "Job ID": String(ledger.job_id ?? "—"),

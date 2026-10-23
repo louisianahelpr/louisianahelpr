@@ -10711,6 +10711,53 @@ export type Database = {
         }
         Relationships: []
       }
+      support_replies: {
+        Row: {
+          admin_id: string | null
+          body: string
+          created_at: string
+          email_message_id: string | null
+          email_skip_reason: string | null
+          id: string
+          notification_id: string | null
+          outcome_recorded: boolean
+          report_id: string
+          resolved_on_send: boolean
+        }
+        Insert: {
+          admin_id?: string | null
+          body: string
+          created_at?: string
+          email_message_id?: string | null
+          email_skip_reason?: string | null
+          id?: string
+          notification_id?: string | null
+          outcome_recorded?: boolean
+          report_id: string
+          resolved_on_send?: boolean
+        }
+        Update: {
+          admin_id?: string | null
+          body?: string
+          created_at?: string
+          email_message_id?: string | null
+          email_skip_reason?: string | null
+          id?: string
+          notification_id?: string | null
+          outcome_recorded?: boolean
+          report_id?: string
+          resolved_on_send?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_replies_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       test_accounts: {
         Row: {
           enrolled_at: string
@@ -11962,6 +12009,20 @@ export type Database = {
           reporter_name: string
           status: string
           support_tier: string
+        }[]
+      }
+      admin_support_replies: {
+        Args: { p_report_ids: string[] }
+        Returns: {
+          admin_name: string | null
+          body: string
+          created_at: string
+          email_status: string
+          id: string
+          notified: boolean
+          outcome_recorded: boolean
+          report_id: string
+          resolved_on_send: boolean
         }[]
       }
       application_cap: { Args: { p_kind: string }; Returns: number }

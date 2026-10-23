@@ -218,6 +218,7 @@ function tsSites(): Site[] {
 // broadcast. Anything about a JOB or a counterpart belongs in KNOWN_GAP.
 const NO_SEED_SUBJECT: Record<string, string> = {
   "ts:supabase/functions/admin-update-email/index.ts#1": "own email updated by an admin",
+  "ts:supabase/functions/admin-support-reply/index.ts#1": "an admin's answer to the member's own support ticket",
   "ts:supabase/functions/str-ical-sync/index.ts#1": "own calendar's checkout ready to post (Q768): the host's own STR connection, no job exists yet",
   "ts:supabase/functions/cash-out-credits/index.ts#1": "own referral-credit cash-out",
   "ts:supabase/functions/expire-subscriptions/index.ts#1": "own subscription expired",
@@ -291,6 +292,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/come-back-emails/index.ts": "own-account nudge about the member's own sign-up; names no other person, and is_seed members and test accounts are never claimed",
   "supabase/functions/signup-lead-reminders/index.ts": "a sign-up lead with no account (so no seed subject): fixture, reserved and profiled addresses are never claimed",
   "supabase/functions/admin-update-email/index.ts": "own email changed by an admin",
+  "supabase/functions/admin-support-reply/index.ts": "an admin's answer to the member's own support ticket, to their own address",
   "supabase/functions/admin-user-actions/index.ts": "own verification / ID re-upload / password reset / formal warning",
   "supabase/functions/_shared/giftCardEmail.ts": "names the donor: its one caller asks giftEmailCrossesSeedBoundary first (Q139, asserted below)",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts": "own money: the Declutter buyer's own receipt / refund; names no other person",

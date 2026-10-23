@@ -95,6 +95,8 @@ export const WelcomeDripStep2Email = inert("WelcomeDripStep2Email");
 export const WelcomeDripStep3Email = inert("WelcomeDripStep3Email");
 export const NotificationEmail = inert("NotificationEmail");
 export const SignupLeadReminderEmail = inert("SignupLeadReminderEmail");
+/** admin-support-reply's template, reached through the harness rewrite. @public */
+export const AdminActionEmail = inert("AdminActionEmail");
 /**
  * come-back-emails' template. Reached only through the harness's template
  * rewrite (harness.ts), which knip cannot follow.

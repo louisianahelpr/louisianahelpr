@@ -86,6 +86,7 @@ const EXEMPT: Record<string, string> = {
   "verify-apple-iap": "Apple has already charged: never refuse a paid purchase (grant and flag); the gate belongs at purchase time (Q1200)",
   "admin-delete-user": "admin only: requires the admin role",
   "admin-resend-verification": "admin only: requires the admin role",
+  "admin-support-reply": "admin only: requires the admin role",
   "admin-user-actions": "admin only: requires the admin role",
   "admin-test-push": "admin only: requires the admin role",
   "admin-update-email": "admin only: requires the admin role (getClaims)",

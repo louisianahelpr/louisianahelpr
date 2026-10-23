@@ -697,6 +697,18 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
       .from("declutter_problems").select("id, declutter_orders!inner(buyer_id, seller_id)")
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
       .eq("status", "open").limit(1) },
+    // Board 141 (20261023120630): a refund request after the handover still waiting for an answer moves money
+    // when it is answered (the seller's payout is held until then), which needs both parties to still exist.
+    { label: "refund request waiting", build: () => admin
+      .from("declutter_refund_requests").select("id, declutter_orders!inner(buyer_id, seller_id)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
+      .in("status", ["open", "offered"]).limit(1) },
+    // After the seller's "no" the buyer may still report a problem for 24 hours, and an admin's decision may strike
+    // either party (lh-authz-rls review of 141d, should-fix 2).
+    { label: "refund request declined, report window open", build: () => admin
+      .from("declutter_refund_requests").select("id, declutter_orders!inner(buyer_id, seller_id)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
+      .eq("status", "declined").gt("declined_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()).limit(1) },
   ];
   for (const c of checks) {
     const lines = await c.build();

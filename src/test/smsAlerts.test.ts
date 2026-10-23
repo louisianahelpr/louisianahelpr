@@ -123,8 +123,8 @@ describe("SMS alerts source rules", () => {
     expect(claim).toMatch(/WHERE status = 'pending' AND due_at <= v_now ORDER BY due_at .* FOR UPDATE SKIP LOCKED/);
   });
 
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
-  // @mutate supabase/migrations/20261021193738_sms_alerts.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
+  // @mutate supabase/migrations/20261023131920_export_my_data_declutter_refund_requests.sql |         CASE WHEN t.kind = 'confirm' THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at) |         CASE WHEN false THEN jsonb_build_object('id', t.id, 'kind', t.kind, 'category', t.category, 'created_at', t.created_at)
+  // @mutate supabase/migrations/20261023131920_export_my_data_declutter_refund_requests.sql | jsonb_agg(to_jsonb(t) - 'confirm_code' - 'confirm_phone' - 'confirm_sent_at' - 'updated_at') | jsonb_agg(to_jsonb(t))
   // @mutate supabase/migrations/20261021193738_sms_alerts.sql |        WHERE pending_phone = v_phone AND confirm_phone = v_phone AND confirm_code = p_code\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF; |        WHERE pending_phone = v_phone\n         AND confirm_sent_at > now() - interval '24 hours';\n    END IF;
   it("Download My Data never says whether a number is used on another account (lh-authz-rls review)", () => {
     const ex = newestFunctionBody("export_my_data").replace(/\s+/g, " ");

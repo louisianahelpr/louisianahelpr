@@ -78,20 +78,20 @@
  * The Declutter sql-policy sites (2026-10-15): (a) a no-fault reason moved to a full refund, in the function and
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout') THEN 'keep_card_fee'
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault')); |     'buyer_no_show', 'admin_buyer_fault', 'admin_no_fault', 'buyer_changed_mind'));
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
  * @mutate supabase/functions/declutter-money/index.ts |           amount: r.refund_cents, |           amount: r.refund_cents + r.attempts,
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |         amount: refund.refund_cents, |         payment_intent: paymentIntentId,
  * lh-money-escrow review of ecf5c93a0 (request-changes): each of its green mutations, now red. Function bodies
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -400,9 +400,11 @@ interface SqlPolicy {
 
 const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", SqlPolicy> = {
   declutter_record_refund: {
-    migration: "20261017060455_declutter_seller_out_pays_fee.sql",
+    // Board 141, Declutter side (20261023120630_declutter_refund_requests.sql): the reason list, the reason -> policy CHECK and
+    // declutter_record_refund restated with two reasons; nothing else in them changed.
+    migration: "20261023120630_declutter_refund_requests.sql",
     proofs: ["src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
-      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs"],
+      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
       { where: "declutter_refunds_policy", kind: "constraint", name: "declutter_refunds_policy", pattern: /^fee_policy\s*=\s*(CASE\b.*\bEND)$/i, subject: "reason" },
@@ -428,7 +430,14 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Row 43 (owner 2026-10-14): damaged in a Helpr delivery = the buyer gets everything back and
       // Louisiana Helpr absorbs it (the seller is still paid, the Helpr is not).
       delivery_damage: "full_platform_absorbs",
-    } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee">,
+      // Board 141, Declutter side (owner 2026-10-22 #3): the seller refunds in full after the handover =
+      // everything back EXCEPT the card fee (the buyer's fee included).
+      refund_request_full: "keep_card_fee",
+      // Owner 2026-10-21: a part refund is EXACTLY the amount the seller offered, below the item price, out of the
+      // seller's payout. No card fee is refunded or kept on it (CHECK: card_fee_cents = 0, refund < paid); the
+      // platform keeps the buyer's fee, which covers the card fee on the payment (B48).
+      refund_request_part: "agreed_part",
+    } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
     ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
       // Row 43: the platform absorbs damage in a delivery it arranged (owner decision, not a guess).
@@ -436,13 +445,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     constraints: [
       {
         name: "declutter_refunds_fee_policy_check",
-        file: "20261015042253_declutter_slice4_handover_payout.sql",
-        text: "fee_policy IN ('full_platform_absorbs', 'full_seller_pays_fee', 'keep_card_fee', 'keep_buyer_fee')",
+        file: "20261023120630_declutter_refund_requests.sql",
+        text: "fee_policy IN ('full_platform_absorbs', 'full_seller_pays_fee', 'keep_card_fee', 'keep_buyer_fee', 'agreed_part')",
       },
       {
         name: "declutter_refunds_amount",
-        file: "20261015042253_declutter_slice4_handover_payout.sql",
-        text: "refund_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents WHEN fee_policy = 'keep_buyer_fee' THEN paid_cents - kept_cents ELSE paid_cents END AND refund_cents > 0 AND kept_cents >= 0 AND (fee_policy = 'keep_buyer_fee' OR kept_cents = 0) AND (fee_policy <> 'keep_buyer_fee' OR kept_cents > 0)",
+        file: "20261023120630_declutter_refund_requests.sql",
+        text: "refund_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents WHEN fee_policy = 'keep_buyer_fee' THEN paid_cents - kept_cents WHEN fee_policy = 'agreed_part' THEN refund_cents ELSE paid_cents END AND refund_cents > 0 AND kept_cents >= 0 AND (fee_policy = 'keep_buyer_fee' OR kept_cents = 0) AND (fee_policy <> 'keep_buyer_fee' OR kept_cents > 0) AND (fee_policy <> 'agreed_part' OR (refund_cents < paid_cents AND card_fee_cents = 0))",
       },
       // The buyer's fee keep_buyer_fee keeps (F1: 5% + 70c, at least 70c). Shipping S1 (2026-10-20,
       // reviewed: still keeps the fee): f1/premium15 pinned to shipping = 0, and f1_ship = 5% of
@@ -485,7 +494,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status
       // lists only; diffed line by line by lander42, TRAIN25); the refund reasons and fee are unchanged.
-      declutter_mark_order_paid: "20261020064354_declutter_manage_listing.sql 6628bdc8c4d63e60",
+      // Board 141 (20261023120630_declutter_refund_requests.sql): one line, a replayed paid event for a HANDED-OVER sale answers already_paid
+      // (it used to fall through to a full 'order_closed' refund of that same payment). No reason or fee changed.
+      declutter_mark_order_paid: "20261023120630_declutter_refund_requests.sql c018a563bd12cbd5",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).
@@ -493,7 +504,21 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
       declutter_order_refunds_recorded_cents: "20261017055505_declutter_helpr_delivery.sql 180fd5a89917ba6d",
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
-      declutter_record_refund: "20261017060455_declutter_seller_out_pays_fee.sql f85f29c34b2fda23",
+      // Board 141: + refund_request_full (keep_card_fee) and refund_request_part (agreed_part, which this function
+      // refuses with refund_amount_unknown: only declutter_refund_after_handover writes it, with the offered amount).
+      declutter_record_refund: "20261023120630_declutter_refund_requests.sql 79411a8a27d53e6a",
+      // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
+      // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
+      // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
+      // already tried, marked or sent; rebooks the seller's payout before returning.
+      declutter_refund_after_handover: "20261023120630_declutter_refund_requests.sql fd1ff91829a702f1",
+      // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
+      // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
+      declutter_payouts_due: "20261023120630_declutter_refund_requests.sql a7c6262ff5abda7d",
+      // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
+      declutter_full_refund_cents: "20261023120630_declutter_refund_requests.sql c6fc4e29fa827449",
+      // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
+      declutter_refund_request_view: "20261023120630_declutter_refund_requests.sql 024600508853047c",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee
@@ -556,6 +581,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
      * policy or constraint change fails until reviewed (must-fix 2).
      */
     statements: {
+      // Board 141: the reason, fee policy, policy and amount CHECKs swapped in one DO block (agreed_part added, every
+      // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
+      "declutter_refunds 20261023120630_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],
       "declutter_orders 20261014224914_declutter_slice3b_payments.sql": ["09890255c7e1c936", "594addefda2af9a3"],
       "declutter_refunds 20261017055500_declutter_refund_hand_settle.sql": ["ae2d271f25de116b"],

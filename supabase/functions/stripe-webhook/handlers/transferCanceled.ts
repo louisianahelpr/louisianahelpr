@@ -9,6 +9,8 @@ import type { WebhookContext } from "../context.ts";
 import { isSingleHelprFeeTransfer, settleCancellationFeeTransfer } from "./_cancellationFeeLedger.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { requeueBlockers } from "./_chargebackHold.ts";
+import { tellCrewShareFailed, tellFeePayeeFailed, tellHelprPayoutFailed } from "./_payoutFailedNotice.ts";
+import { cronRetriesPayout } from "./_payoutRetry.ts";
 
 export async function handleTransferCanceled(
   event: Stripe.Event,
@@ -23,16 +25,18 @@ export async function handleTransferCanceled(
   logStep("Transfer CANCELED", { id: transfer.id, amount: transfer.amount });
 
   // A single-Helpr cancellation fee is not a job payout (LOW-2): mark its own
-  // ledger row failed (void-cancelled-payments retries failed rows) and page.
+  // ledger row failed (void-cancelled-payments is meant to retry failed rows; Q2356: it may not) and page.
   // It must not touch payout_transfers or re-queue the refunded job.
   if (isSingleHelprFeeTransfer(transfer)) {
     const rowId = await settleCancellationFeeTransfer(transfer, "failed", { supabase, logStep }, "transfer_canceled");
     if (rowId) {
+      // Tell the Helpr (lead 2026-10-22: only Slack heard before).
+      await tellFeePayeeFailed(supabase, transfer, logStep);
       await postSlackOpsAlert({
         kind: "payout_failed",
         severity: "critical",
         title: "Helpr cancellation-fee transfer canceled",
-        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was canceled before it settled. The fee ledger row is marked failed; void-cancelled-payments retries it.`,
+        message: `Stripe transfer ${transfer.id} (a Helpr's cancellation fee) was canceled before it settled. The fee ledger row is marked failed, but void-cancelled-payments may count this unreversed transfer as already paid and not send it again (Q2356): check the Helpr was paid, else pay it by hand.`,
         fields: {
           "Transfer ID": transfer.id,
           "Amount": `$${(transfer.amount / 100).toFixed(2)}`,
@@ -51,7 +55,7 @@ export async function handleTransferCanceled(
       failure_reason: "transfer_canceled",
     })
     .eq("stripe_transfer_id", transfer.id)
-    .select("job_id")
+    .select("job_id, helper_id, amount_cents")
     .maybeSingle();
 
   if (ledgerErr) {
@@ -92,6 +96,9 @@ export async function handleTransferCanceled(
   // internal status over a card dispute. Such a job stays 'released' (a false
   // terminal state, but not a payable one) and ops is paged to reconcile.
   let requeueBlocked = false;
+  // Whether the job really went back to payout_pending (the Helpr is told "we'll
+  // try again" only then).
+  let requeued = false;
   if (canceledLedger?.job_id) {
     const blockers = await requeueBlockers(supabase, canceledLedger.job_id);
     if (blockers.readError) {
@@ -136,7 +143,7 @@ export async function handleTransferCanceled(
       .update({ payment_status: "payout_pending" })
       .eq("id", canceledLedger.job_id)
       .eq("payment_status", "released")
-      .select("id");
+      .select("id, status, is_group_job, disputed_at, dispute_status");
 
     if (jobResetErr) {
       // The job is stuck in "released" with no real payment and the payout cron
@@ -175,10 +182,27 @@ export async function handleTransferCanceled(
         oncePerDayKey: `transfer-canceled-reset-zero-rows:${canceledLedger.job_id}`,
       });
     } else {
+      // "We'll try again" only when the payout cron will really pick it up.
+      requeued = cronRetriesPayout(resetRows?.[0]);
       logStep("Canceled transfer — job reset to payout_pending for retry", {
         jobId: canceledLedger.job_id,
       });
     }
+  }
+
+  // Tell the Helpr (lead 2026-10-22: a payout that did not settle used to reach only Slack).
+  if (canceledLedger?.helper_id) {
+    await tellHelprPayoutFailed(supabase, {
+      userId: String(canceledLedger.helper_id),
+      jobId: canceledLedger.job_id ? String(canceledLedger.job_id) : null,
+      amountCents: Number(canceledLedger.amount_cents ?? transfer.amount ?? 0),
+      requeued,
+      transferId: transfer.id,
+    });
+  } else {
+    // A crew cancellation-fee share matches no payout_transfers row: tell its
+    // Helpr and page ops critical (nothing else records or retries it).
+    await tellCrewShareFailed(supabase, transfer);
   }
 
   await postSlackOpsAlert({

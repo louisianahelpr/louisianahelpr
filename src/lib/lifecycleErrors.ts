@@ -1447,6 +1447,22 @@ export const RPC_ERROR_COPY = {
     not_authenticated: RC.not_authenticated,
     request_not_found: RC.request_not_found,
   },
+  // SMS alerts (20261021193738): SmsAlertsCard in Notification settings.
+  set_sms_consent: {
+    account_restricted: "Your account is restricted right now, so you can't turn on text alerts. You can still turn them off.",
+    feature_disabled: "Text alerts aren't available on your account yet.",
+    invalid_phone: "Enter a 10-digit US mobile number.",
+    not_authenticated: "Sign in again to change text alerts.",
+  },
+  set_sms_job_match_texts: {
+    account_restricted: "Your account is restricted right now, so you can't turn on texts about new jobs. You can still turn them off.",
+    feature_disabled: "Text alerts aren't available on your account yet.",
+    invalid_value: "We couldn't save that. Try again.",
+    not_authenticated: "Sign in again to change text alerts.",
+  },
+  get_my_sms_consent: {
+    not_authenticated: "Sign in again to see your text alert settings.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

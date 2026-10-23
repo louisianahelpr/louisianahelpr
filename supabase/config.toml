@@ -258,6 +258,16 @@ project_id = "fncmgoasalhdgfwzhsqa"
     verify_jwt = false
   [functions.send-push-notification]
     verify_jwt = false
+  # SMS alerts (2026-10-22). Called only by the sms-dispatch SQL cron and by
+  # set_sms_consent, with the service-role bearer, which the function checks
+  # itself (constant time).
+  [functions.send-sms-notification]
+    verify_jwt = false
+  # Twilio's inbound webhook sends no Supabase JWT. The function refuses every
+  # request without a valid X-Twilio-Signature (HMAC-SHA1 with
+  # TWILIO_AUTH_TOKEN over the public URL + params, constant-time compare).
+  [functions.twilio-inbound]
+    verify_jwt = false
   # health-check: same shape as its cron siblings above. The CI smoke test (and
   # any server-to-server prober) calls it with `Bearer $CRON_SECRET`, which is
   # NOT a JWT — so with the gateway default of verify_jwt=true it was rejected

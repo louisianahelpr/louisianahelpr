@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
   Database, Eye, Shield, Lock, Trash2, Cookie, Users, Wallet, Scale,
-  CheckCircle, FileText, ShieldCheck, Camera } from "lucide-react";
+  CheckCircle, FileText, ShieldCheck, Camera, MessageSquareText } from "lucide-react";
 import { useContext, type ReactNode } from "react";
 import {
   PolicyRowItem,
@@ -152,6 +152,7 @@ export const PrivacyContent = () => (
               <li><strong className="text-foreground">OpenStreetMap (Nominatim)</strong> — turning an address or your current location into map coordinates.</li>
               <li><strong className="text-foreground">Anthropic (Claude)</strong> — the job details you give the AI job builder, to draft your post, and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing.</li>
               <li><strong className="text-foreground">Resend</strong> — email delivery: your email address and the content of the emails we send you.</li>
+              <li><strong className="text-foreground">Twilio</strong> — text-message delivery, only if you turn on text alerts: your mobile number and the alert text.</li>
               <li><strong className="text-foreground">PostHog</strong> — privacy-respecting product analytics.</li>
               <li><strong className="text-foreground">Sentry</strong> — crash and error monitoring.</li>
               <li><strong className="text-foreground">Cloudflare (Turnstile)</strong> — bot protection on sign-up, sign-in and password reset; sees browser and IP signals.</li>
@@ -168,6 +169,12 @@ export const PrivacyContent = () => (
         icon={CheckCircle}
         title="What we never do"
         body={<p>We never sell your personal information to third parties for advertising or marketing purposes.</p>}
+      />
+      {/* Owner-approved wording, 2026-10-20 (SMS alerts; Twilio toll-free verification). */}
+      <PolicyRowItem
+        icon={MessageSquareText}
+        title="Text messages"
+        body={<p>If you choose to get text alerts, we use your mobile number only to send the alerts you asked for. We do not sell or share your mobile number or your text opt-in with third parties or affiliates for marketing. Our texting provider (Twilio) processes the number only to deliver our texts. Reply STOP to stop at any time.</p>}
       />
     </PolicySection>
 

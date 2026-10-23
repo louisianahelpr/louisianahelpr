@@ -54,6 +54,7 @@ const GATED = [
   "declutter-card",
   "declutter-checkout",
   "shop-checkout",
+  "sms-provider-check",
   "calculate-tax",
   "cash-out-credits",
   "check-pro-subscription",

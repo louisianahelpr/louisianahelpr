@@ -69,7 +69,9 @@ export function deriveAppliedJobCardState(
     !isCrewLive && app.status === "accepted" && (status === "in_progress" || status === "revision_requested");
   const isDisputed = app.status === "accepted" && status === "disputed";
   const isCompleted = app.status === "accepted" && status === "completed";
-  const isCancelled = job.status === "cancelled";
+  // Owner 2026-10-23: a job the owner's own accounts cancelled reads as filled to its applicants
+  // (closed_reason 'other_helpr_selected'), so the card never says it was cancelled, or by whom.
+  const isCancelled = job.status === "cancelled" && app.closed_reason !== "other_helpr_selected";
   const isPending = app.status === "pending" && !isDirectOffer;
   const isRejected = app.status === "rejected";
   const isFullyDone = isCompleted && helperReviewedJobIds.has(app.job_id);
@@ -171,10 +173,15 @@ export function describeCancellation(
   return "Cancelled by Helpr support";
 }
 
+/** Owner 2026-10-23, word for word in spirit: "another helpr was selected. But thank you for applying." */
+export const OTHER_HELPR_SELECTED_COPY = "Another Helpr was selected. Thank you for applying!";
+
 /** Headline on a closed card whose job details are gone (Q1207: a swept offer says it expired). */
 export function closedCardLabel(app: { closed_reason?: string | null; status?: string | null }): string {
   // Owner, 2026-10-21: an applicant who was not hired is not told about a cancellation; the card just says this.
   if (app.closed_reason === "job_cancelled") return "This job is no longer available";
+  // Owner 2026-10-23: the owner's own accounts' cancelled jobs read as filled (quiet_cancel_posters).
+  if (app.closed_reason === "other_helpr_selected") return OTHER_HELPR_SELECTED_COPY;
   if (app.closed_reason === "offer_expired") return "Offer expired";
   if (app.closed_reason === "not_confirmed") return "Reposted: you didn't confirm";
   return app.status === "rejected" ? "Not selected" : "Job no longer available";

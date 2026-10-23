@@ -639,6 +639,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
 export type HelperWait =
   | "job_gone"
   | "not_selected"
+  | "other_selected"
   | "cancelled"
   | "applied"
   | "offer"
@@ -684,6 +685,9 @@ export type HelperWait =
 export const HELPER_WAIT: Record<HelperWait, WaitCopy> = {
   job_gone: { detail: "This job has closed" },
   not_selected: { detail: "You weren't picked" },
+  /* Owner 2026-10-23: a job the owner's own accounts cancelled reads as filled (closed_reason
+     'other_helpr_selected', 20261023141407), never "Cancelled". */
+  other_selected: { detail: "Another Helpr was selected" },
   /* The reason, when the job has one, follows as the line's `suffix`. */
   cancelled: { detail: "Cancelled" },
   applied: { detail: "They haven't replied yet" },
@@ -803,6 +807,7 @@ export function deriveHelperWait(app: AppliedApp, progress?: HelperCardProgress)
   // as 'rejected' and reopens the job, so after it runs only this stamp says
   // the offer expired. Nobody passed on this Helpr.
   if (app.status === "rejected" && app.closed_reason === "offer_expired") return "offer_expired";
+  if (app.status === "rejected" && app.closed_reason === "other_helpr_selected") return "other_selected";
   // A job-cancel close (Q274) is 'rejected' too, but nobody passed on this
   // applicant: let the job's own status speak.
   if (app.status === "rejected" && app.closed_reason !== "job_cancelled") return "not_selected";

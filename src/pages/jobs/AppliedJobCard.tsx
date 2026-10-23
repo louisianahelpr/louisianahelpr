@@ -17,7 +17,7 @@ import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
 import { formatPriceFloor, formatShortDate } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
-import { closedCardLabel, deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
+import { closedCardLabel, OTHER_HELPR_SELECTED_COPY, deriveAppliedJobCardState, describeCancellation } from "./appliedJobCard/appliedJobCardHelpers";
 import { CancellationFeePill } from "./appliedJobCard/CancellationFeePill";
 import { PendingApplicationSection } from "./appliedJobCard/PendingApplicationSection";
 import { OfferedActions } from "./appliedJobCard/OfferedActions";
@@ -490,8 +490,10 @@ function AppliedJobCardInner({
                     and the fee pill beneath only makes sense once you know it
                     was the poster. `jobs.cancelled_by` is already on the row
                     (`get_jobs_for_my_applications` returns SETOF jobs). */}
-                <p className="text-ds-11 text-muted-foreground">
-                  {isCancelled ? describeCancellation(job, userId) : "Not selected"}
+                <p className="text-ds-11 text-muted-foreground" data-applied-minimal-line="">
+                  {app.closed_reason === "other_helpr_selected"
+                    ? `${OTHER_HELPR_SELECTED_COPY} Keep checking back for more jobs, and if you ever need help yourself, post a job.`
+                    : isCancelled ? describeCancellation(job, userId) : "Not selected"}
                 </p>
                 {/* The fee is the assigned helper's: only the payee sees it. */}
                 {isCancelled && job.helper_id === userId && (

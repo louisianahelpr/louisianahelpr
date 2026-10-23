@@ -7474,6 +7474,21 @@ export type Database = {
         }
         Relationships: []
       }
+      quiet_cancel_posters: {
+        Row: {
+          added_at: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recurring_visit_payments: {
         Row: {
           amount_cents: number

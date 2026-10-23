@@ -91,6 +91,11 @@ export const FEATURE_SWITCH_KEYS = [
   // or says no (Helpr decides). Created 'testers' by 20261021102943; rpc_open_refund_request and
   // rpc_answer_refund_request refuse without it (require_feature).
   "refund_requests",
+  // Board 141, refund requests, Declutter side (Q2272): within 24 hours of getting an item the buyer asks the
+  // seller for a refund; the seller refunds it all, offers part, or says no (Louisiana Helpr decides). Created
+  // 'testers' by 20261023120630; every declutter_*refund* RPC refuses without it (require_feature). The seller's
+  // payout waits 24 hours after every handover whatever the switch says (the published Declutter terms).
+  "declutter_refund_requests",
 ] as const;
 
 /**

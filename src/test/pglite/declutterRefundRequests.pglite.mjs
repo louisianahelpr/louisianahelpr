@@ -27,6 +27,8 @@ const BEFORE = [
   "20261017060455_declutter_seller_out_pays_fee.sql",
   "20261018183715_declutter_handover_no_qr_no_code.sql",
   "20261018184535_declutter_delivery_no_dropoff_code.sql",
+  // The newest declutter_mark_order_paid before this change (manage listing).
+  "20261020064354_declutter_manage_listing.sql",
   "20261021181118_helpr_delivery_payout_round_down.sql",
   "20261021185418_declutter_delivery_raise_pay.sql",
   "20261021204947_declutter_sales_outlive_a_deleted_party.sql",
@@ -121,6 +123,10 @@ const A = await paidOrder(1, BUYER, SELLER, 1200);
 ok(A.total_cents === 1200 + 130, "setup: order A is paid ($12 + F1 buyer fee $1.30)");
 ok(one(await gotIt(BUYER, A.order_id))?.result === "handed_over", "the buyer's \"I got it\" completes the handover");
 ok((await payout(A.order_id))?.status === "pending", "  one payout row, pending");
+// A second delivery of the same checkout event after the handover (a Stripe redelivery).
+const replay = one(await svc(`SELECT public.declutter_mark_order_paid('${A.order_id}', 'pi_rr_1', ${A.total_cents}, now(), ${CARD_FEE}) AS r`));
+ok(replay?.result === "already_paid" && !(await svc(`SELECT 1 FROM public.declutter_refunds WHERE stripe_payment_intent_id = 'pi_rr_1'`)).length,
+  "a replayed payment event for a handed-over sale is 'already_paid', never a full refund");
 ok(!(await due(A.order_id)), "  but NOT offered to the payout run: the buyer has 24 hours (I got it does not end them, #2)");
 const notice = (await svc(`SELECT message FROM public.notifications WHERE user_id = '${SELLER}' AND title = 'Handover done' ORDER BY created_at DESC LIMIT 1`))[0]?.message ?? "";
 ok(/24 hours after the handover/.test(notice) && !/on its way/.test(notice), "  the seller is told the money comes 24 hours after the handover, not that it is on its way");
@@ -136,7 +142,7 @@ ok(refused(await me(BUYER, `SELECT public.declutter_report_problem('${A.order_id
 
 // B. Who may ask, and when.
 const B = await paidOrder(2, BUYER2, SELLER, 4000);
-ok(refused(await ask(BUYER2, B.order_id), /not_handed_over/), "before the handover a refund cannot be asked (Report a problem instead)");
+ok(refused(await ask(BUYER2, B.order_id), /refund_before_handover/), "before the handover a refund cannot be asked (Report a problem instead)");
 await gotIt(BUYER2, B.order_id);
 ok(refused(await ask(OUTSIDER, B.order_id), /feature_disabled/), "the hidden switch refuses an ordinary (non-tester) account");
 ok(refused(await ask(SELLER, B.order_id), /item_not_found/), "the seller cannot ask on their own sale");

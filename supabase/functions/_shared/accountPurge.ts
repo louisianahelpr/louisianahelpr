@@ -697,6 +697,12 @@ async function findDeclutterInFlight(admin: PurgeCapableClient, userId: string):
       .from("declutter_problems").select("id, declutter_orders!inner(buyer_id, seller_id)")
       .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
       .eq("status", "open").limit(1) },
+    // Board 141 (20261023120630): a refund request after the handover still waiting for an answer moves money
+    // when it is answered (the seller's payout is held until then), which needs both parties to still exist.
+    { label: "refund request waiting", build: () => admin
+      .from("declutter_refund_requests").select("id, declutter_orders!inner(buyer_id, seller_id)")
+      .or(`buyer_id.eq.${userId},seller_id.eq.${userId}`, { referencedTable: "declutter_orders" })
+      .in("status", ["open", "offered"]).limit(1) },
   ];
   for (const c of checks) {
     const lines = await c.build();

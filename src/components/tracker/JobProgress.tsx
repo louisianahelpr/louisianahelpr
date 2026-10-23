@@ -1,20 +1,202 @@
-import { StepTracker } from "@/components/tracker/StepTracker";
-import { JOB_PROGRESS_STEPS, type JobProgressState } from "@/lib/jobProgress";
+import { AlertTriangle, CalendarCheck, Check, CheckCircle2, Clock, FileText, Hand, Hourglass, MapPin, PartyPopper, Truck, Wrench, XCircle, type LucideIcon } from "lucide-react";
+import { useStepTooltip } from "@/hooks/useStepTooltip";
+import { JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/lib/jobProgress";
 
 /**
- * THE job tracker (owner, 2026-10-21: "we need 1 tracker"): Posted · Hired · Working · Done, then one line
- * saying what happens next. Chat, the job page and both job cards render this and nothing else; the state
- * comes from `jobProgress` (src/lib/jobProgress.ts). Off the path (cancelled, under review) it is the line
- * alone. Guard: src/test/oneJobTracker.test.ts.
+ * THE job tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps, 2026-10-22): Posted · Offered · Hired ·
+ * Confirmed · On the way · Arrived · Working · Done, then one line saying what happens next. Chat, the job page,
+ * Home and both job cards render this and nothing else; the state comes from `jobProgress`
+ * (src/lib/jobProgress.ts), whose current step is the CARD's own state (src/lib/jobStepFromWait.ts).
+ *
+ * Colour (owner): done steps GREEN; the current step AMBER (2026-10-23, the old rail's rule: one "you are here"
+ * colour), with a hand when it waits on the viewer and an hourglass when it waits on the other person; later steps
+ * grey. A no-show or an overdue job puts the step it never got past in the warning
+ * colour with an alert icon and its own word ("No-show?", "Overdue"); a dispute is RED on its step (the old rail's
+ * rule: "red is ONLY the step that went wrong"); a cancelled job is all grey with "Cancelled" under it. Colour is
+ * never the only signal: the current step carries an icon (a hand for "your move", an hourglass for "theirs") and
+ * the bold label, done steps a check from 640px, later steps an empty outline, and the whole bar reads as one
+ * sentence to a screen reader.
+ *
+ * THE OLD RAIL'S STEPS ARE KEPT (owner, 2026-10-23: "all the steps i built on our previous tracker ... back"): the
+ * full tracker (job page, the open card, chat; not the collapsed card's bar) draws each step's own icon (the
+ * eight icons of JobTracking's STATUSES), a tap or hover on a done step shows when it happened (useStepTooltip,
+ * the old rail's stamps), a tap on the current step says why it is that colour (the line), and the current step
+ * pulses until the job is done (never on a problem or a finished job; a span, never a control).
+ * Guards: src/test/oneJobTracker.test.ts, src/test/trackerKeepsTheOldSteps.test.tsx.
  */
-export function JobProgress({ progress, compact = false }: { progress: JobProgressState; compact?: boolean }) {
-  const line = progress.next || (progress.step === null ? progress.word : "");
+type StepState = "done" | "you" | "them" | "problem" | "alarm" | "todo";
+
+/** Each step's icon, the old rail's (JobTracking STATUSES / PRE_STATUSES), in JOB_PROGRESS_STEPS order. */
+export const JOB_STEP_ICONS: readonly LucideIcon[] = [FileText, Clock, CheckCircle2, CalendarCheck, Truck, MapPin, Wrench, PartyPopper];
+
+const BAR: Record<StepState, string> = {
+  done: "bg-[hsl(var(--success-ink))]",
+  // THE CURRENT STEP IS ALWAYS AMBER (owner, 2026-10-23: the old rail's rule wins over the 10-22 yellow/olive
+  // split). Whose move it is stays on the step as its icon (a hand for yours, an hourglass for theirs) and in the
+  // line and the aria sentence.
+  you: "bg-[hsl(var(--amber-solid))]",
+  them: "bg-[hsl(var(--amber-solid))]",
+  problem: "bg-[hsl(var(--burnt-sienna))]",
+  alarm: "bg-destructive",
+  todo: "border border-border bg-transparent",
+};
+const TEXT: Record<StepState, string> = {
+  done: "text-[hsl(var(--success-ink))]",
+  you: "font-semibold text-[hsl(var(--amber-ink))]",
+  them: "font-semibold text-[hsl(var(--amber-ink))]",
+  problem: "font-semibold text-[hsl(var(--sienna-ink))]",
+  alarm: "font-semibold text-destructive",
+  todo: "text-muted-foreground",
+};
+
+/** A problem word short enough for its column at 375 (the full word shows from 640px and in the aria sentence). */
+const PROBLEM_SHORT: Record<string, string> = { "No-show?": "No-show", Overdue: "Late", Dispute: "Issue" };
+
+/** "Oct 22, 3:00 PM": when a done step happened. */
+const stampText = (ts: string) => new Date(ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/** The bar as one sentence: every step's full name and where the job is. */
+export function jobStepsLabel(stage: Stage, waitingOnYou: boolean, tone: StepTone = "progress", label?: string): string {
+  const n = JOB_PROGRESS_STEPS.length;
+  if (tone === "cancelled") return `Job progress: ${label ?? "Cancelled"}. No steps ahead.`;
+  if (stage >= n) return `Job progress: all ${n} steps done (${JOB_PROGRESS_STEPS.join(", ")}).`;
+  const done = JOB_PROGRESS_STEPS.slice(0, stage);
+  const later = JOB_PROGRESS_STEPS.slice(stage + 1);
+  return [
+    `Job progress, step ${stage + 1} of ${n}: ${(JOB_PROGRESS_STEPS as readonly string[])[stage]}, ${tone === "problem" ? `${label ?? "needs attention"}, needs attention` : waitingOnYou ? "waiting on you" : "waiting on the other person"}.`,
+    done.length ? `Done: ${done.join(", ")}.` : "",
+    later.length ? `Still to come: ${later.join(", ")}.` : "",
+  ].filter(Boolean).join(" ");
+}
+
+function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = false, stamps, why }: {
+  stage: Stage;
+  waitingOnYou: boolean;
+  tone?: StepTone;
+  label?: string;
+  /** The full tracker: step icons, tap/hover times on done steps, a tap on the current step, the pulse. */
+  detailed?: boolean;
+  stamps?: readonly (string | null)[];
+  /** What the current step is waiting on (the tracker's line), shown when the current step is tapped. */
+  why?: string;
+}) {
+  const tip = useStepTooltip();
+  const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them";
+  const states: StepState[] = JOB_PROGRESS_STEPS.map((_, i) =>
+    tone === "cancelled" ? "todo" : i < stage ? "done" : i === stage ? current : "todo");
+  if (tone === "cancelled") {
+    return (
+      <div role="img" aria-label={jobStepsLabel(stage, false, tone, label)} data-job-steps="" data-stage={stage} data-tone={tone}>
+        <div className="grid grid-cols-8 gap-1" aria-hidden="true">
+          {JOB_PROGRESS_STEPS.map((full) => <span key={full} data-step-state="todo" className={`block h-1.5 rounded-full ${BAR.todo}`} />)}
+        </div>
+        <span className="mt-1 flex items-center gap-1 text-ds-11 font-semibold leading-tight text-muted-foreground" aria-hidden="true">
+          <XCircle className="h-3 w-3 shrink-0" />
+          {label ?? "Cancelled"}
+        </span>
+      </div>
+    );
+  }
+  // The current step pulses while the job is live (the old rail's railStepPulses: not on Done, not on a problem).
+  const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length;
   return (
-    <div data-job-progress="" className="space-y-1.5">
-      {progress.step !== null && <StepTracker steps={JOB_PROGRESS_STEPS} at={progress.step - 1} />}
+    <div
+      // The full tracker is a group (its done and current steps are tappable); the card's bar is one image. Both are
+      // named by the one sentence. The one-row guard reads the tracker as content, not as the card's moves.
+      role={detailed ? "group" : "img"}
+      aria-label={jobStepsLabel(stage, waitingOnYou, tone, label)}
+      data-job-steps=""
+      data-stage={stage}
+      data-tone={tone}
+      data-waiting-on={stage < JOB_PROGRESS_STEPS.length && tone === "progress" ? (waitingOnYou ? "you" : "them") : "none"}
+      className="job-steps-grid grid gap-1"
+      // The current step gets a wider column so its icon and word fit eight across at 375; from 640px, eight equal.
+      style={{ gridTemplateColumns: states.map((s) => (s === "problem" || s === "alarm" ? "minmax(0,2fr)" : s === "you" || s === "them" ? "minmax(0,1.5fr)" : "minmax(0,1fr)")).join(" ") }}
+    >
+      {JOB_PROGRESS_STEPS.map((full, i) => {
+        const s = states[i];
+        const Icon = JOB_STEP_ICONS[i];
+        const ts = s === "done" ? stamps?.[i] ?? null : null;
+        // A done step with a time, or the current step with a reason, is a control (full tracker only).
+        const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null;
+        const key = `step-${i}`;
+        const body = (
+          <>
+            {detailed && (
+              <span className="mb-0.5 flex justify-center" data-step-icon="">
+                <Icon className={`h-3.5 w-3.5 ${TEXT[s]}`} strokeWidth={1.75} aria-hidden />
+              </span>
+            )}
+            <span data-step-seg="" className={`block h-1.5 rounded-full ${BAR[s]} ${pulses && i === stage ? "step-current-pulse" : ""}`} />
+            <span className={`mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight ${TEXT[s]}`}>
+              {s === "you" && <Hand className="h-3 w-3 shrink-0" />}
+              {s === "them" && <Hourglass className="h-3 w-3 shrink-0" />}
+              {/* From 640px only: at 375 the word ("No-show") needs the whole column; the fill, the bold word and
+                  the status line above it carry the signal there. */}
+              {(s === "problem" || s === "alarm") && <AlertTriangle className="job-step-wide h-3 w-3 shrink-0" />}
+              {s === "done" && <Check className="job-step-wide h-3 w-3 shrink-0" />}
+              <span className="job-step-short truncate">{(s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : JOB_PROGRESS_SHORT[i]}</span>
+              <span className="job-step-full truncate">{(s === "problem" || s === "alarm") && label ? label : full}</span>
+            </span>
+          </>
+        );
+        return (
+          <div key={full} data-step-state={s} className="relative min-w-0">
+            {tipText ? (
+              <button
+                type="button"
+                data-step-tip={i}
+                // A done step names its time; the current step names what its tap shows, not the line itself (the
+                // line is already on screen, and its words must not read as one of the card's own buttons).
+                aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
+                {...tip.handlers(key)}
+                className="block w-full !min-h-0 !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+              >
+                <span aria-hidden="true">{body}</span>
+              </button>
+            ) : (
+              <div aria-hidden="true">{body}</div>
+            )}
+            {tipText && tip.open === key && (
+              <div
+                role="tooltip"
+                className={`absolute top-full z-20 mt-1 w-max max-w-[14rem] whitespace-normal rounded-ds-md px-2 py-1 text-ds-10 font-semibold ${i > 4 ? "right-0" : "left-0"}`}
+                style={{ background: "hsl(var(--ink-deep))", color: "hsl(var(--parchment))", boxShadow: "0 4px 14px -4px hsl(var(--ink-deep) / 0.4)" }}
+              >
+                {tipText}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function JobProgress({ progress, compact = false, barOnly = false }: {
+  progress: JobProgressState;
+  compact?: boolean;
+  /** The bar alone (a job card, whose status line already says what happens next). */
+  barOnly?: boolean;
+}) {
+  const line = barOnly ? "" : progress.next || (progress.stage === null ? progress.word : "");
+  if (progress.stage === null && !line) return null;
+  return (
+    <div data-job-progress="" className="job-steps space-y-1.5">
+      {progress.stage !== null && (
+        <JobStepBar
+          stage={progress.stage}
+          waitingOnYou={progress.waitingOnYou}
+          tone={progress.tone}
+          label={progress.label}
+          detailed={!barOnly}
+          stamps={progress.stamps}
+          why={progress.next || undefined}
+        />
+      )}
       {line && (
         <p data-job-progress-next="" className={`${compact ? "text-ds-12" : "text-ds-13"} text-muted-foreground`}>
-          {progress.step === null && progress.word && progress.next ? (
+          {progress.stage === null && progress.word && progress.next ? (
             <>
               <span className="font-semibold text-foreground">{progress.word}</span> · {progress.next}
             </>

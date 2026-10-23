@@ -5,11 +5,14 @@
 // @mutate src/lib/jobProgress.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
 // @mutate src/lib/jobProgress.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {
 // @mutate src/lib/jobProgress.ts |     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : ""; |     const slot = "";
-// @mutate src/lib/jobProgress.ts |         const mine = poster ? !posterIn : !helprIn; |         const mine = poster ? !helprIn : !posterIn;
-import { describe, it, expect } from "vitest";
+// @mutate src/lib/jobProgress.ts |       const mine = poster ? !posterIn : !helprIn; |       const mine = poster ? !helprIn : !posterIn;
+// @mutate src/lib/jobStepFromWait.ts |   confirm_booking: at(1), |   confirm_booking: at(2),
+// @mutate src/lib/jobStepFromWait.ts |   confirm_still_on: at(3), |   confirm_still_on: at(2),
+// @mutate src/lib/jobStepFromWait.ts |   approve: at(7), |   approve: at(6),
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { jobProgress, JOB_PROGRESS_STEPS, type ProgressJob } from "@/lib/jobProgress";
+import { jobProgress, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type ProgressJob } from "@/lib/jobProgress";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const ME = "me";
@@ -22,37 +25,50 @@ const helpr = (j: Partial<ProgressJob>, app: string | null = null) =>
   jobProgress({ ...base, helper_confirmed_at: j.helper_id ? "t" : null, ...j }, { viewer: "helpr", otherFirst: "Jolie", threadHelprId: ME, application: app, now: NOW });
 
 describe("jobProgress (the one tracker)", () => {
-  it("has the four board steps", () => {
-    expect([...JOB_PROGRESS_STEPS]).toEqual(["Posted", "Hired", "Working", "Done"]);
+  // The card's rule (helperStatusLine) reads the real clock, as it does on a card: pin it to NOW.
+  beforeAll(() => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(NOW); });
+  afterAll(() => { vi.useRealTimers(); });
+  it("has the owner's eight steps (2026-10-22)", () => {
+    expect([...JOB_PROGRESS_STEPS]).toEqual(["Posted", "Offered", "Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"]);
+    expect(JOB_PROGRESS_SHORT.length).toBe(JOB_PROGRESS_STEPS.length);
   });
 
   it("board 2/59: open job with a pending application", () => {
-    expect(poster({}, "pending")).toMatchObject({ step: 1, word: "Posted", next: "Jolie applied" });
-    expect(helpr({}, "pending")).toMatchObject({ step: 1, next: "You applied. Waiting on Jolie" });
+    expect(poster({}, "pending")).toMatchObject({ stage: 0, waitingOnYou: true, word: "Posted", next: "Jolie applied" });
+    expect(helpr({}, "pending")).toMatchObject({ stage: 0, waitingOnYou: false, next: "You applied. Waiting on Jolie" });
   });
 
   it("board 61: someone else was hired shows Filled, never held money", () => {
     const s = helpr({ status: "accepted", helper_id: "other", payment_status: "escrow" }, "rejected");
-    expect(s).toMatchObject({ step: 1, word: "Filled", next: "Jolie hired someone else", held: false });
+    expect(s).toMatchObject({ stage: 0, word: "Filled", next: "Jolie hired someone else", held: false });
     expect(poster({ status: "accepted", helper_id: "other", payment_status: "escrow" })).toMatchObject({ word: "Filled", next: "You hired someone else" });
   });
 
   it("an offer is not a booking", () => {
-    expect(poster({ status: "accepted", helper_id: JO, helper_confirmed_at: null })).toMatchObject({ step: 1, word: "Offered", next: "Waiting on Jolie to accept the offer" });
+    expect(poster({ status: "accepted", helper_id: JO, helper_confirmed_at: null })).toMatchObject({ stage: 1, waitingOnYou: false, word: "Offered", next: "Waiting on Jolie to accept the offer" });
+    // Accepting the offer is the Helpr's move: yellow on their side.
+    expect(helpr({ status: "accepted", helper_id: ME, helper_confirmed_at: null })).toMatchObject({ stage: 1, waitingOnYou: true, next: "Jolie offered you this job" });
   });
 
   it("Accepted, before the day-before window: says when confirming opens (the server's rule)", () => {
     // Job Fri 2037-10-23 9:00; the window opens Thu 2037-10-22 00:00 Louisiana time.
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-23", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ step: 2, word: "Hired", next: "Jolie confirms the day before. Opens Thu 12:00 AM" });
-    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ step: 2, next: "Confirm the day before. Opens Thu 12:00 AM" });
+    expect(poster(j)).toMatchObject({ stage: 2, waitingOnYou: false, word: "Hired", next: "Jolie confirms the day before. Opens Thu 12:00 AM" });
+    expect(helpr({ ...j, helper_id: ME })).toMatchObject({ stage: 2, waitingOnYou: false, next: "Confirm the day before. Opens Thu 12:00 AM" });
   });
 
   it("window open: who still owes the confirm, and by when", () => {
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-22", start_time: "09:00" };
-    expect(poster(j)).toMatchObject({ next: "Tap I'm still on to confirm" });
-    expect(poster({ ...j, poster_confirmed_at: "t" })).toMatchObject({ next: "Waiting on Jolie to confirm by Thu 7:00 AM" });
-    expect(poster({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Jolie taps On my way when they leave" });
+    expect(poster(j)).toMatchObject({ stage: 3, waitingOnYou: true, next: "Tap I'm still on to confirm" });
+    expect(poster({ ...j, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm by Thu 7:00 AM" });
+    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: true });
+    // Both in: Confirmed is done; On the way is next.
+    expect(poster({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "You're both confirmed. Jolie taps On my way when they leave" });
+    // Both in: On the way is the Helpr's move (their button is "I'm on my way").
+    expect(helpr({ ...j, helper_id: ME, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: true, next: "Tap I'm on my way when you leave" });
+    // Only the Helpr in: Confirmed lights on BOTH (the old rail's rule, kept), so it waits on the poster; the
+    // Helpr's early "I'm on my way" does not make Confirmed theirs.
+    expect(helpr({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting on Jolie to confirm" });
   });
 
   it("moved by an accepted change: each side's line names the NEW slot until they confirm it (owner, 2026-10-21)", () => {
@@ -60,11 +76,11 @@ describe("jobProgress (the one tracker)", () => {
     const j = { status: "accepted", helper_id: JO, date_needed: "2037-10-22", start_time: "09:00" };
     const rp = (x: Partial<ProgressJob>) => jobProgress({ ...base, helper_confirmed_at: "t", ...x }, { viewer: "poster", otherFirst: "Yusef", now: NOW, rescheduled: true });
     const rh = (x: Partial<ProgressJob>) => jobProgress({ ...base, helper_confirmed_at: "t", ...x }, { viewer: "helpr", otherFirst: "Ben", now: NOW, rescheduled: true });
-    expect(rp(j)).toMatchObject({ step: 2, word: "Hired", next: "Confirm the new time, Thu 9:00 AM" });
-    expect(rh({ ...j, helper_id: ME })).toMatchObject({ step: 2, next: "Confirm you'll be there Thu 9:00 AM" });
+    expect(rp(j)).toMatchObject({ stage: 3, waitingOnYou: true, word: "Confirmed", next: "Confirm the new time, Thu 9:00 AM" });
+    expect(rh({ ...j, helper_id: ME })).toMatchObject({ stage: 3, waitingOnYou: true, next: "Confirm you'll be there Thu 9:00 AM" });
     // One side in: the other's line waits on the NEW slot.
-    expect(rp({ ...j, poster_confirmed_at: "t" })).toMatchObject({ next: "Waiting for Yusef to confirm Thu 9:00 AM" });
-    expect(rh({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "Waiting for Ben to confirm Thu 9:00 AM" });
+    expect(rp({ ...j, poster_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting for Yusef to confirm Thu 9:00 AM" });
+    expect(rh({ ...j, helper_id: ME, helper_dayof_confirmed_at: "t" })).toMatchObject({ stage: 3, waitingOnYou: false, next: "Waiting for Ben to confirm Thu 9:00 AM" });
     // Both in: the normal confirmed state.
     expect(rp({ ...j, poster_confirmed_at: "t", helper_dayof_confirmed_at: "t" })).toMatchObject({ next: "You're both confirmed. Yusef taps On my way when they leave" });
     // Moved to a day whose window has not opened: the new slot, then when confirming opens.
@@ -73,28 +89,38 @@ describe("jobProgress (the one tracker)", () => {
     expect(rp({ ...j, start_time: null })).toMatchObject({ next: "Confirm the new time, Thu" });
   });
 
-  it("board 62: on the way and arrived are Hired, not Working", () => {
-    expect(poster({ status: "in_progress", helper_id: JO, helper_on_the_way_at: "t" })).toMatchObject({ step: 2, next: "Jolie is on the way" });
-    expect(poster({ status: "in_progress", helper_id: JO, helper_on_the_way_at: "t", helper_arrived_at: "t" })).toMatchObject({ step: 2, next: "Jolie arrived. Confirm they've arrived" });
+  it("board 62: on the way and arrived are their own steps, not Working", () => {
+    expect(poster({ status: "in_progress", helper_id: JO, helper_on_the_way_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: false, next: "Jolie is on the way" });
+    expect(helpr({ status: "in_progress", helper_id: ME, helper_on_the_way_at: "t" })).toMatchObject({ stage: 4, waitingOnYou: true });
+    // Confirming arrival is the poster's move.
+    expect(poster({ status: "in_progress", helper_id: JO, helper_on_the_way_at: "t", helper_arrived_at: "t" })).toMatchObject({ stage: 5, waitingOnYou: true, next: "Jolie arrived. Confirm they've arrived" });
+    // The Helpr's card asks for the before photo here (beforePhotoIsThePrimary): their move, so the bar says so too.
+    expect(helpr({ status: "in_progress", helper_id: ME, helper_on_the_way_at: "t", helper_arrived_at: "t" })).toMatchObject({ stage: 5, waitingOnYou: true });
   });
 
   it("board 63: Working needs arrival evidence beyond the Helpr's own claim", () => {
     expect(poster({ status: "in_progress", helper_id: JO, helper_arrived_at: "t", poster_confirmed_arrival_at: "t", payment_status: "escrow" }))
-      .toMatchObject({ step: 3, word: "Working", next: "Jolie is at the job", held: true });
+      .toMatchObject({ stage: 6, waitingOnYou: false, word: "Working", next: "Jolie is at the job", held: true });
     // "is working" only once the poster vouched for it (the line never claims more than the stamps say).
     expect(poster({ status: "in_progress", helper_id: JO, helper_arrived_at: "t", poster_confirmed_arrival_at: "t", poster_confirmed_working_at: "t" }).next).toBe("Jolie is working");
-    expect(helpr({ status: "in_progress", helper_id: ME, helper_arrival_verified_at: "t" })).toMatchObject({ step: 3, word: "Working" });
+    expect(helpr({ status: "in_progress", helper_id: ME, helper_arrival_verified_at: "t" })).toMatchObject({ stage: 6, waitingOnYou: true, word: "Working" });
+  });
+
+  it("marked done: the last step waits on the poster to check the work; completed is every step done", () => {
+    expect(poster({ status: "in_progress", helper_id: JO, poster_confirmed_arrival_at: "t", helper_completed_at: "t" })).toMatchObject({ stage: 7, waitingOnYou: true, next: "Jolie marked it done. Check the work and approve" });
+    expect(helpr({ status: "in_progress", helper_id: ME, poster_confirmed_arrival_at: "t", helper_completed_at: "t" })).toMatchObject({ stage: 7, waitingOnYou: false });
+    expect(helpr({ status: "completed", helper_id: ME })).toMatchObject({ stage: 8, waitingOnYou: false });
   });
 
   it("held only while the payment is in escrow", () => {
     expect(poster({ status: "accepted", helper_id: JO, payment_status: "escrow" }).held).toBe(true);
-    expect(poster({ status: "completed", helper_id: JO, payment_status: "released" })).toMatchObject({ step: 4, held: false });
+    expect(poster({ status: "completed", helper_id: JO, payment_status: "released" })).toMatchObject({ stage: 8, held: false });
   });
 
-  it("off the happy path there is no step bar", () => {
-    expect(poster({ status: "cancelled" }).step).toBeNull();
-    expect(poster({ status: "in_progress", helper_id: JO, has_active_dispute: true }).step).toBeNull();
-    expect(helpr({}, "rejected").step).toBeNull();
+  it("off the happy path: cancelled is all grey, a dispute is the warning step, not picked has no bar", () => {
+    expect(poster({ status: "cancelled" })).toMatchObject({ tone: "cancelled", label: "Cancelled", waitingOnYou: false });
+    expect(poster({ status: "in_progress", helper_id: JO, has_active_dispute: true })).toMatchObject({ stage: 7, tone: "problem", label: "Dispute" });
+    expect(helpr({}, "rejected").stage).toBeNull();
   });
 });
 

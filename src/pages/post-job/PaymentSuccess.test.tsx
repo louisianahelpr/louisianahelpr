@@ -422,8 +422,8 @@ describe("PaymentSuccess follows the job's stage (Q1788)", () => {
     // Board 56: "live" only while the job is still open; past that, the headline is about the money only
     // (lh-money-escrow review 2026-10-21).
     await screen.findByRole("heading", { level: 1, name: status === "open" ? /your job is live/i : /^payment confirmed\.$/i });
-    // The one tracker (owner, 2026-10-21): the job's step on the same four segments as every job surface.
-    expect(screen.getByLabelText(new RegExp(`^Step \\d of 4: ${step}$`))).toBeInTheDocument();
+    // The one tracker (owner, 2026-10-21; 8 steps 2026-10-22): the job's step on the same bar as every job surface.
+    expect(screen.getByLabelText(step === "Done" ? /^Job progress: all 8 steps done/ : new RegExp(`^Job progress, step \\d of 8: ${step},`))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: new RegExp(primary, "i") })).toBeInTheDocument();
     if (primary !== "View Applicants") expect(screen.queryByRole("button", { name: /view applicants/i })).toBeNull();
   });

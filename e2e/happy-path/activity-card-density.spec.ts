@@ -561,18 +561,18 @@ test.describe("My Posts — card density + header", () => {
     });
     await expandCard(page, IN_PROGRESS_ID);
 
-    // ONE tracker (owner, 2026-10-21: "we need 1 tracker"): the 8-step scrolling
-    // rail is gone; chat, the job page and both cards draw JobProgress, four
-    // segments, Posted · Hired · Working · Done (src/lib/jobProgress.ts).
+    // ONE tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps 2026-10-22): chat, the job page and both
+    // cards draw JobProgress, Posted · Offered · Hired · Confirmed · On the way · Arrived · Working · Done, in
+    // short words at 375 (src/lib/jobProgress.ts).
     const tracker = page.locator("[data-job-progress]");
     await expect(tracker).toHaveCount(1);
     await tracker.scrollIntoViewIfNeeded();
-    const row = tracker.locator("ol");
+    const row = tracker.locator("[data-job-steps]");
     await expect(row).toHaveCount(1);
     const steps = await row.evaluate((el) =>
-      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: (c.textContent ?? "").trim() })),
+      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: ((c as HTMLElement).innerText ?? "").trim() })),
     );
-    expect(steps.map((s) => s.text), "the four steps, in order").toEqual(["Posted", "Hired", "Working", "Done"]);
+    expect(steps.map((s) => s.text), "the eight steps, in order").toEqual(["Post", "Offer", "Hired", "Conf.", "Way", "Arr.", "Work", "Done"]);
     // ONE line, and it FITS: no step wraps, nothing scrolls sideways at 375.
     expect(new Set(steps.map((s) => s.top)).size, "steps sit on more than one line").toBe(1);
     const { scrollWidth, clientWidth } = await row.evaluate((el) => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }));

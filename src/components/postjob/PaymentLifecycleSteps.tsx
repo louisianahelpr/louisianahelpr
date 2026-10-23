@@ -11,13 +11,16 @@ import type { JobStatus } from "@/lib/statusLabels";
 // sit in this same slot. Keeps the same content (4 stages from job-state
 // machine: open → accepted → in_progress → completed) but presents it
 // as scannable steps so customers know what to expect next.
-/** What each step means, for the line under the one tracker (Posted · Hired · Working · Done). */
+/** What each lifecycle point means, for the line under the one tracker (Posted, Hired, Working, Done). */
 const STEP_CAPTIONS = [
   `Live now. Nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
   "You review applicants and pick one.",
   "Your Helpr arrives and gets to work.",
   "You both confirm, and the payment goes out.",
 ] as const;
+
+/** Posted · Hired · Working · Done on the one 8-step tracker: Posted, Hired, Working, all done. */
+const STAGE_OF = [0, 2, 6, 8] as const;
 
 /**
  * Q1788: which step the job is ACTUALLY on. The page used to mark "Posted" for
@@ -62,7 +65,7 @@ export function PaymentLifecycleSteps({ current = 0 }: { current?: number | null
   const at = Math.min(3, Math.max(0, current));
   return (
     <div className="mt-3">
-      <JobProgress progress={{ step: (at + 1) as 1 | 2 | 3 | 4, word: "", next: STEP_CAPTIONS[at], held: false }} />
+      <JobProgress progress={{ stage: STAGE_OF[at], waitingOnYou: false, tone: "progress", word: "", next: STEP_CAPTIONS[at], held: false }} />
     </div>
   );
 }

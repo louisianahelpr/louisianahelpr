@@ -20,6 +20,7 @@
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
+    "accept_application_at_suggested_time(uuid, timestamp with time zone, text)": "client",
     "accept_group_application(uuid, timestamp with time zone, text)": "client",
     "accept_job_offer(uuid)": "client",
     "admin_sms_status()": "client",
@@ -54,6 +55,7 @@
     "apply_low_rating_flag(uuid)": "client",
     "apply_message_violation_consequence(text, text)": "client",
     "apply_to_job(uuid, text)": "client",
+    "apply_to_job_with_time(uuid, text, date, time without time zone)": "client",
     "are_users_blocked(uuid, uuid)": "client",
     "block_user_and_settle(uuid, text)": "client",
     "book_accepted_quote(uuid)": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",

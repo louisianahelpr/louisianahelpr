@@ -1,10 +1,9 @@
-import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
+import { ApplicantIdNote } from "./applicantsPanel/ApplicantIdNote";
 import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
 import { ApplicantVerificationChip } from "./applicantsPanel/ApplicantVerificationChip";
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
-import { applicantIdNote } from "@/lib/awardGate";
 import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
 import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
@@ -104,8 +103,6 @@ export function ApplicantsPanel({
   onBoost,
   onEdit,
 }: ApplicantsPanelProps) {
-  // The "verifies their ID when they accept" note only while the ID check is on (owner 2026-10-23: off).
-  const idOn = useIdentityCheckOnStore();
   const paidTierBadge = usePaidTierBadge();
   // Bidding was removed (never used in production): applicants are hired or declined outright.
 
@@ -509,11 +506,7 @@ export function ApplicantsPanel({
                             <ApplicantProofLine categoryCount={categoryCounts ? categoryCounts.get(app.helper_id) ?? 0 : undefined} totalCount={completedCountsMap.get(app.helper_id) ?? 0} idVerified={app.profiles?.is_id_verified === true} category={selectedJob.category} />
                             {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
                             <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
-                            {idOn && app.profiles && app.profiles.is_id_verified !== true && (
-                              <span className="block mt-0.5 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
-                                {applicantIdNote(formatName(app.profiles.full_name, ""))}
-                              </span>
-                            )}
+                            {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}
                             {neighborCount > 0 && (
                               <span
                                 className="inline-flex items-center gap-1 mt-0.5 text-ds-11 font-sans font-semibold"

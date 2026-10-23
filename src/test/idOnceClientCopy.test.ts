@@ -4,14 +4,14 @@
  *
  *   - The POSTER reads an informational line on an unverified applicant, by
  *     name, never a gendered pronoun and never a refusal (the offer stays open
- *     to anyone; ApplicantsPanel renders applicantIdNote).
+ *     to anyone; ApplicantIdNote (in ApplicantsPanel) renders applicantIdNote).
  *   - The HELPR who claims series dates while their setup is unfinished is told
  *     the step that finishes the accept (claimSetupStep, from the server's
  *     helper_accept_missing answer, 20261020043346).
  *
  * @mutate src/lib/awardGate.ts |   return `${who} verifies their ID when they accept.`; |   return `${who} can't be hired until they verify their ID.`;
  * @mutate src/lib/seriesDates.ts |   if (r.missing.length === 0) return null; |   if (r.missing.length >= 0) return null;
- * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                                 {applicantIdNote(formatName(app.profiles.full_name, ""))} |                                 {null}
+ * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantIdNote.tsx |       {applicantIdNote(formatName(fullName, ""))} |       {null}
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
@@ -44,9 +44,11 @@ describe("poster: an unverified applicant is named, never refused", () => {
   });
 
   it("the applicant card renders it for an applicant whose ID is not verified", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/ApplicantsPanel.tsx"), "utf8"));
-    expect(src).toMatch(/app\.profiles && app\.profiles\.is_id_verified !== true && \(/);
-    expect(src).toContain("{applicantIdNote(formatName(app.profiles.full_name, \"\"))}");
+    const panel = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/ApplicantsPanel.tsx"), "utf8"));
+    expect(panel).toContain("<ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />");
+    const note = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobs/applicantsPanel/ApplicantIdNote.tsx"), "utf8"));
+    expect(note).toMatch(/if \(!idOn \|\| idVerified === true\) return null;/);
+    expect(note).toContain("{applicantIdNote(formatName(fullName, \"\"))}");
   });
 });
 

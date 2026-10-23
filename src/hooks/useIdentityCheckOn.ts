@@ -12,11 +12,8 @@ import { useFeatureStatus } from "@/hooks/useFeature";
  * IdentityCheckHost keeps equal to it). Guard:
  * src/test/identityCheckOffEntryPoints.test.ts.
  */
-export function useIdentityCheckOn(): boolean {
-  return useIdentityCheckStatus().on;
-}
-
-/** The same answer plus whether it is IN yet (an entry link waits for it rather than being dropped). */
+// (A bare useIdentityCheckOn(): boolean was exported here and read by nothing; deadcodeRatchet. Read .on.)
+/** The answer plus whether it is IN yet (an entry link waits for it rather than being dropped). */
 export function useIdentityCheckStatus(): { on: boolean; settled: boolean } {
   const { on, settled } = useFeatureStatus("identity_check");
   return { on, settled };

@@ -18,6 +18,7 @@ import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
+import { ALL_PRESENT, columnsPresentIn, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
@@ -45,23 +46,10 @@ const NotificationPreferences = () => {
   // permission yet); button is disabled with explanatory copy.
   const [pushTokenCount, setPushTokenCount] = useState<number>(0);
   const [sendingTest, setSendingTest] = useState(false);
-  // Deploy-lag guard. `email_enabled` arrives with migration
-  // 20260907032218, which lands via db-deploy.yml while this bundle lands via
-  // Vercel — two pipelines, one merge, a window where the column may not exist
-  // yet. Writing a key Postgres has never heard of fails the whole upsert
-  // (PGRST204), so EVERY toggle on this screen would break for the length of
-  // that window. When the loaded row has no `email_enabled` we keep the old
-  // derived master and strip the key from writes, and the screen behaves
-  // exactly as it did before this change until the column shows up.
-  const [emailMasterColumn, setEmailMasterColumn] = useState(true);
-  // Same deploy-lag guard for `saved_helper_availability` (migration
-  // 20260915202026), added the same merge as this bundle. Defaults true (assume
-  // the column exists — a new user with no row must still be able to opt in);
-  // only a LOADED row that lacks the column proves we're mid-deploy-gap, and
-  // then we strip the key from writes so the upsert can't PGRST204 on it.
-  const [savedHelperColumn, setSavedHelperColumn] = useState(true);
-  // Same guard for `email_quote_reminders` (Q2120, migration 20261023120308).
-  const [quoteRemindersColumn, setQuoteRemindersColumn] = useState(true);
+  // Deploy-lag guard: which new notification_preferences columns the loaded
+  // row really has; a missing one is stripped from writes (deployLagColumns.ts).
+  const [columns, setColumns] = useState<ColumnPresence>(ALL_PRESENT);
+  const emailMasterColumn = columns.email_enabled;
   // The sign-up email box (profiles.marketing_consent). It decides what the
   // Promotions EMAIL switch shows while the member has never chosen
   // (email_promotions NULL, Q2299): see src/lib/promotionsEmail.ts.
@@ -163,9 +151,7 @@ const NotificationPreferences = () => {
         // selectively writes only the keys we care about — but nothing here
         // needs the widening any more.
         const row = data as Record<string, unknown>;
-        setEmailMasterColumn("email_enabled" in row);
-        setSavedHelperColumn("saved_helper_availability" in row);
-        setQuoteRemindersColumn("email_quote_reminders" in row);
+        setColumns(columnsPresentIn(row));
         setPrefs({
           ...defaultPrefs,
           ...(data as Partial<Prefs>),
@@ -203,9 +189,7 @@ const NotificationPreferences = () => {
   // (lh-silent-failure review, 2026-10-21, finding 1).
   const writable = (p: Prefs, pressed?: keyof Prefs): Partial<Prefs> => {
     const payload: Partial<Prefs> = { ...p };
-    if (!emailMasterColumn) delete payload.email_enabled;
-    if (!savedHelperColumn) delete payload.saved_helper_availability;
-    if (!quoteRemindersColumn) delete payload.email_quote_reminders;
+    stripMissingColumns(payload, columns);
     if (pressed !== "email_promotions") delete payload.email_promotions;
     return payload;
   };
@@ -815,7 +799,7 @@ const NotificationPreferences = () => {
         savingKey={savingKey}
         checked={prefs.email_quote_reminders && emailMasterEnabled}
         onToggle={() => toggle("email_quote_reminders")}
-        disabled={locked || !emailMasterEnabled || !quoteRemindersColumn}
+        disabled={locked || !emailMasterEnabled || !columns.email_quote_reminders}
         dimmed={!emailMasterEnabled}
         saving={saving}
       />

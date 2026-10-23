@@ -52,6 +52,9 @@ const FUNCTIONS_DIR = "supabase/functions";
 const ADMIN_ENDPOINTS = [
   "admin-delete-user",
   "admin-resend-verification",
+  // Owner 2026-10-23: an admin's reply to a support ticket. The recipient is the
+  // ticket's reporter, read from `reports` on the server, never from the body.
+  "admin-support-reply",
   // The "Send Test Push to Me" button on Admin Health. It is the narrowest
   // endpoint in this list and it is still listed, because it is the one that
   // holds the service-role key on the caller's behalf: it re-checks

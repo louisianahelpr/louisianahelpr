@@ -112,6 +112,7 @@ describe("no test or seed recipient reaches Resend (Q840)", () => {
     // Exact: a new producer is fine (the worker gates it) but must be looked at.
     expect(producers).toEqual([
       "_shared/giftCardEmail.ts",
+      "admin-support-reply/index.ts",
       "admin-update-email/index.ts",
       "admin-user-actions/index.ts",
       "auth-email-hook/index.ts",

@@ -228,6 +228,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
 
   // ── Edge functions ──────────────────────────────────────────────────────
+  "edge:admin-support-reply": { uncovered: ADMIN_ONLY("an admin's reply to a support ticket; it emails the ticket's member, and the shared journey accounts file no support ticket") },
   "edge:admin-update-email": { uncovered: ADMIN_ONLY("changes another account's email; on a shared journey account it would lock that account's sign-in") },
   "edge:admin-user-actions": { uncovered: ADMIN_ONLY("ban / warning / verification actions on another account — see e2e/journeys/adminWritePaths.ts") },
   "edge:arrival-confirm-reminder": { uncovered: SCHEDULED_EDGE },

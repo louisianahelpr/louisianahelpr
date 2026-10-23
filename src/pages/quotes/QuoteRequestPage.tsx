@@ -164,6 +164,9 @@ function SetMyOwnPrice({ request }: { request: MyQuoteRequest }) {
 /** Q1874: only a job whose money is held or paid out reads "paid". */
 function bookedNoticeTitle(p: Exclude<BookedJobPayment, "not_paid">, ownPrice: boolean): string {
   if (p === "paid") return ownPrice ? "Posted and paid" : "Booked and paid";
+  // Q2116: paid with nobody hired. At the poster's own price the job is open
+  // to everyone, so that is simply posted; a booked quote is not booked yet.
+  if (p === "paid_unhired") return ownPrice ? "Posted and paid" : "Paid, not booked yet";
   if (p === "refunded") return "Refunded";
   if (p === "cancelled") return "Cancelled";
   if (p === "cancelling") return "Being cancelled";
@@ -272,6 +275,9 @@ function RequestView({ id }: { id: string }) {
       {bookedJobId && paid.data && paid.data !== "not_paid" && (
         <QuotesNotice title={bookedNoticeTitle(paid.data, ownPrice)}>
           {BOOKED_NOTICE_BODY[paid.data] ? <p>{BOOKED_NOTICE_BODY[paid.data]}</p> : null}
+          {paid.data === "paid_unhired" && !ownPrice ? (
+            <p>Your payment is held. The member whose quote you booked isn't hired yet; we'll tell you when they are, or what happens next.</p>
+          ) : null}
           <Link to={`/jobs/${bookedJobId}`} className="font-medium text-foreground underline underline-offset-2">
             Open the job
           </Link>

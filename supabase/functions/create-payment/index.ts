@@ -233,6 +233,8 @@ async function refuseQuoteJobPriceMismatch(
   db: any,
   jobId: string,
   budget: unknown,
+  // Q2116: the job row this request read (its direct offer to the quoter and its start).
+  job?: { direct_offer_status?: string | null; date_needed?: string | null; start_time?: string | null } | null,
 ): Promise<void> {
   const { data: links, error: linkErr } = await db
     .from("job_quote_requests").select("id").eq("job_id", jobId).limit(5);
@@ -253,6 +255,22 @@ async function refuseQuoteJobPriceMismatch(
   if (mismatch) {
     console.error(`[create-payment] job ${jobId} budget ${budgetCents} != accepted quote price; refusing escrow`);
     throw new PublicError("This job's price doesn't match the quote you agreed, so it can't be paid for. Contact support.");
+  }
+  // Q2116 (lh-money-escrow review of 28a5ed3d7, must-fix 2): a quote job is
+  // paid to HIRE its quoter, through the direct offer it was booked with. Money
+  // that arrives after that offer closed (declined, or moved on) or after the
+  // job's start would be held with nobody hired, and the poster never told. So
+  // a booked quote job is paid only while its offer is pending and before its
+  // start; nothing is charged otherwise.
+  if (((accepted ?? []) as unknown[]).length > 0 && job) {
+    if (job.direct_offer_status !== "pending") {
+      console.warn(`[create-payment] quote job ${jobId}: offer is ${job.direct_offer_status ?? "none"}; refusing escrow`);
+      throw new PublicError("The quote you booked is no longer open, so this job can't be paid for. Nothing was charged.");
+    }
+    if (job.date_needed && hoursUntilJob(job.date_needed, new Date().toISOString(), job.start_time ?? null) <= 0) {
+      console.warn(`[create-payment] quote job ${jobId}: start has passed; refusing escrow`);
+      throw new PublicError("This job's start time has passed, so it can't be paid for. Nothing was charged.");
+    }
   }
 }
 
@@ -543,7 +561,7 @@ serve(async (req) => {
       // future server path that writes jobs.budget: when an accepted quote is
       // linked to this job, round(budget * 100) must equal its price_cents.
       // FAIL CLOSED on an unreadable quote table, as the dispute read above.
-      await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget);
+      await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget, job);
 
       // ─── Where a cancelled checkout lands (Q1862) ───
       // Post a Job by default; the quote screens send their own request page.

@@ -251,18 +251,20 @@ export async function withdrawJobQuote(quoteId: string): Promise<void> {
  * released read as paid: a refunded, cancelled or charged-back job is named
  * as such, and a status this list does not know is never called paid.
  */
-export type BookedJobPayment = "not_paid" | "paid" | "refunded" | "cancelled" | "cancelling" | "disputed" | "unknown";
+export type BookedJobPayment = "not_paid" | "paid" | "paid_unhired" | "refunded" | "cancelled" | "cancelling" | "disputed" | "unknown";
 
 const PAID_STATUSES: readonly string[] = ["escrow", "payout_pending", "released"];
 
-function bookedJobPayment(status: string | null | undefined, jobStatus?: string | null): BookedJobPayment {
+function bookedJobPayment(status: string | null | undefined, jobStatus?: string | null, helperId?: string | null): BookedJobPayment {
   const s = status ?? "unpaid";
   // A job that closed unpaid (auto-expire cancels an open job whose time
   // passed and leaves payment_status 'unpaid') can no longer be paid for:
   // create-payment refuses it, so it never offers Pay (lh-money-escrow review, should-fix 1).
   if (jobStatus === "cancelled" && (NEVER_PAID_STATUSES as readonly string[]).includes(s)) return "cancelled";
   if ((NEVER_PAID_STATUSES as readonly string[]).includes(s)) return "not_paid";
-  if (PAID_STATUSES.includes(s)) return "paid";
+  // Q2116: paid is not booked. Money held with nobody hired (the quoter not
+  // hired on payment) is its own state, never "Booked and paid".
+  if (PAID_STATUSES.includes(s)) return helperId === null ? "paid_unhired" : "paid";
   if (s === "refunded") return "refunded";
   if (s === "cancelled") return "cancelled";
   if (s === "cancelling") return "cancelling";
@@ -271,8 +273,8 @@ function bookedJobPayment(status: string | null | undefined, jobStatus?: string 
 }
 
 export async function fetchBookedJobPayment(jobId: string): Promise<BookedJobPayment> {
-  const row = unwrap(await supabase.from("jobs").select("payment_status, status").eq("id", jobId).maybeSingle());
-  return bookedJobPayment(row?.payment_status, row?.status);
+  const row = unwrap(await supabase.from("jobs").select("payment_status, status, helper_id").eq("id", jobId).maybeSingle());
+  return bookedJobPayment(row?.payment_status, row?.status, row ? row.helper_id ?? null : undefined);
 }
 
 /** Whole dollars, no cents: every quote price is a whole-dollar amount. */

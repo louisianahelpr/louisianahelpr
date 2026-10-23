@@ -58,7 +58,7 @@ const state = {
   invokes: [] as { name: string; body: unknown }[],
   opened: [] as string[],
   /** The jobs row fetchBookedJobPayment reads (payment_status), or an Error. */
-  job: null as null | { payment_status: string; status?: string } | Error,
+  job: null as null | { payment_status: string; status?: string; helper_id?: string | null } | Error,
 };
 
 // 'jobs_poster_fee' is off on prod (2026-10-21): a booked quote is on the flat Helpr fee model.
@@ -329,7 +329,7 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     await waitFor(() => expect(state.invokes).toHaveLength(1));
     expect(state.invokes[0]).toMatchObject({ name: "create-payment", body: { action: "escrow", jobId: "job-77" } });
     first.unmount();
-    state.job = { payment_status: "escrow" };
+    state.job = { payment_status: "escrow", helper_id: "quoter-1" };
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText("Booked and paid")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open the job" })).toHaveAttribute("href", "/jobs/job-77");
@@ -351,7 +351,7 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
   ])("a booked job with payment_status %s reads %s, linked to the job", async (ps, title) => {
     state.rpc.get_my_quote_requests = [{ ...REQ, status: "agreed", job_id: "job-66" }];
     state.rpc.get_quotes_for_request = [{ ...QUOTE, status: "accepted" }];
-    state.job = { payment_status: ps };
+    state.job = { payment_status: ps, helper_id: "quoter-1" };
     at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText(title)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open the job" })).toHaveAttribute("href", "/jobs/job-66");
@@ -359,6 +359,18 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
     expect(screen.queryByRole("button", { name: "Pay now" })).toBeNull();
     // Paid or settled: cancelling goes through the job's own flow, so the request offers none.
     expect(screen.queryByRole("button", { name: "Cancel this request" })).toBeNull();
+  });
+
+  // Q2116: paid is not booked. Money held with nobody hired never reads "Booked and paid".
+  // @mutate src/lib/quotes/api.ts |   if (PAID_STATUSES.includes(s)) return helperId === null ? "paid_unhired" : "paid"; |   if (PAID_STATUSES.includes(s)) return "paid";
+  it("a paid booked job with nobody hired reads 'Paid, not booked yet', never 'Booked and paid'", async () => {
+    state.rpc.get_my_quote_requests = [{ ...REQ, status: "agreed", job_id: "job-66" }];
+    state.rpc.get_quotes_for_request = [{ ...QUOTE, status: "accepted" }];
+    state.job = { payment_status: "escrow", helper_id: null };
+    at("/quotes/request/r1", <QuoteRequestPage />, "/quotes/request/:id");
+    expect(await screen.findByText("Paid, not booked yet")).toBeInTheDocument();
+    expect(screen.getByText(/Your payment is held\. The member whose quote you booked isn't hired yet/)).toBeInTheDocument();
+    expect(screen.queryByText("Booked and paid")).toBeNull();
   });
 
   // lh-money-escrow review should-fix 1: auto-expire cancels an open unpaid

@@ -1152,7 +1152,7 @@ describe("create-payment edge function", () => {
     // Q1867 + Q1862: a job booked from an agreed quote is charged only the
     // accepted quote's price, and a quote checkout may come back to its request
     // page; any other returnPath is refused before Stripe is called.
-    // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
+    // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget, job); |       void refuseQuoteJobPriceMismatch;
     // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
     // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
     // @mutate supabase/functions/create-payment/index.ts |           : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative), |           : buildRedirectUrl(`/post-job`, isNative),
@@ -1164,7 +1164,8 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open", payment_status: "unpaid" }],
+          // Booked from an agreed quote: offered to the quoter, the offer pending (Q2116).
+          rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open", payment_status: "unpaid", offered_to_helper_id: "quoter-1", direct_offer_status: "pending" }],
         };
         scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
         scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }] };
@@ -1177,6 +1178,34 @@ describe("create-payment edge function", () => {
         const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-q", ...extra } }));
         return { res, body: await json(res) };
       }
+
+      // Q2116: a booked quote job is paid only to hire its quoter: while the
+      // direct offer is pending and before the start. Nothing is charged otherwise.
+      // @mutate supabase/functions/create-payment/index.ts |     if (job.direct_offer_status !== "pending") { |     if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |     if (job.date_needed && hoursUntilJob(job.date_needed, new Date().toISOString(), job.start_time ?? null) <= 0) { |     if (false) {
+      it("refuses a quote job whose offer is no longer pending (declined, expired): nothing charged", async () => {
+        for (const status of ["declined", "expired", null]) {
+          seedQuoteJob(250, [{ price_cents: 25000 }]);
+          (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].direct_offer_status = status;
+          const { body } = await escrow();
+          expect(body.error).toBe("The quote you booked is no longer open, so this job can't be paid for. Nothing was charged.");
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        }
+      });
+
+      it("refuses a quote job whose start has passed: nothing charged", async () => {
+        seedQuoteJob(250, [{ price_cents: 25000 }]);
+        Object.assign((scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0], { date_needed: "2026-01-02", start_time: "09:00" });
+        const { body } = await escrow();
+        expect(body.error).toBe("This job's start time has passed, so it can't be paid for. Nothing was charged.");
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      it("a job with no accepted quote is not held to the offer rule", async () => {
+        seedQuoteJob(300, []);
+        (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].direct_offer_status = null;
+        expect((await escrow()).res.status).toBe(200);
+      });
 
       it("charges a quote job whose budget equals the accepted quote", async () => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
@@ -1218,12 +1247,12 @@ describe("create-payment edge function", () => {
       // under the poster-fee model the charge is budget + urgent bonus + fee,
       // but the agreed price is the BUDGET (book_accepted_quote books it from
       // price_cents). An urgent quote job with the switch on is still charged.
-      // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget); | jobId, jobPriceCents / 100);
+      // @mutate supabase/functions/create-payment/index.ts | jobId, job.budget, job); | jobId, jobPriceCents / 100, job);
       it("an urgent quote job on the poster-fee model compares the budget, not the charged total", async () => {
         seedQuoteJob(250, [{ price_cents: 25000 }]);
         scenario.reads.jobs = {
           rows: [{ id: "job-q", customer_id: POSTER.id, budget: 250, category: "cleaning", title: "Quote job", status: "open",
-            payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+            payment_status: "unpaid", is_urgent: true, urgent_fee: 10, offered_to_helper_id: "quoter-1", direct_offer_status: "pending" }],
         };
         scenario.rpc.feature_enabled_for_user = true;
         const feeQuote = buildFeeQuote({ switchOn: true, jobPriceCents: 26_000, payInFour: false });

@@ -10,6 +10,9 @@ import {
 import type { BrowserContext, Page } from "@playwright/test";
 import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
 
+// Q2369: the tracker's step tip reaches into half the grid gap on each side (44px at 375, no overlap).
+// @mutate src/components/tracker/JobProgress.tsx | block w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | block w-full min-h-[44px]
+
 /**
  * Messages: the bottom nav must never disappear over the INBOX, and the
  * composer must fit the screen.
@@ -223,10 +226,8 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
           const r = el.getBoundingClientRect();
           // Invisible / unrendered controls have no tap target to measure.
           if (r.width === 0 || r.height === 0) return;
-          // The tracker's step tips (data-step-tip): eight steps share ONE row at 375 (owner, 2026-10-22), so a
-          // step is ~43px wide in CI's fonts. Its tap only repeats what the line under the bar already says; the
-          // height is held at 44px (JobProgress.tsx). Lander 5, 2026-10-23: lead to decide a wider hit area.
-          if (el.hasAttribute("data-step-tip")) return;
+          // The tracker's step tips (data-step-tip) are measured like every other control (Q2369: their hit area
+          // reaches into half the grid gap on each side, JobProgress.tsx); the skip that stood here is gone.
           if (r.width < 44 || r.height < 44) {
             out.push(
               `${el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`,
@@ -237,6 +238,29 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
     });
 
     expect(small).toEqual([]);
+
+    // The tracker's step tips: at least one is on this thread's card (so the 44px check above measured them), and
+    // their widened hit areas meet but never overlap a neighbour's (Q2369; touching edges are allowed).
+    const tips = await page.evaluate(() =>
+      [...document.querySelectorAll<HTMLElement>("[data-step-tip]")]
+        .map((el) => ({ r: el.getBoundingClientRect(), col: el.parentElement!.getBoundingClientRect() }))
+        .filter(({ r }) => r.width > 0)
+        .map(({ r, col }) => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, grow: r.width - col.width, shift: col.left - r.left })),
+    );
+    expect(tips.length, "the open thread shows the tracker's step tips").toBeGreaterThan(0);
+    // Font-independent: the hit area is its column plus 2px of the 4px gap on each side (CI's fonts make a column
+    // ~43px at 375, local fonts ~44px, so the 44px check alone cannot tell the two builds apart everywhere).
+    for (const t of tips) {
+      expect(Math.abs(t.grow - 4), `a step tip is 4px wider than its column (was ${t.grow.toFixed(1)})`).toBeLessThan(0.5);
+      expect(Math.abs(t.shift - 2), `a step tip starts 2px left of its column (was ${t.shift.toFixed(1)})`).toBeLessThan(0.5);
+    }
+    const overlaps: string[] = [];
+    tips.forEach((a, i) => tips.forEach((b, j) => {
+      if (j <= i || a.bottom <= b.top || b.bottom <= a.top) return;
+      const shared = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      if (shared > 0.5) overlaps.push(`step tips ${i} and ${j} overlap by ${shared.toFixed(1)}px`);
+    }));
+    expect(overlaps).toEqual([]);
   });
 
   test("no axe violations on the list or in an open thread", async ({ page, context, baseURL }) => {

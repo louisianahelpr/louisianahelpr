@@ -84,9 +84,10 @@ export function captureFromOrder(order: PayPalOrder): CaptureResult {
     amountCents: dollarsToCents(cap.amount.value),
     feeCents: fee ? dollarsToCents(fee.value) : null,
     vaultId: order.payment_source?.card?.attributes?.vault?.id ?? order.payment_source?.paypal?.attributes?.vault?.id ?? null,
-    vaultSource: order.payment_source?.card?.attributes?.vault?.id
-      ? "card"
-      : order.payment_source?.paypal?.attributes?.vault?.id ? "paypal" : null,
+    // Only present with a token (absent, not null, otherwise: the phase 1 shape is unchanged).
+    ...(order.payment_source?.card?.attributes?.vault?.id
+      ? { vaultSource: "card" as const }
+      : order.payment_source?.paypal?.attributes?.vault?.id ? { vaultSource: "paypal" as const } : {}),
   };
 }
 

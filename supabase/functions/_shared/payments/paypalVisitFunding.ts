@@ -8,7 +8,7 @@
  *   - A VISIT IS CREATED ONLY ONCE ITS MONEY IS IN. The charge comes first, the visit job row
  *     after it; a failed charge produces no visit.
  *   - The price: the visit's budget; a poster-fee series adds posterJobFeeCents (its parent's
- *     stamp); a flat-model series adds nothing (roadmap F3). The Helpr's provisional fee on the
+ *     stamp, refused on PayPal: the PayPal path never uses that model); a flat-model series adds nothing (roadmap F3). The Helpr's provisional fee on the
  *     row is jobHelprCommissionDollars with the parent's stamp, as today.
  *   - The visit row is the same insert as today (every descriptive field copied from the
  *     parent, the date's holder as helper, accepted and confirmed, payment_status 'escrow',
@@ -25,7 +25,7 @@
 import { jobHelprCommissionDollars } from "../helperFees.ts";
 import { flatFeePercentOf, isFlatFeeJob } from "../helprFlatFee.ts";
 import { POSTER_SERVICE_FEE_PERCENT } from "../posterFees.ts";
-import { isPosterFeeJob, posterJobFeeCents } from "../posterJobFee.ts";
+import { isPosterFeeJob } from "../posterJobFee.ts";
 import { isLaborTaxable } from "../salesTax.ts";
 import { THREE_D_SECURE_MIN_CENTS } from "../threeDSecure.ts";
 import { chargeSavedPayment, visitSubjectId, type SavedChargeDeps } from "./paypalSavedCharge.ts";
@@ -48,7 +48,10 @@ export function planPayPalVisitCharge(parent: SeriesParent): VisitPlan {
   if (!Number.isFinite(budgetCents) || budgetCents <= 0) return { kind: "refuse", reason: "visit_budget_invalid" };
   if (!isFlatFeeJob(parent)) return { kind: "refuse", reason: "series_fee_model_not_on_paypal" };
   if (isLaborTaxable(parent.category)) return { kind: "refuse", reason: "taxable_visit_not_on_paypal" };
-  const feeCents = isPosterFeeJob(parent) ? posterJobFeeCents(budgetCents, parent) : 0;
+  // The PayPal path never uses the poster-fee model (shared contract, helprFlatFee.ts
+  // PAYPAL_HELPR_FEE_*): a poster-fee series was not funded through PayPal.
+  if (isPosterFeeJob(parent)) return { kind: "refuse", reason: "poster_fee_series_not_on_paypal" };
+  const feeCents = 0;
   const totalCents = budgetCents + feeCents;
   if (totalCents >= THREE_D_SECURE_MIN_CENTS) return { kind: "refuse", reason: "visit_needs_on_session_payment_not_on_paypal" };
   const helperFeePercent = flatFeePercentOf(parent) as number;

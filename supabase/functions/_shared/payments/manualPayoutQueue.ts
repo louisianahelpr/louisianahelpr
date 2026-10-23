@@ -52,8 +52,23 @@ export interface QueueManualPayoutResult {
 }
 
 export interface ManualPayoutQueue {
+  /**
+   * Whether this queue can record a payout of this source at all. Asked BEFORE money is taken
+   * from a payer for it (an auto-tip is not charged when its payout could not be queued).
+   */
+  supports(source: ManualPayoutSource): boolean;
   queue(input: QueueManualPayoutInput): Promise<QueueManualPayoutResult>;
 }
+
+/**
+ * Phase 4's writer (wip/pp-phase4 @ 40b484daa1, read 2026-10-23) finds the payment by job
+ * (subject_kind 'job') and answers already_queued for ANY live payout claim of the job+Helpr,
+ * so for a tip it would answer with the JOB's payout and the tip would read "queued" while
+ * nothing holds it. Until it takes the tip's provider_payment_id, auto-tips are not charged
+ * through PayPal (they stay candidates and age out with a word to the poster, as a held tip
+ * does today). Flip to true in the change that widens the writer.
+ */
+export const QUEUE_TAKES_TIP_PAYMENTS = false;
 
 /**
  * The job/payment states each phase 6 source arrives in, for phase 4 to widen its
@@ -82,8 +97,14 @@ function cents(n: number, what: string, min: number): number {
 
 /** The default queue: phase 4's RPC. A missing RPC or an error is `refused`, never `queued`. */
 export function rpcManualPayoutQueue(db: RpcClient): ManualPayoutQueue {
+  const supports = (source: ManualPayoutSource) =>
+    source === "cancellation_fee" || (source === "auto_tip" && QUEUE_TAKES_TIP_PAYMENTS);
   return {
+    supports,
     async queue(input) {
+      if (!supports(input.source)) {
+        return { outcome: "refused", reason: `queue_writer_does_not_take_${input.source}`, payoutId: null, recorded: false };
+      }
       cents(input.amountCents, "amountCents", 1);
       cents(input.platformFeeCents, "platformFeeCents", 0);
       const { data, error } = await db.rpc("paypal_queue_manual_payout", {

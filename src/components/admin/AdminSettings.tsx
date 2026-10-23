@@ -14,6 +14,7 @@ import { Plus, Search, Shield, ShieldCheck, Trash2, UserPlus } from "lucide-reac
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { AdminUserSearchField } from "./settings/AdminUserSearchField";
 import { FeatureSwitchesCard } from "./settings/FeatureSwitchesCard";
+import { SmsStatusCard } from "./settings/SmsStatusCard";
 import { FeeModelCard } from "./settings/FeeModelCard";
 import { AbuseLimitsCard } from "./settings/AbuseLimitsCard";
 import { MinSupportedBuildCard } from "./settings/MinSupportedBuildCard";
@@ -448,6 +449,8 @@ const AdminSettings = () => {
       <MinSupportedBuildCard minBuild={minBuild} setMinBuild={setMinBuild} saveMinBuild={saveMinBuild} savingMinBuild={savingMinBuild} />
 
       <FeatureSwitchesCard />
+
+      <SmsStatusCard />
       {/* Admin Management */}
       {/* surface="none": each admin below is its own `liquid-glass` row, so the
           default card put white bordered rows inside a white bordered card.

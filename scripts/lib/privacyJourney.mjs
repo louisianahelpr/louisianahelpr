@@ -129,6 +129,8 @@ export const EXPORT_SECTIONS = [
   "payout_failures",
   // Board 141 (20261021184925): refund requests the member asked, was asked or answered.
   "refund_requests",
+  // SMS alerts (20261021193738): text consent, its events, and texts considered.
+  "sms_consent", "sms_consent_events", "sms_messages",
   "storage_objects",
 ];
 

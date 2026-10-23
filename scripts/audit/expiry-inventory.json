@@ -206,6 +206,9 @@
   "undated": {
     "ANTHROPIC_API_KEY": "Anthropic API key (Claude, the AI job builder and Declutter listing help); no expiry date",
     "APNS_BUNDLE_ID": "config, not a credential",
+    "TWILIO_ACCOUNT_SID": "SMS alerts (2026-10-20): account id, not a credential; does not expire",
+    "TWILIO_AUTH_TOKEN": "SMS alerts (2026-10-20): Twilio auth token has no expiry date; rotated by the owner in the Twilio console (Admin > Settings > Text alerts > Check Twilio reads whether it still works)",
+    "TWILIO_MESSAGING_SERVICE_SID": "SMS alerts (2026-10-20): Messaging Service id, config, does not expire",
     "APNS_TEAM_ID": "identifier, not a credential",
     "APNS_USE_SANDBOX": "config flag",
     "APPLE_IAP_BUNDLE_ID": "config, not a credential",

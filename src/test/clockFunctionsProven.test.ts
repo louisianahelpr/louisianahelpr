@@ -27,6 +27,7 @@
 // @mutate src/test/pglite/pruneRetentionClock.pglite.mjs | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/fixedClock.mjs"; | import { installClock, newestFunction, onFixedClock, setClock } from "./lib/otherClock.mjs";
 // @mutate src/test/clockFunctionsProven.test.ts |   start_underfilled_crews: "startUnderfilledCrewsClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   check_ops_alert_pending: "opsAlertPendingClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   sms_dispatch_due: "smsDispatchClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -54,6 +55,7 @@ const PROVEN: Record<string, string> = {
   cleanup_observability_tables: "pruneRetentionClock.pglite.mjs",
   cleanup_stripe_webhook_events: "pruneRetentionClock.pglite.mjs",
   prune_retention_tables: "pruneRetentionClock.pglite.mjs",
+  sms_dispatch_due: "smsDispatchClock.pglite.mjs",
   check_seed_boundary_failures: "monitorWindowsClock.pglite.mjs",
   check_error_log_throttle: "monitorWindowsClock.pglite.mjs",
   check_push_token_health: "monitorWindowsClock.pglite.mjs",

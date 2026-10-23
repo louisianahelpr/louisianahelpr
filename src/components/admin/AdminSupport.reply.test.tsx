@@ -10,7 +10,7 @@
  * @mutate src/components/admin/AdminSupport.tsx |                   <SupportThread replies={repliesFor(ticket.id)} /> |                   null
  * @mutate src/components/admin/SupportReply.tsx |         body: { reportId: ticketId, message: trimmed, resolve: canResolve && resolve }, |         body: { reportId: ticketId, message: trimmed, resolve: false },
  * @mutate src/components/admin/SupportReply.tsx |       if (!result.success) throw new Error(result.error \|\| "The reply was not sent."); |
- * @mutate src/components/admin/AdminSupport.tsx |   const repliesPending = (id: string) => replies.isLoading \|\| (replies.isPlaceholderData && !fetchedIds.has(id)); |   const repliesPending = (id: string) => replies.isLoading;
+ * @mutate src/components/admin/useSupportReplies.ts |   const repliesPending = (id: string) => replies.isLoading \|\| (replies.isPlaceholderData && !fetchedIds.has(id)); |   const repliesPending = (id: string) => replies.isLoading;
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

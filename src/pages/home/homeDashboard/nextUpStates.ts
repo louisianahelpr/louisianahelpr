@@ -1,7 +1,7 @@
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { postedActivityBucket, appliedActivityBucket, jobIsOverdue, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { posterStatusLine, helperStatusLine } from "@/components/job-card/jobStatusLine";
-import { jobProgress, type JobProgressState } from "@/lib/jobProgress";
+import { jobProgress, type JobProgressState } from "@/components/tracker/jobProgressState";
 
 /**
  * The two Home states around Next up (boards 83 and 165, spec v2 §5.1 + §9.22 +

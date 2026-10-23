@@ -6,11 +6,11 @@
  * pins the instant and the words both cards and the tracker print.
  */
 // @mutate supabase/functions/_shared/confirmDeadline.ts |   return jobLocalMidnightMs(previousDay(dateNeeded)); |   return jobLocalMidnightMs(dateNeeded);
-// @mutate src/lib/jobProgress.ts |  : `Confirm the day before. Opens ${when(opens)}`; |  : `Confirm the day before.`;
+// @mutate src/components/tracker/jobProgressState.ts |  : `Confirm the day before. Opens ${when(opens)}`; |  : `Confirm the day before.`;
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { confirmDeadlineMs, confirmOpensMs } from "@/lib/jobDate";
-import { jobProgress } from "@/lib/jobProgress";
+import { jobProgress } from "@/components/tracker/jobProgressState";
 import { JobConfirmation } from "@/components/JobConfirmation";
 
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));

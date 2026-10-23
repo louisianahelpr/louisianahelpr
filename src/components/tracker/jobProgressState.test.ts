@@ -1,18 +1,18 @@
 // Board 2 (deal-room chat) and the chat halves of 59, 61, 62, 63, now the ONE tracker (owner, 2026-10-21):
 // the stage is named from the job's own stamps and never runs ahead of them, and the deal card never writes.
-// @mutate src/lib/jobProgress.ts | (job.poster_confirmed_working_at ? `${other} is working` : `${other} is at the job`) | `${other} is working`
-// @mutate src/lib/jobProgress.ts | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at) | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at \|\| job.helper_arrived_at)
-// @mutate src/lib/jobProgress.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
-// @mutate src/lib/jobProgress.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {
-// @mutate src/lib/jobProgress.ts |     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : ""; |     const slot = "";
-// @mutate src/lib/jobProgress.ts |       const mine = poster ? !posterIn : !helprIn; |       const mine = poster ? !helprIn : !posterIn;
-// @mutate src/lib/jobStepFromWait.ts |   confirm_booking: at(1), |   confirm_booking: at(2),
-// @mutate src/lib/jobStepFromWait.ts |   confirm_still_on: at(3), |   confirm_still_on: at(2),
-// @mutate src/lib/jobStepFromWait.ts |   approve: at(7), |   approve: at(6),
+// @mutate src/components/tracker/jobProgressState.ts | (job.poster_confirmed_working_at ? `${other} is working` : `${other} is at the job`) | `${other} is working`
+// @mutate src/components/tracker/jobProgressState.ts | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at) | !!(job.poster_confirmed_working_at \|\| job.poster_confirmed_arrival_at \|\| job.helper_arrival_verified_at \|\| job.helper_arrived_at)
+// @mutate src/components/tracker/jobProgressState.ts | if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) { | if (false) {
+// @mutate src/components/tracker/jobProgressState.ts |     if (!Number.isNaN(opens) && now < opens) { |     if (false) {
+// @mutate src/components/tracker/jobProgressState.ts |     const slot = o.rescheduled ? slotLabel(job.date_needed, job.start_time) : ""; |     const slot = "";
+// @mutate src/components/tracker/jobProgressState.ts |       const mine = poster ? !posterIn : !helprIn; |       const mine = poster ? !helprIn : !posterIn;
+// @mutate src/components/tracker/jobStepFromWait.ts |   confirm_booking: at(1), |   confirm_booking: at(2),
+// @mutate src/components/tracker/jobStepFromWait.ts |   confirm_still_on: at(3), |   confirm_still_on: at(2),
+// @mutate src/components/tracker/jobStepFromWait.ts |   approve: at(7), |   approve: at(6),
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { jobProgress, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type ProgressJob } from "@/lib/jobProgress";
+import { jobProgress, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 const ME = "me";
@@ -126,7 +126,7 @@ describe("jobProgress (the one tracker)", () => {
 
 describe("DealCard never writes", () => {
   it("reads jobs/applications only; its button only navigates", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "../components/messages/chatView/DealCard.tsx"), "utf8"));
+    const src = blankComments(readFileSync(resolve(__dirname, "../messages/chatView/DealCard.tsx"), "utf8"));
     expect(src).not.toMatch(/\.(insert|update|upsert|delete)\(/);
     const rpcs = [...src.matchAll(/\.rpc\(\s*"([^"]+)"/g)].map((m) => m[1]);
     // Read-only RPCs only: the applicant's own jobs, and the person facts for the header.
@@ -142,7 +142,7 @@ describe("DealCard never writes", () => {
 // @mutate src/components/messages/ChatHeader.tsx | {dealPinned && personFacts ? personFacts : activeConvo.jobTitle} | {activeConvo.jobTitle}
 describe("chat header while the deal card is pinned", () => {
   it("shows the person's facts, not the job title, and drops the status chip", () => {
-    const src = blankComments(readFileSync(resolve(__dirname, "../components/messages/ChatHeader.tsx"), "utf8"));
+    const src = blankComments(readFileSync(resolve(__dirname, "../messages/ChatHeader.tsx"), "utf8"));
     // Falls back to the job title while the facts load or if they fail (review note 5).
     expect(src).toContain("{dealPinned && personFacts ? personFacts : activeConvo.jobTitle}");
     expect(src).toMatch(/activeConvo\.jobStatus && !inboxVisible && !dealPinned/);

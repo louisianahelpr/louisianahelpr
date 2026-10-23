@@ -22,12 +22,12 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return "Add your payout account to get it"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return "Approved, not sent yet"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount \|\| setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held) return null; |   if (!money.coming && !money.held) return <div data-home-money="empty" />;
  * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           label={heldWords(money.held).label} |           label="Held for you"
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
@@ -36,6 +36,10 @@ import { blankComments } from "./helpers/blankNonCode";
 import { comingToYou } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { heldForYou, spentRows, type PosterSpendJob } from "@/lib/posterSpend";
 import { HomeMoneyTiles } from "@/pages/home/homeDashboard/HomeMoneyTiles";
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 
 // Tue Oct 20 2026, noon UTC.
 const NOW = Date.parse("2026-10-20T12:00:00Z");
@@ -169,7 +173,7 @@ describe("the tiles (boards 7, 11)", () => {
     expect(at(coming({ overdue: true, at: null }))).toContain("Approved, not sent yet");
     expect(at(coming({ overdue: true }))).not.toMatch(/Reaches/);
     expect(at(coming({ severalDates: true }))).toMatch(/First reaches your wallet Fri, Oct 23/);
-    expect(src("pages/home/homeDashboard/HomeMoneyTiles.tsx")).toContain('navigate(money.coming!.hasPayoutAccount ? "/profile?tab=earnings" : "/profile?tab=payment")');
+    expect(src("pages/home/homeDashboard/HomeMoneyTiles.tsx")).toContain('navigate(money.coming!.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment")');
   });
 
   it("a tile with nothing is not drawn, and with nothing at all there is no strip", () => {

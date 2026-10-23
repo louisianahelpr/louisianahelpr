@@ -23,6 +23,10 @@ import { MemoryRouter, useLocation } from "react-router-dom";
 type Rows = { data: unknown; error: unknown };
 const tables = vi.hoisted(() => ({ value: {} as Record<string, Rows> }));
 const rpc = vi.hoisted(() => vi.fn());
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/integrations/supabase/client", () => {
   const chain = (table: string) => {
     const result = () => Promise.resolve(tables.value[table] ?? { data: [], error: null });

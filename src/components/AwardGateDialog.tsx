@@ -21,6 +21,8 @@ import { track, AhaEvent } from "@/lib/analytics";
 import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { userFacingError } from "@/lib/userFacingError";
 import { openIdentityCheck } from "@/lib/identityCheck";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /**
  * What a Helpr sees when their accept needs Stripe setup first.
@@ -50,6 +52,19 @@ export function AwardGateDialog({
   const copy = pendingMissing ? acceptPendingCopy(pendingMissing) : awardBlockCopy(reason);
   const payoutMissing = pendingMissing ? pendingMissing.includes("payout_setup") : reason === "helper_payout_setup_incomplete";
   const idMissing = pendingMissing ? pendingMissing.includes("stripe_id") : reason === "helper_identity_unverified";
+  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
+  // account. With the payout step missing, the dialog shows the paused notice
+  // and never calls stripe-connect; the ID check (its own sheet) still works.
+  const setupPaused = usePayoutSetupPaused();
+  const payoutPaused = setupPaused && payoutMissing;
+  // While paused the "set up payouts, about two minutes" copy would contradict
+  // the notice: say what happens to the accept instead (lh-silent-failure #1-2).
+  const title = payoutPaused && !pendingMissing ? "Payout setup is paused" : copy.title;
+  const body = !payoutPaused
+    ? copy.body
+    : pendingMissing
+      ? `You're not booked yet. Your accept is saved and goes through once payout setup is back${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
+      : "This job can be booked for you once payout setup is back.";
   // Stripe Identity (photo ID + selfie) is its own sheet, not part of payout
   // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
   const openIdCheck = () => {
@@ -57,10 +72,11 @@ export function AwardGateDialog({
     openIdentityCheck("accept");
   };
   const handleFix = async () => {
-    if (!payoutMissing && idMissing) {
+    if ((!payoutMissing || payoutPaused) && idMissing) {
       openIdCheck();
       return;
     }
+    if (payoutPaused) return;
     setLoading(true);
     try {
       track(AhaEvent.PayoutSetupStarted, { action: "award_gate", reason });
@@ -96,20 +112,21 @@ export function AwardGateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHero
-          title={copy.title}
+          title={title}
         />
 
         <DialogBody>
-          <p>{copy.body}</p>
+          <p>{body}</p>
+          {payoutPaused && <PayoutSetupPausedNotice compact className="mt-3" />}
         </DialogBody>
 
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
-          <RequirementRow label="Payout account connected" met={!payoutMissing} />
+          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Paused" : undefined} />
           <RequirementRow
             label={ID_VERIFIED_LABEL}
             met={!idMissing}
-            action={payoutMissing && idMissing ? { label: "Verify", onClick: openIdCheck } : undefined}
+            action={payoutMissing && idMissing && !payoutPaused ? { label: "Verify", onClick: openIdCheck } : undefined}
           />
         </div>
 
@@ -118,26 +135,28 @@ export function AwardGateDialog({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            {pendingMissing ? "Later" : "Not Now"}
+            {payoutPaused && !idMissing ? "OK" : pendingMissing ? "Later" : "Not Now"}
           </DialogSecondaryAction>
-          <DialogPrimaryAction
-            onClick={handleFix}
-            disabled={loading}
-          >
-            {loading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              payoutMissing ? <BadgeDollarSign className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />
-            )}
-            {copy.ctaLabel}
-          </DialogPrimaryAction>
+          {!(payoutPaused && !idMissing) && (
+            <DialogPrimaryAction
+              onClick={handleFix}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                payoutMissing && !payoutPaused ? <BadgeDollarSign className="w-4 h-4 mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />
+              )}
+              {payoutPaused ? "Verify my ID" : copy.ctaLabel}
+            </DialogPrimaryAction>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function RequirementRow({ label, met, action }: { label: string; met: boolean; action?: { label: string; onClick: () => void } }) {
+function RequirementRow({ label, met, action, unmetLabel }: { label: string; met: boolean; action?: { label: string; onClick: () => void }; unmetLabel?: string }) {
   return (
     <div
       className="flex items-center gap-3 p-3 rounded-ds-md"
@@ -169,7 +188,7 @@ function RequirementRow({ label, met, action }: { label: string; met: boolean; a
           className="ml-auto text-ds-11 font-sans"
           style={{ color: met ? "hsl(var(--sage))" : "hsl(var(--amber-ink))" }}
         >
-          {met ? "Done" : "Needed"}
+          {met ? "Done" : (unmetLabel ?? "Needed")}
         </span>
       )}
     </div>

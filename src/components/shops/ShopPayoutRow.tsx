@@ -7,11 +7,21 @@
  * second one.
  */
 import { useNavigate } from "react-router-dom";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
 
 export default function ShopPayoutRow() {
   const navigate = useNavigate();
   const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
-  return <PayoutStatusRow prompt={payoutPrompt} onSetUp={() => navigate("/profile?tab=payment")} onRetry={refetchStatus} />;
+  // Owner ruling 2026-10-23: payout setup is paused; the row says so instead of "Set up".
+  const setupPaused = usePayoutSetupPaused();
+  return (
+    <PayoutStatusRow
+      prompt={payoutPrompt}
+      onSetUp={() => navigate("/profile?tab=payment")}
+      onRetry={refetchStatus}
+      setupPaused={setupPaused}
+    />
+  );
 }

@@ -28,6 +28,8 @@ import {
 } from "@/lib/payoutSetupQueries";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /** Board 87, "Where should we send your money?": what adding a bank involves, said before the tap. */
 const PAYOUT_START_POINTS = [
@@ -49,6 +51,10 @@ export function PayoutSetupForm({ onSettled }: {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
+  // account. While paused this form shows the notice in place of every setup
+  // control, and the handlers below never call stripe-connect.
+  const setupPaused = usePayoutSetupPaused();
 
   // Both fetchers + their persistence policy live in src/lib/payoutSetupQueries.ts
   // so `usePrefetchUserData` can warm these exact keys from the Dashboard's idle
@@ -92,6 +98,7 @@ export function PayoutSetupForm({ onSettled }: {
     //
     // Gate runs BEFORE track(): a helper who fails the prompt never started
     // onboarding, so the funnel shouldn't record that they did.
+    if (setupPaused) return;
     const ok = await requireBiometric("Confirm changes to your payout account");
     if (!ok) return;
     setOnboarding(true);
@@ -183,6 +190,7 @@ export function PayoutSetupForm({ onSettled }: {
 
   const handleReset = async () => {
     setConfirmReset(false);
+    if (setupPaused) return;
     // `reset` DELETES the Stripe connected account and every payout method on
     // it, then hands back a fresh onboarding link. Strictly more destructive
     // than delete_payout_method, so it gets the same gate — the existing
@@ -346,7 +354,11 @@ export function PayoutSetupForm({ onSettled }: {
           {statusQuery.isFetching ? "Refreshing…" : "Refresh status"}
         </button>
       )}
-      {!status?.connected && (
+      {setupPaused && !isFullyOnboarded && !checking && (
+        <PayoutSetupPausedNotice />
+      )}
+
+      {!setupPaused && !status?.connected && (
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--burnt-sienna))" }} />
           <div>
@@ -407,7 +419,7 @@ export function PayoutSetupForm({ onSettled }: {
         </div>
       )}
 
-      {needsMoreInfo && (
+      {!setupPaused && needsMoreInfo && (
         <div className="flex items-start gap-3" data-payout-needs={didNotConnect ? "did-not-connect" : "more-info"}>
           <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--amber-solid))" }} />
           <div>
@@ -431,7 +443,7 @@ export function PayoutSetupForm({ onSettled }: {
         </div>
       )}
 
-      {!isFullyOnboarded && !checking && (
+      {!setupPaused && !isFullyOnboarded && !checking && (
         <>
           <Button
             variant="primary"

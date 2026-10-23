@@ -9,6 +9,7 @@ import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { PAYOUT_SETUP_ACTIONS, payoutSetupPausedFor, payoutSetupPausedResponse } from "../_shared/payoutSetupPause.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -269,6 +270,16 @@ serve(async (req) => {
 
     const body = await req.json();
     const { action } = body;
+
+    // Payout setup pause (owner ruling 2026-10-23: Stripe closed the platform
+    // account). Every action that creates a Connect account or an Account Link
+    // is refused here, before any Stripe call, while the `payout_setup` switch
+    // is off for this caller (fails closed). The non-Express arm of `dashboard`
+    // is refused at its own Account Link below.
+    // Guard: src/test/payoutSetupPausedEntryPoints.test.ts.
+    if (PAYOUT_SETUP_ACTIONS.has(action) && (await payoutSetupPausedFor(supabaseAdmin, user))) {
+      return payoutSetupPausedResponse(corsHeaders);
+    }
 
     // Helper: get or create Connect account
     const getOrCreateAccount = async () => {
@@ -638,13 +649,20 @@ serve(async (req) => {
         throw new Error("No payout account connected. Please set up your payout account first.");
       }
 
+      const account = await stripe.accounts.retrieve(profile.stripe_account_id);
+
+      // A non-Express account gets an Account Link below, which is setup, so it
+      // is paused like onboard, before any Stripe write (the Express login link
+      // manages an account; it is not setup).
+      if (account.type !== "express" && (await payoutSetupPausedFor(supabaseAdmin, user))) {
+        return payoutSetupPausedResponse(corsHeaders);
+      }
+
       // Sync email to Stripe account before redirecting
       await stripe.accounts.update(profile.stripe_account_id, {
         email: user.email,
         individual: { email: user.email },
       });
-
-      const account = await stripe.accounts.retrieve(profile.stripe_account_id);
 
       if (account.type === "express") {
         const loginLink = await stripe.accounts.createLoginLink(profile.stripe_account_id);

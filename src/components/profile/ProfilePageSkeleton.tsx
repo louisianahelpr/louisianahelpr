@@ -1,4 +1,5 @@
 import { AppTopBar } from "@/components/sections/AppTopBar";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PayoutStatusRow } from "@/components/profile/profileLanding/PayoutStatusRow";
 import { PROFILE_PAGE_TITLE } from "@/components/profile/profileLanding/headingContract";
@@ -27,6 +28,9 @@ const YouCardSkeleton = () => (
  * drawn inert, so the loading frame cannot drift from the page.
  */
 export const ProfilePageSkeleton = () => {
+  // The reserve takes the paused row's height while payout setup is paused
+  // (PayoutStatusRow setupPaused), so the landing does not shift under it.
+  const setupPaused = usePayoutSetupPaused();
   return (
     <div className="flex flex-col gap-3 lg:gap-4" data-testid="profile-landing-skeleton">
       {/* ProfileLanding's top bar, with the same `-mb-3 lg:-mb-4` that cancels the column gap under it. */}
@@ -36,7 +40,7 @@ export const ProfilePageSkeleton = () => {
       <YouCardSkeleton />
       {/* The payout row's own RESERVE: every state of that row is one height (StackedCopy). */}
       <div className="space-y-2">
-        <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} />
+        <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} setupPaused={setupPaused} />
       </div>
       <div className="flex flex-col gap-2" aria-hidden>
         <p className="px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your activity</p>

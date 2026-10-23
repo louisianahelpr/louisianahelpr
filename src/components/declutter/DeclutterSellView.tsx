@@ -20,6 +20,8 @@
  * blocks, never as dead buttons; the server refuses both anyway.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -115,6 +117,9 @@ export default function SellFlow() {
   const itemId = params.get("item");
   const { underAge } = useAgeGate();
   const payoutBlock = useAwardBlockReason();
+  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
+  // account; the "Set up payouts" note gives way to the paused notice.
+  const setupPaused = usePayoutSetupPaused();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -385,7 +390,8 @@ export default function SellFlow() {
       </div>
 
       {/* Said up front (step 1) and again where it blocks (step 5). */}
-      {payoutBlock && (step === 1 || step === 5) && (
+      {payoutBlock && setupPaused && (step === 1 || step === 5) && <PayoutSetupPausedNotice />}
+      {payoutBlock && !setupPaused && (step === 1 || step === 5) && (
         <DeclutterNotice tone="warn" title="Set up payouts before you list.">
           We pay you through the same payout account Helprs use. You can write the listing now and list it once payouts are set up.{" "}
           <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>

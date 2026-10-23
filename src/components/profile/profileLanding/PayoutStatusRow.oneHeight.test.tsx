@@ -14,9 +14,9 @@
  * and the skeleton draws this row's own reserve instead of a fixed bone. The
  * pixel proof (375 and 1440, all three states) is in the commit message.
  *
- * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | <StackedCopy shown="error" /> | <p className="flex-1 min-w-0 text-ds-11">We couldn't check your payout account. Check it before you count on getting paid.</p>
+ * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | <StackedCopy shown="error" setupPaused={setupPaused} /> | <p className="flex-1 min-w-0 text-ds-11">We couldn't check your payout account. Check it before you count on getting paid.</p>
  * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | const cell = (s: Shown) => `[grid-area:1/1] ${shown === s ? "" : "invisible"}`.trim(); | const cell = (s: Shown) => (shown === s ? "" : "hidden");
- * @mutate src/components/profile/ProfilePageSkeleton.tsx | <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} /> | <Skeleton className="h-[52px] rounded-ds-md" />
+ * @mutate src/components/profile/ProfilePageSkeleton.tsx | <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} setupPaused={setupPaused} /> | <Skeleton className="h-[52px] rounded-ds-md" />
  */
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
@@ -26,6 +26,10 @@ import { ProfilePageSkeleton } from "@/components/profile/ProfilePageSkeleton";
 import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
 
 // The skeleton's top bar reads the session; this test is about the payout slot.
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/components/sections/AppTopBar", () => ({ AppTopBar: () => <header /> }));
 
 const noop = () => {};

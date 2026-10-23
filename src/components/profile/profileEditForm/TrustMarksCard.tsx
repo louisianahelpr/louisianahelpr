@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { identityView, openIdentityCheck } from "@/lib/identityCheck";
 import type { Profile } from "./types";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /**
  * Board 41, TRUST MARKS: the three things that make neighbors trust a profile,
@@ -18,6 +20,11 @@ import type { Profile } from "./types";
 export function TrustMarksCard({ profile, phone }: { profile: Profile | null; phone: string }) {
   const navigate = useNavigate();
   const view = identityView(profile?.idv_status);
+  // Owner ruling 2026-10-23: payout setup is paused; an unfinished payout bank
+  // reads "Paused" (nothing to tap) and the paused notice sits under the list.
+  const setupPaused = usePayoutSetupPaused();
+  // Not while the profile is still loading (null is not "not set up").
+  const bankPaused = setupPaused && !!profile && !profile.stripe_payouts_enabled;
   const rows: { key: string; label: string; done: boolean; state: string; onClick?: () => void }[] = [
     phone.trim()
       ? { key: "phone", label: "Phone", done: true, state: "Added" }
@@ -29,7 +36,9 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
         : { key: "id", label: "Photo ID", done: false, state: "Verify now", onClick: () => openIdentityCheck("general") },
     profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
-      : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
+      : bankPaused
+        ? { key: "bank", label: "Payout bank", done: false, state: "Paused" }
+        : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
   ];
   return (
     <div data-trust-marks="" className="rounded-2xl liquid-glass p-card">
@@ -53,6 +62,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
           </li>
         ))}
       </ul>
+      {bankPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
     </div>
   );
 }

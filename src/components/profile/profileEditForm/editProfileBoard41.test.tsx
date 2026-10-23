@@ -5,7 +5,7 @@
  * payout bank), each with its state and next step.
  *
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     view === "verified" |     view === "never"
- * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     profile?.stripe_payouts_enabled |     false
+ * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     profile?.stripe_payouts_enabled\n      ? { key: "bank" |     false\n      ? { key: "bank"
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx | onClick: () => openIdentityCheck("general") | onClick: () => {}
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |     phone.trim() |     ""
  * @mutate src/components/profile/profileEditForm/PhotoNameSection.tsx | Neighbors see &ldquo;{formatName(`${firstName} ${lastName}`)}&rdquo; | Neighbors see &ldquo;{`${firstName} ${lastName}`}&rdquo;
@@ -17,6 +17,10 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
 const idCheck = vi.hoisted(() => ({ opened: [] as string[] }));
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/lib/identityCheck", async (orig) => ({
   ...(await orig<typeof import("@/lib/identityCheck")>()),
   openIdentityCheck: (r: string) => idCheck.opened.push(r),

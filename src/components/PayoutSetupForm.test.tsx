@@ -33,6 +33,10 @@ import { PayoutSetupForm } from "./PayoutSetupForm";
  * than being allowed to mask a write.
  */
 const requireBiometricMock = vi.fn<(reason: string, options?: unknown) => Promise<boolean>>();
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (...args: unknown[]) =>
     (requireBiometricMock as unknown as (...a: unknown[]) => Promise<boolean>)(...args),
@@ -362,7 +366,7 @@ describe("PayoutSetupForm — the gate on resetting the whole payout account", (
 // @mutate src/components/PayoutSetupForm.tsx |   const checking = !!status?.connected && !!status?.details_submitted && !status?.payouts_enabled && (status?.requirements?.length ?? 0) === 0; |   const checking = false;
 // @mutate src/components/PayoutSetupForm.tsx |   const didNotConnect = !!needsMoreInfo && !!status?.details_submitted; |   const didNotConnect = false;
 // @mutate src/components/PayoutSetupForm.tsx |                 Bank ending {payoutBank.last4}. |                 Bank ending.
-// @mutate src/components/PayoutSetupForm.tsx |       {!isFullyOnboarded && !checking && ( |       {!isFullyOnboarded && (
+// @mutate src/components/PayoutSetupForm.tsx |       {!setupPaused && !isFullyOnboarded && !checking && ( |       {!setupPaused && !isFullyOnboarded && (
 describe("PayoutSetupForm, board 87's four states", () => {
   const text = () => (document.body.textContent ?? "").replace(/\s+/g, " ");
 

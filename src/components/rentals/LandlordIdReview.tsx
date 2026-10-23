@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { submitLandlordId, submitOwnershipProof, type MyIdentity } from "@/lib/rentals/api";
 import { rentalsErrorMessage } from "@/lib/rentals/copy";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { LANDLORD_ID_RETENTION_DAYS } from "../../../supabase/functions/_shared/landlordIdRetention";
 
 /**
@@ -38,6 +39,9 @@ function Notice({ icon: Icon, children }: { icon: typeof Clock; children: ReactN
 }
 
 export function IdStatusNotice({ id }: { id: MyIdentity }) {
+  // Owner ruling 2026-10-23: payout setup is paused, so the "or set up payouts"
+  // way through is not offered; the ID photo route above is unaffected.
+  const setupPaused = usePayoutSetupPaused();
   if (id.verified) return null;
   if (id.idStatus === "pending_review") {
     return (
@@ -57,13 +61,13 @@ export function IdStatusNotice({ id }: { id: MyIdentity }) {
       ) : (
         <p>Every landlord on Louisiana Helpr is ID-verified. Send a photo of your ID with your ownership proof. It's free.</p>
       )}
-      <p className="text-muted-foreground">
+      {!setupPaused && <p className="text-muted-foreground">
         Or{" "}
         <Link to="/profile?tab=earnings" className="font-medium underline underline-offset-2">
           set up payouts
         </Link>
         : Stripe's ID check there counts too.
-      </p>
+      </p>}
     </Notice>
   );
 }

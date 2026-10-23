@@ -6,6 +6,8 @@ import { Link } from "react-router-dom";
 import { WifiOff, BookmarkCheck, AlertTriangle } from "lucide-react";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { helperApplyBlockNotice } from "@/lib/awardGate";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticError } from "@/lib/haptics";
@@ -94,8 +96,12 @@ export function ApplyBody({
   // It means the profile could not be read at all, which is not something to
   // report to somebody mid-application.
   const awardBlockReason = useAwardBlockReason();
+  // Owner ruling 2026-10-23: while payout setup is paused, the payout notice
+  // (and its "Set up payouts" link) gives way to the paused notice.
+  const setupPaused = usePayoutSetupPaused();
+  const payoutSetupPausedHere = setupPaused && awardBlockReason === "helper_payout_setup_incomplete";
   const applyBlockNotice =
-    awardBlockReason && awardBlockReason !== "helper_unknown"
+    awardBlockReason && awardBlockReason !== "helper_unknown" && !payoutSetupPausedHere
       ? helperApplyBlockNotice(awardBlockReason)
       : null;
   const jobId = confirmApplyJob?.id ?? null;
@@ -436,6 +442,7 @@ export function ApplyBody({
           says why; the silence reads as posters passing them over.
           Suppressed while offline so the two advisories never stack — the
           offline one is about THIS tap and takes precedence. */}
+      {payoutSetupPausedHere && online && <PayoutSetupPausedNotice compact className="text-ds-11" />}
       {applyBlockNotice && online && (
         <div
           className="flex items-start gap-2.5 rounded-ds-md border px-3 py-2.5"

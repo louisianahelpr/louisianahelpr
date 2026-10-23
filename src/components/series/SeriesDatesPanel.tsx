@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
@@ -62,6 +63,9 @@ export function SeriesDatesPanel({
   const [confirmGiveUp, setConfirmGiveUp] = useState(false);
   const [busy, setBusy] = useState(false);
   const queryClient = useQueryClient();
+  // Owner ruling 2026-10-23: payout setup is paused; a claim that waits on it
+  // says so instead of "Set up payouts" (claimSetupStep).
+  const setupPaused = usePayoutSetupPaused();
   const key = ["series-dates", jobId, userId];
 
   const { data: view, isError } = useQuery({
@@ -218,7 +222,7 @@ export function SeriesDatesPanel({
                   run(async () => {
                     const r = await claimSeriesDates(jobId, pickedOpen);
                     // ID once (20261020043346): what the Helpr's setup still lacks.
-                    const step = claimSetupStep(r);
+                    const step = claimSetupStep(r, setupPaused);
                     if (r.claimed.length === 0 && r.alreadyYours.length > 0 && r.taken.length + r.refused.length + r.needsSetup.length === 0) {
                       return r.alreadyYours.length === 1 ? "That date is already yours." : "Those dates are already yours.";
                     }

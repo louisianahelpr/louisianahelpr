@@ -14,13 +14,13 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 48 |
+| Routes (non-redirect) | route | 51 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 33 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 191 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 939 (across 241 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 936 (across 241 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 21 |
 | Back/next navigation only | flow | 51 |
@@ -28,8 +28,8 @@ reports coverage against THIS file, not against the route list.
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 152 |
 | Email templates | **exported template** | 21 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **629** |
-| **Copy surfaces** (strings a person may read) | mixed | **978** |
+| **Navigable surfaces** (places a person can stand) | mixed | **632** |
+| **Copy surfaces** (strings a person may read) | mixed | **975** |
 | **Total auditable surface** | mixed | **1607** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
@@ -67,7 +67,7 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 48 | 34 | agree |
+| Real routes | 51 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 191 | 130 | agree within method (script counts every menu instance) |
@@ -122,12 +122,15 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/legal`
 - [ ] `/terms`
 - [ ] `/privacy`
+- [ ] `/terms/full`
+- [ ] `/privacy/full`
 - [ ] `/search`
 - [ ] `/jobs/settings`
 - [ ] `/jobs/:id`
 - [ ] `/browse`
 - [ ] `/rules`
 - [ ] `/help`
+- [ ] `/sms-opt-in`
 - [ ] `*`
 
 ## Redirect-only routes (verify they land correctly, incl. query preservation)

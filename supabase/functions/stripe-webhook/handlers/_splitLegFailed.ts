@@ -40,6 +40,9 @@ export async function reopenDisputeSplit(
       .from("disputes")
       .update({ execution_status: "failed", execution_error: `split transfer ${transferId} did not settle: ${reason}`.slice(0, 500) })
       .eq("id", disputeId)
+      // Only a live ruling: execute-dispute-split re-claims status 'decided' alone, and a superseded
+      // dispute keeps its execution record as history (disputeExecutionReadsFilterStatus).
+      .eq("status", "decided")
       .eq("execution_status", "executed")
       .select("id");
     if (error) {
@@ -56,6 +59,8 @@ export async function reopenDisputeSplit(
     }
   }
   logStep("Dispute split leg failed — not re-queued", { jobId: ledger.job_id, disputeId, reopened });
+  // seed-policy: a split leg is a live Stripe transfer that execute-dispute-split sent for a funded dispute;
+  // seed/E2E jobs are never paid on live Stripe (no completed checkout), so they have no split leg to fail.
   await postSlackOpsAlert({
     kind: "payout_failed",
     severity: "critical",

@@ -37,7 +37,7 @@
     },
     {
       "file": "src/components/AwardGateDialog.tsx",
-      "line": 106,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -791,7 +791,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1044,
+      "line": 1045,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -882,7 +882,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1049,
+      "line": 1050,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -902,7 +902,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1069,
+      "line": 1070,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -912,7 +912,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1155,
+      "line": 1156,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -922,7 +922,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1168,
+      "line": 1169,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -932,7 +932,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1195,
+      "line": 1196,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -942,7 +942,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1246,
+      "line": 1248,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -952,7 +952,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1290,
+      "line": 1292,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -962,7 +962,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1349,
+      "line": 1351,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -972,7 +972,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1408,
+      "line": 1410,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -5275,7 +5275,7 @@
     },
     {
       "file": "src/components/identity/IdentityCheckSheet.tsx",
-      "line": 171,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6244,7 +6244,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 108,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6254,7 +6254,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 193,
+      "line": 195,
       "kind": "toast",
       "title": {
         "form": "literal",

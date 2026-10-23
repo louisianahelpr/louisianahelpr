@@ -18,7 +18,7 @@ import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
-import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/lib/jobProgress";
+import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
 import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";

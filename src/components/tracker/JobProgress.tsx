@@ -1,12 +1,12 @@
 import { AlertTriangle, CalendarCheck, Check, CheckCircle2, Clock, FileText, Hand, Hourglass, MapPin, PartyPopper, Truck, Wrench, XCircle, type LucideIcon } from "lucide-react";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
-import { JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/lib/jobProgress";
+import { JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/components/tracker/jobProgressState";
 
 /**
  * THE job tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps, 2026-10-22): Posted · Offered · Hired ·
  * Confirmed · On the way · Arrived · Working · Done, then one line saying what happens next. Chat, the job page,
  * Home and both job cards render this and nothing else; the state comes from `jobProgress`
- * (src/lib/jobProgress.ts), whose current step is the CARD's own state (src/lib/jobStepFromWait.ts).
+ * (src/components/tracker/jobProgressState.ts), whose current step is the CARD's own state (src/components/tracker/jobStepFromWait.ts).
  *
  * Colour (owner): done steps GREEN; the current step AMBER (2026-10-23, the old rail's rule: one "you are here"
  * colour), with a hand when it waits on the viewer and an hourglass when it waits on the other person; later steps

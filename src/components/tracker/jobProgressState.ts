@@ -12,11 +12,11 @@ import { confirmDeadlineMs, confirmOpensMs, jobDayStart } from "@/lib/jobDate";
 import { jobStartDateTime } from "@/lib/dateUtils";
 import { helperStatusLine, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
-import { cardBar, type CardFace, type Stage, type StepTone } from "@/lib/jobStepFromWait";
+import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
 import { helperFaceNextStep } from "@/pages/jobs/appliedJobCard/helperFaceAction";
 
-export type { Stage, StepTone } from "@/lib/jobStepFromWait";
+export type { Stage, StepTone } from "@/components/tracker/jobStepFromWait";
 
 export const JOB_PROGRESS_STEPS = ["Posted", "Offered", "Hired", "Confirmed", "On the way", "Arrived", "Working", "Done"] as const;
 /** The same steps in a word that fits eight across a 375px card (phone); the full names show from 640px. */
@@ -53,7 +53,7 @@ export type JobProgressState = {
   /** The current step waits on the viewer (yellow); false = on the other person or the clock (olive). */
   waitingOnYou: boolean;
   /** "progress" (green / yellow / olive), "problem" (no-show, overdue, dispute: warning colour + alert icon),
-   *  "cancelled" (all grey). From the card's own state id (src/lib/jobStepFromWait.ts). */
+   *  "cancelled" (all grey). From the card's own state id (src/components/tracker/jobStepFromWait.ts). */
   tone: StepTone;
   /** The current step's word when it is not the step's own name ("No-show?", "Dispute", "Cancelled"). */
   label?: string;
@@ -117,7 +117,7 @@ type ProgressOpts = {
 /**
  * THE tracker state for a job. The words (`word`, `next`) come from the rules below; the bar's current step, whose
  * move it is and its tone come from the CARD'S OWN state id (posterStatusLine / helperStatusLine, mapped by
- * src/lib/jobStepFromWait.ts), so the bar and the card's sentence and button can never disagree.
+ * src/components/tracker/jobStepFromWait.ts), so the bar and the card's sentence and button can never disagree.
  */
 /** When each of the eight steps happened (see JobProgressState.stamps). */
 function stepStamps(j: ProgressJob): readonly (string | null)[] {

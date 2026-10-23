@@ -27,7 +27,7 @@ import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobProgress } from "@/components/tracker/JobProgress";
-import { jobProgress } from "@/lib/jobProgress";
+import { jobProgress } from "@/components/tracker/jobProgressState";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
 /* `JobActionChip` was imported here for the "Try my location again" chip
    only; that control is gone (owner, 2026-09-19) and this component draws no
@@ -1523,7 +1523,7 @@ export function JobTracking({
       {/* Progress timeline */}
       {/* THE ONE TRACKER (owner, 2026-10-21: "we need 1 tracker"). The 8-icon stepper (Posted · Offered ·
           Accepted · Confirmed · On the way · Arrived · Working · Done) is gone: the same four segments and
-          next line as chat and the job page (jobProgress, src/lib/jobProgress.ts). The sub-steps live in
+          next line as chat and the job page (jobProgress, src/components/tracker/jobProgressState.ts). The sub-steps live in
           the line ("Yusef is on the way"), and this card's controls below are unchanged. */}
       <JobProgress
         progress={jobProgress(

@@ -16,7 +16,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { JobProgress } from "@/components/tracker/JobProgress";
-import type { JobProgressState } from "@/lib/jobProgress";
+import type { JobProgressState } from "@/components/tracker/jobProgressState";
 
 /** The card's one button: the real next step, or the quiet fallback that opens the card's controls. */
 export interface MineFaceAction {

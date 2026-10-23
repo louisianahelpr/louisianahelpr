@@ -10,6 +10,10 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 let currentUserId = "user-a";
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: currentUserId }, isReady: true }) }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => null }));
 vi.mock("@/lib/useOnlineStatus", () => ({ useOnlineStatus: () => ({ online: true }) }));

@@ -204,6 +204,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/featureSwitch.ts";`,
   );
 
+  // Payout setup pause (owner 2026-10-23): `_shared/payoutSetupPause.ts`
+  // imports only featureSwitch.ts (real, above), so the REAL refusal serves; the
+  // decision is the `feature_enabled_for_user` rpc the scenario answers.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutSetupPause\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutSetupPause.ts";`,
+  );
+
   // Drop-off geocoder (Declutter slice 5): `_shared/geocodeDropoff.ts` has ZERO
   // imports and calls the global `fetch` at call time, so the REAL module serves
   // and each test stubs fetch (Nominatim is never reached).

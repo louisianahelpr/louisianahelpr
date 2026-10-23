@@ -303,6 +303,13 @@ function freshScenario(): SupabaseScenario {
       // (20261019043709). "chargeable" (payment held, no live dispute, no
       // refund) is the neutral answer.
       auto_tip_job_state: "chargeable",
+      // Payout setup pause (owner 2026-10-23): the `payout_setup` switch reads
+      // ON here, so stripe-connect scenarios that are not ABOUT the pause keep
+      // testing what they were written to test. Every other key answers
+      // nothing (off), as before. src/test/edge/stripeConnectPayoutSetupPaused
+      // .test.ts sets it off (and to an error) to prove the refusal.
+      feature_enabled_for_user: (a?: unknown) =>
+        (a as { p_key?: string } | undefined)?.p_key === "payout_setup" ? true : undefined,
     },
     rpcErrors: {},
     rpcCalls: [],

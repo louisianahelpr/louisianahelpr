@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -238,6 +240,9 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
     enabled: !!viewerId && transfers.length === 0,
   });
   const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled;
+  // Owner ruling 2026-10-23: while payout setup is paused the "Set up payouts"
+  // link gives way to the paused notice.
+  const setupPaused = usePayoutSetupPaused();
   if (held || (transfers.length > 0 && cents === 0)) {
     return (
       <div className="rounded-ds-lg p-4 text-center" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
@@ -263,7 +268,15 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
           ? `$${formatPriceExact(cents / 100)} ${sent ? "was sent" : "is on its way"}`
           : "Your pay is being prepared"}
       </p>
-      {needsPayoutSetup && (
+      {needsPayoutSetup && setupPaused && (
+        <>
+          <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
+            Your pay is kept for you and is sent once payout setup is back.
+          </p>
+          <PayoutSetupPausedNotice compact className="text-left" />
+        </>
+      )}
+      {needsPayoutSetup && !setupPaused && (
         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
           {payout?.connected ? "Finish setting up payouts so it can be sent." : "Add a payout account so it can be sent."}{" "}
           <Link to="/profile?tab=payment" className="font-bold" style={{ color: "hsl(var(--bark))" }}>Set up payouts</Link>

@@ -93,6 +93,13 @@ export const FEATURE_SWITCH_KEYS = [
   "refund_requests",
   // SMS text alerts (20261021193738): set_sms_consent refuses a new opt-in without it.
   "sms_alerts",
+  // Payout setup (owner ruling 2026-10-23, Stripe closed the platform account):
+  // Stripe Connect onboarding. Created OFF by 20261023201657, and OFF is the
+  // pause: every entry point shows PayoutSetupPausedNotice
+  // (usePayoutSetupPaused) and stripe-connect refuses onboard /
+  // update_onboarding / reset with 409 payout_setup_paused. An admin sets it
+  // to Everyone to bring setup back.
+  "payout_setup",
 ] as const;
 
 /**

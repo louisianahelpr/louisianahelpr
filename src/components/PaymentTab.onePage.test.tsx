@@ -16,6 +16,10 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 
+// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
+// this file tests the setup flow itself; the paused state is
+// src/components/payouts/payoutSetupPaused.test.tsx.
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: null, loading: false }),
 }));

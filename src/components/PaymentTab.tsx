@@ -6,6 +6,7 @@ import { PayoutSetupForm } from "@/components/PayoutSetupForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 
 interface PayoutSummaryRow {
   amount_cents: number;
@@ -77,6 +78,10 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
     gcTime: 5 * 60_000,
   });
 
+  // While payout setup is paused (owner 2026-10-23) the "tap Set up payouts"
+  // return banner is not shown: the form below shows the paused notice.
+  const setupPaused = usePayoutSetupPaused();
+  const showConnectReturn = connectReturn === "success" || (!!connectReturn && !setupPaused);
   const [formSettled, setFormSettled] = useState(false);
   const markFormSettled = useCallback(() => setFormSettled(true), []);
   const settled = !!user?.id && formSettled && !lastPayoutLoading;
@@ -86,7 +91,7 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
 
   return (
     <div className="space-y-section">
-      {connectReturn && (
+      {showConnectReturn && (
         <div
           className="flex items-start gap-3 px-4 py-3 rounded-2xl"
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}

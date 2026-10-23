@@ -1,4 +1,5 @@
 import { AppTopBar } from "@/components/sections/AppTopBar";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { YouCard } from "./profileLanding/YouCard";
@@ -21,6 +22,9 @@ export function ProfileLanding({
   // so re-opening Profile in the same session paints the payout state on
   // the first frame instead of re-asking Stripe every mount.
   const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
+  // Owner ruling 2026-10-23: payout setup is paused; the row says so instead
+  // of offering "Set up".
+  const setupPaused = usePayoutSetupPaused();
 
   return (
     <>
@@ -59,6 +63,7 @@ export function ProfileLanding({
             prompt={payoutPrompt}
             onSetUp={() => onSelectTab("payment")}
             onRetry={refetchStatus}
+            setupPaused={setupPaused}
           />
         </div>
       )}

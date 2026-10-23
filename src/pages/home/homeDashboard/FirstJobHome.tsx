@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -87,13 +89,21 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
   });
 
   const skills = (profile?.skills ?? "").trim();
-  const steps = [
+  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
+  // account. An unfinished payout step leaves the checklist and the paused
+  // notice sits under it instead.
+  const setupPaused = usePayoutSetupPaused();
+  const payoutsDone = profile?.stripe_payouts_enabled === true;
+  // Not while the profile is still loading (null is not "not set up").
+  const payoutStepPaused = setupPaused && !!profile && !payoutsDone;
+  const allSteps = [
     { key: "id", label: "Verify your ID", done: hasIdBadge(profile?.idv_status), go: () => openIdentityCheck("general") },
     { key: "skills", label: skills ? `Pick what you do: ${skills}` : "Pick what you do", done: !!skills, go: () => navigate("/profile?tab=profile") },
     { key: "about", label: "Add a photo and a line about you", done: !!profile?.avatar_url && !!(profile?.bio ?? "").trim(), go: () => navigate("/profile?tab=profile") },
-    { key: "payouts", label: "Add your payout bank", done: profile?.stripe_payouts_enabled === true, go: () => navigate("/profile?tab=payment") },
+    { key: "payouts", label: "Add your payout bank", done: payoutsDone, go: () => navigate("/profile?tab=payment") },
     { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
   ];
+  const steps = payoutStepPaused ? allSteps.filter((st) => st.key !== "payouts") : allSteps;
   const jobs = near.data ?? [];
 
   return (
@@ -118,6 +128,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
             </li>
           ))}
         </ul>
+        {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
       </section>
 
       {jobs.length > 0 && (

@@ -126,6 +126,9 @@ const BUTTON_STEP: Array<[RegExp, number[], number[]]> = [
   [/^I've arrived$/, [4, 5], []],
   [/^Start working$/, [5, 6], []],
   [/^Mark done$/, [6], []],
+  // An owed photo is the face's button (owner 2026-10-23; trackerKeepsThePhotos): before on Arrived, after on Working.
+  [/^Take the before photo$/, [5], []],
+  [/^Take the after photo$/, [6], []],
   [/^(Leave a review|Tip \w+)$/, [8], []],
 ];
 const takes = (label: string, stage: number | null) => !!BUTTON_STEP.find(([re]) => re.test(label))?.[1].includes(stage ?? -1);

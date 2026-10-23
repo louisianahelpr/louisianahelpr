@@ -405,6 +405,8 @@ describe("one footer convention", () => {
       "An uploader, not a form: each tile's control is its own action and the " +
       "sheet closes on selection. NOTE it does carry one stray Cancel that " +
       "should move into a shared footer if this ever grows a real action row.",
+    "src/components/PhotoProofDialog.tsx":
+      "A read-only gallery (split out of PhotoProof.tsx, 2026-10-23): looking, no action to take; it closes by its own X.",
     "src/components/TipDialog.tsx":
       "Amount presets are the actions; confirming is one of them.",
   };

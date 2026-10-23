@@ -61,7 +61,7 @@ function booked(job: StampJob, nowMs: number): WaitStep {
 /** The bar steps a Helpr's tracker button moves (helperFaceNextStep's keys). "I'm on my way" is offered on the
  *  Helpr's own confirm, before the poster's (helper_mark_on_the_way never reads it): on Confirmed it is an early
  *  step, not the current one, so Confirmed stays the poster's (olive). */
-const FACE_STEP_STAGES: Record<string, readonly number[]> = { on_the_way: [4], arrived: [4, 5], working: [5, 6], done: [6] };
+const FACE_STEP_STAGES: Record<string, readonly number[]> = { on_the_way: [4], arrived: [4, 5], working: [5, 6], done: [6], before_photo: [5], after_photo: [6] };
 
 export const POSTER_STEP: Record<PosterWait, Entry> = {
   in_review: at(0),

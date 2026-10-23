@@ -784,8 +784,12 @@ export type HelperCardProgress = { workUnderway: boolean };
  */
 type ArrivedWait = "after_photo" | "working" | "before_photo" | "start_working" | "arrival_unconfirmed";
 function arrivedWait(job: Job, progress: HelperCardProgress | undefined): ArrivedWait {
-  if (progress?.workUnderway) return afterPhotoIsThePrimary(job) ? "after_photo" : "working";
+  // An owed BEFORE photo comes first, even when the card infers work is underway (no tracking row it knows of,
+  // the poster confirmed the arrival): the server lets nobody start without it (enforce_job_tracking_arrival_gate)
+  // or finish without it (completion_requires_proof_photos), so "Take the after photo" would skip a photo that is
+  // still required (owner, 2026-10-23: keep the before and after photos). Guard: trackerKeepsThePhotos.test.tsx.
   if (beforePhotoIsThePrimary(job)) return "before_photo";
+  if (progress?.workUnderway) return afterPhotoIsThePrimary(job) ? "after_photo" : "working";
   if (!progress || !job.helper_arrived_at) return "working";
   return arrivalEstablished(job) ? "start_working" : "arrival_unconfirmed";
 }

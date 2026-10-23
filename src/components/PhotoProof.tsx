@@ -1,6 +1,10 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { takePhotoCapture } from "@/components/job-card/photoCaptureRequest";
+import { isAlreadyStored } from "@/lib/storageAlreadyStored";
+import { PhotoProofDialog } from "./PhotoProofDialog";
+export { PhotoProofDialog };
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,7 +83,16 @@ async function saveProofPaths(jobId: string, type: "before" | "after", urls: str
     }
     return;
   }
-  const updateField = type === "before" ? { proof_before_urls: urls } : { proof_after_urls: urls };
+  // APPEND TO THE ROW AS IT IS NOW, never to the list this screen loaded (owner report 2026-10-23, Mow two lawns
+  // 7c6deb77: a before photo sits in storage but not in proof_before_urls). `urls` is the dialog's own copy; a
+  // second screen, or a list that had not refreshed, would write it over a photo saved meanwhile. Read the column
+  // fresh and keep every path already on it. Guard: src/test/proofPhotosAppend.test.tsx.
+  const column = type === "before" ? "proof_before_urls" : "proof_after_urls";
+  const { data: current, error: readError } = await supabase.from("jobs").select(column).eq("id", jobId).maybeSingle();
+  if (readError) throw readError;
+  const onRow = ((current as Record<string, string[] | null> | null)?.[column] ?? []).filter(Boolean);
+  const merged = [...onRow, ...urls.filter((u) => !onRow.includes(u))];
+  const updateField = type === "before" ? { proof_before_urls: merged } : { proof_after_urls: merged };
   // .select("id"): without it a jobs update that matches zero rows (RLS, a
   // job that already moved on) returns error === null, and the dialog closed
   // as if the proof photos were attached.
@@ -95,6 +108,11 @@ async function saveProofPaths(jobId: string, type: "before" | "after", urls: str
 
 const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip, asPrimary = false, crew = false }: PhotoProofProps) => {
   const [open, setOpen] = useState(false);
+  // The card's face asked for this photo ("Take the before photo", photoCaptureRequest.ts): the row's primary photo
+  // control opens its own capture dialog once, when it draws.
+  useEffect(() => {
+    if (chip && asPrimary && existingUrls.length === 0 && takePhotoCapture(jobId, type)) setOpen(true);
+  }, [chip, asPrimary, existingUrls.length, jobId, type]);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -151,7 +169,15 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
     let failedUploads = 0;
     for (const file of files) {
       const path = `${jobId}/${type}-${Date.now()}-${Math.random().toString(36).slice(2)}.${storageExtFor(file, "jpg")}`;
-      const { error } = await supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+      const put = () => supabase.storage.from("proof-photos").upload(path, file, { cacheControl: IMMUTABLE_OBJECT_CACHE_CONTROL });
+      let { error } = await put();
+      // A "Load failed" can arrive AFTER storage saved the file (prod, 2026-10-22 14:40Z, job 7c6deb77: the object
+      // exists, the client counted it failed and attached nothing). Try the SAME path once more: a duplicate answer
+      // means the first one landed, so it is attached like any other.
+      if (error) {
+        const again = await put();
+        error = again.error && !isAlreadyStored(again.error) ? again.error : null;
+      }
       if (error) {
         failedUploads += 1;
         report(error, { tags: { source: "PhotoProof.upload", proof_type: type } });
@@ -377,73 +403,6 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
         </DialogContent>
       </Dialog>
     </>
-  );
-};
-
-/* ── The full before/after gallery, on its own ──────────────────────────────
- *
- * Owner, 2026-09-19 (item 10): on a job card the before & after pictures are a
- * BUTTON on the same row as the other action buttons. A button needs something
- * to open, and what it opens is exactly what PhotoProofGroup's "View all"
- * already opened — so the dialog is lifted out whole rather than written a
- * second time, and the group keeps using it. Nothing about the gallery itself
- * changes.
- *
- * Read-only by design: the uploader is a different control (`PhotoProofCaptureChip`,
- * the row's own ask), and this is the surface for LOOKING at proof.
- */
-export const PhotoProofDialog = ({
-  open,
-  onOpenChange,
-  beforeUrls,
-  afterUrls,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  beforeUrls: string[];
-  afterUrls: string[];
-}) => {
-  const hasBefore = beforeUrls.length > 0;
-  const hasAfter = afterUrls.length > 0;
-  const beforeSrcs = useProofPhotoUrls(beforeUrls);
-  const afterSrcs = useProofPhotoUrls(afterUrls);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHero
-          title="Photo proof"
-        />
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-          {hasBefore && (
-            <div className="space-y-2">
-              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">Before</p>
-              <div className="grid grid-cols-3 gap-2">
-                {beforeUrls.map((url, i) => (
-                  <a key={url ?? i} href={beforeSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={beforeSrcs[i] ?? PENDING_PHOTO_SRC} alt={`Before ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          {hasAfter && (
-            <div className="space-y-2">
-              <p className="text-ds-11 font-semibold text-muted-foreground uppercase tracking-wider">After</p>
-              <div className="grid grid-cols-3 gap-2">
-                {afterUrls.map((url, i) => (
-                  <a key={url ?? i} href={afterSrcs[i] ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img loading="lazy" decoding="async" src={afterSrcs[i] ?? PENDING_PHOTO_SRC} alt={`After ${i + 1}`} className="w-full aspect-square rounded-ds-sm object-cover border border-border hover:border-primary transition-colors" />
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
-          {!hasBefore && !hasAfter && (
-            <p className="text-ds-11 text-muted-foreground text-center py-6">No photos uploaded yet.</p>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 };
 

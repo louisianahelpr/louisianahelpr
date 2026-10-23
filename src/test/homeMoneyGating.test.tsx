@@ -45,7 +45,10 @@ import { useHomeMoney } from "@/pages/home/homeDashboard/homeMoney";
 import type { User } from "@supabase/supabase-js";
 
 const user = { id: "u" } as User;
-const approved = { id: "a", status: "completed", payment_status: "payout_pending", budget: 50, payout_scheduled_at: "2026-10-23T15:00:00Z" };
+// A payout date still ahead of the clock (a fixed date became the past at 15:00Z on 2026-10-23 and turned
+// this red: the tile only shows dates still ahead).
+const AHEAD = new Date(Date.now() + 3 * 864e5).toISOString();
+const approved = { id: "a", status: "completed", payment_status: "payout_pending", budget: 50, payout_scheduled_at: AHEAD };
 const hired = { id: "p", status: "accepted", payment_status: "escrow", stripe_payment_intent_id: "pi", budget: 40, customer_fee_amount: 1.5 };
 const spendOf = (jobs: unknown[]) => ({ jobs, refunds: [], gifts: [], tips: [], blockFees: [] });
 
@@ -61,7 +64,7 @@ describe("Home money tiles: a real number or no tile", () => {
   it("both reads in: both tiles", () => {
     const m = renderHook(() => useHomeMoney(user)).result.current;
     expect(m.coming?.cents).toBeGreaterThan(0);
-    expect(m.coming?.at).toBe("2026-10-23T15:00:00Z");
+    expect(m.coming?.at).toBe(AHEAD);
     expect(m.held).toEqual({ cents: 4150, jobs: 1, only: null });
   });
 

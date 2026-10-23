@@ -48,6 +48,11 @@ export interface Prefs {
       producers fired. Defaults true — nobody loses matches silently. */
   job_matches: boolean;
   email_job_matches: boolean;
+  /** Email-only (Q2120, 20261023120308): quote reminders and the "Quotes are
+      closed" notice, send-notification-email type `quote_reminder`. Their
+      in-app row and push ride `new_offers`. Default true. Standalone like
+      `saved_helper_availability`, not a `rows` category. */
+  email_quote_reminders: boolean;
   /** RETIRED for job matches (Q1585, owner 2026-10-12): the "Daily Match
       Digest" switch is gone, the server ignores this column for job matches
       and a trigger holds it false. Kept so the row type still matches the

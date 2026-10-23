@@ -17,6 +17,7 @@ import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constant
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
 import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
+import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
 
@@ -59,6 +60,8 @@ const NotificationPreferences = () => {
   // only a LOADED row that lacks the column proves we're mid-deploy-gap, and
   // then we strip the key from writes so the upsert can't PGRST204 on it.
   const [savedHelperColumn, setSavedHelperColumn] = useState(true);
+  // Same guard for `email_quote_reminders` (Q2120, migration 20261023120308).
+  const [quoteRemindersColumn, setQuoteRemindersColumn] = useState(true);
   // The sign-up email box (profiles.marketing_consent). It decides what the
   // Promotions EMAIL switch shows while the member has never chosen
   // (email_promotions NULL, Q2299): see src/lib/promotionsEmail.ts.
@@ -162,6 +165,7 @@ const NotificationPreferences = () => {
         const row = data as Record<string, unknown>;
         setEmailMasterColumn("email_enabled" in row);
         setSavedHelperColumn("saved_helper_availability" in row);
+        setQuoteRemindersColumn("email_quote_reminders" in row);
         setPrefs({
           ...defaultPrefs,
           ...(data as Partial<Prefs>),
@@ -201,6 +205,7 @@ const NotificationPreferences = () => {
     const payload: Partial<Prefs> = { ...p };
     if (!emailMasterColumn) delete payload.email_enabled;
     if (!savedHelperColumn) delete payload.saved_helper_availability;
+    if (!quoteRemindersColumn) delete payload.email_quote_reminders;
     if (pressed !== "email_promotions") delete payload.email_promotions;
     return payload;
   };
@@ -804,6 +809,16 @@ const NotificationPreferences = () => {
           </div>
         </div>
       </div>
+
+      <QuoteRemindersRow
+        loaded={loaded}
+        savingKey={savingKey}
+        checked={prefs.email_quote_reminders && emailMasterEnabled}
+        onToggle={() => toggle("email_quote_reminders")}
+        disabled={locked || !emailMasterEnabled || !quoteRemindersColumn}
+        dimmed={!emailMasterEnabled}
+        saving={saving}
+      />
 
       {/* Test button — proves push + email + in-app end-to-end (see
           sendTestPush above). Zero registered push devices no longer

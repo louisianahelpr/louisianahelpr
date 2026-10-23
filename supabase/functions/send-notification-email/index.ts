@@ -66,6 +66,11 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   // directly with its own type string, so the registry test asserts coverage
   // of the CHECK set rather than equality with it.
   promotion:         { prefCol: 'email_promotions',       category: 'promotions' },
+  // Also NOT a notifications.type (Q2120): sweep_quote_alerts' reminders and
+  // "Quotes are closed" notice keep the in-app/push type `new_offers` and send
+  // their EMAIL as `quote_reminder`, so the member's own "Quote reminders"
+  // email switch decides it (owner 2026-10-21).
+  quote_reminder:    { prefCol: 'email_quote_reminders',  category: 'quote_reminders' },
 }
 
 /**

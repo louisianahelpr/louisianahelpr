@@ -6098,6 +6098,7 @@ export type Database = {
           email_new_offers: boolean
           email_payments: boolean
           email_promotions: boolean | null
+          email_quote_reminders: boolean
           email_reviews: boolean
           email_system_alerts: boolean
           email_transit_updates: boolean
@@ -6135,6 +6136,7 @@ export type Database = {
           email_new_offers?: boolean
           email_payments?: boolean
           email_promotions?: boolean | null
+          email_quote_reminders?: boolean
           email_reviews?: boolean
           email_system_alerts?: boolean
           email_transit_updates?: boolean
@@ -6172,6 +6174,7 @@ export type Database = {
           email_new_offers?: boolean
           email_payments?: boolean
           email_promotions?: boolean | null
+          email_quote_reminders?: boolean
           email_reviews?: boolean
           email_system_alerts?: boolean
           email_transit_updates?: boolean
@@ -14238,6 +14241,7 @@ export type Database = {
         Args: {
           p_actor: string
           p_email: boolean
+          p_email_type?: string
           p_job_id: string
           p_message: string
           p_payout_setup: boolean

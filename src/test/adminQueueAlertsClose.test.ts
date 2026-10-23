@@ -39,19 +39,19 @@
  * src/test/pglite/adminNoticeAlertsClose.pglite.mjs (70 PASS; 47 FAIL with
  * NEW_MIGRATION=skip; 6 planted defects each caught).
  *
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql | ('ban review needed', | ('ban review wanted',
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |       ('repeat offender: ', | 
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql | ('ban review needed', | ('ban review wanted',
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |   ELSIF p_rule = 'stalled-job' THEN |   ELSIF p_rule = 'stalled-jobs' THEN
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |       ('repeat offender: ', | 
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |   ELSIF p_rule = 'notice' THEN |   ELSIF p_rule = 'notices' THEN
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |         ('cancellation fee transfer failed', 'manual') |         ('cancellation fee transfer failure', 'manual')
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql | 'dismiss_message_ban_review') | 'dismiss_message_ban_reviewed')
  * @mutate supabase/migrations/20260926035647_admin_notice_alerts_close_themselves.sql |   AFTER INSERT ON public.notifications |   AFTER UPDATE ON public.notifications
  * @mutate supabase/migrations/20261012072223_stuck_payment_close_needs_money_moved.sql |   ELSIF p_source = 'ops-alert:custom' |   ELSIF p_source = 'ops-alert:customx'
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | title: "Identity verification needs review", | title: "Identity check needs review",
  * @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql |          'Low rating alert', |          'Low rating warning',
  * @mutate supabase/functions/_shared/alertPolicy.ts | return `admin-push:${ | return `admin-mirror:${
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |       ('ownership proof waits for review',          'rentals-ownership-review') |       ('ownership proof is waiting',                'rentals-ownership-review')
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   ELSIF p_rule = 'rentals-ownership-review' THEN |   ELSIF p_rule = 'rentals-ownership-reviews' THEN
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |       ('ownership proof waits for review',          'rentals-ownership-review') |       ('ownership proof is waiting',                'rentals-ownership-review')
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |   ELSIF p_rule = 'rentals-ownership-review' THEN |   ELSIF p_rule = 'rentals-ownership-reviews' THEN
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -258,9 +258,10 @@ describe("every admin fan-out title has a close rule (Q355)", () => {
   it("found the rule table and its branches", () => {
     // Restated by Q1324's follow-up with one more rule (ban-settlement-review), then by Rentals slice 3
     // (rentals-ownership-review, 20261017223352).
-    // Then by Landlord ID (rentals-landlord-id-review, 20261019051407).
-    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert|rentals_landlord_id_review/);
-    expect(pendingDef?.file, "admin_queue_still_pending").toMatch(/rentals_ownership_review_alert|rentals_landlord_id_review/);
+    // Then by Landlord ID (rentals-landlord-id-review, 20261019051407), then by the approval queue
+    // (approval-escalation, 20261023143240).
+    expect(ruleDef?.file, "admin_alert_close_rule").toMatch(/admin_(queue|notice)_alerts_close_themselves|ban_review_freezes_money_hides_posts_neutral_reason|rentals_ownership_review_alert|rentals_landlord_id_review|payout_waits_for_the_posters_approval/);
+    expect(pendingDef?.file, "admin_queue_still_pending").toMatch(/rentals_ownership_review_alert|rentals_landlord_id_review|payout_waits_for_the_posters_approval/);
     // Floors, 2026-09-26: 19 rule rows, 13 branches, 1 manual row.
     expect(RULES.length).toBeGreaterThanOrEqual(19);
     expect(BRANCHES.size).toBeGreaterThanOrEqual(13);

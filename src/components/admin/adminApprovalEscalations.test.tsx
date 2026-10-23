@@ -67,7 +67,7 @@ describe("AdminApprovalEscalations", () => {
     expect(await screen.findByText("Mow two lawns")).toBeTruthy();
     expect(screen.getByText(/didn't answer in 24 hours/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Approve for the poster" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Approve and schedule the payout" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Approve and pay" }));
     await waitFor(() => expect(invokeMock).toHaveBeenCalledWith("create-payment", {
       body: { action: "release", jobId: "job-1", forPoster: true },
     }));

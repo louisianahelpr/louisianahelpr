@@ -69,8 +69,11 @@ END $$;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+CREATE TABLE auth.users (id uuid PRIMARY KEY);
+INSERT INTO auth.users VALUES ('${ADMIN}'), ('${POSTER}'), ('${HELPR}'), ('${CREW2}');
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text, customer_id uuid, helper_id uuid,
+CREATE FUNCTION public.ops_alert_normalise(p_text text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT lower(btrim(p_text)) $$;
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), is_seed boolean DEFAULT false, title text, customer_id uuid, helper_id uuid,
   status text, payment_status text, budget numeric, is_group_job boolean DEFAULT false, helpers_needed int,
   poster_completed_at timestamptz, helper_completed_at timestamptz, revision_requested_at timestamptz,
   revision_completed_at timestamptz, revision_acceptance_deadline timestamptz, payout_scheduled_at timestamptz,
@@ -209,6 +212,20 @@ ok(q6c?.still_waiting === false, "  nor while the poster's 72 hours to review th
 await q(`UPDATE public.jobs SET revision_acceptance_deadline = now() - interval '1 minute' WHERE id = '${J(6)}'`);
 const q6b = [].concat(await as("authenticated", ADMIN, `SELECT * FROM public.admin_approval_escalation_queue(false)`)).find((r) => r.job_id === J(6));
 ok(q6b?.still_waiting === true, "  once the fix is delivered and ignored, it is");
+
+// ── F. The admin alert closes itself ───────────────────────────────────────
+const rule = (await q(`SELECT public.admin_alert_close_rule('Job waiting on approval') AS r`))[0]?.r;
+ok(rule === "approval-escalation", `"Job waiting on approval" has a close rule (${JSON.stringify(rule)})`);
+await q(`INSERT INTO public.jobs (id, title, customer_id, helper_id, status, payment_status, budget, helper_completed_at)
+  VALUES ('${J(7)}', 'Wash windows', '${POSTER}', '${HELPR}', 'in_progress', 'escrow', 70, now() - interval '30 hours')`);
+await q(`SELECT public.file_approval_escalation('${J(7)}', 'approval', now() - interval '30 hours')`);
+const pending = async () => (await q(`SELECT public.admin_queue_still_pending('approval-escalation', '{"job_id": "${J(7)}"}'::jsonb, now()) AS p`))[0]?.p;
+ok(await pending() === true, "  the alert stays open while the job waits on an approval");
+await q(`UPDATE public.jobs SET poster_completed_at = now(), status = 'completed', payment_status = 'payout_pending' WHERE id = '${J(7)}'`);
+await q(`UPDATE public.job_approval_escalations SET resolved_at = now(), resolution = 'reviewed' WHERE job_id IN ('${J(6)}', '${J(5)}')`);
+ok(await pending() === false, "  and closes once the poster approved (and nothing else waits)");
+const fk = (await q(`SELECT count(*)::int AS n FROM pg_constraint WHERE conrelid = 'public.job_approval_escalations'::regclass AND contype = 'f' AND confrelid = 'auth.users'::regclass`))[0]?.n;
+ok(fk === 1, "resolved_by references auth.users (ON DELETE SET NULL)");
 
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail === 0 ? 0 : 1);

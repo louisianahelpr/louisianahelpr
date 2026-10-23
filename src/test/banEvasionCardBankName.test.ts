@@ -43,7 +43,7 @@
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n     -- Q2275: Jobs Browse |      -- Q2275: Jobs Browse
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
+ * @mutate supabase/migrations/20261023143240_payout_waits_for_the_posters_approval.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
  * @mutate supabase/migrations/20261015051417_phone_match_flags_not_bans.sql |           v_own_reason,\n           p_user_id, |           v_row.reason,\n           p_user_id,
  */
 import { describe, expect, it } from "vitest";

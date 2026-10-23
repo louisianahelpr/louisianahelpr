@@ -10,19 +10,25 @@
  *   - Photo ID: identity_is_verified gates a member's first posted job and a
  *     Helpr heading out (20261021081258). Browsing and applying are not gated,
  *     so the line says "before anyone posts or heads out", never "every member".
+ *     While the ID check is off (switch `identity_check`, owner 2026-10-23:
+ *     "just remove the verify id entirely") the ID line is not shown: it would
+ *     be false.
  *   - Money: held until the poster approves (or the auto-release window), the
  *     same rule the money band below states with the cron's own hours.
  */
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 const ITEMS = [
   { label: "Verified ID", title: "Photo ID checked", body: "Before anyone posts or heads out to a job" },
   { label: "You name the price", title: "Paid only when it’s done", body: "Money held safely until then" },
 ] as const;
 
 export function LandingProof() {
+  const idOn = useIdentityCheckOnStore();
+  const items = idOn ? ITEMS : ITEMS.filter((it) => it.label !== "Verified ID");
   return (
     <ul
       data-testid="landing-proof"
-      className="mt-12 lg:mt-16 w-full max-w-[1120px] mx-auto border-t pt-8 lg:pt-10 grid gap-4 lg:gap-16 text-left lg:grid-cols-3"
+      className={`mt-12 lg:mt-16 w-full max-w-[1120px] mx-auto border-t pt-8 lg:pt-10 grid gap-4 lg:gap-16 text-left ${idOn ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}
       style={{ borderColor: "var(--lp-line)" }}
     >
       <li className="flex items-center justify-center lg:justify-start gap-4 lg:gap-5 min-w-0">
@@ -47,7 +53,7 @@ export function LandingProof() {
           </span>
         </div>
       </li>
-      {ITEMS.map((it) => (
+      {items.map((it) => (
         <li key={it.label} className="hidden lg:flex flex-col gap-2 min-w-0">
           <span className="text-ds-11 lg:text-ds-14 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
             {it.label}
@@ -62,7 +68,7 @@ export function LandingProof() {
       ))}
       {/* Phone: the same two facts on one quiet line (owner, 2026-10-23: less space on the phone). */}
       <li className="lg:hidden text-center text-ds-13 font-semibold" style={{ color: "var(--lp-body)" }}>
-        ✓ Photo ID checked · Paid when it’s done
+        {idOn ? "✓ Photo ID checked · Paid when it’s done" : "✓ Paid when it’s done"}
       </li>
     </ul>
   );

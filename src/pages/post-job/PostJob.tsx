@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useLayoutEffect, useRef } from "react";
 import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -19,7 +20,9 @@ const PostJob = () => {
   // Stripe Identity before a post (owner 2026-10-21; the server refuses the
   // insert without it, 20261021081258). Say so before the form, not after it.
   const { profile } = useCurrentUser();
-  const idGate = needsIdentityCheck(profile);
+  // ...only while the ID check is on (switch `identity_check`, owner 2026-10-23: off).
+  const idOn = useIdentityCheckOnStore();
+  const idGate = idOn && needsIdentityCheck(profile);
 
   // iOS keeps the focused field under the keyboard when it sits near the
   // bottom of this long document-scroll form (e.g. the logistics notes /

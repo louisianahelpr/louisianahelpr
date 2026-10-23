@@ -308,7 +308,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         //       identity verification is required to post or accept
         //       (useJobSubmit.ts gates on it), not the optional "can verify"
         //       the old sentence implied.
-        a: `Identity verification through Stripe is required before anyone can post a job or accept one, and Helprs can additionally upload trade licenses and insurance — verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet what you set can apply — it's enforced by the database, not just hidden in the app. Other categories are open to any verified Helpr.`,
+        // 2026-10-23: ID verification is off (switch `identity_check`, owner:
+        //       "just remove the verify id entirely"), so the answer no longer
+        //       says an ID check is required. Licenses and insurance are unchanged.
+        a: `Helprs can upload trade licenses and insurance, and verified badges show on their profile. On trade jobs (${CREDENTIAL_CATEGORY_PHRASE}) you also choose who may apply: open to anyone, licensed pros only, or licensed and insured. Only Helprs who meet what you set can apply — it's enforced by the database, not just hidden in the app. Other categories are open to any Helpr.`,
       },
       {
         q: "What is the cancellation rate?",

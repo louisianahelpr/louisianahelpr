@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useState } from "react";
 import {
   Dialog,
@@ -49,6 +50,9 @@ export function AwardGateDialog({
   pendingMissing?: readonly AcceptMissing[] | null;
 }) {
   const [loading, setLoading] = useState(false);
+  // ID check off (switch `identity_check`, owner 2026-10-23): no ID row at all.
+  // A "✓ ID verified" row for a member who never verified would be false.
+  const idOn = useIdentityCheckOnStore();
   const copy = pendingMissing ? acceptPendingCopy(pendingMissing) : awardBlockCopy(reason);
   const payoutMissing = pendingMissing ? pendingMissing.includes("payout_setup") : reason === "helper_payout_setup_incomplete";
   const idMissing = pendingMissing ? pendingMissing.includes("stripe_id") : reason === "helper_identity_unverified";
@@ -123,11 +127,13 @@ export function AwardGateDialog({
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
           <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Paused" : undefined} />
-          <RequirementRow
-            label={ID_VERIFIED_LABEL}
-            met={!idMissing}
-            action={payoutMissing && idMissing && !payoutPaused ? { label: "Verify", onClick: openIdCheck } : undefined}
-          />
+          {idOn && (
+            <RequirementRow
+              label={ID_VERIFIED_LABEL}
+              met={!idMissing}
+              action={payoutMissing && idMissing && !payoutPaused ? { label: "Verify", onClick: openIdCheck } : undefined}
+            />
+          )}
         </div>
 
         <DialogFooter>

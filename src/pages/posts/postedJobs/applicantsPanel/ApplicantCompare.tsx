@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -63,12 +64,14 @@ export function CompareBar({
   barClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // "Not yet" promises a check; with the ID check off (owner 2026-10-23) it is a plain "No".
+  const idOn = useIdentityCheckOnStore();
   const picked = ids.map((id) => apps.find((a) => a.id === id)).filter((a): a is EnrichedApplication => !!a);
   if (picked.length < 2) return null;
   const name = (a: EnrichedApplication) => formatName(a.profiles?.full_name, "Helpr");
   const rows: { label: string; value: (a: EnrichedApplication) => string }[] = [
     { label: "Rating", value: (a) => ((a.reviewCount ?? 0) > 0 ? `${(a.avgRating ?? 0).toFixed(1)} from ${a.reviewCount}` : "No reviews yet") },
-    { label: "ID checked", value: (a) => (a.profiles?.is_id_verified === true ? "Yes" : "Not yet") },
+    { label: "ID checked", value: (a) => (a.profiles?.is_id_verified === true ? "Yes" : idOn ? "Not yet" : "No") },
     { label: "Can be hired now", value: (a) => (a.profiles?.is_payout_ready === true ? "Yes" : "Payout setup not finished") },
     { label: "Distance", value: (a) => distanceOf(a) ?? "—" },
     { label: "Their note", value: (a) => (a.message && !a.flagged_hidden ? `"${a.message}"` : "—") },

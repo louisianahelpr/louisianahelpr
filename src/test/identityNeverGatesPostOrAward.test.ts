@@ -31,7 +31,7 @@
 // vocabulary and the posting/award code paths consulting identity at all.
 //
 // @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql |     RETURN 'helper_payout_setup_incomplete'; |     RETURN CASE WHEN public.identity_is_verified(NULL, NULL) THEN NULL ELSE 'helper_payout_setup_incomplete' END;
-// @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql | CASE WHEN NOT public.identity_is_verified(p.idv_status, p.stripe_identity_verified) THEN 'stripe_id' END | NULL
+// @mutate supabase/migrations/20261023213857_identity_check_switch.sql | AND NOT public.identity_is_verified(p.idv_status, p.stripe_identity_verified) THEN 'stripe_id' END | AND false THEN 'stripe_id' END
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call. |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call.\n      void (user as { idv_status?: string } \| null)?.idv_status;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

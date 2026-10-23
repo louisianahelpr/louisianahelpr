@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -145,6 +146,7 @@ export function SettingsTab({
   onRequestDelete?: () => void;
   onBack: () => void;
 }) {
+  const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const { user } = useCurrentUser();
   const { theme } = useDarkMode();
@@ -214,7 +216,8 @@ export function SettingsTab({
         <Row testId="security" label={TAB_TITLES.security} sub={accountLine(user?.email, user?.identities) ?? "Email, password, sign-in"} onClick={() => onSelectTab("security")} />
         {/* Stripe Identity (owner 2026-10-21): the row says where the check
             stands and opens the one ID sheet. A test account has no check. */}
-        {profile && profile.is_seed !== true && (
+        {/* ID check off (switch `identity_check`, owner 2026-10-23): no ID row. */}
+        {idOn && profile && profile.is_seed !== true && (
           <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheck("general")} />
         )}
         {/* Board 176: the export already lives in the Legal tab's Privacy panel (DataExportCard); this opens it there. */}

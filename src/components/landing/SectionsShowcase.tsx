@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Camera, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
@@ -78,6 +79,8 @@ function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
 
 /** The four section cards. */
 export function SectionsShowcase() {
+  // No ID claim while the ID check is off (switch `identity_check`, owner 2026-10-23).
+  const idOn = useIdentityCheckOnStore();
   const ref = useRef<HTMLElement>(null);
   const seen = useSeenAfterLoad(ref);
   const { open } = useSectionsOpen(seen);
@@ -131,7 +134,7 @@ export function SectionsShowcase() {
             Four ways to get things done. One account.
           </h2>
           <p className="text-ds-15 sm:text-ds-17" style={{ color: "var(--lp-body)" }}>
-            Verify your ID once and it counts everywhere on Helpr.
+            {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "One account works in every section of Helpr."}
           </p>
         </div>
         {/* Owner 2026-10-21: ONE "Opening soon" line above the unopened cards, never a
@@ -187,8 +190,11 @@ const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; done?: boole
   },
 ];
 
+/** The ID tile while the ID check is on; while it is off (owner 2026-10-23) a true one takes its place. */
+const TRUST_ID_ON = { icon: ShieldCheck, title: "ID-verified people", body: "Verify your ID once, and it counts everywhere on Helpr." };
+const TRUST_ID_OFF = { icon: ShieldCheck, title: "Real accounts", body: "Every account confirms its email before it posts or takes a job." };
 const TRUST: { icon: LucideIcon; title: string; body: string }[] = [
-  { icon: ShieldCheck, title: "ID-verified people", body: "Verify your ID once, and it counts everywhere on Helpr." },
+  TRUST_ID_ON,
   { icon: Wallet, title: "No cash to count", body: "Payments happen in the app, so there's no cash changing hands." },
   { icon: Headset, title: "Real human support", body: "A real person on our team answers when something goes wrong." },
   { icon: MapPin, title: "Made in Louisiana", body: "Built in Louisiana, for every parish in it." },
@@ -196,6 +202,7 @@ const TRUST: { icon: LucideIcon; title: string; body: string }[] = [
 
 /** The money band + the join block. "Create your free account" is the close's one primary. */
 export function TrustAndJoin() {
+  const idOn = useIdentityCheckOnStore();
   const navigate = useNavigate();
   const joinRef = useRef<HTMLElement>(null);
   const joinSeen = useSeenAfterLoad(joinRef);
@@ -237,7 +244,7 @@ export function TrustAndJoin() {
             </ol>
           </div>
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
-            {TRUST.map(({ icon: Icon, title, body }) => (
+            {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title, body }) => (
               <li key={title} className="rounded-[20px] p-4 sm:p-5 flex flex-col gap-2 min-w-0" style={{ background: "var(--lp-band-tile)" }}>
                 <Icon className="w-5 h-5" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-band-ink)" }} />
                 <h3 className="text-ds-14 sm:text-ds-15 font-bold mt-1 [overflow-wrap:anywhere]" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>

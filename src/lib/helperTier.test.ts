@@ -1,4 +1,5 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import {
   computeHelperTier,
   describeTierProgress,
@@ -6,6 +7,13 @@ import {
   type HelperTierProfile,
   type HelperTierStats,
 } from "./helperTier";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 // Boundary tests for the four-step verification ladder (#112). Each tier
 // has multiple necessary conditions, so we test every "just below" and

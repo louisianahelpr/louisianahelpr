@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { ShieldCheck } from "lucide-react";
 import { identityView, needsIdentityCheck, openIdentityCheck, useMyIdentityProfile, type IdentityCheckReason } from "@/lib/identityCheck";
 
@@ -34,8 +35,10 @@ export function IdentityPromptCard({
   reason?: IdentityCheckReason;
   compact?: boolean;
 }) {
+  // ID check off (switch `identity_check`, owner 2026-10-23): no prompt at all.
+  const idOn = useIdentityCheckOnStore();
   const view = identityView(idvStatus);
-  if (view === "verified") return null;
+  if (!idOn || view === "verified") return null;
   const line = LINE[view];
   const open = () => openIdentityCheck(reason);
   if (compact) {

@@ -12,6 +12,7 @@
  * explains and starts the check, from wherever the member meets the gate.
  */
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { supabase } from "@/integrations/supabase/client";
 import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
@@ -29,9 +30,14 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 /** Open the one Identity sheet (mounted once, IdentityCheckHost). */
-export function openIdentityCheck(reason: IdentityCheckReason = "general"): void {
+export function openIdentityCheck(reason: IdentityCheckReason = "general"): boolean {
+  // ID check off (switch `identity_check`, owner 2026-10-23): nothing to open.
+  // Returns false so a caller handling a server refusal falls through to its
+  // own error message instead of stopping in silence (lh-silent-failure #1).
+  if (!identityCheckOn()) return false;
   state = { open: true, reason };
   emit();
+  return true;
 }
 
 export function closeIdentityCheck(): void {
@@ -58,6 +64,8 @@ export function useIdentityCheckSheet(): SheetState {
  */
 export function needsIdentityCheck(profile: { idv_status?: string | null; is_seed?: boolean | null } | null | undefined): boolean {
   if (!profile) return false;
+  // ID check off (switch `identity_check`, owner 2026-10-23): nobody needs it.
+  if (!identityCheckOn()) return false;
   if (profile.is_seed === true) return false;
   return !hasIdBadge(profile.idv_status);
 }

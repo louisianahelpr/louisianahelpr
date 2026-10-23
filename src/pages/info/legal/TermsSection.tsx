@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Link } from "react-router-dom";
 import {
   Building2, Wallet, Crown, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
@@ -44,6 +45,9 @@ const POSTER_PAYS_SENTENCE =
 
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => {
+  // ID verification is off (switch `identity_check`, owner 2026-10-23): the
+  // Terms say so instead of promising a check nobody runs.
+  const idOn = useIdentityCheckOnStore();
   // The setup fee is quoted from platform_settings — the number the platform
   // actually charges — never from a code constant; see useOnboardingFeeCents
   // for why. It is also the "account setup fee" everywhere a member meets it
@@ -178,10 +182,12 @@ export const TermsContent = () => {
         icon={ShieldCheck}
         title="Identity verification"
         body={
-          <>
+          idOn ? <>
             <p><strong className="text-foreground">Stripe Identity verifies a photo ID and a selfie before a member's first accepted or posted job</strong>, and before a Helpr heads out to a job. Helpr pays for this check; there is no charge to you. Payout setup is separate: when you set up payouts, Stripe verifies your payment details.</p>
             <p><strong className="text-foreground">If Stripe can't confirm your ID automatically</strong>, our team reviews it by hand, usually within 24 hours. There is no self-service retry, so make sure your photos are clear, well lit, and show all four corners of the ID.</p>
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
+          </> : <>
+            <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, or to buy or sell on Declutter, and no member is shown as ID-verified unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
           </>
         }
       />
@@ -265,7 +271,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">In good standing:</strong> signed in, not banned, and with fewer than 3 active Declutter strikes.</p>
             <p><strong className="text-foreground">Items in Louisiana.</strong> Items and pickups are in Louisiana. Buyers may live anywhere.</p>
             <p>Sellers set up payouts with Stripe before their first listing. Buyers save a card before making an offer or buying.</p>
-            <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase or your first listing, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>
+            {idOn && <p><strong className="text-foreground">Verify your ID once.</strong> Before your first Declutter purchase or your first listing, you verify your ID with Stripe Identity (a photo ID and a selfie). You do it once for all of Louisiana Helpr: if you already did it for Jobs, you don&apos;t do it again.</p>}
             <p>The one-time account setup fee is charged once per account, whichever comes first: your first Jobs payout, or your first Declutter purchase or listing.</p>
           </>
         }
@@ -440,7 +446,7 @@ export const TermsContent = () => {
           <>
             <p>Before a buyer pays, they see your area name and about how far away the item is; the exact address goes only to the buyer who paid or the Helpr who took the delivery. Listing photos are shown to members, and anyone with a photo&apos;s link can open it; porch, delivery and problem photos stay with the people in that sale and our admins.</p>
             <p>The photos and text of your listing, and room photos when moving out, are sent to our AI provider to draft and check the listing.</p>
-            <p>You can&apos;t delete your account while a Declutter sale or delivery is in progress. After you delete it, your Declutter photos are removed, your Declutter strikes stay tied to your verified ID, and your finished sales stay visible to the other side with you shown as &ldquo;Former member&rdquo;.</p>
+            <p>You can&apos;t delete your account while a Declutter sale or delivery is in progress. After you delete it, your Declutter photos are removed, your Declutter strikes stay {idOn ? "tied to your verified ID" : "on record"}, and your finished sales stay visible to the other side with you shown as &ldquo;Former member&rdquo;.</p>
             <p>Declutter emails you only about money (sold, receipts, refunds); everything else comes as a push notification and in-app alert.</p>
             <p>After a handover, buyer and seller can review each other with stars, quick tags and a comment, hidden until both have reviewed or 14 days pass. Declutter reviews count toward the same star rating used for jobs.</p>
           </>

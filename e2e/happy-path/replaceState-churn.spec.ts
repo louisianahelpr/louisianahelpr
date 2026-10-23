@@ -49,6 +49,16 @@ import {
 
 const ERROR_BOUNDARY_TEXT = /This page hit a problem/i;
 
+/**
+ * The Explore page is up (Q2359, owner 2026-10-22): on a phone its header is the section chips with the bell and the
+ * photo, and the page's h1 is the section's name, screen-reader only ("Jobs"). There is no visible "Explore" title
+ * any more, which is what these waits used to look for.
+ */
+async function expectExploreUp(page: Page, opts?: { timeout?: number }): Promise<void> {
+  await expect(page.getByTestId("explore-switcher")).toBeVisible(opts);
+  await expect(page.getByTestId("app-top-bar").getByRole("heading", { level: 1, name: "Jobs" })).toHaveCount(1);
+}
+
 /** Attach console/page-error collectors before any navigation. */
 function collectErrors(page: Page): { pageErrors: string[]; consoleErrors: string[] } {
   const pageErrors: string[] = [];
@@ -155,7 +165,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     const { pageErrors, consoleErrors } = collectErrors(page);
 
     await page.goto("/jobs");
-    await expect(page.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expectExploreUp(page, { timeout: 15_000 });
 
     const rsBefore = await readReplaceStateCount(page);
 
@@ -205,7 +215,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     // The regression contract: the screen is still the Activity screen, not
     // the error boundary — and nothing was thrown along the way.
     await expect(page.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
+    await expectExploreUp(page);
     expect(pageErrors, "uncaught page errors during the churn burst").toEqual([]);
     expect(
       consoleErrors.filter((m) => /SecurityError|replaceState|history/i.test(m)),
@@ -236,9 +246,9 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
 
     await poster.goto("/jobs"); // the search burst runs on Jobs > Browse
-    await expect(poster.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expectExploreUp(poster, { timeout: 15_000 });
     await helper.goto("/jobs");
-    await expect(helper.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible({ timeout: 15_000 });
+    await expectExploreUp(helper, { timeout: 15_000 });
 
     // Fire both sessions' own rapid churn CONCURRENTLY. This is the closest
     // this suite can get to "two sessions interacting" without a shared
@@ -255,8 +265,8 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
 
     await expect(poster.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
     await expect(helper.getByText(ERROR_BOUNDARY_TEXT)).toHaveCount(0);
-    await expect(poster.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
-    await expect(helper.getByRole("heading", { name: /^explore$/i, level: 1 })).toBeVisible();
+    await expectExploreUp(poster);
+    await expectExploreUp(helper);
     expect(posterErrors, "uncaught page errors on the poster session during concurrent churn").toEqual([]);
 
     await posterCtx.close();

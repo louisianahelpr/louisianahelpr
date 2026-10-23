@@ -78,6 +78,12 @@ serve(async (req) => {
 
     const rawBody = await req.json().catch(() => ({}));
     const isNative = isNativeRequest(rawBody);
+    // Q2352: where the member comes back to (their Declutter listings when the first listing asked for the fee).
+    // An in-app path only (a leading "/", never "//" or a scheme), as stripe-idv-start reads it; else Payments.
+    const rawReturn = (rawBody as { return_path?: unknown })?.return_path;
+    const returnPath = typeof rawReturn === "string" && /^\/(?![\/\\])[A-Za-z0-9/_\-?=&.]*$/.test(rawReturn) && rawReturn.length <= 200
+      ? rawReturn
+      : null;
 
     // Fail CLOSED on a read fault. A dropped error here would let someone who
     // has already paid be sent to Stripe to pay again — recoverable (the
@@ -157,13 +163,14 @@ serve(async (req) => {
         ],
         mode: "payment",
         payment_intent_data: { metadata },
-        success_url: buildRedirectUrl("/profile?tab=payment&setup_fee=paid", isNative),
-        cancel_url: buildRedirectUrl("/profile?tab=payment", isNative),
+        success_url: buildRedirectUrl(returnPath ?? "/profile?tab=payment&setup_fee=paid", isNative),
+        cancel_url: buildRedirectUrl(returnPath ?? "/profile?tab=payment", isNative),
         metadata,
       },
       // Per user, not per attempt: a double tap reopens the same session
       // instead of creating a second chargeable one.
-      { idempotencyKey: `onboarding-fee:${user.id}` },
+      // Q2352: and per return path, since the page's return URLs differ (lh-money-escrow review #3).
+      { idempotencyKey: returnPath ? `onboarding-fee:${user.id}:${returnPath}` : `onboarding-fee:${user.id}` },
     );
 
     return new Response(JSON.stringify({ url: session.url }), {

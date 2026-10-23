@@ -50,13 +50,17 @@ const DECLUTTER_FILES = [
   "20261021202226_declutter_identity_first_buy_or_list.sql",
   // Q1929: the buyer raises a delivery's pay (invalid_raise, delivery_not_waiting, raise_too_late, raise_limit, ...).
   "20261021185418_declutter_delivery_raise_pay.sql",
+  // Q2352: the one-time setup fee at the first listing (setup_fee_required_to_list).
+  "20261023123549_declutter_setup_fee_once.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
 const SHARED = ["feature_disabled", "invalid_payout"];
 // 20261020064354 restates declutter_mark_order_paid (service_role only, never a member's call) for the
 // paused status; its invalid_payment is a webhook-side code with no member-facing words.
-const SERVICE_ONLY = ["invalid_payment"];
+// Q2352 (20261023123549): declutter_setup_fee_refunded is service_role only (the stripe-webhook records a setup
+// fee it sent back); its invalid_refund and order_not_found never reach a member.
+const SERVICE_ONLY = ["invalid_payment", "invalid_refund", "order_not_found"];
 
 function raisedCodes(): Set<string> {
   const out = new Set<string>(SHARED);
@@ -74,7 +78,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(18); // 18: the Declutter ID gate (202226) and the delivery-pay raise (185418), both 2026-10-21
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(19); // 19: + the one-time setup fee (20261023123549, Q2352)
     expect(codes.size).toBeGreaterThan(25);
   });
 

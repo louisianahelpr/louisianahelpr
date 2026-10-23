@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useFeature } from "@/hooks/useFeature";
+import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import {
   fetchMyActiveStrikes,
   fetchMyCart,
@@ -334,7 +335,13 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
   });
   const liveQuote = quote && quotedFor === itemsTotalCents ? quote : null;
   const delivering = chosen === "delivery";
-  const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
+  // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee rides the first purchase of an account that
+  // never paid it (declutter_start_checkout freezes the same platform amount on the order, outside the sale's
+  // total). The same "still owed" answer every payout preview reads: 0 once paid, and 0 until known.
+  const setupFeeCents = useFirstPayoutFeeCents();
+  // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
+  const setupFeeKnown = useFirstPayoutFeeKnown();
+  const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
@@ -388,12 +395,16 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
           <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
         <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(premiumCents)}</dd></div>
+        {setupFeeCents > 0 && (
+          <div className="flex justify-between gap-3" data-checkout-setup-fee=""><dt>One-time account setup fee</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(setupFeeCents)}</dd></div>
+        )}
         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
           <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
           <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">
             {formatPrice(payCents)}
             {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
             {delivering && !liveQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ delivery</span>}
+            {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
           </dd>
         </div>
         {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}

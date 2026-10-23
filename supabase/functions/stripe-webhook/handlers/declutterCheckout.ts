@@ -281,15 +281,22 @@ async function settleOrder(
   }
   logStep("Declutter order settled", { order: orderId, result: answer.result });
   if (answer.result === "paid") {
+    const setupFeeCents = Number.parseInt(meta.setup_fee_cents ?? "0", 10);
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter receipt",
-      `You paid ${dollars(amount)} for your Declutter order. The money is held until you have your items; then the seller is paid. ${
+      `You paid ${dollars(amount)} for your Declutter order${
+        setupFeeCents > 0 ? `, including the one-time ${dollars(setupFeeCents)} account setup fee (charged once per account)` : ""
+      }. The money is held until you have your items; then the seller is paid. ${
         parties?.handover === "delivery"
           // Slice 5 (lh-money-escrow #8): a delivery order has no pickup to make.
           ? "Next: a Helpr picks your items up from the seller and leaves them at your door with a photo. Tap \"I got it\" in the app when you have them."
           : "Next: pick up your items at the time you chose."}`);
+  }
+  if (answer.result === "paid" || answer.result === "already_paid") {
+    // Q2352: a sale that stands may owe its buyer the setup fee back, after the receipt (a failed refund throws
+    // for a redelivery, which answers already_paid and lands here again).
+    await settleSetupFee(ctx, paymentIntentId, orderId);
     return;
   }
-  if (answer.result === "already_paid") return;
   // The payment's Stripe mode goes on the refund row (money review 3.6), so a
   // retry by declutter-money refunds on the key that took it, even when the
   // row has no order (order_missing) and so no parties to decide the mode by.
@@ -304,6 +311,84 @@ async function settleOrder(
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_refund", "Your Declutter refund",
       `${dollars(answer.refund_cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.`);
   }
+}
+
+/**
+ * Q2352: the order's sale stood, but its account had already paid the one-time
+ * setup fee somewhere else first (declutter_claim_setup_fee marked the order
+ * refund_due), so exactly that fee goes back, once. List-and-adopt like
+ * executeRefund (Stripe keeps an idempotency key 24 h; it redelivers for 3
+ * days), then declutter_setup_fee_refunded records it, which also makes it a
+ * known refund for declutter-money's "is the charge whole" check and tells the
+ * buyer. kind declutter_refund keeps charge.refunded from treating it as a hand
+ * refund. Any failure THROWS, so Stripe redelivers and a replay (already_paid)
+ * comes back here.
+ */
+async function settleSetupFee(
+  { stripe, supabase, logStep }: WebhookContext,
+  paymentIntentId: string,
+  orderId: string,
+): Promise<void> {
+  const { data, error } = await supabase.from("declutter_orders")
+    .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle();
+  if (error) {
+    // 42703: the migration is still deploying, so no order carries a setup fee yet.
+    if ((error as { code?: string }).code === "42703") return;
+    throw new Error(`declutter order setup fee read failed: ${error.message}`);
+  }
+  const row = data as { setup_fee_cents?: number | null; setup_fee_state?: string | null; stripe_payment_intent_id?: string | null } | null;
+  if (!row || row.setup_fee_state !== "refund_due") return;
+  const cents = Number(row.setup_fee_cents ?? 0);
+  const page = (title: string, message: string) => postSlackOpsAlert({
+    kind: "stripe_webhook_error",
+    severity: "critical",
+    title,
+    message,
+    fields: { "Payment intent": paymentIntentId, Order: orderId },
+  });
+  if (!Number.isInteger(cents) || cents <= 0 || row.stripe_payment_intent_id !== paymentIntentId) {
+    await page("Declutter setup fee owed back but not sent: check it",
+      `Order ${orderId} owes its buyer the one-time setup fee back (they had paid it elsewhere), but its amount (${String(row.setup_fee_cents)}) or payment (${String(row.stripe_payment_intent_id)}) does not match this charge. Nothing was sent; refund it by hand.`);
+    return;
+  }
+  let feeRefund: Stripe.Refund;
+  const feeIntentId = paymentIntentId;
+  try {
+    const listed = await stripe.refunds.list({ payment_intent: paymentIntentId, limit: 100 });
+    if (listed?.has_more) throw new Error(`more than 100 refunds on ${paymentIntentId}; refusing to read a partial list`);
+    const mine = (listed?.data ?? []).filter((x) => (x.metadata as Record<string, string> | null)?.setup_fee_order_id === orderId);
+    const existing = mine.find((x) => x.status !== "failed" && x.status !== "canceled");
+    // own-mistake full refund (owner, 2026-10-14): the account had already paid the
+    // one-time setup fee, so this order charged it a second time; exactly that fee goes
+    // back in full (never charged twice, Q2352). The sale itself stands.
+    feeRefund = existing ?? await stripe.refunds.create(
+      {
+        payment_intent: feeIntentId,
+        amount: cents,
+        metadata: { kind: "declutter_refund", reason: "setup_fee_already_paid", order_id: orderId, setup_fee_order_id: orderId },
+      },
+      { idempotencyKey: mine.length === 0 ? `declutter-setup-fee-${orderId}` : `declutter-setup-fee-${orderId}-r${mine.length}` },
+    );
+  } catch (e) {
+    await page("Declutter setup fee refund failed at Stripe (will retry)",
+      `The ${dollars(cents)} setup fee owed back on order ${orderId} could not be refunded; the webhook asks Stripe to redeliver. ${String(e).slice(0, 200)}`);
+    throw e;
+  }
+  if (feeRefund.status === "failed" || feeRefund.status === "canceled") {
+    await page("Declutter setup fee refund did not go through (will retry)",
+      `Stripe answered ${feeRefund.status} for the ${dollars(cents)} setup fee owed back on order ${orderId}; the webhook asks Stripe to redeliver.`);
+    throw new Error(`setup fee refund ${feeRefund.id} ${feeRefund.status}`);
+  }
+  const { data: recorded, error: recErr } = await supabase.rpc("declutter_setup_fee_refunded", {
+    p_order_id: orderId,
+    p_stripe_refund_id: feeRefund.id,
+  });
+  if (recErr) throw new Error(`declutter_setup_fee_refunded failed: ${recErr.message}`);
+  if (recorded !== "recorded" && recorded !== "already") {
+    await page("Declutter setup fee refunded twice? Check it",
+      `Refund ${feeRefund.id} (${dollars(cents)}) sent the setup fee back on order ${orderId}, but the order answered ${String(recorded)}. Check the payment's refunds in Stripe.`);
+  }
+  logStep("Declutter setup fee sent back (paid elsewhere first)", { order: orderId, refund: feeRefund.id, result: recorded });
 }
 
 async function executeRefund(

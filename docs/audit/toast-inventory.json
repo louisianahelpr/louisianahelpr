@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 934,
-    "files": 240,
-    "rendering": 804,
-    "suppressedByPolicy": 130,
+    "calls": 937,
+    "files": 241,
+    "rendering": 806,
+    "suppressedByPolicy": 131,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 64,
-      "toast.error": 672,
+      "toast": 65,
+      "toast.error": 673,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 134,
+      "toast.success": 135,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 433,
+      "literal": 436,
       "template": 100,
-      "dynamic": 450,
+      "dynamic": 451,
       "jsx": 0
     }
   },
@@ -4935,7 +4935,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4985,7 +4985,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 111,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4995,7 +4995,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 255,
+      "line": 256,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5005,7 +5005,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 258,
+      "line": 259,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5015,7 +5015,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 333,
+      "line": 334,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5025,7 +5025,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 419,
+      "line": 430,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5035,7 +5035,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 426,
+      "line": 437,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8849,6 +8849,40 @@
       "title": {
         "form": "literal",
         "text": "Couldn't export to calendar — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/declutter/setupFee.ts",
+      "line": 32,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Your setup fee is already paid. Publish your listing again."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/lib/declutter/setupFee.ts",
+      "line": 39,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't open the payment page. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/declutter/setupFee.ts",
+      "line": 45,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "One-time account setup fee"
+      },
+      "description": {
+        "form": "literal",
+        "text": "Your first listing needs it. It's charged once per account, and never again if you already paid it for Jobs."
       },
       "renders": true
     },

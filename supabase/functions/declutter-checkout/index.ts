@@ -224,6 +224,24 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     console.error(`[declutter-checkout] order ${order.order_id} amounts do not add up`);
     return json({ error: TRY_AGAIN }, 500);
   }
+  // Q2352 (owner 2026-10-22, terms #9): the one-time account setup fee the
+  // order froze (declutter_start_checkout, 0 when the account paid it). It is
+  // charged on this page but sits OUTSIDE total_cents, so no refund of the
+  // sale returns it; declutter_mark_order_paid checks the payment against
+  // total + this. 42703 (no such column) only while the migration is still
+  // deploying: then start_checkout froze none either, and 0 is the truth.
+  const { data: feeRow, error: feeErr } = await admin.from("declutter_orders").select("setup_fee_cents")
+    .eq("id", order.order_id).maybeSingle();
+  if (feeErr && feeErr.code !== "42703") {
+    console.error(`[declutter-checkout] setup fee read failed: ${feeErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const setupFeeCents = feeErr ? 0 : Number((feeRow as { setup_fee_cents?: number | null } | null)?.setup_fee_cents ?? 0);
+  if (!Number.isInteger(setupFeeCents) || setupFeeCents < 0) {
+    console.error(`[declutter-checkout] order ${order.order_id} setup fee is not a whole amount`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const chargeCents = order.total_cents + setupFeeCents;
 
   // One wallet: the buyer's ONE stored customer (in this mode) pre-fills the
   // page. Today it holds the cards saved through Declutter's card page; Jobs'
@@ -244,6 +262,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     // The banned-card check (Q1324) reads the payer from payer_id.
     payer_id: user.id,
     seller_id: sellerId,
+    // Q2352: what the page charges beyond the sale (the webhook's receipt names it).
+    setup_fee_cents: String(setupFeeCents),
   };
   // Casual sellers' sales are exempt (row 54 (1)); a business-like seller is
   // refused at checkout until the tax slice (B33), so no tax line exists yet.
@@ -262,6 +282,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: deliveryCents,
       product_data: { name: "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
   }
+  if (setupFeeCents > 0) {
+    lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents,
+      product_data: { name: "One-time account setup fee", tax_code: NONTAXABLE_TAX_CODE } } });
+  }
   // now + 31 min, never less (lh-money-escrow review 3b #11); taps in the same
   // second share one page through the idempotency key, and a second page from
   // another second is expired when it loses the attach below.
@@ -276,16 +300,16 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       metadata: meta,
       payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${order.order_id}` },
       // Q202: 3D Secure from $300 up (card-fraud disputes move to the issuer).
-      payment_method_options: threeDSecureOptions(order.total_cents),
+      payment_method_options: threeDSecureOptions(chargeCents),
       expires_at: expiresAt,
       success_url: buildRedirectUrl("/declutter?view=cart&paid=1", native),
       cancel_url: buildRedirectUrl("/declutter?view=cart", native),
     },
     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` },
   );
-  if (session.amount_total !== order.total_cents) {
+  if (session.amount_total !== chargeCents) {
     await expirePage(stripe, session.id);
-    console.error(`[declutter-checkout] Stripe total ${session.amount_total} != order total ${order.total_cents}`);
+    console.error(`[declutter-checkout] Stripe total ${session.amount_total} != order total ${chargeCents}`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("declutter_attach_checkout_session", {

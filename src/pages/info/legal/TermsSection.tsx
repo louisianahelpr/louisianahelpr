@@ -138,7 +138,7 @@ export const TermsContent = () => {
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
-            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is added at that checkout instead. It is never charged twice.</p>
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job, buy on Declutter or list on Declutter before your first payout, it is charged then instead. It is never charged twice.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the Helpr fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the Helpr fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
@@ -165,7 +165,7 @@ export const TermsContent = () => {
         title={feeLabel ? `One-time ${feeLabel} account setup fee` : "One-time account setup fee"}
         body={
           <>
-            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post or your first payout, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
+            <p><strong className="text-foreground">Charged once per account.</strong> Whichever happens first, your first job post, your first payout, or your first Declutter purchase or listing, is when the {feeLabel ? `${feeLabel} ` : ""}account setup fee is collected.</p>
             <p><strong className="text-foreground">If you post first:</strong> the fee is added as a line item at checkout the first time you post.</p>
             <p><strong className="text-foreground">If you only earn:</strong> the fee is deducted from your first payout, automatically.</p>
             <p>You'll never be charged twice. Once paid, your account is set.</p>

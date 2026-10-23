@@ -1,13 +1,28 @@
 import type { MineFaceAction } from "@/components/job-card/MineJobFace";
 import type { TrackingData } from "@/components/JobTracking";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
+import { requestPhotoCapture } from "@/components/job-card/photoCaptureRequest";
 import type { HelperWait } from "@/components/job-card/jobStatusLine";
 
 /** The card lines that say work has started (helperProgress' workUnderway): the next tap is Mark done. */
 const WORK_UNDERWAY: ReadonlySet<string> = new Set<HelperWait>(["working", "after_photo", "overdue_unfinished", "overdue_after_photo"]);
 
 /** The tracker step the face can take directly, with the face's sentence-case label. */
-type HelperFaceStep = { jobId: string; key: "on_the_way" | "arrived" | "working" | "done"; label: string };
+type HelperFaceStep = { jobId: string; key: "on_the_way" | "arrived" | "working" | "done" | "before_photo" | "after_photo"; label: string };
+
+/**
+ * THE OWED PHOTO IS THE FACE'S BUTTON (owner, 2026-10-23: "like before and after photos were required on the last
+ * tracker we need to keep that also"). The before photo gates Start working (tracker_requires_before_photo) and the
+ * after photo gates Done (hasRequiredProof): while the card's line says "Take the before/after photo", the button
+ * says it too and opens the card's own capture dialog, instead of offering Start working or Mark done, which the
+ * gates would refuse. Guard: src/test/trackerKeepsThePhotos.test.tsx.
+ */
+const PHOTO_WAITS: Readonly<Record<string, "before" | "after">> = {
+  before_photo: "before",
+  overdue_before_photo: "before",
+  after_photo: "after",
+  overdue_after_photo: "after",
+};
 
 /**
  * The Helpr's next tracker step, read from the job's own stamps (boards 62 and 64). Mirrors
@@ -31,6 +46,9 @@ export function helperFaceNextStep(
   if (!job.helper_dayof_confirmed_at || job.helper_completed_at) return null;
   if (!job.helper_on_the_way_at) return { jobId: job.id, key: "on_the_way", label: "I'm on my way" };
   if (!job.helper_arrived_at) return { jobId: job.id, key: "arrived", label: "I've arrived" };
+  const photo = wait ? PHOTO_WAITS[wait] : undefined;
+  if (photo === "before") return { jobId: job.id, key: "before_photo", label: "Take the before photo" };
+  if (photo === "after") return { jobId: job.id, key: "after_photo", label: "Take the after photo" };
   // Started or not: the card's own line already decided it (helperCardLine reads helperProgress, the tracker's
   // derivation), so the button never says "Start working" under "Finish and mark it done" (card shots,
   // 2026-10-23). Without the line, the tracking row alone, as before.
@@ -71,6 +89,9 @@ export function helperFaceAction(s: {
     return { label: "Leave a review", onClick: s.review, tone: "primary" };
   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" };
   const step = s.step;
-  if (step) return { label: step.label, onClick: () => { requestHelperStep(step.jobId, step.key); (s.open ?? s.manage)(); }, tone: "primary", step: step.key };
+  if (step) {
+    const ask = () => (step.key === "before_photo" ? requestPhotoCapture(step.jobId, "before") : step.key === "after_photo" ? requestPhotoCapture(step.jobId, "after") : requestHelperStep(step.jobId, step.key));
+    return { label: step.label, onClick: () => { ask(); (s.open ?? s.manage)(); }, tone: "primary", step: step.key };
+  }
   return { label: "Manage job", onClick: s.manage, tone: "secondary" };
 }

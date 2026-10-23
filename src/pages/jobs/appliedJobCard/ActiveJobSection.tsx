@@ -23,6 +23,7 @@ import { WorkingStep } from "./steps/WorkingStep";
 import { SubmittedStep } from "./steps/SubmittedStep";
 import { RevisionStep } from "./steps/RevisionStep";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
+import { beforePhotoIsThePrimary } from "@/components/job-card/primaryPhotoAsk";
 
 /** The floor a job has to sit above before its payout can be requested. Same
  *  30 minutes JobTracking's Done gate and completeJob's re-check enforce. */
@@ -316,7 +317,9 @@ export function ActiveJobSection({
   const step = deriveHelperStep({
     status,
     helperCompletedAt: job.helper_completed_at,
-    workUnderway,
+    // An owed before photo keeps the open card on the on-site step (its primary is that photo), as the card's line
+    // and the bar say (jobStatusLine arrivedWait): nobody starts or finishes without it. trackerKeepsThePhotos.
+    workUnderway: workUnderway && !beforePhotoIsThePrimary(job),
     hasArrived,
   });
 

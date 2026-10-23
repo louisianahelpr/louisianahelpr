@@ -383,6 +383,9 @@ describe("Popup grammar — body voice", () => {
       "the numbered cancellation-policy ladder — a structured data panel with per-step headings, badges and fee rows",
     "src/components/PhotoProof.tsx":
       "per-card empty states inside the photo grid, not the dialog's narration",
+    // The read-only gallery, split out of PhotoProof.tsx on 2026-10-23 (size ratchet): the same empty state.
+    "src/components/PhotoProofDialog.tsx":
+      "per-card empty states inside the photo grid, not the dialog's narration",
   };
 
   // Any <p>/<ul> whose class list contains the muted upright-sans default,

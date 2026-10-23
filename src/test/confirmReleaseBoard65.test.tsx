@@ -14,6 +14,10 @@ import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null }));
+// The sheet reads the job's photo columns when it opens (approveSheetReadsThePhotos): no row here.
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }) },
+}));
 vi.mock("@/lib/notifications", () => ({ notifyJobParty: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticSuccess: vi.fn(), hapticError: vi.fn(), hapticMedium: vi.fn() }));
 

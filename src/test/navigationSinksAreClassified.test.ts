@@ -113,6 +113,9 @@ const CLASSIFIED: Record<string, string> = {
   "components/admin/adminDisputes/DisputeCard.tsx::src ?? undefined": `${PROOF_SIGNED}; input is partitionEvidenceUrls().trusted`,
   "components/PhotoProof.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
   "components/PhotoProof.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
+  // The read-only gallery, split out of PhotoProof.tsx on 2026-10-23: the same signed proof links.
+  "components/PhotoProofDialog.tsx::beforeSrcs[i] ?? undefined": PROOF_SIGNED,
+  "components/PhotoProofDialog.tsx::afterSrcs[i] ?? undefined": PROOF_SIGNED,
   "pages/jobs/HelperRevisionCard.tsx::url": PROOF_SIGNED,
   "components/admin/AdminCredentialQueue.tsx::signedUrl": "SignedOpenLink state: safeDocumentUrl(path) or createSignedUrl output, nothing else is ever set",
   "components/admin/AdminCredentialQueue.tsx::safe": "const safe = openableDocumentUrl(path) above (safeDocumentUrl output, or a blob: of its data: image)",

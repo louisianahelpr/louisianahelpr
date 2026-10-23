@@ -29,8 +29,9 @@
  *
  * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
- * @mutate supabase/functions/_shared/tipFees.ts | return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip };\n}\n\nexport interface TipChargeBreakdown | return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip - feeCents };\n}\n\nexport interface TipChargeBreakdown
+ * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
  * @mutate supabase/functions/_shared/tipFees.ts | const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate)); | const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate)) - 1;
+ * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip } satisfies TipChargeBreakdown; | helperCents: tip - 1 } satisfies TipChargeBreakdown;
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
  */
 import { readFileSync, statSync } from "node:fs";

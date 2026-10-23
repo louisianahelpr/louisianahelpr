@@ -100,5 +100,5 @@ export function paypalTipChargeBreakdown(tipCents: number): TipChargeBreakdown {
   const tip = tipCents > 0 ? Math.round(tipCents) : 0;
   const rate = PAYPAL_RATES[TIP_PAYPAL_METHOD];
   const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate));
-  return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip };
+  return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip } satisfies TipChargeBreakdown;
 }

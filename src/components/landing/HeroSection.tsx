@@ -50,7 +50,7 @@ const HeroSection = () => {
             className="mt-7 lg:mt-9 text-ds-16 sm:text-ds-18 lg:text-ds-22 xl:text-ds-24 leading-relaxed lg:whitespace-nowrap"
             style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
           >
-            Hire help or find work. One account, one verified ID, real neighbors.
+            Hire help or find work. One account, real neighbors.
           </p>
 
           <form

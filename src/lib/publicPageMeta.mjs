@@ -145,7 +145,7 @@ export const NOINDEX_PAGE_META = {
     description: "Create your free Helpr account in under a minute.",
     canonical: `${SITE_ORIGIN}/signup`,
     ogTitle: "Sign up — Helpr",
-    ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a verified Helpr across Louisiana.",
+    ogDescription: "Join Helpr in under a minute and start posting jobs or earning as a Helpr across Louisiana.",
     robots: NOINDEX_ROBOTS,
   },
   "/forgot-password": {

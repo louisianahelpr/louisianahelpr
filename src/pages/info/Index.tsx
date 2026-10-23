@@ -57,7 +57,7 @@ const faqSchema = {
       name: "What is Helpr?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Helpr is Louisiana's trusted marketplace that connects you with verified neighbors for everyday jobs like cleaning, yard work, moving, errands, and handyman jobs.",
+        text: "Helpr is Louisiana's trusted marketplace that connects you with local neighbors for everyday jobs like cleaning, yard work, moving, errands, and handyman jobs.",
       },
     },
     {

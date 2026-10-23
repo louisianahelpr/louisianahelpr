@@ -22,6 +22,7 @@
  * flow.
  */
 
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { hasIdBadge } from "./awardGate";
 
 export type HelperTier = 0 | 1 | 2 | 3;
@@ -137,7 +138,8 @@ export function describeTierProgress(
   if (current === 0) {
     // Climbing onto the ladder — list the missing onboarding signals.
     const missing: string[] = [];
-    if (!tierIdentityVerified(profile)) missing.push("Finish Stripe identity verification");
+    // Never ask for an ID check that is off (switch `identity_check`, owner 2026-10-23).
+    if (identityCheckOn() && !tierIdentityVerified(profile)) missing.push("Finish Stripe identity verification");
     if (!profile?.stripe_account_id) missing.push("Connect Stripe for payouts");
     return { nextTier: 1, missing };
   }

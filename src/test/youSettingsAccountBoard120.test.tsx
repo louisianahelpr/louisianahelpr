@@ -8,7 +8,8 @@
  * @mutate src/components/profile/SettingsTab.tsx | {onRequestDelete && <Row testId="delete-account" | {false && <Row testId="delete-account"
  * @mutate src/components/profile/SettingsTab.tsx |   const NAMES: Record<string, string> = { email: "Password", google: "Google", apple: "Apple" }; |   const NAMES: Record<string, string> = {};
  */
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
@@ -26,6 +27,13 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 
 import { SettingsTab, accountLine } from "@/components/profile/SettingsTab";
 import type { Profile } from "@/components/profile/profileLanding/types";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 afterEach(cleanup);
 

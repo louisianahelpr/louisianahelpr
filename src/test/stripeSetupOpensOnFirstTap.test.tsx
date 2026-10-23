@@ -8,7 +8,8 @@
  * @mutate src/components/AwardGateDialog.tsx |       await openExternalUrl(data.url);\n      if (isNativePlatform) {\n        onOpenChange(false); |       onOpenChange(false);\n      await openExternalUrl(data.url);\n      if (isNativePlatform) {
  */
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 
 const calls: string[] = [];
 // Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
@@ -22,6 +23,13 @@ vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn(async () => { c
 vi.mock("@/lib/analytics", () => ({ track: () => {}, AhaEvent: {} }));
 
 import { AwardGateDialog } from "@/components/AwardGateDialog";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 describe("Finish Stripe Setup goes to Stripe on the first tap", () => {
   beforeEach(() => { calls.length = 0; });

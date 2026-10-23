@@ -100,6 +100,12 @@ export const FEATURE_SWITCH_KEYS = [
   // update_onboarding / reset with 409 payout_setup_paused. An admin sets it
   // to Everyone to bring setup back.
   "payout_setup",
+  // ID verification (owner ruling 2026-10-23: "just remove the verify id
+  // entirely, we will move to paypal"). Created OFF by 20261023213857, and OFF
+  // means no ID check anywhere: identity_check_exempt() is true and
+  // helper_accept_missing() drops 'stripe_id'; the app shows no ID prompt
+  // (useIdentityCheckOn). An admin turns it back on for a new provider.
+  "identity_check",
 ] as const;
 
 /**

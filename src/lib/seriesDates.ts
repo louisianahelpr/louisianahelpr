@@ -1,3 +1,4 @@
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { supabase } from "@/integrations/supabase/client";
 import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { unwrap } from "@/lib/supabaseResult";
@@ -165,7 +166,8 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
  */
 export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">, setupPaused = false): string | null {
   if (r.missing.length === 0) return null;
-  const id = r.missing.includes("stripe_id");
+  // The server lists stripe_id only while the `identity_check` switch is on; ask the same switch here.
+  const id = identityCheckOn() && r.missing.includes("stripe_id");
   const payout = r.missing.includes("payout_setup");
   // Payout setup paused (owner ruling 2026-10-23; the caller reads
   // usePayoutSetupPaused): no "set up payouts" ask, the paused notice instead.

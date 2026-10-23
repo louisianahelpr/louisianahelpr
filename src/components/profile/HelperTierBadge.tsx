@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useMemo, useState } from "react";
 import { Shield, ShieldCheck, Award, type LucideIcon } from "lucide-react";
 import {
@@ -99,6 +100,8 @@ const sizeStyles: Record<Size, { pill: string; icon: string }> = {
 function HelperTierBadge(props: HelperTierBadgeProps) {
   const { size = "sm", showProgress = true, className, profile, stats } = props;
   const [open, setOpen] = useState(false);
+  // describeTierProgress reads the ID check switch; recompute when it flips.
+  const idOn = useIdentityCheckOnStore();
 
   // When the caller hands us a precomputed tier, trust it — that's the
   // contract for list surfaces where the parent batched the computation.
@@ -113,7 +116,7 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
   // tier 1+. The progress block is only rendered when tier > 0 anyway.
   const progress = useMemo(
     () => (showProgress ? describeTierProgress(tier, profile ?? null, stats ?? null) : null),
-    [tier, profile, stats, showProgress],
+    [tier, profile, stats, showProgress, idOn],
   );
 
   // Tier 0 hides the badge entirely. The empty render is the whole

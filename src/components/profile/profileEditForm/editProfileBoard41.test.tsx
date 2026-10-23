@@ -12,7 +12,8 @@
  * @mutate src/components/profile/ProfileEditForm.tsx |             onClick={() => navigate(`/user/${profile.user_id}`)} |             onClick={() => navigate(`/profile`)}
  * @mutate src/components/profile/ProfileEditForm.tsx |         <TrustMarksCard profile={profile} phone={phone} /> |
  */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 
@@ -31,6 +32,13 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 import { TrustMarksCard } from "./TrustMarksCard";
 import { ProfileEditForm } from "../ProfileEditForm";
 import type { Profile } from "./types";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 let at = "";
 function Where() {

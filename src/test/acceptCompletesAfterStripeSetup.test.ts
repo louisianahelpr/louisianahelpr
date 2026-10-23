@@ -51,13 +51,21 @@
 // @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |                   title, description, category, special_requirements, photos,\n |                   title, description, category, special_requirements,\n
 // @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL |           CASE WHEN true
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     IF v_done IS NULL THEN\n      RAISE EXCEPTION 'offer_not_active';\n    END IF;\n    RETURN v_done; |     RETURN v_done;
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { acceptPendingCopy, acceptMissingFromProfile, awardBlockMessage } from "@/lib/awardGate";
 import { lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
+
+// These cases test the ID check while it is ON. The owner switched it off on
+// 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
+// covers the off state.
+vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+beforeEach(() => setIdentityCheckOn(true));
+afterEach(() => setIdentityCheckOn(false));
 
 const REPO = join(__dirname, "..", "..");
 const MIG = join(REPO, "supabase", "migrations");

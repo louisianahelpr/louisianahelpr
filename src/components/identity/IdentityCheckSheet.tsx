@@ -1,3 +1,5 @@
+import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
+import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Camera, Clock, IdCard, Loader2, ShieldCheck, UserRound } from "lucide-react";
@@ -75,6 +77,11 @@ const REVIEW_ONLY = {
  * reopens it on the honest state the webhook has written.
  */
 export function IdentityCheckHost() {
+  // The ID check switch (owner 2026-10-23: OFF, "we will move to paypal"). The
+  // host publishes it for the plain functions (openIdentityCheck,
+  // acceptMissingFromProfile...) and draws nothing while it is off.
+  const { on: idOn, settled: idSettled } = useIdentityCheckStatus();
+  useEffect(() => setIdentityCheckOn(idOn), [idOn]);
   const { open, reason } = useIdentityCheckSheet();
   const { user, profile, refresh } = useCurrentUser();
   const [params, setParams] = useSearchParams();
@@ -94,13 +101,21 @@ export function IdentityCheckHost() {
     const back = params.get("idv") === "complete";
     if (!verify && !back) return;
     if (!user) return;
+    // Wait for the ID check switch's answer before using the link: opened
+    // before it, the sheet would refuse and the link would be spent (lh-silent-failure #2).
+    if (!idSettled) return;
     const next = new URLSearchParams(params);
     next.delete("verify_id");
     next.delete("idv");
     setParams(next, { replace: true });
     if (back) void refresh();
-    openIdentityCheck("general");
-  }, [params, setParams, user, refresh]);
+    // The switch is published in the effect above; open with its answer
+    // directly so the order of the two effects does not matter.
+    if (idOn) {
+      setIdentityCheckOn(true);
+      openIdentityCheck("general");
+    }
+  }, [params, setParams, user, refresh, idSettled, idOn]);
 
   // Coming back to the app is when the webhook's answer lands: refetch on open.
   useEffect(() => {
@@ -182,6 +197,7 @@ export function IdentityCheckHost() {
   /** A state with nothing to do has ONE labelled way out (it also drops the corner x, popupDismiss.tsx); a state with a step has Not now. */
   const nothingToDo = view === "checking" || (view === "with_team" && !canRestart) || view === "verified";
 
+  if (!idOn) return null;
   return (
     <Sheet open={open} onOpenChange={(o) => (o ? undefined : closeIdentityCheck())}>
       <SheetContent side="bottom" data-testid="identity-check-sheet" data-view={view}>

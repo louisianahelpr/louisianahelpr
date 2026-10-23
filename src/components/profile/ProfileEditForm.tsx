@@ -415,7 +415,7 @@ export function ProfileEditForm({
           className="text-center font-sans px-6 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          Photos &amp; ID save automatically. Your other edits save from the{" "}
+          Photos save automatically. Your other edits save from the{" "}
           <span className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>bar that appears below</span>.
         </p>
       </form>

@@ -92,6 +92,24 @@ serve(async (req) => {
     const unconfirmedEmail = refuseUnconfirmedEmail(user, corsHeaders);
     if (unconfirmedEmail) return unconfirmedEmail;
 
+    // ID check off (switch `identity_check`, owner 2026-10-23: "just remove the
+    // verify id entirely"): nothing is required, so no check is started and no
+    // Stripe call is made. The app shows no ID prompt while off; this stops an
+    // old build or a direct call. A switch read that FAILS is not "off": the
+    // gates may still require the ID, so it says "try again" (503), never
+    // "nothing is needed" (lh-silent-failure #4). Asked for the verified caller.
+    const { data: idSwitch, error: idSwitchErr } = await supabaseAdmin.rpc("feature_enabled_for_user", {
+      p_key: "identity_check",
+      p_user_id: user.id,
+    });
+    if (idSwitchErr) {
+      console.error(`[stripe-idv-start] identity_check switch read failed for ${user.id}: ${idSwitchErr.message}`);
+      return fail(503, "We couldn't start an ID check right now. Try again in a moment.");
+    }
+    if (idSwitch !== true) {
+      return fail(409, "ID checks are turned off right now. Nothing is needed from you.", { code: "identity_check_off" });
+    }
+
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")
       // NO `role`: `profiles.role` was DROPPED when accounts were unified

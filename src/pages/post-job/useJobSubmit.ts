@@ -736,8 +736,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     // Stripe Identity before a post (20261021081258): open the one ID sheet,
     // not an error toast. Nothing was written; the form keeps every field.
-    if (error && identityRefusal(error) === "post") {
-      openIdentityCheck("post");
+    // If the sheet cannot open (ID check off on this device), fall through to the error below.
+    if (error && identityRefusal(error) === "post" && openIdentityCheck("post")) {
       setSaving(false);
       submittingRef.current = false;
       return;

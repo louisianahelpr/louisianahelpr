@@ -17,6 +17,7 @@
  * so the app can explain the server's answer and ask for exactly the missing
  * steps. Turning it off would change nothing about who can accept a job.
  */
+import { identityCheckOn } from "@/lib/identityCheckSwitch";
 export type AwardBlockReason =
   | "helper_payout_setup_incomplete"
   | "helper_identity_unverified"
@@ -46,7 +47,9 @@ export function acceptMissingFromProfile(profile: {
   if (profile.is_seed === true && profile.stripe_account_id == null) return [];
   const missing: AcceptMissing[] = [];
   if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) missing.push("payout_setup");
-  if (!hasIdBadge(profile.idv_status)) missing.push("stripe_id");
+  // The ID step only while the `identity_check` switch is on (owner 2026-10-23;
+  // helper_accept_missing reads the same switch on the server).
+  if (identityCheckOn() && !hasIdBadge(profile.idv_status)) missing.push("stripe_id");
   return missing;
 }
 

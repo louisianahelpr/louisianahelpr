@@ -1,3 +1,4 @@
+import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { identityView, openIdentityCheck } from "@/lib/identityCheck";
@@ -25,7 +26,10 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
   const setupPaused = usePayoutSetupPaused();
   // Not while the profile is still loading (null is not "not set up").
   const bankPaused = setupPaused && !!profile && !profile.stripe_payouts_enabled;
-  const rows: { key: string; label: string; done: boolean; state: string; onClick?: () => void }[] = [
+  // ID check off (switch `identity_check`, owner 2026-10-23): a verified ID still
+  // reads Done (true); otherwise the Photo ID row is not shown at all.
+  const idOn = useIdentityCheckOnStore();
+  const allRows: { key: string; label: string; done: boolean; state: string; onClick?: () => void }[] = [
     phone.trim()
       ? { key: "phone", label: "Phone", done: true, state: "Added" }
       : { key: "phone", label: "Phone", done: false, state: "Add", onClick: () => document.getElementById("phone")?.focus() },
@@ -40,6 +44,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
         ? { key: "bank", label: "Payout bank", done: false, state: "Paused" }
         : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
   ];
+  const rows = allRows.filter((r) => r.key !== "id" || idOn || r.done);
   return (
     <div data-trust-marks="" className="rounded-2xl liquid-glass p-card">
       <p className="font-sans uppercase tracking-wider text-ds-11 font-semibold mb-1" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>

@@ -33,7 +33,7 @@
 // No remote import on purpose: src/test/livePayoutGateClassifiesRejections.test.ts
 // imports this module, so the app project compiles it (tsconfig.app.json lists
 // it). The Stripe shapes it reads are declared structurally below.
-import { isTestObjectUnderLiveKey, isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
+import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
 
 /**
  * release-payout's 409 codes for a payout it refused before any transfer
@@ -116,9 +116,10 @@ export async function readLivePayoutGate(stripe: ConnectAccountReader, accountId
     const message = errMessage(e);
     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message };
     if (isRejectedAccountError(e)) return { ok: false, kind: "rejected", reason: message };
-    // A test-mode OBJECT id under the live key is a stored-id mismatch, not a fact
-    // about a live account: it is not "unusable" here, only unverifiable.
-    if (!isTestObjectUnderLiveKey(e) && isUnusableConnectAccountError(e)) return { ok: false, kind: "unusable", reason: message };
+    // Gone, or a sandbox account id under the live key: no retry ever reads it,
+    // so it is "unusable" (set up again), never "cannot verify" ("retry"), as
+    // execute-dispute-split and release-payout answered before (Q1251).
+    if (isUnusableConnectAccountError(e)) return { ok: false, kind: "unusable", reason: message };
     return { ok: false, kind: "cannot_verify", reason: message };
   }
   if (!account || typeof account !== "object") return { ok: false, kind: "cannot_verify", reason: "Stripe returned no account" };

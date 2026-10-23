@@ -836,7 +836,7 @@ export async function repayClawback(
     const live = await holdUnlessPayable({
       stripe,
       supabaseAdmin: supabase,
-      helperId: row.helper_id ?? "(deleted member)",
+      helperId: row.helper_id,
       accountId: row.stripe_account_id,
       fn: "chargeback-clawback",
       what: "a won dispute's re-payment",
@@ -1051,8 +1051,8 @@ export async function repayClawback(
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",
-      title: "Card dispute WON — the Helpr's payout hold could not be read",
-      message: `Dispute ${dispute.id} was won, but the payout hold of ${out.holdErrors.length} Helpr(s) could not be read, so they were not paid back yet. Each is marked owed and is re-paid automatically by process-scheduled-payouts once the hold reads clear; do NOT pay it by hand (it would be paid twice). Check the payout_holds read.`,
+      title: "Card dispute WON — the Helpr's payout hold (or payout account) could not be read",
+      message: `Dispute ${dispute.id} was won, but the payout hold, or the Stripe payout account, of ${out.holdErrors.length} Helpr(s) could not be read, so they were not paid back yet. Each is marked owed and is re-paid automatically by process-scheduled-payouts once both read clear; do NOT pay it by hand (it would be paid twice). Each row says which read failed ("payout hold check failed" = the payout_holds read; "live payout gate" = Stripe).`,
       fields: {
         "Dispute ID": dispute.id,
         "Job ID": job.id,
@@ -1065,8 +1065,8 @@ export async function repayClawback(
     await postSlackOpsAlert({
       kind: "payout_failed",
       severity: "warning",
-      title: "Card dispute WON — Helpr re-pay waits on a payout hold",
-      message: `Dispute ${dispute.id} was won. ${out.held.length} clawed-back amount(s) belong to a Helpr on a payout hold; they are re-paid automatically by process-scheduled-payouts once the hold is released. Do NOT pay it by hand (it would be paid twice).`,
+      title: "Card dispute WON — Helpr re-pay waits on a payout hold or a payout account Stripe won't pay",
+      message: `Dispute ${dispute.id} was won. ${out.held.length} clawed-back amount(s) belong to a Helpr on a payout hold, or whose payout account Stripe does not say is payable (see the "Payout held" alert); they are re-paid automatically by process-scheduled-payouts once that clears. Do NOT pay it by hand (it would be paid twice).`,
       fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": out.held.join(", ").slice(0, 900) },
       oncePerDayKey: `clawback-repay-held:${dispute.id}`,
     });

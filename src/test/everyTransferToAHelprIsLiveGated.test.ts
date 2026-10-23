@@ -56,6 +56,19 @@ const SENDERS: Record<string, Entry> = {
   },
 };
 
+/**
+ * Destination charges (`transfer_data`) also send money to a Connect account,
+ * as part of the CHARGE, not a transfer. Listed (exact, both ways) and not gated
+ * here: Stripe's API refuses a destination charge whose destination cannot
+ * receive transfers, so no payer is charged and nothing moves. That is Stripe's
+ * documented contract, NOT measured on prod; gating them is an open question
+ * for the lead (lh-money-escrow review of this guard, #6).
+ */
+const DESTINATION_CHARGES: Record<string, number> = {
+  "supabase/functions/create-payment/index.ts": 1,
+  "supabase/functions/auto-tip-charge/index.ts": 1,
+};
+
 function codeOf(file: string): string {
   return blankComments(readSource(file) ?? "");
 }
@@ -69,6 +82,15 @@ describe("every transfer to a Connect account is live-gated", () => {
     }
     expect(Object.keys(found).length, "inventory floor: the walker found the senders").toBeGreaterThanOrEqual(8);
     expect(found).toEqual(Object.fromEntries(Object.entries(SENDERS).map(([f, e]) => [f, e.sites])));
+  });
+
+  it("the destination charges (transfer_data) are listed, exact both ways", () => {
+    const found: Record<string, number> = {};
+    for (const f of walkSource([FN_DIR])) {
+      const n = (codeOf(f).match(/\btransfer_data\s*:/g) ?? []).length;
+      if (n > 0) found[path.relative(ROOT, f).split(path.sep).join("/")] = n;
+    }
+    expect(found).toEqual(DESTINATION_CHARGES);
   });
 
   for (const [file, e] of Object.entries(SENDERS)) {

@@ -32,7 +32,8 @@ export interface LivePayoutHoldInput {
   stripe: Stripe;
   // deno-lint-ignore no-explicit-any
   supabaseAdmin: any;
-  helperId: string;
+  /** null for a member who deleted their account (the cache close is skipped). */
+  helperId: string | null;
   accountId: string;
   /** The calling function, for the alert and the defect. */
   fn: string;
@@ -58,7 +59,7 @@ export async function holdUnlessPayable(i: LivePayoutHoldInput): Promise<LivePay
 
   console.warn(`[${i.fn}] ${i.what} HELD for Helpr ${i.helperId}: Connect account ${i.accountId} ${gate.kind} (${gate.reason}); no transfer attempted.`);
   const defects: string[] = [];
-  if (holdClosesCache(gate)) {
+  if (holdClosesCache(gate) && i.helperId) {
     const shut = await closeCachedConnectGate(i.supabaseAdmin, i.helperId, i.accountId);
     if (shut.error) defects.push(`cached gate close ${i.helperId}: ${shut.error}`);
   }
@@ -66,7 +67,9 @@ export async function holdUnlessPayable(i: LivePayoutHoldInput): Promise<LivePay
   await postSlackOpsAlert({
     kind: "payout_wait",
     severity: "warning",
-    oncePerDayKey: platformRefused ? "payout-held-platform-rejected" : `payout-held-not-payable-${i.helperId}`,
+    oncePerDayKey: platformRefused
+      ? "payout-held-platform-rejected"
+      : `payout-held-not-payable-${i.helperId ?? `account-${i.accountId}`}`,
     seed: i.seed === true,
     title: platformRefused
       ? "Payouts held: Stripe refuses the platform's account"
@@ -78,6 +81,6 @@ export async function holdUnlessPayable(i: LivePayoutHoldInput): Promise<LivePay
         : `Stripe says the Helpr's payout account cannot be paid out now, so ${i.what} was held, not sent. ${i.then}`,
     fields: { ...i.fields, fn: i.fn, helper_id: i.helperId, account_id: i.accountId, gate: gate.kind, reason: gate.reason },
   });
-  if (gate.kind === "cannot_verify") defects.push(`live payout gate ${i.helperId}: ${gate.reason}`);
+  if (gate.kind === "cannot_verify") defects.push(`live payout gate ${i.helperId ?? i.accountId}: ${gate.reason}`);
   return { held: true, kind: gate.kind, reason: gate.reason, defect: defects.length ? defects.join("; ") : null };
 }

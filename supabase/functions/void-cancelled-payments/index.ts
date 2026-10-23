@@ -838,9 +838,13 @@ serve(async (req) => {
         fn: "void-cancelled-payments",
         what: "a cancellation fee",
         then: "The hourly run retries it.",
+        seed: job.is_seed === true,
         fields: { job_id: job.id, fee_transfer_id: String(feeRow.id), amount: helperPayout },
       });
       if (feeLive.held) {
+        // The row stays 'pending' (Part E retries it) and says why, so the
+        // reconciler's "read failure_reason" has an answer (review #7).
+        await markFeeRow(job.id, feeRow, { failure_reason: `payee_not_payable: ${feeLive.kind}` }, `held (payee_not_payable: ${feeLive.kind})`);
         if (feeLive.defect) defects.record(`cancellation fee ${job.id}: ${feeLive.defect}`);
         return true;
       }
@@ -1344,6 +1348,7 @@ serve(async (req) => {
           fn: "void-cancelled-payments",
           what: "a crew cancellation-fee share",
           then: "The run retries it while the share stays unpaid.",
+          seed: job.is_seed === true,
           fields: { job_id: job.id, share_id: share.id, amount: memberPayout },
         });
         if (shareLive.held) {
@@ -1409,7 +1414,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days, is_seed")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 

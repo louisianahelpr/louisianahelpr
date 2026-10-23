@@ -120,7 +120,7 @@ describe("ME-013 · a cash-out is reconcilable", () => {
 // Lead 2026-10-23: no cash-out unless Stripe says the account is payable.
 // @mutate supabase/functions/cash-out-credits/index.ts |     if (live.held) { |     if (false) {
 describe("a cash-out to an account Stripe rejected moves nothing and gives the credits back", () => {
-  it("409 connect_account_not_payable, no transfer, the claimed credits rolled back", async () => {
+  it("409 connect_account_not_payable, no transfer, and the credits are never claimed (asked before the claim)", async () => {
     stageClaim([{ id: "cA", amount: 5 }]);
     stripeMock.accounts.retrieve.mockResolvedValue({
       ...PAYABLE_CONNECT_ACCOUNT,
@@ -134,9 +134,6 @@ describe("a cash-out to an account Stripe rejected moves nothing and gives the c
     expect(res.status).toBe(409);
     expect((await res.json()).code).toBe("connect_account_not_payable");
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
-    const rollback = scenario.writes.find(
-      (w) => w.table === "referral_credits" && (w.payload as { redeemed?: boolean }).redeemed === false,
-    );
-    expect(rollback, "the claimed credits go back").toBeDefined();
+    expect(scenario.writes.filter((w) => w.table === "referral_credits"), "nothing claimed, nothing to roll back").toEqual([]);
   });
 });

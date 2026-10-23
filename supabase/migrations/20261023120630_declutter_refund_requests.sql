@@ -61,7 +61,7 @@
 -- ── 1. The switch ─────────────────────────────────────────────────────────
 INSERT INTO public.feature_switches (key, audience, description)
 VALUES ('declutter_refund_requests', 'testers',
-        'Board 141 (Declutter side): within 24 hours of getting an item the buyer asks the seller for a refund; the seller refunds it all, offers part, or says no (Louisiana Helpr decides).')
+        'Board 141, Declutter side: within 24 hours of getting an item the buyer asks the seller for a refund, and the seller refunds it all, offers part, or says no and Louisiana Helpr decides.')
 ON CONFLICT (key) DO NOTHING;
 
 -- ── 2. Refund reasons and policies ────────────────────────────────────────
@@ -342,7 +342,7 @@ AS $fn$
                                                WHERE r.order_id = o.id AND r.status = 'declined'), o.handed_over_at))
                            + interval '10 minutes'
            END
-      FROM public.declutter_orders o WHERE o.id = p_order_id), true);
+      FROM public.declutter_orders o WHERE o.id = p_order_id), false);
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_sale_final(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_sale_final(uuid) TO service_role;
@@ -834,6 +834,10 @@ BEGIN
   SELECT * INTO r FROM public.declutter_refund_requests WHERE id = p_request_id FOR UPDATE;
   IF r.status NOT IN ('open', 'offered') THEN
     RAISE EXCEPTION 'refund_already_answered' USING ERRCODE = '55000';
+  END IF;
+  -- A write like any other: a banned or suspended buyer cannot change the request (Q281 ban gate).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   UPDATE public.declutter_refund_requests SET status = 'withdrawn' WHERE id = r.id;
   PERFORM public.declutter_notify(o.seller_id, 'payment', 'Refund request withdrawn',

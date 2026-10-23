@@ -8,7 +8,7 @@
  *
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql | VALUES ('declutter-handover', 'declutter-handover', false, | VALUES ('declutter-handover', 'declutter-handover', true,
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = p_photo_path) THEN |      OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = p_photo_path) THEN
- * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = v_path) THEN |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = v_path) THEN
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'declutter-handover' AND so.name = v_path) THEN |        OR NOT EXISTS (SELECT 1 FROM storage.objects so WHERE so.bucket_id = 'job-photos' AND so.name = v_path) THEN
  * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |     RETURN split_part(p_name, '/', 1) = v_uid::text\n       AND EXISTS | RETURN EXISTS
  */
 import { describe, expect, it } from "vitest";

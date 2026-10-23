@@ -48,13 +48,13 @@ export interface RefundRequestView {
   request: RefundRequest | null;
 }
 
-function rpcData<T>(result: { data: T; error: { message: string } | null }, rpc: string): T {
+function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
   try {
     unwrap(result);
   } catch (thrown) {
     const e = thrown as Error & { userMessage?: string };
-    const msg = rpcErrorMessage(rpc, thrown);
+    const msg = words(thrown);
     if (msg && Object.isExtensible(e)) e.userMessage = msg;
     throw e;
   }
@@ -64,7 +64,7 @@ function rpcData<T>(result: { data: T; error: { message: string } | null }, rpc:
 export async function fetchRefundRequestView(orderId: string): Promise<RefundRequestView> {
   return rpcData(
     await supabase.rpc("declutter_refund_request_view", { p_order_id: orderId }),
-    "declutter_refund_request_view",
+    (e) => rpcErrorMessage("declutter_refund_request_view", e),
   ) as unknown as RefundRequestView;
 }
 
@@ -72,7 +72,7 @@ export async function fetchRefundRequestView(orderId: string): Promise<RefundReq
 export async function askRefund(orderId: string, reason: RefundReason, note: string): Promise<{ result: string }> {
   return rpcData(
     await supabase.rpc("declutter_ask_refund", { p_order_id: orderId, p_reason: reason, p_note: note }),
-    "declutter_ask_refund",
+    (e) => rpcErrorMessage("declutter_ask_refund", e),
   ) as unknown as { result: string };
 }
 
@@ -84,7 +84,7 @@ export async function answerRefund(
 ): Promise<{ result: string; refund_cents?: number }> {
   return rpcData(
     await supabase.rpc("declutter_answer_refund", { p_request_id: requestId, p_answer: answer, p_offer_cents: offerCents as number }),
-    "declutter_answer_refund",
+    (e) => rpcErrorMessage("declutter_answer_refund", e),
   ) as unknown as { result: string; refund_cents?: number };
 }
 
@@ -92,7 +92,7 @@ export async function answerRefund(
 export async function answerRefundOffer(requestId: string, accept: boolean): Promise<{ result: string }> {
   return rpcData(
     await supabase.rpc("declutter_answer_refund_offer", { p_request_id: requestId, p_accept: accept }),
-    "declutter_answer_refund_offer",
+    (e) => rpcErrorMessage("declutter_answer_refund_offer", e),
   ) as unknown as { result: string };
 }
 
@@ -100,7 +100,7 @@ export async function answerRefundOffer(requestId: string, accept: boolean): Pro
 export async function withdrawRefund(requestId: string): Promise<{ result: string }> {
   return rpcData(
     await supabase.rpc("declutter_withdraw_refund", { p_request_id: requestId }),
-    "declutter_withdraw_refund",
+    (e) => rpcErrorMessage("declutter_withdraw_refund", e),
   ) as unknown as { result: string };
 }
 

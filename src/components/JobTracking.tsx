@@ -1035,8 +1035,7 @@ export function JobTracking({
       if (arrivalErr) {
         const refusal = arrivalRefusalFromError(arrivalErr);
         hapticError();
-        // Stripe Identity first (20261021081258); if the sheet cannot open (ID check off on this device), the error below says so.
-        if (identityRefusal(arrivalErr) && openIdentityCheck("start")) { setUpdating(false); return; }
+        if (identityRefusal(arrivalErr) && openIdentityCheck("start")) { setUpdating(false); return; } // Stripe Identity first (20261021081258); a sheet that cannot open (ID check off) falls to the error below
         if (refusal) {
           // LEGACY ONLY — the live RPC raises none of these any more. A queued
           // request answered by the previous definition still can, and it
@@ -1240,8 +1239,7 @@ export function JobTracking({
         setJobStamps((prev) => ({ ...prev, onTheWayAt: prev.onTheWayAt ?? now }));
       } else if (identityRefusal(otwErr) && openIdentityCheck("start")) {
         // Stripe Identity first (20261021081258): nothing was written; the ID sheet, not a toast.
-        // (If the sheet cannot open, the branch below reports and toasts instead.)
-        hapticError(); setUpdating(false); setTracking(trackingBeforeWrite); return;
+        hapticError(); setUpdating(false); setTracking(trackingBeforeWrite); return; // a sheet that cannot open falls to the branch below, which reports and toasts
       } else if (otwErr.code !== "PGRST202") {
         report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
         hapticError();

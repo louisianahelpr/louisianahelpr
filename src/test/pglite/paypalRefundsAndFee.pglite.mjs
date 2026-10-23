@@ -194,7 +194,7 @@ await expectErr("refused while a payout is HELD", claim(P2, K(JOB2, "admin:d0000
 await expectOk("the payout is cancelled", `update provider_payouts set status='canceled' where payout_transfer_id='${PT[0]}'`);
 
 // reconcile (PAYMENT.CAPTURE.REFUNDED re-read from PayPal)
-const recon = (cap, ref, st, amt, env = "sandbox") => `select public.paypal_refund_reconcile('${env}', '${cap}', '${ref}', '${st}', ${amt}) j`;
+const recon = (cap, ref, st, amt, env = "sandbox", hint = null) => `select public.paypal_refund_reconcile('${env}', '${cap}', '${ref}', '${st}', ${amt}${hint ? `, '${hint}'` : ""}) j`;
 let o = (await jx(recon("CAP1", "REF1", "completed", 9611)));
 check("reconcile a refund we recorded: already", o.outcome === "already", o);
 o = (await jx(recon("CAP-NOT-OURS", "REFX", "completed", 100)));
@@ -212,6 +212,15 @@ check("an outside refund while a payout is queued: refused by the guard, the que
 check("...the payout now reads held", (await one(`select status from provider_payouts where payout_transfer_id='${PT[1]}'`)).status === "held", null);
 o = (await jx(recon("CAP2", "REF-DEAD", "failed", 200)));
 check("a failed refund we never claimed moved no money", o.outcome === "ignored_dead", o);
+
+// two lost answers of the same amount: PayPal's custom_id picks the right claim
+const JOB3 = "b0000000-0000-4000-8000-000000000003";
+await db.exec(`reset role; insert into jobs(id, customer_id, status, payment_status, budget) values ('${JOB3}', '${U.tester}', 'completed', 'escrow', 80); set role service_role`);
+const P3 = await payRow("lh:job:p3:checkout:amt8000:a1", JOB3, 8000, "CAP3");
+const h1 = await jx(claim(P3, K(JOB3, "admin:e0000000-0000-4000-8000-000000000001"), 1000));
+const h2 = await jx(claim(P3, K(JOB3, "admin:e0000000-0000-4000-8000-000000000002"), 1000));
+o = await jx(recon("CAP3", "REF-H2", "completed", 1000, "sandbox", h2.refund_id));
+check("custom_id names the claim: the SECOND same-amount claim takes it, not the oldest", o.outcome === "attached" && (await one(`select provider_refund_id from provider_refunds where id='${h2.refund_id}'`)).provider_refund_id === "REF-H2" && (await one(`select provider_refund_id from provider_refunds where id='${h1.refund_id}'`)).provider_refund_id === null, o);
 
 // ── 3. who can call it ──
 await db.exec("reset role");

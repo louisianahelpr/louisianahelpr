@@ -75,6 +75,7 @@ import {
   type MoneyKind,
   type StripeMode,
 } from "../_shared/stripeMode.ts";
+import { payPalRefundDoorFor } from "../_shared/payments/paypalRefundDoors.ts";
 
 /**
  * What each action does with a job's money (MoneyKind, _shared/stripeMode.ts).
@@ -337,6 +338,13 @@ serve(async (req) => {
     const body = await req.json();
     const isNative = isNativeRequest(body);
     const { action } = body;
+
+    // PayPal Plan A, phase 5: a job paid through PayPal has no PaymentIntent, so the Stripe refund
+    // doors below would read it as "nothing was paid". Before any Stripe call, its admin refund goes
+    // through the PayPal refund engine and its other refund doors refuse it
+    // (_shared/payments/paypalRefundDoors.ts). null = not a PayPal job: the Stripe path as before.
+    const payPalDoor = await payPalRefundDoorFor(supabaseAdmin, user, action, body, corsHeaders);
+    if (payPalDoor) return payPalDoor;
 
     // Stripe mode (owner 2026-10-12, "Test mode for test accounts"): TEST when
     // every party to this payment is a test account, LIVE when none is, and

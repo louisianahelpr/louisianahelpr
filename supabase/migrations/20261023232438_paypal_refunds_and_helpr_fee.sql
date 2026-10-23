@@ -246,7 +246,10 @@ CREATE OR REPLACE FUNCTION public.paypal_refund_reconcile(
   p_capture_id text,
   p_provider_refund_id text,
   p_status text,
-  p_amount_cents bigint
+  p_amount_cents bigint,
+  -- custom_id on the refund (our provider_refunds row id, set by the refund request), when PayPal
+  -- echoes it: matches a lost answer to its exact claim instead of the oldest one of that amount.
+  p_refund_row_hint uuid DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -289,11 +292,11 @@ BEGIN
   END IF;
 
   -- Our own claim whose PayPal answer never came back (timeout): same payment, still pending, no
-  -- PayPal id, same amount. The oldest such claim takes it.
+  -- PayPal id, same amount; the one PayPal names (custom_id) first, else the oldest.
   SELECT * INTO v_ref FROM public.provider_refunds
    WHERE provider_payment_id = v_pay.id AND provider_refund_id IS NULL
      AND status = 'pending' AND amount_cents = p_amount_cents
-   ORDER BY created_at
+   ORDER BY (id IS NOT DISTINCT FROM p_refund_row_hint) DESC, created_at
    LIMIT 1
      FOR UPDATE;
   IF FOUND THEN
@@ -327,8 +330,8 @@ BEGIN
          || jsonb_build_object('outcome', 'recorded_outside', 'payment_id', v_pay.id);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) TO service_role;
 
 -- Cancelled jobs paid through PayPal whose cancel refund has not been claimed yet. The edge sweep
 -- refunds the fee-0 ones; the rest (a late-cancel fee, a crew, a series) wait for their phase.

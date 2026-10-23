@@ -25,7 +25,7 @@
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote)} |         disabled={opening}
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents; |   const payCents = totalCents;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents; |   const payCents = totalCents + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
@@ -48,10 +48,15 @@ const state = {
   opened: [] as string[],
   deliveryOn: false,
   quotes: [] as unknown[],
+  /** Q2352: the one-time account setup fee still owed (useFirstPayoutFeeCents), 0 once paid. */
+  setupFeeCents: 0,
+  /** useFirstPayoutFeeKnown: false while the fee answer is not in (the total then says "+ any setup fee"). */
+  setupFeeKnown: true,
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.deliveryOn }));
+vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("@/lib/declutter/delivery", () => ({
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
@@ -128,6 +133,8 @@ const OFFER = {
 describe("Declutter slice 3 screens", () => {
   beforeEach(() => {
     state.underAge = false;
+    state.setupFeeCents = 0;
+    state.setupFeeKnown = true;
     state.card = null;
     state.bought = 0;
     state.returnWithCard = null;
@@ -325,6 +332,38 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent).toMatch(/You pay with pickup\$32\.20/);
   });
 
+  // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee sees it on its own line
+  // and in "You pay", exactly as declutter-checkout puts it on the page; an account that paid it sees neither.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents; |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         {false && (
+  it("Q2352: the first purchase shows the one-time account setup fee on its own line and in the total", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    state.setupFeeCents = 200;
+    show(<CartView />);
+    expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
+    const bill = document.querySelector("[data-checkout-breakdown]")!;
+    expect(bill.textContent).toMatch(/One-time account setup fee\$2/);
+    expect(bill.textContent).toMatch(/You pay\$10\.05/);
+    expect(screen.getByRole("button", { name: "Pay $10.05" })).toBeInTheDocument();
+    expect(document.querySelector("[data-setup-fee-pending]")).toBeNull();
+    state.setupFeeCents = 0;
+  });
+
+  // lh-money-escrow review of Q2352 #5: until the fee answer is in, the total never reads $2 low without saying so.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {!setupFeeKnown && <span | {false && <span
+  it("Q2352: while the setup fee answer is not in, the total says '+ any setup fee'", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line];
+    state.setupFeeKnown = false;
+    show(<CartView />);
+    expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
+    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$[0-9.]+\+ any setup fee/);
+    state.setupFeeKnown = true;
+  });
+
   it("cart: one checkout per seller with one 5% + 70c fee (F1), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
@@ -339,6 +378,8 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {formatPrice(payCents)}\n |             {formatPrice(itemsTotalCents)}\n
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/You pay\$8\.05/);
+    // Q2352: an account that already paid the setup fee is never shown it.
+    expect(document.querySelector("[data-checkout-setup-fee]")).toBeNull();
     // Board 161: two items, one checkout, the fee once on their total.
     // @mutate src/components/declutter/DeclutterTradeViews.tsx | <dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt> | <dt>Buyer's fee (5% + 70¢)</dt>
     expect(bill.textContent).toMatch(/^2 items\$7Buyer's fee \(5% \+ 70¢, once\)\$1\.05/);

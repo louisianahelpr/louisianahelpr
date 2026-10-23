@@ -19,17 +19,17 @@
  */
 import { featureEnabledForUser, type FeatureSwitchClient, type VerifiedUser } from "./featureSwitch.ts";
 
-export const PAYOUT_SETUP_SWITCH = "payout_setup";
+const PAYOUT_SETUP_SWITCH = "payout_setup";
 
 /** The machine code of the refusal (409). */
-export const PAYOUT_SETUP_PAUSED_CODE = "payout_setup_paused";
+const PAYOUT_SETUP_PAUSED_CODE = "payout_setup_paused";
 
 /**
  * The same words as src/components/payouts/PayoutSetupPausedNotice.tsx
  * (PAYOUT_SETUP_PAUSED_COPY; the guard keeps the two equal), so an old app
  * build that toasts the `error` field still reads the calm notice.
  */
-export const PAYOUT_SETUP_PAUSED_MESSAGE =
+const PAYOUT_SETUP_PAUSED_MESSAGE =
   "Payout setup is paused while our payment provider reviews our account. Your profile and jobs are not affected. We'll let you know when it's back.";
 
 /** The stripe-connect actions that create a Connect account or an Account Link. */

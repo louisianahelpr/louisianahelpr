@@ -22,6 +22,7 @@ import { checkApplicationRate, recordApplicationAttempt } from "@/lib/applyRateL
 import { resolveApplyErrorCopy, isAlreadyAppliedRefusal } from "./applyErrorCopy";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { ApplyVars, ApplySnapshot, DashboardContextSlice } from "./dashboardTypes";
+import type { ApplyTimeSuggestion } from "@/components/dashboard/applyConfirmDialog/ApplyTimeQuestion";
 import { userFacingError } from "@/lib/userFacingError";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isNetworkFailure } from "@/lib/networkFailure";
@@ -43,6 +44,8 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   const [applyMessage, setApplyMessage] = useState("");
   const [applyLoading, setApplyLoading] = useState(false);
   const [applyFiles, setApplyFiles] = useState<File[]>([]);
+  // "Does <day> at <time> work for you?" (owner 2026-10-23): null = yes.
+  const [applyTimeSuggestion, setApplyTimeSuggestion] = useState<ApplyTimeSuggestion | null>(null);
   /** The "Application Sent" pop-up (Q1550); null when closed. */
   const [applicationSent, setApplicationSent] = useState<ApplicationSent | null>(null);
   // Synchronous in-flight guard for handleApplyConfirm (see there).
@@ -138,7 +141,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
   // The file-upload + insert run in the background; on error we restore
   // the snapshots so the job re-appears and the user can retry.
   const applyMutation = useMutation<void, Error & { code?: string }, ApplyVars, ApplySnapshot>({
-    mutationFn: async ({ jobId, helperId, message, files }) => {
+    mutationFn: async ({ jobId, helperId, message, files, suggestion }) => {
       attemptStartedAt.current.set(jobId, Date.now());
       // Q269: is a refusal the echo of our own earlier, lost attempt? Only if
       // the earlier outcome was unknown AND the row now on the server is a
@@ -212,10 +215,22 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
       // `Args` type renders every parameter non-null (`p_message: string`), so
       // it cannot express that; only this ONE argument is widened, and the RPC
       // name, the other argument and the `string` return stay checked.
-      const { data: rpcData, error: rpcError } = await supabase.rpc("apply_to_job", {
-        p_job_id: jobId,
-        p_message: (message.trim() || null) as string,
-      });
+      // A suggested day/time (owner 2026-10-23) goes through apply_to_job_with_time,
+      // which runs this same apply and stores the suggestion in one
+      // transaction (20261023134752); without one, the 2-argument call as before.
+      // nullable-arg: p_suggested_time is NULL for a day-only suggestion (the job's
+      // own start time on that day), which the generated Args type cannot express.
+      const { data: rpcData, error: rpcError } = suggestion
+        ? await supabase.rpc("apply_to_job_with_time", {
+            p_job_id: jobId,
+            p_message: (message.trim() || null) as string,
+            p_suggested_date: suggestion.date,
+            p_suggested_time: suggestion.time as string,
+          })
+        : await supabase.rpc("apply_to_job", {
+            p_job_id: jobId,
+            p_message: (message.trim() || null) as string,
+          });
       void rpcData; // UUID returned but not currently used.
       // The RPC does not take attachments; they are patched onto the row below.
       // The row to patch. Null means "the row this call just created", found by
@@ -225,7 +240,8 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         // Rate limit errors from apply_to_job come back as PostgrestError with
         // .message = "rate_limit_minute" / "rate_limit_hour" / "rate_limit_day".
         // Convert them to a RATE_LIMITED throw so onError can toast the right copy.
-        const rateLimited = rpcErrorMessage("apply_to_job", rpcError);
+        const rateLimited =
+          (suggestion ? rpcErrorMessage("apply_to_job_with_time", rpcError) : null) ?? rpcErrorMessage("apply_to_job", rpcError);
         if (rateLimited) {
           throw Object.assign(new Error(rateLimited), { code: "RATE_LIMITED" });
         }
@@ -448,12 +464,15 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     if (!user || !jobId || applyLoading || applyInFlight.current) return;
     const files = applyFiles;
     const message = applyMessage;
+    // Only an answer given on THIS job's sheet (ApplyTimeQuestion keys it by job).
+    const suggestion = applyTimeSuggestion?.jobId === jobId ? { date: applyTimeSuggestion.date, time: applyTimeSuggestion.time } : null;
     // Close the dialog + reset its state synchronously so the next paint
     // already has the optimistic feed. The mutation continues in the
     // background; React Query's onError rolls things back on failure.
     setConfirmApplyJobId(null);
     setApplyMessage("");
     setApplyFiles([]);
+    setApplyTimeSuggestion(null);
     // setApplyLoading flips off on settled (handled below) — we still
     // set it true here so a fast double-tap can't enqueue twice.
     setApplyLoading(true);
@@ -463,10 +482,10 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     // slow-network run 35936336468 (Q324). Say it is sending until it settles.
     toast.loading("Sending your application…", { id: APPLY_PENDING_TOAST_ID });
     applyMutation.mutate(
-      { jobId, helperId: user.id, message, files },
+      { jobId, helperId: user.id, message, files, suggestion },
       { onSettled: () => { applyInFlight.current = false; setApplyLoading(false); toast.dismiss(APPLY_PENDING_TOAST_ID); } },
     );
-  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyMutation]);
+  }, [user, confirmApplyJobId, confirmApplyJob, applyLoading, applyFiles, applyMessage, applyTimeSuggestion, applyMutation]);
 
   return {
     applicationSent,
@@ -480,6 +499,8 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     applyLoading,
     applyFiles,
     setApplyFiles,
+    applyTimeSuggestion,
+    setApplyTimeSuggestion,
     handleApplyRequest,
     handleApplyConfirm,
   };

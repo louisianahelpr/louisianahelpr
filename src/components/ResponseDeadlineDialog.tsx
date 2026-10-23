@@ -44,6 +44,10 @@ type Props = {
     recurrence_days?: number[] | null;
     payment_status?: string | null;
   } | null;
+  /** The day/time this applicant suggested when applying (owner 2026-10-23). Hiring them agrees to it:
+   *  the dialog says so plainly before the button, and the server moves the job
+   *  (accept_application_at_suggested_time, 20261023134752). null = they said the job's time works. */
+  suggestedTime?: { date: string; time: string | null } | null;
   /** Board 29: who is being hired, as the applicant card already has it (no new read). */
   helper?: { userId?: string | null; avatarUrl?: string | null; idVerified?: boolean | null; avgRating?: number | null; reviewCount?: number | null } | null;
 };
@@ -58,7 +62,19 @@ const deadlineOptions = [
   { value: "48", label: "48 hours" },
 ];
 
-export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job, helper }: Props) => {
+export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, job: postedJob, helper, suggestedTime }: Props) => {
+  // Hiring someone who suggested another day/time agrees to it, so everything below (the
+  // "when" line, the answer-by clamp to the start) reads the job as it will be once hired.
+  const job = postedJob && suggestedTime
+    ? { ...postedJob, date_needed: suggestedTime.date, start_time: suggestedTime.time ?? postedJob.start_time ?? null }
+    : postedJob;
+  // Built from the suggestion alone too, so the note never hides when the job row is missing.
+  const suggestedLabel = suggestedTime
+    ? [formatJobDate(suggestedTime.date), suggestedTime.time ? jobStartTimeLabel(suggestedTime.time) : null].filter(Boolean).join(" at ")
+    : null;
+  const postedWhen = postedJob?.date_needed
+    ? [formatJobDate(postedJob.date_needed), jobStartTimeLabel(postedJob.start_time, postedJob.is_flexible_schedule)].filter(Boolean).join(" at ")
+    : null;
   const first = helperName.trim().split(/\s+/)[0] || helperName;
   // The job price shown only when it is the whole charge for this Helpr: not a crew (split) and no
   // urgent bonus on top (truth rule: never a number that isn't what was paid for this hire).
@@ -173,6 +189,21 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+          {suggestedTime && (when || suggestedLabel) && (
+            <div
+              role="note"
+              className="rounded-ds-md border-2 p-3 font-sans text-ds-14 text-foreground"
+              style={{ borderColor: "hsl(var(--bark) / 0.5)", background: "hsl(var(--bark) / 0.06)" }}
+              data-hire-agrees-to-suggestion=""
+            >
+              <p className="font-semibold">Since you&rsquo;re hiring {them}, you&rsquo;re also agreeing to their suggested time:</p>
+              <p className="mt-1 text-ds-16 font-bold">{when ? when.replace(" · ", " at ") : suggestedLabel}</p>
+              <p className="mt-1 text-ds-13 text-muted-foreground">
+                {postedWhen ? `Your job moves from ${postedWhen} to this time when you send the offer. ` : "Your job moves to this time when you send the offer. "}
+                It keeps the new time even if they don&rsquo;t accept.
+              </p>
             </div>
           )}
           {funded && (
@@ -297,7 +328,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
         <DialogFooter>
           <DialogSecondaryAction onClick={handleClose} disabled={submitting}>Cancel</DialogSecondaryAction>
           <DialogPrimaryAction onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Sending…" : "Send offer"}
+            {submitting ? "Sending…" : suggestedTime ? "Agree and send offer" : "Send offer"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

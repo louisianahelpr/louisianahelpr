@@ -18,6 +18,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import type { ApplyConfirmDialogProps } from "./types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
+import { ApplyTimeQuestion, canSuggestATime } from "./ApplyTimeQuestion";
 import { formatPrice } from "@/lib/format";
 import {
   MAX_PITCH_LENGTH,
@@ -81,6 +82,8 @@ export function ApplyBody({
   confirmApplyJob,
   platformFee,
   applyMessage,
+  applyTimeSuggestion,
+  setApplyTimeSuggestion,
   setApplyMessage,
   applyLoading,
   handleApplyConfirm,
@@ -281,6 +284,15 @@ export function ApplyBody({
 
       {confirmApplyJob && !hideEarnings && (
         <ApplyEarningsBreakdown confirmApplyJob={confirmApplyJob} platformFee={platformFee} />
+      )}
+
+      {confirmApplyJob && setApplyTimeSuggestion && canSuggestATime(confirmApplyJob) && (
+        <ApplyTimeQuestion
+          job={confirmApplyJob}
+          value={applyTimeSuggestion ?? null}
+          onChange={setApplyTimeSuggestion}
+          disabled={applyLoading}
+        />
       )}
 
       <div className="space-y-1.5">

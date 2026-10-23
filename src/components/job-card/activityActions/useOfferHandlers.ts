@@ -225,8 +225,19 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     // counts the roster inside the job's row lock, inserts the slot, and holds
     // the job 'open' until the final slot is filled.
     const isGroupJob = !!(selectedJob as { is_group_job?: boolean }).is_group_job;
+    // An applicant who suggested another day/time (owner 2026-10-23): hiring them
+    // agrees to it. The dialog said so before Send; this RPC moves the job to that
+    // day/time and hires in one transaction (20261023134752). The plain accept is
+    // refused for them (suggested_time_not_agreed), so this is the only way.
+    const agreesToSuggestion = !isGroupJob && !!deadlineDialogApp.suggested_date;
     const { error } = isGroupJob
       ? await supabase.rpc("accept_group_application", {
+          p_application_id: deadlineDialogApp.id,
+          p_deadline: deadline,
+          p_offer_message: initialMessage ?? undefined,
+        })
+      : agreesToSuggestion
+      ? await supabase.rpc("accept_application_at_suggested_time", {
           p_application_id: deadlineDialogApp.id,
           p_deadline: deadline,
           p_offer_message: initialMessage ?? undefined,
@@ -266,11 +277,18 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       throw new Error(
         (isGroupJob
           ? rpcErrorMessage("accept_group_application", error)
+          : agreesToSuggestion
+          ? rpcErrorMessage("accept_application_at_suggested_time", error)
           : rpcErrorMessage("accept_application", error)) ??
           // Q1586(c): the database refused this Helpr (trg_*_refuse_under_18);
           // the poster is never told why (no age), and retrying cannot help.
           (/helper_unavailable/.test(String((error as { message?: unknown }).message ?? ""))
             ? "This Helpr can't take this job. Pick someone else."
+            : null) ??
+          // Raised by a TRIGGER, so no RPC's copy table can hold it (20261023134752): the plain hire of an
+          // applicant who suggested another day/time (an older screen that could not show it).
+          (/suggested_time_not_agreed/.test(String((error as { message?: unknown }).message ?? ""))
+            ? "This applicant suggested a different day or time. Refresh, then hire them to agree to it."
             : null) ??
           "Couldn't send the offer — please try again.",
       );

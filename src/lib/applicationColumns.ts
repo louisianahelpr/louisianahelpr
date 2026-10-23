@@ -40,6 +40,8 @@ export const APPLICATION_READABLE_COLUMN_LIST = [
   "stake_amount",
   "stake_status",
   "status",
+  "suggested_date",
+  "suggested_start_time",
   "updated_at",
 ] as const;
 
@@ -54,7 +56,7 @@ export const APPLICATION_READABLE_COLUMNS: string = APPLICATION_READABLE_COLUMN_
  * without them; a row read that way has the flag undefined, which the cards
  * treat as not flagged, which is what that older database means anyway.
  */
-export const APPLICATION_COLUMNS_AHEAD_OF_DB = ["offer_message_flagged_hidden"] as const;
+export const APPLICATION_COLUMNS_AHEAD_OF_DB = ["offer_message_flagged_hidden", "suggested_date", "suggested_start_time"] as const;
 
 const APPLICATION_READABLE_COLUMNS_BEHIND_DB: string = APPLICATION_READABLE_COLUMN_LIST
   .filter((c) => !(APPLICATION_COLUMNS_AHEAD_OF_DB as readonly string[]).includes(c))

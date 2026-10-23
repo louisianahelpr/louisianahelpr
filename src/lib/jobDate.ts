@@ -210,7 +210,10 @@ export function jobStartTimeLabel(
   }
   const period = hour >= 12 ? "PM" : "AM";
   const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-  return `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
+  const clock = `${hour12}:${String(minute).padStart(2, "0")} ${period}`;
+  // A set hour AND the Flexible tick are both true, so both show (owner 2026-10-23: Helprs never saw
+  // "Flexible" on a job with a start time; only the poster's own checkout printed it).
+  return isFlexibleSchedule ? `${clock} · ${FLEXIBLE_TIME_LABEL}` : clock;
 }
 
 /**

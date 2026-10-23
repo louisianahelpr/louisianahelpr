@@ -255,6 +255,11 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
           helperName={formatName(props.deadlineDialogApp.profiles?.full_name, "Helpr")}
           onConfirm={props.onDeadlineConfirm}
           job={props.deadlineJob ?? null}
+          suggestedTime={
+            props.deadlineDialogApp.suggested_date
+              ? { date: props.deadlineDialogApp.suggested_date, time: props.deadlineDialogApp.suggested_start_time ?? null }
+              : null
+          }
           helper={{
             userId: props.deadlineDialogApp.profiles?.user_id ?? props.deadlineDialogApp.helper_id,
             avatarUrl: props.deadlineDialogApp.profiles?.avatar_url ?? null,

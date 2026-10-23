@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import type { ApplyTimeSuggestion } from "./ApplyTimeQuestion";
 
 export interface ApplyConfirmDialogProps {
   /** Whether the dialog is open — true once a feed job has been picked. */
@@ -17,6 +18,10 @@ export interface ApplyConfirmDialogProps {
   setApplyFiles: Dispatch<SetStateAction<File[]>>;
   /** True while the application is being submitted — disables the controls. */
   applyLoading: boolean;
+  /** The Helpr's answer to "Does <day> at <time> work for you?": null = yes (owner 2026-10-23).
+   *  Optional so a host that predates the question still renders (it then never asks). */
+  applyTimeSuggestion?: ApplyTimeSuggestion | null;
+  setApplyTimeSuggestion?: (value: ApplyTimeSuggestion | null) => void;
   /** Submits the application. */
   handleApplyConfirm: () => void;
 }

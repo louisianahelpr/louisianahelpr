@@ -64,7 +64,16 @@ export interface CaptureResult {
   feeCents: number | null;
   /** Saved-card token, when the checkout asked to save the card. */
   vaultId: string | null;
+  /**
+   * Which payment source the vault token belongs to (phase 6). A PayPal-wallet token must be
+   * charged as payment_source.paypal, a card token as payment_source.card; the wrong one is a
+   * PayPal error, never a charge. Null when there is no vault token.
+   */
+  vaultSource?: VaultSource | null;
 }
+
+/** The payment source a saved PayPal vault token was made from. */
+export type VaultSource = "card" | "paypal";
 
 export interface RefundResult {
   providerRefundId: string;
@@ -80,7 +89,8 @@ export interface PaymentProvider {
   readonly env: ProviderEnv;
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutCreated>;
   capture(idempotencyKey: string, providerOrderId: string): Promise<CaptureResult>;
-  chargeSaved(input: { idempotencyKey: string; referenceId: string; vaultId: string; amountCents: number }): Promise<CaptureResult>;
+  /** A merchant-initiated charge of a saved method (repeat visits, auto-tip). `vaultSource` defaults to "card". */
+  chargeSaved(input: { idempotencyKey: string; referenceId: string; vaultId: string; amountCents: number; vaultSource?: VaultSource }): Promise<CaptureResult>;
   refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string }): Promise<RefundResult>;
 }
 

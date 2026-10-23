@@ -515,6 +515,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   // stays out is who on staff wrote or applied them, and records that are the
   // staff's own rather than the person's.
   "admin_audit_log.admin_id": { reason: "staff action log, keyed by the staff member" },
+  "job_approval_escalations.resolved_by": { reason: "the staff member who closed a job waiting on approval (20261023143240); the job is the poster's and the Helpr's, exported with their jobs, and the close is in admin_audit_log" },
   "job_payout_holds.held_by": { reason: "Q1491: the staff member who placed a JOB payout hold (NULL when stripe-webhook placed it); a server-only money-control row about the job, not the person's own data" },
   "shop_hand_refunds.recorded_by": { reason: "the staff member who recorded a Shops refund made by hand in Stripe (NULL when stripe-webhook recorded it; Shops M3, 20261019071055); a server-only money-control row about the order, not the person's own data" },
   "series_platform_ends.admin_id": { reason: "the staff member who ended a series (Q1735); the series is the poster's, exported with their jobs" },

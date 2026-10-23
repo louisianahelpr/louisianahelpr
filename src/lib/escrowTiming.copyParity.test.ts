@@ -3,8 +3,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import {
-  COPY_AUTO_RELEASE_HOURS,
-  TOTAL_TO_PAYOUT_HOURS,
+  APPROVAL_WINDOW_HOURS,
 } from "../../supabase/functions/_shared/escrowTiming";
 
 /**
@@ -115,8 +114,8 @@ function scanHardcodedHours(): Hit[] {
  * echoing, so the assertions below can pin it there.
  *
  *   escrow  — the one-sided-completion window. A CONSTANT exists
- *             (COPY_AUTO_RELEASE_HOURS / PAYOUT_HOLD_HOURS /
- *             TOTAL_TO_PAYOUT_HOURS) so NOTHING may be on this list under this
+ *             (APPROVAL_WINDOW_HOURS / STANDARD_PAYOUT_PHRASE) so NOTHING may
+ *             be on this list under this
  *             kind: every escrow site interpolates, and the test below asserts
  *             the derivation rather than pinning a literal.
  *   dispute — the formal dispute / revision window. Enforced in SQL as
@@ -133,8 +132,8 @@ const EXPECTED: Array<{ file: string; kind: "escrow" | "dispute" | "remind"; cou
   { file: "src/pages/posts/postedJobCard/steps/DisputedStep.tsx", kind: "dispute", count: 1 },
   // The Help Center's remaining literal is the 72h DISPUTE window, not the
   // escrow clock. Its escrow answer used to be here under kind "escrow" with
-  // the numbers 24/24 hand-typed; it now interpolates COPY_AUTO_RELEASE_HOURS
-  // and PAYOUT_HOLD_HOURS, so it produces no literal at all and the
+  // the numbers 24/24 hand-typed; it now interpolates APPROVAL_WINDOW_HOURS
+  // and STANDARD_PAYOUT_PHRASE, so it produces no literal at all and the
   // derivation test below is what guards it.
   { file: "src/pages/info/helpCenter/helpCenterContent.ts", kind: "dispute", count: 1 },
   { file: "src/pages/info/legal/CommunitySection.tsx", kind: "dispute", count: 1 },
@@ -192,7 +191,7 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     // catch the drift BEFORE the constant moves rather than after.
     //
     // It also failed for a reason worth recording: it demanded the pair
-    // [COPY_AUTO_RELEASE_HOURS, TOTAL_TO_PAYOUT_HOURS] = [24, 48], but the copy
+    // the pair [24, 48] (the old auto-complete + hold), but the copy
     // states the second leg as a DELTA ("…about 24 hours after that"), matching
     // the push that auto-release-payment sends for the same event
     // (index.ts:302-303, 315-316). Both sentences were true; the guard could
@@ -205,16 +204,17 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
         "has been hardcoded again, and is now free to drift from the cron and from the " +
         "push notification the same event sends",
     ).toMatch(/_shared\/escrowTiming/);
-    for (const constant of ["COPY_AUTO_RELEASE_HOURS", "PAYOUT_HOLD_HOURS"]) {
+    // Owner 2026-10-23: the answer states the approval window and the payout schedule (sent
+    // STANDARD_PAYOUT_PHRASE after the approval), never an auto-release; both come from escrowTiming.ts.
+    for (const constant of ["APPROVAL_WINDOW_HOURS", "STANDARD_PAYOUT_PHRASE"]) {
       expect(
         help,
         `helpCenterContent.ts stopped interpolating ${constant}. The "What if a poster ` +
-          `doesn't confirm completion?" answer states both legs of the schedule ` +
-          `(${COPY_AUTO_RELEASE_HOURS}h to act, then a further hold; ` +
-          `${TOTAL_TO_PAYOUT_HOURS}h in total to funds) and both must come from ` +
-          `escrowTiming.ts.`,
+          `doesn't confirm completion?" answer states the ${APPROVAL_WINDOW_HOURS}h approval window and ` +
+          `when the payout is sent, and both must come from escrowTiming.ts.`,
       ).toContain(constant);
     }
+    expect(help, "the Help Center promises an auto-release again").not.toMatch(/auto-?completes and payment releases/);
   });
 
   it("the 72-hour dispute/revision literals equal the SQL interval that enforces them", () => {
@@ -286,7 +286,7 @@ describe("escrow/dispute/revision windows — copy must not restate the clock", 
     // This used to read the delay with `/(\d+) \* 60 \* 60 \* 1000/`. That
     // shape is gone from the file: the two real cutoffs are computed from
     // NAMED constants (`REMIND_AFTER_HOURS * 60 * 60 * 1000`,
-    // `AUTO_COMPLETE_HOURS * 60 * 60 * 1000`), which `\d+` cannot match. The
+    // `APPROVAL_WINDOW_HOURS * 60 * 60 * 1000`), which `\d+` cannot match. The
     // first — and only — literal digit sequence in that shape belongs to the
     // SEVEN-DAY observability lookback, `7 * 24 * 60 * 60 * 1000`, so the regex
     // captured `24` out of a window that has nothing to do with reminders and

@@ -96,7 +96,9 @@ describe("auto-release-payment ?include_seed=1", () => {
       platform_fee_amount: 12,
       urgent_fee: 0,
       helper_fee_percent: 12,
-      poster_completed_at: null,
+      // The poster approved (owner 2026-10-23: only an approved job reaches the capture check; an
+      // unapproved one is escalated to Helpr support and never verified or released).
+      poster_completed_at: new Date(Date.now() - 26 * 3600e3).toISOString(),
       helper_completed_at: new Date(Date.now() - 48 * 3600e3).toISOString(),
       stripe_session_id: "cs_1",
       stripe_payment_intent_id: "pi_1",

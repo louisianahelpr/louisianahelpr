@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 // This is checkout copy — a legally load-bearing promise about when money
 // moves — so it must follow the config the cron actually enforces. Imported
 // straight from the Deno _shared module, the same pattern the parity tests use.
-import { COPY_AUTO_RELEASE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { Button } from "@/components/ui/button";
 import {
   Share2,
@@ -488,7 +488,7 @@ const PaymentSuccess = () => {
               {/* mt-3: the space-y-3 gap the hidden eyebrow gave it (Q1129). */}
               <PaymentLifecycleSteps current={lifecycleStep} />
               <p className="text-ds-11 font-sans leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                If one side confirms and the other doesn't respond within {COPY_AUTO_RELEASE_HOURS} hours, the job auto-completes and payment is released automatically.
+                Nothing is released until you approve the work. If you haven't answered within {APPROVAL_WINDOW_HOURS} hours of your Helpr marking it done, Helpr support will reach out.
               </p>
             </div>
           </>

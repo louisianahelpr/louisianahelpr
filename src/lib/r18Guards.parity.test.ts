@@ -9,7 +9,7 @@
 // reading the real source (module export, edge source text, or migration SQL)
 // rather than restating the number in the test. A test that restates the
 // constant it is guarding proves nothing: escrowTiming.parity.test.ts did
-// exactly that, asserting `AUTO_COMPLETE_HOURS === 48` against a comment
+// exactly that, asserting `APPROVAL_WINDOW_HOURS === 48` against a comment
 // quoting the cron, so the cron could change and every test still passed.
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -20,8 +20,8 @@ import { STRIPE_PCT, STRIPE_FLAT_CENTS } from "@/lib/stripeFees";
 // Edge config that is plain TS (no Deno imports at module scope), imported
 // directly — the same pattern escrowTiming.parity.test.ts already uses.
 import {
-  AUTO_COMPLETE_HOURS,
-  PAYOUT_HOLD_HOURS,
+  APPROVAL_WINDOW_HOURS,
+  STANDARD_PAYOUT_HOURS_AFTER_APPROVAL,
 } from "../../supabase/functions/_shared/escrowTiming";
 
 const FUNCTIONS_DIR = join(process.cwd(), "supabase", "functions");
@@ -94,24 +94,19 @@ describe("R18 — money duplications that had no guard", () => {
   // asserted the constants against literals restated in the test body, with
   // the cron quoted only in a comment — so changing the cron left every test
   // green. This reads the cron's own arithmetic back out.
+  // Owner 2026-10-23: the cutoff is the poster's APPROVAL window, read from the shared constant (past it an
+  // unapproved job is escalated, never paid), and the payout time comes from the shared function anchored on
+  // the poster's approval. A literal hour count in the cron is the drift this catches.
+  // @mutate supabase/functions/auto-release-payment/index.ts | const cutoff = new Date(Date.now() - hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString(); | const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   it("escrowTiming matches the arithmetic auto-release-payment actually runs", () => {
     const cron = readFn("auto-release-payment/index.ts");
     const hoursInSource = [...cron.matchAll(/(\d+)\s*\*\s*60\s*\*\s*60\s*\*\s*1000/g)]
       .map((m) => Number(m[1]));
-
-    expect(
-      hoursInSource.length,
-      "auto-release-payment no longer expresses its cutoff as N * 60 * 60 * 1000 — " +
-        "update this guard to read whatever replaced it, do not delete it",
-    ).toBeGreaterThanOrEqual(1);
-
-    expect(hoursInSource).toContain(AUTO_COMPLETE_HOURS);
-    // Q202: the payout time is no longer a literal. It is 3 days after the job
-    // was marked done, from the shared function (PAYOUT_HOLD_HOURS after an
-    // auto-complete). A literal `+ N * 60 * 60 * 1000` payout time is the drift.
-    expect(cron).toMatch(/const payoutTime = standardPayoutAtIso\(job\.helper_completed_at\);/);
-    expect(hoursInSource.filter((h) => h !== AUTO_COMPLETE_HOURS)).toEqual([]);
-    expect(PAYOUT_HOLD_HOURS).toBe(48);
+    expect(hoursInSource, "auto-release-payment restates an hour count instead of escrowTiming").toEqual([]);
+    expect(cron).toMatch(/const cutoff = new Date\(Date\.now\(\) - hoursToMs\(APPROVAL_WINDOW_HOURS\)\)\.toISOString\(\);/);
+    expect(cron).toMatch(/const payoutTime = standardPayoutAtIso\(instantIds\.has\(job\.id\) \? null : job\.poster_completed_at\);/);
+    expect(APPROVAL_WINDOW_HOURS).toBe(24);
+    expect(STANDARD_PAYOUT_HOURS_AFTER_APPROVAL).toBe(72);
   });
 
   // ── 3. Stripe's cut, hardcoded a third time in SQL ─────────────────────

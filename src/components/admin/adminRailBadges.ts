@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { isMissingRpc } from "@/components/admin/adminStalledJobs/stalledQueue";
 import type { Stats } from "@/components/admin/dashboard/types";
 
 /**
@@ -49,7 +50,14 @@ export function useStalledQueueCount(enabled: boolean) {
     queryKey: ["admin-stalled-job-queue", "rail-count"],
     queryFn: async () => {
       const res = await supabase.rpc("admin_stalled_job_queue", { p_include_resolved: false });
-      const rows = unwrap(res) ?? [];
+      const stalledRows = unwrap(res) ?? [];
+      // Owner 2026-10-23: the same screen lists jobs waiting on the poster's approval
+      // (AdminApprovalEscalations), so the rail counts both. Until 20261023143240 reaches the database the
+      // second RPC is missing (PGRST202, no hint): counted as none, never as a failure of the first.
+      const appr = await supabase.rpc("admin_approval_escalation_queue", { p_include_resolved: false });
+      // Only the ones still waiting on a person (the poster may have approved since; lh-money-escrow review #5).
+      const approvalRows = (appr.error && isMissingRpc(appr.error) ? [] : (unwrap(appr) ?? [])).filter((r) => r.still_waiting === true);
+      const rows: Array<{ customer_id: string | null; helper_id: string | null }> = [...stalledRows, ...approvalRows];
       const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id]));
       return rows.filter((r) => !seed.has(r.customer_id ?? "") && !seed.has(r.helper_id ?? "")).length;
     },

@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState, type RefObject } from "rea
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Check, Camera, CreditCard, Headset, Lock, MapPin, ShieldCheck, Wallet, type LucideIcon } from "lucide-react";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
-import { AUTO_COMPLETE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 import { useSectionsOpen, sectionIsComingSoon } from "./useSectionsOpen";
 import { goSignedInOr } from "./goSignedInOr";
 
@@ -19,7 +19,8 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
  *
  * Copy states only what the app does today (lead, LANDING-APPROVED.md): no
  * price-drop timing, no fee or speed figures beyond the real rules
- * (AUTO_COMPLETE_HOURS is the cron's own number), photo proof as the poster's
+ * (APPROVAL_WINDOW_HOURS is the cron's own number: past it Helpr support steps in, nothing
+ * releases on a timer, owner 2026-10-23), photo proof as the poster's
  * per-job choice (photoProofRequired), no other company or vendor named, and
  * copy for both sides (design spec v2 §1.4, §1.7). All four cards are equal.
  */
@@ -181,7 +182,7 @@ const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; done?: boole
   {
     icon: Check,
     title: "Approved, then released",
-    body: `The person hiring has up to ${AUTO_COMPLETE_HOURS} hours to approve the work or ask for a change. If something goes wrong, a real person on our team steps in.`,
+    body: `Nothing is paid until the person hiring approves the work or asks for a change. If they haven't answered in ${APPROVAL_WINDOW_HOURS} hours, a real person on our team steps in.`,
     done: true,
   },
 ];

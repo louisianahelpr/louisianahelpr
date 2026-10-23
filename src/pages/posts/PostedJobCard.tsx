@@ -614,8 +614,8 @@ function PostedJobCardInner({
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}
-                          expiredText="Acceptance deadline passed — payment releasing to Helpr"
-                          consequenceText="Accept the fix, or dispute. If no action is taken, payment auto-releases to the Helpr."
+                          expiredText="Acceptance deadline passed — Helpr support will reach out. Your payment stays held."
+                          consequenceText="Accept the fix, or dispute. If you haven't answered by then, Helpr support steps in. Your payment stays held until the job is approved."
                           variant="warning"
                         />
                       )}

@@ -8,7 +8,7 @@ import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { subscribeWithRecovery } from "@/lib/realtimeRecovery";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { COPY_AUTO_RELEASE_HOURS } from "../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { haversineMiles } from "@/lib/geo";
 import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText, AlertTriangle, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -1192,7 +1192,7 @@ export function JobTracking({
             tags: { source: "JobTracking.finishRelease" },
             context: { jobId },
           });
-          toast.warning("Marked done. The person who posted this job already approved, but we couldn't start your payout just now — it releases automatically unless something needs a look. Pull to refresh.", { duration: 8000 });
+          toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Pull to refresh.", { duration: 8000 });
         } else {
           // Analytics (Q222): the Helpr's Done finished a job the poster had
           // already approved. Once per job.
@@ -2055,7 +2055,7 @@ export function JobTracking({
                 secondaryLabel="Cancel"
               >
                 <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood))" }}>
-                  The person who posted this job gets {COPY_AUTO_RELEASE_HOURS} hours to approve the work or ask for a change. If they don’t answer, your payment releases to you automatically. You can’t take this back from here.
+                  The person who posted this job approves the work or asks for a change. If they haven’t answered in {APPROVAL_WINDOW_HOURS} hours, Helpr support steps in. Your payment stays held safely until the job is approved. You can’t take this back from here.
                 </p>
               </BrandConfirmDialog>
             )}

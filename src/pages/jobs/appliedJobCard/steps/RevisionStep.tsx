@@ -76,8 +76,8 @@ export function RevisionStep({
           {job.revision_acceptance_deadline && (
             <DeadlineCountdown
               deadline={job.revision_acceptance_deadline}
-              expiredText="No response — payment auto-releasing"
-              consequenceText="If the person who posted this job doesn't accept or dispute, payment auto-releases to you."
+              expiredText="No response — Helpr support is stepping in. Your payment stays held."
+              consequenceText="If the person who posted this job doesn't accept or dispute by then, Helpr support steps in. Your payment stays held until the job is approved."
               variant="warning"
             />
           )}

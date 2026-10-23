@@ -273,6 +273,10 @@ export const ADMIN_RPC_ERROR_COPY = {
     listing_not_found: "That take-down was already lifted. Refresh the list.",
     photos_purging: "Its photos are being deleted right now (30 days after the take-down). Try again in 15 minutes; any photo already gone must be added again by the owner.",
   },
+  // Owner 2026-10-23: the approval queue's "Mark reviewed" (20261023143240).
+  resolve_approval_escalation: {
+    not_authorized: "Only an admin can close a job waiting on approval.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

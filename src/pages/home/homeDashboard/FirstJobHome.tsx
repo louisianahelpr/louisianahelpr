@@ -166,7 +166,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
       <section aria-label="How you get paid" className="liquid-glass p-card flex flex-col gap-1">
         <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
         <p className="text-ds-13 text-muted-foreground">
-          The person who posts the job pays when they hire you. It's held, then released when they confirm the job is done:
+          The person who posts the job pays when they hire you. It's held, and released only when they approve the work:
           it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Helpr keeps {HELPR_FLAT_FEE_PHRASE} of a job, and your payout is rounded down to the whole dollar (Helpr keeps the cents; tips are paid in full).
         </p>
       </section>

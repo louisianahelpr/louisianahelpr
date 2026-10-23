@@ -196,6 +196,15 @@ export const RPC_ERROR_COPY = {
     job_starts_too_soon: JOB_STARTS_TOO_SOON_COPY,
     invalid_deadline: "That answer-by time has already passed. Pick a longer window and try again.",
   },
+  // Hiring an applicant at the day/time they suggested (owner 2026-10-23, 20261023134752).
+  accept_application_at_suggested_time: {
+    ...ACCEPT_REASONS,
+    job_starts_too_soon: JOB_STARTS_TOO_SOON_COPY,
+    invalid_deadline: "That answer-by time has already passed. Pick a longer window and try again.",
+    no_suggested_time: "This applicant didn't suggest a different time. Close this and hire them as usual.",
+    suggestion_not_allowed: "This job now keeps one time for everyone, so their suggested time can't be used. Message them about your time instead.",
+    suggestion_too_soon: "Their suggested time is less than 2 hours away. Message them to pick a later time, or hire someone else.",
+  },
   accept_group_application: {
     job_starts_too_soon: JOB_STARTS_TOO_SOON_COPY,
     ...ACCEPT_REASONS,
@@ -294,6 +303,18 @@ export const RPC_ERROR_COPY = {
     rate_limit_day: "You've hit today's application limit — check back tomorrow.",
     // Q1586(c), 20261013010621: a saved birthday under 18.
     under_18: UNDER_18_APPLY_COPY,
+  },
+  // "Suggest another time" on the apply sheet (owner 2026-10-23, 20261023134752). Its own refusals
+  // only; everything apply_to_job raises inside it is read through apply_to_job's copy at the call site.
+  apply_to_job_with_time: {
+    // Raised by the apply_to_job it runs inside (same words as apply_to_job's).
+    rate_limit_minute: "Slow down — you can apply again in a minute.",
+    rate_limit_hour: "You've applied to a lot of jobs this hour — try again in a bit.",
+    rate_limit_day: "You've hit today's application limit — check back tomorrow.",
+    under_18: UNDER_18_APPLY_COPY,
+    suggestion_not_allowed: "This job keeps one time for everyone, so a different time can't be suggested. Choose \"Yes, that works\" to apply.",
+    suggestion_date_invalid: "Pick a day from today to 90 days out for the time you suggest.",
+    suggestion_same_as_job: "That's the job's own day and time. Choose \"Yes, that works\" instead.",
   },
   // CancellationDialog.
   poster_cancel_job: {

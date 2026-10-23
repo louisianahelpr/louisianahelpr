@@ -147,6 +147,8 @@ export type Database = {
           poster_viewed_at: string | null
           stake_amount: number | null
           stake_status: string | null
+          suggested_date: string | null
+          suggested_start_time: string | null
           status: Database["public"]["Enums"]["application_status"]
           updated_at: string
         }
@@ -171,6 +173,8 @@ export type Database = {
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null
+          suggested_date?: string | null
+          suggested_start_time?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -195,6 +199,8 @@ export type Database = {
           poster_viewed_at?: string | null
           stake_amount?: number | null
           stake_status?: string | null
+          suggested_date?: string | null
+          suggested_start_time?: string | null
           status?: Database["public"]["Enums"]["application_status"]
           updated_at?: string
         }
@@ -11601,6 +11607,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      accept_application_at_suggested_time: {
+        Args: {
+          p_application_id: string
+          p_deadline: string
+          p_offer_message?: string
+        }
+        Returns: undefined
+      }
       accept_group_application: {
         Args: {
           p_application_id: string
@@ -11906,6 +11920,15 @@ export type Database = {
       }
       apply_to_job: {
         Args: { p_job_id: string; p_message: string }
+        Returns: string
+      }
+      apply_to_job_with_time: {
+        Args: {
+          p_job_id: string
+          p_message: string
+          p_suggested_date: string
+          p_suggested_time: string
+        }
         Returns: string
       }
       are_safe_media_urls: { Args: { vs: string[] }; Returns: boolean }

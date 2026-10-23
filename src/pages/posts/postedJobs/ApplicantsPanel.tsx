@@ -1,3 +1,4 @@
+import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
 import { ApplicantVerificationChip } from "./applicantsPanel/ApplicantVerificationChip";
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -300,7 +301,7 @@ export function ApplicantsPanel({
                 )}
 
                 {wide && (
-                  <ApplicantsDesktopTable rows={sortedApplications.slice(0, shown)} applications={applications} jobId={selectedJob.id} category={selectedJob.category}
+                  <ApplicantsDesktopTable rows={sortedApplications.slice(0, shown)} applications={applications} jobId={selectedJob.id} category={selectedJob.category} jobStartTime={selectedJob.start_time}
                     topHelperId={applicantSort === "recommended" && applications.length > 1 ? topHelperIdByScore : null}
                     completedCountsMap={completedCountsMap} categoryCounts={categoryCounts} compare={compare}
                     notes={{ applicantNotes, noteEditing, setNoteEditing, noteDraft, setNoteDraft, saveNote }}
@@ -534,6 +535,8 @@ export function ApplicantsPanel({
                             </span>
                             {/* ID once (owner, 2026-10-20): the offer stays open; the Helpr's accept waits on the ID. */}
                             <ApplicantProofLine categoryCount={categoryCounts ? categoryCounts.get(app.helper_id) ?? 0 : undefined} totalCount={completedCountsMap.get(app.helper_id) ?? 0} idVerified={app.profiles?.is_id_verified === true} category={selectedJob.category} />
+                            {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
+                            <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
                             {app.profiles && app.profiles.is_id_verified !== true && (
                               <span className="block mt-0.5 text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood))" }} data-applicant-id-note="">
                                 {applicantIdNote(formatName(app.profiles.full_name, ""))}

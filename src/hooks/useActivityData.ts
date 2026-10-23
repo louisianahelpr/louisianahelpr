@@ -596,6 +596,9 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
       poster_viewed_at: null,
       stake_amount: null,
       stake_status: "none",
+      // A direct offer is the poster's own day/time: there is no applicant suggestion.
+      suggested_date: null,
+      suggested_start_time: null,
       created_at: job.created_at,
       updated_at: job.updated_at,
       job,

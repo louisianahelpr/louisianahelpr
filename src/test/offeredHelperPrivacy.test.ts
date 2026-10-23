@@ -205,7 +205,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:record_backout_notice": "no-return",
     // Q1185: read the offeree to judge or clear a pending direct accept; none returns it.
     "function:direct_accept_block_reason": "no-return",
-    "function:complete_pending_accepts_on_setup": "no-return",
+    // PayPal phase 2 (20261023231647): the loop moved out of complete_pending_accepts_on_setup; returns a count.
+    "function:complete_pending_accepts_for": "no-return",
     "function:clear_job_accept_pending": "no-return",
     // matches its UPDATE on the offeree; returns only {action, application_id}
     "function:complete_direct_offer_accept": "no-return",

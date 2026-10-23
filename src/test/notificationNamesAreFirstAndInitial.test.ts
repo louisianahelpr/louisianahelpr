@@ -107,7 +107,7 @@ describe("notifications name other members as 'First L.' (Q2292)", () => {
 
   it("the restated member-facing producers call the helper", () => {
     for (const p of [
-      "claim_series_dates", "complete_job_accept", "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup",
+      "claim_series_dates", "complete_job_accept", "complete_pending_accepts_for", "complete_pending_crew_confirms_for",
       "job_access_notes_changed", "notify_helper_on_direct_offer", "notify_poster_on_status_change", "notify_user_on_review",
     ]) {
       expect(blankSqlComments(defs.get(p)!.stmt), p).toMatch(/public\.member_display_name\(/);

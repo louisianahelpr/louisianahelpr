@@ -15,21 +15,22 @@
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |   PERFORM public.complete_pending_accepts_for(NEW.user_id, 'stripe'); |   NULL;
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |     EXCEPTION WHEN OTHERS THEN\n      -- A seed/E2E job logs |     EXCEPTION WHEN division_by_zero THEN\n      -- A seed/E2E job logs
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql | hear "accepted").\n  IF v_p.ban_status IN ('banned', 'temp_banned', 'permanently_banned') | hear "accepted").\n  IF false AND v_p.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
+// @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
 // @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
@@ -124,12 +125,16 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
   it("Stripe reporting setup done completes every pending accept, one failure never undoing the status write", () => {
     const sql = readFileSync(join(MIG, "20261003193541_accept_completes_after_stripe_setup.sql"), "utf8");
     expect(sql).toMatch(/CREATE TRIGGER trg_profiles_complete_pending_accepts\s+AFTER UPDATE OF stripe_account_id, stripe_payouts_enabled, stripe_identity_verified, idv_status ON public\.profiles/);
-    const trig = body("complete_pending_accepts_on_setup");
+    // PayPal phase 2 (20261023231647): the trigger calls the one completion, which a saved
+    // PayPal email (set_paypal_payee_email) calls too.
+    expect(body("complete_pending_accepts_on_setup")).toContain("PERFORM public.complete_pending_accepts_for(NEW.user_id, 'stripe');");
+    const trig = body("complete_pending_accepts_for");
     expect(trig).toContain("ELSE public.complete_job_accept(r.job_id) END) THEN");
     // re-review #3: each job in its own block, a failure logged
     expect(trig).toMatch(/BEGIN[\s\S]*?public\.complete_job_accept\(r\.job_id\) END\) THEN[\s\S]*EXCEPTION WHEN OTHERS THEN\s+INSERT INTO public\.error_logs/);
     // re-review #6: a ban in force completes nothing
-    expect(trig).toMatch(/IF NEW\.ban_status IN \('banned', 'temp_banned', 'permanently_banned'\)[\s\S]*?RETURN NULL;/);
+    expect(trig).toMatch(/SELECT pr\.ban_status, pr\.auto_suspended_until, pr\.is_seed INTO v_p\s+FROM public\.profiles pr WHERE pr\.user_id = p_user_id;/);
+    expect(trig).toMatch(/IF v_p\.ban_status IN \('banned', 'temp_banned', 'permanently_banned'\)[\s\S]*?RETURN 0;/);
     // re-review #13: the pending row's Helpr is still the job's
     expect(trig).toContain("(j.status = 'accepted' AND j.helper_id = p.helper_id)");
   });
@@ -184,10 +189,10 @@ describe("the database: Hire is an offer, Accept completes after setup (Q1180)",
     expect(readFileSync(join(MIG, "20261003214350_direct_offer_accept_works_like_an_offer.sql"), "utf8")).toContain('DROP POLICY IF EXISTS "Targeted helper can respond to direct offer" ON public.jobs;');
     expect(done).toMatch(/IF public\.are_users_blocked\(p_helper, v_customer\) THEN\s+RAISE EXCEPTION 'applicant_blocked'/);
     // the trigger skips a pair that got blocked while the accept waited, instead of logging an error
-    expect(body("complete_pending_accepts_on_setup")).toContain("AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL))");
+    expect(body("complete_pending_accepts_for")).toContain("AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL))");
     expect(done).toContain("IF NOT public.complete_job_accept(p_job_id) THEN");
     // the profiles trigger completes a pending direct accept too
-    expect(body("complete_pending_accepts_on_setup")).toContain("public.complete_direct_offer_accept(r.job_id, NEW.user_id) IS NOT NULL");
+    expect(body("complete_pending_accepts_for")).toContain("public.complete_direct_offer_accept(r.job_id, p_user_id) IS NOT NULL");
     // a pending row survives only while its offer is live and its Helpr's
     const clear = body("clear_job_accept_pending");
     expect(clear).toMatch(/NEW\.offered_to_helper_id = p\.helper_id AND NEW\.direct_offer_status = 'pending'\)\)/);

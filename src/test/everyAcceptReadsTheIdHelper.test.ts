@@ -33,10 +33,10 @@
  * on every path, verified booked; red on prod's bodies with NEW_MIGRATION=skip).
  *
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |     v_reason := public.helper_accept_block_reason(v_uid);\n    IF v_reason = 'helper_unknown' THEN\n      RAISE EXCEPTION 'helper_unknown';\n    END IF;\n    IF v_reason IS NOT NULL THEN\n      INSERT INTO public.crew_confirm_pending |     v_reason := public.helper_award_block_reason(v_uid);\n    IF v_reason = 'helper_unknown' THEN\n      RAISE EXCEPTION 'helper_unknown';\n    END IF;\n    IF v_reason IS NOT NULL THEN\n      INSERT INTO public.crew_confirm_pending
- * @mutate supabase/migrations/20261021062140_member_display_name_crew_confirm.sql |   IF public.helper_accept_block_reason(NEW.user_id) IS NOT NULL THEN | IF public.helper_award_block_reason(NEW.user_id) IS NOT NULL THEN
+ * @mutate supabase/migrations/20261023231647_paypal_payee_email.sql | the one helper every accept reads.\n  IF public.helper_accept_block_reason(p_user_id) IS NOT NULL THEN | the one helper every accept reads.\n  IF public.helper_award_block_reason(p_user_id) IS NOT NULL THEN
  * @mutate supabase/migrations/20261021061341_member_display_name.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
- * @mutate supabase/migrations/20261023213857_identity_check_switch.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
+ * @mutate supabase/migrations/20261023231647_paypal_payee_email.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
  * @mutate supabase/migrations/20261020044552_delivery_accept_reads_id_helper.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId }); | const { data: notReady, error: readyErr } = { data: null, error: null };
  */
@@ -69,7 +69,7 @@ const BOOKING_WRITES: RegExp[] = [
 // @two-way src/test/everyAcceptReadsTheIdHelper.test.ts:const stale =
 const ALLOWED: Record<string, string> = {
   complete_job_accept:
-    "the one completion's UPDATE; jobs_award_gate (enforce_helper_award_gate, checked below) calls helper_accept_block_reason on it in every user session, and every server caller (complete_pending_accepts_on_setup, complete_direct_offer_accept) calls the helper first",
+    "the one completion's UPDATE; jobs_award_gate (enforce_helper_award_gate, checked below) calls helper_accept_block_reason on it in every user session, and every server caller (complete_pending_accepts_for, complete_direct_offer_accept) calls the helper first",
   series_holds_on_hire:
     "seeds a series' holds for the recurring_helper_id when the parent is hired; that hire is the parent's accept, which went through accept_job_offer / respond_to_direct_offer (both call the helper), and charge-recurring-visits judges every holder again at booking",
 };
@@ -116,7 +116,9 @@ describe("every booking path asks the one ID-once helper (owner 2026-10-20)", ()
     // AND call the helper.
     expect(sql.map((s) => s.name)).toEqual([
       "accept_job_offer", "claim_series_dates", "complete_direct_offer_accept", "complete_job_accept",
-      "complete_pending_accepts_on_setup", "complete_pending_crew_confirms_on_setup", "helpr_task_accept",
+      // The profiles triggers' loops moved into these two (PayPal phase 2, 20261023231647): the
+      // triggers and set_paypal_payee_email call them, so each is the one completion.
+      "complete_pending_accepts_for", "complete_pending_crew_confirms_for", "helpr_task_accept",
       "quote_job_funded_hires_quoter", "respond_to_direct_offer", "rpc_group_member_confirm", "series_holds_on_hire",
     ]);
     expect(sql.length).toBeGreaterThan(8);

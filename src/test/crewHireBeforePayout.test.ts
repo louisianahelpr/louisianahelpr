@@ -54,8 +54,11 @@ describe("a crew hire is an offer: the payout gate is at the member's Confirm", 
   });
 
   it("payouts ready completes the recorded Confirm from the profiles trigger, and the table is server-only", () => {
-    expect(code(fn("complete_pending_crew_confirms_on_setup"))).toMatch(/SET helper_confirmed_at = now\(\)/);
-    expect(code(fn("complete_pending_crew_confirms_on_setup"))).toMatch(/IF public\.helper_accept_block_reason\(NEW\.user_id\) IS NOT NULL THEN/);
+    // PayPal phase 2 (20261023231647): the trigger calls the one completion, which a saved PayPal
+    // email (set_paypal_payee_email) calls too.
+    expect(code(fn("complete_pending_crew_confirms_on_setup"))).toMatch(/PERFORM public\.complete_pending_crew_confirms_for\(NEW\.user_id\);/);
+    expect(code(fn("complete_pending_crew_confirms_for"))).toMatch(/SET helper_confirmed_at = now\(\)/);
+    expect(code(fn("complete_pending_crew_confirms_for"))).toMatch(/IF public\.helper_accept_block_reason\(p_user_id\) IS NOT NULL THEN/);
     expect(NEWEST_TRIGGER_SQL).toMatch(/CREATE TRIGGER trg_profiles_complete_pending_crew_confirms\s+AFTER UPDATE OF stripe_account_id, stripe_payouts_enabled, stripe_identity_verified, idv_status ON public\.profiles/);
     expect(MIG).toMatch(/ALTER TABLE public\.crew_confirm_pending ENABLE ROW LEVEL SECURITY/);
     expect(MIG).toMatch(/REVOKE ALL ON public\.crew_confirm_pending FROM PUBLIC, anon, authenticated/);

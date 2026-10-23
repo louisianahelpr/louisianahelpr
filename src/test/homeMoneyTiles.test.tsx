@@ -19,10 +19,10 @@
  * @mutate src/lib/posterSpend.ts | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested"] as const; | const HELD_UNTIL_CONFIRM_STATUSES = ["accepted", "in_progress", "revision_requested", "disputed", "open"] as const;
  * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - setupFeeCents;
  * @mutate src/lib/posterSpend.ts |     const held = r.cents - r.tipCents - setupFeeCents; |     const held = r.cents - r.tipCents;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!c.hasPayoutAccount) return "Add your payout account to get it"; | 
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!hasAccount) return "Add your payout account to get it"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (c.overdue) return "Approved, not sent yet"; | 
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Payout ${walletDay(new Date().toISOString())}`;
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount \|\| setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx | navigate(money.coming!.hasPayoutAccount \|\| paypal.ready \|\| (setupPaused && !paypal.on) ? "/profile?tab=earnings" : "/profile?tab=payment") | navigate("/profile?tab=earnings")
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (!money.coming && !money.held) return null; |   if (!money.coming && !money.held) return <div data-home-money="empty" />;
  * @mutate src/components/profile/EarningsTab.tsx |   const money = useHomeMoney(user); |   const money = { coming: null, held: null };
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |           label={heldWords(money.held).label} |           label="Held for you"

@@ -26,6 +26,7 @@ const ROOT = resolve(__dirname, "..", "..");
 const SHARED = ["src/lib", "src/hooks", "src/utils", "src/contexts", "src/integrations", "src/config", "src/constants"];
 
 /** Runtime imports from app-shared code into components/pages that predate this guard (2026-10-23). EXACT. */
+// @two-way src/test/libImportsNoPages.test.ts:no runtime import into src/components or src/pages beyond the exact known list
 const KNOWN = [
   "src/hooks/useActivityData.ts -> src/components/job-card/trackerMounts",
   "src/hooks/useActivityData.ts -> src/pages/posts/postedJobs/applicantBadge",

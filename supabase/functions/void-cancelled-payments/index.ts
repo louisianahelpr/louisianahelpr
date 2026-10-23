@@ -39,6 +39,7 @@ const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
  */
 const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warning_needs_response", "warning_under_review", "won"]);
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
@@ -826,6 +827,24 @@ serve(async (req) => {
         return true;
       }
 
+      // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer
+      // unless Stripe says the Helpr's account is payable
+      // (_shared/livePayoutHold.ts). The same exit as a payout hold above.
+      const feeLive = await holdUnlessPayable({
+        stripe,
+        supabaseAdmin,
+        helperId,
+        accountId: helperProfile.stripe_account_id,
+        fn: "void-cancelled-payments",
+        what: "a cancellation fee",
+        then: "The hourly run retries it.",
+        fields: { job_id: job.id, fee_transfer_id: String(feeRow.id), amount: helperPayout },
+      });
+      if (feeLive.held) {
+        if (feeLive.defect) defects.record(`cancellation fee ${job.id}: ${feeLive.defect}`);
+        return true;
+      }
+
       // ── 7. Transfer, keyed to the row; then mark it. ──
       try {
         const transferParams: Record<string, unknown> = {
@@ -1312,6 +1331,23 @@ serve(async (req) => {
             message: "A crew member's cancellation-fee share could not be sent. The poster's fee is already captured — pay it by hand.",
             fields: { job_id: job.id, share_id: share.id, helper_id: share.helper_id, amount: memberPayout, reason: why.slice(0, 200) },
           });
+          continue;
+        }
+        // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer
+        // unless Stripe says the member's account is payable. The same exit as
+        // a payout hold above: not paid this run, retried.
+        const shareLive = await holdUnlessPayable({
+          stripe,
+          supabaseAdmin,
+          helperId: share.helper_id,
+          accountId: memberProfile.stripe_account_id,
+          fn: "void-cancelled-payments",
+          what: "a crew cancellation-fee share",
+          then: "The run retries it while the share stays unpaid.",
+          fields: { job_id: job.id, share_id: share.id, amount: memberPayout },
+        });
+        if (shareLive.held) {
+          if (shareLive.defect) defects.record(`crew fee share ${share.id}: ${shareLive.defect}`);
           continue;
         }
 

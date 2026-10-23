@@ -857,6 +857,25 @@ describe("process-scheduled-payouts edge function", () => {
       expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 1 });
     });
 
+    // Lead 2026-10-23: a NEW tip re-payment waits when Stripe says the account
+    // is not payable (an existing one would be adopted: no money moves).
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (live.held) { |       if (false) {
+    it("a tip re-payment to an account Stripe rejected is not sent; the row goes back to waiting", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip()] };
+      repayReady();
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await runCron();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[updates.length - 1]).toMatchObject({ status: "reversed" });
+      expect(updates.some((u) => u.status === "repaid")).toBe(false);
+    });
+
     // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (held) {\n        out.waiting++; |       if (false) {\n        out.waiting++;
     it("Q1222: a tip whose Helpr is STILL held waits: nothing moves, no page while young", async () => {
       seedNoJobs();
@@ -1256,9 +1275,10 @@ describe("process-scheduled-payouts edge function", () => {
 // Lead 2026-10-23: Stripe rejected the platform and every connected account,
 // and this sender read no live account state before its transfer. Now one live
 // read must say "payable" before any claim or transfer; anything else holds.
-// @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (!gate.ok) { |         if (false) {
-// @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (holdClosesCache(gate)) { |           if (false) {
-// @mutate supabase/functions/process-scheduled-payouts/index.ts |           if (gate.kind === "cannot_verify") jobDefect( |           if (false) jobDefect(
+// @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (live.held) { |         if (false) {
+// @mutate supabase/functions/_shared/livePayoutHold.ts |   if (holdClosesCache(gate)) { |   if (false) {
+// @mutate supabase/functions/_shared/livePayoutHold.ts |   if (gate.kind === "cannot_verify") defects.push( |   if (false) defects.push(
+// @mutate supabase/functions/_shared/livePayoutHold.ts |     oncePerDayKey: platformRefused ? "payout-held-platform-rejected" : `payout-held-not-payable-${i.helperId}`, |     oncePerDayKey: `payout-held-not-payable-${i.helperId}`,
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     !isRejectedAccount(account); |     true;
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isRejectedAccountError(e)) return { ok: false, kind: "rejected", reason: message }; |
 // @mutate supabase/functions/_shared/livePayoutGate.ts |     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message }; |

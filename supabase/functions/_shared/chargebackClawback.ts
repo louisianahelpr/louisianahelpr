@@ -45,6 +45,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 // exactly as it does for every function that imports it.
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
 // Q1223: lives in _shared (it was stripe-webhook/handlers/_chargebackClawback.ts)
 // so process-scheduled-payouts can re-run a won chargeback's re-payment once a
@@ -825,6 +826,36 @@ export async function repayClawback(
         out.held.push(row.original_transfer_id);
       } else {
         out.holdErrors.push({ transferId: row.original_transfer_id, error: `payout hold check failed: ${repayHold.message}` });
+      }
+      continue;
+    }
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no re-payment unless
+    // Stripe says the account is payable (_shared/livePayoutHold.ts). Treated
+    // like the payout hold above: the debt is marked owed (held_repay_owed_at),
+    // so process-scheduled-payouts' re-drive re-runs this once it clears.
+    const live = await holdUnlessPayable({
+      stripe,
+      supabaseAdmin: supabase,
+      helperId: row.helper_id ?? "(deleted member)",
+      accountId: row.stripe_account_id,
+      fn: "chargeback-clawback",
+      what: "a won dispute's re-payment",
+      then: "It is re-paid automatically once Stripe says the account is payable; do NOT pay it by hand.",
+      fields: { job_id: row.job_id, original_transfer_id: row.original_transfer_id, amount_cents: row.reversed_cents },
+    });
+    if (live.held) {
+      const { error: liveMarkErr } = await supabase
+        .from("chargeback_clawbacks")
+        .update({ held_repay_owed_at: new Date().toISOString(), failure_reason: HELD_REPAY_MARKER, updated_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .in("status", ["reversed", "repay_failed", "repaying"])
+        .is("held_repay_owed_at", null)
+        .select("id");
+      if (liveMarkErr) throw new Error(`chargeback_clawbacks hold marker failed for ${row.id}: ${liveMarkErr.message}`);
+      if (live.defect) {
+        out.holdErrors.push({ transferId: row.original_transfer_id, error: live.defect });
+      } else {
+        out.held.push(row.original_transfer_id);
       }
       continue;
     }

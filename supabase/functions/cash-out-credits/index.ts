@@ -5,6 +5,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { formatExactDollars } from "../_shared/money.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { CONNECT_NOT_PAYABLE_CODE } from "../_shared/livePayoutGate.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -219,6 +221,30 @@ serve(async (req) => {
     const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabase, [userId])), {
       apiVersion: "2025-08-27.basil",
     });
+
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer unless
+    // Stripe says this member's account is payable (_shared/livePayoutHold.ts).
+    // The claimed credits go back first, so nothing is lost.
+    const live = await holdUnlessPayable({
+      stripe,
+      supabaseAdmin: supabase,
+      helperId: userId,
+      accountId: profile.stripe_account_id,
+      fn: "cash-out-credits",
+      what: "a referral credit cash-out",
+      then: "The member's credits were returned to their balance.",
+      fields: { amount: totalAmount },
+    });
+    if (live.held) {
+      await rollbackClaim("live-payout-gate");
+      return new Response(
+        JSON.stringify({
+          error: "Stripe can't confirm your payout account can receive money right now. Your credits are safe; try again later.",
+          code: CONNECT_NOT_PAYABLE_CODE,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      );
+    }
 
     // HM-1: bind the Stripe idempotency key to a STABLE per-attempt id, never to
     // the claimed credit set. Deriving it from the set (the old behaviour, kept

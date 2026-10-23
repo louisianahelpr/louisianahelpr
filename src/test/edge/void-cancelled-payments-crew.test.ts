@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
@@ -103,7 +103,7 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 
@@ -181,6 +181,23 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     )).toBe(true);
   });
 
+  // Lead 2026-10-23: a member whose account Stripe rejected is not paid; the rest are.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (shareLive.held) { |         if (false) {
+  it("a crew member whose account Stripe rejected is not paid their share; the rest are", async () => {
+    seedCancelledCrew(MEMBERS.map((m, i) => ({
+      id: `share-${i + 1}`, helper_id: m, committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "pending", stripe_transfer_id: null,
+    })));
+    (scenario.reads.profiles as { eqOverrides?: unknown[] }).eqOverrides = [
+      { column: "user_id", value: "member-c", result: { rows: [{ stripe_account_id: "acct_rejected", subscription_tier: null }] } },
+    ];
+    stripeMock.accounts.retrieve.mockImplementation(async (id: string) => id === "acct_rejected"
+      ? { ...PAYABLE_CONNECT_ACCOUNT, id, requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" } }
+      : { ...PAYABLE_CONNECT_ACCOUNT, id });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers().map((t) => t.helper)).toEqual(["member-a", "member-b"]);
+  });
+
   it("a member recorded as not committed (the owner rule flipped) gets a $0 share, not paid; the rest still are", async () => {
     seedCancelledCrew(MEMBERS.map((m, i) => ({
       id: `share-${i + 1}`, helper_id: m, committed: i !== 2, share_basis_cents: 10000, share_amount: i === 2 ? "0.00" : "50.00", status: "pending", stripe_transfer_id: null,
@@ -220,6 +237,26 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     // 50% of $300 to the lead, one transfer with the single path's key.
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.transfers.create.mock.calls[0][1]).toEqual({ idempotencyKey: "cancel-fee-fee-legacy" });
+  });
+
+  // Lead 2026-10-23: the single path's cancellation fee waits, like a payout
+  // hold, when Stripe says the Helpr's account is not payable.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (feeLive.held) { |       if (false) {
+  it("the single path's cancellation fee to an account Stripe rejected is not sent", async () => {
+    seedCancelledCrew([]);
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
+    Object.assign(jobs.selectOverrides[0].result.rows[0], { helper_id: "old-lead", helper_confirmed_at: "2024-06-24T12:00:00Z", budget: 300 });
+    scenario.writeSelectRows["cancellation_fee_transfers:insert"] = [{
+      id: "fee-legacy", status: "pending", stripe_transfer_id: null, created_at: new Date().toISOString(),
+      fee_amount: 150, commission_percent: 12, platform_cut: 18, helper_amount: 132,
+    }];
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT,
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts | .in("status", ["pending", "failed"]) | .in("status", ["pending"])
@@ -421,7 +458,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 
@@ -604,7 +641,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 

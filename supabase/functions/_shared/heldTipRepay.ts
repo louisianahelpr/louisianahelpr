@@ -34,6 +34,7 @@ import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { memberDisplayNameOf } from "../_shared/memberDisplayName.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
 type Db = { from: (t: string) => any };
 
@@ -372,6 +373,26 @@ async function repayOne(stripe: Stripe, supabase: Db, r: RedriveRow, out: Redriv
     const prior = await stripe.transfers.list({ transfer_group: group, limit: 10 });
     transfer = (prior?.data ?? []).find((t) =>
       t.metadata?.type === "tip_hold_repay" && t.metadata?.tip_id === r.tip_id && !t.reversed);
+    if (!transfer) {
+      // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): a NEW
+      // transfer only when Stripe says the account is payable (an existing one
+      // above is adopted whatever the account reads: no money moves).
+      const live = await holdUnlessPayable({
+        stripe,
+        supabaseAdmin: supabase,
+        helperId: r.helper_id,
+        accountId: prof.stripe_account_id,
+        fn: "held-tip-repay",
+        what: "a held tip's re-payment",
+        then: "It waits and is retried on the next run.",
+        fields: { tip_id: r.tip_id, amount_cents: r.amount_cents },
+      });
+      if (live.held) {
+        await backToWaiting(supabase, r.tip_id, `payee_not_payable: ${live.kind}`);
+        if (live.defect) out.defects.push(`tip ${r.tip_id}: ${live.defect}`);
+        return false;
+      }
+    }
     transfer ??= await stripe.transfers.create(
       {
         amount: r.amount_cents,

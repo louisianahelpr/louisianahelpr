@@ -189,7 +189,8 @@ const READ_ONLY_QUOTE =
  */
 const CONNECT_CLASSIFIED = [
   "_shared/connectReadiness.ts::stripe.accounts.retrieve(accountId)",
-  "execute-dispute-split/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
+  // execute-dispute-split's read moved into _shared/livePayoutGate.ts (lead
+  // 2026-10-23), which classifies it with isUnusableConnectAccountError (CLASSIFIED).
   "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })",
   "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
   "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)",

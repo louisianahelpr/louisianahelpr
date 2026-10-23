@@ -58,6 +58,7 @@ import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
@@ -5787,6 +5788,26 @@ async function transferToHelper(
   if (existingTransfer) {
     console.log(`Payout already exists for job ${jobId} (${existingTransfer.stripe_transfer_id}); skipping duplicate transfer.`);
     return;
+  }
+
+  // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer unless
+  // Stripe says the Helpr's account is payable (_shared/livePayoutHold.ts).
+  // Thrown before `beforeTransfer` stamps the settlement claim and before any
+  // money moves, like the payout hold above: the caller hands its claim back.
+  const live = await holdUnlessPayable({
+    stripe,
+    supabaseAdmin,
+    helperId,
+    accountId: helperProfile.stripe_account_id,
+    fn: "create-payment",
+    what: "the dispute release payout",
+    then: "Nothing moved; the dispute stays open until it is released again.",
+    fields: { job_id: jobId },
+  });
+  if (live.held) {
+    throw new PublicError(live.kind === "platform_rejected" || live.kind === "cannot_verify"
+      ? "Stripe could not confirm the Helpr's payout account right now, so no money was moved. Try again later."
+      : "Stripe says the Helpr's payout account can't receive money right now, so no money was moved.");
   }
 
   // Q2082 (b), owner 2026-10-18 ("J4"): a card fee this Helpr owes from a

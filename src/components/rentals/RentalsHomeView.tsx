@@ -410,8 +410,7 @@ export default function RentalsHomeView() {
   if (tab === "browse") {
     return (
       // ONE search on Browse (the listings' "City or ZIP" row), never Explore's above it (owner 2026-10-21).
-      <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add} globalSearch={false}>
-        {tabs}
+      <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add} tabs={tabs} globalSearch={false}>
         <HomesBrowse />
       </SectionScreen>
     );
@@ -423,8 +422,7 @@ export default function RentalsHomeView() {
   const landlordOther = mineAsLandlord.filter((r) => r.status !== "submitted");
   const showOwn = (g: (typeof OWN_GROUPS)[number]) => ownStatus === null || ownStatus === g;
   return (
-    <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add}>
-      {tabs}
+    <SectionScreen section="homes" title="Homes" add={sectionByKey("homes").add} tabs={tabs}>
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
       ) : (

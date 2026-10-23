@@ -14,7 +14,9 @@
  * (a) the pure decision, every case; (b) the real useSectionTabs over a mocked
  * supabase.rpc: tester, member, loading, failed, failed refetch, not deployed,
  * signed out (never asks); (c) every listing draws PreviewPill gated on the
- * section's own preview flag.
+ * section's own preview flag. Explore's header is the one exception (owner, 2026-10-22): its chips say
+ * "Coming soon" to every viewer, and a tester's section carries the "early preview" banner inside instead
+ * (src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts).
  *
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature); |   return on && !openToEveryone?.has(feature);
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isError ? new Set() : q.data ? new Set(q.data) : null;
@@ -158,11 +160,10 @@ describe("(c) every listing draws PreviewPill, gated on the section's own previe
   const read = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
   const SITES: Array<[string, RegExp]> = [
     ["src/components/DesktopSidebarNav.tsx", /\{preview && <PreviewPill\b/],
-    ["src/components/sections/ExploreSwitcher.tsx", /isPreview\(s\) \? \([\s\S]*?<PreviewPill variant="badge"/],
     ["src/components/profile/SettingsTab.tsx", /badge=\{preview \? <PreviewPill\b/],
     ["src/components/create/CreateSheet.tsx", /\{on && isPreview\(s\) && <PreviewPill\b/],
   ];
-  it("inventory: four listings", () => expect(SITES.length).toBeGreaterThan(3));
+  it("inventory: three listings (Explore's chips left on 2026-10-22, see the header note)", () => expect(SITES.length).toBeGreaterThan(2));
   it.each(SITES)("%s", (f, re) => expect(read(f)).toMatch(re));
 
   it("each site's flag comes from useSectionTabs' `preview`", () => {

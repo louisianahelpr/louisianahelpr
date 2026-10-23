@@ -20,6 +20,7 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { dollarsToCents } from "@/lib/rentals/copy";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
+import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 
 /**
  * Homes -> Rent: homes for rent (RL1a). Live listings, filtered by FACTS about
@@ -224,6 +225,8 @@ export function HomesListings({ homes, onKind, intro }: { homes: HomesKind; onKi
 
 function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k: HomesKind) => void; intro?: ReactNode }) {
   const buy = kind.key === "sale";
+  // A tester inside Homes before it opens to everyone: no homes yet "Opens soon" (owner, 2026-10-22).
+  const preview = useSectionPreview("homes");
   const [place, setPlace] = useState("");
   const [city, setCity] = useState("");
   const [minBeds, setMinBeds] = useState<number | null>(null);
@@ -357,7 +360,7 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
         <EmptyState
           variant="bare"
           icon={Home}
-          title={`No ${kind.noun} here yet`}
+          title={preview ? "Opens soon" : `No ${kind.noun} here yet`}
           body={
             city || narrowing
               ? `No ${kind.noun} match yet. Try another city or fewer filters.`

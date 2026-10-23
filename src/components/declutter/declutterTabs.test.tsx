@@ -53,10 +53,14 @@ vi.mock("@/hooks/useUserLocation", () => ({
   getCachedUserLocation: () => null,
   deriveFallbackLocation: async () => null,
 }));
+// The tester-only "early preview" read (useSectionTabs) stubbed as not loaded (src/test/previewMark.test.tsx owns it).
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
-  SectionScreen: ({ title, children }: { title: string; children: React.ReactNode }) => (
+  // The section's tabs are the Explore header's second row (SectionScreen `tabs`, owner 2026-10-22).
+  SectionScreen: ({ title, children, tabs }: { title: string; children: React.ReactNode; tabs?: React.ReactNode }) => (
     <main>
       <h1>{title}</h1>
+      {tabs}
       {children}
     </main>
   ),

@@ -1,14 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
-import { useSectionTabs, comingSoonLabel, previewLabel } from "@/components/mobileNav/useSectionTabs";
+import { useSectionTabs, comingSoonLabel } from "@/components/mobileNav/useSectionTabs";
 import { useSectionPrefs } from "./useSectionPrefs";
-import type { SectionDef, SectionKey } from "./sectionsConfig";
-import { SoonPill } from "@/components/sections/SoonPill";
-import { PreviewPill } from "@/components/sections/PreviewPill";
+import { sectionByKey, type SectionDef, type SectionKey } from "./sectionsConfig";
+import { SoonPill } from "./SoonPill";
 
 const LAST_KEY = "helpr_explore_last";
 
@@ -43,6 +42,11 @@ export function useSectionIsPreview() {
   return (s: SectionDef) => s.feature !== null && !!live.find((t) => t.path === s.path)?.preview;
 }
 
+/** One section's preview answer: its empty Browse says "Opens soon" to a tester (owner, 2026-10-22). */
+export function useSectionPreview(key: SectionKey): boolean {
+  return useSectionIsPreview()(sectionByKey(key));
+}
+
 /**
  * EXPLORE'S SECTION SWITCHER (HELPR-DESIGN-SPEC §3 "Bottom bar", owner
  * 2026-10-20): the bottom bar's Explore tab holds the four sections as a
@@ -52,11 +56,13 @@ export function useSectionIsPreview() {
  * Explore, then that tab. Phone only: the desktop rail already lists the
  * sections. Guard: src/test/centerCreateNav.test.tsx.
  *
- * Owner 2026-10-21: this row is the LIGHTER control (the quiet tone) so it never
- * reads as a second olive pill over the section's own Browse/Posted/Working
- * switch. A section closed to the viewer says "Soon" ON its tab, muted; a tap
- * does nothing (no toast popping up elsewhere on the screen, no navigation).
- * Guard: src/test/sectionNavTabs.test.tsx.
+ * Owner 2026-10-22 (the Explore header): the row is the header's TOP line, compact
+ * chips beside the bell and the photo (AppTopBar), still the quiet tone of 2026-10-21
+ * (the Browse/Posted/Working tabs under it are now thin underlines). A section
+ * not open to everyone says "Coming soon" under its name, for every viewer: muted and
+ * inert when it is closed to them (no toast, no navigation), and still opening for a
+ * tester, whose section then carries the "early preview" banner (SectionPreviewBanner).
+ * Guards: src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts.
  */
 export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const navigate = useNavigate();
@@ -66,39 +72,57 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]);
+  // FOUR CHIPS ON ONE LINE, EVEN WHEN THEY DO NOT FIT (measured 2026-10-23, WebKit: the track is 237px at 375 and
+  // the chips 278px once three say "Coming soon"): the row scrolls sideways, the open section's chip is scrolled
+  // into view, and a fade at the right edge says there is more, until the end is reached.
+  const navRef = useRef<HTMLElement>(null);
+  const [more, setMore] = useState(false);
+  useEffect(() => {
+    const track = navRef.current?.querySelector<HTMLElement>("[role='radiogroup']");
+    if (!track) return;
+    const update = () => setMore(track.scrollWidth - track.clientWidth - track.scrollLeft > 2);
+    // The chips change width after mount ("Coming soon" appears once the sections' answer lands), so the picked chip
+    // is brought into view, and the fade re-measured, whenever the track's content resizes.
+    const reveal = () => {
+      const picked = track.querySelector<HTMLElement>("[aria-checked='true']");
+      if (picked && picked.offsetLeft + picked.offsetWidth > track.scrollLeft + track.clientWidth) {
+        track.scrollLeft = picked.offsetLeft + picked.offsetWidth - track.clientWidth;
+      }
+      update();
+    };
+    reveal();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(reveal);
+    for (const chip of Array.from(track.children)) ro?.observe(chip);
+    track.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro?.disconnect();
+      track.removeEventListener("scroll", update);
+    };
+  }, [current, visible.length]);
   if (isWebDesktop) return null;
   const options = visible.map((s) => {
     const on = isOn(s);
-    const Icon = s.icon;
+    // ONE word for a section not open to everyone (owner, 2026-10-22): "Coming soon", for a member (closed: a tap
+    // does nothing) and for a tester alike (open to them; inside, the "early preview" banner says why).
+    const soon = !on || isPreview(s);
     return {
       value: s.key,
-      icon: on ? (
-        isPreview(s) ? (
-          // "Preview" sits centered over the icon: at 320 a segment is ~71px and the badge 50px, so
-          // hung off the icon's right (as "Soon" is) it ran past the last tab and clipped (looked, 2026-10-21).
-          <span className="relative inline-flex">
-            <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
-            <PreviewPill variant="badge" aria-hidden="true" className="absolute -top-4 left-1/2 -translate-x-1/2" />
-          </span>
-        ) : (
-          <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} aria-hidden />
-        )
-      ) : (
-        // "Soon" sits beside the muted icon, so the name below stays whole at 320.
-        <span className="relative inline-flex">
-          <Icon className="w-[18px] h-[18px] text-muted-foreground" strokeWidth={1.75} aria-hidden />
-          <SoonPill variant="badge" data-soon-badge="" aria-hidden="true" className="absolute -top-1.5 left-full -ml-0.5" />
+      label: soon ? (
+        <span data-soon="" className="flex flex-col items-center leading-[1.15]">
+          <span className={on ? undefined : "text-muted-foreground font-medium"}>{s.navLabel}</span>
+          <SoonPill variant="caption" data-coming-soon="" />
         </span>
+      ) : (
+        s.navLabel
       ),
-      label: on ? s.navLabel : <span data-soon="" className="text-muted-foreground font-medium">{s.navLabel}</span>,
-      ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel),
+      ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel,
     };
   });
   // A <nav>: it moves between the four sections, and it is the same chrome on a
   // section's loading frame and on its page, so the page-settle sampler (which
   // skips nav) never counts it as the page arriving (settleSkeletonIsNeverContent).
   return (
-    <nav data-testid="explore-switcher" aria-label="Sections">
+    <nav ref={navRef} data-testid="explore-switcher" aria-label="Sections" className={more ? "explore-chips-more" : undefined}>
       <SegmentedControl
         ariaLabel="Explore"
         options={options}
@@ -109,10 +133,12 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
           if (!s || !isOn(s)) return;
           navigate(s.path);
         }}
-        iconPosition="top"
+        // THE EXPLORE HEADER'S TOP ROW (owner, 2026-10-22): one line of compact chips beside the bell and the photo,
+        // still the lighter (quiet) control of 2026-10-21. A row too narrow for four chips (320) scrolls sideways
+        // rather than cutting a name.
         tone="quiet"
-        className="w-full"
-        optionClassName="px-1 text-ds-11 min-[360px]:text-ds-12 whitespace-nowrap"
+        className="w-full overflow-x-auto no-scrollbar"
+        optionClassName="px-1.5 text-ds-11 whitespace-nowrap"
       />
     </nav>
   );

@@ -25,25 +25,23 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 /** Top bar (title, "+", bell, profile) + the Browse | Posted | Working toggle, as bones. */
 function JobsHeaderBones() {
   return (
-    <div className="flex flex-col gap-1" aria-hidden>
-      {/* AppTopBar's own box: `app-top-bar h-16`, the title in its one size rule. */}
-      <div className="app-top-bar flex items-center justify-between gap-2 h-16">
-        <Skeleton className="h-8 w-[4.5rem] rounded-ds-md" />
-        <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
-          {/* The section "+" bone: desktop only, like the "+" itself (phones create from the bottom bar's center "+"). */}
-          <Skeleton className="top-bar-add-bone w-10 h-10 rounded-full" />
-          <span className="h-11 w-11 flex items-center justify-center">
-            <Skeleton className="h-6 w-6 rounded-full" />
-          </span>
-          <span className="h-10 w-10 flex items-center justify-center">
-            <Skeleton className="w-9 h-9 rounded-full" />
-          </span>
-        </div>
+    <div className="explore-header flex flex-col gap-1" aria-hidden>
+      {/* The Explore header's top row (AppTopBar `section`, phone): `app-top-bar h-12`, the section chips, the bell,
+          the photo. The desktop bar keeps its title + "+" bones (the chips are phone only). */}
+      <div className="app-top-bar flex items-center gap-1 h-12">
+        <Skeleton className="explore-switcher-bone h-12 min-w-0 flex-1 rounded-full" />
+        <Skeleton className="top-bar-title-bone h-8 w-[4.5rem] rounded-ds-md" />
+        {/* The section "+" bone: desktop only, like the "+" itself (phones create from the bottom bar's center "+"). */}
+        <Skeleton className="top-bar-add-bone w-10 h-10 rounded-full" />
+        <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+          <Skeleton className="h-6 w-6 rounded-full" />
+        </span>
+        <span className="h-10 w-10 shrink-0 flex items-center justify-center">
+          <Skeleton className="w-9 h-9 rounded-full" />
+        </span>
       </div>
-      {/* Explore's section switcher (phone only; the desktop rail lists the sections). */}
-      <Skeleton className="explore-switcher-bone h-12 w-full rounded-full" />
-      {/* SegmentedControl: `p-0.5` track around `h-11` segments = 48px. */}
-      <Skeleton className="h-12 w-full rounded-full" />
+      {/* SectionTabs: thin underline tabs, 44px. */}
+      <Skeleton className="h-11 w-full rounded-ds-md" />
     </div>
   );
 }

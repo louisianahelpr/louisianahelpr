@@ -7,7 +7,7 @@
  * on a phone it is unchanged (title or logo, "+", bell, avatar).
  *
  * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title && !add && !settings) return null; |
- * @mutate src/components/sections/AppTopBar.tsx |             {!isWebDesktop && (\n            <span data-testid="top-bar-bell"> |             {true && (\n            <span data-testid="top-bar-bell">
+ * @mutate src/components/sections/AppTopBar.tsx |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {true && (\n      <span data-testid="top-bar-bell">
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
  */
 import { afterEach, describe, expect, it, vi } from "vitest";

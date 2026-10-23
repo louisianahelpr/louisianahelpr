@@ -26,8 +26,7 @@
  *
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | { path: "/rentals", icon: KeyRound, label: "Homes", feature: "rentals" as const }, | { path: "/rentals", icon: KeyRound, label: "Rentals", feature: "rentals" as const },
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return sectionItems.map((s) => ({ ...s, on: on[s.feature], preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) })); |   return sectionItems.map((s) => ({ ...s, on: true, preview: sectionIsPreview(on[s.feature], s.feature, openToEveryone) }));
- * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel), |       ariaLabel: on ? s.navLabel : comingSoonLabel(s.navLabel),
- * @mutate src/components/sections/ExploreSwitcher.tsx |         isPreview(s) ? ( |         false ? (
+ * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
  * (Owner 2026-10-21: on Explore a closed section says "Soon" ON its tab and a
  * tap does nothing, no toast popping up elsewhere; the row is the LIGHTER
  * control, tone="quiet", under which the section's own solid switch sits.)
@@ -35,8 +34,10 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return;
  * @mutate src/components/sections/ExploreSwitcher.tsx |           if (!s \|\| !isOn(s)) return; |           if (!s) return; if (!isOn(s)) return void toast("Soon");
  * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
- * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="badge" data-soon-badge="" aria-hidden="true" className="absolute -top-1.5 left-full -ml-0.5" /> | <span data-soon-badge="" aria-hidden />
- * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : comingSoonLabel(s.navLabel), |       ariaLabel: on ? (isPreview(s) ? previewLabel(s.navLabel) : s.navLabel) : s.navLabel,
+ * (Owner 2026-10-22, the Explore header: a section not open to everyone says "Coming soon" under its name for
+ * EVERY viewer, member and tester alike; a tester's still opens, and the "early preview" banner inside says why.)
+ * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
+ * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel, |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if
  * @mutate src/components/sections/AppTopBar.tsx |         <span data-testid="top-bar-bell"> |         <span data-testid="top-bar-bell-x">
@@ -126,19 +127,19 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
-  it("a switched-OFF section says 'Soon' on its tab, muted; a tap neither navigates nor fires a toast", () => {
+  it("a switched-OFF section says 'Coming soon' under its name, muted; a tap neither navigates nor fires a toast", () => {
     switches.on = new Set(["shops"]);
     renderExplore();
     const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
     expect(declutter.querySelector("[data-soon]")).toBeTruthy();
-    expect(declutter.querySelector("[data-soon-badge]")?.textContent?.trim()).toBe("Soon");
+    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
     fireEvent.click(declutter);
     expect(screen.getByTestId("where").textContent).toBe("/jobs");
     expect(toasts).toEqual([]);
     const homes = screen.getByRole("radio", { name: "Homes, coming soon" });
-    expect(homes.querySelector("[data-soon-badge]")?.textContent?.trim()).toBe("Soon");
-    // A live section carries no badge.
-    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-soon-badge]")).toBeNull();
+    expect(homes.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
+    // A section open to everyone carries no caption.
+    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
   });
 
   it("the section row is the LIGHTER control: its picked tab is never the olive fill the view switch under it wears", () => {
@@ -164,23 +165,22 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(toasts).toEqual([]);
   });
 
-  it("a live section open to testers only says 'Preview' on its tab; one open to everyone does not (lead, 2026-10-21)", () => {
+  it("a live section open to testers only ALSO says 'Coming soon' (one word for everyone, owner 2026-10-22), and still opens for the tester", () => {
     switches.on = new Set(["declutter", "shops"]);
     everyone.open = new Set(["shops"]);
     renderExplore();
-    const declutter = screen.getByRole("radio", { name: "Declutter, preview" });
-    expect(declutter.querySelector("[data-preview-pill]")?.textContent?.trim()).toBe("Preview");
-    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-preview-pill]")).toBeNull();
-    // A closed section says Soon, never Preview.
-    expect(screen.getByRole("radio", { name: "Homes, coming soon" }).querySelector("[data-preview-pill]")).toBeNull();
+    const declutter = screen.getByRole("radio", { name: "Declutter, coming soon" });
+    expect(declutter.querySelector("[data-coming-soon]")?.textContent?.trim()).toBe("Coming soon");
+    expect(declutter.querySelector("[data-preview-pill]")).toBeNull();
+    expect(screen.getByRole("radio", { name: "Shops" }).querySelector("[data-coming-soon]")).toBeNull();
     fireEvent.click(declutter);
     expect(screen.getByTestId("where").textContent).toBe("/declutter");
   });
 
-  it("while the open-to-everyone answer is loading or failed, no tab says 'Preview'", () => {
+  it("while the open-to-everyone answer is loading or failed, no open tab says 'Coming soon'", () => {
     switches.on = new Set(["declutter", "shops", "rentals"]);
     renderExplore();
-    expect(document.querySelector("[data-preview-pill]")).toBeNull();
+    expect(document.querySelector("[data-coming-soon]")).toBeNull();
     expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 

@@ -53,6 +53,7 @@ import { SellItForMeEntry } from "./SellItForMe";
 import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import {
@@ -105,6 +106,8 @@ function ListingsSkeleton() {
 }
 
 function BrowseView({ userId }: { userId: string }) {
+  // A tester inside Declutter before it opens to everyone: nothing for sale yet "Opens soon" (owner, 2026-10-22).
+  const preview = useSectionPreview("declutter");
   // Any distance by default (owner, 2026-10-19); the member's own choice holds
   // for the visit. A saved search (Q2275) opens Browse with its filters in the URL.
   const [params] = useSearchParams();
@@ -201,7 +204,7 @@ function BrowseView({ userId }: { userId: string }) {
         <EmptyState
           variant="bare"
           icon={Sofa}
-          title={others.length === 0 ? "Nothing for sale yet." : q ? "Nothing matches that search." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
+          title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
           body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
         />
       ) : (
@@ -562,27 +565,29 @@ export default function DeclutterHome() {
   }, [fromView, tabsReady, setParams]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
+  const tabs = (
+    <SectionTabs
+      label="Declutter view"
+      value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}
+      onChange={(v) =>
+        setParams((p) => {
+          const next = new URLSearchParams(p);
+          next.delete("view");
+          next.delete("status");
+          if (v === "browse") next.delete("tab");
+          else next.set("tab", v);
+          return next;
+        }, { replace: true })
+      }
+      tabs={[
+        { value: "buying", label: "Buying", count: todo?.buying },
+        { value: "selling", label: "Selling", count: todo?.selling },
+      ]}
+    />
+  );
   return (
     // Browse draws its own "Search items" row, so Explore's global search shows only on the other tabs.
-    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={view !== "browse"}>
-      <SectionTabs
-        label="Declutter view"
-        value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}
-        onChange={(v) =>
-          setParams((p) => {
-            const next = new URLSearchParams(p);
-            next.delete("view");
-            next.delete("status");
-            if (v === "browse") next.delete("tab");
-            else next.set("tab", v);
-            return next;
-          }, { replace: true })
-        }
-        tabs={[
-          { value: "buying", label: "Buying", count: todo?.buying },
-          { value: "selling", label: "Selling", count: todo?.selling },
-        ]}
-      />
+    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={view !== "browse"} tabs={tabs}>
       <StrikeCount userId={user.id} />
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>

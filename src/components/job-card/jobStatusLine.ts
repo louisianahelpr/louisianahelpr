@@ -16,7 +16,7 @@ import { arrivalEstablished } from "@/lib/arrivalGate";
 import type { AppliedApp, Job } from "./activityConstants";
 import { derivePosterStep, posterConfirmationRung } from "../../pages/posts/postedJobCard/steps/posterStepContract";
 import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from "@/lib/jobPaymentCardState";
-import { AUTO_COMPLETE_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 
 /**
  * WHAT THIS CARD IS WAITING ON — one sentence, on every collapsed job card.
@@ -128,7 +128,7 @@ export interface StatusDeadline {
 
 /**
  * Every clock the tracker counts down. The `jobs` columns are spelled as their
- * column names; `auto_complete` is `helper_completed_at + AUTO_COMPLETE_HOURS`.
+ * column names; `auto_complete` is `helper_completed_at + APPROVAL_WINDOW_HOURS`.
  */
 export type DeadlineSource =
   | "direct_offer_expires_at"
@@ -174,12 +174,12 @@ function columnDeadline(
   return at ? { source, at, consequenceText, expiredText } : null;
 }
 
-/** When submitted work auto-completes, or null when there is nothing to count. */
+/** When the poster's approval window on submitted work ends (Helpr support steps in), or null. */
 function autoCompleteAt(job: Pick<Job, "helper_completed_at">): string | null {
   if (!job.helper_completed_at) return null;
   const t = new Date(job.helper_completed_at).getTime();
   if (Number.isNaN(t)) return null;
-  return new Date(t + hoursToMs(AUTO_COMPLETE_HOURS)).toISOString();
+  return new Date(t + hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString();
 }
 
 /** The offer's clock: the same `??` OfferedActions reads. */
@@ -614,7 +614,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
         "revision_acceptance_deadline",
         job.revision_acceptance_deadline,
         "to accept the fix",
-        "Window passed — payment releasing",
+        "Window passed — Helpr support is stepping in",
       );
     case "dispute":
       return disputeDeadline(job);
@@ -624,8 +624,8 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
         ? {
             source: "auto_complete",
             at,
-            consequenceText: "to review — payment auto-releases after",
-            expiredText: "Payment auto-releasing",
+            consequenceText: "to review — then Helpr support steps in",
+            expiredText: "Helpr support is stepping in",
           }
         : null;
     }
@@ -925,7 +925,7 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
         "revision_acceptance_deadline",
         job.revision_acceptance_deadline,
         "for them to review",
-        "No response — payment auto-releasing",
+        "No response — Helpr support is stepping in",
       );
     case "dispute":
       return disputeDeadline(job);
@@ -935,8 +935,8 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
         ? {
             source: "auto_complete",
             at,
-            consequenceText: "until it auto-completes",
-            expiredText: "Completing automatically",
+            consequenceText: "for them to approve",
+            expiredText: "Helpr support is stepping in",
           }
         : null;
     }

@@ -42,7 +42,7 @@
 // Widening the window was NOT available here, and that is the difference
 // between this function and `review-nag-cron`, where widening was the fix. This
 // deadline is HARD: `auto-release-payment` moves the money at
-// AUTO_COMPLETE_HOURS (24h). A window wide enough for a daily cron would have
+// APPROVAL_WINDOW_HOURS (24h). A window wide enough for a daily cron would have
 // to start at 0h — nudging a poster minutes after the helper's own "job
 // complete" notification, which is noise — and would still have nothing useful
 // to say to the job that is already 23h old. There is no 24-hour-wide window
@@ -71,7 +71,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
-import { AUTO_COMPLETE_HOURS } from "../_shared/escrowTiming.ts";
+import { APPROVAL_WINDOW_HOURS } from "../_shared/escrowTiming.ts";
 import { scanAll, scanDefect } from "../_shared/paginate.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { serve } from "../_shared/buildStamp.ts";
@@ -89,13 +89,13 @@ const REMIND_AFTER_HOURS = 12;
  * quarter past. (Spelled out rather than pasted: the cron expression contains
  * a star-slash, which would close this comment block.)
  *
- * Coverage requires `CRON_PERIOD_HOURS <= AUTO_COMPLETE_HOURS -
+ * Coverage requires `CRON_PERIOD_HOURS <= APPROVAL_WINDOW_HOURS -
  * REMIND_AFTER_HOURS` (i.e. <= 12). It was 24, which is why no reminder was
  * ever sent and why `missed` exists.
  */
 const CRON_PERIOD_HOURS = 6;
 /** True when the deployed schedule cannot cover the window. Drives the alarm. */
-const SCHEDULE_LEAVES_A_HOLE = CRON_PERIOD_HOURS > AUTO_COMPLETE_HOURS - REMIND_AFTER_HOURS;
+const SCHEDULE_LEAVES_A_HOLE = CRON_PERIOD_HOURS > APPROVAL_WINDOW_HOURS - REMIND_AFTER_HOURS;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -140,12 +140,12 @@ serve(async (req) => {
     const cutoffReminderStart = new Date(
       now.getTime() - REMIND_AFTER_HOURS * 60 * 60 * 1000,
     ).toISOString();
-    // Auto-release fires at AUTO_COMPLETE_HOURS; nudging past it is pointless
+    // Auto-release fires at APPROVAL_WINDOW_HOURS; nudging past it is pointless
     // because the money has already moved. Derived from the shared constant
     // rather than a re-typed 24, so the reminder and the cron that pays out can
     // never disagree about when the window closes.
     const cutoffAutoRelease = new Date(
-      now.getTime() - AUTO_COMPLETE_HOURS * 60 * 60 * 1000,
+      now.getTime() - APPROVAL_WINDOW_HOURS * 60 * 60 * 1000,
     ).toISOString();
 
     // Jobs where:
@@ -233,9 +233,9 @@ serve(async (req) => {
       missed = missedCount ?? 0;
       if (missed > 0) {
         defects.record(
-          `${missed} job(s) in the last 7 days passed the ${AUTO_COMPLETE_HOURS}h auto-release cutoff with no confirm reminder ever sent` +
+          `${missed} job(s) in the last 7 days passed the ${APPROVAL_WINDOW_HOURS}h approval window with no confirm reminder ever sent` +
             (SCHEDULE_LEAVES_A_HOLE
-              ? ` — expected: a ${CRON_PERIOD_HOURS}h schedule cannot cover a ${AUTO_COMPLETE_HOURS - REMIND_AFTER_HOURS}h window. Reschedule to '15 */6 * * *'.`
+              ? ` — expected: a ${CRON_PERIOD_HOURS}h schedule cannot cover a ${APPROVAL_WINDOW_HOURS - REMIND_AFTER_HOURS}h window. Reschedule to '15 */6 * * *'.`
               : ""),
         );
       }
@@ -257,7 +257,8 @@ serve(async (req) => {
         const { data: notifRows, error: notifErr } = await supabase.from("notifications").insert({
           user_id: job.customer_id,
           title: "Your Helpr marked the job done",
-          message: `"${job.title}" — please confirm completion or request a revision. Payment auto-releases in ~24h.`,
+          // Owner 2026-10-23: nothing is released on a timer; past the window Helpr support steps in.
+          message: `"${job.title}" — please approve it or request a revision. If we don't hear from you within a day of it being marked done, Helpr support will reach out. Your payment stays held until then.`,
           type: "job_updates",
           // job_id is the SUBJECT (Q139): the Q137 seed boundary reads it, so a
           // seed job never reminds a real poster. The column exists since

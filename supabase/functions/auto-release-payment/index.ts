@@ -8,7 +8,7 @@ import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatPayoutDollars } from "../_shared/money.ts";
-import { standardPayoutAtIso, STANDARD_PAYOUT_PHRASE } from "../_shared/escrowTiming.ts";
+import { APPROVAL_WINDOW_HOURS, hoursToMs, payoutDayLabel, standardPayoutAtIso } from "../_shared/escrowTiming.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
@@ -93,7 +93,8 @@ serve(async (req) => {
     // accounts is skipped and counted.
     const stripes = createStripeModeResolver(supabaseAdmin, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
 
-    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    // The poster's approval window (owner 2026-10-23): past it, an unapproved job goes to Helpr support.
+    const cutoff = new Date(Date.now() - hoursToMs(APPROVAL_WINDOW_HOURS)).toISOString();
 
     // ── Seed fixtures are out of scope for the real money paths ──────────────
     // `jobs.is_seed` marks fixture / E2E rows. They are settled by harnesses and
@@ -232,10 +233,10 @@ serve(async (req) => {
     //   ActiveJobSection  "payment auto-releases to you"
     //   PostedJobCard     "If no action is taken, payment auto-releases"
     //   create-payment    "If you do nothing, payment auto-releases"
-    // Those promises were false. This makes them true rather than deleting
-    // them, because the promise is the right product behaviour — it is the same
-    // 24h-ghost rule the main path already applies, just keyed on the revision
-    // clock instead of the completion clock.
+    // Those promises were false. Since 2026-10-23 (owner: nothing is paid
+    // without the poster's approval) this pass no longer pays: a fix the poster
+    // never answered goes to Helpr support exactly like an unanswered
+    // completion (job_approval_escalations, below), and the copy says so.
     //
     // THE GUARD IS DELIBERATELY TIGHT, because the failure mode is paying out
     // money that should not move:
@@ -250,8 +251,7 @@ serve(async (req) => {
     //   payment_status = 'escrow'          re-request, dispute) moves one of
     //                                      these, so acting on them cannot race
     //                                      a poster who did reply.
-    // Rows land in the SAME loop as everything else, so every per-job guard,
-    // the payout cap and the group-job fan-out all still apply.
+    // These rows are escalated, never released (the partition below).
     let revisionQuery = supabaseAdmin
       .from("jobs")
       // The two revision_* columns are selected as well as filtered on: they
@@ -272,10 +272,20 @@ serve(async (req) => {
       console.error("[auto-release-payment] revision settle-out query failed:", revisionErr);
       defects.record(`revision settle-out query: ${revisionErr.message}`);
     }
-    const revisionIds = new Set<string>();
-    for (const j of revisionDue || []) {
-      revisionIds.add(j.id);
-      (jobs || []).push(j);
+    // ── NOTHING IS PAID WITHOUT THE POSTER'S APPROVAL (owner 2026-10-23) ──
+    // A job whose window ran out with no approval (the Helpr marked it done 24 hours ago, or delivered a
+    // revision fix 72 hours ago, and the poster said nothing) is no longer completed and paid here. It
+    // goes to Helpr support: one job_approval_escalations row (the admin queue), both sides told, and the
+    // escrow stays held until the poster or an admin approves, or an admin refunds. Only a job the poster
+    // DID approve (poster_completed_at) or pre-approved (Instant Release) is released below.
+    // deno-lint-ignore no-explicit-any
+    const escalate: Array<{ job: any; reason: "approval" | "revision" }> = [];
+    for (const j of revisionDue || []) escalate.push({ job: j, reason: "revision" });
+    // deno-lint-ignore no-explicit-any
+    const approvedJobs: any[] = [];
+    for (const j of jobs || []) {
+      if (j.poster_completed_at || instantIds.has(j.id)) approvedJobs.push(j);
+      else escalate.push({ job: j, reason: "approval" });
     }
 
     // ── Revision NEVER DELIVERED → open the dispute (2026-09-11) ──
@@ -370,13 +380,97 @@ serve(async (req) => {
     // not completed or paid this run. The database refuses the flip too
     // (refuse_payout_pending_while_refund_requested); this read makes it an
     // outcome rather than a refused write. Fails closed: unread, none released.
-    const refundHeld = await loadRefundHeldJobs(supabaseAdmin, (jobs || []).map((j) => j.id));
+    const refundHeld = await loadRefundHeldJobs(supabaseAdmin, [...approvedJobs, ...escalate.map((e) => e.job)].map((j) => j.id));
     if (!refundHeld.ok) {
       console.error("[auto-release-payment] refund request read failed; nothing released this run:", refundHeld.message);
       defects.record(`refund request read: ${refundHeld.message}`);
     }
 
-    for (const job of (jobs || [])) {
+    // ── Helpr support steps in (no money moves) ──
+    let escalated = 0;
+    if (escalate.length > 0) {
+      const { data: adminRows, error: adminsErr } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+      if (adminsErr) {
+        console.error("[auto-release-payment] admin list read failed; escalations wait for the next run:", adminsErr.message);
+        defects.record(`approval escalation admin read: ${adminsErr.message}`);
+      }
+      for (const { job, reason } of adminsErr ? [] : escalate) {
+        // A live refund request is its own flow with its own clock (board 141); unread = not escalated now.
+        const heldByRequest = !refundHeld.ok || refundHeld.jobs.has(job.id);
+        if (heldByRequest) {
+          results.push({ job_id: job.id, status: "refund_requested", skipped: true });
+          continue;
+        }
+        // Filed once per stall, atomically (file_approval_escalation, 20261023143240): a second run finds it
+        // open and tells nobody again; a row an admin closed BEFORE this stall began is re-opened (a new
+        // cycle, e.g. a revision fix the poster then ignored), so a second stall is never silent.
+        const anchor = reason === "revision" ? job.revision_completed_at : job.helper_completed_at;
+        const { data: filed, error: escErr } = await supabaseAdmin.rpc("file_approval_escalation", {
+          p_job_id: job.id, p_reason: reason, p_anchor: anchor ?? null,
+        });
+        if (escErr) {
+          console.error(`[auto-release-payment] approval escalation for job ${job.id} not filed:`, escErr.message);
+          jobDefect(job.id, `approval escalation ${job.id}: ${escErr.message}`);
+          continue;
+        }
+        if (filed !== true) {
+          results.push({ job_id: job.id, status: "escalated_before", skipped: true });
+          continue;
+        }
+        // Every Helpr on the job: one for a single job; each member for a crew (jobs.helper_id is NULL on a
+        // crew, 20260925154606). An unreadable roster is a defect; the poster and admins are still told.
+        let helprIds: string[] = job.helper_id ? [job.helper_id] : [];
+        if (job.is_group_job === true) {
+          const { data: crew, error: crewErr } = await supabaseAdmin
+            .from("group_job_helpers").select("helper_id").eq("job_id", job.id);
+          if (crewErr) jobDefect(job.id, `approval escalation crew read ${job.id}: ${crewErr.message}`);
+          else helprIds = [...new Set((crew ?? []).map((c: { helper_id: string | null }) => c.helper_id).filter((h): h is string => !!h))];
+        }
+        const told = (ok: boolean, who: string) => {
+          // insertNotifications never throws; a notice that did not land is a defect (the row is filed, so no
+          // later run re-sends it).
+          if (!ok) jobDefect(job.id, `approval escalation notice to ${who} ${job.id} not written`);
+        };
+        const title = job.title ?? "your job";
+        const waited = reason === "revision" ? "finished the change you asked for" : "marked it done";
+        if (job.customer_id) {
+          told(await insertNotifications(supabaseAdmin, {
+            user_id: job.customer_id, job_id: job.id,
+            title: "Please approve your Helpr's work",
+            message: `Your Helpr ${waited} on "${title}" and we haven't heard from you. Approve it, or ask for a change if something's wrong. Helpr support will also reach out. Your payment stays held until then.`,
+            type: "warning", link: `/posts?job=${job.id}`,
+          }), "the person who posted it");
+        }
+        if (helprIds.length > 0) {
+          told(await insertNotifications(supabaseAdmin, helprIds.map((h) => ({
+            user_id: h, job_id: job.id,
+            title: "Helpr support is stepping in",
+            message: `The person who posted "${title}" hasn't approved your work yet, so Helpr support is reaching out to them. Your payment is held safely until the job is approved.`,
+            type: "info", link: `/jobs?job=${job.id}`,
+          }))), "the Helpr");
+        }
+        const adminNotices = (adminRows ?? []).map((a: { user_id: string }) => ({
+          user_id: a.user_id, job_id: job.id,
+          title: "Job waiting on approval",
+          message: `"${title}": the Helpr ${reason === "revision" ? "delivered a requested fix 72 hours ago" : `marked it done ${APPROVAL_WINDOW_HOURS} hours ago`} and the person who posted it hasn't answered. The money is held. Approve it for them, refund, or reach out.`,
+          type: "admin_alert", link: `/admin?view=stalled&job=${job.id}`,
+        }));
+        if (adminNotices.length > 0) told(await insertNotifications(supabaseAdmin, adminNotices), "the admins");
+        await postSlackOpsAlert({
+          kind: "custom",
+          severity: "warning",
+          seed: seedJobIds.has(job.id) === true,
+          title: "Job waiting on approval",
+          message: `Job ${job.id}: no approval ${reason === "revision" ? "72h after a revision fix" : `${APPROVAL_WINDOW_HOURS}h after the Helpr marked it done`}. Escrow held; nothing moves until the person who posted it or an admin approves.`,
+          fields: { job_id: job.id },
+          oncePerDayKey: `approval-escalation:${job.id}`,
+        });
+        escalated++;
+        results.push({ job_id: job.id, status: "escalated" });
+      }
+    }
+
+    for (const job of approvedJobs) {
       if (!banReview.ok || frozenByBanReview(banReview, job)) {
         results.push({ job_id: job.id, status: "ban_review", skipped: true });
         continue;
@@ -468,9 +562,9 @@ serve(async (req) => {
       }
 
       // ── Step 3: Schedule the payout ──
-      // STANDARD PAY: 3 days after the job was marked done (Q202, was a flat
-      // now + 24h here = ~48h after done). _shared/escrowTiming.ts owns it.
-      const payoutTime = standardPayoutAtIso(job.helper_completed_at);
+      // STANDARD PAY: 3 days after the poster APPROVED (owner 2026-10-23). Instant Release is the
+      // poster's approval given in advance, so its clock starts now. _shared/escrowTiming.ts owns it.
+      const payoutTime = standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at);
 
       // Optimistic concurrency: guard on payment_status="escrow" so that if a
       // Stripe chargeback webhook fires between our read (above) and this write,
@@ -548,13 +642,22 @@ serve(async (req) => {
         console.error(`[auto-release-payment] payout hold read failed for ${job.helper_id} (job ${job.id}); payout notice skipped: ${promiseHold.message}`);
         jobDefect(job.id, `payout hold read ${job.id}: ${promiseHold.message}`);
       }
+      // A: the DAY the money is sent (owner 2026-10-23). Both roads here are approvals.
+      const payDay = payoutDayLabel(payoutTime);
+      if (job.helper_id && promiseHold.kind !== "clear") {
+        // Q764: no payout promise to a held (or unreadable) Helpr, but they are still told the job is approved
+        // (the trigger's generic notice is skipped on this write; lh-money-escrow review should-fix 9).
+        await insertNotifications(supabaseAdmin, {
+          user_id: job.helper_id, job_id: job.id, title: "Job approved!",
+          message: `"${job.title}" was approved.`, type: "payment", link: `/jobs?job=${job.id}`,
+        });
+      }
       if (job.helper_id && promiseHold.kind === "clear") {
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
-          title: "Job auto-completed!",
-          message: instantIds.has(job.id)
-            ? `"${job.title}" is complete — the person who posted it releases payment instantly. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`
-            : `"${job.title}" was auto-completed after 24 hours. $${formatPayoutDollars(helperPayout)} will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`,
+          job_id: job.id,
+          title: "Job approved!",
+          message: `"${job.title}" was approved. $${formatPayoutDollars(helperPayout)} will be sent to your account ${payDay}.`,
           // `?job=`, not `?filter=completed`: `completed` is a legacy filter key
           // with no chip in the five-bucket strip (the bucket is `done`), and the
           // bucket is resolved live by Activity from the job id.
@@ -564,10 +667,11 @@ serve(async (req) => {
       if (job.customer_id) {
         await insertNotifications(supabaseAdmin, {
           user_id: job.customer_id,
-          title: "Job auto-completed",
+          job_id: job.id,
+          title: "Job complete",
           message: instantIds.has(job.id)
-            ? `"${job.title}" released instantly per your Instant Release setting. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`
-            : `"${job.title}" was automatically marked complete after 24 hours. The Helpr is paid ${STANDARD_PAYOUT_PHRASE}.`,
+            ? `"${job.title}" was approved by your Instant Release setting. Your Helpr is paid ${payDay}.`
+            : `"${job.title}" is complete. You approved it, so your Helpr is paid ${payDay}.`,
           type: "info", link: `/posts?job=${job.id}`,
         });
       }
@@ -889,7 +993,7 @@ serve(async (req) => {
 
     return cronResult(
       "auto-release-payment",
-      { success: true, released, results, paid, payoutResults, autoPayoutEnabled, revisionDisputesOpened, seedDefects },
+      { success: true, released, escalated, results, paid, payoutResults, autoPayoutEnabled, revisionDisputesOpened, seedDefects },
       defects.defects,
       corsHeaders,
     );

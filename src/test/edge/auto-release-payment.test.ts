@@ -1,13 +1,15 @@
 /**
  * Unit tests for the `auto-release-payment` Supabase edge function.
  *
- * This cron does two separable things. Phase 1 moves a completed job from
- * `escrow` to `payout_pending` (24h hold, or immediately for posters who opted
- * into instant release) and NOTIFIES both parties. Phase 2 — gated behind
- * `RELEASE_PAYOUT_AUTO=1` — hands matured jobs to `release-payout`.
+ * This cron does two separable things. Phase 1 moves a job the POSTER APPROVED
+ * (poster_completed_at, or Instant Release) from `escrow` to `payout_pending`
+ * and NOTIFIES both parties with the day; a job past its approval window with
+ * NO approval is escalated to Helpr support instead and its money stays held
+ * (owner 2026-10-23). Phase 2 — gated behind `RELEASE_PAYOUT_AUTO=1` — hands
+ * matured jobs to `release-payout`.
  *
  * WHY THIS FILE EXISTS. Phase 1's helper notification quotes a dollar figure:
- * "$X will be sent to your account 3 days after the job is marked done." (Q202)
+ * "$X will be sent to your account Sun, Oct 25." (owner 2026-10-23)
  * No money moves here —
  * `process-scheduled-payouts` re-resolves the rate and pays — so a wrong number
  * on this path is not a wrong payout. It is a wrong PROMISE, which is the same
@@ -155,8 +157,11 @@ function seedDueJob(s: SupabaseScenario, jobOverrides: Record<string, unknown> =
         budget: 200,
         platform_fee_amount: 16,
         urgent_fee: 0,
-        poster_completed_at: null,
-        helper_completed_at: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+        // The poster APPROVED 26 hours ago and the Helpr never confirmed: the one road on which this cron
+        // still completes and schedules a payout (owner 2026-10-23). An unapproved job is escalated instead
+        // (the "nothing is paid without the poster's approval" block below).
+        poster_completed_at: new Date(Date.now() - 26 * 3600 * 1000).toISOString(),
+        helper_completed_at: null,
         stripe_session_id: "cs_1",
         stripe_payment_intent_id: "pi_1",
         status: "in_progress",
@@ -371,7 +376,8 @@ describe("auto-release-payment edge function", () => {
       const fn = await load();
       const res = await fn.fetch(cronRequest(fn));
       expect(res.status).toBe(200);
-      expect(helperNotification()).toBeUndefined();
+      // Told the job is approved (lh-money-escrow review should-fix 9), never an amount or a day.
+      expect(helperNotification()?.message).toBe('"Deep clean before move-in" was approved.');
       const flip = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
       expect((flip?.payload as Record<string, unknown>)?.payment_status).toBe("payout_pending");
     });
@@ -381,7 +387,8 @@ describe("auto-release-payment edge function", () => {
       scenario.reads.payout_holds = { error: { message: "connection reset", code: "08006" } };
       const fn = await load();
       const res = await fn.fetch(cronRequest(fn));
-      expect(helperNotification()).toBeUndefined();
+      // No promise on an unknown hold; only the neutral "was approved" line (should-fix 9).
+      expect(String(helperNotification()?.message ?? "")).not.toMatch(/\$|will be sent/);
       expect(res.status).toBe(500);
       expect(((await json(res)).defectReasons as string[]).join(" ")).toContain("payout hold read job-1");
     });
@@ -494,13 +501,18 @@ describe("auto-release-payment edge function", () => {
       const fn = await load();
       await fn.fetch(cronRequest(fn));
 
-      expect(helperNotification()?.title).toBe("Job auto-completed!");
+      expect(helperNotification()?.title).toBe("Job approved!");
+      // A: the DAY, never "captured" / "being processed" (owner 2026-10-23).
+      const helperMsg = String((helperNotification() as Record<string, unknown> | undefined)?.message ?? "");
+      expect(helperMsg).toMatch(/will be sent to your account (Mon|Tue|Wed|Thu|Fri|Sat|Sun), [A-Z][a-z]{2} \d{1,2}\.$/);
+      expect(helperMsg).not.toMatch(/captured|being processed|days after/);
       const posterNote = scenario.writes.find(
         (w) =>
           w.table === "notifications" &&
           (w.payload as Record<string, unknown>).user_id === POSTER_ID,
       );
       expect(posterNote).toBeDefined();
+      expect(String((posterNote?.payload as Record<string, unknown>).message)).toMatch(/your Helpr is paid (Mon|Tue|Wed|Thu|Fri|Sat|Sun), /i);
     });
   });
 
@@ -626,25 +638,25 @@ describe("auto-release-payment edge function", () => {
   // forever, and the only exit is a dispute the UI never mentions — while
   // three surfaces promise "payment auto-releases".
   describe("revision settle-out", () => {
-    it("releases a fixed revision the poster ghosted past the deadline", async () => {
+    // Owner 2026-10-23: a fix the poster never answered is NOT paid; Helpr support steps in.
+    // @mutate supabase/functions/auto-release-payment/index.ts | for (const j of revisionDue \|\| []) escalate.push({ job: j, reason: "revision" }); | for (const j of revisionDue \|\| []) (jobs \|\| []).push(j);
+    it("escalates a fixed revision the poster ghosted past the deadline — never releases it", async () => {
       seedRevisionDueJob(scenario);
       seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.rpc.file_approval_escalation = true;
 
       const fn = await load();
       const res = await fn.fetch(cronRequest(fn));
       expect(res.status).toBe(200);
-      expect((await json(res)).released).toBe(1);
-
-      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
-      expect((jobWrite?.payload as Record<string, unknown>).payment_status).toBe("payout_pending");
-      // Same optimistic-concurrency guard the ordinary path uses — these rows
-      // go through the identical loop, so a chargeback landing mid-run still
-      // wins.
-      expect(jobWrite?.filters).toContainEqual({
-        op: "eq",
-        column: "payment_status",
-        value: "escrow",
-      });
+      const out = await json(res);
+      expect(out.released).toBe(0);
+      expect(out.escalated).toBe(1);
+      expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+      // Filed for THIS stall: anchored on the fix's delivery, so a row closed before it is re-opened.
+      const esc = (scenario.rpcCalls ?? []).find((c) => c.name === "file_approval_escalation");
+      expect(esc?.args).toMatchObject({ p_job_id: "job-rev-1", p_reason: "revision" });
+      expect(Date.parse(String((esc?.args as Record<string, unknown>).p_anchor))).toBeLessThan(Date.now() - 79 * 3600e3);
     });
 
     it("leaves an ordinary due job alone — the two selectors do not overlap", async () => {
@@ -686,6 +698,110 @@ describe("auto-release-payment edge function", () => {
    * `auto-release-payment/index.ts` turns this red; nothing else in the repo
    * goes red with it.
    */
+  /**
+   * NOTHING IS PAID WITHOUT THE POSTER'S APPROVAL (owner 2026-10-23, after "Mow two lawns" 7c6deb77).
+   * A job the Helpr marked done 24 hours ago that the poster never approved used to be auto-completed
+   * and paid here. Now it is escalated: one job_approval_escalations row, the poster, the Helpr and every
+   * admin told, the escrow untouched.
+   */
+  // @mutate supabase/functions/auto-release-payment/index.ts | if (j.poster_completed_at \|\| instantIds.has(j.id)) approvedJobs.push(j); | if (true) approvedJobs.push(j);
+  describe("nothing is paid without the poster's approval", () => {
+    const seedUnapproved = () => {
+      seedDueJob(scenario, { poster_completed_at: null, helper_completed_at: new Date(Date.now() - 25 * 3600 * 1000).toISOString() });
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }, { user_id: "admin-2" }] };
+      scenario.rpc.file_approval_escalation = true;
+    };
+    const notesTo = (uid: string) => scenario.writes
+      .filter((w) => w.table === "notifications")
+      .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Record<string, unknown>[])
+      .filter((n) => n.user_id === uid);
+
+    it("escalates a job the poster never approved: no money moves, everyone is told", async () => {
+      seedUnapproved();
+      const fn = await load();
+      const res = await fn.fetch(cronRequest(fn));
+      expect(res.status).toBe(200);
+      const out = await json(res);
+      expect(out.released).toBe(0);
+      expect(out.escalated).toBe(1);
+      // The escrow is untouched: no jobs write, no Stripe call.
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+      expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+      const esc = (scenario.rpcCalls ?? []).find((c) => c.name === "file_approval_escalation");
+      expect(esc?.args).toMatchObject({ p_job_id: "job-1", p_reason: "approval" });
+      expect(notesTo(POSTER_ID).map((n) => n.title)).toEqual(["Please approve your Helpr's work"]);
+      expect(String(notesTo(POSTER_ID)[0].message)).toMatch(/stays held/);
+      expect(notesTo(HELPER_ID).map((n) => n.title)).toEqual(["Helpr support is stepping in"]);
+      expect(notesTo("admin-1").map((n) => n.link)).toEqual(["/admin?view=stalled&job=job-1"]);
+      expect(notesTo("admin-2")).toHaveLength(1);
+      const all = scenario.writes.filter((w) => w.table === "notifications")
+        .flatMap((w) => (Array.isArray(w.payload) ? w.payload : [w.payload]) as Record<string, unknown>[]);
+      expect(all.some((n) => /auto-?releas|auto-?complet/i.test(String(n.message)))).toBe(false);
+      expect(slackAlerts.some((a) => (a as { title?: string }).title === "Job waiting on approval")).toBe(true);
+    });
+
+    // lh-money-escrow review should-fix 4: a crew has no lead (helper_id NULL); every member is told.
+    // @mutate supabase/functions/auto-release-payment/index.ts | if (job.is_group_job === true) {\n          const { data: crew, error: crewErr } = await supabaseAdmin | if (false) {\n          const { data: crew, error: crewErr } = await supabaseAdmin
+    it("a crew job: every member is told, not a NULL lead", async () => {
+      seedUnapproved();
+      const due = (scenario.reads.jobs as { rows: Record<string, unknown>[] }).rows[0];
+      Object.assign(due, { helper_id: null, is_group_job: true, helpers_needed: 2 });
+      scenario.reads.group_job_helpers = { rows: [{ helper_id: "crew-a" }, { helper_id: "crew-b" }] };
+      const fn = await load();
+      const out = await json(await fn.fetch(cronRequest(fn)));
+      expect(out.escalated).toBe(1);
+      expect(notesTo("crew-a").map((n) => n.title)).toEqual(["Helpr support is stepping in"]);
+      expect(notesTo("crew-b")).toHaveLength(1);
+    });
+
+    // lh-silent-failure review should-fix 7: a notice that did not land is a defect (no later run re-sends it).
+    it("a notice that fails to write is a defect", async () => {
+      seedUnapproved();
+      scenario.writeErrors.notifications = { message: "rls says no" };
+      const fn = await load();
+      const out = await json(await fn.fetch(cronRequest(fn)));
+      expect(out.escalated).toBe(1);
+      expect((out.defectReasons as string[]).some((r) => /approval escalation notice to the person who posted it job-1 not written/.test(r))).toBe(true);
+    });
+
+    it("an escalation already filed is not filed or announced again", async () => {
+      seedUnapproved();
+      scenario.rpc.file_approval_escalation = false;
+      const fn = await load();
+      const out = await json(await fn.fetch(cronRequest(fn)));
+      expect(out.escalated).toBe(0);
+      expect(out.results).toContainEqual(expect.objectContaining({ job_id: "job-1", status: "escalated_before" }));
+      expect(scenario.writes.filter((w) => w.table === "notifications")).toHaveLength(0);
+    });
+
+    it("a failed escalation write is a defect and still moves no money", async () => {
+      seedUnapproved();
+      scenario.rpcErrors = { file_approval_escalation: { message: "boom" } };
+      const fn = await load();
+      const out = await json(await fn.fetch(cronRequest(fn)));
+      expect(out.escalated).toBe(0);
+      expect((out.defectReasons as string[]).some((r) => /approval escalation job-1: boom/.test(r))).toBe(true);
+      expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
+    });
+
+    // B: the payout clock starts at the APPROVAL, not when the Helpr marked done.
+    // @mutate supabase/functions/auto-release-payment/index.ts | standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at) | standardPayoutAtIso(job.helper_completed_at)
+    it("an approved job's payout is scheduled 3 days after the APPROVAL", async () => {
+      const approvedAt = Date.now() - 30 * 3600 * 1000;
+      seedDueJob(scenario, {
+        poster_completed_at: new Date(approvedAt).toISOString(),
+        helper_completed_at: new Date(Date.now() - 50 * 3600 * 1000).toISOString(),
+      });
+      seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
+      const fn = await load();
+      await fn.fetch(cronRequest(fn));
+      const jobWrite = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
+      const at = Date.parse(String((jobWrite?.payload as Record<string, unknown>).payout_scheduled_at));
+      expect(Math.abs(at - (approvedAt + 72 * 3600 * 1000))).toBeLessThan(1000);
+    });
+  });
+
   describe("the due query's scope", () => {
     const dueRead = () =>
       scenario.readQueries.find(

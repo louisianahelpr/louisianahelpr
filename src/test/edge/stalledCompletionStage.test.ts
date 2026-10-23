@@ -34,8 +34,8 @@ import {
   type StalledEvidence,
 } from "../../../supabase/functions/_shared/stalledCompletion";
 import {
-  AUTO_COMPLETE_HOURS,
-  TOTAL_TO_PAYOUT_HOURS,
+  APPROVAL_WINDOW_HOURS,
+  STANDARD_PAYOUT_HOURS_AFTER_APPROVAL,
 } from "../../../supabase/functions/_shared/escrowTiming";
 import { SECOND_AFTER_HOURS } from "../../../supabase/functions/_shared/arrivalNudge";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
@@ -60,18 +60,18 @@ const L = (first?: number, second?: number, esc?: number): NudgeLedger => ({
 });
 
 describe("the thresholds are the app's own constants, not new numbers", () => {
-  it("the second nudge lands at AUTO_COMPLETE_HOURS", () => {
-    expect(STALLED_SECOND_AFTER_HOURS).toBe(AUTO_COMPLETE_HOURS);
+  it("the second nudge lands at APPROVAL_WINDOW_HOURS", () => {
+    expect(STALLED_SECOND_AFTER_HOURS).toBe(APPROVAL_WINDOW_HOURS);
   });
 
-  it("a human is asked at 48h — decoupled from TOTAL_TO_PAYOUT_HOURS since Q202", () => {
+  it("a human is asked at 48h — decoupled from the payout clock since Q202", () => {
     // The owner's rule is that money never moves on this path. So at the exact
     // moment the normal path would have paid out, a person is asked instead.
     // Q202 (2026-09-23) lengthened the standard payout to 72h after done as a
     // card-dispute buffer. The admin escalation for a job NOBODY marked done
     // was not part of that decision and stays at 48h (see stalledCompletion.ts).
     expect(STALLED_ESCALATE_AFTER_HOURS).toBe(48);
-    expect(STALLED_ESCALATE_AFTER_HOURS).toBeLessThan(TOTAL_TO_PAYOUT_HOURS);
+    expect(STALLED_ESCALATE_AFTER_HOURS).toBeLessThan(STANDARD_PAYOUT_HOURS_AFTER_APPROVAL);
   });
 
   it("the first-nudge grace is the app's finest lateness unit", () => {

@@ -1,34 +1,34 @@
 /**
- * STANDARD PAY 3 DAYS after the job is done (docs/OPEN.md Q202, owner decision
- * 2026-09-23; it was ~48h: a 24h auto-complete, then now + 24h at every release
- * write). The wait is the card-dispute buffer: money still on the platform can
- * be held when the cardholder disputes. The paid instant payout is unchanged.
+ * STANDARD PAY 3 DAYS after the POSTER APPROVES (owner 2026-10-23, after "Mow
+ * two lawns" 7c6deb77; Q202 2026-09-23 set the 3 days, then counted from the
+ * Helpr marking done). The wait is the card-dispute buffer: money still on the
+ * platform can be held when the cardholder disputes. Instant payout unchanged.
  *
  * Held here:
- *   1. the rule (_shared/escrowTiming.ts standardPayoutAtIso): done + 72h,
- *      never before now, "done" = helper_completed_at (else now);
+ *   1. the rule (_shared/escrowTiming.ts standardPayoutAtIso): approval + 72h,
+ *      never before now, "approval" = poster_completed_at (else now);
  *   2. INVENTORY of every edge write of jobs.payout_scheduled_at (live SQL had
  *      none, measured 2026-09-23 with a pg_proc scan): each standard-path
  *      writer calls standardPayoutAtIso. The one allowed exception is
  *      auto-resolve-disputes (a dispute settlement, not the standard path);
  *   3. behaviour on the REAL auto-release-payment through the edge harness:
- *      the scheduled time is helper_completed_at + 72h;
+ *      the scheduled time is poster_completed_at + 72h;
  *   4. COPY: no edge notification promises "in 24 hours" for a payout, and the
  *      client sites that state the standard timing interpolate
  *      STANDARD_PAYOUT_PHRASE.
  *
- * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_DONE = 2;
- * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
- * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isHelper ? null : job.helper_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
- * @mutate supabase/functions/auto-release-payment/index.ts | will be sent to your account ${STANDARD_PAYOUT_PHRASE}.`\n            : `"${job.title}" was auto-completed | will be transferred to your account in 24 hours.`\n            : `"${job.title}" was auto-completed
+ * @mutate supabase/functions/_shared/escrowTiming.ts | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 3; | export const STANDARD_PAYOUT_DAYS_AFTER_APPROVAL = 2;
+ * @mutate supabase/functions/auto-release-payment/index.ts | const payoutTime = standardPayoutAtIso(instantIds.has(job.id) ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+ * @mutate supabase/functions/create-payment/index.ts | const payoutTime = standardPayoutAtIso(isPoster ? null : job.poster_completed_at); | const payoutTime = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+ * @mutate supabase/functions/auto-release-payment/index.ts | will be sent to your account ${payDay}.`, | will be transferred to your account in 24 hours.`,
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   return `Sent ${STANDARD_PAYOUT_PHRASE}`; |   return `Sent 24 hours after approval`;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
-  STANDARD_PAYOUT_DAYS_AFTER_DONE,
-  STANDARD_PAYOUT_HOURS_AFTER_DONE,
+  STANDARD_PAYOUT_DAYS_AFTER_APPROVAL,
+  STANDARD_PAYOUT_HOURS_AFTER_APPROVAL,
   STANDARD_PAYOUT_PHRASE,
   standardPayoutAtIso,
 } from "../../supabase/functions/_shared/escrowTiming";
@@ -57,15 +57,15 @@ function edgeFiles(): string[] {
   return out;
 }
 
-describe("standard pay: 3 days after the job is done (Q202)", () => {
-  it("the rule: done + 72h, never before now", () => {
-    expect(STANDARD_PAYOUT_DAYS_AFTER_DONE).toBe(3);
-    expect(STANDARD_PAYOUT_HOURS_AFTER_DONE).toBe(72);
-    expect(STANDARD_PAYOUT_PHRASE).toBe("3 days after the job is marked done");
+describe("standard pay: 3 days after the poster approves (owner 2026-10-23)", () => {
+  it("the rule: approval + 72h, never before now", () => {
+    expect(STANDARD_PAYOUT_DAYS_AFTER_APPROVAL).toBe(3);
+    expect(STANDARD_PAYOUT_HOURS_AFTER_APPROVAL).toBe(72);
+    expect(STANDARD_PAYOUT_PHRASE).toBe("3 days after the job is approved");
     const now = Date.parse("2026-09-23T12:00:00.000Z");
     const iso = (ms: number) => new Date(ms).toISOString();
     expect(standardPayoutAtIso(iso(now - 10 * H), now)).toBe(iso(now + 62 * H));
-    expect(standardPayoutAtIso(iso(now - 24 * H), now)).toBe(iso(now + 48 * H)); // auto-complete path
+    expect(standardPayoutAtIso(iso(now - 24 * H), now)).toBe(iso(now + 48 * H)); // approved a day ago, the Helpr confirms now
     expect(standardPayoutAtIso(iso(now - 100 * H), now)).toBe(iso(now));
     expect(standardPayoutAtIso(null, now)).toBe(iso(now + 72 * H));
     expect(standardPayoutAtIso("not a date", now)).toBe(iso(now + 72 * H));
@@ -140,7 +140,7 @@ describe("standard pay: 3 days after the job is done (Q202)", () => {
   });
 });
 
-describe("auto-release-payment schedules the payout 3 days after done (edge harness)", () => {
+describe("auto-release-payment schedules the payout 3 days after the APPROVAL (edge harness)", () => {
   beforeEach(() => {
     resetEnv();
     resetStripeMock();
@@ -148,7 +148,7 @@ describe("auto-release-payment schedules the payout 3 days after done (edge harn
     resetSharedMocks();
   });
 
-  it("helper marked done 25h ago → payout_scheduled_at = done + 72h", async () => {
+  it("poster approved 25h ago (the Helpr never confirmed) → payout_scheduled_at = approval + 72h", async () => {
     setEnv({
       SUPABASE_URL: "https://x.supabase.co",
       SUPABASE_SERVICE_ROLE_KEY: "service-key",
@@ -157,12 +157,12 @@ describe("auto-release-payment schedules the payout 3 days after done (edge harn
       RELEASE_PAYOUT_AUTO: "0",
     });
     const fn = await loadEdgeFunction("auto-release-payment");
-    const doneAt = new Date(Date.now() - 25 * H).toISOString();
+    const doneAt = new Date(Date.now() - 25 * H).toISOString(); // the poster's approval
     scenario.reads.jobs = {
       selectOverrides: [{ includes: "revision_acceptance_deadline", result: { rows: [] } }],
       rows: [{
         id: "job-1", title: "Deep clean", helper_id: "helper-1", customer_id: "poster-1", budget: 200,
-        platform_fee_amount: 16, urgent_fee: 0, poster_completed_at: null, helper_completed_at: doneAt,
+        platform_fee_amount: 16, urgent_fee: 0, poster_completed_at: doneAt, helper_completed_at: new Date(Date.now() - 40 * H).toISOString(),
         stripe_session_id: "cs_1", stripe_payment_intent_id: "pi_1", status: "in_progress",
         is_group_job: false, helpers_needed: 1, helper_fee_percent: 8,
       }],

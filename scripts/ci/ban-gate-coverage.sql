@@ -180,6 +180,7 @@ rpc_exempt(fn, why) AS (
   ('admin_send_team_message', 'admin-only (body checks has_role admin); also writes messages INSERT, ban-gated'),
   ('admin_set_feature_switch', 'admin-only (body checks has_role admin); writes feature_switches and admin_audit_log (20261012031120)'),
   ('resolve_stalled_job_flag', 'admin-only (body checks has_role admin)'),
+  ('resolve_approval_escalation', 'admin-only (body checks has_role admin; owner 2026-10-23 approval queue)'),
   ('review_credential', 'admin-only (body checks has_role admin)'),
   ('rpc_clear_test_mode_dispute_stamp', 'admin-only (body checks has_role admin; Q1280)'),
   ('rpc_clear_test_mode_dispute_refund_stamp', 'admin-only (body checks has_role admin; Q1383)'),

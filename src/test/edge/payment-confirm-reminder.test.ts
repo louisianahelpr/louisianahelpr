@@ -14,7 +14,7 @@
  * plausible `sent` count.
  *
  * Unlike `review-nag-cron`, this window could NOT be widened: the upper bound
- * is pinned by `AUTO_COMPLETE_HOURS` (24h), when the money actually moves. So
+ * is pinned by `APPROVAL_WINDOW_HOURS` (24h), when the money actually moves. So
  * the fix had to be the schedule, and it shipped in migration 20260902035754 —
  * every six hours at quarter past, with `CRON_PERIOD_HOURS = 6` in the function
  * to match. What the function does on its own is MEASURE the hole: `missed` is
@@ -159,7 +159,7 @@ describe("payment-confirm-reminder edge function", () => {
 
   it("MEASURES the coverage hole: jobs that auto-released un-reminded are defects", async () => {
     // This is the alarm that replaces one that could never fire. The count is
-    // the server's own — jobs past the auto-release cutoff with
+    // the server's own — jobs past the approval window with
     // `payment_confirm_notif_sent IS NULL` and no poster confirmation.
     const fn = await loadConfigured();
     scenario.reads.jobs = { rows: [], count: 7 };
@@ -169,7 +169,7 @@ describe("payment-confirm-reminder edge function", () => {
 
     expect(res.status).toBe(500);
     expect(b.missed).toBe(7);
-    expect(String(b.defectReasons)).toContain("auto-release cutoff with no confirm reminder");
+    expect(String(b.defectReasons)).toContain("approval window with no confirm reminder");
     // It NO LONGER names a reschedule, and that is the assertion now.
     //
     // The suffix "Reschedule to '15 */6 * * *'" is emitted only while

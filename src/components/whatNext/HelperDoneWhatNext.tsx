@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
-import { AUTO_COMPLETE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS, STANDARD_PAYOUT_PHRASE } from "../../../supabase/functions/_shared/escrowTiming";
 
 /** What the Helpr's Done tap hands the sheet: when it was marked. */
 type DoneMoment = { jobId: string; at: string };
@@ -25,9 +25,10 @@ const timeOf = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour
 
 /**
  * Board 81, "What next" after the Helpr marks the job done, on the shared WhatNextSheet.
- * The poster confirms (Now), or the job completes on its own after AUTO_COMPLETE_HOURS
- * (the cron's real cutoff, escrowTiming.ts); then the payout; then reviews. No amount and no
- * payout date: the tracker does not hold the take-home, and a date we can't compute is hidden.
+ * The poster approves (Now); if they have not answered in APPROVAL_WINDOW_HOURS, Helpr support
+ * steps in and nothing is paid until the job is approved (owner 2026-10-23, escrowTiming.ts); then
+ * the payout, sent STANDARD_PAYOUT_PHRASE; then reviews. No amount and no payout date: the tracker
+ * does not hold the take-home, and the date is only known once the poster approves.
  */
 export function HelperDoneWhatNextHost() {
   const [moment, setMoment] = useState<DoneMoment | null>(null);
@@ -46,11 +47,11 @@ export function HelperDoneWhatNextHost() {
         { key: "done", label: "You marked it done", detail: moment ? `Today · ${timeOf(moment.at)}` : "Today", state: "done" },
         {
           key: "confirm",
-          label: "The person who posted it confirms",
-          detail: `Or it completes on its own after ${AUTO_COMPLETE_HOURS} hours`,
+          label: "The person who posted it approves",
+          detail: `If they haven't answered in ${APPROVAL_WINDOW_HOURS} hours, Helpr support steps in`,
           state: "now",
         },
-        { key: "paid", label: "You're paid", detail: "Your payout follows once it's complete", state: "later" },
+        { key: "paid", label: "You're paid", detail: `Your payout is sent ${STANDARD_PAYOUT_PHRASE}`, state: "later" },
         { key: "reviews", label: "You both leave reviews", detail: "It helps you get hired again", state: "later" },
       ]}
       primary={{ label: "Got it", acknowledge: true }}

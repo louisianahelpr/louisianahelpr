@@ -1,4 +1,4 @@
-import { COPY_AUTO_RELEASE_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
 
 /**
  * What each completed transition tells the helper, and (because these events
@@ -16,5 +16,5 @@ export const TRANSITION_TOAST: Record<string, string> = {
   working: "The person who posted this job knows work has started.",
   // Interpolated, never restated as a literal — see escrowTiming.ts and the
   // copy-parity guard in src/lib/escrowTiming.copyParity.test.ts.
-  done: `Payout requested. The person who posted this job has ${COPY_AUTO_RELEASE_HOURS} hours to approve before your payment releases automatically.`,
+  done: `Marked done. The person who posted this job approves it next. If they haven't answered in ${APPROVAL_WINDOW_HOURS} hours, Helpr support steps in. Your payment stays held until then.`,
 };

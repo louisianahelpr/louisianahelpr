@@ -14,7 +14,7 @@
 //                      §4 expire_pending_direct_offers
 //   auto-release-payment  needs poster_completed_at <= cutoff
 //                         OR helper_completed_at <= cutoff
-//                         (AUTO_COMPLETE_HOURS = 24, escrowTiming.ts)
+//                         (APPROVAL_WINDOW_HOURS = 24, escrowTiming.ts)
 //   arrival-confirm-reminder  needs poster_confirmed_arrival_at IS NULL, and an
 //                             in_progress job has that stamp by definition
 //
@@ -55,7 +55,7 @@
 //         SECOND_AFTER_HOURS is 2. Two hours past an ESTIMATED end is short
 //         enough to be useful and long enough not to accuse a Helpr who is
 //         still working.
-//   24h — `escrowTiming.ts` AUTO_COMPLETE_HOURS. That is already the window
+//   24h — `escrowTiming.ts` APPROVAL_WINDOW_HOURS. That is already the window
 //         this app gives a silent party to act before anything happens to
 //         their job; the second nudge lands exactly at it.
 //   48h — chosen as the moment funds WOULD have reached the Helpr under the

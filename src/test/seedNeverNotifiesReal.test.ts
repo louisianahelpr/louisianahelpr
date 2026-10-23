@@ -69,7 +69,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/functions/saved-helper-availability-push/index.ts | .from("notifications").insert(notifications) | .from("notifications").insert(notifications); await supabase.from("notifications").insert({ user_id: "x", title: "t", message: "m", type: "job_match" })
 // @mutate supabase/migrations/20260927060952_low_rating_alert_links_person.sql | '/admin?view=people&user=' \|\| p_reviewee_id, | '/admin?view=people',
 // @mutate supabase/migrations/20261005064816_dispute_refile_keeps_helpr_answer.sql | INSERT INTO public.notifications (user_id, title, message, type, link, job_id)\n    VALUES (\n      _admin, | INSERT INTO public.notifications (user_id, title, message, type, link)\n    VALUES (\n      _admin,
-// @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job completed!", |             user_id: job.helper_id,\n            title: "Job completed!",
+// @mutate supabase/functions/create-payment/index.ts |             user_id: job.helper_id,\n            job_id: job.id,\n            title: "Job approved!", |             user_id: job.helper_id,\n            title: "Job approved!",
 // @mutate supabase/functions/stripe-idv-webhook/index.ts |               link: `/admin?view=people&user=${userId}`, |               link: "/admin",
 // @mutate supabase/functions/arrival-confirm-reminder/index.ts |       if ((await seedBoundaryDropsRow(supabase, { user_id: userId, job_id: jobId, link })) === true) return;\n |       if (false) return;\n
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |           } else if (seedGate.crosses) { |           } else if (false) {

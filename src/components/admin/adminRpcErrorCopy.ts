@@ -277,6 +277,36 @@ export const ADMIN_RPC_ERROR_COPY = {
   resolve_approval_escalation: {
     not_authorized: "Only an admin can close a job waiting on approval.",
   },
+  // PayPal Plan A, phase 4: the hand-paid "Pay this Helpr" queue (20261023231811).
+  admin_paypal_payout_queue: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only admins can see the PayPal pay list.",
+  },
+  admin_mark_paypal_payout_paid: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can mark a payout paid.",
+    txn_id_required: "Paste the PayPal transaction ID from the Send Money receipt.",
+    txn_id_invalid: "That doesn't look like a PayPal transaction ID. It's letters and numbers only, usually 17.",
+    payouts_required: "Nothing was picked to mark paid. Refresh the list.",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payouts_not_one_payee: "Mark paid one Helpr and one PayPal account at a time.",
+    payout_already_marked_paid: "This was already marked paid with a different PayPal transaction ID. Nothing was changed.",
+    payout_held_email_changed: "The Helpr changed their PayPal email after this was queued. Check the new email and queue it again.",
+    payout_not_payable: "This payout was canceled or came back, so it can't be marked paid. Refresh the list.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
+    payout_amount_mismatch: "The amount changed since this list loaded. Refresh the list and check the total before you mark it paid.",
+    txn_id_already_used: "That PayPal transaction ID already marks a payment to someone else. Check the receipt.",
+  },
+  admin_requeue_held_paypal_payout: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can queue a payout again.",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payout_not_held: "This payout isn't held any more. Refresh the list.",
+    payout_not_job_pay: "Only job pay can be queued again here.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
+    no_payable_paypal_account: "The Helpr has no PayPal email that can be paid yet.",
+    payout_held: "This Helpr's payouts are on hold. Release the hold first.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

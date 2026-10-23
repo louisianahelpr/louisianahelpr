@@ -39,11 +39,15 @@ import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { HeldForReview } from "./adminPayoutBatches/HeldForReview";
 import { splitRealAndTest, bulkPayoutDescription, singlePayoutDescription } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
+import { PaypalPayQueue } from "./adminPayoutBatches/PaypalPayQueue";
+import { useFeature } from "@/hooks/useFeature";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
   const { user } = useAuthReady();
   const adminId = user?.id;
+  // PayPal Plan A, phase 4: the hand-paid PayPal queue, only while the switch reaches this admin.
+  const paypalOn = useFeature("paypal_payments");
   // Selection set for bulk payout. Persists across re-renders but is
   // intentionally not stored — refreshing clears the picks so a stale
   // selection can't fire a real transfer.
@@ -272,6 +276,7 @@ const AdminPayoutBatches = () => {
 
   return (
     <AdminViewShell>
+      {paypalOn && <PaypalPayQueue adminId={adminId} />}
       {/* One card owns the whole queue: the lead sentence is its subtitle,
           Refresh is its header action (it was previously stranded beside that
           sentence on a bare row), and the totals, tabs and rows are its body.

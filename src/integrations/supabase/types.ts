@@ -12080,6 +12080,39 @@ export type Database = {
         Args: { p_job_id: string; p_link: string; p_recipient: string }
         Returns: boolean
       }
+      admin_mark_paypal_payout_paid: {
+        Args: {
+          p_external_txn_id: string
+          p_payout_ids: string[]
+          p_sent_before_hold?: boolean
+          p_total_cents: number
+        }
+        Returns: Json
+      }
+      admin_paypal_payout_queue: {
+        Args: never
+        Returns: {
+          amount_cents: number | null
+          current_destination: string | null
+          destination_kind: string | null
+          destination_value: string | null
+          env: string
+          external_txn_id: string | null
+          helper_id: string | null
+          helper_name: string | null
+          helper_on_hold: boolean
+          job_id: string | null
+          job_title: string | null
+          line_kind: string
+          marked_paid_at: string | null
+          marked_paid_by_name: string | null
+          pay_on_or_after: string | null
+          payout_id: string | null
+          queued_at: string | null
+          row_kind: string
+          status: string
+        }[]
+      }
       admin_queue_still_pending: {
         Args: { p_ref: Json; p_rule: string; p_since: string }
         Returns: boolean
@@ -12095,6 +12128,10 @@ export type Database = {
       admin_resolve_ban_evasion_match: {
         Args: { p_match_id: string }
         Returns: boolean
+      }
+      admin_requeue_held_paypal_payout: {
+        Args: { p_payout_id: string }
+        Returns: Json
       }
       admin_reverse_violation: {
         Args: {

@@ -47,7 +47,7 @@ if (process.env.PLANT === "no_idempotency") {
   plant("IF v_pp.external_txn_id IS DISTINCT FROM v_txn THEN", "IF true THEN");
 }
 if (process.env.PLANT === "no_one_payee") {
-  plant("OR o.destination_value IS DISTINCT FROM NEW.destination_value", "AND false");
+  plant("OR o.destination_value IS DISTINCT FROM p_destination", "AND false");
   plant("IF v_pp.payee_user_id IS DISTINCT FROM v_first.payee_user_id", "IF false");
 }
 
@@ -264,7 +264,6 @@ for (const n of [1, 2, 3, 4, 5, 7]) {
   await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, provider_capture_id, amount_cents, status)
     values ('job', '${J[n]}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:job:${n}:amt10570:a1', 'O-${n}', 'C-${n}', 10570, 'captured')`);
 }
-// payable is set at insert: phase 1's trigger resets payable on any UPDATE that turns it on (reported to the lead).
 await db.query(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr}', 'paypal', 'sandbox', 'hal@example.com', true)`);
 
 const q = (job, helper, cents = 9430) => `select public.paypal_queue_manual_payout('${job}', '${helper}', ${cents}, 570, 'system', null, 'release') as v`;
@@ -374,12 +373,18 @@ await db.query(`update provider_payouts set status = 'held' where id = '${P3}'`)
 await db.query(`update payee_accounts set paypal_email = 'hope.new@example.com' where user_id = '${U.helpr2}'`);
 await as("admin");
 const heldLine = (await db.query("select * from admin_paypal_payout_queue()")).rows.find((x) => x.payout_id === P3);
-check("the queue shows the held row with the OLD destination and the current one", heldLine?.status === "held" && heldLine.destination_value === "hope@example.com" && heldLine.current_destination === null, heldLine);
+check("the queue shows the held row with the OLD destination and the current one", heldLine?.status === "held" && heldLine.destination_value === "hope@example.com" && heldLine.current_destination === "hope.new@example.com", heldLine);
 await expectErr("a held row is not marked paid by accident", mark([P3], "5PQ11111AA222222B", 5000), /payout_held_email_changed/);
-await expectErr("re-queue needs a payable new email (not yet confirmed)", `select public.admin_requeue_held_paypal_payout('${P3}')`, /no_payable_paypal_account/);
-await as("postgres");
-await db.query(`delete from payee_accounts where user_id = '${U.helpr2}'`);
-await db.query(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr2}', 'paypal', 'sandbox', 'hope.new@example.com', true)`);
+await as("service");
+await db.query(`update payee_accounts set payable = false where user_id = '${U.helpr2}'`);
+await as("admin");
+await expectErr("re-queue needs a payable new email", `select public.admin_requeue_held_paypal_payout('${P3}')`, /no_payable_paypal_account/);
+await as("service");
+await db.query(`update payee_accounts set payable = true where user_id = '${U.helpr2}'`);
+await as("postgres"); await db.exec(`insert into payout_holds(helper_id, reason) values ('${U.helpr2}', 'review')`);
+await as("admin");
+await expectErr("re-queue refused while the Helpr is on a payout hold", `select public.admin_requeue_held_paypal_payout('${P3}')`, /payout_held/);
+await as("postgres"); await db.exec(`delete from payout_holds`);
 await as("helpr2");
 await expectErr("a non-admin cannot re-queue", `select public.admin_requeue_held_paypal_payout('${P3}')`, /admin_only/);
 await as("admin");
@@ -418,7 +423,7 @@ check("get_payout_batches lists the Stripe job only", batches.length === 1 && ba
 // --- grants
 await as("postgres");
 for (const [fn, sig] of [["paypal_queue_manual_payout", "uuid, uuid, integer, integer, text, uuid, text"], ["paypal_payout_destination", "uuid, text"],
-  ["admin_mark_paypal_payout_paid", "uuid[], text, bigint, boolean"], ["admin_requeue_held_paypal_payout", "uuid"], ["admin_paypal_payout_queue", ""]]) {
+  ["admin_mark_paypal_payout_paid", "uuid[], text, bigint, boolean"], ["admin_requeue_held_paypal_payout", "uuid"], ["admin_paypal_payout_queue", ""], ["paypal_txn_names_other_payee", "text, uuid, text, text, uuid"]]) {
   const acl = (await one(`select proacl::text a from pg_proc where oid = 'public.${fn}(${sig})'::regprocedure`)).a ?? "";
   const anonOk = !/(^|[{,])=X|anon=X/.test(acl);
   const authOk = fn.startsWith("admin_") ? /authenticated=X/.test(acl) : !/authenticated=X/.test(acl);

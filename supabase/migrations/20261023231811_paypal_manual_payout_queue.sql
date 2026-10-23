@@ -205,6 +205,25 @@ ALTER TABLE public.provider_payouts DROP CONSTRAINT IF EXISTS provider_payouts_e
 CREATE INDEX IF NOT EXISTS provider_payouts_external_txn_idx
   ON public.provider_payouts (external_txn_id) WHERE external_txn_id IS NOT NULL;
 
+-- THE rule, in one place: does this PayPal transaction id already mark a payout to someone else (or
+-- another PayPal account, or the other env)? Read by the trigger (the backstop) and by Mark paid
+-- (so the admin gets the plain refusal before anything is written).
+CREATE OR REPLACE FUNCTION public.paypal_txn_names_other_payee(p_txn text, p_payee uuid, p_destination text, p_env text, p_except uuid DEFAULT NULL)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+  SELECT EXISTS (SELECT 1 FROM public.provider_payouts o
+                  WHERE o.external_txn_id = p_txn
+                    AND o.id IS DISTINCT FROM p_except
+                    AND (o.payee_user_id IS DISTINCT FROM p_payee
+                         OR o.destination_value IS DISTINCT FROM p_destination
+                         OR o.env IS DISTINCT FROM p_env));
+$fn$;
+REVOKE ALL ON FUNCTION public.paypal_txn_names_other_payee(text, uuid, text, text, uuid) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.provider_payouts_txn_names_one_payee()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -216,12 +235,7 @@ BEGIN
     RETURN NEW;
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext('provider_payouts_txn:' || NEW.external_txn_id));
-  IF EXISTS (SELECT 1 FROM public.provider_payouts o
-              WHERE o.external_txn_id = NEW.external_txn_id
-                AND o.id <> NEW.id
-                AND (o.payee_user_id IS DISTINCT FROM NEW.payee_user_id
-                     OR o.destination_value IS DISTINCT FROM NEW.destination_value
-                     OR o.env IS DISTINCT FROM NEW.env)) THEN
+  IF public.paypal_txn_names_other_payee(NEW.external_txn_id, NEW.payee_user_id, NEW.destination_value, NEW.env, NEW.id) THEN
     RAISE EXCEPTION 'txn_id_already_used' USING ERRCODE = '23505',
       DETAIL = 'That PayPal transaction ID already marks a payout to a different person or PayPal account.';
   END IF;
@@ -423,6 +437,13 @@ BEGIN
     v_total := v_total + v_pp.amount_cents;
   END LOOP;
 
+  -- One PayPal transaction id names one payee + destination (the trigger re-checks under its lock).
+  PERFORM pg_advisory_xact_lock(hashtext('provider_payouts_txn:' || v_txn));
+  IF public.paypal_txn_names_other_payee(v_txn, v_first.payee_user_id, v_first.destination_value, v_first.env) THEN
+    RAISE EXCEPTION 'txn_id_already_used' USING ERRCODE = '23505',
+      DETAIL = 'That PayPal transaction ID already marks a payout to a different person or PayPal account.';
+  END IF;
+
   -- The amount the admin says they sent must be exactly the total of the lines.
   IF p_total_cents IS NULL OR p_total_cents <> v_total THEN
     RAISE EXCEPTION 'payout_amount_mismatch' USING ERRCODE = '22023',
@@ -525,6 +546,11 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'no_payable_paypal_account' USING ERRCODE = '42501',
       DETAIL = 'The Helpr has no PayPal email that can be paid yet.';
+  END IF;
+
+  -- A hold placed since: the new claim would be refused by refuse_payout_claim_while_held; say so first.
+  IF EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = v_pp.payee_user_id) THEN
+    RAISE EXCEPTION 'payout_held' USING ERRCODE = '23514', DETAIL = 'This Helpr''s payouts are on hold. Release the hold first.';
   END IF;
 
   UPDATE public.provider_payouts SET status = 'canceled', updated_at = now() WHERE id = v_pp.id;

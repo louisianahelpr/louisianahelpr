@@ -23,6 +23,7 @@ import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { PayPalTipReturn } from "@/components/PayPalTipReturn";
 
 const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };
 
@@ -96,7 +97,8 @@ const JobsSection = () => {
   );
 
   // Board 141: the refund_requests switch, read once for every job card in the list.
-  if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={header} /></RefundsSwitchProvider>;
+  // PayPalTipReturn: a PayPal tip returns to /posts (-> this Posted tab) with ?tip=paypal&token=.
+  if (tab === "posted") return <RefundsSwitchProvider><PayPalTipReturn /><JobListPage key="posted" defaultTab="posted" embeddedHeader={header} /></RefundsSwitchProvider>;
   if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={header} /></RefundsSwitchProvider>;
   return <Dashboard embeddedHeader={header} />;
 };

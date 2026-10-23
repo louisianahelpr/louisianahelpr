@@ -1,6 +1,8 @@
 // What a tip costs the poster, quoted from the SAME function the server charges
 // with (`tipChargeBreakdown`, supabase/functions/_shared/tipFees.ts). The Helpr
-// receives 100% of the tip; Stripe's card-processing fee is added on top.
+// receives 100% of the tip; the processor's fee is added on top (Stripe's card
+// fee, or PayPal's processing fee when the paypal_payments switch is on for the
+// poster: paypalTipChargeBreakdown, the function paypal-tip charges with).
 // Every tip prompt (TipDialog, CompletionPrompts) shows this before the poster
 // (through TipPicker + TipCostBreakdown below)
 // is sent to pay, and Stripe Checkout repeats the same two line items.
@@ -9,11 +11,15 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { CurrencyInput } from "@/components/ui/currency-input";
-import { tipChargeBreakdown, TIP_MAX_CENTS, TIP_MIN_CENTS, type TipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
+import { paypalTipChargeBreakdown, tipChargeBreakdown, TIP_MAX_CENTS, TIP_MIN_CENTS, type TipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 
-/** The server's breakdown for a tip entered in dollars (rounded to whole cents, as create-payment does). */
-export function tipQuoteForDollars(tipDollars: number): TipChargeBreakdown {
-  return tipChargeBreakdown(Number.isFinite(tipDollars) ? Math.round(tipDollars * 100) : 0);
+/**
+ * The server's breakdown for a tip entered in dollars (rounded to whole cents, as create-payment
+ * and paypal-tip do). `paypal`: the poster pays through PayPal (useFeature("paypal_payments")).
+ */
+export function tipQuoteForDollars(tipDollars: number, paypal = false): TipChargeBreakdown {
+  const cents = Number.isFinite(tipDollars) ? Math.round(tipDollars * 100) : 0;
+  return paypal ? paypalTipChargeBreakdown(cents) : tipChargeBreakdown(cents);
 }
 
 /** Cents as "$12.34" (always two decimals: this is a receipt line). */
@@ -27,8 +33,8 @@ const MONEY = "hsl(var(--burnt-sienna))";
  * Tip / card processing / you pay / <name> receives, for one amount (boards
  * 180 and 182: one card, rust amounts, "You pay" the big line).
  */
-export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: number; receiverName?: string }) {
-  const q = tipQuoteForDollars(tipDollars);
+export function TipCostBreakdown({ tipDollars, receiverName, paypal = false }: { tipDollars: number; receiverName?: string; paypal?: boolean }) {
+  const q = tipQuoteForDollars(tipDollars, paypal);
   if (q.tipCents <= 0) return null;
   const row = (label: string, cents: number, big = false) => (
     <div className={`flex items-baseline justify-between gap-4 ${big ? "pt-2 mt-1 border-t" : ""}`} style={big ? { borderColor: "hsl(var(--olivewood) / 0.12)" } : undefined}>
@@ -40,12 +46,12 @@ export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: num
     <div className="rounded-ds-lg p-4" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
       <dl className="space-y-1" aria-label="Tip cost breakdown">
         {row("Tip", q.tipCents)}
-        {row("Card processing", q.feeCents)}
+        {row(paypal ? "PayPal processing" : "Card processing", q.feeCents)}
         {row("You pay", q.chargeCents, true)}
         {row(`${receiverName ? receiverName.trim().split(/\s+/)[0] : "Your Helpr"} receives`, q.helperCents)}
       </dl>
       <p className="font-sans text-ds-12 mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Tips go 100% to them. Card processing is added on top.
+        {paypal ? "Tips go 100% to them. PayPal's processing fee is added on top." : "Tips go 100% to them. Card processing is added on top."}
       </p>
     </div>
   );

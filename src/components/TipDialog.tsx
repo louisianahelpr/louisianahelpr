@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { functionErrorMessage } from "@/lib/supabaseResult";
+import { useFeature } from "@/hooks/useFeature";
+import { startTipCheckout } from "@/lib/tipCheckout";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import { formatPriceExact } from "@/lib/format";
 import { toast } from "sonner";
 import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { isNativePlatform } from "@/lib/nativeInit";
 import { userFacingError } from "@/lib/userFacingError";
 import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
@@ -34,6 +33,8 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
   const tipJob = useTipJob(jobId);
+  // The server decides; false while loading, so a prompt never quotes PayPal before it is on.
+  const paypal = useFeature("paypal_payments");
   // ME-007: one id per opening of the prompt. The server salts the Stripe
   // idempotency key with it, so a retry while open collapses onto one
   // session and a deliberate second tip after reopening gets its own.
@@ -74,19 +75,12 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
     hapticMedium();
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        // helperId: undefined on a single-helper job, dropped by JSON.
-        body: { action: "tip", jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform, helperId },
-      });
-      // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the
-      // useless "Edge Function returned a non-2xx status code" — while the real
-      // reason sits in the response body ("This helper hasn't set up their payout
-      // account yet…"). Rethrowing `error` directly buried that, so a tip that
-      // could never work reported a generic failure. Read the body first.
-      if (error) throw new Error(await functionErrorMessage(error, "Couldn't send your tip — try again?"));
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) { hapticSuccess(); await openExternalUrl(data.url, () => onClose()); }
-      else throw new Error("Couldn't start checkout. Please try again.");
+      const url = await startTipCheckout(
+        { jobId, amount: tipAmount, tipAttemptId: tipAttemptIdRef.current, helperId, paypal },
+        "Couldn't send your tip — try again?",
+      );
+      hapticSuccess();
+      await openExternalUrl(url, () => onClose());
     } catch (err: unknown) {
       hapticError();
       report(err, { tags: { source: "money.tip", action: "tip", screen: currentScreen() }, context: { jobId } });
@@ -110,12 +104,12 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
             Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
           </p>
           <TipPicker jobPriceDollars={tipJob?.shareDollars ?? null} valueDollars={amount} onChange={setAmount} />
-          {tipValid && <TipCostBreakdown tipDollars={amount!} receiverName={helperName} />}
+          {tipValid && <TipCostBreakdown tipDollars={amount!} receiverName={helperName} paypal={paypal} />}
         </div>
         <DialogFooter>
           <DialogSecondaryAction onClick={onClose}>No tip</DialogSecondaryAction>
           <DialogPrimaryAction onClick={() => handleSend(amount ?? 0)} disabled={sending || amount === undefined || amount <= 0}>
-            {sending ? "Opening checkout…" : amount !== undefined && amount > 0 ? `Tip ${centsLabel(Math.round(amount * 100))}` : "Tip"}
+            {sending ? (paypal ? "Opening PayPal…" : "Opening checkout…") : amount !== undefined && amount > 0 ? `Tip ${centsLabel(Math.round(amount * 100))}` : "Tip"}
           </DialogPrimaryAction>
         </DialogFooter>
       </DialogContent>

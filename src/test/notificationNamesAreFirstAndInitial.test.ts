@@ -41,6 +41,7 @@ const SQL_RAW_NAME_OK: Record<string, string> = {
 
 /** Edge producers whose source touches a name field without memberDisplayName. path -> why. Exact and two-way. */
 const EDGE_RAW_NAME_OK: Record<string, string> = {
+  "admin-support-reply": "the member's OWN first name in their email greeting; no other member is named",
   "admin-user-actions": "the member's OWN name in their email greeting, and staff audit details",
   "execute-dispute-split": "selects the payee's own profile for Stripe; no name in any notice",
   "expire-subscriptions": "the member's own profile; no other member is named",

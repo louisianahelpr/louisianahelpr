@@ -48,7 +48,7 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
           <li key={it.id} className="min-w-0">
             <Link
               to={`/declutter/item/${it.id}`}
-              className="flex items-center gap-2.5 rounded-2xl liquid-glass p-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex items-center gap-2.5 rounded-2xl liquid-glass p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
                 {cover.get(it.id) ? (

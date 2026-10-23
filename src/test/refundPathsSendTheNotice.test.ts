@@ -142,7 +142,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // them through tellPosterMoneyBack under key refund:<id>, the same key charge.refunded claims, so one notice.
     // 19 since Q1929 (2026-10-21): declutter-money refunds a delivery-pay raise on its own charge (metadata.kind
     // declutter_refund) and tells the buyer itself (tellBuyerRefunded; the SQL bell "Your raise is coming back").
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(19);
+    // 20 since Q2352 (20261026154738): the stripe-webhook sends a Declutter setup fee owed back (settleSetupFee,
+    // metadata.kind declutter_refund); the buyer is told by declutter_setup_fee_refunded ("Setup fee coming back").
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(20);
     {
       const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
       const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));

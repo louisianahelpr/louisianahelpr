@@ -90,7 +90,7 @@ beforeEach(() => {
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
-  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown> } = {}) {
+  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string> } = {}) {
     env();
     const fn = await loadEdgeFunction("stripe-webhook");
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -101,7 +101,7 @@ describe("stripe-webhook: Declutter order paid", () => {
       data: { object: {
         id: "cs_live_dc", mode: "payment", payment_status: "paid", payment_intent: "pi_dc", amount_total: 4600,
         client_reference_id: ORDER,
-        metadata: { kind: "declutter_order", order_id: ORDER, buyer_id: BUYER, payer_id: BUYER, seller_id: SELLER },
+        metadata: { kind: "declutter_order", order_id: ORDER, buyer_id: BUYER, payer_id: BUYER, seller_id: SELLER, ...opts.meta },
       } },
     });
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
@@ -126,6 +126,69 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(rpcs("declutter_refund_party_gone")[0]?.args).toMatchObject({ p_order_id: ORDER, p_payment_intent_id: "pi_dc", p_amount_cents: 4600 });
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_dc", amount: 4600 }), { idempotencyKey: "declutter-refund-rf-gone" });
     expect((slackAlerts as Array<{ title: string }>).some((a) => /names the wrong people/.test(a.title))).toBe(false);
+  });
+
+  // Q2352 (owner 2026-10-22, terms #9): the one-time setup fee is charged once per account. A sale whose account
+  // had already paid it elsewhere (declutter_claim_setup_fee -> refund_due) sends exactly the fee back, once.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await settleSetupFee(ctx, paymentIntentId, orderId); |
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |         amount: cents, |         amount: cents + 1,
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     feeRefund = existing ?? await stripe.refunds.create( |     feeRefund = await stripe.refunds.create(
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (!row \|\| row.setup_fee_state !== "refund_due") return; |   if (!row) return;
+  const feeOwed = { buyer_id: BUYER, seller_id: SELLER, setup_fee_cents: 200, setup_fee_state: "refund_due", stripe_payment_intent_id: "pi_dc" };
+  it("Q2352: a sale whose account had paid the setup fee elsewhere sends exactly that fee back, once, and records it", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_fee", status: "succeeded" });
+    scenario.rpc.declutter_setup_fee_refunded = "recorded";
+    const res = await deliver({ result: "paid" }, { orderRow: feeOwed });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      expect.objectContaining({ payment_intent: "pi_dc", amount: 200,
+        metadata: expect.objectContaining({ kind: "declutter_refund", setup_fee_order_id: ORDER }) }),
+      { idempotencyKey: `declutter-setup-fee-${ORDER}` });
+    expect(rpcs("declutter_setup_fee_refunded")[0]?.args).toEqual({ p_order_id: ORDER, p_stripe_refund_id: "re_fee" });
+  });
+  it("Q2352: a replayed event adopts the fee refund Stripe already took (never a second one)", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ id: "re_fee_old", status: "succeeded", metadata: { kind: "declutter_refund", setup_fee_order_id: ORDER } }] });
+    scenario.rpc.declutter_setup_fee_refunded = "already";
+    const res = await deliver({ result: "already_paid" }, { orderRow: feeOwed });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_setup_fee_refunded")[0]?.args).toEqual({ p_order_id: ORDER, p_stripe_refund_id: "re_fee_old" });
+  });
+  // lh-silent-failure review of the Q2352 rebase #1: a sale paid without the fee it froze is never silent.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (row && row.setup_fee_state === "not_charged" && Number(row.setup_fee_cents ?? 0) > 0) { |   if (false) {
+  it("Q2352: a sale paid without its frozen setup fee (not_charged) alerts ops and sends nothing back", async () => {
+    const res = await deliver({ result: "paid" }, { orderRow: { ...feeOwed, setup_fee_state: "not_charged" } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /setup fee not charged/.test(a.title))).toBe(true);
+  });
+  // lh-money-escrow review of the Q2352 rebase #4: the receipt names the fee only when this order's claim won.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     const setupFeeCents = feeClaimed ? Number.parseInt(meta.setup_fee_cents ?? "0", 10) : 0; |     const setupFeeCents = Number.parseInt(meta.setup_fee_cents ?? "0", 10);
+  it("Q2352: the receipt names the setup fee only when the order's claim won", async () => {
+    await deliver({ result: "paid" }, { orderRow: { ...feeOwed, setup_fee_state: "claimed" }, meta: { setup_fee_cents: "200" } });
+    expect(JSON.stringify(queuedEmails[0])).toMatch(/account setup fee/);
+  });
+  const feeRefundTaken = { id: "re_fee", status: "succeeded" };
+  it("Q2352: a lost claim (fee coming back) gets a receipt that never says the payment included the fee", async () => {
+    stripeMock.refunds.create.mockResolvedValue(feeRefundTaken);
+    scenario.rpc.declutter_setup_fee_refunded = "recorded";
+    await deliver({ result: "paid" }, { orderRow: feeOwed, meta: { setup_fee_cents: "200" } });
+    expect(queuedEmails.map((e) => e.templateName)).toContain("declutter_receipt");
+    expect(JSON.stringify(queuedEmails.find((e) => e.templateName === "declutter_receipt"))).not.toMatch(/account setup fee/);
+  });
+  it("Q2352: a sale that kept its setup fee (claimed) sends nothing back", async () => {
+    const res = await deliver({ result: "paid" }, { orderRow: { ...feeOwed, setup_fee_state: "claimed" } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_setup_fee_refunded")).toHaveLength(0);
+  });
+  it("Q2352: a fee refund Stripe refuses pages ops and is retried (500), nothing recorded", async () => {
+    stripeMock.refunds.create.mockRejectedValue(new Error("stripe down"));
+    const res = await deliver({ result: "paid" }, { orderRow: feeOwed });
+    expect(res.status).toBe(500);
+    expect(rpcs("declutter_setup_fee_refunded")).toHaveLength(0);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /setup fee refund failed/.test(a.title))).toBe(true);
   });
 
   it("marks the order paid with the CHARGE's own time and the card fee Stripe kept, then sends a receipt", async () => {
@@ -241,6 +304,25 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(rpcs("declutter_refund_reversed")[0]?.args).toEqual({ p_refund_id: "rf-1", p_stripe_refund_id: "re_dc", p_why: "failed: expired_or_canceled_card" });
     expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
     expect(slackAlerts.some((a: any) => a.severity === "critical" && /retrying/.test(a.title))).toBe(true);
+  });
+
+  // Q2352 (lh-money-escrow review #2): a setup-fee refund Stripe failed after taking it reopens the order's fee
+  // (refund_due, no longer a known refund) and pages "refund it by hand"; it never throws for want of a refund_id.
+  // @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "declutter_refund" && meta.setup_fee_order_id) { |   if (false) {
+  it("charge.refund.updated: a failed setup-fee refund reopens the order's fee and pages; never a throw", async () => {
+    env();
+    const fn = await loadEdgeFunction("stripe-webhook");
+    scenario.rpc.declutter_setup_fee_refund_reversed = "reopened";
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dc_sf", type: "charge.refund.updated", livemode: true, created: 1_760_000_000,
+      data: { object: { id: "re_fee", object: "refund", status: "failed", failure_reason: "expired_or_canceled_card", amount: 200,
+        payment_intent: "pi_dc", charge: "ch_dc", metadata: { kind: "declutter_refund", reason: "setup_fee_already_paid", order_id: ORDER, setup_fee_order_id: ORDER } } },
+    });
+    const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_setup_fee_refund_reversed")[0]?.args).toEqual({ p_order_id: ORDER, p_stripe_refund_id: "re_fee" });
+    expect(rpcs("declutter_refund_reversed")).toHaveLength(0);
+    expect(slackAlerts.some((a: any) => a.severity === "critical" && /refund it by hand/.test(a.title))).toBe(true);
   });
 
   // lh-money-escrow re-review should-fix 1: a reversal of the row's last try is not promised a retry.
@@ -370,6 +452,19 @@ describe("stripe-webhook: Declutter order paid", () => {
     ]);
     expect(scenario.writes.filter((w) => w.table !== "stripe_webhook_events")).toEqual([]);
     expect(slackAlerts.some((a: any) => a.severity === "critical")).toBe(false);
+  });
+
+  // Q2352 (lh-money-escrow review of the rebase #1): the setup fee owed back, refunded by hand as the page asks, is
+  // recorded as the fee's refund (so the seller's payout still sends), never as a hand refund of the sale.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     if (owed?.id && Number(owed.setup_fee_cents ?? 0) > 0 && Number(r.amount ?? 0) === Number(owed.setup_fee_cents)) { |     if (false) {
+  const feeHandRefund = { id: "re_fee_hand", amount: 200, status: "succeeded", metadata: {} };
+  it("Q2352: a hand refund of exactly a setup fee owed back is recorded as that fee's refund", async () => {
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, setup_fee_cents: 200 }] };
+    scenario.rpc.declutter_setup_fee_refunded = "recorded";
+    const res = await deliverChargeRefunded(handCharge([feeHandRefund], { amount_refunded: 200 }));
+    expect(res.status).toBe(200);
+    expect(rpcs("declutter_setup_fee_refunded").map((c) => c.args)).toEqual([{ p_order_id: ORDER, p_stripe_refund_id: "re_fee_hand" }]);
+    expect(rpcs("declutter_record_hand_refund")).toHaveLength(0);
   });
 
   // Also the kill for chargeRefunded's every -> some mutation: one Declutter refund must not hide a hand refund
@@ -536,6 +631,8 @@ describe("declutter-checkout: pay", () => {
   async function load() {
     env();
     scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
+    // The order row the setup-fee read finds (Q2352): no fee unless a case says so; a missing row is its own case.
+    scenario.reads.declutter_orders ??= { rows: [{ setup_fee_cents: 0 }] };
     return loadEdgeFunction("declutter-checkout");
   }
   const order = (over: Record<string, unknown> = {}) => [{
@@ -569,6 +666,44 @@ describe("declutter-checkout: pay", () => {
     const attach = rpcs("declutter_attach_checkout_session")[0];
     expect(attach?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_new" });
     expect(clientOf(attach)?.key).toBe("service-key");
+  });
+
+  // Q2352: the setup fee the order froze rides the page on its own line, outside the sale's total.
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (setupFeeCents > 0) { |   if (false) {
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (session.amount_total !== chargeCents) { |   if (session.amount_total !== order.total_cents) {
+  it("Q2352: a first purchase puts the one-time setup fee on its own line; the page charges the sale plus the fee", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.declutter_orders = { rows: [{ setup_fee_cents: 200 }] };
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_fee", url: "https://x/fee", amount_total: 4800 });
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount])).toEqual([
+      ["Declutter items", 4000], ["Buyer's fee (5% + 70¢)", 600], ["One-time account setup fee", 200],
+    ]);
+    expect(params.metadata).toMatchObject({ setup_fee_cents: "200" });
+    expect(rpcs("declutter_attach_checkout_session")[0]?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_fee" });
+  });
+  // lh-silent-failure review of the Q2352 rebase #1: no order row is never read as "no setup fee".
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (!feeErr && !feeRow) { |   if (false) {
+  it("Q2352: the order's setup-fee read finding no row answers try again, and no page is made", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.declutter_orders = { rows: [] };
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+  it("Q2352: a page Stripe priced without the setup fee is expired, never attached", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.declutter_orders = { rows: [{ setup_fee_cents: 200 }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_short", url: "https://x/short", amount_total: 4600 });
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(500);
+    expect(rpcs("declutter_attach_checkout_session")).toHaveLength(0);
   });
 
   it("one wallet: the buyer's stored customer (this mode) pre-fills the page; none stored -> email only, no customer made", async () => {
@@ -716,6 +851,7 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
   async function load() {
     env();
     scenario.authUser = { id: BUYER, email: "buyer@test.dev" };
+    scenario.reads.declutter_orders ??= { rows: [{ setup_fee_cents: 0 }] };
     return loadEdgeFunction("declutter-checkout");
   }
   const geocoder = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify([

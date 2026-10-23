@@ -2070,6 +2070,9 @@ export type Database = {
           items_cents: number
           paid_at: string | null
           premium_cents: number
+          setup_fee_cents: number
+          setup_fee_refund_id: string | null
+          setup_fee_state: string | null
           seller_id: string | null
           status: string
           stripe_checkout_session_id: string | null
@@ -2094,6 +2097,9 @@ export type Database = {
           items_cents: number
           paid_at?: string | null
           premium_cents: number
+          setup_fee_cents?: number
+          setup_fee_refund_id?: string | null
+          setup_fee_state?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -2118,6 +2124,9 @@ export type Database = {
           items_cents?: number
           paid_at?: string | null
           premium_cents?: number
+          setup_fee_cents?: number
+          setup_fee_refund_id?: string | null
+          setup_fee_state?: string | null
           seller_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -13304,6 +13313,16 @@ export type Database = {
         Returns: string
       }
       declutter_setup_helpr: { Args: { p_order_id: string }; Returns: Json }
+      declutter_claim_setup_fee: { Args: { p_order_id: string }; Returns: string }
+      declutter_setup_fee_due_cents: { Args: { p_user: string }; Returns: number }
+      declutter_setup_fee_refund_reversed: {
+        Args: { p_order_id: string; p_stripe_refund_id: string }
+        Returns: string
+      }
+      declutter_setup_fee_refunded: {
+        Args: { p_order_id: string; p_stripe_refund_id: string }
+        Returns: string
+      }
       declutter_setup_job_fee_debt: {
         Args: { p_card_fee_cents: number; p_job_id: string }
         Returns: number

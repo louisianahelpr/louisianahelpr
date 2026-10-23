@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { jobCategoryLabel } from "@/lib/jobCategories";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 /**
  * "Live now: Open jobs near you" (owner, 2026-10-23, landing option B): the
@@ -126,9 +127,12 @@ export function LiveJobsSection() {
           </ul>
         )}
         {state.kind === "failed" && (
-          <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
-            We couldn’t load the newest jobs just now. The full board has every open job.
-          </p>
+          <>
+            <ReportErrorScreen source="LiveJobsSection" title="Couldn't load the newest jobs." />
+            <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-failed">
+              We couldn’t load the newest jobs just now. The full board has every open job.
+            </p>
+          </>
         )}
         {state.kind === "ok" && state.jobs.length === 0 && (
           <p className="text-ds-15" style={{ color: "var(--lp-body)" }} data-testid="landing-live-jobs-empty">
@@ -153,7 +157,7 @@ export function LiveJobsSection() {
                           {jobCategoryLabel(j.category)}
                         </span>
                       )}
-                      <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words">{j.title}</span>
+                      <span className="text-ds-16 lg:text-ds-18 font-semibold line-clamp-2 break-words" title={j.title}>{j.title}</span>
                       {where && (
                         <span className="lg:hidden text-ds-13" style={{ color: "var(--lp-body)" }}>{where}</span>
                       )}

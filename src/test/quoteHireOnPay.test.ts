@@ -25,7 +25,7 @@
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   AFTER UPDATE OF payment_status ON public.jobs | AFTER UPDATE OF status ON public.jobs
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
+ * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | ' for "' \|\| v_req.title \|\| '".', v_uid, true, | ' for "' \|\| v_req.title \|\| '".', v_uid, false,
  * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n

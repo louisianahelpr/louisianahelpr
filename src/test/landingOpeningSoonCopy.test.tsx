@@ -1,7 +1,8 @@
 /**
  * THE LANDING SAYS WHAT IS OPEN TODAY (owner answers 2026-10-21, via the lead):
- *   - the hero subhead is exactly "Hire help or find work. Declutter, Shops and
- *     Homes are opening soon. One account, one verified ID, real neighbors.",
+ *   - the hero subhead is exactly "Hire help or find work. One account, one
+ *     verified ID, real neighbors." (owner, 2026-10-23; it changes again as
+ *     the other sections open),
  *     and CLAUDE.md's locked-copy rule quotes the same words;
  *   - ONE "Opening soon" line sits above the unopened section cards, never a
  *     pill on each card; the Jobs card keeps its "Browse jobs" link;
@@ -10,7 +11,7 @@
  * The open/soon answer is fed through useSectionsOpen (the real fail-closed
  * sectionIsComingSoon decides each card), so no Supabase is involved.
  *
- * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. Declutter, Shops and Homes are opening soon. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
+ * @mutate src/components/landing/HeroSection.tsx | Hire help or find work. One account | Hire help or find work. Sell or find a deal. Shop local or open a shop. Find a place or list one. One account
  * @mutate src/components/landing/SectionsShowcase.tsx | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3> | <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>{soon && <span>Opening soon</span>}
  * @mutate src/components/landing/SectionsShowcase.tsx |   const soonCards = cards.filter((c) => c.soon); |   const soonCards = cards.filter(() => false);
  * @mutate src/components/landing/SectionsShowcase.tsx | One free account. Jobs are open now. | One free account for Jobs, Declutter, Shops and Homes.
@@ -33,7 +34,7 @@ import { SectionsShowcase } from "@/components/landing/SectionsShowcase";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
 
 const ROOT = resolve(__dirname, "..", "..");
-const SUBHEAD = "Hire help or find work. Declutter, Shops and Homes are opening soon. One account, one verified ID, real neighbors.";
+const SUBHEAD = "Hire help or find work. One account, one verified ID, real neighbors.";
 
 function renderSections(open: ReadonlySet<string> | null) {
   state.open = open;

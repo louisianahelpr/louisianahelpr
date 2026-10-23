@@ -1,62 +1,28 @@
-import { useEffect, useId, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, CloudSun, Search } from "lucide-react";
+import { useId, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { goSignedInOr } from "./goSignedInOr";
-import { seasonalPill } from "./seasonalPill";
-import { heroSearchTargets, TASK_CHIPS } from "./heroSearch";
+import { heroSearchTargets } from "./heroSearch";
+import { LandingProof } from "./LandingProof";
 
 /**
- * Hero (owner-approved landing redesign, 2026-10-20): seasonal pill, Bodoni H1
- * with the rust italic "partner.", subhead, one search for all four sections
- * with a "Search" pill, example chips that fill the search, and the Browse
- * link: ONE centered column (max 760px) at every width. No phone mock (owner,
- * 2026-10-20, after seeing it live: removed on desktop and phone alike).
+ * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
+ * H1 with the rust italic "partner.", the subhead (one line from 1024px), one
+ * search, then the proof row (LandingProof). ONE centered column (max 760px) at
+ * every width; the proof row below it may run wider. No phone mock (owner,
+ * 2026-10-20), no seasonal pill and no example chips (owner, 2026-10-23: "remove
+ * the storm banner and job chips"). The live jobs sit in the next section
+ * (LiveJobsSection), which also carries the "Browse local jobs" link.
  *
- * Honesty rules (LANDING-APPROVED.md): the chips carry no prices (no real
- * completed-job price data behind them yet); the pill follows the month
- * (seasonalPill); the search really searches (heroSearch.ts); no parish select
- * (owner, 2026-10-20).
+ * Honesty rules (LANDING-APPROVED.md): the search really searches
+ * (heroSearch.ts); no parish select (owner, 2026-10-20); every proof line is a
+ * checked fact (LandingProof.tsx).
  */
 const HeroSection = () => {
   const navigate = useNavigate();
-  const [loggedIn, setLoggedIn] = useState(false);
   const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
   const inputId = useId();
-  const pill = seasonalPill(new Date().getMonth());
-
-  // Defer the auth check until the first interaction (or 25 s) so the Supabase
-  // chunk never joins the landing's first paint. Every action re-checks the
-  // session itself (goSignedInOr), so this only picks the Browse link's target.
-  useEffect(() => {
-    let kicked = false;
-    const kick = () => {
-      if (kicked) return;
-      kicked = true;
-      window.removeEventListener("pointerdown", kick);
-      window.removeEventListener("keydown", kick);
-      window.removeEventListener("touchstart", kick);
-      void (async () => {
-        const { supabase } = await import("@/integrations/supabase/client");
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (session?.user) setLoggedIn(true);
-      })();
-    };
-    window.addEventListener("pointerdown", kick, { once: true, passive: true });
-    window.addEventListener("keydown", kick, { once: true, passive: true });
-    window.addEventListener("touchstart", kick, { once: true, passive: true });
-    const fallback = window.setTimeout(kick, 25000);
-
-    return () => {
-      window.removeEventListener("pointerdown", kick);
-      window.removeEventListener("keydown", kick);
-      window.removeEventListener("touchstart", kick);
-      if (fallback) window.clearTimeout(fallback);
-    };
-  }, []);
 
   // Search: a signed-out visitor gets the public Jobs board with the words;
   // a signed-in one gets Jobs > Browse with them (heroSearch.ts).
@@ -67,20 +33,11 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-36 pb-14 sm:pb-16 lg:pb-20">
+    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-32 pb-12 sm:pb-14 lg:pb-16">
       <div className="relative mx-auto w-full max-w-[760px]">
-        <div data-testid="landing-hero-column" className="flex flex-col items-center text-center gap-5 sm:gap-6 min-w-0">
-          <p
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-ds-12 sm:text-ds-13 font-semibold max-w-full"
-            style={{ background: "var(--lp-surface)", color: "var(--lp-ink)", border: "1px solid var(--lp-line)" }}
-            data-testid="landing-season"
-          >
-            <CloudSun className="w-4 h-4 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
-            <span className="min-w-0">{pill}</span>
-          </p>
-
+        <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">
           <h1
-            className="landing-h1 relative z-10 font-display font-bold leading-[0.98] text-balance break-words text-[3.25rem] min-[400px]:text-[3.75rem] sm:text-[4.5rem] lg:text-[5rem] xl:text-[5.75rem]"
+            className="landing-h1 relative z-10 font-display font-bold leading-[1] text-balance break-words text-[3.25rem] min-[400px]:text-[3.5rem] sm:text-[4.75rem] lg:text-[6.5rem] xl:text-[7.75rem]"
             style={{ color: "var(--lp-ink)", letterSpacing: "-0.03em" }}
           >
             Louisiana&rsquo;s local{" "}
@@ -90,24 +47,23 @@ const HeroSection = () => {
           </h1>
 
           <p
-            className="max-w-2xl text-ds-15 sm:text-ds-17 leading-relaxed"
+            className="mt-7 lg:mt-9 text-ds-16 sm:text-ds-18 lg:text-ds-22 xl:text-ds-24 leading-relaxed lg:whitespace-nowrap"
             style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
           >
-            Hire help or find work. Declutter, Shops and Homes are opening soon. One account, one verified ID, real neighbors.
+            Hire help or find work. One account, one verified ID, real neighbors.
           </p>
 
           <form
             onSubmit={search}
             role="search"
             aria-label="Search Helpr"
-            className="landing-search w-full max-w-xl text-left flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-1.5 sm:p-1.5"
+            className="landing-search mt-9 lg:mt-12 w-full max-w-xl lg:max-w-[720px] text-left flex items-center gap-1.5 p-1.5 lg:p-2"
             data-testid="landing-search"
           >
             <label htmlFor={inputId} className="sr-only">Search local jobs</label>
-            <div className="landing-search-field w-full sm:w-auto sm:flex-1 min-w-0 shrink-0 flex items-center gap-2 sm:gap-2.5 px-4 sm:pl-4 sm:pr-2 h-14 sm:h-12">
-              <Search className="w-[18px] h-[18px] shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
+            <div className="landing-search-field flex-1 min-w-0 flex items-center gap-2.5 pl-4 lg:pl-5 pr-1 h-12 lg:h-14">
+              <Search className="hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
               <input
-                ref={inputRef}
                 id={inputId}
                 type="search"
                 enterKeyHint="search"
@@ -116,47 +72,23 @@ const HeroSection = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search local jobs"
-                className="w-full min-w-0 bg-transparent outline-none text-ds-16 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70 placeholder:text-ds-14 max-[399px]:placeholder:text-ds-13 max-[349px]:placeholder:text-ds-12"
+                className="w-full min-w-0 bg-transparent outline-none text-ds-16 lg:text-ds-18 placeholder:text-[color:var(--lp-muted)] placeholder:opacity-70"
                 style={{ color: "var(--lp-ink)" }}
               />
             </div>
             <Button
               type="submit"
-              className="btn-grad-primary h-14 sm:h-12 w-full sm:w-auto rounded-full px-7 text-ds-15 font-semibold shrink-0"
+              className="btn-grad-primary h-12 w-12 sm:w-auto lg:h-14 rounded-full p-0 sm:px-7 lg:px-9 text-ds-15 lg:text-ds-18 font-semibold shrink-0"
               data-testid="landing-search-submit"
+              aria-label="Search"
             >
-              Search
+              <Search className="sm:hidden w-5 h-5" strokeWidth={2} aria-hidden />
+              <span className="hidden sm:inline">Search</span>
             </Button>
           </form>
-
-          <ul className="flex flex-wrap justify-center gap-2 max-w-xl" aria-label="Popular searches">
-            {TASK_CHIPS.map((chip) => (
-              <li key={chip}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setQuery(chip);
-                    inputRef.current?.focus();
-                  }}
-                  className="landing-chip min-h-11 rounded-full px-4 text-ds-13 font-medium transition-colors"
-                >
-                  {chip}
-                </button>
-              </li>
-            ))}
-          </ul>
-
-          {/* The feed this visitor can use: the guest board, or Jobs > Browse once signed in. */}
-          <Link
-            to={loggedIn ? "/jobs" : "/browse"}
-            className="group inline-flex items-center gap-1.5 min-h-11 text-ds-15 font-bold underline-offset-4 hover:underline"
-            style={{ color: "var(--lp-action-strong)" }}
-          >
-            Browse local jobs
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" strokeWidth={1.75} aria-hidden />
-          </Link>
         </div>
       </div>
+      <LandingProof />
     </section>
   );
 };

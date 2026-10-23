@@ -15,9 +15,9 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { fetchFunction } from "../../_shared/functionFetch.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 
-export const PAYOUT_TRANSFER_FAILED_TITLE = "We couldn't send your payout";
+const PAYOUT_TRANSFER_FAILED_TITLE = "We couldn't send your payout";
 
-export function payoutTransferFailedMessage(amountCents: number, requeued: boolean): string {
+function payoutTransferFailedMessage(amountCents: number, requeued: boolean): string {
   const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Math.max(0, amountCents) / 100);
   return requeued
     ? `Your ${usd} payout didn't go through. We'll try again automatically. If it keeps failing, check your payout account in You → Money.`

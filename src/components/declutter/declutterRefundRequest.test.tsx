@@ -86,9 +86,12 @@ describe("RefundRequestPanel", () => {
     await waitFor(() => expect(state.answered).toEqual([["r1", "part", 1250]]));
   });
 
-  it("seller: Refund in full sends no amount (the server decides it)", async () => {
+  it("seller: Refund in full sends no amount (the server decides it), even after typing an offer", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
-    fireEvent.click(await screen.findByRole("button", { name: "Send answer" }));
+    fireEvent.click(await screen.findByText("Offer part of it"));
+    fireEvent.change(screen.getByLabelText(/How much back\?/), { target: { value: "12.50" } });
+    fireEvent.click(screen.getByText("Refund in full"));
+    fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
     await waitFor(() => expect(state.answered).toEqual([["r1", "full", null]]));
   });
 

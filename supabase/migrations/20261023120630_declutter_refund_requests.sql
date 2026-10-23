@@ -366,6 +366,11 @@ AS $fn$
      AND NOT EXISTS (SELECT 1 FROM public.declutter_problems x WHERE x.order_id = p.order_id AND x.status = 'open')
      -- 141d: the buyer's 24 hours, a refund request or a seller's "no" still running holds the payout.
      AND public.declutter_sale_final(p.order_id)
+     -- 141d (lh-money-escrow review, should-fix 1): after an agreed PART refund the seller is paid once the buyer's
+     -- refund went through, so the payout run never reads the charge with a refund it has not recorded yet.
+     AND NOT EXISTS (SELECT 1 FROM public.declutter_refunds rf
+                      WHERE rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id
+                        AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed'))
    ORDER BY p.next_attempt_at
    LIMIT least(greatest(COALESCE(p_limit, 20), 1), 100);
 $fn$;
@@ -646,7 +651,7 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.declutter_refund_requests r WHERE r.order_id = o.id) THEN
     RAISE EXCEPTION 'refund_already_asked' USING ERRCODE = '55000';
   END IF;
-  IF now() >= o.handed_over_at + interval '24 hours' OR public.declutter_sale_decided(o.id) THEN
+  IF o.handed_over_at IS NULL OR now() >= o.handed_over_at + interval '24 hours' OR public.declutter_sale_decided(o.id) THEN
     RAISE EXCEPTION 'refund_window_over' USING ERRCODE = '55000',
       HINT = 'The 24 hours to ask for a refund are over, so this sale is final.';
   END IF;
@@ -867,14 +872,19 @@ BEGIN
      ORDER BY x.created_at
      LIMIT 200
   LOOP
-    PERFORM public.declutter_lock_order(d.order_id);
-    SELECT * INTO r FROM public.declutter_refund_requests WHERE id = d.id FOR UPDATE;
-    IF (r.status = 'open' AND r.answer_by <= now()) OR (r.status = 'offered' AND r.offer_answer_by <= now()) THEN
-      PERFORM public.declutter_refund_request_to_admin(r.id,
-        CASE WHEN r.status = 'open' THEN 'the seller did not answer in 24 hours'
-             ELSE format('the seller offered $%s back and the buyer did not answer in 24 hours', to_char(r.offer_cents / 100.0, 'FM999990.00')) END);
-      v_n := v_n + 1;
-    END IF;
+    BEGIN
+      PERFORM public.declutter_lock_order(d.order_id);
+      SELECT * INTO r FROM public.declutter_refund_requests WHERE id = d.id FOR UPDATE;
+      IF (r.status = 'open' AND r.answer_by <= now()) OR (r.status = 'offered' AND r.offer_answer_by <= now()) THEN
+        PERFORM public.declutter_refund_request_to_admin(r.id,
+          CASE WHEN r.status = 'open' THEN 'the seller did not answer in 24 hours'
+               ELSE format('the seller offered $%s back and the buyer did not answer in 24 hours', to_char(r.offer_cents / 100.0, 'FM999990.00')) END);
+        v_n := v_n + 1;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- One bad request never stops the rest; it is logged and retried next run (lh-money-escrow review, should-fix 3).
+      PERFORM public.log_cron_defect('declutter_refund_request_sweep', d.id::text, SQLERRM);
+    END;
   END LOOP;
   RETURN jsonb_build_object('to_admin', v_n);
 END;

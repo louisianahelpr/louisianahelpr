@@ -22,6 +22,7 @@
  *  8. The app shows the panel only behind the switch, and every amount it shows is the server's.
  *
  * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
+ * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
  * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |                            + interval '10 minutes' |                            + interval '0 minutes'
  * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open')) THEN false
  * @mutate supabase/migrations/20261023120630_declutter_refund_requests.sql |   PERFORM public.declutter_rebook_payout(o.id, v_refunded);\n | \n
@@ -65,6 +66,8 @@ function memberRefundRpcs(): string[] {
 describe("Declutter refunds after the handover (board 141, 20261023120630)", () => {
   it("1. the payout queue asks whether the sale is final; declutter-money pays sellers only from that queue", () => {
     expect(flat(body("declutter_payouts_due"))).toMatch(/AND public\.declutter_sale_final\(p\.order_id\)/);
+    // lh-money-escrow review should-fix 1: after an agreed part refund the seller is paid once that refund went through.
+    expect(flat(body("declutter_payouts_due"))).toMatch(/rf\.reason = 'refund_request_part' AND rf\.status IN \('pending', 'failed'\)\)/);
     expect(MONEY).toMatch(/admin\.rpc\("declutter_payouts_due"/);
     expect(MONEY, "a seller payout read straight from the table would skip the hold").not.toMatch(/\.from\("declutter_payouts"\)/);
   });

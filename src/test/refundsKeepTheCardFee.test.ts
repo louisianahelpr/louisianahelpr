@@ -512,6 +512,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
       // already tried, marked or sent; rebooks the seller's payout before returning.
       declutter_refund_after_handover: "20261023120630_declutter_refund_requests.sql fd1ff91829a702f1",
+      // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
+      // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
+      declutter_payouts_due: "20261023120630_declutter_refund_requests.sql a7c6262ff5abda7d",
       // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
       declutter_full_refund_cents: "20261023120630_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.

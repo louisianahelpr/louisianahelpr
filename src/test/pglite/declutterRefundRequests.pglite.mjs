@@ -200,7 +200,9 @@ ok(rfD?.reason === "refund_request_part" && rfD.fee_policy === "agreed_part" && 
   "  one refund row of EXACTLY $12.50 (agreed_part)");
 const pD = await payout(D.order_id);
 ok(pD?.refunded_cents === 1250 && pD.amount_cents === 2750 && pD.status === "pending", "  the seller's payout is $27.50");
-ok(await due(D.order_id), "  and the sale is final at once: the payout is offered inside the 24 hours");
+ok(!(await due(D.order_id)), "  the payout waits while the buyer's part refund is not through yet (money review should-fix 1)");
+await svc(`UPDATE public.declutter_refunds SET status = 'succeeded', stripe_refund_ref = 're_rr_3', executed_at = now() WHERE order_id = '${D.order_id}'`);
+ok(await due(D.order_id), "  then the sale is final at once: the payout is offered inside the 24 hours");
 ok(one(await svc(`SELECT status FROM public.declutter_items WHERE id = '${I(3)}'`)) === "completed", "  the buyer keeps the item");
 
 // E. The buyer says no to an offer: Louisiana Helpr decides; "Pay the seller" ends the hold.
@@ -286,6 +288,20 @@ await ask(BUYER3, H3.order_id);
 const rH3 = await req(H3.order_id);
 await svc(`UPDATE public.declutter_refund_requests SET answer_by = now() - interval '1 second' WHERE id = '${rH3.id}'`);
 ok(refused(await answer(SELLER2, rH3.id, "full"), /refund_answer_late/), "a seller answering after the 24 hours is refused (an admin decides)");
+// One bad request never stops the sweep: an order row gone missing is logged, the next request still goes to an admin.
+const H4 = await paidOrder(16, BUYER, SELLER2, 1000);
+await gotIt(BUYER, H4.order_id);
+await ask(BUYER, H4.order_id);
+await svc(`UPDATE public.declutter_refund_requests SET answer_by = now() - interval '1 minute' WHERE order_id IN ('${H3.order_id}', '${H4.order_id}')`);
+await db.exec(`CREATE OR REPLACE FUNCTION public.zz_break_refund_rr() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+  IF NEW.order_id = '${H3.order_id}' THEN RAISE EXCEPTION 'planted failure'; END IF; RETURN NEW; END $$;
+  CREATE TRIGGER zz_break BEFORE INSERT ON public.declutter_problems FOR EACH ROW EXECUTE FUNCTION public.zz_break_refund_rr();`);
+const swH = await svc(`SELECT public.declutter_refund_request_sweep() AS s`);
+ok(swH[0]?.s?.to_admin === 1
+   && (await req(H4.order_id)).status === "to_admin" && (await req(H3.order_id)).status === "open"
+   && (await svc(`SELECT 1 FROM public.cron_defects_seen WHERE fn = 'declutter_refund_request_sweep'`)).length === 1,
+  "a request that fails is logged and left for the next run; the others still go to an admin");
+await db.exec(`DROP TRIGGER zz_break ON public.declutter_problems; DROP FUNCTION public.zz_break_refund_rr();`);
 
 // I. The seller's card-fee debt: put back and taken again from what is left.
 const I1 = await paidOrder(10, BUYER, SELLER2, 1000);

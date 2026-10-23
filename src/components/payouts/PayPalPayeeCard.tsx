@@ -50,7 +50,7 @@ export function PayPalPayeeCard({ onSettled }: { onSettled?: () => void } = {}) 
     return (
       <div className="flex items-center justify-between gap-3">
         <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-          {rpcErrorMessage("get_my_paypal_payee", state.error) ?? "We couldn't load your payout details."}
+          {state.errorMessage}
         </p>
         <Button variant="outline" size="sm" onClick={state.refetch}>Try again</Button>
       </div>

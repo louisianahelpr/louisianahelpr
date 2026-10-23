@@ -8,7 +8,6 @@
  *   PLANT=no_hold node src/test/pglite/paypalPayeeEmail.pglite.mjs           # RED: an email change holds nothing
  *   PLANT=no_require_feature node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: the read RPC skips the switch
  *   PLANT=same_email_reenables node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: a re-save overrides an admin's stop
- *   PLANT=phase1_trigger node src/test/pglite/paypalPayeeEmail.pglite.mjs    # RED: phase 1's trigger resets payable on every turn-on
  *
  * Proves, on the phase 1 migration (20261023223419) plus this one, each applied 3x:
  *   the switch (off: everyone refused; testers: an ordinary account refused, a test account allowed);
@@ -59,12 +58,6 @@ if (PLANT === "no_hold") plant("       SET status = 'held', updated_at = now()\n
 if (PLANT === "no_require_feature") {
   const parts = phase2.split("CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()");
   phase2 = parts[0] + "CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()" + parts[1].replace("  PERFORM public.require_feature('paypal_payments');\n", "");
-}
-if (PLANT === "phase1_trigger") {
-  // phase 1's paypal_entry_requires_switch, which reset payable even when only payable turned on
-  const at = phase2.indexOf("CREATE OR REPLACE FUNCTION public.paypal_entry_requires_switch()");
-  const end = phase2.indexOf("CREATE OR REPLACE FUNCTION public.paypal_payee_env()");
-  phase2 = phase2.slice(0, at) + phase2.slice(end);
 }
 if (PLANT === "same_email_reenables") plant("  IF v_changed THEN\n    UPDATE public.payee_accounts", "  IF true THEN\n    UPDATE public.payee_accounts");
 

@@ -93,6 +93,9 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // members while setup is still paused, these words need the paused state (reported to the lead).
   "src/lib/declutter/errors.ts": "Declutter's refusal words (the `declutter` switch is testers-only)",
   "src/lib/shops/errors.ts": "Shops' refusal words (the `shops` switch is testers-only; Shops is on hold)",
+  // PayPal phase 2 (20261023231647): links to the PayPal email screen, never to Stripe setup, and is
+  // rendered only by PayoutSetupNotice while `paypal_payments` is on (src/test/paypalPayeeEntryPoints.test.ts).
+  "src/components/payouts/PayPalPayeePrompt.tsx": "the PayPal email prompt (paypal_payments), not Stripe setup; only PayoutSetupNotice renders it",
 };
 
 const M1 = /functions\.invoke\(\s*["']stripe-connect["'][\s\S]{0,400}?["'](?:onboard|update_onboarding|reset)["']|["'](?:onboard|update_onboarding)["'][\s\S]{0,300}?functions\.invoke\(\s*["']stripe-connect["']/;

@@ -4,6 +4,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { parsePayPalPayee, type PayPalPayee } from "@/lib/paypalPayee";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 
 /** User-scoped; never persisted (where a member is paid must not survive a sign-out on a shared device). */
 export const paypalPayeeQueryKey = (userId: string | undefined | null) => ["paypal-payee", userId] as const;
@@ -17,6 +18,8 @@ export interface PayPalPayeeState {
   ready: boolean;
   payee: PayPalPayee | null;
   error: unknown;
+  /** The read's refusal in words (get_my_paypal_payee's copy), or a plain fallback; null without an error. */
+  errorMessage: string | null;
   refetch: () => void;
 }
 
@@ -43,6 +46,7 @@ export function usePayPalPayee(): PayPalPayeeState {
     ready: on && payee?.payable === true,
     payee,
     error: on ? q.error : null,
+    errorMessage: on && q.error ? (rpcErrorMessage("get_my_paypal_payee", q.error) ?? "We couldn't load your payout details.") : null,
     refetch: () => { void q.refetch(); },
   };
 }

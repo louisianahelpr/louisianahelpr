@@ -12,7 +12,7 @@
  *
  * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql | ALTER TABLE public.payee_accounts ENABLE ROW LEVEL SECURITY; | ALTER TABLE public.payee_accounts DISABLE ROW LEVEL SECURITY;
  * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql | public.payee_accounts, public.paypal_webhook_events FROM PUBLIC, anon, authenticated; | public.payee_accounts, public.paypal_webhook_events FROM PUBLIC; GRANT SELECT ON public.payee_accounts TO authenticated;
- * @mutate supabase/migrations/20261023231647_paypal_payee_email.sql | IF NOT public.feature_enabled_for_user('paypal_payments', v_member) THEN | IF false THEN
+ * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql | IF NOT public.feature_enabled_for_user('paypal_payments', v_member) THEN | IF false THEN
  * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql | BEFORE INSERT OR UPDATE ON public.payee_accounts | BEFORE UPDATE ON public.payee_accounts
  * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql |         NEW.verified := false;\n      END IF;\n    END IF; |       END IF;\n      NEW.verified := false; NEW.payable := false;\n    END IF;
  * @mutate supabase/migrations/20261023223419_paypal_provider_foundation.sql | RAISE EXCEPTION 'refund_after_payout_queued' | RAISE NOTICE 'refund_after_payout_queued'

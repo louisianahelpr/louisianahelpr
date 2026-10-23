@@ -5,7 +5,7 @@ import { identityView, openIdentityCheck } from "@/lib/identityCheck";
 import type { Profile } from "./types";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { usePayPalPayee } from "@/hooks/usePayPalPayee";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
 
 /**
  * Board 41, TRUST MARKS: the three things that make neighbors trust a profile,
@@ -75,7 +75,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
           </li>
         ))}
       </ul>
-      {bankPaused && !paypal.on && <PayoutSetupPausedNotice compact className="mt-2" />}
+      {bankPaused && !paypal.on && <PayoutSetupNotice compact className="mt-2" />}
     </div>
   );
 }

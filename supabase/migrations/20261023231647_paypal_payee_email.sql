@@ -35,57 +35,6 @@
 -- trigger functions). payee_accounts and provider_payouts exist since 20261023223419; plpgsql bodies
 -- are not resolved at creation. Proof: src/test/pglite/paypalPayeeEmail.pglite.mjs (3x).
 
--- paypal_entry_requires_switch: restated from 20261023223419 (phase 1), one fix. An UPDATE that kept
--- the same destination and turned verified/payable ON fell through to the "new destination" reset,
--- so payable could never become true (measured in PGlite 2026-10-23: set_paypal_payee_email left
--- payable false). Now the reset runs only when who or where changed; turning either ON with the same
--- destination still needs the switch (checked below), turning them OFF still needs nothing.
-CREATE OR REPLACE FUNCTION public.paypal_entry_requires_switch()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $fn$
-DECLARE
-  v_member uuid;
-BEGIN
-  IF TG_TABLE_NAME = 'provider_payments' THEN
-    IF TG_OP = 'UPDATE' THEN
-      -- The payer is fixed once money is in; only account deletion may clear it (SET NULL).
-      IF NEW.payer_id IS DISTINCT FROM OLD.payer_id AND NEW.payer_id IS NOT NULL THEN
-        RAISE EXCEPTION 'payer_immutable' USING ERRCODE = '42501';
-      END IF;
-      RETURN NEW;
-    END IF;
-    v_member := NEW.payer_id;
-  ELSE
-    IF TG_OP = 'UPDATE' THEN
-      IF NEW.user_id IS NOT DISTINCT FROM OLD.user_id
-         AND NEW.paypal_email IS NOT DISTINCT FROM OLD.paypal_email
-         AND NEW.paypal_payer_id IS NOT DISTINCT FROM OLD.paypal_payer_id
-         AND NEW.venmo_handle IS NOT DISTINCT FROM OLD.venmo_handle THEN
-        -- Who and where unchanged. Turning verified/payable OFF needs no switch (an admin stopping a
-        -- hijacked destination); turning either ON is a new payout path and does (below).
-        IF NOT ((NEW.verified AND NOT OLD.verified) OR (NEW.payable AND NOT OLD.payable)) THEN
-          RETURN NEW;
-        END IF;
-      ELSE
-        -- A new destination is unproven: it must be verified and made payable again.
-        NEW.verified := false;
-        NEW.payable := false;
-      END IF;
-    END IF;
-    v_member := NEW.user_id;
-  END IF;
-  IF NOT public.feature_enabled_for_user('paypal_payments', v_member) THEN
-    RAISE EXCEPTION 'feature_disabled' USING ERRCODE = '42501',
-      DETAIL = format('paypal_payments is off for this member (%s)', TG_TABLE_NAME);
-  END IF;
-  RETURN NEW;
-END;
-$fn$;
-REVOKE ALL ON FUNCTION public.paypal_entry_requires_switch() FROM PUBLIC, anon, authenticated;
-
 CREATE OR REPLACE FUNCTION public.paypal_payee_env()
 RETURNS text
 LANGUAGE sql
@@ -423,7 +372,7 @@ BEGIN
     VALUES (v_uid, 'paypal', v_env, v_email);
     v_changed := true;
   ELSIF v_old IS DISTINCT FROM v_email THEN
-    -- paypal_entry_requires_switch resets verified and payable on a new destination.
+    -- paypal_entry_requires_switch resets verified on a new destination; payable is set below.
     UPDATE public.payee_accounts
        SET paypal_email = v_email, updated_at = now()
      WHERE user_id = v_uid AND provider = 'paypal' AND env = v_env;

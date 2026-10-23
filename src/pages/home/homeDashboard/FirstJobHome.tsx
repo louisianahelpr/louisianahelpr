@@ -2,7 +2,7 @@ import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { usePayPalPayee } from "@/hooks/usePayPalPayee";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
 import { useNavigate } from "react-router-dom";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -135,7 +135,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
             </li>
           ))}
         </ul>
-        {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
+        {payoutStepPaused && <PayoutSetupNotice compact className="mt-2" />}
       </section>
 
       {jobs.length > 0 && (

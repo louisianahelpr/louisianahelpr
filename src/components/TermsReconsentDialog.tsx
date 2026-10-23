@@ -26,7 +26,7 @@ import { queryKeys } from "@/lib/queryKeys";
 // is mounted app-wide, so without this it covers the very page it asks the
 // user to read.
 // @two-way src/test/termsReconsentOnBump.test.tsx:exempt path is no longer a route
-export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy"];
+export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy", "/terms/full", "/privacy/full"];
 
 export function TermsReconsentDialog() {
   const { pathname } = useLocation();

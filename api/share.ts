@@ -63,6 +63,7 @@
  */
 
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
+import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 
 /**
@@ -713,6 +714,23 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
  * Handler
  * ------------------------------------------------------------------ */
 
+/**
+ * The page's own text inside #root, for the pages that must be readable with no JavaScript (/terms/full,
+ * /privacy/full, /sms-opt-in; owner/lead 2026-10-23, Twilio's A2P checker). The markup is built from the app's own
+ * components at build time (src/prerender/staticPages.tsx via scripts/prerender-static-pages.mjs). Every visitor
+ * gets the same document, so this is not cloaking; with JavaScript, React's createRoot replaces #root's children on
+ * its first render. Any other page, or a shell without the anchor (build-og-shell.mjs asserts it), is unchanged.
+ */
+function withStaticBody(html: string, url: URL): string {
+  const route = resolveRoute(url);
+  if (!route || route.kind !== "page") return html;
+  const bodies = STATIC_PAGE_BODIES as Record<string, string>;
+  const key = `/${route.id}`;
+  const body = Object.prototype.hasOwnProperty.call(bodies, key) ? bodies[key] : null;
+  if (!body) return html;
+  return html.replace(/<div id="root"[^>]*>/, (open) => `${open}${body}`);
+}
+
 function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400"): Response {
   return new Response(html, {
     status: 200,
@@ -740,7 +758,7 @@ export default {
       if (!meta) return respond(shell);
       // A shop card goes stale within minutes, never a day: a shop hidden,
       // paused or closed must stop previewing (lh-authz-rls should-fix 2).
-      return respond(applyMeta(shell, meta), meta.cdnCache);
+      return respond(withStaticBody(applyMeta(shell, meta), url), meta.cdnCache);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must
       // degrade to the plain shell, never to a broken share page. The

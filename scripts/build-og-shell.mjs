@@ -79,6 +79,9 @@ const REQUIRED_ANCHORS = [
   // URL so a link-preview fetcher can load the H logo (VN-4, 2026-09-14).
   { label: 'link rel="icon"', re: /<link rel="icon"[^>]*\shref="\/[^"]*"/ },
   { label: 'link rel="apple-touch-icon"', re: /<link rel="apple-touch-icon"[^>]*\shref="\/[^"]*"/ },
+  // api/share.ts places the prerendered body of /terms/full, /privacy/full and /sms-opt-in right after this tag
+  // (scripts/prerender-static-pages.mjs). Without it they would serve no text to a reader that runs no JavaScript.
+  { label: 'div id="root"', re: /<div id="root"[^>]*>/ },
 ];
 
 /** The image block must survive untouched — assert it is still intact. */

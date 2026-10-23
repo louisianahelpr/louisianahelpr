@@ -57,6 +57,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/pages/auth/Unsubscribe.tsx": "email unsubscribe landing (signed out)",
   "src/pages/auth/signup/SignupStep1.tsx": "signed out",
   "src/pages/info/NotFound.tsx": "404 moment",
+  "src/prerender/staticPages.tsx": "build-time static markup of /terms/full, /privacy/full, /sms-opt-in for readers with no JavaScript (api/share puts it in #root; React replaces it on boot); the live page uses PageHeader",
   "src/pages/jobs/JobDetail.tsx": "sr-only heading of the shared job page",
   "src/pages/post-job/PaymentSuccess.tsx": "the payment-confirmed celebration moment",
 };

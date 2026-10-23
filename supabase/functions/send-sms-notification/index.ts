@@ -95,6 +95,13 @@ serve(async (req) => {
 
   /** Sends one claimed text; records Twilio's answer. true = sent. */
   const sendOne = async (claim: Claim): Promise<{ sent: boolean; errorCode: string | null; recorded: boolean }> => {
+    // No text is ever sent for a nearby or matching job (owner, 2026-10-23). The database no longer queues one
+    // (sms_kind_for, migration 20261023181442) and smsPolicy has no such kind; a claim for one is refused here too.
+    if (claim.kind === 'job_match') {
+      console.error(`[send-sms-notification] refused a nearby-job text ${claim.sms_id ?? '(no id)'}`)
+      const recorded = claim.sms_id ? await recordResult(claim.sms_id, 'failed', null, 'job_match_retired') : false
+      return { sent: false, errorCode: 'job_match_retired', recorded }
+    }
     if (!twilio || !claim.sms_id || !claim.phone || !isSmsKind(claim.kind)) {
       // The claims only hand out complete rows; anything else is a bug.
       console.error(`[send-sms-notification] malformed claim ${claim.sms_id ?? '(no id)'}`)

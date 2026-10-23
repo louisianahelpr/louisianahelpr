@@ -78,6 +78,7 @@ const DOCUMENT_SCROLL_ROUTES = [
 
   // Public marketing / informational pages (document-scroll)
   "/help",         // Help Center — static FAQ / support page
+  "/sms-opt-in",   // How to opt in to text alerts (Twilio A2P review, 2026-10-23)
   // /browse — the guest browse feed. Web-only entry: it renders through
   // PublicLayout on web now (same shell as /legal, /help, /rules), so it
   // needs the document-scroll lock lifted so the visitor can reach the
@@ -111,7 +112,7 @@ const DOCUMENT_SCROLL_ROUTES = [
 // /help and /support (Q965): PublicLayout renders AppShell for them on native
 // (useAppChrome), the same internal-scroll container as Legal, so they need
 // the same lock; they were on DOCUMENT_SCROLL_ROUTES only.
-const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support"];
+const NATIVE_APP_SHELL_ROUTES = ["/legal", "/terms", "/privacy", "/rules", "/browse", "/help", "/support", "/sms-opt-in"];
 
 /**
  * The pathname currently rendering the `path="*"` catch-all (NotFound), or

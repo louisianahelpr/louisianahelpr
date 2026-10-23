@@ -48,6 +48,7 @@ const REASON: Record<string, string> = {
   stale: "too old to send",
   account_restricted: "account restricted",
   job_match_texts_off: "nearby-job texts off",
+  job_match_texts_retired: "nearby-job texts retired (owner 2026-10-23)",
   no_consent: "not opted in",
   suppressed_seed: "test account",
   switch_off: "switch off",

@@ -112,6 +112,7 @@ export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "
   // would only give the 404 screen a bottom dock, exactly as the note about
   // "/benefits" above says.
   "/help",
+  "/sms-opt-in", // same PublicLayout page as /help (Twilio A2P review, 2026-10-23)
   // /auto-tip ("After a Job") was the ONE settings sub-page on that list of
   // siblings that never reached this one — measured 2026-08-31 at 320/375/768:
   // no bottom dock rendered at all, on a screen whose only other way out is the

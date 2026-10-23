@@ -159,6 +159,8 @@ const DashboardGuest = lazyWithPreload(() => import("./pages/home/DashboardGuest
 // are lazy-imported by ProfileTabPanels instead: PetProfiles, WorkRecord,
 // HomeHistory, HelprWrapped, StrSettings, HelperAnalytics, AutoTip.
 const HelpCenter = lazyWithPreload(() => import("./pages/info/HelpCenter"));
+const SmsOptIn = lazyWithPreload(() => import("./pages/info/SmsOptIn"));
+const LegalFullText = lazyWithPreload(() => import("./pages/info/LegalFullText"));
 const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
@@ -338,6 +340,10 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           a different path. */}
       <Route path="/terms" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
       <Route path="/privacy" element={<RouteErrorBoundary>{routeEl(<PageTransition><Legal /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* The same Terms and Privacy Policy as one open document each, nothing to tap (owner 2026-10-23, Twilio's A2P
+          review). Public in every auth state, like the two routes above. */}
+      <Route path="/terms/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="terms" /></PageTransition>)}</RouteErrorBoundary>} />
+      <Route path="/privacy/full" element={<RouteErrorBoundary>{routeEl(<PageTransition><LegalFullText doc="privacy" /></PageTransition>)}</RouteErrorBoundary>} />
 
 
       {/* Public, deep-linkable job preview. Shared links (ShareJobButton →
@@ -435,6 +441,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
           Center"), so it is upstream of the in-app surface, not a marketing
           duplicate of it. Support must stay reachable from anywhere. */}
       <Route path="/help" element={<RouteErrorBoundary>{routeEl(<PageTransition><HelpCenter /></PageTransition>)}</RouteErrorBoundary>} />
+      {/* Twilio A2P review (owner 2026-10-23): a public link to how members opt in to texts. */}
+      <Route path="/sms-opt-in" element={<RouteErrorBoundary>{routeEl(<PageTransition><SmsOptIn /></PageTransition>)}</RouteErrorBoundary>} />
       {/* /parishes, /parish/:slug, /impact, /local-guide, /community and
           /browse-jobs were removed along with their redirect stubs (2352466e).
           Same as above: no redirect exists, and none is warranted on current

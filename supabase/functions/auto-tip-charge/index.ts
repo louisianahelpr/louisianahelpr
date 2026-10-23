@@ -36,6 +36,11 @@ import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
 import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
+import { supabaseSavedChargeStore } from "../_shared/payments/paypalSavedCharge.ts";
+import { chargePayPalAutoTip, retryOwedTipPayouts } from "../_shared/payments/paypalAutoTip.ts";
+import { rpcManualPayoutQueue } from "../_shared/payments/manualPayoutQueue.ts";
+import { paypalFundedJob } from "../_shared/payments/paypalFundedJob.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */
 class AmbiguousCharge extends Error {}
@@ -114,6 +119,8 @@ serve(async (req) => {
     }
 
     const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0, closed: 0 };
+    /** PayPal phase 6: built on first use, only when a candidate's job was paid through PayPal. */
+    let paypalRuntime: ReturnType<typeof paypalRuntimeFromEnv> | null = null;
     /** Q1224: jobs whose poster was already told this run that a held tip aged out. */
     const agedOutNotified = new Set<string>();
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
@@ -553,6 +560,110 @@ serve(async (req) => {
         continue;
       }
 
+      // ── PayPal phase 6: a job paid through PayPal is tipped through the poster's saved
+      // PayPal method, and the Helpr's 100% goes on the manual pay queue. Same claim row, same
+      // money shape, same never-silent outcomes; nothing below (Stripe) runs for it. An
+      // unreadable answer charges nothing (the claim is released for the next tick).
+      const paypalJob = await paypalFundedJob(supabase, jobId);
+      if (paypalJob instanceof Error) {
+        log("ERROR reading whether the job was paid through PayPal — not charging", { jobId, error: paypalJob.message });
+        await releaseClaimForRetry("paypal funded-job read");
+        results.failed++;
+        defects.record(`paypal funded-job read ${jobId}: ${paypalJob.message}`);
+        continue;
+      }
+      if (paypalJob) {
+        paypalRuntime ??= paypalRuntimeFromEnv();
+        if (!paypalRuntime.ok) {
+          await releaseClaimForRetry("paypal not configured");
+          results.failed++;
+          defects.record(`auto-tip ${jobId}: PayPal job, PayPal not configured (${paypalRuntime.reason}); nothing charged`);
+          continue;
+        }
+        const pp = await chargePayPalAutoTip({
+          charge: { store: supabaseSavedChargeStore(supabase), provider: paypalRuntime.provider, env: paypalRuntime.env },
+          queue: rpcManualPayoutQueue(supabase),
+          jobStateNow: async (id) => {
+            const { data, error } = await supabase.rpc("auto_tip_job_state", { p_job_id: id });
+            return error || typeof data !== "string" ? new Error(error?.message ?? "no answer") : data;
+          },
+        }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, quote: tipQuote });
+        switch (pp.outcome) {
+          case "charged":
+            await settleTip(
+              { payment_status: "paid" },
+              "tip paid-settlement write (PayPal)",
+              `the poster WAS charged through PayPal (provider_payments ${pp.paymentId}) but the tips row still reads 'pending'`,
+            );
+            results.charged++;
+            if (!pp.payoutQueued) defects.record(`auto-tip ${jobId}: PayPal tip charged (provider_payments ${pp.paymentId}), Helpr payout not queued yet (${pp.payoutReason}); retried every run`);
+            {
+              const { error: okNotifyErr } = await supabase.from("notifications").insert({
+                user_id: c.customer_id,
+                type: "payment",
+                title: "Your auto-tip was sent",
+                message: `We sent your Helpr a $${(tipQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your PayPal payment method was charged $${(tipQuote.chargeCents / 100).toFixed(2)}, including $${(tipQuote.feeCents / 100).toFixed(2)} processing. No action needed.`,
+                link: `/posts?job=${c.job_id}`,
+              });
+              if (okNotifyErr) defects.record(`tip-success notification ${jobId}: ${okNotifyErr.message}`);
+            }
+            break;
+          case "payout_unsupported":
+            // Not charged: the Helpr's tip could not be recorded for payout. Stays a candidate,
+            // and on the window's last day is recorded and the poster told, like a held tip.
+            await releaseClaimForRetry("paypal tip payouts not supported yet");
+            results.held++;
+            await ageOutHeldTip(
+              c,
+              tipDollars,
+              "paypal_tip_payout_unavailable: the Helpr's tip could not be queued for payout during the automatic-tip window; nothing was charged",
+              "Your automatic tip for this job couldn't be sent in time, so it was not charged. Nothing was taken from your account.",
+            );
+            break;
+          case "state_changed":
+            await releaseClaimForRetry(`job state before the charge: ${pp.state}`);
+            if (pp.state === "closed") {
+              await recordUnsentTip(
+                c,
+                tipDollars,
+                "payment_returned: the job's payment was refunded, charged back or closed with no payment; nothing was charged",
+                "The payment for this job was returned, so your automatic tip was not charged. Nothing was taken from your account.",
+                "closed",
+              );
+            } else {
+              results.held++;
+            }
+            break;
+          case "state_unreadable":
+            await releaseClaimForRetry(`job state before the charge: ${pp.message}`);
+            results.failed++;
+            defects.record(`job state before charge ${jobId}: ${pp.message}`);
+            break;
+          case "give_up":
+            await giveUp(pp.reason, true, pp.posterMessage);
+            results.prompted++;
+            break;
+          case "capture_pending":
+            await settleTip(
+              { failure_reason: "paypal_capture_pending: charged, not settled yet" },
+              "tip capture-pending write (PayPal)",
+              "the tip's PayPal capture is pending and the row carries no reason",
+            );
+            results.charged++;
+            break;
+          case "ambiguous":
+            await settleTip(
+              { failure_reason: `ambiguous: ${pp.reason}`.slice(0, 200) },
+              "tip ambiguous-outcome write (PayPal)",
+              "the PayPal charge outcome is unknown and the row carries no reason",
+            );
+            defects.record(`auto-tip ${jobId}: PayPal charge outcome UNKNOWN (${pp.reason.slice(0, 120)}) — check provider_payments for tip ${tipRow.id} before telling the poster anything`);
+            results.failed++;
+            break;
+        }
+        continue;
+      }
+
       try {
         const { data: helperProfile, error: helperProfileErr } = await supabase
           .from("profiles")
@@ -850,6 +961,28 @@ serve(async (req) => {
         await giveUp(message.slice(0, 200), true);
         results.failed++;
         log("charge failed", { jobId, error: message });
+      }
+    }
+
+    // PayPal phase 6: a tip charged through PayPal whose Helpr payout is not on the pay queue yet
+    // is queued again every run until it is (the queue answers already_queued once it is).
+    {
+      const { data: owed, error: owedErr } = await supabase.rpc("paypal_owed_tip_payouts");
+      if (owedErr) {
+        // PGRST202/42883: the phase 6 migration is not deployed, so nothing can be owed.
+        if (!["PGRST202", "42883"].includes((owedErr as { code?: string }).code ?? "")) {
+          defects.record(`paypal owed tip payouts read: ${owedErr.message}`);
+        }
+      } else if (Array.isArray(owed) && owed.length > 0) {
+        const still = await retryOwedTipPayouts(
+          rpcManualPayoutQueue(supabase),
+          (owed as Array<{ payment_id: string; tip_id: string; job_id: string; helper_id: string; tip_cents: number }>).map((o) => ({
+            paymentId: o.payment_id, tipId: o.tip_id, jobId: o.job_id, helperId: o.helper_id, tipCents: o.tip_cents,
+          })),
+        );
+        if (still.length > 0) {
+          defects.record(`paypal: ${still.length} charged tip(s) whose Helpr payout is still not queued: ${still.map((s) => s.tipId).join(", ").slice(0, 300)}`);
+        }
       }
     }
 

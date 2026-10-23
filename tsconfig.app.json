@@ -86,6 +86,7 @@
     "supabase/functions/_shared/payments/paypalPayouts.ts",
     "supabase/functions/_shared/payments/paypalWebhookVerify.ts",
     "supabase/functions/_shared/payments/registry.ts",
+    "supabase/functions/_shared/payments/providerFees.ts",
     "supabase/functions/_shared/smsPolicy.ts",
     "supabase/functions/stripe-webhook/handlers/_payoutRetry.ts",
     "supabase/functions/_shared/memberDisplayName.ts",

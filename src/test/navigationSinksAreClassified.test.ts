@@ -100,6 +100,9 @@ function safeByConstruction(expr: string): boolean {
  * reason specific (where the value comes from); "trusted" is not a reason.
  */
 const STRIPE_EDGE_URL = "a Stripe/checkout URL returned by our own edge function (server-built, not a user-writable column)";
+// startTipCheckout() (src/lib/tipCheckout.ts): the url create-payment "tip" (Stripe Checkout) or
+// paypal-tip "create" (PayPal's approve link, built by PayPal) returned; never client-built.
+const TIP_CHECKOUT_URL = "startTipCheckout(): the server-returned Stripe Checkout or PayPal approve URL";
 const STORAGE_SIGNED = "supabase.storage createSignedUrl() output: always https on this project's own origin";
 const PROOF_SIGNED = "useProofPhotoUrls(): a signed proof-photos URL, or the stored value only when it matches ^https?:// (signProofPhotoUrls), else null";
 const OBJECT_URL = "URL.createObjectURL() of a Blob the app built itself (blob: on our own origin)";
@@ -147,10 +150,10 @@ const CLASSIFIED: Record<string, string> = {
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/declutter/DeliveryRaisePanel.tsx::res.url": STRIPE_EDGE_URL, // Q1929: declutter-checkout raise_pay's Stripe page
   "components/identity/IdentityCheckSheet.tsx::data.url": STRIPE_EDGE_URL,
-  "components/CompletionPrompts.tsx::data.url": STRIPE_EDGE_URL,
+  "components/CompletionPrompts.tsx::url": TIP_CHECKOUT_URL,
   "components/JobBoostDialog.tsx::data.url": STRIPE_EDGE_URL,
   "components/PayoutSetupForm.tsx::data.url": STRIPE_EDGE_URL,
-  "components/TipDialog.tsx::data.url": STRIPE_EDGE_URL,
+  "components/TipDialog.tsx::url": TIP_CHECKOUT_URL,
   "components/profile/BackgroundCheckCard.tsx::data.url": STRIPE_EDGE_URL,
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   // Shops M1: requestOrder() returns shop-checkout's Checkout session url (server-built).

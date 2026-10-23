@@ -130,7 +130,7 @@ function blankComments(src: string): string {
 /** Payment functions that accept a dollar figure from the client. `release`,
  * `resolve_revision` and the admin refund actions take no client amount, so a
  * caller that passes none is simply not in the inventory. */
-const PAYMENT_FNS = ["create-payment", "create-gift-card-checkout", "create-boost-payment"];
+const PAYMENT_FNS = ["create-payment", "paypal-tip", "create-gift-card-checkout", "create-boost-payment"];
 
 interface Caller { file: string; line: number; expr: string }
 
@@ -169,9 +169,19 @@ describe("whole-cent parity: what the screen shows is what Stripe charges", () =
     // If the walker or the invoke-matcher breaks, every assertion below passes
     // vacuously. Pin the three known tip/gift entry points by name.
     const files = new Set(callers.map((c) => c.file));
-    expect(files.has("src/components/TipDialog.tsx")).toBe(true);
-    expect(files.has("src/components/CompletionPrompts.tsx")).toBe(true);
+    // Tips reach create-payment / paypal-tip through the one helper (src/lib/tipCheckout.ts).
+    expect(files.has("src/lib/tipCheckout.ts")).toBe(true);
+    expect(callers.filter((c) => c.file === "src/lib/tipCheckout.ts").length).toBe(2);
     expect(callers.length).toBeGreaterThanOrEqual(3);
+  });
+
+  // The tip prompts hand the helper their amount: each rounds it before the quote it shows.
+  const tipPrompts = walk(join(REPO, "src")).filter((f) => /\bstartTipCheckout\(\s*\{/.test(blankNonCode(readFileSync(f, "utf8")))).map(rel);
+  it("the tip prompts are found (TipDialog, CompletionPrompts)", () => {
+    expect(tipPrompts).toEqual(expect.arrayContaining(["src/components/TipDialog.tsx", "src/components/CompletionPrompts.tsx"]));
+  });
+  it.each(tipPrompts)("%s rounds the tip to whole cents before starting the checkout", (file) => {
+    expect(roundsToWholeCents(file)).toBe(true);
   });
 
   /*

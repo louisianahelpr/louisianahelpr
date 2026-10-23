@@ -28,13 +28,15 @@ export interface TipCheckoutRequest {
 
 /** Starts the checkout and returns the URL to send the poster to. Throws a sentence fit to show. */
 export async function startTipCheckout(req: TipCheckoutRequest, fallback: string): Promise<string> {
+  // Whole cents, the servers' own rule (Math.round(amount * 100)): what the prompt showed is what is charged.
+  const amount = Math.round(req.amount * 100) / 100;
   const { data, error } = req.paypal
     ? await supabase.functions.invoke("paypal-tip", {
-        body: { action: "create", jobId: req.jobId, amount: req.amount, tipAttemptId: req.tipAttemptId, native: isNativePlatform, helperId: req.helperId },
+        body: { action: "create", jobId: req.jobId, amount, tipAttemptId: req.tipAttemptId, native: isNativePlatform, helperId: req.helperId },
       })
     : await supabase.functions.invoke("create-payment", {
         // helperId: undefined on a single-helper job, dropped by JSON.
-        body: { action: "tip", jobId: req.jobId, amount: req.amount, tipAttemptId: req.tipAttemptId, native: isNativePlatform, helperId: req.helperId },
+        body: { action: "tip", jobId: req.jobId, amount, tipAttemptId: req.tipAttemptId, native: isNativePlatform, helperId: req.helperId },
       });
   // A non-2xx makes the SDK throw a FunctionsHttpError whose message is the useless "Edge
   // Function returned a non-2xx status code"; the real reason is in the body.

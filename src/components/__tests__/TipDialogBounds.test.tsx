@@ -21,6 +21,8 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invo
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
 vi.mock("@/lib/haptics", () => ({ hapticMedium: vi.fn(), hapticSuccess: vi.fn(), hapticError: vi.fn() }));
+// The bounds are the same for both processors; the switch is read as off here.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 import { TipDialog } from "../TipDialog";
 

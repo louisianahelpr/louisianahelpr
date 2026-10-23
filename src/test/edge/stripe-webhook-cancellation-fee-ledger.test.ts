@@ -84,6 +84,7 @@ const CASES = [
   { type: "transfer.reversed", status: "reversed", from: ["pending", "paid", "failed", "reversed"], pages: "Helpr cancellation-fee transfer reversed" },
 ] as const;
 
+// @mutate supabase/functions/stripe-webhook/handlers/_cancellationFeeLedger.ts |     q = q.not("failed_transfer_ids", "cs", `{${transfer.id}}`)\n      .or( |     q = q.or(
 describe("LOW-2: transfer webhooks settle the cancellation-fee ledger", () => {
   beforeEach(() => {
     resetEnv();
@@ -108,9 +109,19 @@ describe("LOW-2: transfer webhooks settle the cancellation-fee ledger", () => {
       const f = w[0].filters;
       expect(f).toContainEqual(expect.objectContaining({ op: "eq", column: "id", value: "fee-1" }));
       expect(f).toContainEqual(expect.objectContaining({ op: "in", column: "status", value: [...c.from] }));
-      expect(f).toContainEqual(
-        expect.objectContaining({ op: "or", value: "stripe_transfer_id.is.null,stripe_transfer_id.eq.tr_fee" }),
-      );
+      if (c.status === "paid") {
+        // Q2356: a paid mark never resurrects a transfer the row remembers as failed (whatever order Stripe
+        // delivers in), and a failed row's retry transfer is accepted.
+        expect(f).toContainEqual(expect.objectContaining({ op: "not", column: "failed_transfer_ids", operator: "cs", value: "{tr_fee}" }));
+        expect(f).toContainEqual(
+          expect.objectContaining({ op: "or", value: "stripe_transfer_id.is.null,stripe_transfer_id.eq.tr_fee,status.eq.failed" }),
+        );
+      } else {
+        expect(f).toContainEqual(
+          expect.objectContaining({ op: "or", value: "stripe_transfer_id.is.null,stripe_transfer_id.eq.tr_fee" }),
+        );
+        expect(f.some((x) => (x as { op: string }).op === "not")).toBe(false);
+      }
 
       // Not a job payout: no payout_transfers row, no job flip.
       expect(writesTo("payout_transfers")).toEqual([]);

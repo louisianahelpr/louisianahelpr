@@ -286,6 +286,24 @@ describe("money-reconciliation — cancellation-fee ledger vs Stripe (LOW-2)", (
     expect(feeFindings(b)).toEqual([]);
   });
 
+  // Q2356 (review should-fix 3): a failed transfer the row or share remembers moved no money, so after the
+  // retry paid a new one it is not "money the books don't show".
+  // @mutate supabase/functions/money-reconciliation/index.ts |           if (failedFeeIds.has(t.id)) continue; |           void failedFeeIds;
+  it("Q2356: a remembered failed fee transfer (single and crew) is accounted for, not paged", async () => {
+    const fn = await load();
+    seed({
+      rows: [feeRow({ stripe_transfer_id: "tr_1", failed_transfer_ids: ["tr_failed"] })],
+      transfers: [
+        feeTransfer(),
+        feeTransfer({ id: "tr_failed" }),
+        feeTransfer({ id: "tr_crew_failed", metadata: { type: "cancellation_fee", job_id: "job-f", helper_id: "helper-2", share_id: "share-x" } }),
+      ],
+    });
+    scenario.reads.crew_cancellation_fee_shares = { rows: [{ id: "share-x", stripe_transfer_id: "tr_crew_new", failed_transfer_ids: ["tr_crew_failed"] }] };
+    const { b } = await run(fn);
+    expect(finding(b, "cancellation_fee_stripe_transfer_without_row")?.count ?? 0).toBe(0);
+  });
+
   it("pages a Stripe amount that differs from the ledger's helper_amount", async () => {
     const fn = await load();
     seed({ transfers: [feeTransfer({ amount: 900 })] });

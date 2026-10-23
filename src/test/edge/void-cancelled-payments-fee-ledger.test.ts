@@ -282,6 +282,50 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     expect(marks[0].payload).toMatchObject({ status: "paid", stripe_transfer_id: "tr_fee" });
     expect(marks[0].filters).toEqual(expect.arrayContaining([{ op: "eq", column: "status", value: "failed" }]));
   });
+  // ── Q2356: a failed or canceled fee transfer is sent again, never counted as paid ──
+  // Stripe does not mark a failed or canceled transfer `reversed`, so the "already paid" check found it and
+  // marked the row paid with the Helpr unpaid.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | !knownFailed.has(t.id) &&\n            (!t.metadata?.helper_id | (!t.metadata?.helper_id
+  it("Q2356: Part E on a failed row whose failed transfer Stripe still lists sends a NEW transfer", async () => {
+    const failed = ledgerRow({ status: "failed", stripe_transfer_id: "tr_failed", created_at: OLD, failed_transfer_ids: ["tr_failed"] });
+    seed({ partA: false, existing: failed, retry: [failed] });
+    stripeMock.transfers.list.mockResolvedValue({
+      data: [{ id: "tr_failed", reversed: false, metadata: { type: "cancellation_fee", job_id: "job-1", helper_id: "helper-1" } }],
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(1);
+    const marks = feeWrites("update");
+    expect(marks[0].payload).toMatchObject({ status: "paid", stripe_transfer_id: "tr_fee" });
+    expect(marks.some((m) => (m.payload as { stripe_transfer_id?: string }).stripe_transfer_id === "tr_failed")).toBe(false);
+  });
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (row.status === "failed" && row.stripe_transfer_id) ids.add(row.stripe_transfer_id); | void 0;
+  it("Q2356: the row's own current transfer counts as failed while the row says failed (even before the webhook recorded it)", async () => {
+    const failed = ledgerRow({ status: "failed", stripe_transfer_id: "tr_failed", created_at: OLD, failed_transfer_ids: [] });
+    seed({ partA: false, existing: failed, retry: [failed] });
+    stripeMock.transfers.list.mockResolvedValue({
+      data: [{ id: "tr_failed", reversed: false, metadata: { type: "cancellation_fee", job_id: "job-1", helper_id: "helper-1" } }],
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(1);
+  });
+
+  it("Q2356: an OLDER failed transfer the row remembers is not a payment either; a live one still repairs", async () => {
+    const failed = ledgerRow({ status: "failed", stripe_transfer_id: "tr_b", created_at: OLD, failed_transfer_ids: ["tr_a", "tr_b"] });
+    seed({ partA: false, existing: failed, retry: [failed] });
+    stripeMock.transfers.list.mockResolvedValue({
+      data: [
+        { id: "tr_a", reversed: false, metadata: { type: "cancellation_fee", job_id: "job-1", helper_id: "helper-1" } },
+        { id: "tr_b", reversed: false, metadata: { type: "cancellation_fee", job_id: "job-1", helper_id: "helper-1" } },
+      ],
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransferCalls()).toHaveLength(1);
+  });
+
   // ── Q891: Part E's PaymentIntent is a TEST-mode object under the live key ──
   // @mutate supabase/functions/void-cancelled-payments/index.ts | logTestObjectUnderLiveKey("void-cancelled-payments", { job_id: job.id, object: "payment_intent", id: job.stripe_payment_intent_id });\n            continue;\n          }\n          defects.record(`cancellation fee retry | throw retryErr;\n          }\n          defects.record(`cancellation fee retry
   it("Q891: Part E on a TEST-mode PaymentIntent pays no fee, claims nothing, records no defect (200), pages nobody, writes one structured line", async () => {

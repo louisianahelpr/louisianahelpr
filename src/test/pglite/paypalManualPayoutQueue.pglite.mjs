@@ -124,7 +124,7 @@ create table public.jobs(
   disputed_at timestamptz, dispute_status text, payout_scheduled_at timestamptz,
   budget numeric default 100, urgent_fee numeric, helper_fee_percent numeric, helper_fee_flat_cents int,
   poster_completed_at timestamptz, helper_completed_at timestamptz, updated_at timestamptz default now());
-create table public.disputes(id uuid primary key default gen_random_uuid(), job_id uuid, status text, execution_status text);
+create table public.disputes(id uuid primary key default gen_random_uuid(), job_id uuid, status text check (status in ('open','decided','withdrawn','superseded')), decided_via text check (decided_via is null or decided_via = 'agreement'), execution_status text);
 create table public.payout_holds(helper_id uuid primary key, reason text, held_by uuid, held_at timestamptz default now(), denied_reason text, denied_by uuid, denied_at timestamptz);
 create table public.ban_settlement_queue(user_id uuid, review_state text);
 create table public.job_payout_holds(job_id uuid primary key);
@@ -435,6 +435,33 @@ await db.exec(`update jobs set payment_status='payout_pending' where id='${J[4]}
 await as("admin");
 const batches = (await db.query("select * from get_payout_batches()")).rows;
 check("get_payout_batches lists the Stripe job only", batches.length === 1 && batches[0].helper_id === U.helpr2 && batches[0].job_count === 1, batches);
+
+// --- phase 5's refund-request remainder (lead 2026-10-23): completed + 'escrow' + partially_refunded +
+//     the ONE live dispute is an agreement being executed. Only for p_source='refund_request_remainder'.
+await as("postgres");
+const R = { ok: "d0000000-0000-4000-8000-000000000001", twoDisputes: "d0000000-0000-4000-8000-000000000002", notPartial: "d0000000-0000-4000-8000-000000000003" };
+for (const [k, id] of Object.entries(R)) {
+  await db.exec(`insert into jobs(id, title, status, payment_status, helper_id, customer_id, poster_completed_at) values ('${id}', 'Remainder ${k}', 'completed', 'escrow', '${U.helpr}', '${U.poster}', clock_timestamp())`);
+  await db.exec(`insert into disputes(job_id, status, decided_via, execution_status) values ('${id}', 'decided', 'agreement', 'executing')`);
+}
+await db.exec(`insert into disputes(job_id, status) values ('${R.twoDisputes}', 'open')`);
+await as("service");
+for (const [k, id] of Object.entries(R)) {
+  await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, provider_capture_id, amount_cents, status)
+    values ('job', '${id}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:job:r${k}:amt10000:a1', 'O-r${k}', 'C-r${k}', 10000, '${k === "notPartial" ? "captured" : "partially_refunded"}')`);
+}
+const remq = (job, source, cents = 6000) => `select public.paypal_queue_manual_payout('${job}', '${U.helpr}', ${cents}, 0, 'system', null, '${source}') as v`;
+check("remainder: an ordinary release of a held ('escrow') job is still refused", (await db.query(remq(R.ok, "release"))).rows[0].v.reason === "job_not_approved", null);
+check("remainder: two live disputes refused", (await db.query(remq(R.twoDisputes, "refund_request_remainder"))).rows[0].v.reason === "remainder_needs_executing_agreement", null);
+check("remainder: the poster's part must be refunded first", (await db.query(remq(R.notPartial, "refund_request_remainder"))).rows[0].v.reason === "remainder_needs_partial_refund", null);
+v = (await db.query(remq(R.ok, "refund_request_remainder"))).rows[0].v;
+check("remainder: queued to the Helpr's PayPal email", v.outcome === "queued", v);
+const PR = v.payout_id;
+check("remainder: a second call is a no-op", (await db.query(remq(R.ok, "refund_request_remainder"))).rows[0].v.outcome === "already_queued", null);
+await as("admin");
+v = (await db.query(mark([PR], "6RR11111AA222222B", 6000))).rows[0].v;
+const rj = await one(`select payment_status from jobs where id='${R.ok}'`);
+check("remainder: Mark paid releases the held job", v.outcome === "marked_paid" && rj.payment_status === "released", { v, rj });
 
 // --- grants
 await as("postgres");

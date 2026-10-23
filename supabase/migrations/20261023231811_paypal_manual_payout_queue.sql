@@ -122,6 +122,7 @@ DECLARE
   v_pt_id uuid;
   v_payout_id uuid;
   v_unconfirmed boolean := false;
+  v_disputes record;
 BEGIN
   IF p_job_id IS NULL OR p_helper_id IS NULL THEN
     RAISE EXCEPTION 'job_and_helper_required' USING ERRCODE = '22023';
@@ -172,10 +173,6 @@ BEGIN
                               'payout_status', v_live.payout_status, 'payout_transfer_id', v_live.payout_transfer_id);
   END IF;
 
-  IF v_job.status <> 'completed' OR v_job.payment_status <> 'payout_pending' THEN
-    RETURN jsonb_build_object('outcome', 'refused', 'reason', 'job_not_approved',
-                              'status', v_job.status, 'payment_status', v_job.payment_status);
-  END IF;
   IF v_job.helper_id IS DISTINCT FROM p_helper_id THEN
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'not_the_jobs_helpr');
   END IF;
@@ -183,14 +180,41 @@ BEGIN
     -- A crew's frozen per-member shares are not built for PayPal yet.
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'crew_not_supported');
   END IF;
-  IF v_job.disputed_at IS NOT NULL AND COALESCE(v_job.dispute_status, '') NOT IN ('resolved', 'auto_resolved') THEN
-    RETURN jsonb_build_object('outcome', 'refused', 'reason', 'dispute_open');
-  END IF;
-  -- A decided dispute owns the money until its split runs (release-payout's checkUnsettledDispute).
-  IF EXISTS (SELECT 1 FROM public.disputes d
-              WHERE d.job_id = p_job_id AND d.status = 'decided'
-                AND (d.execution_status IS NULL OR d.execution_status <> 'executed')) THEN
-    RETURN jsonb_build_object('outcome', 'refused', 'reason', 'dispute_decided_not_settled');
+
+  IF p_source = 'refund_request_remainder' THEN
+    -- Phase 5's agreed refund request (lead 2026-10-23): the poster's part was refunded first
+    -- (partially_refunded), the job is completed with its money still held ('escrow'), and the
+    -- job's ONE live dispute is the agreement being executed. The Helpr's remainder is queued here.
+    IF v_job.status <> 'completed' OR v_job.payment_status <> 'escrow' THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'job_not_approved',
+                                'status', v_job.status, 'payment_status', v_job.payment_status);
+    END IF;
+    IF v_pay.status <> 'partially_refunded' THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'remainder_needs_partial_refund');
+    END IF;
+    SELECT count(*) AS live,
+           count(*) FILTER (WHERE d.status = 'decided' AND d.decided_via = 'agreement' AND d.execution_status = 'executing') AS agreed
+      INTO v_disputes
+      FROM public.disputes d
+     WHERE d.job_id = p_job_id
+       AND (d.status = 'open' OR (d.status = 'decided' AND d.execution_status IS DISTINCT FROM 'executed'));
+    IF v_disputes.live <> 1 OR v_disputes.agreed <> 1 THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'remainder_needs_executing_agreement');
+    END IF;
+  ELSE
+    IF v_job.status <> 'completed' OR v_job.payment_status <> 'payout_pending' THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'job_not_approved',
+                                'status', v_job.status, 'payment_status', v_job.payment_status);
+    END IF;
+    IF v_job.disputed_at IS NOT NULL AND COALESCE(v_job.dispute_status, '') NOT IN ('resolved', 'auto_resolved') THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'dispute_open');
+    END IF;
+    -- A decided dispute owns the money until its split runs (release-payout's checkUnsettledDispute).
+    IF EXISTS (SELECT 1 FROM public.disputes d
+                WHERE d.job_id = p_job_id AND d.status = 'decided'
+                  AND (d.execution_status IS NULL OR d.execution_status <> 'executed')) THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'dispute_decided_not_settled');
+    END IF;
   END IF;
 
   SELECT * INTO v_dest FROM public.paypal_payout_destination(p_helper_id, v_pay.env) LIMIT 1;
@@ -420,6 +444,7 @@ DECLARE
   v_job_id uuid;
   v_title text;
   v_jobs uuid[] := '{}';
+  v_queued_by text;
 BEGIN
   PERFORM public.require_feature('paypal_payments');
   IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN
@@ -513,10 +538,14 @@ BEGIN
              metadata = metadata || jsonb_build_object('external_txn_id', v_txn, 'provider_payout_id', v_pp.id,
                                                        'marked_paid_by', v_admin)
        WHERE id = v_pp.payout_transfer_id
-      RETURNING job_id INTO v_job_id;
+      RETURNING job_id, metadata ->> 'queued_by' INTO v_job_id, v_queued_by;
       v_jobs := v_jobs || v_job_id;
+      -- The job reads released only now. A refund-request remainder was queued with the job still
+      -- held ('escrow', phase 5's agreed split); its Helpr leg is paid here, so it is released too.
       UPDATE public.jobs SET payment_status = 'released'
-       WHERE id = v_job_id AND payment_status::text = 'payout_pending';
+       WHERE id = v_job_id
+         AND (payment_status::text = 'payout_pending'
+              OR (payment_status::text = 'escrow' AND v_queued_by = 'refund_request_remainder'));
       IF FOUND THEN
         v_released := v_released || v_job_id;
       END IF;

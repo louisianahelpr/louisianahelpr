@@ -11,9 +11,9 @@
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (own && own.amountCents !== plan.refundCents) { | if (false) {
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | const own = refunds.find((r) => r.idempotencyKey === key) ?? null; | const own = null as RefundRow \| null;
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (payment.env !== deps.env) return | if (false) return
- * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | const recorded = (outcome === "queued" \|\| outcome === "already_queued" \|\| outcome === "held") && payoutId !== null; | const recorded = outcome !== "refused";
- * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | if (input.source === "auto_tip") return await recordTip(db, input); | void recordTip;
- * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | return { outcome, reason, payoutId, recorded: true }; | return { outcome, reason, payoutId, recorded: payoutId === "never" };
+ * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | const recorded = (outcome === "queued" \|\| outcome === "queued_held" \|\| outcome === "already_queued") && payoutId !== null; | const recorded = outcome !== "refused";
+ * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | if (input.source === "auto_tip") return await recordTip(db, input); | void recordTip;
+ * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | return { outcome, reason, payoutId, recorded: true }; | return { outcome, reason, payoutId, recorded: payoutId === "never" };
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -25,7 +25,7 @@ import {
   type PayPalCancelJob,
   type RefundRow,
 } from "../../supabase/functions/_shared/payments/paypalCancellation.ts";
-import { parseQueueAnswer, parseTipRecord, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
+import { parseQueueAnswer, parseTipRecord, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
 import { ProviderApiError } from "../../supabase/functions/_shared/payments/types.ts";
 import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee.ts";
 
@@ -260,12 +260,14 @@ describe("settlePayPalCancellation", () => {
   });
 });
 
-describe("the pay-queue door (stub of phase 4's paypal_queue_manual_payout)", () => {
+describe("the pay-queue doors (phase 4's paypal_queue_manual_payout; the tips lane's recorder)", () => {
   it("reads 'recorded' only when a payout row is named", () => {
     expect(parseQueueAnswer({ outcome: "queued", payout_id: "x" }).recorded).toBe(true);
     expect(parseQueueAnswer({ outcome: "already_queued", payout_id: "x" }).recorded).toBe(true);
     expect(parseQueueAnswer({ outcome: "already_queued", reason: "concurrent_claim" }).recorded).toBe(false);
     expect(parseQueueAnswer({ outcome: "held", reason: "payout_held" }).recorded).toBe(false);
+    expect(parseQueueAnswer({ outcome: "queued_held", payout_id: "x", reason: "destination_changed_since_hire" }).recorded).toBe(true);
+    expect(parseQueueAnswer({ outcome: "refused", reason: "job_not_cancelled_with_held_money" })).toMatchObject({ recorded: false, reason: "job_not_cancelled_with_held_money" });
     expect(parseQueueAnswer({ outcome: "waiting_for_payee" }).recorded).toBe(false);
     expect(parseQueueAnswer({ outcome: "refused" }).recorded).toBe(false);
     expect(parseQueueAnswer({ outcome: "sent!" })).toMatchObject({ outcome: "refused", recorded: false });

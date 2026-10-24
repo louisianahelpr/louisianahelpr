@@ -35,7 +35,7 @@ import os from "node:os";
 import { planPayPalCancellation, settlePayPalCancellation } from "../../../supabase/functions/_shared/payments/paypalCancellation.ts";
 import { chargeSavedPayment } from "../../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
 import { chargePayPalAutoTip, retryOwedTipPayouts } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
-import { rpcManualPayoutQueue } from "../../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
+import { rpcManualPayoutQueue } from "../../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
 import { paypalTipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees.ts";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;

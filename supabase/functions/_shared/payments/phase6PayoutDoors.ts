@@ -1,26 +1,19 @@
 /**
- * The ONE door phase 6 uses to put a Helpr's money on the admin "Pay this Helpr"
- * queue (PayPal Plan A; the queue and its writer are phase 4's, lane pp-phase4).
+ * Phase 6's two doors onto the admin "Pay this Helpr" queue (PayPal Plan A). Phase 6 OWNS NEITHER
+ * WRITER; it only calls them, with the exact amounts its money rules decided:
  *
- * STUB INTERFACE, BUILT AGAINST THE LEAD'S CONTRACT (2026-10-23), because phase 4's
- * writer was not on origin when phase 6 was built:
+ *   cancellation_fee -> phase 4's public.paypal_queue_manual_payout (migration 20261023231811,
+ *     lane pp-phase4), p_source 'cancellation_fee': the Helpr's share of a late-cancel fee, while the
+ *     cancelled job's money is still held ('escrow'); a repeat visit's payment is found by
+ *     funds_job_id. Phase 4's TypeScript helper (manualPayoutQueue.ts queueManualPaypalPayout) is not
+ *     used: it prices the RELEASE share from the job's budget, and a cancellation fee is not that.
+ *     Its answers are read the way its own isQueued() reads them (queued, queued_held, already_queued
+ *     = done). Mark paid does not flip a cancelled job's payment_status; the cancel sweep flips it.
+ *   auto_tip -> the tips lane's public.paypal_record_tip_capture (migration 20261023232059, lane
+ *     pp-tips): one shape for manual and automatic tips; the payout is named by tip_id.
  *
- *   public.paypal_queue_manual_payout(
- *     p_job_id uuid, p_helper_id uuid, p_amount_cents integer, p_platform_fee_cents integer,
- *     p_initiated_by text DEFAULT 'system', p_initiated_by_user_id uuid DEFAULT NULL,
- *     p_source text DEFAULT 'release') RETURNS jsonb
- *   -> { outcome: queued|already_queued|waiting_for_payee|held|refused, reason, payout_id,
- *        payout_transfer_id, amount_cents, env }     service_role only.
- *
- * Phase 6 calls it with p_source 'cancellation_fee' (a late-cancel fee's Helpr share) and
- * 'auto_tip' (an automatic tip, 100% to the Helpr). Phase 4's preconditions today are
- * status='completed' AND payment_status='payout_pending', so BOTH sources need phase 4 to
- * widen them (the exact states are listed in PHASE6_QUEUE_PRECONDITIONS below and in the
- * phase 6 report). Until then the RPC answers `refused` (or is missing), which callers treat
- * as "not settled, retry next run": no money is lost, the poster's side is never re-done.
- *
- * Callers depend on the `ManualPayoutQueue` interface, never on the RPC name, so swapping the
- * stub for phase 4's real writer (or a later payout API) touches this file only.
+ * A missing RPC or an error is never "queued": callers retry next run, nothing is re-sent to the
+ * payer. Callers depend on the `ManualPayoutQueue` interface, so tests swap in an in-memory door.
  */
 
 export type ManualPayoutSource = "cancellation_fee" | "auto_tip";
@@ -45,13 +38,13 @@ export interface QueueManualPayoutInput {
   tipCapture?: { providerOrderId: string; providerCaptureId: string; amountCents: number; settled: boolean };
 }
 
-export type QueueOutcome = "queued" | "already_queued" | "waiting_for_payee" | "held" | "refused";
+export type QueueOutcome = "queued" | "queued_held" | "already_queued" | "waiting_for_payee" | "held" | "refused";
 
 export interface QueueManualPayoutResult {
   outcome: QueueOutcome;
   reason: string | null;
   payoutId: string | null;
-  /** True when a provider_payouts row now holds this money (queued, already_queued, held). */
+  /** True when a provider_payouts row now holds this money (queued, queued_held, already_queued; a tip's held payout). */
   recorded: boolean;
 }
 
@@ -163,7 +156,7 @@ export function parseTipRecord(data: unknown): QueueManualPayoutResult {
   return { outcome, reason, payoutId, recorded: true };
 }
 
-const OUTCOMES: readonly QueueOutcome[] = ["queued", "already_queued", "waiting_for_payee", "held", "refused"];
+const OUTCOMES: readonly QueueOutcome[] = ["queued", "queued_held", "already_queued", "waiting_for_payee", "held", "refused"];
 
 /** Reads the RPC's jsonb answer. Anything unrecognised is `refused` (fail closed). */
 export function parseQueueAnswer(data: unknown): QueueManualPayoutResult {
@@ -171,7 +164,8 @@ export function parseQueueAnswer(data: unknown): QueueManualPayoutResult {
   const outcome = OUTCOMES.find((o) => o === d.outcome);
   if (!outcome) return { outcome: "refused", reason: `unrecognised_answer: ${JSON.stringify(data)?.slice(0, 120)}`, payoutId: null, recorded: false };
   const payoutId = typeof d.payout_id === "string" ? d.payout_id : null;
-  // "Recorded" means a provider_payouts row holds the money: claimed by an id we can name.
-  const recorded = (outcome === "queued" || outcome === "already_queued" || outcome === "held") && payoutId !== null;
+  // "Recorded" means a provider_payouts row holds the money, named by its id: phase 4's isQueued()
+  // set (queued, queued_held, already_queued). Its "held" is a refusal (payout_held): no row.
+  const recorded = (outcome === "queued" || outcome === "queued_held" || outcome === "already_queued") && payoutId !== null;
   return { outcome, reason: typeof d.reason === "string" ? d.reason : null, payoutId, recorded };
 }

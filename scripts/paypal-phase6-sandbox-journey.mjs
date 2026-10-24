@@ -26,7 +26,7 @@ import os from "node:os";
 import { PayPalClient } from "../supabase/functions/_shared/payments/paypalClient.ts";
 import { captureFromOrder, createCaptureFeeReader, createPayPalCheckoutProvider } from "../supabase/functions/_shared/payments/paypalCheckout.ts";
 import { planPayPalCancellation } from "../supabase/functions/_shared/payments/paypalCancellation.ts";
-import { tipChargeBreakdown } from "../supabase/functions/_shared/tipFees.ts";
+import { paypalTipChargeBreakdown } from "../supabase/functions/_shared/tipFees.ts";
 
 if (process.env.PAYPAL_ENV !== "sandbox") {
   console.error("PAYPAL_ENV must be exactly 'sandbox' for this journey. Nothing was sent.");
@@ -112,7 +112,7 @@ for (const [tier, hours] of [["0%", 48], ["25%", 10], ["50%", 1]]) {
 
 // 3. Merchant-initiated charge of the saved card ($5 tip + its fee, the auto-tip shape).
 if (saved.vaultId) {
-  const q = tipChargeBreakdown(500);
+  const q = paypalTipChargeBreakdown(500);
   const key = `lh:pp:tip:${run}:amt${q.chargeCents}:a1`;
   const c1 = await provider.chargeSaved({ idempotencyKey: key, referenceId: `${run}-tip`, vaultId: saved.vaultId, amountCents: q.chargeCents, vaultSource: "card" });
   const c2 = await provider.chargeSaved({ idempotencyKey: key, referenceId: `${run}-tip`, vaultId: saved.vaultId, amountCents: q.chargeCents, vaultSource: "card" });

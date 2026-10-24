@@ -6,7 +6,7 @@
  * Runs the REAL function source via the edge harness.
  *
  * @mutate supabase/functions/auto-tip-charge/index.ts | if (paypalJob) { | if (false) {
- * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | export const QUEUE_TAKES_TIP_PAYMENTS = true; | export const QUEUE_TAKES_TIP_PAYMENTS = false;
+ * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | export const QUEUE_TAKES_TIP_PAYMENTS = true; | export const QUEUE_TAKES_TIP_PAYMENTS = false;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";

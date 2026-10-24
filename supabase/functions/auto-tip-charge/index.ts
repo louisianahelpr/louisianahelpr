@@ -39,7 +39,7 @@ import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stri
 import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
 import { supabaseSavedChargeStore } from "../_shared/payments/paypalSavedCharge.ts";
 import { chargePayPalAutoTip, retryOwedTipPayouts } from "../_shared/payments/paypalAutoTip.ts";
-import { rpcManualPayoutQueue } from "../_shared/payments/manualPayoutQueue.ts";
+import { rpcManualPayoutQueue } from "../_shared/payments/phase6PayoutDoors.ts";
 import { paypalFundedJob } from "../_shared/payments/paypalFundedJob.ts";
 
 /** ME-011: a charge whose outcome is unknown (lost response, Stripe 5xx). */

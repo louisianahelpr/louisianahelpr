@@ -155,7 +155,7 @@ function rewriteExternalImports(src: string): string {
   // paypalRuntimeFromEnv() answers { ok: false } and no request is ever built; the Deno-free
   // modules (cancellation plan, saved charges, the pay-queue door) run as written.
   out = out.replace(
-    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/([A-Za-z]+)\.ts["'];?/g,
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/([A-Za-z0-9]+)\.ts["'];?/g,
     `import $1{$2} from "../../../supabase/functions/_shared/payments/$3.ts";`,
   );
 

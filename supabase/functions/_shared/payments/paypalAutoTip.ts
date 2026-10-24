@@ -21,7 +21,7 @@ import type { TipChargeBreakdown } from "../tipFees.ts";
 // The quote passed in is paypalTipChargeBreakdown (tips lane, PAYPAL_RATES in providerFees.ts):
 // the poster pays PayPal's cost on top, the Helpr receives 100% of the tip.
 import { chargeSavedPayment, type SavedChargeDeps } from "./paypalSavedCharge.ts";
-import type { ManualPayoutQueue } from "./manualPayoutQueue.ts";
+import type { ManualPayoutQueue } from "./phase6PayoutDoors.ts";
 
 export interface PayPalAutoTipInput {
   /** The claim row this run just wrote (tips.id). It is the charge's subject: one key per claim. */

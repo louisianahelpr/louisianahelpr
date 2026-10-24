@@ -41,7 +41,7 @@ import { posterCancelSplit } from "../posterCancelSplit.ts";
 import { helprFlatFeeCents, isFlatFeeJob } from "../helprFlatFee.ts";
 import { roundPayoutDownCents } from "../money.ts";
 import { refundsSeriesVisitInFull } from "../seriesRefund.ts";
-import type { ManualPayoutQueue, QueueOutcome } from "./manualPayoutQueue.ts";
+import type { ManualPayoutQueue, QueueOutcome } from "./phase6PayoutDoors.ts";
 import { ProviderApiError, type PaymentProvider, type ProviderEnv } from "./types.ts";
 
 /** The job columns the plan reads (all from `jobs`, plus series_ban_cancelled_at). */

@@ -8,7 +8,7 @@
 // seller-fault reads, then the shared plan. A gift card on a PayPal job is not ported: refused.
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { settlePayPalCancellation, supabaseCancellationStore, type PayPalCancelJob, type SettleOutcome } from "../_shared/payments/paypalCancellation.ts";
-import { rpcManualPayoutQueue } from "../_shared/payments/manualPayoutQueue.ts";
+import { rpcManualPayoutQueue } from "../_shared/payments/phase6PayoutDoors.ts";
 import type { PayPalRuntime } from "../_shared/payments/paypalRuntime.ts";
 
 // deno-lint-ignore no-explicit-any

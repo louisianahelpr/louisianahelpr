@@ -25,7 +25,7 @@ import {
 } from "../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
 import { chargePayPalAutoTip, retryOwedTipPayouts } from "../../supabase/functions/_shared/payments/paypalAutoTip.ts";
 import { fundPayPalVisit, planPayPalVisitCharge, visitJobRow, type VisitStore } from "../../supabase/functions/_shared/payments/paypalVisitFunding.ts";
-import type { ManualPayoutQueue, QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
+import type { ManualPayoutQueue, QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
 import { PayPalClient } from "../../supabase/functions/_shared/payments/paypalClient.ts";
 import { createPayPalCheckoutProvider } from "../../supabase/functions/_shared/payments/paypalCheckout.ts";
 import { ProviderApiError, type CaptureResult } from "../../supabase/functions/_shared/payments/types.ts";

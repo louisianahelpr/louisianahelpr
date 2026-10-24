@@ -52,10 +52,19 @@ export interface PayPalTipReturn {
   message?: string;
 }
 
+/** A final answer from paypal-tip "capture" that a refresh cannot change (no such tip for this member, a malformed order id). */
+export class PayPalTipReturnRefused extends Error {}
+
 /** The poster is back from PayPal (`?tip=paypal&token=<order id>`): capture it. Idempotent server-side. */
 export async function finishPayPalTip(orderId: string): Promise<PayPalTipReturn> {
   const { data, error } = await supabase.functions.invoke("paypal-tip", { body: { action: "capture", orderId } });
-  if (error) throw new Error(await functionErrorMessage(error, "We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute."));
+  if (error) {
+    const message = await functionErrorMessage(error, "We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute.");
+    const status = (error as { context?: { status?: number } }).context?.status;
+    // 400/404: final. Anything else (5xx, network) may succeed on a refresh.
+    if (status === 400 || status === 404) throw new PayPalTipReturnRefused(message);
+    throw new Error(message);
+  }
   if (data?.error) throw new Error(String(data.error));
   return data as PayPalTipReturn;
 }

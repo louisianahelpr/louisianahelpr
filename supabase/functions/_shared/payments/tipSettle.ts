@@ -83,6 +83,13 @@ function tipCaptureKey(providerPaymentId: string): string {
   return `lh:pp:${providerPaymentId}:capture`;
 }
 
+/** PayPal said no to the money (a decline, or a pending capture later denied). Any other unsuccessful
+ *  status (REFUNDED, PARTIALLY_REFUNDED: money that did move and was later sent back) is not a decline:
+ *  it throws, so a human sees it (lh-silent-failure round 2, #2). */
+function isDecline(e: unknown): e is ProviderApiError {
+  return e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL" && (e.issue === "DECLINED" || e.issue === "FAILED");
+}
+
 async function record(db: TipSettleDb, row: TipPaymentRow, outcome: "completed" | "pending" | "failed", cap: Pick<CaptureResult, "providerCaptureId" | "amountCents"> | null): Promise<TipCaptureRecord> {
   const { data, error } = await db.rpc("paypal_record_tip_capture", {
     p_provider_payment_id: row.id,
@@ -130,9 +137,9 @@ export async function settlePayPalTip(
     try {
       cap = captureFromOrder(order as Parameters<typeof captureFromOrder>[0]);
     } catch (e) {
-      // A capture PayPal reports DECLINED (or a pending one later DENIED) is a final answer: record
+      // A capture PayPal reports DECLINED/FAILED (a pending one later denied) is a final answer: record
       // it as failed (the RPC never undoes settled money), so a redelivered event does not retry it.
-      if (e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL") {
+      if (isDecline(e)) {
         await record(db, row, "failed", null);
         return { state: "declined", issue: e.issue };
       }
@@ -142,7 +149,7 @@ export async function settlePayPalTip(
     try {
       cap = await provider.capture(tipCaptureKey(row.id), row.provider_order_id);
     } catch (e) {
-      if (e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL") {
+      if (isDecline(e)) {
         // PayPal answered the capture DECLINED/FAILED inside a 2xx: the tip did not happen.
         await record(db, row, "failed", null);
         return { state: "declined", issue: e.issue };
@@ -157,7 +164,7 @@ export async function settlePayPalTip(
         try {
           cap = captureFromOrder(again as Parameters<typeof captureFromOrder>[0]);
         } catch (inner) {
-          if (inner instanceof ProviderApiError && inner.errorName === "CAPTURE_NOT_SUCCESSFUL") {
+          if (isDecline(inner)) {
             await record(db, row, "failed", null);
             return { state: "declined", issue: inner.issue };
           }

@@ -11,7 +11,7 @@ import { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { finishPayPalTip } from "@/lib/tipCheckout";
+import { finishPayPalTip, PayPalTipReturnRefused } from "@/lib/tipCheckout";
 import { report } from "@/lib/errorLogger";
 import { userFacingError } from "@/lib/userFacingError";
 
@@ -25,21 +25,24 @@ export function PayPalTipReturn() {
     if (!orderId || handled.current === orderId) return;
     handled.current = orderId;
     void (async () => {
+      // Only an ANSWER clears the order id from the URL. On a failure that may pass it stays, so the
+      // refresh the message asks for captures again (the server is idempotent; the webhook also
+      // finishes it). A final refusal (no such tip for this member) clears it too.
+      const clear = () => setParams((prev) => {
+        const p = new URLSearchParams(prev);
+        for (const k of ["tip", "token", "PayerID"]) p.delete(k);
+        return p;
+      }, { replace: true });
       try {
         const res = await finishPayPalTip(orderId);
-        // Only an ANSWER clears the order id from the URL. On a failure it stays, so the refresh the
-        // message asks for captures again (the server is idempotent; the webhook also finishes it).
-        setParams((prev) => {
-          const p = new URLSearchParams(prev);
-          for (const k of ["tip", "token", "PayerID"]) p.delete(k);
-          return p;
-        }, { replace: true });
+        clear();
         if (res.state === "paid") toast.success("Tip sent. All of it goes to your Helpr.");
         else if (res.state === "declined" && res.message) toast.error(res.message);
         else if (res.message) toast(res.message);
         await queryClient.invalidateQueries();
       } catch (err) {
-        // Reported and shown; the URL keeps the order id for the refresh.
+        if (err instanceof PayPalTipReturnRefused) clear();
+        // Reported and shown; unless final, the URL keeps the order id for the refresh.
         report(err, { tags: { source: "money.tip", action: "paypal_capture" }, context: { orderId } });
         toast.error(userFacingError(err, "We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute."));
       }

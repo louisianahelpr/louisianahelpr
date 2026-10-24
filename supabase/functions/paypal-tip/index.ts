@@ -101,7 +101,7 @@ serve(async (req) => {
       client = new PayPalClient({ env, clientId: Deno.env.get("PAYPAL_CLIENT_ID") ?? "", clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "" });
     } catch (e) {
       console.error(`[paypal-tip] PayPal not configured: ${caughtMessage(e)}`);
-      return json(503, { error: "Tips through PayPal aren't available right now. Please try again later." });
+      return json(503, { error: "PayPal isn't reachable right now. If you already paid on PayPal, please don't tip again; refresh this page in a minute." });
     }
     const provider = paymentProviderFor("paypal_checkout", { paypal: { env, clientId: Deno.env.get("PAYPAL_CLIENT_ID") ?? "", clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "" } });
 
@@ -230,7 +230,7 @@ serve(async (req) => {
 
     throw new PublicError("Unknown action");
   } catch (err) {
-    const message = publicErrorMessage(err, "Something went wrong with your tip — please try again.");
+    const message = publicErrorMessage(err, "Something went wrong with your tip. If you already paid on PayPal, please don't tip again; refresh this page in a minute.");
     if (!(err instanceof PublicError)) console.error(`[paypal-tip] ${caughtMessage(err)}`);
     return json(err instanceof PublicError ? 400 : 500, { error: message });
   }

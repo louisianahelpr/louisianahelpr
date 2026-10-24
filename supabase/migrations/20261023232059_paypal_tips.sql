@@ -285,7 +285,8 @@ BEGIN
    WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env
      AND a.payable AND a.paypal_email IS NOT NULL;
   IF v_dest IS NULL THEN
-    -- Captured and owed, but nowhere to send it yet: the caller alerts ops; a later call queues it.
+    -- Captured and owed, but nowhere to send it yet: the caller alerts ops, and an admin queues it
+    -- once the Helpr has a payable email (admin_requeue_paypal_tip_payout).
     RETURN jsonb_build_object('tip_id', v_tip.id, 'payment_status', v_pay.status, 'tip_status', 'paid',
                               'payout_id', NULL, 'payout_status', NULL, 'payout_reason', 'no_payable_destination');
   END IF;
@@ -296,18 +297,20 @@ BEGIN
   v_held := EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = v_tip.helper_id)
          OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q
                      WHERE q.review_state = 'open' AND q.user_id IN (v_tip.helper_id, v_tip.tipper_id));
-  -- Phase 4's rule for job pay, applied to the tip (lh-money-escrow review 2026-10-23, F2): a PayPal
-  -- email changed after the job was approved is not paid on its own say-so (an account takeover
-  -- swaps the email, then a tip arrives). payee_accounts.destination_changed_at is phase 4's
-  -- column, read through to_jsonb so this compiles before and after it exists (NULL = unknown =
-  -- not held: phase 2 also holds a Helpr's pending payouts when they change the email).
+  -- Phase 4's rule for job pay, applied to the tip (lh-money-escrow review 2026-10-23, F2; phase 4's
+  -- paypal_queue_manual_payout): a PayPal email changed at or after the Helpr was HIRED (jobs.accepted_at,
+  -- else the approval) is not paid on its own say-so, and a job with no such time is treated the same
+  -- way (an account takeover swaps the email mid-job, then a tip arrives). The row is written 'held'
+  -- until an admin checks it and re-queues it. payee_accounts.destination_changed_at is phase 4's
+  -- column, read through to_jsonb so this compiles before and after it exists; before it exists the
+  -- change time is unknown and phase 2's own hold on an email change applies instead.
   SELECT (to_jsonb(a) ->> 'destination_changed_at')::timestamptz INTO v_changed_at
     FROM public.payee_accounts a
    WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env;
-  -- FOR SHARE: the approval time decides held vs pending; it cannot move under this write.
-  SELECT COALESCE(j.poster_completed_at, j.helper_completed_at) INTO v_approved_at
+  -- FOR SHARE: the hire/approval time decides held vs pending; it cannot move under this write.
+  SELECT COALESCE(j.accepted_at, j.poster_completed_at, j.helper_completed_at) INTO v_approved_at
     FROM public.jobs j WHERE j.id = v_tip.job_id FOR SHARE;
-  v_held := v_held OR (v_approved_at IS NOT NULL AND v_changed_at IS NOT NULL AND v_changed_at > v_approved_at);
+  v_held := v_held OR (v_changed_at IS NOT NULL AND (v_approved_at IS NULL OR v_changed_at >= v_approved_at));
 
   INSERT INTO public.provider_payouts
     (provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents, status)

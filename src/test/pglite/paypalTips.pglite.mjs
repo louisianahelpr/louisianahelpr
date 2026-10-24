@@ -7,7 +7,7 @@
  *   PLANT=no_link_guard node src/test/pglite/paypalTips.pglite.mjs   # RED: a tip payout can pay out of the wrong money / to the wrong member
  *   PLANT=no_amount_check node src/test/pglite/paypalTips.pglite.mjs # RED: a short capture reads as a paid tip
  *   PLANT=no_admin_check node src/test/pglite/paypalTips.pglite.mjs  # RED: a member can re-queue a tip payout
- *   PLANT=no_email_change_hold node src/test/pglite/paypalTips.pglite.mjs  # RED: a PayPal email swapped after approval is paid
+ *   PLANT=no_email_change_hold node src/test/pglite/paypalTips.pglite.mjs  # RED: a PayPal email swapped after the hire is paid
  *
  * Proves: both migrations apply 3x; a tip opens as one pending tips row + one
  * provider_payments row (subject 'tip'), and a retry of the same attempt finds
@@ -41,7 +41,7 @@ const readMig = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`,
 const base = readMig("20261023223419_paypal_provider_foundation.sql");
 let mig = readMig("20261023232059_paypal_tips.sql");
 if (process.env.PLANT === "no_link_guard") mig = mig.replace(/CREATE TRIGGER trg_provider_payouts_tip_link_guard[\s\S]*?;/, "");
-if (process.env.PLANT === "no_email_change_hold") mig = mig.replace("v_held := v_held OR (v_approved_at IS NOT NULL", "v_held := v_held AND (v_approved_at IS NOT NULL");
+if (process.env.PLANT === "no_email_change_hold") mig = mig.replace("(v_approved_at IS NULL OR v_changed_at >= v_approved_at)", "false");
 if (process.env.PLANT === "no_admin_check") mig = mig.replace("IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN", "IF false THEN");
 if (process.env.PLANT === "no_amount_check") mig = mig.replace(/IF p_amount_cents IS DISTINCT FROM v_pay\.amount_cents THEN/, "IF false THEN");
 
@@ -110,7 +110,7 @@ END;
 $function$;
 create table public.admin_audit_log(id uuid primary key default gen_random_uuid(), admin_id uuid not null, action text not null, target_type text, target_id text, details jsonb, created_at timestamptz not null default now());
 create table public.payout_transfers(id uuid primary key default gen_random_uuid());
-create table public.jobs(id uuid primary key, title text, poster_completed_at timestamptz, helper_completed_at timestamptz);
+create table public.jobs(id uuid primary key, title text, accepted_at timestamptz, poster_completed_at timestamptz, helper_completed_at timestamptz);
 create table public.profiles(user_id uuid primary key, full_name text);
 create table public.notification_preferences(user_id uuid primary key, financial_alerts boolean);
 create table public.notifications(id bigserial primary key, user_id uuid, title text, message text, type text, link text, job_id uuid);
@@ -162,7 +162,7 @@ grant select on public.tips to authenticated;
 insert into auth.users values ${Object.values(U).map((u) => `('${u}')`).join(", ")};
 insert into public.test_accounts(user_id) values ('${U.poster}'), ('${U.helpr}'), ('${U.helpr2}'), ('${U.heldHelpr}');
 insert into public.user_roles values ('${U.admin}', 'admin');
-insert into public.jobs values ('${JOB}', 'Move a couch', now() - interval '1 day', null);
+insert into public.jobs values ('${JOB}', 'Move a couch', now() - interval '3 days', now() - interval '1 day', null);
 insert into public.profiles values ('${U.poster}', 'Lexi Test');
 insert into public.payout_holds values ('${U.heldHelpr}', 'staff review');
 `);
@@ -279,11 +279,17 @@ await db.exec(`update payee_accounts set destination_changed_at = now() where us
 await db.exec("set role service_role");
 const o9 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a9", "ORD9"))).j;
 const h9 = await oneJ("o9 capture ran", record(o9.provider_payment_id, "ORD9", "completed", "CAP9", 980));
-check("an email changed since the job was approved: the tip payout is held", h9.payout_status === "held" && h9.payout_reason === "held", h9);
+check("an email changed since the Helpr was hired: the tip payout is held", h9.payout_status === "held" && h9.payout_reason === "held", h9);
+// Changed after the hire but BEFORE the approval (the gap a completion-only anchor missed): held.
 await db.exec(`reset role; update payee_accounts set destination_changed_at = now() - interval '2 days' where user_id='${U.helpr2}'; set role service_role`);
 const o10 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a10", "ORD10"))).j;
 const p10 = await oneJ("o10 capture ran", record(o10.provider_payment_id, "ORD10", "completed", "CAP10", 980));
-check("an email set before the job was approved: the tip payout is pending", p10.payout_status === "pending", p10);
+check("an email changed after the hire, before the approval: held", p10.payout_status === "held", p10);
+// Set before the hire: pending.
+await db.exec(`reset role; update payee_accounts set destination_changed_at = now() - interval '5 days' where user_id='${U.helpr2}'; set role service_role`);
+const o11 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a11", "ORD11"))).j;
+const p11 = await oneJ("o11 capture ran", record(o11.provider_payment_id, "ORD11", "completed", "CAP11", 980));
+check("an email set before the hire: the tip payout is pending", p11.payout_status === "pending", p11);
 
 // --- the link guard
 await db.exec("reset role; insert into payout_transfers(id) values ('c0000000-0000-4000-8000-000000000009'); set role service_role");

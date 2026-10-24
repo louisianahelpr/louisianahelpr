@@ -1730,6 +1730,15 @@ serve(async (req) => {
         const paypalPayment = await jobPaypalPayment(supabaseAdmin, jobId);
         if (paypalPayment.kind === "error") {
           console.error(`[create-payment] release: provider_payments read failed for job ${jobId}: ${paypalPayment.message}`);
+          await postSlackOpsAlert({
+            kind: "payout_wait",
+            severity: "warning",
+            seed: job.is_seed === true,
+            oncePerDayKey: `paypal-pay-queue-read:${jobId}`,
+            title: "Approved job: could not tell whether it was paid through PayPal",
+            message: "The approval stands. If this job was paid through PayPal, it was not added to the admin Pay this Helpr list yet; the payout crons retry it.",
+            fields: { job_id: jobId, error: paypalPayment.message.slice(0, 200) },
+          });
         } else if (paypalPayment.kind === "paypal") {
           const queued = await queueManualPaypalPayout(supabaseAdmin, {
             jobId,
@@ -1738,7 +1747,18 @@ serve(async (req) => {
             initiatedByUserId: forPoster ? user.id : null,
             source: "approval",
           });
-          if (queued.outcome === "error") console.error(`[create-payment] release: PayPal pay queue write failed for job ${jobId}: ${queued.message}`);
+          if (queued.outcome === "error") {
+            console.error(`[create-payment] release: PayPal pay queue write failed for job ${jobId}: ${queued.message}`);
+            await postSlackOpsAlert({
+              kind: "payout_wait",
+              severity: "warning",
+              seed: job.is_seed === true,
+              oncePerDayKey: `paypal-pay-queue-write:${jobId}`,
+              title: "Approved PayPal job not added to the Pay this Helpr list",
+              message: "The approval stands; the queue write failed and the payout crons retry it. It shows under 'Approved, not in the list yet' in the admin PayPal list meanwhile.",
+              fields: { job_id: jobId, error: queued.message.slice(0, 200) },
+            });
+          }
           else console.log(`[create-payment] release: job ${jobId} PayPal pay queue: ${queued.outcome}${"reason" in queued && queued.reason ? ` (${queued.reason})` : ""}`);
         }
       }

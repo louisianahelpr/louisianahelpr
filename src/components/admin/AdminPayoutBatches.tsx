@@ -46,7 +46,8 @@ const AdminPayoutBatches = () => {
   const qc = useQueryClient();
   const { user } = useAuthReady();
   const adminId = user?.id;
-  // PayPal Plan A, phase 4: the hand-paid PayPal queue, only while the switch reaches this admin.
+  // PayPal Plan A, phase 4: the hand-paid PayPal queue. Shown while the switch reaches this admin, and
+  // whenever PayPal money is owed even with it off (the component decides; recording needs the switch).
   const paypalOn = useFeature("paypal_payments");
   // Selection set for bulk payout. Persists across re-renders but is
   // intentionally not stored — refreshing clears the picks so a stale
@@ -276,7 +277,7 @@ const AdminPayoutBatches = () => {
 
   return (
     <AdminViewShell>
-      {paypalOn && <PaypalPayQueue adminId={adminId} />}
+      <PaypalPayQueue adminId={adminId} switchOn={paypalOn} />
       {/* One card owns the whole queue: the lead sentence is its subtitle,
           Refresh is its header action (it was previously stranded beside that
           sentence on a bare row), and the totals, tabs and rows are its body.

@@ -6,10 +6,11 @@
  * Send Money, then presses "Mark paid" with PayPal's transaction id (admin_mark_paypal_payout_paid).
  *
  * This module is the ONE way a release path puts a PayPal job in that queue. It:
- *   - tells a PayPal-paid job from a Stripe one (`jobPaypalPayment` / `paypalJobIds`): a job with ANY
- *     provider_payments row is PayPal's, and no Stripe payout path may pay it (a Stripe transfer would
- *     pay the Helpr out of money that is not in Stripe, on top of the manual payout). Unreadable means
- *     "do not pay it through Stripe" (fail closed).
+ *   - tells a PayPal-paid job from a Stripe one (`jobPaypalPayment` / `paypalJobIds`): a job is PayPal's
+ *     when it has a provider_payments row past created/voided/failed (phase 3's job_provider_payment_held
+ *     rule; an abandoned PayPal order on a job the poster then paid by card is NOT PayPal's), and no
+ *     Stripe payout path may pay it (a Stripe transfer would pay the Helpr out of money that is not in
+ *     Stripe, on top of the manual payout). Unreadable means "do not pay it through Stripe" (fail closed).
  *   - computes the Helpr's share with the SAME helpers release-payout uses, and
  *   - calls public.paypal_queue_manual_payout(), which writes the payout_transfers claim and the
  *     provider_payouts row in one transaction and is idempotent per (job, Helpr).
@@ -24,6 +25,9 @@ import { DEFAULT_TIER_FEE_PERCENT, getHelperFeePercent, jobHelprCommissionDollar
 import { flatFeePercentOf } from "../helprFlatFee.ts";
 import { roundPayoutDownCents } from "../money.ts";
 import { netUrgentFeeDollars } from "../stripeFees.ts";
+
+/** provider_payments statuses that do NOT make a job PayPal's (an order never paid). */
+const NOT_PAYPAL_YET = "(created,voided,failed)";
 
 // deno-lint-ignore no-explicit-any
 type AdminClient = { from: (t: string) => any; rpc: (fn: string, args?: Record<string, unknown>) => any };
@@ -40,6 +44,7 @@ export async function jobPaypalPayment(admin: AdminClient, jobId: string): Promi
     .select("id, env, status")
     .eq("subject_kind", "job")
     .eq("subject_id", jobId)
+    .not("status", "in", NOT_PAYPAL_YET)
     .order("created_at", { ascending: false })
     .limit(1);
   if (error) return { kind: "error", message: String(error.message ?? error) };
@@ -57,7 +62,8 @@ export async function paypalJobIds(
     .from("provider_payments")
     .select("subject_id")
     .eq("subject_kind", "job")
-    .in("subject_id", [...jobIds]);
+    .in("subject_id", [...jobIds])
+    .not("status", "in", NOT_PAYPAL_YET);
   if (error) return { ok: false, message: String(error.message ?? error) };
   return { ok: true, ids: new Set(((data ?? []) as Array<{ subject_id: string }>).map((r) => r.subject_id)) };
 }
@@ -146,6 +152,16 @@ export async function queueManualPaypalPayout(
   } catch (e) {
     return { outcome: "error", message: (e as Error)?.message ?? String(e) };
   }
+}
+
+/**
+ * Outcomes a cron should NOT raise as a defect: waiting on the Helpr's email or a hold is a state the
+ * admin queue shows; an admin's own cancel and a crew job (Q2377) are listed there too. Every other
+ * refusal (a dispute, an amount over the payment, a stray claim) is a defect someone must look at.
+ */
+export function isExpectedWait(o: QueueOutcome): boolean {
+  if (o.outcome === "waiting_for_payee" || o.outcome === "held") return true;
+  return o.outcome === "refused" && (o.reason === "canceled_by_admin" || o.reason === "crew_not_supported");
 }
 
 /** The answers a release path counts as done: the claim and the payout row exist (held or not). */

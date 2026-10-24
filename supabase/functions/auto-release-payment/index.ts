@@ -16,7 +16,7 @@ import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
-import { jobPaypalPayment, paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
+import { isExpectedWait, isQueued, jobPaypalPayment, paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -706,6 +706,7 @@ serve(async (req) => {
       if (paidThroughPaypal) {
         const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "auto", source: "auto-release" });
         if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+        else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
         results.push({ job_id: job.id, status: "paypal_pay_queue", ...queued });
       }
     }
@@ -776,6 +777,7 @@ serve(async (req) => {
       for (const job of duePaypal.ok ? (dueSelected ?? []).filter((j) => duePaypal.ids.has(j.id as string)) : []) {
         const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "auto", source: "auto-release-due" });
         if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+        else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
         payoutResults.push({ job_id: job.id, status: `paypal_pay_queue:${queued.outcome}`, detail: "reason" in queued ? queued.reason : undefined });
       }
 

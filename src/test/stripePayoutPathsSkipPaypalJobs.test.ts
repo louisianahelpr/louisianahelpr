@@ -14,15 +14,18 @@
  * its release action, after the approval write that schedules the payout. A new file that joins the
  * class without the check fails here.
  *
- * Also: the Stripe "Payout Queue" RPC (get_payout_batches, newest effective definition) leaves PayPal
- * jobs out, so its Send Payout button never offers one.
+ * Also: the Stripe "Payout Queue" RPCs (get_payout_batches and get_payout_batch_job_ids, newest
+ * effective definitions) leave PayPal jobs out, so Send Payout never offers or pays one; and every
+ * reader uses ONE rule for "PayPal's job" (a payment past created/voided/failed, phase 3's rule).
  *
  * @mutate supabase/functions/release-payout/index.ts | const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id); | const paypalPayment = { kind: "none" } as { kind: string; message?: string };
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const paypalIds = await paypalJobIds(supabaseAdmin, | const paypalIds = await Promise.resolve({ ok: true as const, ids: new Set<string>() }) ?? (supabaseAdmin,
  * @mutate supabase/functions/auto-release-payment/index.ts | const duePaypal = await paypalJobIds(supabaseAdmin, | const duePaypal = await Promise.resolve({ ok: true as const, ids: new Set<string>() }) ?? (supabaseAdmin,
  * @mutate supabase/functions/execute-dispute-split/index.ts | const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id); | const paypalPayment = { kind: "none" } as { kind: string; message?: string };
  * @mutate supabase/functions/create-payment/index.ts | const paypalPayment = await jobPaypalPayment(supabaseAdmin, jobId); | const paypalPayment = { kind: "none" } as { kind: string; message?: string };
- * @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | WHERE pp.subject_kind = 'job' AND pp.subject_id = j.id) | WHERE pp.subject_kind = 'tip' AND pp.subject_id = j.id)
+ * @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | job_provider_payment_held rule): a poster who fell back to a card is still paid through Stripe.\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'job' | job_provider_payment_held rule): a poster who fell back to a card is still paid through Stripe.\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'tip'
+ * @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | Payout is a Stripe transfer, and a PayPal job is paid from admin_paypal_payout_queue().\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'job' | Payout is a Stripe transfer, and a PayPal job is paid from admin_paypal_payout_queue().\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'tip'
+ * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | const NOT_PAYPAL_YET = "(created,voided,failed)"; | const NOT_PAYPAL_YET = "(created,voided,failed,captured)";
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync, existsSync } from "node:fs";
@@ -97,9 +100,22 @@ describe("no Stripe payout path pays a PayPal-paid job", () => {
     expect(PAYPAL_CHECK.test(between)).toBe(true);
   });
 
-  it("the Stripe Payout Queue (get_payout_batches) leaves PayPal jobs out", () => {
-    const def = effectiveDefs(MIGRATIONS).get("get_payout_batches");
-    expect(def).toBeDefined();
-    expect(blankSqlComments(def!.stmt)).toMatch(/NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.provider_payments\s+pp\s+WHERE\s+pp\.subject_kind\s*=\s*'job'\s+AND\s+pp\.subject_id\s*=\s*j\.id\s*\)/i);
+  // A job is PayPal's once it has a payment past created/voided/failed (phase 3's rule): an abandoned
+  // PayPal order must not hide a card-paid job from the Stripe queue, and a real one must hide it.
+  const PAYPAL_JOB_EXCLUDED = /NOT\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.provider_payments\s+pp\s+WHERE\s+pp\.subject_kind\s*=\s*'job'\s+AND\s+pp\.subject_id\s*=\s*j\.id\s+AND\s+pp\.status\s+NOT\s+IN\s*\(\s*'created'\s*,\s*'voided'\s*,\s*'failed'\s*\)\s*\)/i;
+
+  it("the Stripe Payout Queue and the job ids its Send Payout pays (get_payout_batches, get_payout_batch_job_ids) leave PayPal jobs out", () => {
+    const defs = effectiveDefs(MIGRATIONS);
+    for (const fn of ["get_payout_batches", "get_payout_batch_job_ids"]) {
+      const def = defs.get(fn);
+      expect(def, fn).toBeDefined();
+      expect(blankSqlComments(def!.stmt), fn).toMatch(PAYPAL_JOB_EXCLUDED);
+    }
+  });
+
+  it("the edge helper uses the same rule (statuses that do not make a job PayPal's)", () => {
+    const src = code("supabase/functions/_shared/payments/manualPayoutQueue.ts");
+    expect(src).toMatch(/const NOT_PAYPAL_YET = "\(created,voided,failed\)";/);
+    expect((src.match(/\.not\("status", "in", NOT_PAYPAL_YET\)/g) ?? []).length).toBe(2);
   });
 });

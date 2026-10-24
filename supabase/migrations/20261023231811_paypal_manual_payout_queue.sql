@@ -20,7 +20,7 @@
 --      payout_transfers to 'paid' and the job to 'released', and tells the Helpr. Members never see
 --      "paid" before this: until then payout_transfers says 'pending' and the job 'payout_pending'.
 --   4. A Helpr who changes their PayPal email has their pending rows set to 'held' (phase 2), and a
---      payout queued to a destination changed since the job's approval is written 'held' here. The
+--      payout queued to a destination changed since the Helpr's hire is written 'held' here. The
 --      queue shows those as "Helpr changed their PayPal email", never as payable;
 --      admin_requeue_held_paypal_payout() cancels the held claim and row and queues a fresh one to
 --      the CURRENT payable email after the admin has checked it AND confirmed no Send Money went out.
@@ -38,15 +38,15 @@
 -- ---------------------------------------------------------------------------------------------
 -- When a member's PayPal destination last changed (Phase 1 review condition, P2 + P4): a new email
 -- resets only `verified`, so the database alone would let a hijacked, freshly changed email be paid.
--- The queue writer compares this with the job's approval and refuses to queue a pending payout to a
--- destination changed since then until an admin re-confirms it (the row is written 'held').
+-- The queue writer compares this with the Helpr's hire (jobs.accepted_at, else the approval) and
+-- refuses to queue a pending payout to a destination changed since then until an admin re-confirms
+-- it (the row is written 'held').
 -- ---------------------------------------------------------------------------------------------
 ALTER TABLE public.payee_accounts ADD COLUMN IF NOT EXISTS destination_changed_at timestamptz NOT NULL DEFAULT now();
 
 CREATE OR REPLACE FUNCTION public.payee_accounts_stamp_destination_change()
 RETURNS trigger
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
 BEGIN
@@ -123,6 +123,7 @@ DECLARE
   v_payout_id uuid;
   v_unconfirmed boolean := false;
   v_disputes record;
+  v_constraint text;
 BEGIN
   IF p_job_id IS NULL OR p_helper_id IS NULL THEN
     RAISE EXCEPTION 'job_and_helper_required' USING ERRCODE = '22023';
@@ -134,7 +135,9 @@ BEGIN
   -- The job row is the serialization point with the release / refund / dispute writers.
   SELECT j.id, j.status::text AS status, j.payment_status::text AS payment_status, j.helper_id,
          j.is_group_job, j.helpers_needed, j.disputed_at, j.dispute_status::text AS dispute_status,
-         COALESCE(j.poster_completed_at, j.helper_completed_at) AS approved_at
+         -- The anchor a destination must predate: the Helpr's hire (the accept gate needs a payable
+         -- email by then), else the approval. A job with neither is treated as unconfirmed.
+         COALESCE(j.accepted_at, j.poster_completed_at, j.helper_completed_at) AS anchor_at
     INTO v_job
     FROM public.jobs j
    WHERE j.id = p_job_id
@@ -169,12 +172,25 @@ BEGIN
       RETURN jsonb_build_object('outcome', 'refused', 'reason', 'other_payout_claim_exists',
                                 'payout_transfer_id', v_live.payout_transfer_id);
     END IF;
+    IF v_live.payout_status NOT IN ('pending', 'held', 'success') THEN
+      -- A live claim whose payout row is canceled/failed/returned: nothing payable stands behind it.
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'claim_has_no_payable_payout',
+                                'payout_id', v_live.payout_id, 'payout_status', v_live.payout_status);
+    END IF;
     RETURN jsonb_build_object('outcome', 'already_queued', 'payout_id', v_live.payout_id,
                               'payout_status', v_live.payout_status, 'payout_transfer_id', v_live.payout_transfer_id);
   END IF;
 
   IF v_job.helper_id IS DISTINCT FROM p_helper_id THEN
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'not_the_jobs_helpr');
+  END IF;
+  -- An admin canceled this job's manual payout (admin_cancel_paypal_payout): the crons must not put it
+  -- straight back. Only the admin's own "Queue now" re-queues it.
+  IF COALESCE(p_source, '') <> 'admin_queue_now'
+     AND EXISTS (SELECT 1 FROM public.payout_transfers x
+                  WHERE x.job_id = p_job_id AND x.helper_id = p_helper_id AND x.status = 'canceled'
+                    AND x.metadata ->> 'canceled_by_admin' IS NOT NULL) THEN
+    RETURN jsonb_build_object('outcome', 'refused', 'reason', 'canceled_by_admin');
   END IF;
   IF v_job.is_group_job IS TRUE AND COALESCE(v_job.helpers_needed, 1) > 1 THEN
     -- A crew's frozen per-member shares are not built for PayPal yet.
@@ -191,6 +207,10 @@ BEGIN
     END IF;
     IF v_pay.status <> 'partially_refunded' THEN
       RETURN jsonb_build_object('outcome', 'refused', 'reason', 'remainder_needs_partial_refund');
+    END IF;
+    -- The poster's part must have reached them (completed), not only be on its way.
+    IF NOT EXISTS (SELECT 1 FROM public.provider_refunds r WHERE r.provider_payment_id = v_pay.id AND r.status = 'completed') THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'remainder_needs_completed_refund');
     END IF;
     SELECT count(*) AS live,
            count(*) FILTER (WHERE d.status = 'decided' AND d.decided_via = 'agreement' AND d.execution_status = 'executing') AS agreed
@@ -222,19 +242,23 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'waiting_for_payee', 'reason', 'no_payable_paypal_account');
   END IF;
 
+  -- A destination changed after the Helpr was hired is not paid on its own say-so (a taken-over
+  -- account changing the email mid-job, Phase 1 review condition P2 + P4): the row is written 'held'
+  -- (money reserved, refunds blocked) and its claim records why, until an admin checks the change and
+  -- re-queues it (admin_requeue_held_paypal_payout). No anchor at all is treated the same way.
+  v_unconfirmed := v_job.anchor_at IS NULL OR v_dest.changed_at >= v_job.anchor_at;
+
   BEGIN
     INSERT INTO public.payout_transfers (job_id, helper_id, amount_cents, platform_fee_cents, status,
                                          initiated_by, initiated_by_user_id, metadata)
     VALUES (p_job_id, p_helper_id, p_amount_cents, p_platform_fee_cents, 'pending',
             p_initiated_by, p_initiated_by_user_id,
             jsonb_build_object('source', 'manual_paypal', 'queued_by', COALESCE(NULLIF(btrim(p_source), ''), 'release'),
-                               'provider_payment_id', v_pay.id))
+                               'provider_payment_id', v_pay.id)
+            || CASE WHEN v_unconfirmed THEN jsonb_build_object('held_reason', 'destination_changed_since_hire')
+                    ELSE '{}'::jsonb END)
     RETURNING id INTO v_pt_id;
 
-    -- A destination changed after the job was approved is not paid on its own say-so: the row is
-    -- written 'held' (money reserved, refunds blocked) until an admin checks the change and
-    -- re-queues it (admin_requeue_held_paypal_payout).
-    v_unconfirmed := v_job.approved_at IS NOT NULL AND v_dest.changed_at > v_job.approved_at;
     INSERT INTO public.provider_payouts (provider_payment_id, payout_transfer_id, payee_user_id, provider, env,
                                          destination_kind, destination_value, amount_cents, status)
     VALUES (v_pay.id, v_pt_id, p_helper_id, 'manual_paypal', v_pay.env,
@@ -243,8 +267,19 @@ BEGIN
     RETURNING id INTO v_payout_id;
   EXCEPTION
     WHEN unique_violation THEN
-      -- A concurrent writer queued it first (payout_transfers_one_live_per_job_helper).
-      RETURN jsonb_build_object('outcome', 'already_queued', 'reason', 'concurrent_claim');
+      GET STACKED DIAGNOSTICS v_constraint = CONSTRAINT_NAME;
+      IF v_constraint = 'payout_transfers_one_live_per_job_helper' THEN
+        -- A concurrent writer queued it first: answer with ITS row, never a bare "done".
+        SELECT pp.id, pp.status INTO v_live
+          FROM public.payout_transfers pt JOIN public.provider_payouts pp ON pp.payout_transfer_id = pt.id
+         WHERE pt.job_id = p_job_id AND pt.helper_id = p_helper_id AND pt.status IN ('pending', 'paid', 'reversed')
+         LIMIT 1;
+        IF FOUND THEN
+          RETURN jsonb_build_object('outcome', 'already_queued', 'reason', 'concurrent_claim',
+                                    'payout_id', v_live.id, 'payout_status', v_live.status);
+        END IF;
+      END IF;
+      RAISE;
     WHEN check_violation THEN
       IF SQLERRM = 'payout_held' THEN
         -- payout_holds / ban review / job hold (refuse_payout_claim_while_held): queued when released.
@@ -257,7 +292,7 @@ BEGIN
   END;
 
   IF v_unconfirmed THEN
-    RETURN jsonb_build_object('outcome', 'queued_held', 'reason', 'destination_changed_since_approval',
+    RETURN jsonb_build_object('outcome', 'queued_held', 'reason', 'destination_changed_since_hire',
                               'payout_id', v_payout_id, 'payout_transfer_id', v_pt_id,
                               'amount_cents', p_amount_cents, 'env', v_pay.env);
   END IF;
@@ -325,10 +360,35 @@ CREATE TRIGGER trg_provider_payouts_txn_names_one_payee
 
 -- ---------------------------------------------------------------------------------------------
 -- 3. The admin queue: one line per manual payout row (job pay, or a tip once pp-tips adds tip_id),
---    pending / held / marked paid in the last 30 days, plus approved PayPal jobs with no live claim.
---    The screen groups pending lines by (payee, destination, env) into one "send this total".
---    tip_id is read through to_jsonb(row) so this compiles before and after the tips migration.
+--    pending / held / marked paid in the last 30 days, plus approved PayPal jobs with no live claim
+--    and the reason in words. The screen groups pending lines by (payee, destination, env) into one
+--    "send this total". tip_id is read through to_jsonb(row) so this compiles before and after the
+--    tips migration.
+--    NOT behind the switch (lead + lh-silent-failure review 2026-10-23): it only reads, it is admin
+--    only, and money already owed must stay visible when paypal_payments is turned off. Recording a
+--    payment (Mark paid, re-queue) stays behind the switch.
 -- ---------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.paypal_pay_blocked(p_job_id uuid, p_helper_id uuid, p_payment_status text)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+  -- The same hold sources refuse_payout_claim_while_held reads, plus the money's own state: a hold
+  -- placed AFTER a payout was queued must still stop the admin sending it.
+  SELECT CASE
+    WHEN EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = p_helper_id) THEN 'payout_hold'
+    WHEN EXISTS (SELECT 1 FROM public.job_payout_holds jh WHERE jh.job_id = p_job_id) THEN 'job_hold'
+    WHEN EXISTS (SELECT 1 FROM public.ban_settlement_queue q JOIN public.jobs j ON j.id = p_job_id
+                  WHERE q.review_state = 'open' AND q.user_id IN (j.customer_id, j.helper_id, p_helper_id)) THEN 'ban_review'
+    WHEN p_payment_status IN ('disputed', 'reversed') THEN 'payment_disputed'
+    WHEN p_payment_status IN ('refunded', 'voided', 'failed') THEN 'payment_refunded'
+    ELSE NULL
+  END;
+$fn$;
+REVOKE ALL ON FUNCTION public.paypal_pay_blocked(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
+
 CREATE OR REPLACE FUNCTION public.admin_paypal_payout_queue()
 RETURNS TABLE (
   row_kind text,                -- 'payout' | 'not_queued'
@@ -349,7 +409,8 @@ RETURNS TABLE (
   external_txn_id text,
   marked_paid_at timestamptz,
   marked_paid_by_name text,
-  helper_on_hold boolean
+  pay_blocked text,             -- payout_hold | job_hold | ban_review | payment_disputed | payment_refunded | null
+  held_reason text              -- 'destination_changed_since_hire' (written held) | 'email_changed_after_queue' | null
 )
 LANGUAGE plpgsql
 STABLE
@@ -357,7 +418,6 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
 BEGIN
-  PERFORM public.require_feature('paypal_payments');
   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::app_role), false) THEN
     RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
   END IF;
@@ -377,33 +437,49 @@ BEGIN
          (SELECT d.destination_value FROM public.paypal_payout_destination(l.payee_user_id, l.env) d LIMIT 1),
          l.amount_cents, l.env, j.payout_scheduled_at, l.created_at, l.external_txn_id, l.marked_paid_at,
          mp.full_name::text,
-         EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = l.payee_user_id)
+         CASE WHEN l.status = 'success' THEN NULL ELSE public.paypal_pay_blocked(j.id, l.payee_user_id, pay.status) END,
+         CASE WHEN l.status <> 'held' THEN NULL
+              WHEN pt.metadata ->> 'held_reason' IS NOT NULL THEN pt.metadata ->> 'held_reason'
+              ELSE 'email_changed_after_queue' END
     FROM lines l
+    JOIN public.provider_payments pay ON pay.id = l.provider_payment_id
     LEFT JOIN public.payout_transfers pt ON pt.id = l.payout_transfer_id
     LEFT JOIN public.tips t ON t.id = l.tip_ref
     LEFT JOIN public.jobs j ON j.id = COALESCE(pt.job_id, t.job_id)
     LEFT JOIN public.profiles pr ON pr.user_id = l.payee_user_id
     LEFT JOIN public.profiles mp ON mp.user_id = l.marked_paid_by
   UNION ALL
-  -- Approved PayPal jobs with no live claim: the writer refused or has not run yet. Shown so nothing
-  -- owed is invisible (a Helpr with no PayPal email, a hold, a crew job).
+  -- Approved PayPal jobs with no live claim: the writer refused or has not run yet. Shown with the
+  -- real reason so nothing owed is invisible; "Queue now" on the screen re-runs the writer.
   SELECT 'not_queued'::text, 'job'::text, NULL::uuid,
          CASE
            WHEN j.is_group_job IS TRUE AND COALESCE(j.helpers_needed, 1) > 1 THEN 'crew_not_supported'
-           WHEN EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = j.helper_id) THEN 'payout_held'
+           WHEN EXISTS (SELECT 1 FROM public.payout_transfers x WHERE x.job_id = j.id AND x.status = 'canceled'
+                           AND x.metadata ->> 'canceled_by_admin' IS NOT NULL) THEN 'canceled_by_admin'
+           WHEN public.paypal_pay_blocked(j.id, j.helper_id, p.status) IS NOT NULL THEN public.paypal_pay_blocked(j.id, j.helper_id, p.status)
+           WHEN p.status NOT IN ('captured', 'partially_refunded') THEN 'payment_not_settled'
+           WHEN j.payment_status::text = 'escrow' THEN 'remainder_not_queued'
+           WHEN (j.disputed_at IS NOT NULL AND COALESCE(j.dispute_status::text, '') NOT IN ('resolved', 'auto_resolved'))
+                OR EXISTS (SELECT 1 FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'decided'
+                              AND (d.execution_status IS NULL OR d.execution_status <> 'executed')) THEN 'dispute_open'
            WHEN NOT EXISTS (SELECT 1 FROM public.paypal_payout_destination(j.helper_id, p.env)) THEN 'no_payable_paypal_account'
            ELSE 'not_queued_yet'
          END,
          j.id, j.title::text, j.helper_id, pr.full_name::text, NULL::text, NULL::text,
          (SELECT d.destination_value FROM public.paypal_payout_destination(j.helper_id, p.env) d LIMIT 1),
          NULL::bigint, p.env, j.payout_scheduled_at, NULL::timestamptz, NULL::text, NULL::timestamptz, NULL::text,
-         EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = j.helper_id)
+         public.paypal_pay_blocked(j.id, j.helper_id, p.status),
+         NULL::text
     FROM public.jobs j
     JOIN public.provider_payments p
-      ON p.subject_kind = 'job' AND p.subject_id = j.id AND p.status IN ('captured', 'partially_refunded')
+      ON p.subject_kind = 'job' AND p.subject_id = j.id AND p.status NOT IN ('created', 'voided', 'failed')
     LEFT JOIN public.profiles pr ON pr.user_id = j.helper_id
    WHERE j.status::text = 'completed'
-     AND j.payment_status::text = 'payout_pending'
+     AND (j.payment_status::text = 'payout_pending'
+          -- phase 5's agreed refund request whose Helpr remainder is not queued yet
+          OR (j.payment_status::text = 'escrow'
+              AND EXISTS (SELECT 1 FROM public.disputes d WHERE d.job_id = j.id AND d.status = 'decided'
+                             AND d.decided_via = 'agreement' AND d.execution_status = 'executing')))
      AND NOT EXISTS (SELECT 1 FROM public.payout_transfers x
                       WHERE x.job_id = j.id AND x.status IN ('pending', 'paid', 'reversed'))
    ORDER BY 1 DESC, 15 NULLS LAST;
@@ -445,6 +521,12 @@ DECLARE
   v_title text;
   v_jobs uuid[] := '{}';
   v_queued_by text;
+  v_not_released uuid[] := '{}';
+  v_used uuid[];
+  v_pay record;
+  v_job record;
+  v_block text;
+  v_blocks jsonb := '[]'::jsonb;
 BEGIN
   PERFORM public.require_feature('paypal_payments');
   IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN
@@ -463,6 +545,20 @@ BEGIN
   SELECT array_agg(DISTINCT x ORDER BY x) INTO v_ids FROM unnest(COALESCE(p_payout_ids, '{}')) x WHERE x IS NOT NULL;
   IF v_ids IS NULL OR cardinality(v_ids) = 0 THEN
     RAISE EXCEPTION 'payouts_required' USING ERRCODE = '22023';
+  END IF;
+
+  -- A PayPal transaction id is marked ONCE, with all the lines of that one Send Money together
+  -- (lh-money-escrow review 2026-10-23: a stale id from an earlier Send Money must never mark a new,
+  -- unpaid row). Pressing the identical set again is a no-op; any other use is refused.
+  PERFORM pg_advisory_xact_lock(hashtext('provider_payouts_txn:' || v_txn));
+  SELECT array_agg(o.id ORDER BY o.id) INTO v_used FROM public.provider_payouts o WHERE o.external_txn_id = v_txn;
+  IF v_used IS NOT NULL THEN
+    IF v_used = v_ids THEN
+      -- The same press twice (a double tap, a retry after a lost answer): nothing changes.
+      RETURN jsonb_build_object('outcome', 'already_paid', 'payout_ids', to_jsonb(v_ids), 'external_txn_id', v_txn);
+    END IF;
+    RAISE EXCEPTION 'txn_id_already_used' USING ERRCODE = '23505',
+      DETAIL = 'That PayPal transaction ID was already used to mark other payouts. Each Send Money is marked once, with all its lines together.';
   END IF;
 
   -- Lock every row, in id order (two admins pressing at once cannot deadlock).
@@ -485,21 +581,32 @@ BEGIN
         DETAIL = 'Mark paid one Helpr and one PayPal account at a time.';
     END IF;
     IF v_pp.status = 'success' THEN
-      IF v_pp.external_txn_id IS DISTINCT FROM v_txn THEN
-        RAISE EXCEPTION 'payout_already_marked_paid' USING ERRCODE = '42501',
-          DETAIL = format('A payout in this list was already marked paid with PayPal transaction %s.', v_pp.external_txn_id);
-      END IF;
+      RAISE EXCEPTION 'payout_already_marked_paid' USING ERRCODE = '42501',
+        DETAIL = format('A payout in this list was already marked paid with PayPal transaction %s.', v_pp.external_txn_id);
     ELSIF v_pp.status = 'held' THEN
       IF NOT COALESCE(p_sent_before_hold, false) THEN
         RAISE EXCEPTION 'payout_held_email_changed' USING ERRCODE = '42501',
           DETAIL = 'The Helpr changed their PayPal email after this was queued. Check the new email and re-queue it.';
       END IF;
+      -- Written held because its destination is the unconfirmed NEW email: nothing can have been
+      -- "sent before the change", so the only way out is the admin's check and re-queue.
+      IF EXISTS (SELECT 1 FROM public.payout_transfers x
+                  WHERE x.id = v_pp.payout_transfer_id AND x.metadata ->> 'held_reason' = 'destination_changed_since_hire') THEN
+        RAISE EXCEPTION 'payout_needs_recheck' USING ERRCODE = '42501',
+          DETAIL = 'This payout goes to a PayPal email changed after the Helpr was hired. Check it with them and re-queue it first.';
+      END IF;
       v_was_held := true;
     ELSIF v_pp.status <> 'pending' THEN
       RAISE EXCEPTION 'payout_not_payable' USING ERRCODE = '42501', DETAIL = format('A payout in this list is %s.', v_pp.status);
     END IF;
-    IF v_pp.status <> 'success' AND v_pp.payout_transfer_id IS NOT NULL THEN
-      SELECT pt.id, pt.status, pt.amount_cents, pt.job_id INTO v_pt
+    -- The money and the job must still be payable NOW (lh-money-escrow review 2026-10-23): holds and
+    -- disputes placed after queueing, and a payment disputed/refunded since, stop the press. The
+    -- payment row is locked: it is what refunds and payouts serialize on (phase 1 guards).
+    SELECT p.status INTO v_pay FROM public.provider_payments p WHERE p.id = v_pp.provider_payment_id FOR UPDATE;
+    v_block := NULL;
+    v_queued_by := NULL;
+    IF v_pp.payout_transfer_id IS NOT NULL THEN
+      SELECT pt.id, pt.status, pt.amount_cents, pt.job_id, pt.metadata ->> 'queued_by' AS queued_by INTO v_pt
         FROM public.payout_transfers pt WHERE pt.id = v_pp.payout_transfer_id FOR UPDATE;
       IF NOT FOUND OR v_pt.status <> 'pending' THEN
         RAISE EXCEPTION 'payout_claim_not_pending' USING ERRCODE = '42501';
@@ -508,12 +615,38 @@ BEGIN
         RAISE EXCEPTION 'payout_amount_mismatch' USING ERRCODE = '22023',
           DETAIL = 'The queued payout and its claim disagree on the amount. Nothing was marked.';
       END IF;
+      SELECT j.status::text AS status, j.payment_status::text AS payment_status, j.disputed_at,
+             j.dispute_status::text AS dispute_status
+        INTO v_job FROM public.jobs j WHERE j.id = v_pt.job_id FOR SHARE;
+      v_block := public.paypal_pay_blocked(v_pt.job_id, v_pp.payee_user_id, v_pay.status);
+      IF v_block IS NULL AND v_pt.queued_by = 'refund_request_remainder' THEN
+        IF v_job.status <> 'completed' OR v_job.payment_status <> 'escrow' THEN
+          v_block := 'job_not_payable';
+        END IF;
+      ELSIF v_block IS NULL THEN
+        IF v_job.status <> 'completed' OR v_job.payment_status <> 'payout_pending' THEN
+          v_block := 'job_not_payable';
+        ELSIF (v_job.disputed_at IS NOT NULL AND COALESCE(v_job.dispute_status, '') NOT IN ('resolved', 'auto_resolved'))
+              OR EXISTS (SELECT 1 FROM public.disputes d WHERE d.job_id = v_pt.job_id AND d.status = 'decided'
+                            AND (d.execution_status IS NULL OR d.execution_status <> 'executed')) THEN
+          v_block := 'dispute_open';
+        END IF;
+      END IF;
+    ELSIF v_pay.status NOT IN ('captured', 'partially_refunded') THEN
+      v_block := CASE WHEN v_pay.status IN ('disputed', 'reversed') THEN 'payment_disputed' ELSE 'payment_refunded' END;
+    END IF;
+    IF v_block IS NOT NULL THEN
+      IF NOT COALESCE(p_sent_before_hold, false) THEN
+        RAISE EXCEPTION 'payout_blocked' USING ERRCODE = '42501',
+          DETAIL = format('Don''t send this payout: %s. If you already sent it before that, tick "I already sent it" to record it.', v_block);
+      END IF;
+      -- Recorded, not hidden: the admin says the money went out before the block.
+      v_blocks := v_blocks || jsonb_build_object('payout_id', v_pp.id, 'reason', v_block);
     END IF;
     v_total := v_total + v_pp.amount_cents;
   END LOOP;
 
   -- One PayPal transaction id names one payee + destination (the trigger re-checks under its lock).
-  PERFORM pg_advisory_xact_lock(hashtext('provider_payouts_txn:' || v_txn));
   IF public.paypal_txn_names_other_payee(v_txn, v_first.payee_user_id, v_first.destination_value, v_first.env) THEN
     RAISE EXCEPTION 'txn_id_already_used' USING ERRCODE = '23505',
       DETAIL = 'That PayPal transaction ID already marks a payout to a different person or PayPal account.';
@@ -526,7 +659,6 @@ BEGIN
   END IF;
 
   FOREACH v_pp IN ARRAY v_rows LOOP
-    CONTINUE WHEN v_pp.status = 'success';  -- already marked with this same id
     UPDATE public.provider_payouts
        SET status = 'success', external_txn_id = v_txn, marked_paid_by = v_admin,
            marked_paid_at = now(), updated_at = now()
@@ -548,20 +680,20 @@ BEGIN
               OR (payment_status::text = 'escrow' AND v_queued_by = 'refund_request_remainder'));
       IF FOUND THEN
         v_released := v_released || v_job_id;
+      ELSE
+        -- The Helpr IS paid (recorded above), but the job is no longer where a payout leaves it
+        -- (a chargeback, a dispute, a refund state). Answered, never silent: the screen warns.
+        v_not_released := v_not_released || v_job_id;
       END IF;
     END IF;
   END LOOP;
-
-  IF cardinality(v_marked) = 0 THEN
-    -- The same press twice (a double tap, a retry after a lost answer): nothing changed.
-    RETURN jsonb_build_object('outcome', 'already_paid', 'payout_ids', to_jsonb(v_ids), 'external_txn_id', v_txn);
-  END IF;
 
   INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
   VALUES (v_admin, 'paypal_payout_marked_paid', 'provider_payouts', v_marked[1]::text,
           jsonb_build_object('external_txn_id', v_txn, 'total_cents', v_total, 'payout_ids', to_jsonb(v_marked),
                              'helper_id', v_first.payee_user_id, 'destination_kind', v_first.destination_kind,
-                             'env', v_first.env, 'was_held', v_was_held, 'jobs_released', to_jsonb(v_released)));
+                             'env', v_first.env, 'was_held', v_was_held, 'sent_before_block', v_blocks,
+                             'jobs_released', to_jsonb(v_released), 'jobs_not_released', to_jsonb(v_not_released)));
 
   IF v_first.payee_user_id IS NOT NULL THEN
     SELECT j.title INTO v_title FROM public.jobs j WHERE cardinality(v_jobs) = 1 AND j.id = v_jobs[1] FOR SHARE;
@@ -575,7 +707,8 @@ BEGIN
   END IF;
 
   RETURN jsonb_build_object('outcome', 'marked_paid', 'payout_ids', to_jsonb(v_marked), 'external_txn_id', v_txn,
-                            'total_cents', v_total, 'jobs_released', to_jsonb(v_released));
+                            'total_cents', v_total, 'jobs_released', to_jsonb(v_released),
+                            'jobs_not_released', to_jsonb(v_not_released));
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.admin_mark_paypal_payout_paid(uuid[], text, bigint, boolean) FROM PUBLIC, anon;
@@ -638,6 +771,13 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = v_pp.payee_user_id) THEN
     RAISE EXCEPTION 'payout_held' USING ERRCODE = '23514', DETAIL = 'This Helpr''s payouts are on hold. Release the hold first.';
   END IF;
+  -- Nor re-queued onto money that is no longer payable (a ban review, a job hold, a disputed or
+  -- refunded payment): lh-money-escrow review 2026-10-23.
+  IF public.paypal_pay_blocked(v_pt.job_id, v_pp.payee_user_id,
+                               (SELECT p.status FROM public.provider_payments p WHERE p.id = v_pp.provider_payment_id FOR UPDATE)) IS NOT NULL THEN
+    RAISE EXCEPTION 'payout_blocked' USING ERRCODE = '42501',
+      DETAIL = 'This payout can''t be queued again right now (a hold, a review or a payment dispute). Check the job first.';
+  END IF;
 
   UPDATE public.provider_payouts SET status = 'canceled', updated_at = now() WHERE id = v_pp.id;
   UPDATE public.payout_transfers
@@ -648,8 +788,11 @@ BEGIN
   INSERT INTO public.payout_transfers (job_id, helper_id, amount_cents, platform_fee_cents, status,
                                        initiated_by, initiated_by_user_id, metadata)
   VALUES (v_pt.job_id, v_pt.helper_id, v_pt.amount_cents, v_pt.platform_fee_cents, 'pending', 'admin', v_admin,
-          jsonb_build_object('source', 'manual_paypal', 'queued_by', 'admin_requeue',
-                             'provider_payment_id', v_pp.provider_payment_id, 'requeued_from', v_pp.id))
+          -- queued_by is carried over: Mark paid reads it (a refund-request remainder releases an
+          -- 'escrow' job); the admin's re-check is recorded beside it.
+          jsonb_build_object('source', 'manual_paypal', 'queued_by', COALESCE(v_pt.metadata ->> 'queued_by', 'release'),
+                             'requeued_by', v_admin, 'provider_payment_id', v_pp.provider_payment_id,
+                             'requeued_from', v_pp.id))
   RETURNING id INTO v_new_pt;
   INSERT INTO public.provider_payouts (provider_payment_id, payout_transfer_id, payee_user_id, provider, env,
                                        destination_kind, destination_value, amount_cents, status)
@@ -722,9 +865,12 @@ AS $function$
          AND d.status = 'decided'
          AND (d.execution_status IS NULL OR d.execution_status <> 'executed')
     )
-    -- PayPal-paid jobs are paid from admin_paypal_payout_queue(), never by a Stripe transfer.
+    -- PayPal-paid jobs are paid from admin_paypal_payout_queue(), never by a Stripe transfer. A PayPal
+    -- order that never got past created/voided/failed does not make a job PayPal's (phase 3's
+    -- job_provider_payment_held rule): a poster who fell back to a card is still paid through Stripe.
     AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp
-                     WHERE pp.subject_kind = 'job' AND pp.subject_id = j.id)
+                     WHERE pp.subject_kind = 'job' AND pp.subject_id = j.id
+                       AND pp.status NOT IN ('created', 'voided', 'failed'))
     -- server-side admin authorization: non-admins get zero rows, not the data
     AND public.has_role(auth.uid(), 'admin')
   GROUP BY j.helper_id, p.full_name, p.email, p.stripe_account_id
@@ -733,3 +879,102 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_payout_batches() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_payout_batches() TO authenticated, service_role;
+
+-- The job ids Send Payout / Bulk Approve turn into release-payout calls: must match get_payout_batches
+-- (lh-silent-failure review 2026-10-23). Verbatim from 20260908024646 (md5 of prod's
+-- pg_get_functiondef matched that text, 2026-10-23) plus the same PayPal NOT EXISTS.
+CREATE OR REPLACE FUNCTION public.get_payout_batch_job_ids(p_helper_id uuid)
+ RETURNS TABLE(job_id uuid)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT j.id
+  FROM public.jobs j
+  WHERE j.helper_id = p_helper_id
+    AND j.status = 'completed'
+    AND j.payment_status IN ('escrow', 'payout_pending')
+    AND j.helper_id IS NOT NULL
+    -- Must match get_payout_batches exactly: this is the list Bulk Approve
+    -- turns into release-payout calls, so a job excluded from the total but
+    -- present here would be paid anyway, silently.
+    AND NOT EXISTS (
+      SELECT 1 FROM public.disputes d
+       WHERE d.job_id = j.id
+         AND d.status = 'decided'
+         AND (d.execution_status IS NULL OR d.execution_status <> 'executed')
+    )
+    -- PayPal-paid jobs (same rule as get_payout_batches, which this must match exactly): Send
+    -- Payout is a Stripe transfer, and a PayPal job is paid from admin_paypal_payout_queue().
+    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp
+                     WHERE pp.subject_kind = 'job' AND pp.subject_id = j.id
+                       AND pp.status NOT IN ('created', 'voided', 'failed'))
+    -- Same server-side authorization as get_payout_batches: non-admins get
+    -- zero rows, not the data and not an error.
+    AND public.has_role(auth.uid(), 'admin')
+  ORDER BY COALESCE(j.poster_completed_at, j.helper_completed_at, j.updated_at) ASC;
+$function$;
+REVOKE ALL ON FUNCTION public.get_payout_batch_job_ids(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_payout_batch_job_ids(uuid) TO authenticated, service_role;
+
+-- ---------------------------------------------------------------------------------------------
+-- 6. Cancel a pending or held manual job payout (lh-money-escrow review 2026-10-23: once queued,
+--    refunds are blocked, so a hold or a dispute after queueing needs a way out). Admin only, behind
+--    the switch, audited. Cancelling frees the money for a refund, so the admin must confirm no Send
+--    Money went out (Phase 1 review condition P4): a cancel after a Send Money pays twice. The job
+--    is left where it is (payout_pending); the crons do not re-queue an admin-canceled payout, only
+--    the admin's "Queue now" does.
+-- ---------------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.admin_cancel_paypal_payout(p_payout_id uuid, p_confirm_no_send_money boolean DEFAULT false, p_reason text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+DECLARE
+  v_admin uuid := auth.uid();
+  v_pp public.provider_payouts;
+  v_pt record;
+BEGIN
+  PERFORM public.require_feature('paypal_payments');
+  IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN
+    RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
+  END IF;
+  IF NOT COALESCE(p_confirm_no_send_money, false) THEN
+    RAISE EXCEPTION 'confirm_no_send_money' USING ERRCODE = '22023',
+      DETAIL = 'Confirm that no PayPal Send Money went out for this payout. If one did, mark it paid instead.';
+  END IF;
+  IF p_reason IS NULL OR length(btrim(p_reason)) < 5 THEN
+    RAISE EXCEPTION 'reason_required' USING ERRCODE = '22023', DETAIL = 'Say why it is canceled (5 characters or more).';
+  END IF;
+  SELECT * INTO v_pp FROM public.provider_payouts WHERE id = p_payout_id FOR UPDATE;
+  IF NOT FOUND OR v_pp.provider <> 'manual_paypal' THEN
+    RAISE EXCEPTION 'payout_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_pp.status NOT IN ('pending', 'held') THEN
+    RAISE EXCEPTION 'payout_not_payable' USING ERRCODE = '42501', DETAIL = format('This payout is %s.', v_pp.status);
+  END IF;
+  IF v_pp.payout_transfer_id IS NULL THEN
+    RAISE EXCEPTION 'payout_not_job_pay' USING ERRCODE = '22023';
+  END IF;
+  SELECT pt.* INTO v_pt FROM public.payout_transfers pt WHERE pt.id = v_pp.payout_transfer_id FOR UPDATE;
+  IF NOT FOUND OR v_pt.status <> 'pending' THEN
+    RAISE EXCEPTION 'payout_claim_not_pending' USING ERRCODE = '42501';
+  END IF;
+
+  UPDATE public.provider_payouts SET status = 'canceled', updated_at = now() WHERE id = v_pp.id;
+  UPDATE public.payout_transfers
+     SET status = 'canceled', failure_reason = 'canceled by an admin: ' || btrim(p_reason),
+         metadata = metadata || jsonb_build_object('canceled_by_admin', v_admin, 'cancel_reason', btrim(p_reason))
+   WHERE id = v_pt.id;
+
+  INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)
+  VALUES (v_admin, 'paypal_payout_canceled', 'provider_payouts', v_pp.id::text,
+          jsonb_build_object('job_id', v_pt.job_id, 'helper_id', v_pp.payee_user_id, 'amount_cents', v_pp.amount_cents,
+                             'was_status', v_pp.status, 'reason', btrim(p_reason), 'confirmed_no_send_money', true));
+
+  RETURN jsonb_build_object('outcome', 'canceled', 'payout_id', v_pp.id, 'job_id', v_pt.job_id);
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.admin_cancel_paypal_payout(uuid, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.admin_cancel_paypal_payout(uuid, boolean, text) TO authenticated;

@@ -279,7 +279,6 @@ export const ADMIN_RPC_ERROR_COPY = {
   },
   // PayPal Plan A, phase 4: the hand-paid "Pay this Helpr" queue (20261023231811).
   admin_paypal_payout_queue: {
-    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
     admin_only: "Only admins can see the PayPal pay list.",
   },
   admin_mark_paypal_payout_paid: {
@@ -295,7 +294,9 @@ export const ADMIN_RPC_ERROR_COPY = {
     payout_not_payable: "This payout was canceled or came back, so it can't be marked paid. Refresh the list.",
     payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
     payout_amount_mismatch: "The amount changed since this list loaded. Refresh the list and check the total before you mark it paid.",
-    txn_id_already_used: "That PayPal transaction ID already marks a payment to someone else. Check the receipt.",
+    txn_id_already_used: "That PayPal transaction ID was already used. Each Send Money is marked once, with all its lines together. Check the receipt.",
+    payout_needs_recheck: "This payout goes to a PayPal email changed after the Helpr was hired. Check it with them and queue it again first.",
+    payout_blocked: "Don't send this payout: it's on hold, under review or its payment is disputed. If you already sent it before that, tick the box to record it.",
   },
   admin_requeue_held_paypal_payout: {
     feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
@@ -307,6 +308,17 @@ export const ADMIN_RPC_ERROR_COPY = {
     payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
     no_payable_paypal_account: "The Helpr has no PayPal email that can be paid yet.",
     payout_held: "This Helpr's payouts are on hold. Release the hold first.",
+    payout_blocked: "This payout can't be queued again right now (a hold, a review or a payment dispute). Check the job first.",
+  },
+  admin_cancel_paypal_payout: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can cancel a payout.",
+    confirm_no_send_money: "Tick the box to confirm no PayPal Send Money went out for this payout. If one did, mark it paid instead.",
+    reason_required: "Say why it is canceled (5 characters or more).",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payout_not_payable: "This payout was already paid, canceled or returned. Refresh the list.",
+    payout_not_job_pay: "Only job pay can be canceled here.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
   },
 } satisfies Record<string, Record<string, string>>;
 

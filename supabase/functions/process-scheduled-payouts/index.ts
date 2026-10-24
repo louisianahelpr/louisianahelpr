@@ -32,7 +32,7 @@ import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRea
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
-import { paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
+import { isExpectedWait, isQueued, paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
 
 
 serve(async (req) => {
@@ -148,8 +148,9 @@ serve(async (req) => {
     // Slack, never the ledger); their defects are reported as `seedDefects` and
     // not counted. ROUTING ONLY: nothing here changes what is paid or skipped.
     // On the default run no seed job is selected, so this set stays empty.
+    // From EVERY selected job, PayPal ones included: their queue defects route by the same rule.
     const seedJobIds = new Set<string>(
-      (jobs ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
+      (selectedJobs ?? []).filter((j) => j.is_seed === true).map((j) => j.id as string),
     );
     const seedDefects: string[] = [];
     /** One live Connect read per payee account per run (_shared/livePayoutGate.ts). */
@@ -166,6 +167,7 @@ serve(async (req) => {
     for (const job of paypalJobs) {
       const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "system", source: "process-scheduled-payouts" });
       if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+      else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
       results.push({ job_id: job.id, status: "paypal_pay_queue", ...queued });
     }
 

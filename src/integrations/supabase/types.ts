@@ -12080,6 +12080,10 @@ export type Database = {
         Args: { p_job_id: string; p_link: string; p_recipient: string }
         Returns: boolean
       }
+      admin_cancel_paypal_payout: {
+        Args: { p_confirm_no_send_money?: boolean; p_payout_id: string; p_reason?: string }
+        Returns: Json
+      }
       admin_mark_paypal_payout_paid: {
         Args: {
           p_external_txn_id: string
@@ -12100,7 +12104,6 @@ export type Database = {
           external_txn_id: string | null
           helper_id: string | null
           helper_name: string | null
-          helper_on_hold: boolean
           job_id: string | null
           job_title: string | null
           line_kind: string
@@ -12111,6 +12114,8 @@ export type Database = {
           queued_at: string | null
           row_kind: string
           status: string
+          pay_blocked: string | null
+          held_reason: string | null
         }[]
       }
       admin_queue_still_pending: {

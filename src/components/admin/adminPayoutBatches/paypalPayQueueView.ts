@@ -29,7 +29,10 @@ export interface PaypalQueueLine {
   external_txn_id: string | null;
   marked_paid_at: string | null;
   marked_paid_by_name: string | null;
-  helper_on_hold: boolean;
+  /** Don't send: payout_hold | job_hold | ban_review | payment_disputed | payment_refunded (null = clear). */
+  pay_blocked: string | null;
+  /** On a held line: destination_changed_since_hire (written held) | email_changed_after_queue. */
+  held_reason: string | null;
 }
 
 export interface PayGroup {
@@ -44,7 +47,10 @@ export interface PayGroup {
   totalCents: number;
   /** The latest "pay on or after" of the lines (the standard 3 days after approval). */
   payOnOrAfter: string | null;
-  helperOnHold: boolean;
+  /** The first "don't send" reason among the lines, or null. */
+  payBlocked: string | null;
+  /** True when a line was written held because its email changed after the hire (only re-queue frees it). */
+  needsRecheck: boolean;
   lines: PaypalQueueLine[];
 }
 
@@ -71,14 +77,16 @@ function group(lines: PaypalQueueLine[]): PayGroup[] {
         env: l.env,
         totalCents: 0,
         payOnOrAfter: null,
-        helperOnHold: false,
+        payBlocked: null,
+        needsRecheck: false,
         lines: [],
       };
       byKey.set(key, g);
     }
     g.lines.push(l);
     g.totalCents += l.amount_cents ?? 0;
-    g.helperOnHold ||= l.helper_on_hold;
+    g.payBlocked ??= l.pay_blocked;
+    g.needsRecheck ||= l.held_reason === "destination_changed_since_hire";
     if (l.pay_on_or_after && (!g.payOnOrAfter || l.pay_on_or_after > g.payOnOrAfter)) g.payOnOrAfter = l.pay_on_or_after;
   }
   const out = [...byKey.values()];
@@ -101,11 +109,35 @@ export function buildPaypalQueueView(lines: readonly PaypalQueueLine[]): PaypalQ
 
 /** Why an approved PayPal job is not in the queue yet, in plain words. */
 export const NOT_QUEUED_REASON: Record<string, string> = {
-  no_payable_paypal_account: "The Helpr hasn't added a PayPal email yet. It joins the queue once they do.",
-  payout_held: "This Helpr's payouts are on hold. Release the hold below and it joins the queue.",
+  no_payable_paypal_account: "The Helpr hasn't added a PayPal email yet. Once they do, press Queue now.",
+  payout_hold: "This Helpr's payouts are on hold. Release the hold, then press Queue now.",
+  job_hold: "This job's payout is on hold. Sort out the hold, then press Queue now.",
+  ban_review: "Someone on this job is under a ban review. Nothing is paid until it's decided.",
+  payment_disputed: "The PayPal payment is disputed. Don't pay until it's settled.",
+  payment_refunded: "The PayPal payment was refunded or voided. Nothing is owed from it.",
+  payment_not_settled: "PayPal hasn't settled this payment yet (for example an eCheck). It can be queued once it has.",
+  dispute_open: "This job has an open or undecided dispute. It's paid through the dispute, not from here.",
   crew_not_supported: "Crew job. Paying a crew through PayPal isn't set up yet, so pay each member by hand.",
-  not_queued_yet: "Approved and waiting to be added. It joins the queue within the hour.",
+  canceled_by_admin: "An admin canceled this payout. Press Queue now to put it back in the list.",
+  remainder_not_queued: "An agreed refund request: the Helpr's remainder isn't queued yet.",
+  not_queued_yet: "Approved but not added to the list yet. Press Queue now.",
 };
+
+/** Not-queued reasons where "Queue now" can help (release-payout re-runs the queue writer). */
+export const QUEUE_NOW_REASONS = new Set(["not_queued_yet", "canceled_by_admin", "no_payable_paypal_account", "payout_hold", "job_hold"]);
+
+/** Why a queued line must not be sent now, in plain words. */
+export const PAY_BLOCKED_COPY: Record<string, string> = {
+  payout_hold: "Helpr's payouts are on hold. Don't send.",
+  job_hold: "This job's payout is on hold. Don't send.",
+  ban_review: "Ban review open. Don't send.",
+  payment_disputed: "Payment disputed. Don't send.",
+  payment_refunded: "Payment refunded. Don't send.",
+};
+
+export function payBlockedCopy(code: string): string {
+  return PAY_BLOCKED_COPY[code] ?? "Don't send this one yet.";
+}
 
 export function notQueuedReason(code: string): string {
   return NOT_QUEUED_REASON[code] ?? "Not in the queue yet.";

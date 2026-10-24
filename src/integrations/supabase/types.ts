@@ -12116,6 +12116,7 @@ export type Database = {
           status: string
           pay_blocked: string | null
           held_reason: string | null
+          tip_id: string | null
         }[]
       }
       admin_queue_still_pending: {

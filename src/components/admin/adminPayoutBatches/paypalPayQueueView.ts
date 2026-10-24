@@ -33,6 +33,8 @@ export interface PaypalQueueLine {
   pay_blocked: string | null;
   /** On a held line: destination_changed_since_hire (written held) | email_changed_after_queue. */
   held_reason: string | null;
+  /** The tip a tip line (or an unqueued tip) pays out; null for job pay. */
+  tip_id: string | null;
 }
 
 export interface PayGroup {
@@ -58,6 +60,8 @@ export interface PaypalQueueView {
   toSend: PayGroup[];
   held: PayGroup[];
   notQueued: PaypalQueueLine[];
+  /** PayPal tips with no payout line yet (most often the Helpr has no PayPal email). */
+  tipsOwed: PaypalQueueLine[];
   paid: PaypalQueueLine[];
 }
 
@@ -101,6 +105,7 @@ export function buildPaypalQueueView(lines: readonly PaypalQueueLine[]): PaypalQ
     toSend: group(payouts.filter((l) => l.status === "pending")),
     held: group(payouts.filter((l) => l.status === "held")),
     notQueued: lines.filter((l) => l.row_kind === "not_queued"),
+    tipsOwed: lines.filter((l) => l.row_kind === "tip_not_queued"),
     paid: payouts
       .filter((l) => l.status === "success")
       .sort((a, b) => (b.marked_paid_at ?? "").localeCompare(a.marked_paid_at ?? "")),

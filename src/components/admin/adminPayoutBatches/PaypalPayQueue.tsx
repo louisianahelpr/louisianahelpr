@@ -68,7 +68,7 @@ export function PaypalPayQueue({ adminId, switchOn }: { adminId: string | undefi
   const [canceling, setCanceling] = useState<PaypalQueueLine | null>(null);
   const [queuing, setQueuing] = useState<string | null>(null);
   const refresh = () => qc.invalidateQueries({ queryKey });
-  const owed = view.toSend.length + view.held.length + view.notQueued.length;
+  const owed = view.toSend.length + view.held.length + view.notQueued.length + view.tipsOwed.length;
 
   // Off and nothing owed: nothing to show. A failed read is never hidden (owed money may be there).
   if (!switchOn && !isError && !isInitialLoading && owed === 0) return null;
@@ -180,6 +180,24 @@ export function PaypalPayQueue({ adminId, switchOn }: { adminId: string | undefi
                       {queuing === l.job_id ? "Adding…" : "Queue now"}
                     </Button>
                   )}
+                </div>
+              ))}
+            </section>
+          )}
+
+          {view.tipsOwed.length > 0 && (
+            <section aria-labelledby="pp-tips-owed" className="space-y-2">
+              <h3 id="pp-tips-owed" className="text-ds-13 font-semibold text-foreground">Tips owed, not in the list yet ({view.tipsOwed.length})</h3>
+              {view.tipsOwed.map((l) => (
+                <div key={l.tip_id ?? l.job_id ?? l.status} className="rounded-ds-md border border-border/60 bg-background/40 p-3 space-y-1">
+                  <p className="text-ds-13 text-foreground break-words">
+                    <span className="font-medium">{l.helper_name?.trim() || "Unnamed Helpr"}</span> · Tip · {l.job_title ?? "Job"} · {centsLabel(l.amount_cents ?? 0)}
+                  </p>
+                  <p className="text-ds-12 text-muted-foreground">
+                    {l.status === "no_payable_paypal_account"
+                      ? "The Helpr hasn't added a PayPal email yet. The tip joins the list once they do."
+                      : "Paid by the poster but not added to the list yet."}
+                  </p>
                 </div>
               ))}
             </section>

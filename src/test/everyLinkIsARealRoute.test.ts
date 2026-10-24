@@ -36,6 +36,8 @@ const APP = join(REPO, "src", "App.tsx");
 
 // @two-way src/test/everyLinkIsARealRoute.test.ts:stale NOT_APP_ADDRESSES entry
 const NOT_APP_ADDRESSES: Record<string, string> = {
+  "/v2": "PayPal REST API paths (/v2/checkout/orders, /v2/payments/captures) that the payments layer calls on api-m.paypal.com, not app addresses",
+  "/v": "the PayPal client's own path check (paypalClient.ts: a request path must start with /v), not an address",
   "/v1": "Stripe API path /v1/tax/locations (shop-checkout makes a Stripe Tax location through stripe.rawRequest), not an app address",
   "/_vercel": "Vercel's image optimiser path (src/lib/imageUrl.ts), served by Vercel",
   "/auth": "Supabase OAuth callback and GoTrue paths; stay in the browser (AASA excludes /auth/*)",

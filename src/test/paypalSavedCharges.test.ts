@@ -21,6 +21,9 @@
  * @mutate supabase/functions/_shared/payments/paypalVisitFunding.ts | if (!winner.stripePaymentIntentId && !winner.fundedByPaymentId) return await link(winner.id); | void 0;
  * @mutate supabase/functions/_shared/payments/paypalVisitFunding.ts | if (await deps.store.visitJobFor(i.parent.id, i.visitDate)) return { outcome: "exists" }; | void 0;
  * @mutate supabase/functions/_shared/payments/paypalCheckout.ts | payment_source: (input.vaultSource ?? "card") === "paypal" | payment_source: false
+ * @mutate supabase/functions/_shared/payments/paypalAutoTip.ts | if (deps.now() - c.createdAtMs <= STALE_CLAIM_AFTER_MS) return "too_young"; | void 0;
+ * @mutate supabase/functions/_shared/payments/paypalAutoTip.ts | if (c.marker.startsWith(CHARGING)) { | if (false) {
+ * @mutate supabase/functions/_shared/payments/paypalAutoTip.ts | await deps.markClaim(i.tipId, `${CHARGING}${key}`); | void 0;
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -32,7 +35,7 @@ import {
   type SavedMethod,
   type SavedPaymentRow,
 } from "../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
-import { autoTipChargeKey, chargePayPalAutoTip, type PayPalAutoTipDeps } from "../../supabase/functions/_shared/payments/paypalAutoTip.ts";
+import { CHARGED, CHARGING, STALE_CLAIM_AFTER_MS, autoTipChargeKey, chargePayPalAutoTip, reconcileStalePayPalAutoTip, type PayPalAutoTipDeps, type ReconcileDeps, type StaleClaim } from "../../supabase/functions/_shared/payments/paypalAutoTip.ts";
 import { fundPayPalVisit, planPayPalVisitCharge, visitJobRow, type VisitStore } from "../../supabase/functions/_shared/payments/paypalVisitFunding.ts";
 import { PayPalClient } from "../../supabase/functions/_shared/payments/paypalClient.ts";
 import { createPayPalCheckoutProvider } from "../../supabase/functions/_shared/payments/paypalCheckout.ts";
@@ -201,6 +204,7 @@ describe("auto-tip through PayPal (the tips lane's tip shape)", () => {
       activeMethod: async () => ({ vaultId: "VAULT1", source: "card" }),
       openTip: async (a) => { order.push("open"); opened.push(a); return { providerPaymentId: "PP1" }; },
       settle: async () => { order.push("settle"); return { state: "recorded", payoutId: "PO1", payoutReason: "queued", paymentStatus: "captured" }; },
+      markClaim: async (_id, m) => { order.push(m.startsWith(CHARGING) ? "mark:charging" : "mark:charged"); },
       ...over,
     };
     return { d, p, order, opened };
@@ -210,7 +214,7 @@ describe("auto-tip through PayPal (the tips lane's tip shape)", () => {
     const out = await chargePayPalAutoTip(x.d, tip);
     const quote = paypalTipChargeBreakdown(500, "card_standard");
     expect(out).toEqual({ outcome: "charged", paymentId: "PP1", quote, payoutId: "PO1", payoutReason: "queued" });
-    expect(x.order).toEqual(["switch", "charge", "open", "settle"]);
+    expect(x.order).toEqual(["switch", "mark:charging", "charge", "mark:charged", "open", "settle"]);
     expect(x.p.calls).toEqual([{ idempotencyKey: autoTipChargeKey(TIP, quote.chargeCents), referenceId: TIP, vaultId: "VAULT1", amountCents: quote.chargeCents, vaultSource: "card" }]);
     expect(x.opened).toEqual([{ jobId: "j1", tipperId: POSTER, helperId: "h1", tipCents: 500, chargeCents: quote.chargeCents, env: "sandbox", idempotencyKey: `lh:autotip:${TIP}:charge:amt${quote.chargeCents}:a1`, orderId: "ORD1", tipId: TIP }]);
   });
@@ -243,6 +247,11 @@ describe("auto-tip through PayPal (the tips lane's tip shape)", () => {
     expect(await chargePayPalAutoTip(deps({ openTip: async () => { throw new Error("tip_key_reused"); } }).d, tip)).toMatchObject({ outcome: "ambiguous", reason: expect.stringMatching(/^CHARGED but not recorded/) });
     expect(await chargePayPalAutoTip(deps({ settle: async () => { throw new Error("rpc down"); } }).d, tip)).toMatchObject({ outcome: "ambiguous" });
     expect(await chargePayPalAutoTip(deps({ results: ["short"] }).d, tip)).toMatchObject({ outcome: "ambiguous", reason: expect.stringMatching(/^captured_amount_mismatch/) });
+  });
+  it("no charge when the claim's 'charging' marker cannot be written first", async () => {
+    const x = deps({ markClaim: async () => { throw new Error("0 rows"); } });
+    expect(await chargePayPalAutoTip(x.d, tip)).toMatchObject({ outcome: "unreadable" });
+    expect(x.p.calls).toEqual([]);
   });
   it("a capture still pending is recorded, not called paid", async () => {
     const x = deps({ settle: async () => ({ state: "recorded", payoutId: null, payoutReason: "not_settled", paymentStatus: "capture_pending" }) });
@@ -338,5 +347,51 @@ describe("repeat visits through PayPal", () => {
     const row = visitJobRow(PARENT, "2026-11-10", "h1", plan, "2026-11-07T06:00:00Z");
     expect(row).toMatchObject({ parent_job_id: PARENT.id, status: "accepted", payment_status: "escrow", helper_id: "h1", budget: 80, helper_fee_flat_cents: 70, helper_fee_percent: 8, platform_fee_amount: 7.1, customer_fee_amount: 0, sales_tax_amount: 0 });
     expect(Object.keys(row).filter((k) => k.startsWith("stripe"))).toEqual([]);
+  });
+});
+
+describe("stale PayPal auto-tip claims (never charged again; reconciled or put to a person)", () => {
+  const T0 = 1_000_000;
+  const claim = (over: Partial<StaleClaim> = {}): StaleClaim => ({ tipId: "d0000000-0000-4000-8000-000000000009", jobId: "j", posterId: POSTER, helperId: "h", tipCents: 500, createdAtMs: T0, marker: null, paymentId: null, ...over });
+  function rdeps(over: Partial<ReconcileDeps> = {}) {
+    const log: string[] = [];
+    const d: ReconcileDeps = {
+      env: "sandbox",
+      now: () => T0 + STALE_CLAIM_AFTER_MS + 1,
+      readOrder: async (id) => { log.push(`read ${id}`); return { status: "COMPLETED", capture: { providerCaptureId: "C", amountCents: 566, settled: true } }; },
+      openTip: async (a) => { log.push(`open ${a.idempotencyKey} ${a.orderId}`); return { providerPaymentId: "PP" }; },
+      settle: async (pid) => { log.push(`settle ${pid}`); return { state: "recorded", payoutId: "PO", payoutReason: "queued", paymentStatus: "captured" }; },
+      closeClaim: async (id, why) => { log.push(`close ${why.split(":")[0]}`); },
+      alert: async (_id, why) => { log.push(`alert ${why.slice(0, 30)}`); },
+      ...over,
+    };
+    return { d, log };
+  }
+  it("inside the window: untouched", async () => {
+    const x = rdeps({ now: () => T0 + STALE_CLAIM_AFTER_MS });
+    expect(await reconcileStalePayPalAutoTip(x.d, claim())).toBe("too_young");
+    expect(x.log).toEqual([]);
+  });
+  it("no marker (died before any charge): closed, nothing read or charged", async () => {
+    const x = rdeps();
+    expect(await reconcileStalePayPalAutoTip(x.d, claim())).toBe("closed_never_charged");
+    expect(x.log).toEqual(["close paypal_claim_stale_never_charged"]);
+  });
+  it("'charging' with no answer: a person checks PayPal; never closed, never charged", async () => {
+    const x = rdeps();
+    expect(await reconcileStalePayPalAutoTip(x.d, claim({ marker: `${CHARGING}lh:autotip:x:charge:amt566:a1` }))).toBe("needs_human");
+    expect(x.log).toEqual([expect.stringMatching(/^alert stale auto-tip/)]);
+  });
+  it("'charged' order: PayPal is READ; captured -> recorded late under the same key; not captured -> closed", async () => {
+    const x = rdeps();
+    expect(await reconcileStalePayPalAutoTip(x.d, claim({ marker: `${CHARGED}ORD9` }))).toBe("recorded_late");
+    expect(x.log).toEqual(["read ORD9", "open lh:autotip:d0000000-0000-4000-8000-000000000009:charge:amt566:a1 ORD9", "settle PP"]);
+    const y = rdeps({ readOrder: async () => ({ status: "VOIDED", capture: null }) });
+    expect(await reconcileStalePayPalAutoTip(y.d, claim({ marker: `${CHARGED}ORD9` }))).toBe("closed_not_captured");
+  });
+  it("a payment row already written: the tips lane's record path finishes it", async () => {
+    const x = rdeps();
+    expect(await reconcileStalePayPalAutoTip(x.d, claim({ paymentId: "PP7", marker: `${CHARGED}ORD9` }))).toBe("settled_by_record");
+    expect(x.log).toEqual(["settle PP7"]);
   });
 });

@@ -6,6 +6,7 @@
  *   node --experimental-transform-types src/test/pglite/paypalPhase6.pglite.mjs
  *   PLANT=no_saved_method_guard node --experimental-transform-types src/test/pglite/paypalPhase6.pglite.mjs   # RED
  *   PLANT=payout_before_refund  node --experimental-transform-types src/test/pglite/paypalPhase6.pglite.mjs   # RED
+ *   PLANT=no_money_flag          node --experimental-transform-types src/test/pglite/paypalPhase6.pglite.mjs   # RED
  *   PLANT=funds_job_any          node --experimental-transform-types src/test/pglite/paypalPhase6.pglite.mjs   # RED
  *
  * (--experimental-transform-types: the payments layer's ProviderApiError uses TypeScript
@@ -35,7 +36,7 @@ import { readFileSync } from "node:fs";
 import os from "node:os";
 import { planPayPalCancellation, settlePayPalCancellation } from "../../../supabase/functions/_shared/payments/paypalCancellation.ts";
 import { chargeSavedPayment } from "../../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
-import { chargePayPalAutoTip } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
+import { chargePayPalAutoTip, reconcileStalePayPalAutoTip } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
 import { paypalTipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees.ts";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
@@ -45,6 +46,7 @@ const foundation = read("20261023223419_paypal_provider_foundation.sql");
 const tipsLane = read("20261023232059_paypal_tips.sql");
 let mig = read("20261023233301_paypal_phase6_saved_methods.sql");
 if (process.env.PLANT === "no_saved_method_guard") mig = mig.replace(/CREATE TRIGGER trg_paypal_saved_methods_guard[\s\S]*?;/, "");
+if (process.env.PLANT === "no_money_flag") mig = mig.replace("PERFORM set_config('app.paypal_money_write', '1', true);", "");
 if (process.env.PLANT === "funds_job_any") mig = mig.replace(/CHECK \(funds_job_id IS NULL OR subject_kind = 'recurring_visit'\)/, "CHECK (true)");
 
 const db = new PGlite();
@@ -101,6 +103,9 @@ create table public.payout_holds(helper_id uuid primary key, reason text);
 create table public.ban_settlement_queue(user_id uuid, review_state text);
 create table public.admin_audit_log(id uuid primary key default gen_random_uuid(), admin_id uuid not null, action text not null, target_type text, target_id text, details jsonb, created_at timestamptz not null default now());
 -- prod's tips (information_schema.columns + pg_constraint, 2026-10-23, as the tips lane measured)
+-- phase 3's money guard on jobs (wip/pp-phase3 20261023232151, paypal_job_money_state_guard), copied
+-- here because this proof runs before phase 3 lands: a PayPal job's payment_status moves only
+-- under app.paypal_money_write. Created AFTER the PayPal migrations (it reads provider_payments).
 create table public.tips(
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references public.jobs(id) on delete cascade,
@@ -149,6 +154,24 @@ await db.exec(foundation);
 await db.exec(tipsLane);
 for (let i = 1; i <= 3; i++) await db.exec(mig);
 r.applied3x = "ok";
+await db.exec(`
+CREATE OR REPLACE FUNCTION public.paypal_job_money_state_guard()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF NEW.payment_status IS DISTINCT FROM OLD.payment_status
+     AND current_setting('app.paypal_money_write', true) IS DISTINCT FROM '1'
+     AND EXISTS (SELECT 1 FROM public.provider_payments p
+                  WHERE ((p.subject_kind = 'job' AND p.subject_id = OLD.id) OR p.funds_job_id = OLD.id)
+                    AND p.status IN ('approved', 'capture_pending', 'captured', 'partially_refunded', 'disputed')) THEN
+    RAISE EXCEPTION 'paypal_job_money_outside_paypal' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+CREATE TRIGGER trg_paypal_job_money_state_guard BEFORE UPDATE OF payment_status ON public.jobs
+  FOR EACH ROW EXECUTE FUNCTION public.paypal_job_money_state_guard();
+`);
 await db.exec("update feature_switches set audience='testers' where key='paypal_payments'");
 
 let n = 0;
@@ -212,7 +235,7 @@ const jobRow = (id, hoursBefore, over = {}) => ({
 const pgStore = {
   async fundedPaymentForJob(jobId) {
     const rows = (await db.query(`select id, env, amount_cents, provider_capture_id, status from provider_payments
-      where ((subject_kind='job' and subject_id=$1) or funds_job_id=$1) and status in ('captured','partially_refunded','disputed','capture_pending')`, [jobId])).rows;
+      where ((subject_kind='job' and subject_id=$1) or funds_job_id=$1) and status in ('captured','partially_refunded','refunded','disputed','capture_pending')`, [jobId])).rows;
     if (rows.length !== 1) return rows.length ? (() => { throw new Error("two funded"); })() : null;
     const p = rows[0];
     return { id: p.id, env: p.env, amountCents: Number(p.amount_cents), providerCaptureId: p.provider_capture_id, status: p.status };
@@ -221,22 +244,42 @@ const pgStore = {
     return (await db.query("select id, idempotency_key, amount_cents, status, provider_refund_id, created_at from provider_refunds where provider_payment_id=$1", [pid])).rows
       .map((x) => ({ id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id, createdAtMs: new Date(x.created_at).getTime() }));
   },
-  async insertRefund(row) {
-    const x = (await db.query(`insert into provider_refunds(provider_payment_id, idempotency_key, amount_cents, reason, status) values ($1,$2,$3,$4,'pending')
-      returning id, idempotency_key, amount_cents, status, provider_refund_id, created_at`, [row.paymentId, row.idempotencyKey, row.amountCents, row.reason])).rows[0];
-    return { id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id, createdAtMs: new Date(x.created_at).getTime() };
-  },
-  async markRefund(id, p) { await db.query("update provider_refunds set status=$2, provider_refund_id=coalesce($3, provider_refund_id), amount_cents=coalesce($4, amount_cents) where id=$1", [id, p.status, p.providerRefundId ?? null, p.amountCents ?? null]); },
-  async setPaymentStatus(pid, s) { await db.query("update provider_payments set status=$2 where id=$1 and status in ('captured','partially_refunded')", [pid, s]); },
+  // The one jobs write: paypal_settle_cancelled_job (sets phase 3's app.paypal_money_write).
   async settleJob(id, patch) {
-    return (await db.query("update jobs set payment_status=$2, cancellation_fee_status=$3 where id=$1 and status='cancelled' and payment_status='escrow' returning id", [id, patch.payment_status, patch.cancellation_fee_status])).rows.length === 1;
+    return (await one("select public.paypal_settle_cancelled_job($1, $2) ok", [id, patch.cancellation_fee_status])).ok === true;
   },
 };
 let refundCalls = 0;
-const fakePayPal = { async refund(i) { refundCalls++; return { providerRefundId: `RF-${i.idempotencyKey.slice(-12)}`, status: "COMPLETED", settled: true, amountCents: i.amountCents }; } };
+let refuseNext = 0;
+const fakePayPal = { async refund(i) { refundCalls++; return { providerRefundId: `RF${refundCalls}`, status: "COMPLETED", settled: true, amountCents: i.amountCents }; } };
+// Phase 5's refund door, in its order (claim the row by key, ask PayPal with the key, record), on
+// these tables; phase 1's guards decide every claim. Swapped for phase 5's own RPCs once it lands.
+const pgDoor = {
+  async refund(req) {
+    let row = (await db.query("select id, amount_cents, status, provider_refund_id from provider_refunds where idempotency_key=$1", [req.idempotencyKey])).rows[0];
+    if (!row) {
+      try {
+        row = (await db.query("insert into provider_refunds(provider_payment_id, idempotency_key, amount_cents, reason, status) values ($1,$2,$3,$4,'pending') returning id, amount_cents, status, provider_refund_id", [req.paymentId, req.idempotencyKey, req.amountCents, req.reason])).rows[0];
+      } catch (e) {
+        return { kind: "refused", code: (e.message.match(/refund_[a-z_]+/) ?? ["claim_failed"])[0], message: e.message, refundRowId: null };
+      }
+    }
+    if (row.status === "completed") return { kind: "refunded", refundRowId: row.id, providerRefundId: row.provider_refund_id, settled: true, amountCents: Number(row.amount_cents), askedCents: req.amountCents, amountMismatch: false, replay: true, paymentStatus: null };
+    const cap = (await one("select provider_capture_id, amount_cents from provider_payments where id=$1", [req.paymentId]));
+    if (refuseNext > 0) {
+      refuseNext--;
+      await db.query("update provider_refunds set status='failed' where id=$1", [row.id]);
+      return { kind: "refused", code: "provider_refused", message: "422 REFUND_TIME_LIMIT_EXCEEDED", refundRowId: row.id };
+    }
+    const paid = await fakePayPal.refund({ idempotencyKey: req.idempotencyKey, providerCaptureId: cap.provider_capture_id, amountCents: req.amountCents });
+    await db.query("update provider_refunds set status='completed', provider_refund_id=$2, amount_cents=$3 where id=$1", [row.id, paid.providerRefundId, paid.amountCents]);
+    const total = Number((await one("select coalesce(sum(amount_cents),0) t from provider_refunds where provider_payment_id=$1 and status not in ('failed','cancelled')", [req.paymentId])).t);
+    await db.query("update provider_payments set status=$2 where id=$1 and status in ('captured','partially_refunded')", [req.paymentId, total >= Number(cap.amount_cents) ? "refunded" : "partially_refunded"]);
+    return { kind: "refunded", refundRowId: row.id, providerRefundId: paid.providerRefundId, settled: true, amountCents: paid.amountCents, askedCents: req.amountCents, amountMismatch: false, replay: false, paymentStatus: null };
+  },
+};
 // Phase 4's writer, as it inserts (payout_transfers claim, then provider_payouts manual_paypal pending).
 const queueAsPhase4 = {
-  supports: () => true,
   async queue(i) {
     const live = (await db.query("select id from provider_payouts where provider_payment_id=$1 and status not in ('failed','returned','canceled')", [i.providerPaymentId])).rows[0];
     if (live) return { outcome: "already_queued", reason: null, payoutId: live.id, recorded: true };
@@ -247,7 +290,7 @@ const queueAsPhase4 = {
   },
 };
 const PAYPAL_FEE = 398;
-const deps = { store: pgStore, provider: fakePayPal, queue: queueAsPhase4, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" };
+const deps = { store: pgStore, refunds: pgDoor, queue: queueAsPhase4, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" };
 for (const [label, hours, want] of [
   ["0% (48 h out)", 48, { refund: 9602, payout: null, status: "partially_refunded", fee: null }],
   ["25% (10 h out)", 10, { refund: 7102, payout: 2200, status: "partially_refunded", fee: "charged" }],
@@ -274,6 +317,60 @@ for (const [label, hours, want] of [
   // (The sweep only selects jobs still in escrow; run it anyway: no second refund, no second payout.)
   void again;
   eq(`${label}: a second run moves nothing`, [refunds2, payouts2, refundCalls - before], [1, want.payout ? 1 : 0, 1]);
+}
+// Phase 5's round-3 contract (a): a cancel refund phase 5 finished on its own while the job stayed in
+// escrow is settled by the sweep, never re-sent.
+{
+  const jid = uuid("d");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid]); await db.exec("set role service_role");
+  const pid = await payment(U.tester, { subject: jid });
+  await db.query("insert into provider_refunds(provider_payment_id, idempotency_key, amount_cents, status, provider_refund_id) values ($1, $2, 7102, 'completed', 'RF-P5')", [pid, `lh:job:${jid}:refund:cancel`]);
+  await db.query("update provider_payments set status='partially_refunded' where id=$1", [pid]);
+  const c0 = refundCalls;
+  const out = await settlePayPalCancellation(deps, jobRow(jid, 10), false);
+  eq("(a) a refund phase 5 finished: settled now, not re-sent, fee share queued, job refunded",
+    [out.outcome, refundCalls - c0, (await db.query("select amount_cents from provider_payouts where provider_payment_id=$1", [pid])).rows.map((x) => Number(x.amount_cents)), (await one("select payment_status from jobs where id=$1", [jid])).payment_status],
+    ["settled", 0, [2200], "refunded"]);
+}
+// (b) a refused cancel refund is offered again as a new attempt, at most 3, then a person.
+{
+  const jid = uuid("d");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid]); await db.exec("set role service_role");
+  const pid = await payment(U.tester, { subject: jid });
+  refuseNext = 3;
+  const outs = [];
+  for (let n = 0; n < 4; n++) outs.push((await settlePayPalCancellation(deps, jobRow(jid, 10), false)).outcome);
+  const keys = (await db.query("select idempotency_key, status from provider_refunds where provider_payment_id=$1 order by created_at", [pid])).rows.map((x) => `${x.idempotency_key.split(":").slice(4).join(":")} ${x.status}`);
+  eq("(b) refused 3 times: three attempts (base, a2, a3), all failed, then a person; never flipped, no payout",
+    [outs, keys, (await one("select payment_status from jobs where id=$1", [jid])).payment_status, (await one("select count(*)::int c from provider_payouts where provider_payment_id=$1", [pid])).c],
+    [["needs_review", "needs_review", "needs_review", "needs_review"], ["cancel failed", "cancel:a2 failed", "cancel:a3 failed"], "escrow", 0]);
+  refuseNext = 1;
+  const jid2 = uuid("d");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid2]); await db.exec("set role service_role");
+  const pid2 = await payment(U.tester, { subject: jid2 });
+  await settlePayPalCancellation(deps, jobRow(jid2, 10), false);
+  const second = await settlePayPalCancellation(deps, jobRow(jid2, 10), false);
+  eq("(b) refused once, then a good second attempt: settled", [second.outcome, (await db.query("select status from provider_refunds where provider_payment_id=$1 order by created_at", [pid2])).rows.map((x) => x.status)], ["settled", ["failed", "completed"]]);
+}
+// Phase 3's guard: a plain flip of a PayPal job's payment_status is refused; only the settle RPC
+// (under app.paypal_money_write) moves it, and the RPC refuses a job with no PayPal money.
+{
+  const jid = uuid("d");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid]); await db.exec("set role service_role");
+  await payment(U.tester, { subject: jid });
+  await expectErr("phase 3's guard: a plain payment_status write on a PayPal job is refused", `update jobs set payment_status='refunded' where id='${jid}'`, /paypal_job_money_outside_paypal/);
+  const noMoney = uuid("d");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [noMoney]); await db.exec("set role service_role");
+  await expectErr("the settle RPC refuses a job with no PayPal money", `select public.paypal_settle_cancelled_job('${noMoney}', null)`, /no_paypal_money_for_job/);
+  eq("the settle RPC flips once, then answers false (zero rows), never an error", [
+    (await one("select public.paypal_settle_cancelled_job($1, 'charged') ok", [jid])).ok,
+    (await one("select public.paypal_settle_cancelled_job($1, 'charged') ok", [jid])).ok,
+    (await one("select payment_status from jobs where id=$1", [jid])).payment_status,
+  ], [true, false, "refunded"]);
+  await db.exec("reset role");
+  await db.exec("set role authenticated");
+  await expectErr("members cannot call the settle RPC", `select public.paypal_settle_cancelled_job('${jid}', null)`, /permission denied/);
+  await db.exec("reset role; set role service_role");
 }
 // The other order is refused by the database (why the settlement refunds first).
 {
@@ -360,6 +457,10 @@ const tipDeps = {
     const x = await one("select public.paypal_open_tip($1, $2, $3, $4, $5, $6, $7, $8, 'auto', $9) a", [a.jobId, a.tipperId, a.helperId, a.tipCents, a.chargeCents, a.env, a.idempotencyKey, a.orderId, a.tipId]);
     return { providerPaymentId: x.a.provider_payment_id };
   },
+  markClaim: async (id, marker) => {
+    const r2 = (await db.query("update tips set failure_reason=$2 where id=$1 and payment_status='pending' returning id", [id, marker])).rows;
+    if (r2.length !== 1) throw new Error("marker matched 0 rows");
+  },
   // What settlePayPalTip does once PayPal's order reads COMPLETED: record the capture (idempotent).
   settle: async (pid) => {
     const p = await one("select provider_order_id, amount_cents from provider_payments where id=$1", [pid]);
@@ -382,9 +483,10 @@ eq("auto-tip: ONE payout of exactly the tip (100%), named by the tip", tipPayout
 // A second run of the same claim (a crash after the charge): same key, a replay, nothing new.
 const callsBefore = chargeCalls;
 const t2 = await chargePayPalAutoTip(tipDeps, tipIn);
-eq("auto-tip re-run on the same claim: PayPal replays the order, the record replays, no second payment row, no second payout",
+// (A crash between charge and record leaves the claim pending with its marker: section 6 covers it.)
+eq("auto-tip re-run on a settled claim: nothing charged, no second payment row, no second payout",
   [t2.outcome, chargeCalls - callsBefore, (await one("select count(*)::int c from provider_payments where subject_kind='tip' and subject_id=$1", [tipId])).c, (await one("select count(*)::int c from provider_payouts where tip_id=$1", [tipId])).c],
-  ["charged", 0, 1, 1]);
+  ["unreadable", 0, 1, 1]);
 // The switch off for the poster: refused BEFORE the charge.
 await db.exec("reset role"); await db.exec("update feature_switches set audience='off' where key='paypal_payments'"); await db.exec("set role service_role");
 const tipId2 = uuid("e"); const tipJob2 = uuid("f");
@@ -397,6 +499,50 @@ const t3 = await chargePayPalAutoTip(tipDeps, { ...tipIn, tipId: tipId2, jobId: 
 eq("auto-tip with the switch off for the poster: given up before any charge", [t3.outcome, t3.reason, chargeCalls - c1], ["give_up", "paypal_switch_off", 0]);
 await db.exec("reset role"); await db.exec("update feature_switches set audience='testers' where key='paypal_payments'"); await db.exec("set role service_role");
 await db.exec("reset role");
+
+// ── 6. Stale auto-tip claims (the tips lane's round-4 conditions): never charged again ──
+{
+  await db.exec("set role service_role");
+  const staleDeps = (orderStatus) => ({
+    env: "sandbox",
+    now: () => Date.now(),
+    readOrder: async (id) => ({ status: orderStatus, capture: orderStatus === "COMPLETED" ? { providerCaptureId: `CAPX-${id}`, amountCents: card.chargeCents, settled: true } : null }),
+    openTip: tipDeps.openTip,
+    settle: async (pid) => {
+      const p = await one("select provider_order_id, amount_cents from provider_payments where id=$1", [pid]);
+      const x = await one("select public.paypal_record_tip_capture($1, $2, 'completed', $3, $4) a", [pid, p.provider_order_id, `CAPX-${p.provider_order_id}`, p.amount_cents]);
+      return { state: "recorded", payoutId: x.a.payout_id, payoutReason: x.a.payout_reason, paymentStatus: x.a.payment_status };
+    },
+    closeClaim: async (id, why) => {
+      const r2 = (await db.query("update tips set payment_status='failed', failure_reason=$2 where id=$1 and payment_status='pending' returning id", [id, why])).rows;
+      if (r2.length !== 1) throw new Error("close matched 0 rows");
+    },
+    alert: async () => { alerts++; },
+  });
+  let alerts = 0;
+  const staleClaim = async (marker) => {
+    const id = uuid("e"); const jid = uuid("f");
+    await db.query("reset role");
+    await db.query("insert into jobs(id, title, status, payment_status) values ($1, 'Old', 'completed', 'released')", [jid]);
+    await db.query("insert into tips(id, job_id, tipper_id, helper_id, amount, source, payment_status, failure_reason, created_at) values ($1, $2, $3, $4, 5, 'auto', 'pending', $5, now() - interval '4 hours')", [id, jid, U.tester, U.helpr, marker]);
+    await db.exec("set role service_role");
+    const t = await one("select id, job_id, tipper_id, helper_id, amount, created_at, failure_reason from tips where id=$1", [id]);
+    return { tipId: t.id, jobId: t.job_id, posterId: t.tipper_id, helperId: t.helper_id, tipCents: 500, createdAtMs: new Date(t.created_at).getTime(), marker: t.failure_reason, paymentId: null };
+  };
+  const c0 = chargeCalls;
+  const never = await staleClaim(null);
+  eq("stale claim, no marker (died before any charge): closed, so it no longer holds the job+Helpr", [await reconcileStalePayPalAutoTip(staleDeps("COMPLETED"), never), (await one("select payment_status from tips where id=$1", [never.tipId])).payment_status], ["closed_never_charged", "failed"]);
+  const lost = await staleClaim("paypal_charging:lh:autotip:x:charge:amt566:a1");
+  eq("stale claim, charge answer lost: a person is paged, the claim stays, NOTHING is charged", [await reconcileStalePayPalAutoTip(staleDeps("COMPLETED"), lost), (await one("select payment_status from tips where id=$1", [lost.tipId])).payment_status, alerts, chargeCalls - c0], ["needs_human", "pending", 1, 0]);
+  const notCap = await staleClaim("paypal_charged:ORDNOTCAP");
+  eq("stale claim, order not captured at PayPal: closed", [await reconcileStalePayPalAutoTip(staleDeps("VOIDED"), notCap), (await one("select payment_status from tips where id=$1", [notCap.tipId])).payment_status], ["closed_not_captured", "failed"]);
+  const capd = await staleClaim("paypal_charged:ORDCAPTURED");
+  const rc = await reconcileStalePayPalAutoTip(staleDeps("COMPLETED"), capd);
+  eq("stale claim, order captured but unrecorded: recorded late on the claimed row, ONE payout of the tip, nothing charged",
+    [rc, (await one("select payment_status from tips where id=$1", [capd.tipId])).payment_status, (await db.query("select amount_cents from provider_payouts where tip_id=$1", [capd.tipId])).rows.map((x) => Number(x.amount_cents)), chargeCalls - c0],
+    ["recorded_late", "paid", [500], 0]);
+  await db.exec("reset role");
+}
 
 for (const role of ["authenticated", "anon"]) {
   await db.exec(`set role ${role}`);

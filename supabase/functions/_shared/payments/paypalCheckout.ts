@@ -219,3 +219,23 @@ export function createCaptureFeeReader(client: PayPalClient): (providerCaptureId
     return dollarsToCents(fee.value);
   };
 }
+
+/**
+ * An order as PayPal reports it now (GET /v2/checkout/orders/{id}): its status and, when it holds
+ * exactly one COMPLETED or PENDING capture, that capture. Phase 6's stale auto-tip reconcile reads
+ * a charge whose record was lost this way, instead of ever charging again.
+ */
+export function createOrderReader(client: PayPalClient): (providerOrderId: string) => Promise<{ status: string; capture: CaptureResult | null }> {
+  return async (providerOrderId: string) => {
+    if (!/^[A-Z0-9]+$/.test(providerOrderId)) throw new Error(`not a PayPal order id: ${providerOrderId}`);
+    const order = await client.request<PayPalOrder>("GET", `/v2/checkout/orders/${providerOrderId}`);
+    if (!order?.id || order.id !== providerOrderId) throw new Error(`paypal order read mismatch for ${providerOrderId}`);
+    if (order.status !== "COMPLETED") return { status: order.status, capture: null };
+    try {
+      return { status: order.status, capture: captureFromOrder(order) };
+    } catch (e) {
+      if (e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL") return { status: `CAPTURE_${e.issue ?? "NOT_SUCCESSFUL"}`, capture: null };
+      throw e;
+    }
+  };
+}

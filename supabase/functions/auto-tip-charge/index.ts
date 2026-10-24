@@ -38,7 +38,9 @@ import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "..
 import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
 import { supabaseSavedChargeStore } from "../_shared/payments/paypalSavedCharge.ts";
-import { chargePayPalAutoTip } from "../_shared/payments/paypalAutoTip.ts";
+import { chargePayPalAutoTip, reconcileStalePayPalAutoTip, STALE_CLAIM_AFTER_MS } from "../_shared/payments/paypalAutoTip.ts";
+import { createOrderReader } from "../_shared/payments/paypalCheckout.ts";
+import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { alertIfTipOwedWithoutDestination, settlePayPalTip, type TipSettleDb } from "../_shared/payments/tipSettle.ts";
 import { paypalFundedJob } from "../_shared/payments/paypalFundedJob.ts";
 
@@ -121,6 +123,31 @@ serve(async (req) => {
     const results = { considered: candidates?.length ?? 0, charged: 0, prompted: 0, failed: 0, held: 0, heldAgedOut: 0, closed: 0 };
     /** PayPal phase 6: built on first use, only when a candidate's job was paid through PayPal. */
     let paypalRuntime: ReturnType<typeof paypalRuntimeFromEnv> | null = null;
+    type PayPalRt = Extract<ReturnType<typeof paypalRuntimeFromEnv>, { ok: true }>;
+    /** The tips lane's record path (settlePayPalTip), reduced for paypalAutoTip.ts. */
+    const settlePayPalTipForAutoTip = async (rt: PayPalRt, paymentId: string) => {
+      const out = await settlePayPalTip(supabase as unknown as TipSettleDb, rt.provider, rt.client, paymentId);
+      await alertIfTipOwedWithoutDestination(out);
+      return out.state === "recorded"
+        ? { state: "recorded" as const, payoutId: out.record.payout_id, payoutReason: out.record.payout_reason, paymentStatus: out.record.payment_status }
+        : out;
+    };
+    /** A claim marker that must land (paypalAutoTip.ts markClaim). */
+    const markPayPalTipClaim = async (tipId: string, marker: string) => {
+      const { data, error } = await supabase.from("tips").update({ failure_reason: marker.slice(0, 200) }).eq("id", tipId).eq("payment_status", "pending").select("id");
+      if (error) throw new Error(error.message);
+      if (!data || data.length === 0) throw new Error(`tips ${tipId} marker write matched 0 rows`);
+    };
+    const paypalOpenTip = async (a: { jobId: string; tipperId: string; helperId: string; tipCents: number; chargeCents: number; env: string; idempotencyKey: string; orderId: string; tipId: string }) => {
+      const { data, error } = await supabase.rpc("paypal_open_tip", {
+        p_job_id: a.jobId, p_tipper_id: a.tipperId, p_helper_id: a.helperId, p_tip_cents: a.tipCents,
+        p_charge_cents: a.chargeCents, p_env: a.env, p_idempotency_key: a.idempotencyKey, p_order_id: a.orderId,
+        p_source: "auto", p_tip_id: a.tipId,
+      });
+      const id = (data as { provider_payment_id?: unknown } | null)?.provider_payment_id;
+      if (error || typeof id !== "string") throw new Error(`paypal_open_tip: ${error?.message ?? `answered ${JSON.stringify(data)}`}`);
+      return { providerPaymentId: id };
+    };
     /** Q1224: jobs whose poster was already told this run that a held tip aged out. */
     const agedOutNotified = new Set<string>();
     // `results.failed` is NOT the page-worthy counter. It mixes real defects
@@ -592,23 +619,9 @@ serve(async (req) => {
           },
           switchOnFor: (u) => savedMethods.switchOnFor(u),
           activeMethod: (u, env) => savedMethods.activeMethod(u, env),
-          openTip: async (a) => {
-            const { data, error } = await supabase.rpc("paypal_open_tip", {
-              p_job_id: a.jobId, p_tipper_id: a.tipperId, p_helper_id: a.helperId, p_tip_cents: a.tipCents,
-              p_charge_cents: a.chargeCents, p_env: a.env, p_idempotency_key: a.idempotencyKey, p_order_id: a.orderId,
-              p_source: "auto", p_tip_id: a.tipId,
-            });
-            const id = (data as { provider_payment_id?: unknown } | null)?.provider_payment_id;
-            if (error || typeof id !== "string") throw new Error(`paypal_open_tip: ${error?.message ?? `answered ${JSON.stringify(data)}`}`);
-            return { providerPaymentId: id };
-          },
-          settle: async (paymentId) => {
-            const out = await settlePayPalTip(supabase as unknown as TipSettleDb, rt.provider, rt.client, paymentId);
-            await alertIfTipOwedWithoutDestination(out);
-            return out.state === "recorded"
-              ? { state: "recorded", payoutId: out.record.payout_id, payoutReason: out.record.payout_reason, paymentStatus: out.record.payment_status }
-              : out;
-          },
+          openTip: paypalOpenTip,
+          settle: (paymentId) => settlePayPalTipForAutoTip(rt, paymentId),
+          markClaim: (id, marker) => markPayPalTipClaim(id, marker),
         }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, tipCents })
           // Throws only from a bug: the claim stays 'pending' with the reason and the run pages.
           .catch((e: unknown) => ({ outcome: "ambiguous" as const, reason: `threw: ${caughtMessage(e)}` }));
@@ -658,11 +671,8 @@ serve(async (req) => {
             defects.record(`auto-tip ${jobId}: PayPal tip ${pp.paymentId} charged but not settled (PENDING); the tips webhook finishes it`);
             break;
           case "ambiguous":
-            await settleTip(
-              { failure_reason: `ambiguous: ${pp.reason}`.slice(0, 200) },
-              "tip ambiguous-outcome write (PayPal)",
-              "the PayPal charge outcome is unknown and the row carries no reason",
-            );
+            // The claim keeps its paypal_charging/paypal_charged marker (the stale-claim reconcile
+            // reads it once the window passes; it is never charged again). A person is paged now.
             defects.record(`auto-tip ${jobId}: PayPal tip NEEDS A PERSON (${pp.reason.slice(0, 200)}); claim tips.id=${tipRow.id} left pending`);
             results.failed++;
             break;
@@ -967,6 +977,69 @@ serve(async (req) => {
         await giveUp(message.slice(0, 200), true);
         results.failed++;
         log("charge failed", { jobId, error: message });
+      }
+    }
+
+    // ── PayPal phase 6: stale auto-tip claims (paypalAutoTip.ts reconcileStalePayPalAutoTip) ──
+    // A pending PayPal auto claim older than the replay window is never charged again: it is
+    // closed when nothing was taken, recorded when PayPal shows the capture, or put to a person.
+    {
+      const cutoff = new Date(Date.now() - STALE_CLAIM_AFTER_MS).toISOString();
+      const { data: stale, error: staleErr } = await supabase
+        .from("tips")
+        .select("id, job_id, tipper_id, helper_id, amount, created_at, failure_reason")
+        .eq("source", "auto")
+        .eq("payment_status", "pending")
+        .lt("created_at", cutoff)
+        .limit(100);
+      if (staleErr) {
+        defects.record(`paypal stale auto-tip claims read: ${staleErr.message}`);
+      } else {
+        for (const t of (stale ?? []) as Array<{ id: string; job_id: string; tipper_id: string; helper_id: string; amount: number; created_at: string; failure_reason: string | null }>) {
+          const marked = (t.failure_reason ?? "").startsWith("paypal_");
+          const isPayPal = marked ? true : await paypalFundedJob(supabase, t.job_id);
+          if (isPayPal instanceof Error) { defects.record(`stale claim ${t.id}: paypal read: ${isPayPal.message}`); continue; }
+          if (!isPayPal) continue; // a Stripe claim: its own path owns it
+          paypalRuntime ??= paypalRuntimeFromEnv();
+          if (!paypalRuntime.ok) { defects.record(`stale PayPal auto-tip claim ${t.id}: PayPal not configured`); continue; }
+          const rt = paypalRuntime;
+          const { data: pay, error: payErr } = await supabase.from("provider_payments").select("id").eq("subject_kind", "tip").eq("subject_id", t.id).limit(1);
+          if (payErr) { defects.record(`stale claim ${t.id}: payment read: ${payErr.message}`); continue; }
+          try {
+            const outcome = await reconcileStalePayPalAutoTip({
+              env: rt.env,
+              now: () => Date.now(),
+              readOrder: createOrderReader(rt.client),
+              openTip: paypalOpenTip,
+              settle: (pid) => settlePayPalTipForAutoTip(rt, pid),
+              closeClaim: async (tipId, reason) => {
+                const { data: closed, error: cErr } = await supabase.from("tips")
+                  .update({ payment_status: "failed", failure_reason: reason.slice(0, 200), auto_prompt_sent_at: new Date().toISOString() })
+                  .eq("id", tipId).eq("payment_status", "pending").select("id");
+                if (cErr || !closed || closed.length === 0) throw new Error(`close claim ${tipId}: ${cErr?.message ?? "zero rows"}`);
+                const { error: nErr } = await supabase.from("notifications").insert({
+                  user_id: t.tipper_id, type: "payment", title: "Your tip didn't go through",
+                  message: "We couldn't charge your automatic tip, and nothing was taken. You can send it in a tap.",
+                  link: `/posts?job=${t.job_id}`,
+                });
+                if (nErr) defects.record(`stale claim ${tipId}: poster not told (${nErr.message})`);
+              },
+              alert: async (tipId, reason) => {
+                defects.record(reason.slice(0, 300));
+                await postSlackOpsAlert({
+                  kind: "money_at_risk", severity: "critical", title: "A PayPal auto-tip needs a person",
+                  message: reason, fields: { tip_id: tipId, job_id: t.job_id }, oncePerDayKey: `paypal-stale-autotip:${tipId}`,
+                });
+              },
+            }, {
+              tipId: t.id, jobId: t.job_id, posterId: t.tipper_id, helperId: t.helper_id, tipCents: Math.round(Number(t.amount) * 100),
+              createdAtMs: Date.parse(t.created_at), marker: t.failure_reason, paymentId: (pay ?? [])[0]?.id ?? null,
+            });
+            log("stale PayPal auto-tip claim", { tipId: t.id, outcome });
+          } catch (e) {
+            defects.record(`stale claim ${t.id}: ${caughtMessage(e)}`);
+          }
+        }
       }
     }
 

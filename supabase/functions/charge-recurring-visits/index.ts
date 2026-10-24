@@ -1644,7 +1644,12 @@ serve(async (req) => {
             case "refunded_unbooked":
             case "refunded_duplicate": {
               fail(`series ${parent.id} ${visitDate}: PayPal visit ${pv.outcome}: ${pv.paymentId} refunded ${pv.refundCents}c`);
-              const told = await tellPosterVisitRefund(supabase, parent as never, visitDate, pv.refundCents, pv.outcome === "refunded_duplicate" ? "duplicate" : "unbooked");
+              const told = await tellPosterVisitRefund(
+                supabase, parent as never, visitDate,
+                { providerRefundId: pv.providerRefundId, refundCents: pv.refundCents, keptCents: pv.outcome === "refunded_unbooked" ? pv.keptCents : 0 },
+                pv.outcome === "refunded_duplicate" ? "duplicate" : "unbooked",
+                paypalRuntime?.ok ? paypalRuntime.env : "sandbox",
+              );
               if (told) fail(told);
               break;
             }

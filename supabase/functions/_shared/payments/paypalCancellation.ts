@@ -180,23 +180,48 @@ export interface RefundRow {
   createdAtMs: number;
 }
 
+/**
+ * The refund door: phase 5's refundProviderPayment (_shared/payments/providerRefunds.ts), the ONE
+ * way a PayPal payment is refunded (claim the provider_refunds row, ask PayPal with the row's key,
+ * record). The settlement depends on this shape only. Until phase 5 is on main the cron wires
+ * `interimCancelRefundDoor` below (TEMPORARY, same key, same outcome shape); after it, one line in
+ * void-cancelled-payments/paypalCancel.ts swaps it for refundProviderPayment.
+ */
+export type CancelRefundOutcome =
+  | { kind: "refunded"; refundRowId: string; providerRefundId: string; settled: boolean; amountCents: number; askedCents: number; amountMismatch: boolean; replay: boolean; paymentStatus: string | null }
+  | { kind: "refused"; code: string; message: string; refundRowId: string | null }
+  | { kind: "retry"; message: string; refundRowId: string | null }
+  | { kind: "recorded_late"; message: string; refundRowId: string; providerRefundId: string; amountCents: number };
+
+export interface CancelRefundRequest {
+  paymentId: string;
+  idempotencyKey: string;
+  amountCents: number;
+  reason: string;
+  noteToPayer?: string;
+  /** The most all live refunds of the payment may total (paid less what is kept). */
+  maxTotalCents?: number;
+}
+
+export interface CancelRefundDoor {
+  refund(req: CancelRefundRequest): Promise<CancelRefundOutcome>;
+}
+
 /** Everything the settlement reads or writes, so tests run on an in-memory twin. */
 export interface CancellationStore {
   /** The job's funded PayPal payment (captured / partially_refunded / disputed / capture_pending), or null. */
   fundedPaymentForJob(jobId: string): Promise<FundedPayment | null>;
   refundsFor(paymentId: string): Promise<RefundRow[]>;
-  /** Insert the pending refund row. Returns the row; on a UNIQUE key clash returns the existing row. */
-  insertRefund(row: { paymentId: string; idempotencyKey: string; amountCents: number; reason: string }): Promise<RefundRow>;
-  /** `amountCents`: what PayPal says it refunded, when that differs from the row (kept, so the mismatch is durable). */
-  markRefund(id: string, patch: { status: RefundRow["status"]; providerRefundId?: string | null; amountCents?: number }): Promise<void>;
-  setPaymentStatus(paymentId: string, status: "partially_refunded" | "refunded"): Promise<void>;
-  /** Flip the job out of escrow (only while it still reads cancelled + 'escrow'). False = zero rows matched; throws on an error. */
+  /**
+   * Flip the job out of escrow (cancelled + 'escrow' -> 'refunded'): paypal_settle_cancelled_job,
+   * which sets phase 3's app.paypal_money_write. False = zero rows matched; throws on an error.
+   */
   settleJob(jobId: string, patch: { payment_status: "refunded"; cancellation_fee_status: "charged" | null }): Promise<boolean>;
 }
 
 export interface SettleDeps {
   store: CancellationStore;
-  provider: Pick<PaymentProvider, "refund">;
+  refunds: CancelRefundDoor;
   /** PayPal's fee on a capture, read from PayPal (GET /v2/payments/captures/{id}); null = unreadable. */
   readCaptureFeeCents(providerCaptureId: string): Promise<number | null>;
   queue: ManualPayoutQueue;
@@ -212,9 +237,19 @@ export type SettleOutcome =
   /** A person must look: nothing more moves for this job until they do. */
   | { outcome: "needs_review"; reason: string };
 
-/** The cancellation's own refund key: one per payment, forever (provider_refunds.idempotency_key UNIQUE). */
-export function cancelRefundKey(paymentId: string): string {
-  return `lh:pp:${paymentId}:cancel-refund`;
+/**
+ * The cancellation's refund key: phase 5's business key (provider_refunds.idempotency_key UNIQUE).
+ * After a refund PayPal refused, the next offer is a NEW attempt: `:a<n+1>` (phase 5's
+ * cancelRefundKey(job, earlierAttempts)), at most CANCEL_REFUND_MAX_ATTEMPTS in all.
+ */
+export function cancelRefundKey(jobId: string, earlierAttempts = 0): string {
+  return earlierAttempts > 0 ? `lh:job:${jobId}:refund:cancel:a${earlierAttempts + 1}` : `lh:job:${jobId}:refund:cancel`;
+}
+
+export const CANCEL_REFUND_MAX_ATTEMPTS = 3;
+
+function isCancelKey(jobId: string, key: string): boolean {
+  return key === `lh:job:${jobId}:refund:cancel` || new RegExp(`^lh:job:${jobId}:refund:cancel:a\\d+$`).test(key);
 }
 
 const LIVE_REFUND = (r: RefundRow) => r.status !== "failed" && r.status !== "cancelled";
@@ -222,7 +257,7 @@ const LIVE_REFUND = (r: RefundRow) => r.status !== "failed" && r.status !== "can
 /**
  * How long an unanswered refund may be re-sent with the same PayPal-Request-Id (the same bound
  * as a saved charge, PAYPAL_REPLAY_WINDOW_MS: PayPal's request-id memory is hours). Past it a
- * person checks PayPal (the refund carries invoice_id = our row id) before anything is re-sent.
+ * person checks PayPal before anything is re-sent.
  */
 export const REFUND_REPLAY_WINDOW_MS = 3 * 60 * 60 * 1000;
 
@@ -238,68 +273,55 @@ export async function settlePayPalCancellation(
   // A dispute owns the money (execute-dispute-split, phase 7); unsettled PayPal money is not refunded.
   if (payment.status === "disputed") return { outcome: "retry", reason: "payment_disputed" };
   if (payment.status === "capture_pending") return { outcome: "retry", reason: "capture_not_settled" };
-  if (payment.status !== "captured" && payment.status !== "partially_refunded") {
+  if (payment.status !== "captured" && payment.status !== "partially_refunded" && payment.status !== "refunded") {
     return { outcome: "needs_review", reason: `payment_status_${payment.status}` };
   }
 
-  const key = cancelRefundKey(payment.id);
   const refunds = await deps.store.refundsFor(payment.id);
-  const own = refunds.find((r) => r.idempotencyKey === key) ?? null;
-  if (own && !LIVE_REFUND(own)) return { outcome: "needs_review", reason: `cancel_refund_${own.status}: PayPal refused it; decide by hand` };
-  const alreadyRefundedCents = refunds.filter((r) => r !== own && LIVE_REFUND(r)).reduce((s, r) => s + r.amountCents, 0);
+  const cancelRows = refunds.filter((r) => isCancelKey(job.id, r.idempotencyKey));
+  // The live cancel refund, if any (there is at most one: a new attempt is made only after a dead one).
+  const own = cancelRows.find(LIVE_REFUND) ?? null;
+  const deadAttempts = cancelRows.filter((r) => !LIVE_REFUND(r)).length;
+  if (!own && deadAttempts >= CANCEL_REFUND_MAX_ATTEMPTS) {
+    return { outcome: "needs_review", reason: `cancel_refund_refused_${deadAttempts}_times: PayPal refused every offer; refund the poster by hand` };
+  }
+  const key = own ? own.idempotencyKey : cancelRefundKey(job.id, deadAttempts);
+  const alreadyRefundedCents = refunds.filter((r) => r !== own && LIVE_REFUND(r) && !isCancelKey(job.id, r.idempotencyKey)).reduce((s, r) => s + r.amountCents, 0);
 
   const providerFeeCents = await deps.readCaptureFeeCents(payment.providerCaptureId);
   if (providerFeeCents === null) return { outcome: "retry", reason: "provider_fee_unreadable" };
 
   const plan = planPayPalCancellation({ job, sellerFault, capturedCents: payment.amountCents, providerFeeCents, alreadyRefundedCents });
   if (plan.kind === "refuse") return { outcome: "needs_review", reason: plan.reason };
-  // A resumed run re-derives the plan; it must match what the first run sent.
+  // A resumed run re-derives the plan; it must match what was sent (or what PayPal recorded).
   if (own && own.amountCents !== plan.refundCents) {
-    return { outcome: "needs_review", reason: `cancel_refund_amount_changed: sent ${own.amountCents}, plan now ${plan.refundCents}` };
+    return { outcome: "needs_review", reason: `cancel_refund_amount_changed: recorded ${own.amountCents}, plan now ${plan.refundCents}` };
   }
 
-  // ── 1. The poster's share: one partial refund ──
+  // ── 1. The poster's share: one partial refund, through the refund door ──
   let refundStatus: "none" | "completed" | "pending" = "none";
-  let providerRefundId: string | null = null;
+  let providerRefundId: string | null = own?.providerRefundId ?? null;
   if (plan.refundCents > 0) {
-    const row = own ?? await deps.store.insertRefund({ paymentId: payment.id, idempotencyKey: key, amountCents: plan.refundCents, reason: "poster_cancel" });
-    providerRefundId = row.providerRefundId;
-    if (row.status === "completed") {
-      refundStatus = "completed";
-    } else if (row.providerRefundId) {
-      // PayPal has it (PENDING at PayPal); its webhook reconciles completion. Nothing to resend.
-      refundStatus = "pending";
-    } else if (now() - row.createdAtMs > REFUND_REPLAY_WINDOW_MS) {
-      return { outcome: "needs_review", reason: `refund_unanswered_past_replay_window: check PayPal for invoice ${row.id} on capture ${payment.providerCaptureId} before re-sending` };
-    } else {
-      try {
-        const r = await deps.provider.refund({
-          idempotencyKey: `lh:refund:${row.id}`,
-          providerCaptureId: payment.providerCaptureId,
-          amountCents: row.amountCents,
-          note: "Your cancelled Louisiana Helpr job",
-          invoiceId: row.id,
-        });
-        providerRefundId = r.providerRefundId;
-        if (r.amountCents !== row.amountCents) {
-          // Recorded as PayPal did it, so every later run sees the mismatch too (never "settled").
-          await deps.store.markRefund(row.id, { status: r.settled ? "completed" : "pending", providerRefundId: r.providerRefundId, amountCents: r.amountCents });
-          return { outcome: "needs_review", reason: `refund_amount_mismatch: asked ${row.amountCents}, PayPal refunded ${r.amountCents}` };
-        }
-        await deps.store.markRefund(row.id, { status: r.settled ? "completed" : "pending", providerRefundId: r.providerRefundId });
-        refundStatus = r.settled ? "completed" : "pending";
-      } catch (e) {
-        if (e instanceof ProviderApiError && !e.retryable) {
-          // PayPal answered and refused (e.g. 422 REFUND_AMOUNT_EXCEEDED): no money moved.
-          await deps.store.markRefund(row.id, { status: "failed" });
-          return { outcome: "needs_review", reason: `refund_refused: ${e.issue ?? e.httpStatus} ${e.message}`.slice(0, 300) };
-        }
-        // Unknown outcome: the row stays pending with no PayPal id; the next run replays the SAME key.
-        return { outcome: "retry", reason: `refund_outcome_unknown: ${e instanceof Error ? e.message : String(e)}`.slice(0, 300) };
-      }
+    if (own && own.status === "pending" && !own.providerRefundId && now() - own.createdAtMs > REFUND_REPLAY_WINDOW_MS) {
+      return { outcome: "needs_review", reason: `refund_unanswered_past_replay_window: check PayPal for ${key} on capture ${payment.providerCaptureId} before re-sending` };
     }
-    const refundedNow = alreadyRefundedCents + row.amountCents;
-    await deps.store.setPaymentStatus(payment.id, refundedNow >= payment.amountCents ? "refunded" : "partially_refunded");
+    const r = await deps.refunds.refund({
+      paymentId: payment.id,
+      idempotencyKey: key,
+      amountCents: plan.refundCents,
+      reason: "poster_cancel",
+      noteToPayer: "Your cancelled Louisiana Helpr job",
+      // Every live refund of this payment together: never past what this cancel may give back.
+      maxTotalCents: alreadyRefundedCents + plan.refundCents,
+    });
+    if (r.kind === "retry") return { outcome: "retry", reason: `refund_outcome_unknown: ${r.message}`.slice(0, 300) };
+    if (r.kind === "refused") return { outcome: "needs_review", reason: `refund_refused: ${r.code}: ${r.message}`.slice(0, 300) };
+    if (r.kind === "recorded_late") return { outcome: "needs_review", reason: `refund_recorded_late: PayPal refunded ${r.amountCents} (${r.providerRefundId}) but the ledger did not take it: ${r.message}`.slice(0, 300) };
+    if (r.amountMismatch || r.amountCents !== plan.refundCents) {
+      return { outcome: "needs_review", reason: `refund_amount_mismatch: asked ${plan.refundCents}, PayPal refunded ${r.amountCents}` };
+    }
+    providerRefundId = r.providerRefundId;
+    refundStatus = r.settled ? "completed" : "pending";
   }
 
   // ── 2. The Helpr's share of the fee: queued for the owner to pay by hand ──
@@ -337,20 +359,24 @@ export async function settlePayPalCancellation(
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
-const FUNDED = ["captured", "partially_refunded", "disputed", "capture_pending"];
+const FUNDED = ["captured", "partially_refunded", "refunded", "disputed", "capture_pending"];
+const REFUND_COLS = "id, idempotency_key, amount_cents, status, provider_refund_id, created_at";
 
-export function supabaseCancellationStore(db: Db): CancellationStore {
-  const must = (what: string, error: { message: string } | null) => {
-    if (error) throw new Error(`${what}: ${error.message}`);
-  };
-  const toRefund = (r: Record<string, unknown>): RefundRow => ({
+function must(what: string, error: { message: string } | null) {
+  if (error) throw new Error(`${what}: ${error.message}`);
+}
+function toRefund(r: Record<string, unknown>): RefundRow {
+  return {
     id: String(r.id),
     idempotencyKey: String(r.idempotency_key),
     amountCents: Number(r.amount_cents),
     status: r.status as RefundRow["status"],
     providerRefundId: (r.provider_refund_id as string | null) ?? null,
     createdAtMs: Date.parse(String(r.created_at)),
-  });
+  };
+}
+
+export function supabaseCancellationStore(db: Db): CancellationStore {
   return {
     async fundedPaymentForJob(jobId) {
       // Interpolated into a PostgREST filter below: only ever a uuid.
@@ -369,61 +395,92 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
       return { id: String(r.id), env: r.env as ProviderEnv, amountCents: Number(r.amount_cents), providerCaptureId: String(r.provider_capture_id), status: String(r.status) };
     },
     async refundsFor(paymentId) {
-      const { data, error } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at").eq("provider_payment_id", paymentId);
+      const { data, error } = await db.from("provider_refunds").select(REFUND_COLS).eq("provider_payment_id", paymentId);
       must("provider_refunds read", error);
       return ((data ?? []) as Array<Record<string, unknown>>).map(toRefund);
     },
-    async insertRefund(row) {
-      const { data, error } = await db
-        .from("provider_refunds")
-        .insert({ provider_payment_id: row.paymentId, idempotency_key: row.idempotencyKey, amount_cents: row.amountCents, reason: row.reason, status: "pending" })
-        .select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at")
-        .single();
-      if (error?.code === "23505") {
-        const { data: again, error: againErr } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at").eq("idempotency_key", row.idempotencyKey).single();
-        must("provider_refunds re-read", againErr);
-        return toRefund(again);
-      }
-      must("provider_refunds insert", error);
-      return toRefund(data);
-    },
-    async markRefund(id, patch) {
-      const { data, error } = await db
-        .from("provider_refunds")
-        .update({
-          status: patch.status,
-          ...(patch.providerRefundId ? { provider_refund_id: patch.providerRefundId } : {}),
-          ...(patch.amountCents !== undefined ? { amount_cents: patch.amountCents } : {}),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id)
-        .select("id");
-      must("provider_refunds update", error);
-      if (!data || data.length === 0) throw new Error(`provider_refunds update matched 0 rows (${id})`);
-    },
-    async setPaymentStatus(paymentId, status) {
-      const { data, error } = await db
-        .from("provider_payments")
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq("id", paymentId)
-        .in("status", ["captured", "partially_refunded"])
-        .select("id");
-      must("provider_payments status update", error);
-      // Zero rows: already 'refunded' (a resumed run) is fine; anything else the next read sees.
-      void data;
-    },
     async settleJob(jobId, patch) {
-      // Only a job still cancelled and in escrow (the sweep's own selection) is flipped.
-      const { data, error } = await db
-        .from("jobs")
-        .update({ payment_status: patch.payment_status, cancellation_fee_status: patch.cancellation_fee_status })
-        .eq("id", jobId)
-        .eq("status", "cancelled")
-        .eq("payment_status", "escrow")
-        .select("id");
+      const { data, error } = await db.rpc("paypal_settle_cancelled_job", { p_job_id: jobId, p_cancellation_fee_status: patch.cancellation_fee_status });
       // An error is not "zero rows": throw with it, so the page names the real cause.
-      if (error) throw new Error(`jobs settle write failed: ${error.message}`);
-      return !!data && data.length > 0;
+      if (error) throw new Error(`paypal_settle_cancelled_job failed: ${error.message}`);
+      return data === true;
+    },
+  };
+}
+
+/**
+ * TEMPORARY refund door (until phase 5's refundProviderPayment is on main; lead 2026-10-23: the
+ * phases land in order and this branch lands last). The same order as phase 5's door: claim the
+ * provider_refunds row first (UNIQUE key, phase 1's guard: never past a queued payout or the
+ * payment), ask PayPal with PayPal-Request-Id = the key, record. Same key, same outcome shape.
+ * It enforces `maxTotalCents` before the claim; phase 5's paypal_refund_claim does so under the
+ * payment lock. Swap it out in one line in void-cancelled-payments/paypalCancel.ts.
+ */
+export function interimCancelRefundDoor(db: Db, provider: Pick<PaymentProvider, "refund">): CancelRefundDoor {
+  return {
+    async refund(req) {
+      if (req.maxTotalCents !== undefined) {
+        const { data: live, error: lErr } = await db.from("provider_refunds").select("amount_cents, status, idempotency_key").eq("provider_payment_id", req.paymentId);
+        if (lErr) return { kind: "retry", message: `refunds read: ${lErr.message}`, refundRowId: null };
+        const others = ((live ?? []) as Array<{ amount_cents: number; status: string; idempotency_key: string }>)
+          .filter((x) => x.idempotency_key !== req.idempotencyKey && x.status !== "failed" && x.status !== "cancelled")
+          .reduce((s, x) => s + Number(x.amount_cents), 0);
+        if (others + req.amountCents > req.maxTotalCents) {
+          return { kind: "refused", code: "refund_exceeds_refundable", message: `${others} already refunded + ${req.amountCents} > ${req.maxTotalCents}`, refundRowId: null };
+        }
+      }
+      // CLAIM
+      const ins = await db
+        .from("provider_refunds")
+        .insert({ provider_payment_id: req.paymentId, idempotency_key: req.idempotencyKey, amount_cents: req.amountCents, reason: req.reason, status: "pending" })
+        .select(REFUND_COLS)
+        .single();
+      let row: RefundRow;
+      if (ins.error?.code === "23505") {
+        const again = await db.from("provider_refunds").select(REFUND_COLS).eq("idempotency_key", req.idempotencyKey).single();
+        if (again.error) return { kind: "retry", message: `claim re-read: ${again.error.message}`, refundRowId: null };
+        row = toRefund(again.data);
+        if (row.amountCents !== req.amountCents) return { kind: "refused", code: "refund_key_reused", message: `key holds ${row.amountCents}, asked ${req.amountCents}`, refundRowId: row.id };
+      } else if (ins.error) {
+        const code = ["refund_after_payout_queued", "refund_exceeds_payment", "refund_needs_captured_payment"].find((c) => ins.error.message.includes(c));
+        return code ? { kind: "refused", code, message: ins.error.message, refundRowId: null } : { kind: "retry", message: `claim failed: ${ins.error.message}`, refundRowId: null };
+      } else {
+        row = toRefund(ins.data);
+      }
+      if (row.status === "completed" && row.providerRefundId) {
+        return { kind: "refunded", refundRowId: row.id, providerRefundId: row.providerRefundId, settled: true, amountCents: row.amountCents, askedCents: req.amountCents, amountMismatch: row.amountCents !== req.amountCents, replay: true, paymentStatus: null };
+      }
+      if (row.status === "failed" || row.status === "cancelled") return { kind: "refused", code: "earlier_attempt_failed", message: `this refund already ${row.status}`, refundRowId: row.id };
+      const { data: pay, error: payErr } = await db.from("provider_payments").select("provider_capture_id, amount_cents").eq("id", req.paymentId).single();
+      if (payErr || !pay?.provider_capture_id) return { kind: "retry", message: `capture read: ${payErr?.message ?? "no capture"}`, refundRowId: row.id };
+      // ASK
+      let paid;
+      try {
+        paid = await provider.refund({ idempotencyKey: req.idempotencyKey, providerCaptureId: String(pay.provider_capture_id), amountCents: req.amountCents, note: req.noteToPayer, invoiceId: row.id });
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (e instanceof ProviderApiError && ([400, 404, 422].includes(e.httpStatus) || e.errorName === "REFUND_NOT_SUCCESSFUL")) {
+          const { error: mErr } = await db.from("provider_refunds").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", row.id);
+          if (mErr) return { kind: "retry", message: `PayPal refused and the row could not be marked failed: ${mErr.message}`, refundRowId: row.id };
+          return { kind: "refused", code: "provider_refused", message: `${e.issue ?? e.httpStatus}: ${msg}`, refundRowId: row.id };
+        }
+        return { kind: "retry", message: msg, refundRowId: row.id };
+      }
+      // RECORD (PayPal's own amount, so a mismatch is durable)
+      const { data: rec, error: rErr } = await db
+        .from("provider_refunds")
+        .update({ status: paid.settled ? "completed" : "pending", provider_refund_id: paid.providerRefundId, amount_cents: paid.amountCents, updated_at: new Date().toISOString() })
+        .eq("id", row.id)
+        .select("id");
+      if (rErr || !rec || rec.length === 0) {
+        return { kind: "recorded_late", message: rErr?.message ?? "zero rows", refundRowId: row.id, providerRefundId: paid.providerRefundId, amountCents: paid.amountCents };
+      }
+      const { data: all, error: aErr } = await db.from("provider_refunds").select("amount_cents, status").eq("provider_payment_id", req.paymentId);
+      if (!aErr) {
+        const total = ((all ?? []) as Array<{ amount_cents: number; status: string }>).filter((x) => x.status !== "failed" && x.status !== "cancelled").reduce((s, x) => s + Number(x.amount_cents), 0);
+        await db.from("provider_payments").update({ status: total >= Number(pay.amount_cents) ? "refunded" : "partially_refunded", updated_at: new Date().toISOString() }).eq("id", req.paymentId).in("status", ["captured", "partially_refunded"]);
+      }
+      return { kind: "refunded", refundRowId: row.id, providerRefundId: paid.providerRefundId, settled: paid.settled, amountCents: paid.amountCents, askedCents: req.amountCents, amountMismatch: paid.amountCents !== req.amountCents, replay: false, paymentStatus: null };
     },
   };
 }

@@ -53,6 +53,12 @@ export interface PayPalAutoTipDeps {
   }): Promise<{ providerPaymentId: string }>;
   /** settlePayPalTip(db, provider, client, providerPaymentId). Throws when it cannot finish. */
   settle(providerPaymentId: string): Promise<AutoTipSettle>;
+  /**
+   * Write a marker on the claim row (tips.failure_reason) that must land (throws otherwise):
+   * `paypal_charging:<key>` right BEFORE the charge, `paypal_charged:<orderId>` right after it. A
+   * stale claim's marker says what can be known about it (reconcileStalePayPalAutoTip).
+   */
+  markClaim(tipId: string, marker: string): Promise<void>;
 }
 
 export interface PayPalAutoTipInput {
@@ -88,6 +94,10 @@ export function autoTipChargeKey(tipId: string, chargeCents: number): string {
   return `lh:autotip:${tipId}:charge:amt${chargeCents}:a1`;
 }
 
+/** Claim markers (tips.failure_reason while the claim is pending). */
+export const CHARGING = "paypal_charging:";
+export const CHARGED = "paypal_charged:";
+
 const NO_METHOD_MESSAGE =
   "We couldn't charge your automatic tip because there's no saved PayPal payment method on file. You can send it in a tap.";
 
@@ -113,6 +123,11 @@ export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAuto
   const quote = paypalTipChargeBreakdown(i.tipCents, autoTipMethod(method.source));
   if (quote.helperCents !== quote.tipCents || quote.tipCents !== i.tipCents) throw new Error("a tip pays the Helpr 100% of the tip");
   const key = autoTipChargeKey(i.tipId, quote.chargeCents);
+  try {
+    await deps.markClaim(i.tipId, `${CHARGING}${key}`);
+  } catch (e) {
+    return { outcome: "unreadable", message: `claim marker before the charge: ${msg(e)}` };
+  }
 
   // ── The charge ──
   let orderId: string;
@@ -139,6 +154,12 @@ export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAuto
   }
 
   // ── The record: the tips lane takes the claimed row over, then records the capture ──
+  try {
+    await deps.markClaim(i.tipId, `${CHARGED}${orderId}`);
+  } catch (e) {
+    // Not fatal: paypal_open_tip below records the order id on the payment row anyway.
+    console.warn(`[paypalAutoTip] claim marker after the charge failed for ${i.tipId}: ${msg(e)}`);
+  }
   let paymentId: string;
   try {
     ({ providerPaymentId: paymentId } = await deps.openTip({
@@ -159,4 +180,90 @@ export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAuto
   }
   if (settled.paymentStatus === "capture_pending") return { outcome: "capture_pending", paymentId, quote };
   return { outcome: "charged", paymentId, quote, payoutId: settled.payoutId, payoutReason: settled.payoutReason };
+}
+
+// ── Stale claims (lead 2026-10-23, the tips lane's round-4 conditions) ─────
+//
+// A claim is the one-auto-tip-per-job+Helpr lock (tips_one_auto_per_job_member), so a claim left
+// 'pending' blocks that job+Helpr's auto-tip for good. PayPal's request-id memory is hours (NOT
+// measured), so a stale claim is NEVER charged again. Past STALE_CLAIM_AFTER_MS:
+//   - no marker, no payment row: the run died before the charge was ever sent. Nothing was taken:
+//     the claim is closed (failed) and the poster told, like any tip that could not be sent.
+//   - `paypal_charged:<order>`, no payment row (the record was lost): PayPal is ASKED about that
+//     order (a read, never a charge). Captured: recorded now (paypal_open_tip + settle). Not
+//     captured: the claim is closed. Unreadable: left for the next run.
+//   - `paypal_charging:<key>` with no order (the charge's answer was lost): nobody can tell from
+//     our side whether PayPal took money. A person checks PayPal (alert); the claim stays.
+//   - a payment row exists: the tips lane's record path (settle) finishes it.
+
+export interface StaleClaim {
+  tipId: string;
+  jobId: string;
+  posterId: string;
+  helperId: string;
+  tipCents: number;
+  createdAtMs: number;
+  marker: string | null;
+  /** The tip's provider_payments id, when paypal_open_tip wrote one. */
+  paymentId: string | null;
+}
+
+export interface ReconcileDeps {
+  env: ProviderEnv;
+  now(): number;
+  readOrder(orderId: string): Promise<{ status: string; capture: { providerCaptureId: string; amountCents: number; settled: boolean } | null }>;
+  openTip: PayPalAutoTipDeps["openTip"];
+  settle: PayPalAutoTipDeps["settle"];
+  /** Close the claim (payment_status 'failed', reason) and tell the poster; throws when it did not land. */
+  closeClaim(tipId: string, reason: string): Promise<void>;
+  /** Page a person once a day for this claim. */
+  alert(tipId: string, reason: string): Promise<void>;
+}
+
+export type ReconcileOutcome = "too_young" | "closed_never_charged" | "recorded_late" | "closed_not_captured" | "needs_human" | "settled_by_record" | "retry";
+
+export const STALE_CLAIM_AFTER_MS = 3 * 60 * 60 * 1000;
+
+export async function reconcileStalePayPalAutoTip(deps: ReconcileDeps, c: StaleClaim): Promise<ReconcileOutcome> {
+  if (deps.now() - c.createdAtMs <= STALE_CLAIM_AFTER_MS) return "too_young";
+  if (c.paymentId) {
+    try {
+      await deps.settle(c.paymentId);
+      return "settled_by_record";
+    } catch (e) {
+      await deps.alert(c.tipId, `stale auto-tip ${c.tipId}: its payment ${c.paymentId} could not be recorded: ${msg(e)}`);
+      return "retry";
+    }
+  }
+  if (!c.marker || (!c.marker.startsWith(CHARGING) && !c.marker.startsWith(CHARGED))) {
+    await deps.closeClaim(c.tipId, "paypal_claim_stale_never_charged: the run stopped before any charge was sent; nothing was taken");
+    return "closed_never_charged";
+  }
+  if (c.marker.startsWith(CHARGING)) {
+    await deps.alert(c.tipId, `stale auto-tip ${c.tipId}: the PayPal charge (${c.marker.slice(CHARGING.length)}) got no answer and its window has passed. Check PayPal for invoice ${c.tipId} before anything else; it is never charged again.`);
+    return "needs_human";
+  }
+  const orderId = c.marker.slice(CHARGED.length);
+  let order;
+  try {
+    order = await deps.readOrder(orderId);
+  } catch (e) {
+    await deps.alert(c.tipId, `stale auto-tip ${c.tipId}: PayPal order ${orderId} could not be read: ${msg(e)}`);
+    return "retry";
+  }
+  if (!order.capture) {
+    await deps.closeClaim(c.tipId, `paypal_order_not_captured: order ${orderId} is ${order.status}; nothing was taken`);
+    return "closed_not_captured";
+  }
+  try {
+    const { providerPaymentId } = await deps.openTip({
+      jobId: c.jobId, tipperId: c.posterId, helperId: c.helperId, tipCents: c.tipCents, chargeCents: order.capture.amountCents,
+      env: deps.env, idempotencyKey: autoTipChargeKey(c.tipId, order.capture.amountCents), orderId, tipId: c.tipId,
+    });
+    await deps.settle(providerPaymentId);
+    return "recorded_late";
+  } catch (e) {
+    await deps.alert(c.tipId, `stale auto-tip ${c.tipId}: PayPal order ${orderId} IS captured but could not be recorded: ${msg(e)}`);
+    return "retry";
+  }
 }

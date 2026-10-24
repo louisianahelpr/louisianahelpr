@@ -9,7 +9,7 @@
 // The poster is told what came back and what was kept (sendRefundNotice, as every Stripe refund
 // path: Q1714), and the Helpr is told their fee share is on its way.
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
-import { settlePayPalCancellation, supabaseCancellationStore, type PayPalCancelJob, type SettleOutcome } from "../_shared/payments/paypalCancellation.ts";
+import { interimCancelRefundDoor, settlePayPalCancellation, supabaseCancellationStore, type PayPalCancelJob, type SettleOutcome } from "../_shared/payments/paypalCancellation.ts";
 import { rpcManualPayoutQueue } from "../_shared/payments/phase6PayoutDoors.ts";
 import { visitSubjectId } from "../_shared/payments/paypalSavedCharge.ts";
 import type { PayPalRuntime } from "../_shared/payments/paypalRuntime.ts";
@@ -129,7 +129,8 @@ export async function settlePayPalCancelledJob(db: Db, jobId: string, runtime: P
     out = await settlePayPalCancellation(
       {
         store: supabaseCancellationStore(db),
-        provider: runtime.provider,
+        // TEMPORARY until phase 5 is on main: then refundProviderPayment (providerRefunds.ts), same key.
+        refunds: interimCancelRefundDoor(db, runtime.provider),
         readCaptureFeeCents: runtime.readCaptureFeeCents,
         queue: rpcManualPayoutQueue(db),
         env: runtime.env,
@@ -179,7 +180,7 @@ async function tellTheParties(db: Db, job: PayPalCancelJob, out: Extract<SettleO
       user_id: job.helper_id,
       job_id: job.id,
       title: "You're getting a cancellation fee",
-      message: `The poster cancelled late, so ${refundDollars(p.helprPayoutCents)} of the cancellation fee is yours. It's sent to your PayPal.`,
+      message: `The poster cancelled late, so $${(p.helprPayoutCents / 100).toFixed(2)} of the cancellation fee is yours. It's sent to your PayPal.`,
       type: "payment",
       link: `/jobs?job=${job.id}`,
     }).select("id");

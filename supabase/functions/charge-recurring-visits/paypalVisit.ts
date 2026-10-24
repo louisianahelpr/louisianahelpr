@@ -11,6 +11,7 @@ import { fundPayPalVisit, type SeriesParent, type VisitOutcome, type VisitStore 
 import { supabaseSavedChargeStore } from "../_shared/payments/paypalSavedCharge.ts";
 import type { PayPalRuntime } from "../_shared/payments/paypalRuntime.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -165,26 +166,36 @@ export async function bookPayPalVisitParties(
   return fails;
 }
 
-/** The poster is told money for a visit came back (an unbookable visit or a duplicate charge). */
+/**
+ * The poster is told money for a visit came back (an unbookable visit or a duplicate charge),
+ * through the one refund notice every refund path uses (Q1714: amount, method, what was kept).
+ */
 export async function tellPosterVisitRefund(
   db: Db,
   parent: { id: string; title?: unknown; customer_id: string },
   visitDate: string,
-  refundCents: number,
+  r: { providerRefundId: string | null; refundCents: number; keptCents: number },
   why: "unbooked" | "duplicate",
+  env: string,
 ): Promise<string | null> {
-  const amount = `$${(refundCents / 100).toFixed(2)}`;
-  const message = why === "duplicate"
-    ? `You were charged twice for "${parent.title}" on ${visitDate}. The extra ${amount} is on its way back to your PayPal payment method.`
-    : `"${parent.title}" on ${visitDate} couldn't be booked, so ${amount} is on its way back to your PayPal payment method (PayPal's processing fee is not returned).`;
-  const { data, error } = await db.from("notifications").insert({
-    user_id: parent.customer_id,
-    job_id: parent.id,
-    title: why === "duplicate" ? "A duplicate charge was refunded" : "Your visit wasn't booked",
-    message,
-    type: "payment",
-    link: `/posts?job=${parent.id}`,
-  }).select("id");
-  if (error || !data || data.length === 0) return `series ${parent.id} ${visitDate}: poster not told about a ${amount} visit refund (${error?.message ?? "zero rows"})`;
-  return null;
+  if (!(r.refundCents > 0)) return null;
+  if (!r.providerRefundId) return `series ${parent.id} ${visitDate}: a ${r.refundCents}c visit refund has no PayPal refund id yet; poster not told`;
+  const res = await sendRefundNotice(db, {
+    key: `refund:pp_${r.providerRefundId}`,
+    kind: "refund",
+    paymentIntentId: null,
+    jobByPayment: false,
+    amountCents: r.refundCents,
+    keptCents: r.keptCents,
+    keptReason: r.keptCents > 0 ? "PayPal's processing fee, which PayPal does not return" : null,
+    recipientId: parent.customer_id,
+    jobId: parent.id,
+    method: { type: "paypal" },
+    extra: why === "duplicate"
+      ? `You were charged twice for "${parent.title}" on ${visitDate}; this is the extra charge.`
+      : `"${parent.title}" on ${visitDate} couldn't be booked.`,
+    testMode: env === "sandbox",
+  });
+  const problem = refundNoticeProblem(res);
+  return problem ? `series ${parent.id} ${visitDate}: visit refund notice: ${problem}` : null;
 }

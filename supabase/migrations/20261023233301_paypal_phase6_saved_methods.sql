@@ -144,3 +144,39 @@ DROP TRIGGER IF EXISTS trg_provider_payments_funds_job_set_once ON public.provid
 CREATE TRIGGER trg_provider_payments_funds_job_set_once
   BEFORE INSERT OR UPDATE OF funds_job_id ON public.provider_payments
   FOR EACH ROW EXECUTE FUNCTION public.provider_payments_funds_job_set_once();
+
+-- 3. The cancel sweep's one jobs write (lead 2026-10-23, decision (a): ONE settlement path for
+--    every cancelled PayPal job). Phase 3's paypal_job_money_state_guard refuses a payment_status
+--    change on a PayPal-funded job unless the writer sets app.paypal_money_write in its own
+--    transaction, which PostgREST cannot; so the flip is this RPC. It flips ONLY a cancelled job
+--    still in escrow, and only when PayPal money for it is (or was) captured: the job's own
+--    payment or the repeat-visit payment that funds it. Service role only. Idempotent: a job
+--    already settled answers false (zero rows), never an error.
+CREATE OR REPLACE FUNCTION public.paypal_settle_cancelled_job(p_job_id uuid, p_cancellation_fee_status text)
+RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_n integer;
+BEGIN
+  IF p_cancellation_fee_status IS NOT NULL AND p_cancellation_fee_status <> 'charged' THEN
+    RAISE EXCEPTION 'cancellation_fee_status_invalid' USING ERRCODE = '22023';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.provider_payments p
+                  WHERE ((p.subject_kind = 'job' AND p.subject_id = p_job_id) OR p.funds_job_id = p_job_id)
+                    AND p.status IN ('captured', 'partially_refunded', 'refunded')) THEN
+    RAISE EXCEPTION 'no_paypal_money_for_job' USING ERRCODE = '42501';
+  END IF;
+  PERFORM set_config('app.paypal_money_write', '1', true);
+  UPDATE public.jobs
+     SET payment_status = 'refunded', cancellation_fee_status = p_cancellation_fee_status
+   WHERE id = p_job_id AND status = 'cancelled' AND payment_status = 'escrow';
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  PERFORM set_config('app.paypal_money_write', '', true);
+  RETURN v_n = 1;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.paypal_settle_cancelled_job(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_settle_cancelled_job(uuid, text) TO service_role;

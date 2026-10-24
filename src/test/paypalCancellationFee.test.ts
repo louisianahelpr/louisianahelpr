@@ -9,11 +9,13 @@
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | actualFeeCents: i.providerFeeCents, | actualFeeCents: 0,
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (!split.feesFitCard) return { kind: "refuse", reason: "fee_exceeds_payment" }; | if (false) return { kind: "refuse", reason: "fee_exceeds_payment" };
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (own && own.amountCents !== plan.refundCents) { | if (false) {
- * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | const own = refunds.find((r) => r.idempotencyKey === key) ?? null; | const own = null as RefundRow \| null;
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (r.amountMismatch \|\| r.amountCents !== plan.refundCents) { | if (false) {
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (payment.env !== deps.env) return | if (false) return
  * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | const recorded = (outcome === "queued" \|\| outcome === "queued_held" \|\| outcome === "already_queued") && payoutId !== null; | const recorded = outcome !== "refused";
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (cents(i.alreadyRefundedCents) > split.split.ceilingCents + 1) return { kind: "refuse", reason: "refunded_past_kept" }; | void 0;
- * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | } else if (now() - row.createdAtMs > REFUND_REPLAY_WINDOW_MS) { | } else if (false) {
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (own && own.status === "pending" && !own.providerRefundId && now() - own.createdAtMs > REFUND_REPLAY_WINDOW_MS) { | if (false) {
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | const key = own ? own.idempotencyKey : cancelRefundKey(job.id, deadAttempts); | const key = own ? own.idempotencyKey : cancelRefundKey(job.id);
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (!own && deadAttempts >= CANCEL_REFUND_MAX_ATTEMPTS) { | if (false) {
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (i.sellerFault) return { kind: "refuse", reason: "seller_fault_not_on_paypal" }; | void 0;
  */
 import { describe, expect, it } from "vitest";
@@ -22,13 +24,13 @@ import {
   cancelRefundKey,
   planPayPalCancellation,
   settlePayPalCancellation,
+  type CancelRefundDoor,
   type CancellationStore,
   type FundedPayment,
   type PayPalCancelJob,
   type RefundRow,
 } from "../../supabase/functions/_shared/payments/paypalCancellation.ts";
 import { parseQueueAnswer, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
-import { ProviderApiError } from "../../supabase/functions/_shared/payments/types.ts";
 import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee.ts";
 
 // A $100 job on the PayPal stamp (8% + 70c, phase 5), starting 2026-11-10 18:00 Central (CST,
@@ -141,6 +143,7 @@ describe("every tier, exact cents ($100 PayPal job, 8% + 70c stamp, PayPal fee 3
 
 // ── The settlement ──────────────────────────────────────────────────────────
 
+/** An in-memory twin of the ledger + phase 5's refund door (claim by key, ask PayPal, record). */
 function memStore(payment: FundedPayment | null) {
   const refunds: Array<RefundRow & { paymentId: string }> = [];
   const jobs = new Map<string, string>([["a0000000-0000-4000-8000-000000000001", "escrow"]]);
@@ -148,19 +151,33 @@ function memStore(payment: FundedPayment | null) {
   const store: CancellationStore = {
     async fundedPaymentForJob() { return payment; },
     async refundsFor(id) { return refunds.filter((r) => r.paymentId === id); },
-    async insertRefund(r) {
-      const dup = refunds.find((x) => x.idempotencyKey === r.idempotencyKey);
-      if (dup) return dup;
-      const row = { id: `R${refunds.length + 1}`, idempotencyKey: r.idempotencyKey, amountCents: r.amountCents, status: "pending" as const, providerRefundId: null, paymentId: r.paymentId, createdAtMs: Date.now() };
-      refunds.push(row);
-      log.push(`insertRefund ${r.amountCents}`);
-      return row;
-    },
-    async markRefund(id, p) { const r = refunds.find((x) => x.id === id)!; r.status = p.status; if (p.providerRefundId) r.providerRefundId = p.providerRefundId; if (p.amountCents !== undefined) r.amountCents = p.amountCents; log.push(`markRefund ${p.status}`); },
-    async setPaymentStatus(_id, s) { if (payment) payment.status = s; log.push(`payment ${s}`); },
     async settleJob(id, patch) { if (jobs.get(id) !== "escrow") return false; jobs.set(id, patch.payment_status); log.push(`job ${patch.payment_status} fee=${patch.cancellation_fee_status}`); return true; },
   };
   return { store, refunds, jobs, log };
+}
+type PayPalAnswer = "ok" | "timeout" | "refused" | "short";
+function door(m: ReturnType<typeof memStore>, answers: PayPalAnswer[]) {
+  const calls: Array<{ idempotencyKey: string; amountCents: number; maxTotalCents?: number }> = [];
+  const d: CancelRefundDoor = {
+    async refund(req) {
+      let row = m.refunds.find((r) => r.idempotencyKey === req.idempotencyKey);
+      if (!row) {
+        row = { id: `R${m.refunds.length + 1}`, idempotencyKey: req.idempotencyKey, amountCents: req.amountCents, status: "pending", providerRefundId: null, paymentId: req.paymentId, createdAtMs: Date.now() };
+        m.refunds.push(row);
+        m.log.push(`claim ${req.amountCents}`);
+      }
+      if (row.status === "completed" && row.providerRefundId) return { kind: "refunded", refundRowId: row.id, providerRefundId: row.providerRefundId, settled: true, amountCents: row.amountCents, askedCents: req.amountCents, amountMismatch: false, replay: true, paymentStatus: null };
+      calls.push({ idempotencyKey: req.idempotencyKey, amountCents: req.amountCents, maxTotalCents: req.maxTotalCents });
+      const a = answers.shift() ?? "ok";
+      if (a === "timeout") return { kind: "retry", message: "transport", refundRowId: row.id };
+      if (a === "refused") { row.status = "failed"; return { kind: "refused", code: "provider_refused", message: "422 REFUND_AMOUNT_EXCEEDED", refundRowId: row.id }; }
+      const amount = a === "short" ? req.amountCents - 100 : req.amountCents;
+      row.status = "completed"; row.providerRefundId = "RF1"; row.amountCents = amount;
+      m.log.push("refunded");
+      return { kind: "refunded", refundRowId: row.id, providerRefundId: "RF1", settled: true, amountCents: amount, askedCents: req.amountCents, amountMismatch: amount !== req.amountCents, replay: false, paymentStatus: "partially_refunded" };
+    },
+  };
+  return { d, calls };
 }
 const PAYMENT = (): FundedPayment => ({ id: "p1", env: "sandbox", amountCents: 10000, providerCaptureId: "CAP1", status: "captured" });
 function queue(answers: Array<"queued" | "refused">) {
@@ -169,103 +186,102 @@ function queue(answers: Array<"queued" | "refused">) {
     async queue(i) {
       calls.push(i);
       const a = answers.shift() ?? "queued";
-      return a === "queued" ? { outcome: "queued", reason: null, payoutId: "PO1", recorded: true } : { outcome: "refused", reason: "job_not_approved", payoutId: null, recorded: false };
+      return a === "queued" ? { outcome: "queued", reason: null, payoutId: "PO1", recorded: true } : { outcome: "refused", reason: "job_not_cancelled_with_held_money", payoutId: null, recorded: false };
     },
   };
   return { q, calls };
 }
-function provider(results: Array<"ok" | "timeout" | "refused">) {
-  const calls: Array<{ idempotencyKey: string; amountCents: number }> = [];
-  return {
-    calls,
-    refund: async (i: { idempotencyKey: string; providerCaptureId: string; amountCents: number }) => {
-      calls.push({ idempotencyKey: i.idempotencyKey, amountCents: i.amountCents });
-      const r = results.shift() ?? "ok";
-      if (r === "timeout") throw new ProviderApiError("transport failure", 0, null, null, null);
-      if (r === "refused") throw new ProviderApiError("422", 422, "UNPROCESSABLE_ENTITY", "REFUND_AMOUNT_EXCEEDED", "d");
-      return { providerRefundId: "RF1", status: "COMPLETED" as const, settled: true, amountCents: i.amountCents };
-    },
-  };
-}
-const deps = (s: ReturnType<typeof memStore>, p: ReturnType<typeof provider>, q: ReturnType<typeof queue>, fee: number | null = PAYPAL_FEE) =>
-  ({ store: s.store, provider: p, queue: q.q, readCaptureFeeCents: async () => fee, env: "sandbox" as const });
+const deps = (s: ReturnType<typeof memStore>, r: ReturnType<typeof door>, q: ReturnType<typeof queue>, fee: number | null = PAYPAL_FEE) =>
+  ({ store: s.store, refunds: r.d, queue: q.q, readCaptureFeeCents: async () => fee, env: "sandbox" as const });
+const KEY = cancelRefundKey("a0000000-0000-4000-8000-000000000001");
 
 describe("settlePayPalCancellation", () => {
-  it("25%: one partial refund of 7102c keyed to its row, then the Helpr's 2200c on the pay queue, then the job leaves escrow", async () => {
-    const s = memStore(PAYMENT()); const p = provider([]); const q = queue([]);
-    const out = await settlePayPalCancellation(deps(s, p, q), job(), false);
-    expect(out.outcome).toBe("settled");
-    expect(p.calls).toEqual([{ idempotencyKey: "lh:refund:R1", amountCents: 7102 }]);
-    expect(s.refunds[0]).toMatchObject({ idempotencyKey: cancelRefundKey("p1"), status: "completed", providerRefundId: "RF1" });
+  it("25%: one partial refund of 7102c under phase 5's business key, capped at what the cancel may give back, then the Helpr's 2200c on the pay queue, then the job leaves escrow", async () => {
+    const s = memStore(PAYMENT()); const r = door(s, []); const q = queue([]);
+    const out = await settlePayPalCancellation(deps(s, r, q), job(), false);
+    expect(out).toMatchObject({ outcome: "settled", providerRefundId: "RF1", refundStatus: "completed" });
+    expect(KEY).toBe("lh:job:a0000000-0000-4000-8000-000000000001:refund:cancel");
+    expect(r.calls).toEqual([{ idempotencyKey: KEY, amountCents: 7102, maxTotalCents: 7102 }]);
     expect(q.calls).toEqual([{ jobId: job().id, helperId: job().helper_id, amountCents: 2200, platformFeeCents: 300, source: "cancellation_fee", providerPaymentId: "p1" }]);
-    expect(s.log).toEqual(["insertRefund 7102", "markRefund completed", "payment partially_refunded", "job refunded fee=charged"]);
+    expect(s.log).toEqual(["claim 7102", "refunded", "job refunded fee=charged"]);
   });
   it("refund BEFORE payout (the database refuses a refund while a payout is queued)", async () => {
-    const s = memStore(PAYMENT()); const p = provider([]); const order: string[] = [];
+    const s = memStore(PAYMENT()); const order: string[] = [];
+    const r = door(s, []);
+    const wrapped: CancelRefundDoor = { refund: async (req) => { order.push("refund"); return r.d.refund(req); } };
     const q: ManualPayoutQueue = { async queue() { order.push("queue"); return { outcome: "queued", reason: null, payoutId: "PO1", recorded: true }; } };
-    const pp = { refund: async (i: Parameters<typeof p.refund>[0]) => { order.push("refund"); return p.refund(i); } };
-    await settlePayPalCancellation({ store: s.store, provider: pp, queue: q, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" }, job(), false);
+    await settlePayPalCancellation({ store: s.store, refunds: wrapped, queue: q, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" }, job(), false);
     expect(order).toEqual(["refund", "queue"]);
   });
   it("0%: refund only, no payout, cancellation_fee_status null", async () => {
-    const s = memStore(PAYMENT()); const p = provider([]); const q = queue([]);
-    const out = await settlePayPalCancellation(deps(s, p, q), job({ cancelled_at: hoursBefore(48) }), false);
+    const s = memStore(PAYMENT()); const r = door(s, []); const q = queue([]);
+    const out = await settlePayPalCancellation(deps(s, r, q), job({ cancelled_at: hoursBefore(48) }), false);
     expect(out.outcome).toBe("settled");
-    expect(p.calls.map((c) => c.amountCents)).toEqual([9602]);
+    expect(r.calls.map((c) => c.amountCents)).toEqual([9602]);
     expect(q.calls).toEqual([]);
     expect(s.log[s.log.length - 1]).toBe("job refunded fee=null");
   });
   it("a payout the queue refuses: the refund is out, the job stays in escrow; the next run does NOT refund again", async () => {
-    const s = memStore(PAYMENT()); const p = provider([]); const q = queue(["refused", "queued"]);
-    const first = await settlePayPalCancellation(deps(s, p, q), job(), false);
-    expect(first).toEqual({ outcome: "retry", reason: "fee_payout_refused: job_not_approved" });
+    const s = memStore(PAYMENT()); const r = door(s, []); const q = queue(["refused", "queued"]);
+    const first = await settlePayPalCancellation(deps(s, r, q), job(), false);
+    expect(first).toEqual({ outcome: "retry", reason: "fee_payout_refused: job_not_cancelled_with_held_money" });
     expect(s.jobs.get(job().id)).toBe("escrow");
-    const second = await settlePayPalCancellation(deps(s, p, q), job(), false);
+    const second = await settlePayPalCancellation(deps(s, r, q), job(), false);
     expect(second.outcome).toBe("settled");
-    expect(p.calls).toHaveLength(1);
+    expect(r.calls).toHaveLength(1);
     expect(q.calls).toHaveLength(2);
   });
-  it("an unknown refund outcome leaves the row pending and the next run replays the SAME key", async () => {
-    const s = memStore(PAYMENT()); const p = provider(["timeout", "ok"]); const q = queue([]);
-    expect((await settlePayPalCancellation(deps(s, p, q), job(), false)).outcome).toBe("retry");
-    expect(s.refunds[0].status).toBe("pending");
+  it("an unknown refund outcome: retry, and the next run asks the door again with the SAME key", async () => {
+    const s = memStore(PAYMENT()); const r = door(s, ["timeout", "ok"]); const q = queue([]);
+    expect((await settlePayPalCancellation(deps(s, r, q), job(), false)).outcome).toBe("retry");
     expect(q.calls).toEqual([]);
-    expect((await settlePayPalCancellation(deps(s, p, q), job(), false)).outcome).toBe("settled");
-    expect(p.calls.map((c) => c.idempotencyKey)).toEqual(["lh:refund:R1", "lh:refund:R1"]);
+    expect((await settlePayPalCancellation(deps(s, r, q), job(), false)).outcome).toBe("settled");
+    expect(r.calls.map((c) => c.idempotencyKey)).toEqual([KEY, KEY]);
   });
   it("an unanswered refund is never re-sent past PayPal's replay memory: a person checks PayPal first", async () => {
-    const s = memStore(PAYMENT()); const p = provider(["timeout"]); const q = queue([]);
-    await settlePayPalCancellation(deps(s, p, q), job(), false);
+    const s = memStore(PAYMENT()); const r = door(s, ["timeout"]); const q = queue([]);
+    await settlePayPalCancellation(deps(s, r, q), job(), false);
     const later = () => Date.now() + REFUND_REPLAY_WINDOW_MS + 60_000;
-    expect(await settlePayPalCancellation(deps(s, p, q), job(), false, later)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_unanswered_past_replay_window/) });
-    expect(p.calls).toHaveLength(1);
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false, later)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_unanswered_past_replay_window/) });
+    expect(r.calls).toHaveLength(1);
   });
   it("PayPal refunding a different amount is recorded as PayPal did it, and every later run stops (never settled on it)", async () => {
-    const s = memStore(PAYMENT()); const q = queue([]);
-    const short = { calls: [] as number[], refund: async (i: { amountCents: number }) => { short.calls.push(i.amountCents); return { providerRefundId: "RFX", status: "COMPLETED" as const, settled: true, amountCents: i.amountCents - 100 }; } };
-    const d = { store: s.store, provider: short, queue: q.q, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" as const };
-    expect(await settlePayPalCancellation(d, job(), false)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_amount_mismatch/) });
+    const s = memStore(PAYMENT()); const r = door(s, ["short"]); const q = queue([]);
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_amount_mismatch/) });
     expect(s.refunds[0]).toMatchObject({ amountCents: 7002, status: "completed" });
-    expect(await settlePayPalCancellation(d, job(), false)).toMatchObject({ outcome: "needs_review" });
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^cancel_refund_amount_changed/) });
     expect(q.calls).toEqual([]);
     expect(s.jobs.get(job().id)).toBe("escrow");
-    expect(short.calls).toEqual([7102]);
   });
-  it("PayPal refusing the refund marks it failed and stops for a person: no payout, no flip, never re-sent", async () => {
-    const s = memStore(PAYMENT()); const p = provider(["refused"]); const q = queue([]);
-    const out = await settlePayPalCancellation(deps(s, p, q), job(), false);
-    expect(out.outcome).toBe("needs_review");
-    expect(s.refunds[0].status).toBe("failed");
+  it("PayPal refusing the refund: re-offered as a NEW attempt (:a2, :a3), at most 3, then a person; never a payout or flip meanwhile", async () => {
+    const s = memStore(PAYMENT()); const r = door(s, ["refused", "refused", "refused"]); const q = queue([]);
+    for (let n = 0; n < 3; n++) expect((await settlePayPalCancellation(deps(s, r, q), job(), false)).outcome).toBe("needs_review");
+    expect(r.calls.map((c) => c.idempotencyKey)).toEqual([KEY, `${KEY}:a2`, `${KEY}:a3`]);
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^cancel_refund_refused_3_times/) });
+    expect(r.calls).toHaveLength(3);
     expect(q.calls).toEqual([]);
-    expect((await settlePayPalCancellation(deps(s, p, q), job(), false)).outcome).toBe("needs_review");
-    expect(p.calls).toHaveLength(1);
+    expect(s.jobs.get(job().id)).toBe("escrow");
   });
-  it("a resumed run whose plan no longer matches what was sent stops (never a second, different refund)", async () => {
-    const s = memStore(PAYMENT()); const p = provider(["timeout"]); const q = queue([]);
-    await settlePayPalCancellation(deps(s, p, q), job(), false);
-    const out = await settlePayPalCancellation(deps(s, p, q), job({ cancelled_at: hoursBefore(1) }), false);
-    expect(out).toMatchObject({ outcome: "needs_review" });
-    expect(p.calls).toHaveLength(1);
+  it("a refused first offer, then a good second one, settles", async () => {
+    const s = memStore(PAYMENT()); const r = door(s, ["refused", "ok"]); const q = queue([]);
+    await settlePayPalCancellation(deps(s, r, q), job(), false);
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false)).toMatchObject({ outcome: "settled" });
+    expect(r.calls.map((c) => c.idempotencyKey)).toEqual([KEY, `${KEY}:a2`]);
+  });
+  it("a cancel refund phase 5 finished on its own (retry or webhook) while the job stayed in escrow is settled on the next run: never re-sent", async () => {
+    const s = memStore(PAYMENT()); const q = queue([]);
+    s.refunds.push({ id: "R9", idempotencyKey: KEY, amountCents: 7102, status: "completed", providerRefundId: "RF9", paymentId: "p1", createdAtMs: Date.now() - 86_400_000 });
+    const r = door(s, []);
+    expect(await settlePayPalCancellation(deps(s, r, q), job(), false)).toMatchObject({ outcome: "settled", providerRefundId: "RF9" });
+    expect(r.calls).toEqual([]);
+    expect(q.calls).toHaveLength(1);
+    expect(s.jobs.get(job().id)).toBe("refunded");
+  });
+  it("a resumed run whose plan no longer matches what was claimed stops (never a second, different refund)", async () => {
+    const s = memStore(PAYMENT()); const r = door(s, ["timeout"]); const q = queue([]);
+    await settlePayPalCancellation(deps(s, r, q), job(), false);
+    expect(await settlePayPalCancellation(deps(s, r, q), job({ cancelled_at: hoursBefore(1) }), false)).toMatchObject({ outcome: "needs_review" });
+    expect(r.calls).toHaveLength(1);
   });
   it("touches nothing when: not a PayPal job, the other env, a dispute, unsettled money, PayPal's fee unreadable", async () => {
     for (const [pay, fee, want] of [
@@ -275,9 +291,9 @@ describe("settlePayPalCancellation", () => {
       [{ ...PAYMENT(), status: "capture_pending" }, PAYPAL_FEE, "retry"],
       [PAYMENT(), null, "retry"],
     ] as const) {
-      const s = memStore(pay ? { ...pay } : null); const p = provider([]); const q = queue([]);
-      expect((await settlePayPalCancellation(deps(s, p, q, fee), job(), false)).outcome).toBe(want);
-      expect(p.calls).toEqual([]);
+      const s = memStore(pay ? { ...pay } : null); const r = door(s, []); const q = queue([]);
+      expect((await settlePayPalCancellation(deps(s, r, q, fee), job(), false)).outcome).toBe(want);
+      expect(r.calls).toEqual([]);
       expect(q.calls).toEqual([]);
       expect(s.jobs.get(job().id)).toBe("escrow");
     }

@@ -111,9 +111,9 @@ export type VisitOutcome =
    * The visit could not be booked after its money came in (the series ended or the date changed
    * hands mid-run): the money went back, less PayPal's fee (today's rule). Tell the poster.
    */
-  | { outcome: "refunded_unbooked"; paymentId: string; refundCents: number; keptCents: number; reason: string }
+  | { outcome: "refunded_unbooked"; paymentId: string; providerRefundId: string | null; refundCents: number; keptCents: number; reason: string }
   /** A duplicate charge for a date another payment already funds, refunded in full. Tell the poster. */
-  | { outcome: "refunded_duplicate"; paymentId: string; refundCents: number; winnerJobId: string }
+  | { outcome: "refunded_duplicate"; paymentId: string; providerRefundId: string | null; refundCents: number; winnerJobId: string }
   | { outcome: "retry"; reason: string }
   | { outcome: "needs_review"; reason: string };
 
@@ -204,15 +204,15 @@ export async function fundPayPalVisit(
   const ins = await deps.store.insertVisitJob(visitJobRow(i.parent, i.visitDate, i.holderId, plan, i.nowIso ?? new Date().toISOString()));
   if (ins.ok) return await link(ins.id);
 
-  const refundWhole = async (amountCents: number, key: string, reason: string, note: string): Promise<{ ok: true } | { ok: false; why: string }> => {
+  const refundWhole = async (amountCents: number, key: string, reason: string, note: string): Promise<{ ok: true; providerRefundId: string | null } | { ok: false; why: string }> => {
     const r = await deps.store.insertRefund(paymentId, key, amountCents, reason);
-    if (r.status === "completed" || r.providerRefundId) return { ok: true };
+    if (r.status === "completed" || r.providerRefundId) return { ok: true, providerRefundId: r.providerRefundId };
     try {
       const out = await deps.provider.refund({ idempotencyKey: `lh:refund:${r.id}`, providerCaptureId: await deps.store.captureIdOf(paymentId), amountCents, note, invoiceId: r.id });
       await deps.store.markRefund(r.id, out.settled ? "completed" : "pending", out.providerRefundId);
       if (out.amountCents !== amountCents) return { ok: false, why: `refund_amount_mismatch: asked ${amountCents}, PayPal refunded ${out.amountCents}` };
       await deps.store.setPaymentStatus(paymentId, amountCents >= plan.totalCents ? "refunded" : "partially_refunded");
-      return { ok: true };
+      return { ok: true, providerRefundId: out.providerRefundId };
     } catch (e) {
       return { ok: false, why: e instanceof Error ? e.message : String(e) };
     }
@@ -229,7 +229,7 @@ export async function fundPayPalVisit(
     // (own-mistake full refund (owner, 2026-10-14)).
     const done = await refundWhole(plan.totalCents, `lh:pp:${paymentId}:duplicate-visit-refund`, "duplicate_visit_charge", "A duplicate charge for one visit, returned");
     if (!done.ok) return { outcome: "needs_review", reason: `duplicate visit charge ${paymentId} NOT refunded: ${done.why}`.slice(0, 300) };
-    return { outcome: "refunded_duplicate", paymentId, refundCents: plan.totalCents, winnerJobId: winner.id };
+    return { outcome: "refunded_duplicate", paymentId, providerRefundId: done.providerRefundId, refundCents: plan.totalCents, winnerJobId: winner.id };
   }
   if (UNBOOKABLE.test(ins.message)) {
     // Today's rule for a visit that cannot be booked after its charge (charge-recurring-visits
@@ -237,11 +237,13 @@ export async function fundPayPalVisit(
     const fee = await deps.readCaptureFeeCents(await deps.store.captureIdOf(paymentId));
     if (fee === null) return { outcome: "retry", reason: `visit not bookable (${ins.message.slice(0, 80)}); PayPal's fee unreadable, refund next run` };
     const back = Math.max(0, plan.totalCents - fee);
+    let providerRefundId: string | null = null;
     if (back > 0) {
       const done = await refundWhole(back, `lh:pp:${paymentId}:unbooked-visit-refund`, "visit_not_bookable", "Your visit could not be booked; your payment is returned");
       if (!done.ok) return { outcome: "needs_review", reason: `unbookable visit ${paymentId} NOT refunded: ${done.why}`.slice(0, 300) };
+      providerRefundId = done.providerRefundId;
     }
-    return { outcome: "refunded_unbooked", paymentId, refundCents: back, keptCents: plan.totalCents - back, reason: ins.message.slice(0, 120) };
+    return { outcome: "refunded_unbooked", paymentId, providerRefundId, refundCents: back, keptCents: plan.totalCents - back, reason: ins.message.slice(0, 120) };
   }
   // Any other refusal: the money is in and recorded against this visit's subject; the next run in
   // the window adopts it (chargeSavedPayment finds the funded row) and inserts again.

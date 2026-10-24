@@ -283,7 +283,7 @@ for (const n of [1, 2, 3, 4, 5, 7]) {
 }
 await db.query(`insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ('${U.helpr}', 'paypal', 'sandbox', 'hal@example.com', true)`);
 // Helpr 1 is hired (accepted_at) and the poster approves AFTER Helpr 1's email was set (clock_timestamp:
-// later than the insert above). Helpr 2 adds an email only after the hire (below): the review case.
+// later than the insert above). The second Helpr adds an email only after the hire (below): the review case.
 await as("postgres");
 await db.exec("select pg_sleep(0.02)");
 await db.exec(`update jobs set accepted_at = clock_timestamp(), poster_completed_at = clock_timestamp() where status = 'completed'`);

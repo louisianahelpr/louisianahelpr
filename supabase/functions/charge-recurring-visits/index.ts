@@ -1624,7 +1624,7 @@ serve(async (req) => {
             case "funded":
               results.funded++;
               // Book the parties exactly as the Stripe path does (application row, notices).
-              if (pv.booked) (await bookPayPalVisitParties(supabase, parent, pv.childJobId, holderId, visitDate)).forEach(fail);
+              if (pv.booked) (await bookPayPalVisitParties(supabase, parent as never, pv.childJobId, holderId, visitDate)).forEach(fail);
               break;
             case "exists": results.skippedExisting++; break;
             case "awaiting_settlement":
@@ -1644,7 +1644,7 @@ serve(async (req) => {
             case "refunded_unbooked":
             case "refunded_duplicate": {
               fail(`series ${parent.id} ${visitDate}: PayPal visit ${pv.outcome}: ${pv.paymentId} refunded ${pv.refundCents}c`);
-              const told = await tellPosterVisitRefund(supabase, parent, visitDate, pv.refundCents, pv.outcome === "refunded_duplicate" ? "duplicate" : "unbooked");
+              const told = await tellPosterVisitRefund(supabase, parent as never, visitDate, pv.refundCents, pv.outcome === "refunded_duplicate" ? "duplicate" : "unbooked");
               if (told) fail(told);
               break;
             }

@@ -25,8 +25,9 @@
  *   - THE REAL saved-method charge (paypalSavedCharge.ts): the 'created' row before the charge, the
  *     capture recorded after; an ordinary account refused before any write; the database refuses
  *     the row anyway if the switch check were skipped;
- *   - paypal_owed_tip_payouts(): a charged tip without a payout is owed; queued, it is not;
- *     service role only.
+ *   - THE REAL auto-tip (paypalAutoTip.ts) on the tips lane's claim-first shape, its migration
+ *     run verbatim: the claim row is the lock, paypal_open_tip takes it over, ONE payout of the
+ *     tip by tip_id, a re-run replays, the switch off refuses before any charge.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  */
@@ -34,8 +35,7 @@ import { readFileSync } from "node:fs";
 import os from "node:os";
 import { planPayPalCancellation, settlePayPalCancellation } from "../../../supabase/functions/_shared/payments/paypalCancellation.ts";
 import { chargeSavedPayment } from "../../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
-import { chargePayPalAutoTip, retryOwedTipPayouts } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
-import { rpcManualPayoutQueue } from "../../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
+import { chargePayPalAutoTip } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
 import { paypalTipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees.ts";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
@@ -94,7 +94,7 @@ GRANT EXECUTE ON FUNCTION public.feature_enabled_for_user(text, uuid) TO service
 create table public.payout_transfers(id uuid primary key default gen_random_uuid());
 -- The jobs columns phase 6 and the tips lane read or write (prod-shaped names; prod has many more).
 create table public.jobs(id uuid primary key, title text, status text, payment_status text, cancellation_fee_status text,
-  poster_completed_at timestamptz, helper_completed_at timestamptz);
+  poster_completed_at timestamptz, helper_completed_at timestamptz, accepted_at timestamptz);
 -- The tips lane's migration (20261023232059) runs verbatim below; these are the tables it reads,
 -- shaped as its own PGlite proof shapes them (src/test/pglite/paypalTips.pglite.mjs).
 create table public.payout_holds(helper_id uuid primary key, reason text);
@@ -111,6 +111,8 @@ create table public.tips(
   constraint tips_amount_positive check (amount > 0 and amount <= 1000),
   constraint tips_payment_status_valid check (payment_status in ('pending','paid','failed')),
   constraint tips_source_valid check (source in ('manual','auto')));
+-- prod's one-auto-tip-per-job+member claim index (20260925154606)
+create unique index tips_one_auto_per_job_member on public.tips (job_id, helper_id) where source = 'auto';
 CREATE OR REPLACE FUNCTION public.feature_enabled_for(p_key text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
 AS $function$ SELECT public.feature_enabled_for_user(p_key, (SELECT auth.uid())); $function$;
 CREATE OR REPLACE FUNCTION public.require_feature(p_key text) RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
@@ -216,15 +218,15 @@ const pgStore = {
     return { id: p.id, env: p.env, amountCents: Number(p.amount_cents), providerCaptureId: p.provider_capture_id, status: p.status };
   },
   async refundsFor(pid) {
-    return (await db.query("select id, idempotency_key, amount_cents, status, provider_refund_id from provider_refunds where provider_payment_id=$1", [pid])).rows
-      .map((x) => ({ id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id }));
+    return (await db.query("select id, idempotency_key, amount_cents, status, provider_refund_id, created_at from provider_refunds where provider_payment_id=$1", [pid])).rows
+      .map((x) => ({ id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id, createdAtMs: new Date(x.created_at).getTime() }));
   },
   async insertRefund(row) {
     const x = (await db.query(`insert into provider_refunds(provider_payment_id, idempotency_key, amount_cents, reason, status) values ($1,$2,$3,$4,'pending')
-      returning id, idempotency_key, amount_cents, status, provider_refund_id`, [row.paymentId, row.idempotencyKey, row.amountCents, row.reason])).rows[0];
-    return { id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id };
+      returning id, idempotency_key, amount_cents, status, provider_refund_id, created_at`, [row.paymentId, row.idempotencyKey, row.amountCents, row.reason])).rows[0];
+    return { id: x.id, idempotencyKey: x.idempotency_key, amountCents: Number(x.amount_cents), status: x.status, providerRefundId: x.provider_refund_id, createdAtMs: new Date(x.created_at).getTime() };
   },
-  async markRefund(id, p) { await db.query("update provider_refunds set status=$2, provider_refund_id=coalesce($3, provider_refund_id) where id=$1", [id, p.status, p.providerRefundId ?? null]); },
+  async markRefund(id, p) { await db.query("update provider_refunds set status=$2, provider_refund_id=coalesce($3, provider_refund_id), amount_cents=coalesce($4, amount_cents) where id=$1", [id, p.status, p.providerRefundId ?? null, p.amountCents ?? null]); },
   async setPaymentStatus(pid, s) { await db.query("update provider_payments set status=$2 where id=$1 and status in ('captured','partially_refunded')", [pid, s]); },
   async settleJob(id, patch) {
     return (await db.query("update jobs set payment_status=$2, cancellation_fee_status=$3 where id=$1 and status='cancelled' and payment_status='escrow' returning id", [id, patch.payment_status, patch.cancellation_fee_status])).rows.length === 1;
@@ -290,69 +292,115 @@ for (const [label, hours, want] of [
   }
 }
 
-// ── 4. The REAL saved-method charge against these tables ──
+// ── 4. The REAL saved-method charge (repeat visits) against these tables ──
+const toRow = (x) => ({ id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerOrderId: x.provider_order_id, providerCaptureId: x.provider_capture_id, createdAtMs: new Date(x.created_at).getTime(), updatedAtMs: new Date(x.updated_at).getTime() });
+const PCOLS = "id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at, updated_at";
 const pgCharge = {
   async switchOnFor(u) { return (await one("select public.feature_enabled_for_user('paypal_payments', $1) ok", [u])).ok === true; },
-  async activeMethod(u, env) { const m = await one("select id, user_id, env, vault_id, source from paypal_saved_payment_methods where user_id=$1 and env=$2 and status='active'", [u, env]); return m ? { id: m.id, userId: m.user_id, env: m.env, vaultId: m.vault_id, source: m.source } : null; },
-  async paymentByKey(k) { const x = await one("select id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at from provider_payments where idempotency_key=$1", [k]); return x ? { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerOrderId: x.provider_order_id, providerCaptureId: x.provider_capture_id, createdAtMs: new Date(x.created_at).getTime() } : null; },
+  async activeMethod(u, env) { const m = await one("select id, user_id, env, vault_id, source, created_at from paypal_saved_payment_methods where user_id=$1 and env=$2 and status='active'", [u, env]); return m ? { id: m.id, userId: m.user_id, env: m.env, vaultId: m.vault_id, source: m.source, createdAtMs: new Date(m.created_at).getTime() } : null; },
+  async paymentsForSubject(kind, id) { return (await db.query(`select ${PCOLS} from provider_payments where subject_kind=$1 and subject_id=$2`, [kind, id])).rows.map(toRow); },
   async insertPayment(p) {
-    const x = (await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents, status)
-      values ($1,$2,$3,'paypal_checkout',$4,$5,$6,$7,'created') returning id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at`,
-    [p.subjectKind, p.subjectId, p.payerId, p.env, p.idempotencyKey, `pending:${p.idempotencyKey}`, p.amountCents])).rows[0];
-    return { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerOrderId: x.provider_order_id, providerCaptureId: null, createdAtMs: new Date(x.created_at).getTime() };
+    return toRow((await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents, status)
+      values ($1,$2,$3,'paypal_checkout',$4,$5,$6,$7,'created') returning ${PCOLS}`,
+    [p.subjectKind, p.subjectId, p.payerId, p.env, p.idempotencyKey, `pending:${p.idempotencyKey}`, p.amountCents])).rows[0]);
   },
-  async markCaptured(id, c) { await db.query("update provider_payments set provider_order_id=$2, provider_capture_id=$3, status=$4 where id=$1 and status='created'", [id, c.providerOrderId, c.providerCaptureId, c.status]); },
-  async markFailed(id) { await db.query("update provider_payments set status='failed' where id=$1", [id]); },
+  async markCaptured(id, c) { await db.query("update provider_payments set provider_order_id=$2, provider_capture_id=$3, status=$4, updated_at=now() where id=$1 and status='created'", [id, c.providerOrderId, c.providerCaptureId, c.status]); },
+  async markCaptureMismatch(id, c) { await db.query("update provider_payments set provider_order_id=$2, provider_capture_id=$3, updated_at=now() where id=$1 and status='created'", [id, c.providerOrderId, c.providerCaptureId]); },
+  async markFailed(id) { await db.query("update provider_payments set status='failed', updated_at=now() where id=$1", [id]); },
 };
 let chargeCalls = 0;
-const fakeSaved = { async chargeSaved(i) { chargeCalls++; return { providerOrderId: `ORD${chargeCalls}`, providerCaptureId: `CAPS${chargeCalls}`, status: "COMPLETED", settled: true, amountCents: i.amountCents, feeCents: 30, vaultId: null }; } };
-// A completed job and its auto tip claim row, as auto-tip-charge writes it before the charge.
+let shortBy = 0;
+// PayPal replays a reused PayPal-Request-Id with the ORIGINAL order (sandbox 2026-10-23), so this
+// fake answers a repeated key with the first answer; `chargeCalls` counts NEW orders only.
+const orders = new Map();
+const fakeSaved = { async chargeSaved(i) {
+  if (orders.has(i.idempotencyKey)) return orders.get(i.idempotencyKey);
+  chargeCalls++;
+  const r = { providerOrderId: `ORD${chargeCalls}`, providerCaptureId: `CAPS${chargeCalls}`, status: "COMPLETED", settled: true, amountCents: i.amountCents - shortBy, feeCents: 30, vaultId: null };
+  orders.set(i.idempotencyKey, r);
+  return r;
+} };
+{
+  const subj = uuid("9");
+  const v1 = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "recurring_visit", subjectId: subj, payerId: U.tester, amountCents: 8000 });
+  eq("visit charge: a tester's saved method is charged and the row recorded captured", [v1.outcome, (await one("select status from provider_payments where subject_id=$1", [subj]))?.status], ["charged", "captured"]);
+  const c0 = chargeCalls;
+  const again = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "recurring_visit", subjectId: subj, payerId: U.tester, amountCents: 8000 });
+  const repriced = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "recurring_visit", subjectId: subj, payerId: U.tester, amountCents: 9000 });
+  eq("visit charge: re-run adopts; a re-price never charges beside a funded row", [again.outcome, repriced.outcome, chargeCalls - c0], ["charged", "needs_review", 0]);
+  const subj2 = uuid("9");
+  shortBy = 1;
+  const mm = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "recurring_visit", subjectId: subj2, payerId: U.tester, amountCents: 8000 });
+  shortBy = 0;
+  eq("visit charge: a different captured amount is recorded but never funded", [mm.outcome, (await one("select status, provider_capture_id is not null cap from provider_payments where subject_id=$1", [subj2]))], ["needs_review", { status: "created", cap: true }]);
+}
+const before = chargeCalls;
+const ordOut = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "recurring_visit", subjectId: uuid("e"), payerId: U.ordinary, amountCents: 538 });
+eq("saved charge: an ordinary account is refused before any write or charge", [ordOut.outcome, chargeCalls - before], ["switch_off", 0]);
+await expectErr("and the database refuses the row even if that check were skipped", `insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents) values ('tip', '${uuid("e")}', '${U.ordinary}', 'paypal_checkout', 'sandbox', 'k-ord', 'pending:k-ord', 538)`, /feature_disabled/);
+await expectErr("funds_job_id named on INSERT is held to the captured-only rule", `insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents, funds_job_id) values ('recurring_visit', '${uuid("e")}', '${U.tester}', 'paypal_checkout', 'sandbox', 'k-ins', 'pending:k-ins', 538, '${otherJob}')`, /funds_job_needs_captured_payment/);
+
+// ── 5. Auto-tip, end to end on the tips lane's claim-first shape (its migration run verbatim) ──
 const tipJob = uuid("f");
 const tipId = uuid("e");
 await db.query("reset role");
 await db.query("insert into jobs(id, title, status, payment_status, poster_completed_at) values ($1, 'Mow', 'completed', 'released', now() - interval '1 day')", [tipJob]);
+// (1) the claim, as auto-tip-charge writes it before the charge
 await db.query("insert into tips(id, job_id, tipper_id, helper_id, amount, source, payment_status) values ($1, $2, $3, $4, 5, 'auto', 'pending')", [tipId, tipJob, U.tester, U.helpr]);
+await db.query("insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ($1, 'paypal', 'sandbox', 'helpr@example.com', true)", [U.helpr]);
 await db.exec("set role service_role");
-// The tips lane's recorder, called through the REAL queue door with a PGlite rpc().
-const pgRpc = {
-  async rpc(fn, args) {
-    if (fn !== "paypal_record_tip_capture") return { data: null, error: { message: `not in this proof: ${fn}`, code: "PGRST202" } };
-    try {
-      const x = await one("select public.paypal_record_tip_capture($1, $2, $3, $4, $5) a", [args.p_provider_payment_id, args.p_order_id, args.p_outcome, args.p_capture_id, args.p_amount_cents]);
-      return { data: x.a, error: null };
-    } catch (e) { return { data: null, error: { message: e.message } }; }
+await expectErr("the claim is the lock: a second auto claim for the same job+Helpr is refused", `insert into tips(job_id, tipper_id, helper_id, amount, source, payment_status) values ('${tipJob}', '${U.tester}', '${U.helpr}', 5, 'auto', 'pending')`, /duplicate key|tips_one_auto_per_job_member/);
+const tipDeps = {
+  provider: fakeSaved,
+  env: "sandbox",
+  jobStateNow: async () => "chargeable",
+  switchOnFor: (u) => pgCharge.switchOnFor(u),
+  activeMethod: (u, env) => pgCharge.activeMethod(u, env),
+  openTip: async (a) => {
+    const x = await one("select public.paypal_open_tip($1, $2, $3, $4, $5, $6, $7, $8, 'auto', $9) a", [a.jobId, a.tipperId, a.helperId, a.tipCents, a.chargeCents, a.env, a.idempotencyKey, a.orderId, a.tipId]);
+    return { providerPaymentId: x.a.provider_payment_id };
+  },
+  // What settlePayPalTip does once PayPal's order reads COMPLETED: record the capture (idempotent).
+  settle: async (pid) => {
+    const p = await one("select provider_order_id, amount_cents from provider_payments where id=$1", [pid]);
+    const capId = [...orders.values()].find((o) => o.providerOrderId === p.provider_order_id).providerCaptureId;
+    const x = await one("select public.paypal_record_tip_capture($1, $2, 'completed', $3, $4) a", [pid, p.provider_order_id, capId, p.amount_cents]);
+    return { state: "recorded", payoutId: x.a.payout_id, payoutReason: x.a.payout_reason, paymentStatus: x.a.payment_status };
   },
 };
-const quote = paypalTipChargeBreakdown(500);
-const tipDeps = { charge: { store: pgCharge, provider: fakeSaved, env: "sandbox" }, queue: rpcManualPayoutQueue(pgRpc), jobStateNow: async () => "chargeable" };
-const tipIn = { tipId, jobId: tipJob, posterId: U.tester, helperId: U.helpr, quote };
-// No payable PayPal email for the Helpr yet: charged, paid, payout owed (not lost).
+const tipIn = { tipId, jobId: tipJob, posterId: U.tester, helperId: U.helpr, tipCents: 500 };
+const card = paypalTipChargeBreakdown(500, "card_standard");
 const t1 = await chargePayPalAutoTip(tipDeps, tipIn);
-const owedNow = (await db.query("select * from paypal_owed_tip_payouts()")).rows;
-eq("auto-tip: charged tip + PayPal's fee (paypalTipChargeBreakdown), Helpr's payout owed while they have no PayPal email",
-  [t1.outcome, t1.payoutQueued, (await one("select amount_cents from provider_payments where subject_id=$1", [tipId])).amount_cents * 1, owedNow.map((o) => [o.tip_id, o.tip_cents])],
-  ["charged", false, quote.chargeCents, [[tipId, 500]]]);
+if (t1.outcome !== "charged") console.log("t1", JSON.stringify(t1));
+const tipPay = await one("select id, amount_cents, status, subject_id from provider_payments where subject_kind='tip' and subject_id=$1", [tipId]);
+eq("auto-tip: charged tip + PayPal's card fee, on the CLAIMED tips row (taken over, not a second row)",
+  [t1.outcome, Number(tipPay?.amount_cents), tipPay?.status, (await one("select count(*)::int c from tips where job_id=$1", [tipJob])).c],
+  ["charged", card.chargeCents, "captured", 1]);
 eq("auto-tip: the tips lane marked the tip paid", (await one("select payment_status from tips where id=$1", [tipId])).payment_status, "paid");
-// The Helpr adds their PayPal email; the owed-tip sweep queues it, once.
-await db.query("insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ($1, 'paypal', 'sandbox', 'helpr@example.com', true)", [U.helpr]);
-const still = await retryOwedTipPayouts(rpcManualPayoutQueue(pgRpc), owedNow.map((o) => ({ paymentId: o.payment_id, tipId: o.tip_id, jobId: o.job_id, helperId: o.helper_id, tipCents: o.tip_cents, providerOrderId: o.provider_order_id, providerCaptureId: o.provider_capture_id, chargedCents: Number(o.amount_cents) })));
-const tipPayouts = (await db.query("select amount_cents, status, tip_id from provider_payouts where tip_id=$1", [tipId])).rows.map((x) => [Number(x.amount_cents), x.status]);
-eq("owed-tip sweep: ONE payout of exactly the tip (100%), named by the tip", [still.length, tipPayouts], [0, [[500, "pending"]]]);
-eq("once queued it is not owed", (await db.query("select * from paypal_owed_tip_payouts()")).rows.length, 0);
-// A second run of the same claim: no second charge, no second payout.
+const tipPayouts = (await db.query("select amount_cents, status from provider_payouts where tip_id=$1", [tipId])).rows.map((x) => [Number(x.amount_cents), x.status]);
+eq("auto-tip: ONE payout of exactly the tip (100%), named by the tip", tipPayouts, [[500, "pending"]]);
+// A second run of the same claim (a crash after the charge): same key, a replay, nothing new.
 const callsBefore = chargeCalls;
 const t2 = await chargePayPalAutoTip(tipDeps, tipIn);
-eq("auto-tip re-run: no second charge, no second payout", [t2.outcome, t2.payoutQueued, chargeCalls - callsBefore, (await one("select count(*)::int c from provider_payouts where tip_id=$1", [tipId])).c], ["charged", true, 0, 1]);
-const before = chargeCalls;
-const ordOut = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "tip", subjectId: uuid("e"), payerId: U.ordinary, amountCents: 538 });
-eq("saved charge: an ordinary account is refused before any write or charge", [ordOut.outcome, chargeCalls - before], ["switch_off", 0]);
-await expectErr("and the database refuses the row even if that check were skipped", `insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents) values ('tip', '${uuid("e")}', '${U.ordinary}', 'paypal_checkout', 'sandbox', 'k-ord', 'pending:k-ord', 538)`, /feature_disabled/);
+eq("auto-tip re-run on the same claim: PayPal replays the order, the record replays, no second payment row, no second payout",
+  [t2.outcome, chargeCalls - callsBefore, (await one("select count(*)::int c from provider_payments where subject_kind='tip' and subject_id=$1", [tipId])).c, (await one("select count(*)::int c from provider_payouts where tip_id=$1", [tipId])).c],
+  ["charged", 0, 1, 1]);
+// The switch off for the poster: refused BEFORE the charge.
+await db.exec("reset role"); await db.exec("update feature_switches set audience='off' where key='paypal_payments'"); await db.exec("set role service_role");
+const tipId2 = uuid("e"); const tipJob2 = uuid("f");
+await db.query("reset role");
+await db.query("insert into jobs(id, title, status, payment_status) values ($1, 'Rake', 'completed', 'released')", [tipJob2]);
+await db.query("insert into tips(id, job_id, tipper_id, helper_id, amount, source, payment_status) values ($1, $2, $3, $4, 5, 'auto', 'pending')", [tipId2, tipJob2, U.tester, U.helpr]);
+await db.exec("set role service_role");
+const c1 = chargeCalls;
+const t3 = await chargePayPalAutoTip(tipDeps, { ...tipIn, tipId: tipId2, jobId: tipJob2 });
+eq("auto-tip with the switch off for the poster: given up before any charge", [t3.outcome, t3.reason, chargeCalls - c1], ["give_up", "paypal_switch_off", 0]);
+await db.exec("reset role"); await db.exec("update feature_switches set audience='testers' where key='paypal_payments'"); await db.exec("set role service_role");
 await db.exec("reset role");
 
 for (const role of ["authenticated", "anon"]) {
   await db.exec(`set role ${role}`);
   await expectErr(`${role} cannot read saved methods`, "select * from paypal_saved_payment_methods", /permission denied/);
-  await expectErr(`${role} cannot call paypal_owed_tip_payouts`, "select * from paypal_owed_tip_payouts()", /permission denied/);
   await db.exec("reset role");
 }
 // Replay after all of it: still applies, nothing changed.

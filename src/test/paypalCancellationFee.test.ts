@@ -12,11 +12,13 @@
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | const own = refunds.find((r) => r.idempotencyKey === key) ?? null; | const own = null as RefundRow \| null;
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (payment.env !== deps.env) return | if (false) return
  * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | const recorded = (outcome === "queued" \|\| outcome === "queued_held" \|\| outcome === "already_queued") && payoutId !== null; | const recorded = outcome !== "refused";
- * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | if (input.source === "auto_tip") return await recordTip(db, input); | void recordTip;
- * @mutate supabase/functions/_shared/payments/phase6PayoutDoors.ts | return { outcome, reason, payoutId, recorded: true }; | return { outcome, reason, payoutId, recorded: payoutId === "never" };
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (cents(i.alreadyRefundedCents) > split.split.ceilingCents + 1) return { kind: "refuse", reason: "refunded_past_kept" }; | void 0;
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | } else if (now() - row.createdAtMs > REFUND_REPLAY_WINDOW_MS) { | } else if (false) {
+ * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (i.sellerFault) return { kind: "refuse", reason: "seller_fault_not_on_paypal" }; | void 0;
  */
 import { describe, expect, it } from "vitest";
 import {
+  REFUND_REPLAY_WINDOW_MS,
   cancelRefundKey,
   planPayPalCancellation,
   settlePayPalCancellation,
@@ -25,7 +27,7 @@ import {
   type PayPalCancelJob,
   type RefundRow,
 } from "../../supabase/functions/_shared/payments/paypalCancellation.ts";
-import { parseQueueAnswer, parseTipRecord, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
+import { parseQueueAnswer, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/phase6PayoutDoors.ts";
 import { ProviderApiError } from "../../supabase/functions/_shared/payments/types.ts";
 import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee.ts";
 
@@ -64,7 +66,7 @@ describe("every tier, exact cents ($100 PayPal job, 8% + 70c stamp, PayPal fee 3
   it("24 h or more before the start: 0%, everything but PayPal's fee goes back, nothing to the Helpr", () => {
     expect(plan(job({ cancelled_at: hoursBefore(48) }))).toEqual({
       kind: "plan", feeCents: 0, feePercent: 0, refundCents: 9602, helprPayoutCents: 0, platformKeepsOfFeeCents: 0,
-      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0,
+      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0, withheldForBanCents: 0,
     });
   });
   it("exactly 24 h before: still 0% (the ladder's boundary is < 24)", () => {
@@ -73,7 +75,7 @@ describe("every tier, exact cents ($100 PayPal job, 8% + 70c stamp, PayPal fee 3
   it("under 24 h: 25% = 2500c; Helpr 2200c (2500 - 270, rounded down to whole dollars); platform keeps 300c; refund 7102c", () => {
     expect(plan(job({ cancelled_at: hoursBefore(10) }))).toEqual({
       kind: "plan", feeCents: 2500, feePercent: 25, refundCents: 7102, helprPayoutCents: 2200, platformKeepsOfFeeCents: 300,
-      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0,
+      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0, withheldForBanCents: 0,
     });
   });
   it("exactly 2 h before: 25% (the 50% tier is < 2)", () => {
@@ -82,7 +84,7 @@ describe("every tier, exact cents ($100 PayPal job, 8% + 70c stamp, PayPal fee 3
   it("under 2 h: 50% = 5000c; Helpr 4500c (5000 - 470 = 4530, rounded down); platform keeps 500c; refund 4602c", () => {
     expect(plan(job({ cancelled_at: hoursBefore(1) }))).toEqual({
       kind: "plan", feeCents: 5000, feePercent: 50, refundCents: 4602, helprPayoutCents: 4500, platformKeepsOfFeeCents: 500,
-      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0,
+      providerFeeKeptCents: 398, setupFeeKeptCents: 0, taxKeptCents: 0, withheldForBanCents: 0,
     });
   });
   it("a Helpr offered but not yet confirmed: 0% even at 1 h (helperIsCommitted)", () => {
@@ -113,15 +115,20 @@ describe("every tier, exact cents ($100 PayPal job, 8% + 70c stamp, PayPal fee 3
   it("earlier refunds by another path come off what goes back", () => {
     expect(plan(job(), { refunded: 1000 })).toMatchObject({ refundCents: 6102, helprPayoutCents: 2200 });
   });
-  it("an unfilled or ban-ended series visit, or a Declutter seller's fault: no fee", () => {
+  it("an unfilled or ban-ended series visit: no fee (the Helpr's would-be fee is reported); a Declutter seller's fault is refused on PayPal (its card fee is the seller's debt today)", () => {
     expect(plan(job({ parent_job_id: "p0000000-0000-4000-8000-000000000001", series_ban_cancelled_at: "2026-11-10T00:00:00Z", cancelled_at: hoursBefore(1) }))).toMatchObject({ feeCents: 0 });
-    expect(plan(job({ cancelled_at: hoursBefore(1) }), { sellerFault: true })).toMatchObject({ feeCents: 0, providerFeeKeptCents: 0, refundCents: 10000 });
+    expect(plan(job({ parent_job_id: "p0000000-0000-4000-8000-000000000001", series_ban_cancelled_at: "2026-11-10T00:00:00Z", cancelled_at: hoursBefore(1) }))).toMatchObject({ feeCents: 0, withheldForBanCents: 5000 });
+    expect(plan(job({ cancelled_at: hoursBefore(1) }), { sellerFault: true })).toEqual({ kind: "refuse", reason: "seller_fault_not_on_paypal" });
   });
   it("refuses what PayPal does not do yet: a crew, an unstamped fee model, a fee bigger than what is left", () => {
     expect(plan(job({ is_group_job: true }))).toEqual({ kind: "refuse", reason: "crew_job_not_on_paypal" });
     expect(plan(job({ helper_fee_flat_cents: null, helper_fee_percent: 10 }))).toEqual({ kind: "refuse", reason: "fee_model_unstamped" });
     expect(plan(job({ cancelled_at: hoursBefore(1) }), { refunded: 6000 })).toEqual({ kind: "refuse", reason: "fee_exceeds_payment" });
     expect(plan(job(), { fee: -1 })).toEqual({ kind: "refuse", reason: "provider_fee_unknown" });
+    // The Stripe sweep's guard: earlier refunds already past what this cancel may give back (25%:
+    // ceiling 7102c). 7104c refunded by another path: refused; at the ceiling: nothing more back.
+    expect(plan(job(), { refunded: 7104 })).toEqual({ kind: "refuse", reason: "refunded_past_kept" });
+    expect(plan(job(), { refunded: 7102 })).toMatchObject({ kind: "plan", refundCents: 0, helprPayoutCents: 2200 });
   });
   it("the refund plus the Helpr's payout never exceed the capture (the database rule, every tier)", () => {
     for (const h of [48, 23.9, 10, 2, 1.99, 0.5]) {
@@ -144,12 +151,12 @@ function memStore(payment: FundedPayment | null) {
     async insertRefund(r) {
       const dup = refunds.find((x) => x.idempotencyKey === r.idempotencyKey);
       if (dup) return dup;
-      const row = { id: `R${refunds.length + 1}`, idempotencyKey: r.idempotencyKey, amountCents: r.amountCents, status: "pending" as const, providerRefundId: null, paymentId: r.paymentId };
+      const row = { id: `R${refunds.length + 1}`, idempotencyKey: r.idempotencyKey, amountCents: r.amountCents, status: "pending" as const, providerRefundId: null, paymentId: r.paymentId, createdAtMs: Date.now() };
       refunds.push(row);
       log.push(`insertRefund ${r.amountCents}`);
       return row;
     },
-    async markRefund(id, p) { const r = refunds.find((x) => x.id === id)!; r.status = p.status; if (p.providerRefundId) r.providerRefundId = p.providerRefundId; log.push(`markRefund ${p.status}`); },
+    async markRefund(id, p) { const r = refunds.find((x) => x.id === id)!; r.status = p.status; if (p.providerRefundId) r.providerRefundId = p.providerRefundId; if (p.amountCents !== undefined) r.amountCents = p.amountCents; log.push(`markRefund ${p.status}`); },
     async setPaymentStatus(_id, s) { if (payment) payment.status = s; log.push(`payment ${s}`); },
     async settleJob(id, patch) { if (jobs.get(id) !== "escrow") return false; jobs.set(id, patch.payment_status); log.push(`job ${patch.payment_status} fee=${patch.cancellation_fee_status}`); return true; },
   };
@@ -159,7 +166,6 @@ const PAYMENT = (): FundedPayment => ({ id: "p1", env: "sandbox", amountCents: 1
 function queue(answers: Array<"queued" | "refused">) {
   const calls: QueueManualPayoutInput[] = [];
   const q: ManualPayoutQueue = {
-    supports: () => true,
     async queue(i) {
       calls.push(i);
       const a = answers.shift() ?? "queued";
@@ -196,7 +202,7 @@ describe("settlePayPalCancellation", () => {
   });
   it("refund BEFORE payout (the database refuses a refund while a payout is queued)", async () => {
     const s = memStore(PAYMENT()); const p = provider([]); const order: string[] = [];
-    const q: ManualPayoutQueue = { supports: () => true, async queue() { order.push("queue"); return { outcome: "queued", reason: null, payoutId: "PO1", recorded: true }; } };
+    const q: ManualPayoutQueue = { async queue() { order.push("queue"); return { outcome: "queued", reason: null, payoutId: "PO1", recorded: true }; } };
     const pp = { refund: async (i: Parameters<typeof p.refund>[0]) => { order.push("refund"); return p.refund(i); } };
     await settlePayPalCancellation({ store: s.store, provider: pp, queue: q, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" }, job(), false);
     expect(order).toEqual(["refund", "queue"]);
@@ -226,6 +232,24 @@ describe("settlePayPalCancellation", () => {
     expect(q.calls).toEqual([]);
     expect((await settlePayPalCancellation(deps(s, p, q), job(), false)).outcome).toBe("settled");
     expect(p.calls.map((c) => c.idempotencyKey)).toEqual(["lh:refund:R1", "lh:refund:R1"]);
+  });
+  it("an unanswered refund is never re-sent past PayPal's replay memory: a person checks PayPal first", async () => {
+    const s = memStore(PAYMENT()); const p = provider(["timeout"]); const q = queue([]);
+    await settlePayPalCancellation(deps(s, p, q), job(), false);
+    const later = () => Date.now() + REFUND_REPLAY_WINDOW_MS + 60_000;
+    expect(await settlePayPalCancellation(deps(s, p, q), job(), false, later)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_unanswered_past_replay_window/) });
+    expect(p.calls).toHaveLength(1);
+  });
+  it("PayPal refunding a different amount is recorded as PayPal did it, and every later run stops (never settled on it)", async () => {
+    const s = memStore(PAYMENT()); const q = queue([]);
+    const short = { calls: [] as number[], refund: async (i: { amountCents: number }) => { short.calls.push(i.amountCents); return { providerRefundId: "RFX", status: "COMPLETED" as const, settled: true, amountCents: i.amountCents - 100 }; } };
+    const d = { store: s.store, provider: short, queue: q.q, readCaptureFeeCents: async () => PAYPAL_FEE, env: "sandbox" as const };
+    expect(await settlePayPalCancellation(d, job(), false)).toMatchObject({ outcome: "needs_review", reason: expect.stringMatching(/^refund_amount_mismatch/) });
+    expect(s.refunds[0]).toMatchObject({ amountCents: 7002, status: "completed" });
+    expect(await settlePayPalCancellation(d, job(), false)).toMatchObject({ outcome: "needs_review" });
+    expect(q.calls).toEqual([]);
+    expect(s.jobs.get(job().id)).toBe("escrow");
+    expect(short.calls).toEqual([7102]);
   });
   it("PayPal refusing the refund marks it failed and stops for a person: no payout, no flip, never re-sent", async () => {
     const s = memStore(PAYMENT()); const p = provider(["refused"]); const q = queue([]);
@@ -260,7 +284,7 @@ describe("settlePayPalCancellation", () => {
   });
 });
 
-describe("the pay-queue doors (phase 4's paypal_queue_manual_payout; the tips lane's recorder)", () => {
+describe("the pay-queue door (phase 4's paypal_queue_manual_payout, exact amounts)", () => {
   it("reads 'recorded' only when a payout row is named", () => {
     expect(parseQueueAnswer({ outcome: "queued", payout_id: "x" }).recorded).toBe(true);
     expect(parseQueueAnswer({ outcome: "already_queued", payout_id: "x" }).recorded).toBe(true);
@@ -280,25 +304,5 @@ describe("the pay-queue doors (phase 4's paypal_queue_manual_payout; the tips la
     expect(calls).toEqual([["paypal_queue_manual_payout", { p_job_id: "j", p_helper_id: "h", p_amount_cents: 2200, p_platform_fee_cents: 300, p_initiated_by: "system", p_initiated_by_user_id: null, p_source: "cancellation_fee" }]]);
     const missing = rpcManualPayoutQueue({ rpc: async () => ({ data: null, error: { message: "not found", code: "PGRST202" } }) });
     expect(await missing.queue({ jobId: "j", helperId: "h", amountCents: 1, platformFeeCents: 0, source: "cancellation_fee", providerPaymentId: "p" })).toMatchObject({ outcome: "refused", reason: "queue_writer_not_deployed", recorded: false });
-  });
-  it("an auto-tip goes to the tips lane's recorder (never phase 4's writer, whose already_queued names the JOB's payout)", async () => {
-    const calls: Array<[string, Record<string, unknown>]> = [];
-    const q = rpcManualPayoutQueue({ rpc: async (fn, args) => { calls.push([fn, args]); return { data: { payout_id: "PT", payout_status: "pending", payout_reason: "queued" }, error: null }; } });
-    expect(q.supports("auto_tip")).toBe(true);
-    const tip = { jobId: "j", helperId: "h", amountCents: 500, platformFeeCents: 0, source: "auto_tip" as const, providerPaymentId: "tip-pay" };
-    expect(await q.queue({ ...tip, tipCapture: { providerOrderId: "O1", providerCaptureId: "C1", amountCents: 570, settled: true } })).toMatchObject({ outcome: "queued", payoutId: "PT", recorded: true });
-    expect(calls).toEqual([["paypal_record_tip_capture", { p_provider_payment_id: "tip-pay", p_order_id: "O1", p_outcome: "completed", p_capture_id: "C1", p_amount_cents: 570 }]]);
-    // No capture, or a platform cut on a tip: refused without a call.
-    expect(await q.queue(tip)).toMatchObject({ recorded: false, reason: "tip_capture_missing" });
-    expect(await q.queue({ ...tip, platformFeeCents: 1, tipCapture: { providerOrderId: "O1", providerCaptureId: "C1", amountCents: 570, settled: true } })).toMatchObject({ recorded: false });
-    expect(calls).toHaveLength(1);
-  });
-  it("reads the tips recorder's answer: recorded only with a payout row", () => {
-    expect(parseTipRecord({ payout_id: "x", payout_status: "pending", payout_reason: "queued" })).toMatchObject({ outcome: "queued", recorded: true });
-    expect(parseTipRecord({ payout_id: "x", payout_status: "held", payout_reason: "held" })).toMatchObject({ outcome: "held", recorded: true });
-    expect(parseTipRecord({ payout_id: "x", payout_status: "pending", payout_reason: "already_queued" })).toMatchObject({ outcome: "already_queued", recorded: true });
-    expect(parseTipRecord({ payout_id: null, payout_reason: "no_payable_destination" })).toMatchObject({ outcome: "waiting_for_payee", recorded: false });
-    expect(parseTipRecord({ payout_id: null, payout_reason: "not_settled" })).toMatchObject({ outcome: "refused", recorded: false });
-    expect(parseTipRecord(null)).toMatchObject({ recorded: false });
   });
 });

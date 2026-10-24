@@ -13,7 +13,7 @@ import { parseProviderEnv } from "./registry.ts";
 import type { PaymentProvider, ProviderEnv } from "./types.ts";
 
 export type PayPalRuntime =
-  | { ok: true; env: ProviderEnv; provider: PaymentProvider; readCaptureFeeCents: (captureId: string) => Promise<number | null> }
+  | { ok: true; env: ProviderEnv; client: PayPalClient; provider: PaymentProvider; readCaptureFeeCents: (captureId: string) => Promise<number | null> }
   | { ok: false; reason: string };
 
 export function paypalRuntimeFromEnv(): PayPalRuntime {
@@ -34,7 +34,7 @@ export function paypalRuntimeFromEnv(): PayPalRuntime {
         return null;
       }
     };
-    return { ok: true, env, provider: createPayPalCheckoutProvider(client), readCaptureFeeCents };
+    return { ok: true, env, client, provider: createPayPalCheckoutProvider(client), readCaptureFeeCents };
   } catch (e) {
     // The message never carries the secret (PayPalClient builds none from it).
     return { ok: false, reason: e instanceof Error ? e.message : String(e) };

@@ -18,8 +18,8 @@
 --        stop a token from being retired. A revoked token is never brought back.
 -- 2. provider_payments.funds_job_id: a repeat visit's payment (subject_kind 'recurring_visit')
 --    names the visit job it funded, once. The cancel sweep finds a cancelled visit's money by it.
--- 3. paypal_owed_tip_payouts(): tips charged through PayPal whose Helpr payout is not on the
---    manual pay queue yet (auto-tip-charge re-queues them every run). Service role only.
+-- (Auto-tips use the tips lane's own tip shape, 20261023232059: paypal_open_tip takes over the
+-- claimed auto tips row and the tip's payout is queued by tip_id. Nothing for tips here.)
 --
 -- REPLAY-SAFETY: IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS / guarded constraint.
 
@@ -124,9 +124,11 @@ SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
 BEGIN
-  -- Set once, after the money is in; then only the job's deletion may clear it (SET NULL).
-  IF NEW.funds_job_id IS DISTINCT FROM OLD.funds_job_id AND NEW.funds_job_id IS NOT NULL THEN
-    IF OLD.funds_job_id IS NOT NULL THEN
+  -- Set once, after the money is in; then only the job's deletion may clear it (SET NULL). An
+  -- INSERT that names it is held to the same rule (lh-money-escrow review of phase 6, #12).
+  IF NEW.funds_job_id IS NOT NULL
+     AND (TG_OP = 'INSERT' OR NEW.funds_job_id IS DISTINCT FROM OLD.funds_job_id) THEN
+    IF TG_OP = 'UPDATE' AND OLD.funds_job_id IS NOT NULL THEN
       RAISE EXCEPTION 'funds_job_is_frozen' USING ERRCODE = '42501';
     END IF;
     IF NEW.status NOT IN ('captured', 'partially_refunded') THEN
@@ -140,30 +142,5 @@ REVOKE ALL ON FUNCTION public.provider_payments_funds_job_set_once() FROM PUBLIC
 
 DROP TRIGGER IF EXISTS trg_provider_payments_funds_job_set_once ON public.provider_payments;
 CREATE TRIGGER trg_provider_payments_funds_job_set_once
-  BEFORE UPDATE OF funds_job_id ON public.provider_payments
+  BEFORE INSERT OR UPDATE OF funds_job_id ON public.provider_payments
   FOR EACH ROW EXECUTE FUNCTION public.provider_payments_funds_job_set_once();
-
--- 3. Auto-tips charged through PayPal whose Helpr payout is not queued yet.
-CREATE OR REPLACE FUNCTION public.paypal_owed_tip_payouts()
-RETURNS TABLE (payment_id uuid, tip_id uuid, job_id uuid, helper_id uuid, tip_cents integer,
-               provider_order_id text, provider_capture_id text, amount_cents bigint)
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path TO 'public'
-AS $fn$
-  SELECT p.id, t.id, t.job_id, t.helper_id, round(t.amount * 100)::integer,
-         p.provider_order_id, p.provider_capture_id, p.amount_cents
-    FROM public.provider_payments p
-    JOIN public.tips t ON t.id = p.subject_id
-   WHERE p.subject_kind = 'tip'
-     AND p.status = 'captured'
-     AND t.helper_id IS NOT NULL
-     AND NOT EXISTS (SELECT 1 FROM public.provider_payouts po
-                      WHERE po.provider_payment_id = p.id
-                        AND po.status NOT IN ('failed', 'returned', 'canceled'))
-   ORDER BY p.created_at
-   LIMIT 200
-$fn$;
-REVOKE ALL ON FUNCTION public.paypal_owed_tip_payouts() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_owed_tip_payouts() TO service_role;

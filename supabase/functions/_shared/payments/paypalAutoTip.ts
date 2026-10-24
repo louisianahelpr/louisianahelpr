@@ -1,129 +1,162 @@
 /**
- * An automatic tip on a job paid through PayPal (PayPal Plan A, phase 6).
+ * An automatic tip on a job paid through PayPal (PayPal Plan A, phase 6), on the tips lane's ONE
+ * tip shape (wip/pp-tips: paypal_open_tip, settlePayPalTip, paypalTipChargeBreakdown), so manual
+ * and automatic PayPal tips are recorded, paid out and reconciled the same way.
  *
  * TODAY'S RULES, UNCHANGED (auto-tip-charge, measured 2026-10-23): the same candidates
  * (auto_tip_candidates), the same claim row written BEFORE the charge (tips, source 'auto', one
- * per job+Helpr by a UNIQUE index), the same $3 minimum, the same re-read of the job's state
- * (auto_tip_job_state) right before the charge, the same money shape (tipChargeBreakdown: the
- * poster pays the tip plus the card fee, the Helpr receives 100% of the tip), the same "never
- * silent" outcomes (a failed row and a word to the poster; an unknown outcome stays 'pending'
- * with its reason and pages).
+ * per job+Helpr by the UNIQUE index tips_one_auto_per_job_member), the same $3 minimum, the same
+ * re-read of the job's state (auto_tip_job_state) right before the charge, the same money shape
+ * (the poster pays the tip plus the processing cost, the Helpr receives 100% of the tip), the same
+ * "never silent" outcomes.
  *
- * WHAT CHANGES: the card is the poster's SAVED PayPal method (chargeSavedPayment), and the
- * Helpr's tip is not a Stripe destination charge: it is queued for the owner to pay by hand
- * (ManualPayoutQueue, source 'auto_tip'). A tip charged but not yet queued is retried every run
- * by retryOwedTipPayouts until it is, so the Helpr's money is never only in our account.
- *
- * The caller (auto-tip-charge) owns the claim row and its writes (settleTip / giveUp /
- * releaseClaimForRetry); this module decides, and says which of them to call.
+ * ORDER (lead 2026-10-23, the tips lane's round-3 contract):
+ *   1. the caller has CLAIMED the job with the pending auto tips row (tipId);
+ *   2. the switch is asked for the POSTER right before the charge (phase 1's trigger refuses the
+ *      payment row when it is off, and money taken between charge and write would be unrecorded);
+ *   3. chargeSaved with a key derived from the claim row, `lh:autotip:<tipId>:charge:amt<c>:a1`,
+ *      reused on every retry, and invoice_id = the claim row id (PayPal refuses a second order for
+ *      it even past request-id memory);
+ *   4. paypal_open_tip(..., p_source 'auto', p_tip_id = the claim row) takes the claimed row over
+ *      and writes its provider_payments row;
+ *   5. settlePayPalTip records the capture and queues ONE payout named by tip_id.
+ * The fee is paypalTipChargeBreakdown at the saved method's own rate: a card token at
+ * card_standard (2.99% + 49c), a PayPal-wallet token at paypal_checkout (3.49% + 49c).
  */
-import type { TipChargeBreakdown } from "../tipFees.ts";
-// The quote passed in is paypalTipChargeBreakdown (tips lane, PAYPAL_RATES in providerFees.ts):
-// the poster pays PayPal's cost on top, the Helpr receives 100% of the tip.
-import { chargeSavedPayment, type SavedChargeDeps } from "./paypalSavedCharge.ts";
-import type { ManualPayoutQueue } from "./phase6PayoutDoors.ts";
+import { paypalTipChargeBreakdown, type TipChargeBreakdown } from "../tipFees.ts";
+import type { PayPalMethod } from "./providerFees.ts";
+import { ProviderApiError, type PaymentProvider, type ProviderEnv, type VaultSource } from "./types.ts";
+
+export interface AutoTipMethod {
+  vaultId: string;
+  source: VaultSource;
+}
+
+/** What settlePayPalTip answered, reduced to what this path needs. */
+export type AutoTipSettle =
+  | { state: "recorded"; payoutId: string | null; payoutReason: string; paymentStatus: string }
+  | { state: "declined"; issue: string | null }
+  | { state: "not_approved"; orderStatus: string };
+
+export interface PayPalAutoTipDeps {
+  provider: Pick<PaymentProvider, "chargeSaved">;
+  env: ProviderEnv;
+  /** auto_tip_job_state(job): 'chargeable' | 'held' | 'closed', or an Error when unreadable. */
+  jobStateNow(jobId: string): Promise<string | Error>;
+  /** paypal_payments for the poster, or an Error when it could not be read. */
+  switchOnFor(userId: string): Promise<boolean | Error>;
+  activeMethod(userId: string, env: ProviderEnv): Promise<AutoTipMethod | null>;
+  /** public.paypal_open_tip(..., p_source 'auto', p_tip_id): the tip's provider_payments id. Throws on refusal. */
+  openTip(a: {
+    jobId: string; tipperId: string; helperId: string; tipCents: number; chargeCents: number;
+    env: ProviderEnv; idempotencyKey: string; orderId: string; tipId: string;
+  }): Promise<{ providerPaymentId: string }>;
+  /** settlePayPalTip(db, provider, client, providerPaymentId). Throws when it cannot finish. */
+  settle(providerPaymentId: string): Promise<AutoTipSettle>;
+}
 
 export interface PayPalAutoTipInput {
-  /** The claim row this run just wrote (tips.id). It is the charge's subject: one key per claim. */
+  /** The claim row this run just wrote (tips.id, source 'auto', pending). */
   tipId: string;
   jobId: string;
   posterId: string;
   helperId: string;
-  quote: TipChargeBreakdown;
-}
-
-export interface PayPalAutoTipDeps {
-  charge: SavedChargeDeps;
-  queue: ManualPayoutQueue;
-  /** auto_tip_job_state(job): 'chargeable' | 'held' | 'closed', or an Error when unreadable. */
-  jobStateNow(jobId: string): Promise<string | Error>;
+  tipCents: number;
 }
 
 export type PayPalAutoTipOutcome =
-  /** Charged; the Helpr's tip is on the pay queue (or will be, by retryOwedTipPayouts). */
-  | { outcome: "charged"; paymentId: string; payoutQueued: boolean; payoutReason: string | null }
+  /** Charged and recorded; the Helpr's tip is on the pay queue, or owed (payoutId null) and alerted. */
+  | { outcome: "charged"; paymentId: string; quote: TipChargeBreakdown; payoutId: string | null; payoutReason: string }
   /** The job changed since the candidate list: release the claim (closed: record it unsent). */
   | { outcome: "state_changed"; state: string }
-  /** The Helpr's tip could not be queued for payout yet: nothing charged, release the claim (stays a candidate). */
-  | { outcome: "payout_unsupported" }
-  /** The job's state could not be re-read: release the claim, a defect. */
-  | { outcome: "state_unreadable"; message: string }
+  /** A read failed BEFORE any charge: release the claim, a defect. Nothing was charged. */
+  | { outcome: "unreadable"; message: string }
   /** Mark the claim failed with this reason and tell the poster. Nothing was charged. */
   | { outcome: "give_up"; reason: string; posterMessage: string }
-  /** Captured but not settled: the claim says so; the webhook reconciles. */
-  | { outcome: "capture_pending"; paymentId: string }
-  /** Outcome unknown: the claim stays 'pending' with this reason; a defect pages. */
+  /** Charged but not settled (PENDING): recorded; the tips lane's webhook finishes it. */
+  | { outcome: "capture_pending"; paymentId: string; quote: TipChargeBreakdown }
+  /** Outcome unknown or money not recorded: the claim stays 'pending' with this reason; a defect pages. */
   | { outcome: "ambiguous"; reason: string };
+
+/** The fee rate for a saved token: what PayPal bills that source. */
+export function autoTipMethod(source: VaultSource): PayPalMethod {
+  return source === "card" ? "card_standard" : "paypal_checkout";
+}
+
+export function autoTipChargeKey(tipId: string, chargeCents: number): string {
+  if (!/^[0-9a-f-]{36}$/i.test(tipId)) throw new Error(`not a tips row id: ${tipId}`);
+  return `lh:autotip:${tipId}:charge:amt${chargeCents}:a1`;
+}
 
 const NO_METHOD_MESSAGE =
   "We couldn't charge your automatic tip because there's no saved PayPal payment method on file. You can send it in a tap.";
 
+const msg = (e: unknown) => (e instanceof Error ? e.message : String(e)).slice(0, 200);
+
 export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAutoTipInput): Promise<PayPalAutoTipOutcome> {
-  if (i.quote.helperCents !== i.quote.tipCents) throw new Error("a tip pays the Helpr 100% of the tip");
-  // Never take the poster's money for a tip the Helpr's payout cannot be recorded for.
-  if (!deps.queue.supports("auto_tip")) return { outcome: "payout_unsupported" };
-  const state = await deps.jobStateNow(i.jobId);
-  if (state instanceof Error) return { outcome: "state_unreadable", message: state.message };
-  if (state !== "chargeable") return { outcome: "state_changed", state };
-
-  const res = await chargeSavedPayment(deps.charge, {
-    subjectKind: "tip",
-    subjectId: i.tipId,
-    payerId: i.posterId,
-    amountCents: i.quote.chargeCents,
-  });
-  switch (res.outcome) {
-    case "switch_off":
-      return { outcome: "give_up", reason: "paypal_switch_off", posterMessage: "We couldn't charge your automatic tip. You can send your Helpr a tip in a tap." };
-    case "no_saved_method":
-      return { outcome: "give_up", reason: "no_saved_paypal_method", posterMessage: NO_METHOD_MESSAGE };
-    case "declined":
-      return { outcome: "give_up", reason: `paypal_declined: ${res.reason}`.slice(0, 200), posterMessage: "Your automatic tip didn't go through. You can send it in a tap." };
-    case "retry":
-    case "needs_review":
-      return { outcome: "ambiguous", reason: `paypal ${res.outcome}: ${res.reason}`.slice(0, 200) };
-    case "pending":
-      return { outcome: "capture_pending", paymentId: res.paymentId };
-    case "charged": {
-      const q = await deps.queue.queue({
-        jobId: i.jobId,
-        helperId: i.helperId,
-        amountCents: i.quote.tipCents,
-        platformFeeCents: 0,
-        source: "auto_tip",
-        providerPaymentId: res.paymentId,
-        tipCapture: { providerOrderId: res.orderId, providerCaptureId: res.captureId, amountCents: res.amountCents, settled: true },
-      });
-      return { outcome: "charged", paymentId: res.paymentId, payoutQueued: q.recorded, payoutReason: q.recorded ? null : `${q.outcome}${q.reason ? `: ${q.reason}` : ""}` };
-    }
+  // ── Before the charge: reads only; a failure here charged nothing. ──
+  let method: AutoTipMethod | null;
+  try {
+    const state = await deps.jobStateNow(i.jobId);
+    if (state instanceof Error) return { outcome: "unreadable", message: `job state: ${state.message}` };
+    if (state !== "chargeable") return { outcome: "state_changed", state };
+    method = await deps.activeMethod(i.posterId, deps.env);
+    // The switch, for the POSTER, right before the charge (lead 2026-10-23).
+    const sw = await deps.switchOnFor(i.posterId);
+    if (sw instanceof Error) return { outcome: "unreadable", message: `switch: ${sw.message}` };
+    if (!sw) return { outcome: "give_up", reason: "paypal_switch_off", posterMessage: "We couldn't charge your automatic tip. You can send your Helpr a tip in a tap." };
+  } catch (e) {
+    return { outcome: "unreadable", message: msg(e) };
   }
-}
+  if (!method) return { outcome: "give_up", reason: "no_saved_paypal_method", posterMessage: NO_METHOD_MESSAGE };
 
-/** A captured tip whose Helpr payout is not on the queue yet. */
-export interface OwedTipPayout {
-  paymentId: string;
-  tipId: string;
-  jobId: string;
-  helperId: string;
-  tipCents: number;
-  providerOrderId: string;
-  providerCaptureId: string;
-  /** What the tip's payment captured (tip + fee). */
-  chargedCents: number;
-}
+  const quote = paypalTipChargeBreakdown(i.tipCents, autoTipMethod(method.source));
+  if (quote.helperCents !== quote.tipCents || quote.tipCents !== i.tipCents) throw new Error("a tip pays the Helpr 100% of the tip");
+  const key = autoTipChargeKey(i.tipId, quote.chargeCents);
 
-/**
- * Every run: tips charged through PayPal whose Helpr payout is not queued yet are queued again
- * (the queue answers already_queued for one that is). Returns what is still owed after the run.
- */
-export async function retryOwedTipPayouts(queue: ManualPayoutQueue, owed: readonly OwedTipPayout[]): Promise<OwedTipPayout[]> {
-  const still: OwedTipPayout[] = [];
-  for (const o of owed) {
-    const q = await queue.queue({
-      jobId: o.jobId, helperId: o.helperId, amountCents: o.tipCents, platformFeeCents: 0, source: "auto_tip", providerPaymentId: o.paymentId,
-      tipCapture: { providerOrderId: o.providerOrderId, providerCaptureId: o.providerCaptureId, amountCents: o.chargedCents, settled: true },
+  // ── The charge ──
+  let orderId: string;
+  try {
+    const cap = await deps.provider.chargeSaved({
+      idempotencyKey: key,
+      referenceId: i.tipId,
+      vaultId: method.vaultId,
+      amountCents: quote.chargeCents,
+      vaultSource: method.source,
     });
-    if (!q.recorded) still.push(o);
+    if (cap.amountCents !== quote.chargeCents) {
+      return { outcome: "ambiguous", reason: `captured_amount_mismatch: asked ${quote.chargeCents}, PayPal captured ${cap.amountCents} (order ${cap.providerOrderId}, key ${key})` };
+    }
+    orderId = cap.providerOrderId;
+  } catch (e) {
+    if (e instanceof ProviderApiError && e.issue === "DUPLICATE_INVOICE_ID") {
+      return { outcome: "ambiguous", reason: `duplicate_invoice: PayPal already has an order for tip ${i.tipId}; find it by invoice id` };
+    }
+    if (e instanceof ProviderApiError && !e.retryable) {
+      return { outcome: "give_up", reason: `paypal_declined: ${e.issue ?? e.errorName ?? e.httpStatus}`.slice(0, 200), posterMessage: "Your automatic tip didn't go through. You can send it in a tap." };
+    }
+    return { outcome: "ambiguous", reason: `paypal charge outcome unknown (key ${key}): ${msg(e)}` };
   }
-  return still;
+
+  // ── The record: the tips lane takes the claimed row over, then records the capture ──
+  let paymentId: string;
+  try {
+    ({ providerPaymentId: paymentId } = await deps.openTip({
+      jobId: i.jobId, tipperId: i.posterId, helperId: i.helperId, tipCents: quote.tipCents, chargeCents: quote.chargeCents,
+      env: deps.env, idempotencyKey: key, orderId, tipId: i.tipId,
+    }));
+  } catch (e) {
+    return { outcome: "ambiguous", reason: `CHARGED but not recorded: order ${orderId}, key ${key}: ${msg(e)}` };
+  }
+  let settled: AutoTipSettle;
+  try {
+    settled = await deps.settle(paymentId);
+  } catch (e) {
+    return { outcome: "ambiguous", reason: `charged and recorded (provider_payments ${paymentId}) but the capture record failed: ${msg(e)}` };
+  }
+  if (settled.state !== "recorded") {
+    return { outcome: "ambiguous", reason: `charged order ${orderId} but PayPal reads it ${settled.state === "declined" ? `declined (${settled.issue})` : settled.orderStatus}` };
+  }
+  if (settled.paymentStatus === "capture_pending") return { outcome: "capture_pending", paymentId, quote };
+  return { outcome: "charged", paymentId, quote, payoutId: settled.payoutId, payoutReason: settled.payoutReason };
 }

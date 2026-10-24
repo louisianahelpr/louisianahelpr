@@ -22,7 +22,7 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const paypalIds = await paypalJobIds(supabaseAdmin, | const paypalIds = await Promise.resolve({ ok: true as const, ids: new Set<string>() }) ?? (supabaseAdmin,
  * @mutate supabase/functions/auto-release-payment/index.ts | const duePaypal = await paypalJobIds(supabaseAdmin, | const duePaypal = await Promise.resolve({ ok: true as const, ids: new Set<string>() }) ?? (supabaseAdmin,
  * @mutate supabase/functions/execute-dispute-split/index.ts | const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id); | const paypalPayment = { kind: "none" } as { kind: string; message?: string };
- * @mutate supabase/functions/create-payment/index.ts | const paypalPayment = await jobPaypalPayment(supabaseAdmin, jobId); | const paypalPayment = { kind: "none" } as { kind: string; message?: string };
+ * @mutate supabase/functions/create-payment/index.ts | paypalAtRelease = await jobPaypalPayment(supabaseAdmin, jobId); | paypalAtRelease = { kind: "none" };
  * @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | job_provider_payment_held rule): a poster who fell back to a card is still paid through Stripe.\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'job' | job_provider_payment_held rule): a poster who fell back to a card is still paid through Stripe.\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'tip'
  * @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | Payout is a Stripe transfer, and a PayPal job is paid from admin_paypal_payout_queue().\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'job' | Payout is a Stripe transfer, and a PayPal job is paid from admin_paypal_payout_queue().\n    AND NOT EXISTS (SELECT 1 FROM public.provider_payments pp\n                     WHERE pp.subject_kind = 'tip'
  * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | const NOT_PAYPAL_YET = "(created,voided,failed)"; | const NOT_PAYPAL_YET = "(created,voided,failed,captured)";
@@ -78,9 +78,15 @@ describe("no Stripe payout path pays a PayPal-paid job", () => {
         const start = src.indexOf('if (action === "release") {');
         const end = src.indexOf('if (action === "', start + 10);
         const block = start >= 0 ? src.slice(start, end > start ? end : undefined) : "";
+        // The PayPal check must sit between scheduling the payout and the approval write itself: a
+        // PayPal job's write goes through paypal_job_schedule_payout (phase 3's money-state guard),
+        // and the same answer then queues it.
         const scheduled = block.indexOf('updateFields.payment_status = "payout_pending";');
-        const asked = firstIndex(block, PAYPAL_CHECK);
-        if (scheduled < 0 || asked < scheduled) missing.push(`${rel}: release action does not queue a PayPal job after scheduling its payout`);
+        const write = block.indexOf('await conditional.select("id")');
+        const asked = firstIndex(block.slice(scheduled >= 0 ? scheduled : 0), PAYPAL_CHECK) + (scheduled >= 0 ? scheduled : 0);
+        if (scheduled < 0 || write < 0 || asked < scheduled || asked > write || !block.includes('"paypal_job_schedule_payout"')) {
+          missing.push(`${rel}: release action does not route a PayPal job's approval through paypal_job_schedule_payout and queue it`);
+        }
         continue;
       }
       const money = firstIndex(src, MONEY_CALL);

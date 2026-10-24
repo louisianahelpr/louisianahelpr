@@ -1601,6 +1601,8 @@ serve(async (req) => {
       let helperDone = false;
       let bothDone = false;
       let jobUpdated: { id: string }[] | null = null;
+      // Read once, the first time the approval write is reached (PayPal Plan A, phase 4).
+      let paypalAtRelease: Awaited<ReturnType<typeof jobPaypalPayment>> | undefined;
       for (let attempt = 0; attempt < 3; attempt++) {
         if (attempt > 0) {
           const { data: reread, error: rereadErr } = await supabaseAdmin
@@ -1691,7 +1693,39 @@ serve(async (req) => {
         // .select("id"): this is the write that flips status to "completed" and
         // schedules the payout. Zero rows is now EXPECTED on a lost race and is
         // answered by the re-read above — never by falling through.
-        const { data, error: updateError } = await conditional.select("id");
+        //
+        // PayPal Plan A: a PayPal job's payment_status is moved only by a PayPal RPC (phase 3's
+        // trg_paypal_job_money_state_guard), so its approval goes through
+        // paypal_job_schedule_payout with the SAME predicates as this UPDATE.
+        if (updateFields.payment_status === "payout_pending" && paypalAtRelease === undefined) {
+          paypalAtRelease = await jobPaypalPayment(supabaseAdmin, jobId);
+          if (paypalAtRelease.kind === "error") {
+            console.error(`[create-payment] release: provider_payments read failed for job ${jobId}: ${paypalAtRelease.message}`);
+            throw new PublicError("We couldn't confirm how this job was paid, so nothing was changed. Try again in a moment.");
+          }
+        }
+        const viaPaypal = updateFields.payment_status === "payout_pending" && paypalAtRelease?.kind === "paypal";
+        let data: { id: string }[] | null;
+        // deno-lint-ignore no-explicit-any
+        let updateError: any;
+        if (viaPaypal) {
+          const r = await supabaseAdmin.rpc("paypal_job_schedule_payout", {
+            p_job_id: jobId,
+            p_expected_status: job.status,
+            p_payout_scheduled_at: updateFields.payout_scheduled_at,
+            p_match_completion: true,
+            p_expected_poster_completed_at: job.poster_completed_at ?? null,
+            p_expected_helper_completed_at: job.helper_completed_at ?? null,
+            p_poster_completed_at: updateFields.poster_completed_at ?? null,
+            p_helper_completed_at: updateFields.helper_completed_at ?? null,
+          });
+          data = r.data ? [{ id: r.data as string }] : [];
+          updateError = r.error;
+        } else {
+          const r = await conditional.select("id");
+          data = r.data;
+          updateError = r.error;
+        }
         if (updateError) {
           console.error("Failed to update job:", updateError);
           // Q1415 (b): an open ban settlement review on this job's poster or
@@ -1707,6 +1741,13 @@ serve(async (req) => {
           // Helpr answers, the dispute is filed, or the agreed split runs.
           if (isRefundRequestHoldRefusal(String(updateError.message ?? ""))) {
             throw new PublicError(REFUND_REQUEST_RELEASE_MESSAGE);
+          }
+          // PayPal: the payment is not (or no longer) held money (pending, disputed, refunded), so
+          // paypal_job_schedule_payout refused it. Same answer as for a Stripe job not in escrow.
+          if (/\bnot_a_paypal_job\b/.test(String(updateError.message ?? ""))) {
+            throw new PublicError(
+              "This job's payment isn't held right now (it is being refunded, was refunded, is under a card dispute, or was never paid), so it can't be released. Nothing was moved.",
+            );
           }
           throw new PublicError("Failed to update the job status — please try again");
         }
@@ -1727,7 +1768,7 @@ serve(async (req) => {
       // The approval already stands; a failed queue write is logged and healed by auto-release-payment
       // and process-scheduled-payouts (the writer is idempotent).
       if (bothDone) {
-        const paypalPayment = await jobPaypalPayment(supabaseAdmin, jobId);
+        const paypalPayment = paypalAtRelease ?? await jobPaypalPayment(supabaseAdmin, jobId);
         if (paypalPayment.kind === "error") {
           console.error(`[create-payment] release: provider_payments read failed for job ${jobId}: ${paypalPayment.message}`);
           await postSlackOpsAlert({

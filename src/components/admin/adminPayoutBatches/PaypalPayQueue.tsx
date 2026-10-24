@@ -350,7 +350,11 @@ function HeldGroup({ group, canRecord, onRequeue, onMarkPaid }: { group: PayGrou
         <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-muted-foreground" aria-hidden="true" />
         <div className="min-w-0 space-y-1">
           <p className="text-ds-15 font-semibold text-foreground break-words">{group.helperName}</p>
-          {group.needsRecheck ? (
+          {group.heldForPayoutHold && !group.needsRecheck ? (
+            <p className="text-ds-12 text-muted-foreground">
+              Held because this Helpr's payouts are on hold. Don't send until the hold is released.
+            </p>
+          ) : group.needsRecheck ? (
             <>
               <p className="text-ds-12 text-muted-foreground">
                 Changed their PayPal email after they were hired. Check the change with them before you pay.

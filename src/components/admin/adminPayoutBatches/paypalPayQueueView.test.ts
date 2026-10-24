@@ -26,6 +26,7 @@ describe("Pay this Helpr list grouping", () => {
     // Same Helpr, a DIFFERENT PayPal account: never the same Send Money.
     line({ payout_id: "d", destination_value: "hal.other@example.com", amount_cents: 100 }),
     line({ payout_id: "e", status: "held", held_reason: "destination_changed_since_hire", amount_cents: 300 }),
+    line({ payout_id: "g", status: "held", line_kind: "tip", tip_id: "t3", helper_id: "h3", helper_name: "Hope", destination_value: "hope@example.com", held_reason: "payout_hold", amount_cents: 200 }),
     line({ payout_id: "f", status: "success", external_txn_id: "X", marked_paid_at: "2026-10-20T00:00:00Z" }),
     line({ row_kind: "not_queued", payout_id: null, status: "no_payable_paypal_account" }),
     line({ row_kind: "tip_not_queued", payout_id: null, line_kind: "tip", tip_id: "t2", status: "no_payable_paypal_account", amount_cents: 700 }),
@@ -44,8 +45,11 @@ describe("Pay this Helpr list grouping", () => {
   });
 
   it("held, not-queued, tips owed and paid each have their own list", () => {
-    expect(view.held).toHaveLength(1);
-    expect(view.held[0].needsRecheck).toBe(true);
+    expect(view.held).toHaveLength(2);
+    const byName = Object.fromEntries(view.held.map((g) => [g.helperName, g]));
+    expect(byName.Hal.needsRecheck).toBe(true);
+    expect(byName.Hope.heldForPayoutHold).toBe(true);
+    expect(byName.Hope.needsRecheck).toBe(false);
     expect(view.notQueued).toHaveLength(1);
     expect(view.tipsOwed.map((l) => l.tip_id)).toEqual(["t2"]);
     expect(view.paid.map((l) => l.payout_id)).toEqual(["f"]);

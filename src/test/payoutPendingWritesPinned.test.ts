@@ -18,7 +18,7 @@
 // its reach; a write there passes this guard whether or not it is pinned.
 //
 // @mutate supabase/functions/create-payment/index.ts |         if (updateFields.payment_status === "payout_pending") conditional = conditional.eq("payment_status", "escrow"); |         void 0;
-// @mutate supabase/functions/auto-release-payment/index.ts |         .eq("payment_status", "escrow")\n        .select("id"); |         .select("id");
+// @mutate supabase/functions/auto-release-payment/index.ts |           .eq("payment_status", "escrow")\n          .select("id"); |           .select("id");
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";

@@ -53,6 +53,8 @@ export interface PayGroup {
   payBlocked: string | null;
   /** True when a line was written held because its email changed after the hire (only re-queue frees it). */
   needsRecheck: boolean;
+  /** True when a line is held because the Helpr's payouts are on hold (pp-tips' held_reason 'payout_hold'). */
+  heldForPayoutHold: boolean;
   lines: PaypalQueueLine[];
 }
 
@@ -83,6 +85,7 @@ function group(lines: PaypalQueueLine[]): PayGroup[] {
         payOnOrAfter: null,
         payBlocked: null,
         needsRecheck: false,
+        heldForPayoutHold: false,
         lines: [],
       };
       byKey.set(key, g);
@@ -91,6 +94,7 @@ function group(lines: PaypalQueueLine[]): PayGroup[] {
     g.totalCents += l.amount_cents ?? 0;
     g.payBlocked ??= l.pay_blocked;
     g.needsRecheck ||= l.held_reason === "destination_changed_since_hire";
+    g.heldForPayoutHold ||= l.held_reason === "payout_hold";
     if (l.pay_on_or_after && (!g.payOnOrAfter || l.pay_on_or_after > g.payOnOrAfter)) g.payOnOrAfter = l.pay_on_or_after;
   }
   const out = [...byKey.values()];

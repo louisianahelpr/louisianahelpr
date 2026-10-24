@@ -605,13 +605,30 @@ serve(async (req) => {
       // allows disputed → completed and revision_requested → completed, so a
       // dispute filed in that window was overwritten to completed/payout_pending
       // and the payout cron paid the Helpr on a job under dispute.
-      const { data: claimed, error: releaseErr } = await supabaseAdmin
-        .from("jobs")
-        .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
-        .eq("id", job.id)
-        .eq("status", job.status)
-        .eq("payment_status", "escrow")
-        .select("id");
+      // PayPal Plan A: a PayPal job's payment_status moves only through a PayPal RPC (phase 3's
+      // trg_paypal_job_money_state_guard); paypal_job_schedule_payout applies the same predicates.
+      let claimed: { id: string }[] | null;
+      // deno-lint-ignore no-explicit-any
+      let releaseErr: any;
+      if (paidThroughPaypal) {
+        const r = await supabaseAdmin.rpc("paypal_job_schedule_payout", {
+          p_job_id: job.id,
+          p_expected_status: job.status,
+          p_payout_scheduled_at: payoutTime,
+        });
+        claimed = r.data ? [{ id: r.data as string }] : [];
+        releaseErr = r.error;
+      } else {
+        const r = await supabaseAdmin
+          .from("jobs")
+          .update({ status: "completed", payment_status: "payout_pending", payout_scheduled_at: payoutTime })
+          .eq("id", job.id)
+          .eq("status", job.status)
+          .eq("payment_status", "escrow")
+          .select("id");
+        claimed = r.data;
+        releaseErr = r.error;
+      }
       if (releaseErr) {
         console.error(`[auto-release-payment] jobs.update failed for job ${job.id}:`, releaseErr);
         results.push({ job_id: job.id, status: "update_failed" });

@@ -205,7 +205,7 @@ describe("settlePayPalCancellation", () => {
     expect(out.outcome).toBe("settled");
     expect(p.calls.map((c) => c.amountCents)).toEqual([9602]);
     expect(q.calls).toEqual([]);
-    expect(s.log.at(-1)).toBe("job refunded fee=null");
+    expect(s.log[s.log.length - 1]).toBe("job refunded fee=null");
   });
   it("a payout the queue refuses: the refund is out, the job stays in escrow; the next run does NOT refund again", async () => {
     const s = memStore(PAYMENT()); const p = provider([]); const q = queue(["refused", "queued"]);

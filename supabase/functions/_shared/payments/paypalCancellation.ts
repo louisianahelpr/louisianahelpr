@@ -381,7 +381,14 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
       void data;
     },
     async settleJob(jobId, patch) {
-      const { data, error } = await db.from("jobs").update(patch).eq("id", jobId).eq("payment_status", "escrow").select("id");
+      // Only a job still cancelled and in escrow (the sweep's own selection) is flipped.
+      const { data, error } = await db
+        .from("jobs")
+        .update({ payment_status: patch.payment_status, cancellation_fee_status: patch.cancellation_fee_status })
+        .eq("id", jobId)
+        .eq("status", "cancelled")
+        .eq("payment_status", "escrow")
+        .select("id");
       if (error) return false;
       return !!data && data.length > 0;
     },

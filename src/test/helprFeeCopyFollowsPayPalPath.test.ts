@@ -36,7 +36,7 @@ const FEE_LITERAL = /5% \+ (?:\$0\.70|70¢|70c)/;
 
 /** FOLLOWS: how many times the file may still name the 5% phrase, and why. */
 const FOLLOWS: Record<string, { fivePercentPhrase: number; why?: string }> = {
-  "src/pages/info/legal/TermsSection.tsx": { fivePercentPhrase: 2, why: "the jobs-posted-before-PayPal clause, and Declutter delivery (not on PayPal)" },
+  "src/pages/info/legal/TermsSection.tsx": { fivePercentPhrase: 1, why: "Declutter delivery (not on PayPal)" },
   "src/pages/home/homeDashboard/FirstJobHome.tsx": { fivePercentPhrase: 0 },
   "src/pages/info/helpCenter/helpCenterContent.ts": { fivePercentPhrase: 0 },
   "src/pages/info/HelpCenter.tsx": { fivePercentPhrase: 0 },

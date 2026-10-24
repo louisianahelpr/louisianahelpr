@@ -37,6 +37,9 @@ import {
  * fee lines would also be wrong on the poster-fee model).
  */
 const POSTER_FEE_ON_DEFAULT_CENTS = serviceFeeCentsFor(jobFeeModelFor({ switchOn: false }), 10_000, false);
+/** PayPal path (lead 2026-10-23): taxable categories can't be paid yet; the setup fee is the poster's first checkout's. */
+const POSTER_PAYS_SENTENCE_PAYPAL =
+  "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from the one-time account setup fee on their first paid job. Jobs in taxable categories can't be paid through Helpr yet.";
 const POSTER_PAYS_SENTENCE =
   POSTER_FEE_ON_DEFAULT_CENTS === 0
     ? "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and the one-time account setup fee."
@@ -65,7 +68,7 @@ export const TermsContent = () => {
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `${POSTER_PAYS_SENTENCE} The Helpr's fee (${fee.phrase} of their pay, the same on every plan, and it covers ${fee.paypal ? "PayPal's processing fee" : "card processing"}) is deducted from their payout.`,
+        `${fee.paypal ? POSTER_PAYS_SENTENCE_PAYPAL : POSTER_PAYS_SENTENCE} The Helpr's fee (${fee.phrase} of their pay, the same on every plan, and it covers ${fee.paypal ? "PayPal's processing fee" : "card processing"}) is deducted from their payout.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -143,12 +146,12 @@ export const TermsContent = () => {
         title="Fee model"
         body={
           <>
-            <p><strong className="text-foreground">Posting a job:</strong> {POSTER_PAYS_SENTENCE}</p>
-            <p><strong className="text-foreground">Helpr fee:</strong> {fee.phrase} of each Helpr's pay, deducted from the payout, the same on every plan; it covers {fee.paypal ? "PayPal's processing fee" : "card processing"}. A job paid for before October 15, 2026 keeps the fee it was paid under{fee.paypal ? `, and a job posted before PayPal payments keeps ${HELPR_FLAT_FEE_PHRASE}` : ""}. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
+            <p><strong className="text-foreground">Posting a job:</strong> {fee.paypal ? POSTER_PAYS_SENTENCE_PAYPAL : POSTER_PAYS_SENTENCE}</p>
+            <p><strong className="text-foreground">Helpr fee:</strong> {fee.phrase} of each Helpr's pay, deducted from the payout, the same on every plan; it covers {fee.paypal ? "PayPal's processing fee" : "card processing"}. {fee.paypal ? <>A job posted before PayPal payments keeps the fee it was posted under.</> : <>A job paid for before October 15, 2026 keeps the fee it was paid under.</>} Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
-            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is added at that checkout instead. It is never charged twice.</p>
+            <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. {fee.paypal ? "It is added to the checkout of the first job you pay for." : "A Helpr pays it out of their first payout; if you post a job before your first payout, it is added at that checkout instead."} It is never charged twice.</p>
             <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the Helpr fee above.</p>
             <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the Helpr fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal

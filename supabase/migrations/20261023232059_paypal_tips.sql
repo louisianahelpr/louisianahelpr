@@ -113,7 +113,9 @@ CREATE TRIGGER trg_provider_payouts_tip_link_guard
 
 -- Step 1: the pending tip and its PayPal payment, in one transaction. Called by paypal-tip after
 -- PayPal answered the order (the order key is deterministic, so a retry of the same attempt gets
--- the same order id from PayPal and the same rows here). The edge function has already checked
+-- the same order id from PayPal and the same rows here). Auto-tip (phase 6) calls it the same way
+-- after chargeSaved with p_source 'auto', then paypal_record_tip_capture: a cron retry with the same
+-- key gets the same capture from PayPal and finds these rows, so money taken is never left unrecorded. The edge function has already checked
 -- the job (completed, caller is its poster, the Helpr worked it, bans, payout hold, a payable
 -- PayPal destination); this re-checks only what money depends on.
 CREATE OR REPLACE FUNCTION public.paypal_open_tip(
@@ -124,7 +126,11 @@ CREATE OR REPLACE FUNCTION public.paypal_open_tip(
   p_charge_cents bigint,
   p_env text,
   p_idempotency_key text,
-  p_order_id text
+  p_order_id text,
+  -- 'manual' (a tip prompt, paid on PayPal's page) or 'auto' (auto-tip, phase 6: charged off-session
+  -- with chargeSaved, so the order is already captured when this is called; tips_one_auto_per_job_member
+  -- keeps one auto tip per job + Helpr).
+  p_source text DEFAULT 'manual'
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -135,6 +141,9 @@ DECLARE
   v_pay public.provider_payments%ROWTYPE;
   v_tip_id uuid;
 BEGIN
+  IF p_source IS NULL OR p_source NOT IN ('manual', 'auto') THEN
+    RAISE EXCEPTION 'tip_source_invalid' USING ERRCODE = '22023';
+  END IF;
   IF p_tip_cents IS NULL OR p_tip_cents < 300 OR p_tip_cents > 100000 THEN
     RAISE EXCEPTION 'tip_amount_out_of_range' USING ERRCODE = '22023';
   END IF;
@@ -152,14 +161,16 @@ BEGIN
   SELECT * INTO v_pay FROM public.provider_payments WHERE idempotency_key = p_idempotency_key;
   IF FOUND THEN
     IF v_pay.subject_kind <> 'tip' OR v_pay.provider_order_id <> p_order_id OR v_pay.amount_cents <> p_charge_cents
-       OR v_pay.payer_id IS DISTINCT FROM p_tipper_id OR v_pay.env <> p_env THEN
+       OR v_pay.payer_id IS DISTINCT FROM p_tipper_id OR v_pay.env <> p_env
+       OR NOT EXISTS (SELECT 1 FROM public.tips t WHERE t.id = v_pay.subject_id AND t.source = p_source
+                        AND t.job_id = p_job_id AND t.helper_id = p_helper_id) THEN
       RAISE EXCEPTION 'tip_key_reused' USING ERRCODE = '23505';
     END IF;
     RETURN jsonb_build_object('tip_id', v_pay.subject_id, 'provider_payment_id', v_pay.id, 'status', v_pay.status, 'replay', true);
   END IF;
 
   INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, payment_status, source)
-  VALUES (p_job_id, p_tipper_id, p_helper_id, p_tip_cents / 100.0, 'pending', 'manual')
+  VALUES (p_job_id, p_tipper_id, p_helper_id, p_tip_cents / 100.0, 'pending', p_source)
   RETURNING id INTO v_tip_id;
 
   -- paypal_entry_requires_switch refuses this for a payer the switch is off for.
@@ -171,8 +182,8 @@ BEGIN
   RETURN jsonb_build_object('tip_id', v_tip_id, 'provider_payment_id', v_pay.id, 'status', v_pay.status, 'replay', false);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text) TO service_role;
 
 -- Step 2: record what PayPal says about the tip's capture, and queue the tip's payout.
 -- Idempotent: the return page and the webhook may both call it, any number of times, in any order.

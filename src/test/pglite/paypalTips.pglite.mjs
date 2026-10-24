@@ -152,6 +152,8 @@ BEGIN
 END;
 $function$;
 CREATE TRIGGER trg_notify_helper_tip AFTER INSERT OR UPDATE ON public.tips FOR EACH ROW EXECUTE FUNCTION public.notify_helper_on_tip();
+-- prod's one-auto-tip index (pg_indexes, 2026-10-23)
+CREATE UNIQUE INDEX tips_one_auto_per_job_member ON public.tips (job_id, helper_id) WHERE (source = 'auto');
 grant usage on schema public to anon, authenticated, service_role;
 grant usage on schema auth to anon, authenticated, service_role;
 grant select on auth.users to service_role;
@@ -290,6 +292,16 @@ await db.exec(`reset role; update payee_accounts set destination_changed_at = no
 const o11 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a11", "ORD11"))).j;
 const p11 = await oneJ("o11 capture ran", record(o11.provider_payment_id, "ORD11", "completed", "CAP11", 980));
 check("an email set before the hire: the tip payout is pending", p11.payout_status === "pending", p11);
+
+// --- an auto-tip (phase 6): charged off-session, so the order is already captured; source 'auto'
+const oA = (await one(`select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'auto') j`)).j;
+const oA2 = (await one(`select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'auto') j`)).j;
+check("auto-tip: one tips row with source auto; a cron retry finds the same rows", oA2.replay === true && oA2.tip_id === oA.tip_id && (await one(`select source from tips where id='${oA.tip_id}'`)).source === "auto", [oA, oA2]);
+await expectErr("auto-tip: the same key cannot be replayed as a manual tip", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'manual')`, /tip_key_reused/);
+await expectErr("auto-tip: one auto tip per job + Helpr (existing index)", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a2', 'ORDA2', 'auto')`, /tips_one_auto_per_job_member|duplicate key/);
+await expectErr("tip source must be manual or auto", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a3', 'ORDA3', 'gift')`, /tip_source_invalid/);
+const cA = await oneJ("auto-tip capture ran", record(oA.provider_payment_id, "ORDA1", "completed", "CAPA1", 565));
+check("auto-tip: recorded with no return page: paid and its payout queued", cA.tip_status === "paid" && ["pending", "held"].includes(cA.payout_status), cA);
 
 // --- the link guard
 await db.exec("reset role; insert into payout_transfers(id) values ('c0000000-0000-4000-8000-000000000009'); set role service_role");

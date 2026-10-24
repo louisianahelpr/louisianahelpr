@@ -21,7 +21,7 @@
 // fee on its own or pays the Helpr less than the tip.
 
 import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stripeFees.ts";
-import { PAYPAL_RATES, TIP_PAYPAL_METHOD, paypalProcessingCostCents } from "./payments/providerFees.ts";
+import { PAYPAL_RATES, TIP_PAYPAL_METHOD, paypalProcessingCostCents, type PayPalMethod } from "./payments/providerFees.ts";
 
 /** Smallest tip, in cents ($3; owner 2026-09-24/25). create-payment, the tip
  *  dialogs and auto-tip-charge all read this; below it the card fee would be a
@@ -96,9 +96,11 @@ export function tipChargeBreakdown(tipCents: number): TipChargeBreakdown {
  * nothing beyond that cost. Same shape as tipChargeBreakdown, so every quote and
  * every charge reads one function.
  */
-export function paypalTipChargeBreakdown(tipCents: number): TipChargeBreakdown {
+export function paypalTipChargeBreakdown(tipCents: number, method: PayPalMethod = TIP_PAYPAL_METHOD): TipChargeBreakdown {
   const tip = tipCents > 0 ? Math.round(tipCents) : 0;
-  const rate = PAYPAL_RATES[TIP_PAYPAL_METHOD];
+  // `method`: how the tip is paid. A tip prompt is PayPal Checkout (the default); an auto-tip
+  // charged to a saved card (phase 6, chargeSaved) is priced at that card method's rate.
+  const rate = PAYPAL_RATES[method];
   const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate));
   return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip } satisfies TipChargeBreakdown;
 }

@@ -15,9 +15,9 @@
  *
  * Source scan with comments blanked (blankComments), scoped to the Fee model row.
  *
- * @mutate src/pages/info/legal/TermsSection.tsx | <p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> | <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong>
+ * @mutate src/pages/info/legal/TermsSection.tsx | <>Stripe issues <strong className="text-foreground">Form 1099-K</strong> | <>Helpr issues <strong className="text-foreground">Form 1099-K</strong>
  * @mutate src/pages/info/legal/TermsSection.tsx | A Helpr pays it out of their first payout; | A Helpr pays it once;
- * @mutate src/pages/info/legal/TermsSection.tsx | {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr | $2, once per account. A Helpr
+ * @mutate src/pages/info/legal/TermsSection.tsx | {feeLabel ? `${feeLabel}, ` : ""}once per account. {fee.paypal | $2, once per account. {fee.paypal
  * @mutate src/pages/info/legal/TermsSection.tsx | the one-time account setup fee and the Helpr fee above. | the Helpr fee above.
  */
 import { describe, expect, it } from "vitest";
@@ -50,7 +50,8 @@ function feeModelRow(): string {
 
 describe("the Terms name Stripe as the 1099-K issuer", () => {
   it("the tax section says Stripe issues Form 1099-K", () => {
-    expect(terms).toContain('<p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met');
+    // Stripe path; the PayPal path makes no claim about who issues it (Q2383).
+    expect(terms).toContain('<>Stripe issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met');
   });
 
   it("no sentence names Helpr or we as the one who issues, sends or files a 1099", () => {

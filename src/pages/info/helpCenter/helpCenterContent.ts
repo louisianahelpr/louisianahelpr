@@ -1,5 +1,5 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
-import { HELPR_FLAT_FEE_PHRASE, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
+import { helprFlatTakeHomeCents, helprJobFeeFor, type HelprJobFee } from "@/lib/helprFlatFee";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
@@ -59,12 +59,10 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // only; the Helpr pays 5% + 70c; a plan never changes it. (The tier ladder
 // that used to be quoted here, FEE_FLOOR, applies only to jobs paid for
 // before the change; the Terms read the same phrase since 2026-10-20.)
-const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE;
-// What a Helpr is really sent on a $100 job: every transfer is floored to the
-// whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
-// floor the same way (floorPayoutDollars). lh-money-escrow review of
-// 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
-const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100);
+// PayPal path (owner ruling 2026-10-23): a member the paypal_payments switch is on for reads
+// 8% + $0.70 here, the fee their new jobs are stamped with; everyone else reads 5% + $0.70. So the
+// answers are built per fee (faqSectionsFor) and HelpCenter renders them for the viewer's fee
+// (useHelprJobFee). FAQ_SECTIONS stays today's copy for everything that reads it statically.
 
 // Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
 // members (feature_switches 'memberships' = testers, measured on prod
@@ -121,7 +119,17 @@ export interface FaqSection {
   items: FaqItem[];
 }
 
-export const FAQ_SECTIONS: FaqSection[] = [
+export function faqSectionsFor(fee: HelprJobFee): FaqSection[] {
+const FLAT_FEE_PHRASE = fee.phrase;
+// What a Helpr is really sent on a $100 job: every transfer is floored to the
+// whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
+// floor the same way (floorPayoutDollars). lh-money-escrow review of
+// 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
+const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000, { helper_fee_flat_cents: fee.cents, helper_fee_percent: fee.percent }) / 100);
+// What a cancel refund keeps for the processor: Stripe's card fee, or PayPal's processing fee.
+const PROCESSOR_FEE_KEPT = fee.paypal ? "the processing fee PayPal keeps" : "the card-processing fee Stripe keeps";
+const PROCESSOR_FEE_COVERED = fee.paypal ? "PayPal's processing fee" : "card processing";
+return [
   {
     topic: "Getting Started",
     items: [
@@ -245,7 +253,12 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // unrounded, and the refund sentence left out the kept setup fee and
         // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
         // it is a live DB setting (see "When do I get paid?").
-        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less the card-processing fee Stripe keeps, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
+        a: `${fee.paypal
+          // PayPal path (lead 2026-10-23): taxable categories cannot be paid through Helpr yet
+          // (phase 3 refuses them), the setup fee is added to the poster's first checkout only
+          // (manual payouts deduct none), and the 8% change dates from PayPal payments.
+          ? "There is no fee to post a job: you pay the job price (including any urgent bonus you add). Jobs in taxable categories, such as handyman, assembly and the trades, can't be paid through Helpr yet. Your first paid job also carries a small one-time account setup fee, added to that checkout."
+          : "Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did."} When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers ${PROCESSOR_FEE_COVERED}. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. ${fee.paypal ? "A job posted before PayPal payments keeps the fee it was posted under." : "A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under."} If a paid job is cancelled, ${fee.paypal ? "you get back what you paid less" : "you get back what you paid (tax included) less"} ${PROCESSOR_FEE_KEPT}, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",
@@ -411,4 +424,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
     ],
   },
 ];
+}
 
+/** Today's copy (5% + $0.70): what every static reader and test sees. */
+export const FAQ_SECTIONS: FaqSection[] = faqSectionsFor(helprJobFeeFor(false));

@@ -42,6 +42,7 @@ import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { payPalFundedJobIds } from "../_shared/payments/paypalJobRefunds.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1708,7 +1709,14 @@ serve(async (req) => {
       }
     }
 
-    const jobs = cancelledJobs;
+    // PayPal Plan A, phase 5: a cancelled job paid through PayPal has no PaymentIntent, so the loop
+    // below would take it as "no payment was ever made" and write it off with the poster's money
+    // still held. The PayPal cancellation sweep (phase 6) refunds it through the PayPal refund
+    // engine; this Stripe sweep leaves it alone. Fails CLOSED: if
+    // the PayPal read fails, Part A skips this run (an hour's delay) rather than guess.
+    const paypalJobs = await payPalFundedJobIds(supabaseAdmin, (cancelledJobs ?? []).map((j: { id: string }) => j.id));
+    if (paypalJobs.error) defects.record(`Part A skipped: PayPal payment read failed: ${paypalJobs.error}`);
+    const jobs = paypalJobs.error ? [] : (cancelledJobs ?? []).filter((j: { id: string }) => !paypalJobs.ids.has(j.id));
 
     let voided = 0;
     let refunded = 0;

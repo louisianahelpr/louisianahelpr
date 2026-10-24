@@ -6,7 +6,7 @@
 // @mutate src/lib/cancelRefundCopy.ts | "the rest, less the service fee you paid at checkout, returns to your card." | "the rest returns to your card."
 // @mutate src/lib/cancelRefundCopy.ts | "the rest, less the card-processing fee Stripe keeps, returns to your card." | "the rest returns to your card."
 // @mutate src/lib/cancelRefundCopy.ts |   if (!wasFunded) { |   if (false) {
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }),
 // Q?gift-cancel-copy (lh-money-escrow review of 7166349cd, #7, and the Q1806
 // design review, 2026-10-17): a gift-paid job's money goes back to the GIFT
 // balance; the card copy ("returns to your card, less ...") was false for it.
@@ -35,7 +35,7 @@
 // @mutate src/lib/cancelRefundCopy.ts |     if (reserved.payment_status != null && reserved.payment_status !== "paid") return "unknown"; |     if (false) return "unknown";
 // @mutate src/lib/cancelRefundCopy.ts |     return appliedFee > 0\n      ? neutral | return appliedFee < 0\n      ? neutral
 // @mutate src/components/job-card/ActivityDialogs.tsx | &&\n            props.cancelDialogJob.payment_status !== "failed" | && true
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "./cancelRefundCopy";
@@ -146,7 +146,7 @@ describe("cancelRefundToast", () => {
 
   it("CancellationDialog passes the job's own fee model and gift to it", () => {
     const src = blankComments(readFileSync("src/components/CancellationDialog.tsx", "utf8"));
-    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew \}\)/);
+    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew, paypal \}\)/);
     expect(src).toMatch(/cardShareCents = cardShareCentsFromRead\(giftRows, costCents\);/);
     expect(src).toMatch(/gift = giftOnJobFromRead\(giftRows, giftErr, costCents\);/);
     // The fee model is the job's own stamp plus its poster-fee stamp (a legacy job moved
@@ -179,3 +179,20 @@ describe("giftCostCents (Q2082 d): the cost redeem_gift_card compares a gift wit
   });
 });
 
+describe("PayPal path cancel copy (PayPal phase 5)", () => {
+  const base = { wasFunded: true, flatModel: true, keptFeeSentence: "", gift: "none" as const, paypal: true };
+  it("a fee-free cancel says PayPal and PayPal's kept fee, promises no time; never Stripe or a card", () => {
+    const t = cancelRefundToast({ ...base, appliedFee: 0 });
+    expect(t).toBe("Job cancelled. Your payment comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.");
+    expect(t).not.toMatch(/Stripe|card|minutes|hour/);
+  });
+  it("a late-cancel fee promises no time (phase 6 is not built)", () => {
+    const t = cancelRefundToast({ ...base, appliedFee: 25 });
+    expect(t).toContain("The $25 cancellation fee applies");
+    expect(t).toContain("We'll let you know when it's sent.");
+    expect(t).not.toMatch(/minutes|hour|Stripe/);
+  });
+  it("off the PayPal path the copy is unchanged", () => {
+    expect(cancelRefundToast({ ...base, paypal: false, appliedFee: 0 })).toBe("Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.");
+  });
+});

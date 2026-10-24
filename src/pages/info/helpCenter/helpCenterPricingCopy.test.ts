@@ -16,14 +16,14 @@
 // one-time setup fee on a first funded job), quoted the UNROUNDED $94.30
 // (every transfer is floored to the dollar, Q236: $94), and its refund
 // sentence left out the kept setup fee.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100); | const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000) / 100).toFixed(2);
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000, { helper_fee_flat_cents: fee.cents, helper_fee_percent: fee.percent }) / 100); | const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000, { helper_fee_flat_cents: fee.cents, helper_fee_percent: fee.percent }) / 100).toFixed(2);
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. | and nothing on top.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | , and, on your first paid job, the one-time setup fee. If the mistake | . If the mistake
 // Delta review (#A): "any sales tax you paid comes back" overstated it: on a
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | you get back what you paid (tax included) less | you get back what you paid less
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start | It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE; | const FLAT_FEE_PHRASE = "5%";
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = fee.phrase; | const FLAT_FEE_PHRASE = "5%";
 //
 // Memberships are off for members (roadmap F4/F4a; feature_switches
 // 'memberships' = testers on prod, measured 2026-10-17), so every answer that

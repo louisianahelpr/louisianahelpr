@@ -75,6 +75,8 @@ import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { readPayPalJobPayment, settleRefundAgreement } from "../_shared/payments/paypalJobRefunds.ts";
+import { payPalFromEnv } from "../_shared/payments/paypalRefundDoors.ts";
 
 /**
  * The client type these helpers accept.
@@ -272,6 +274,42 @@ serve(async (req) => {
     return json({ error: "dispute lookup failed — retry" }, 500);
   }
   if (!dispute) return json({ error: "dispute not found" }, 404);
+
+  // ── 1a. Not a PayPal job (PayPal Plan A, phase 5) ───────────────────────
+  // Every leg below is Stripe: to it a PayPal job has no PaymentIntent and reads as "nothing to
+  // refund". An agreed full refund on a PayPal job is settled by paypal-refunds
+  // (refund-request-sweep routes it there); an admin-decided split waits for PayPal phase 7.
+  // Asked before anything writes, so the dispute is left exactly as it was. Fails CLOSED.
+  if (dispute.job_id) {
+    const pp = await readPayPalJobPayment(supabaseAdmin, dispute.job_id);
+    if (pp.error) {
+      console.error(`[execute-dispute-split] PayPal payment read failed for job ${dispute.job_id}: ${pp.error}`);
+      return json({ error: "could not check how this job was paid — nothing was moved, retry" }, 503);
+    }
+    if (pp.payment) {
+      // An AGREED refund request on a PayPal job settles through the PayPal path, from here too, so
+      // an admin's "Retry settlement" still works (money review round 2, #2). It re-checks the
+      // recorded agreement itself and replays every leg already done.
+      const { data: ppAgreement, error: ppAgreementErr } = await supabaseAdmin.rpc("refund_agreement_for_dispute", { p_dispute_id: disputeId });
+      if (ppAgreementErr) return json({ error: "could not verify the refund agreement — nothing was moved, retry" }, 503);
+      if ((ppAgreement as { job_id?: string } | null)?.job_id) {
+        let pp5;
+        try {
+          pp5 = payPalFromEnv();
+        } catch (e) {
+          return json({ error: `PayPal is not configured (${e instanceof Error ? e.message : String(e)}) — nothing was moved` }, 503);
+        }
+        const settled = await settleRefundAgreement({ db: supabaseAdmin, provider: pp5.provider, client: pp5.client, alert: postSlackOpsAlert as never }, disputeId);
+        // Q76: an admin's retry that moved PayPal money names that admin (round 3 nit #5).
+        if (adminUserId && settled.status === 200) {
+          const paypalRetryAudit = { adminId: adminUserId, action: "execute_refund_agreement_paypal", targetType: "dispute", targetId: disputeId, details: settled.body, source: "execute-dispute-split" };
+          await writeAdminAudit(supabaseAdmin, paypalRetryAudit, postSlackOpsAlert);
+        }
+        return json({ ...settled.body, success: settled.status === 200 }, settled.status);
+      }
+      return json({ error: "this job was paid with PayPal: its split is not a Stripe split (agreed refunds settle through paypal-refunds; other PayPal splits wait for PayPal phase 7) — nothing was moved", code: "paypal_job" }, 409);
+    }
+  }
 
   // ── 1b. The agreement door moves money ONLY on a recorded agreement ──────
   // Asked before any refusal that writes (refuse() stamps the dispute) and

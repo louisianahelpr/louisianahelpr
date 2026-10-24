@@ -172,7 +172,11 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
         {
           idempotencyKey: input.idempotencyKey,
           prefer: "return=representation",
-          body: { amount: usd(input.amountCents), ...(input.note ? { note_to_payer: input.note.slice(0, 255) } : {}) },
+          body: {
+            amount: usd(input.amountCents),
+            ...(input.note ? { note_to_payer: input.note.slice(0, 255) } : {}),
+            ...(input.customId ? { custom_id: input.customId.slice(0, 127) } : {}),
+          },
         },
       );
       if (!r?.id) throw new Error("paypal refund response has no id");

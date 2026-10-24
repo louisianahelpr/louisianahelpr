@@ -93,7 +93,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 269,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -103,7 +103,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 326,
+      "line": 340,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -113,7 +113,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 328,
+      "line": 342,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -123,13 +123,27 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 373,
+      "line": 387,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew })",
+        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal })",
         "from": "src/lib/cancelRefundCopy.ts",
         "branches": [
+          {
+            "form": "dynamic",
+            "text": "appliedFee > 0 ? `Job cancelled. The $${formatPriceExact(appliedFee)} cancellation fee applies; the rest comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}` : `Job cancelled. Your payment comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "Job cancelled. The $${formatPriceExact(appliedFee)} cancellation fee applies; the rest comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}"
+              },
+              {
+                "form": "template",
+                "text": "Job cancelled. Your payment comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}"
+              }
+            ]
+          },
           {
             "form": "dynamic",
             "text": "wasFunded ? neutral : \"Job cancelled. Your checkout was never completed, so your card was never charged, and the gift you set aside goes back to your gift balance within the hour.\"",
@@ -314,7 +328,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 387,
+      "line": 401,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2271,7 +2285,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 98,
+      "line": 101,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2281,7 +2295,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 241,
+      "line": 244,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2291,7 +2305,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 252,
+      "line": 255,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2301,7 +2315,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 263,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2311,7 +2325,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 309,
+      "line": 316,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2321,7 +2335,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 402,
+      "line": 409,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

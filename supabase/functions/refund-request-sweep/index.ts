@@ -6,6 +6,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
+import { readPayPalJobPayment } from "../_shared/payments/paypalJobRefunds.ts";
 
 // Board 141, Jobs side (docs/OPEN.md Q2272; owner 2026-10-21: the money moves
 // AUTOMATICALLY when the other side agrees). Every 10 minutes
@@ -101,26 +102,34 @@ serve(async (req) => {
         });
         continue;
       }
+      // PayPal Plan A, phase 5: a job paid through PayPal settles through paypal-refunds (the
+      // split is Stripe code). Fails closed: an unreadable answer is a defect, never a Stripe split.
+      const pp = await readPayPalJobPayment(admin, row.job_id);
+      if (pp.error) {
+        defects.record(`PayPal payment read failed for job ${row.job_id}: ${pp.error}`);
+        continue;
+      }
+      const settler = pp.payment ? "paypal-refunds" : "execute-dispute-split";
       let res: Response;
       try {
         res = await fetchFunction(
-          `${url}/functions/v1/execute-dispute-split`,
+          `${url}/functions/v1/${settler}`,
           {
             method: "POST",
             headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ dispute_id: row.dispute_id }),
+            body: JSON.stringify(pp.payment ? { action: "settle_refund_agreement", dispute_id: row.dispute_id } : { dispute_id: row.dispute_id }),
           },
           { deadlineAt: invocationDeadline(startedAt) },
         );
       } catch (e) {
-        defects.record(`execute-dispute-split unreachable for dispute ${row.dispute_id}: ${caughtMessage(e)}`);
+        defects.record(`${settler} unreachable for dispute ${row.dispute_id}: ${caughtMessage(e)}`);
         continue;
       }
       let body: { success?: unknown; error?: unknown } | null = null;
       try {
         body = await res.json();
       } catch (e) {
-        defects.record(`execute-dispute-split answered ${res.status} with no JSON for dispute ${row.dispute_id}: ${caughtMessage(e)}`);
+        defects.record(`${settler} answered ${res.status} with no JSON for dispute ${row.dispute_id}: ${caughtMessage(e)}`);
         continue;
       }
       if (res.ok && body?.success === true) {
@@ -132,7 +141,7 @@ serve(async (req) => {
       // agreement this run was handed: never an outcome. 5xx: the split could
       // not tell or reach Stripe; the next hand-out retries it.
       if (res.status === 401 || res.status === 403 || res.status >= 500) {
-        defects.record(`execute-dispute-split ${res.status} for dispute ${row.dispute_id}: ${error}`);
+        defects.record(`${settler} ${res.status} for dispute ${row.dispute_id}: ${error}`);
         continue;
       }
       refused.push({ dispute_id: row.dispute_id, status: res.status, error });

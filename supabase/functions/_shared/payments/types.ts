@@ -81,7 +81,8 @@ export interface PaymentProvider {
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutCreated>;
   capture(idempotencyKey: string, providerOrderId: string): Promise<CaptureResult>;
   chargeSaved(input: { idempotencyKey: string; referenceId: string; vaultId: string; amountCents: number }): Promise<CaptureResult>;
-  refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string }): Promise<RefundResult>;
+  /** `customId`: our provider_refunds row id, echoed back on the refund (phase 5 reconcile matches by it). */
+  refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string; customId?: string }): Promise<RefundResult>;
 }
 
 /** Where a payout goes, as stored in public.payee_accounts. */

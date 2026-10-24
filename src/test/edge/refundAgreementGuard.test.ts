@@ -401,8 +401,12 @@ describe("the SQL proof keeps its predicates (newest definition)", () => {
   it("the sweep asks the split only for dispute ids the hand-out returned, with the service key", () => {
     const src = blankComments(readFileSync(join(ROOT, "supabase/functions/refund-request-sweep/index.ts"), "utf8"));
     expect(src).toContain(`admin.rpc("refund_agreements_due"`);
-    expect(src.match(/functions\/v1\/execute-dispute-split/g)).toHaveLength(1);
-    expect(src).toContain("JSON.stringify({ dispute_id: row.dispute_id })");
+    // PayPal phase 5: one settler URL, execute-dispute-split for a Stripe job, paypal-refunds (which
+    // re-checks refund_agreement_for_dispute itself) for a PayPal one.
+    expect(src.match(/"execute-dispute-split"/g)).toHaveLength(1);
+    expect(src).toContain('const settler = pp.payment ? "paypal-refunds" : "execute-dispute-split";');
+    expect(src).toContain("`${url}/functions/v1/${settler}`");
+    expect(src).toContain("JSON.stringify(pp.payment ? { action: \"settle_refund_agreement\", dispute_id: row.dispute_id } : { dispute_id: row.dispute_id })");
     expect(src).toContain("verifyCronSecret(req)");
   });
 

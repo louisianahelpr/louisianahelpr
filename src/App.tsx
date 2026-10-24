@@ -90,6 +90,9 @@ const TermsReconsentDialog = lazy(() =>
 );
 // The one Stripe Identity sheet (owner 2026-10-21): opened from any entry
 // point through openIdentityCheck(), and by /…?verify_id=1 and Stripe's return.
+const PayPalSwitchHost = lazy(() =>
+  import("@/components/payments/PayPalSwitchHost").then((m) => ({ default: m.PayPalSwitchHost }))
+);
 const IdentityCheckHost = lazy(() =>
   import("@/components/identity/IdentityCheckSheet").then((m) => ({ default: m.IdentityCheckHost }))
 );
@@ -559,6 +562,7 @@ const App = () => (
             <PermissionRationaleDialog />
             <TermsReconsentDialog />
             <IdentityCheckHost />
+            <PayPalSwitchHost />
           </Suspense>
           </SidePanelProvider>
           <SpeedInsightsRouted />

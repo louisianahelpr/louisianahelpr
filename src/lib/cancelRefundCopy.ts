@@ -146,9 +146,18 @@ export function cancelRefundToast(args: {
   keptSetupCents?: number;
   /** A crew job: its block fees are kept too and are not known here. */
   crew?: boolean;
+  /** Paid on the PayPal path (stamped 8% + 70c at post): refunded through PayPal by paypal-refunds. */
+  paypal?: boolean;
 }): string {
   const { wasFunded, appliedFee, flatModel, keptFeeSentence } = args;
   const gift = args.gift ?? "none";
+  if (args.paypal && wasFunded && gift === "none") {
+    // The cancellation sweep (phase 6) refunds it through PayPal; no time is promised, and the
+    // poster's refund notice says when it is sent.
+    return appliedFee > 0
+      ? `Job cancelled. The $${formatPriceExact(appliedFee)} cancellation fee applies; the rest comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}`
+      : `Job cancelled. Your payment comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}`;
+  }
   const neutral = `Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.${keptFeeSentence}`;
   // A reserved gift is never spent before its card leg completes, so it comes
   // back whatever the card did; it is decided BEFORE wasFunded (lh-money-escrow

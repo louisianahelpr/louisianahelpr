@@ -14,6 +14,8 @@ import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
 
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => {} }));
+// The viewer's jobs fee (PayPal phase 5): signed out, as here, it is today's 5% + $0.70.
+vi.mock("@/hooks/useHelprJobFee", () => ({ useHelprJobFee: () => ({ percent: 5, cents: 70, phrase: "5% + $0.70", paypal: false, settled: true }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) } },
 }));

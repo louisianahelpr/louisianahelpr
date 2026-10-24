@@ -24,7 +24,8 @@ describe("board 189: the first-job Home says only what is true", () => {
     const paid = src.slice(src.indexOf('aria-label="How you get paid"'));
     expect(paid).toMatch(/\{STANDARD_PAYOUT_PHRASE\}/);
     expect(paid).toMatch(/\{STANDARD_PAYOUT_WINDOW\}/);
-    expect(paid).toMatch(/\{HELPR_FLAT_FEE_PHRASE\}/);
+    // PayPal phase 5: the fee is the viewer's (8% + $0.70 on the PayPal path), from the shared constants.
+    expect(paid).toMatch(/\{fee\.phrase\}/);
     expect(paid.slice(0, paid.indexOf("</section>"))).not.toMatch(/\b\d+\s*(days?|%|business)/);
   });
 

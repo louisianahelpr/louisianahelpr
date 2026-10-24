@@ -130,5 +130,10 @@
     "observable": "stuck_payment_stripe_checks",
     "why": "Every 15 minutes it writes one row per unpaid job's Checkout Session with Stripe's answer (checked_at); no rows for an hour while unpaid jobs exist means it is not running",
     "status": "NEVER"
+  },
+  "paypal-refunds": {
+    "observable": "cron_run_log",
+    "why": "PayPal phase 5: every run of the paypal-refunds sweep records its counts (orphan captures refunded, unfinished refunds retried or re-read, cancelled jobs still waiting) through cronResult under jobname paypal-refunds; every refund it makes is one public.provider_refunds row with a PayPal refund id",
+    "status": "NEVER"
   }
 }

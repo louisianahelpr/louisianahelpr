@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { TablesUpdate } from "@/integrations/supabase/types";
@@ -44,6 +44,9 @@ const AdminJobs = () => {
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundReason, setRefundReason] = useState("");
   const [refundAmount, setRefundAmount] = useState(""); // empty = full refund; otherwise partial $
+  // The refund's request id: new each time the dialog opens, kept across presses inside it (a retry
+  // after a timeout is the same refund), renewed after a refund lands.
+  const refundRequestId = useRef<string>(crypto.randomUUID());
   // The refund dialog asks the ledger the same question create-payment's
   // escrowAlreadyMovedTheOtherWay asks: is there a pending or paid payout
   // row? payment_status alone is wrong both ways (a released job whose only
@@ -279,6 +282,9 @@ const AdminJobs = () => {
         body: {
           action: "admin_refund_general",
           jobId: detailJob.id,
+          // One press, one refund (PayPal phase 5): a resend of this same dialog reuses the id, so
+          // the PayPal refund engine answers it with the refund it already made. Ignored by Stripe.
+          requestId: refundRequestId.current,
           reason: refundReason.trim() || undefined,
           ...(isPartial ? { amountCents: partialCents } : {}),
           ...(fault ? { helprFault: fault } : {}),
@@ -301,6 +307,7 @@ const AdminJobs = () => {
       setRefundOpen(false);
       setRefundReason("");
       setRefundAmount("");
+      refundRequestId.current = crypto.randomUUID();
       faultForm.reset();
       setDetailJob(null);
     } catch (err) {
@@ -544,7 +551,7 @@ const AdminJobs = () => {
           setOverrideStatus(job.status === "cancelled" ? "open" : "completed");
           setOverrideOpen(true);
         }}
-        onOpenRefund={() => setRefundOpen(true)}
+        onOpenRefund={() => { refundRequestId.current = crypto.randomUUID(); setRefundOpen(true); }}
       />
 
       {/* Delete confirmation dialog */}

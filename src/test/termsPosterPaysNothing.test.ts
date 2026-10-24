@@ -32,8 +32,10 @@ describe("the Terms poster sentence matches the default fee model", () => {
   it("the Terms read that default and claim no poster fee", () => {
     expect(terms).toContain("const POSTER_FEE_ON_DEFAULT_CENTS = serviceFeeCentsFor(jobFeeModelFor({ switchOn: false }), 10_000, false);");
     expect(terms).toMatch(/POSTER_FEE_ON_DEFAULT_CENTS === 0\s*\?\s*"Posting a job has no fee: the poster pays the job price/);
-    expect(terms).toContain("${POSTER_PAYS_SENTENCE}");
-    expect(terms).toContain("{POSTER_PAYS_SENTENCE}");
+    // PayPal phase 5: the PayPal path reads its own sentence (taxable types not payable yet, setup
+    // fee on the first checkout); the default path still reads POSTER_PAYS_SENTENCE.
+    expect(terms).toContain("${fee.paypal ? POSTER_PAYS_SENTENCE_PAYPAL : POSTER_PAYS_SENTENCE}");
+    expect(terms).toContain("{fee.paypal ? POSTER_PAYS_SENTENCE_PAYPAL : POSTER_PAYS_SENTENCE}");
     expect(terms).not.toMatch(/service fee that only covers card processing|Service fee \(covers card processing\)|The service fee goes to card processing|added on top and shown before they pay, and is never taken from the bonus/);
   });
 });

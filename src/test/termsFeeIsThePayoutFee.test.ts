@@ -9,8 +9,12 @@
  *
  * @mutate src/lib/helprFlatFee.ts | export const HELPR_FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`; | export const HELPR_FLAT_FEE_PHRASE = "8–12%";
  * @mutate src/pages/info/legal/TermsSection.tsx | the Helpr fee above. | the Helpr's plan-based fee.
- * @mutate src/pages/info/legal/TermsSection.tsx | The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay | The Helpr's fee (12% of their pay
- * @mutate src/pages/info/legal/TermsSection.tsx | <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each | <p><strong className="text-foreground">Helpr fee:</strong> {TIER_PERKS.free.platformFeePercent}% of each
+ * @mutate src/pages/info/legal/TermsSection.tsx | The Helpr's fee (${fee.phrase} of their pay | The Helpr's fee (12% of their pay
+ * @mutate src/pages/info/legal/TermsSection.tsx | <p><strong className="text-foreground">Helpr fee:</strong> {fee.phrase} of each | <p><strong className="text-foreground">Helpr fee:</strong> {TIER_PERKS.free.platformFeePercent}% of each
+ * @mutate src/pages/info/legal/TermsSection.tsx |   const fee = useHelprJobFee(); |   const fee = { phrase: "8–12%", paypal: false };
+ *
+ * PayPal phase 5 (owner fee ruling 2026-10-23): the jobs fee in the Terms and the Help Center is the
+ * VIEWER's (useHelprJobFee / helprJobFeeFor): 8% + $0.70 on the PayPal path, else this phrase.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -32,9 +36,11 @@ describe("the Terms quote the fee the payout charges", () => {
 
   it("Terms and the Help Center read the phrase; no tier ladder is quoted", () => {
     const terms = read("pages/info/legal/TermsSection.tsx");
-    expect(terms).toContain("The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay");
-    expect(terms).toContain('<p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each');
+    expect(terms).toContain("The Helpr's fee (${fee.phrase} of their pay");
+    expect(terms).toContain('<p><strong className="text-foreground">Helpr fee:</strong> {fee.phrase} of each');
+    expect(terms).toContain("const fee = useHelprJobFee();");
     expect(terms).not.toMatch(/platformFeePercent|\bFEE_FLOOR\b|plan-based/);
-    expect(read("pages/info/helpCenter/helpCenterContent.ts")).toContain("const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE;");
+    expect(read("pages/info/helpCenter/helpCenterContent.ts")).toContain("const FLAT_FEE_PHRASE = fee.phrase;");
+    expect(read("pages/info/helpCenter/helpCenterContent.ts")).toContain("export const FAQ_SECTIONS: FaqSection[] = faqSectionsFor(helprJobFeeFor(false));");
   });
 });

@@ -28,15 +28,26 @@ export interface RefundRpc {
 export type RefundRefusal =
   | "refund_after_payout_queued"
   | "refund_exceeds_payment"
+  | "refund_exceeds_refundable"
   | "refund_needs_captured_payment"
   | "refund_key_reused"
   | "refund_env_mismatch"
+  | "orphan_refund_must_be_full"
   | "provider_refused"
   | "earlier_attempt_failed";
 
 export type RefundOutcome =
   /** PayPal refunded (settled = COMPLETED; false = PENDING at PayPal, still on its way). */
-  | { kind: "refunded"; refundRowId: string; providerRefundId: string; settled: boolean; amountCents: number; replay: boolean; paymentStatus: string | null }
+  | {
+    kind: "refunded"; refundRowId: string; providerRefundId: string; settled: boolean;
+    /** What PayPal REALLY refunded (the row now says so). */
+    amountCents: number;
+    /** What we asked for; differs from amountCents only when PayPal refunded less (amountMismatch). */
+    askedCents: number;
+    /** PayPal refunded less than asked (phase 6 measured: a whole-capture ask after a partial refunds the rest). Page it. */
+    amountMismatch: boolean;
+    replay: boolean; paymentStatus: string | null;
+  }
   /** Nothing moved, and nothing will on a retry with this key. */
   | { kind: "refused"; code: RefundRefusal; message: string; refundRowId: string | null }
   /** Not finished (PayPal or the database unreachable). Retry with the SAME key. */
@@ -52,6 +63,12 @@ export interface RefundRequest {
   reason: string;
   /** Shown to the payer by PayPal. */
   noteToPayer?: string;
+  /**
+   * The most all live refunds of the payment may total (paid less what is kept: PayPal's fee, the
+   * setup fee, the tax on them). Checked in the claim under the payment lock, so two refunds racing
+   * on different keys cannot both fit. Omitted = the payment amount (the guard's own cap).
+   */
+  maxTotalCents?: number;
 }
 
 interface ClaimRow {
@@ -64,7 +81,7 @@ interface ClaimRow {
   replay: boolean;
 }
 
-const GUARD_CODES: RefundRefusal[] = ["refund_after_payout_queued", "refund_exceeds_payment", "refund_needs_captured_payment", "refund_key_reused"];
+const GUARD_CODES: RefundRefusal[] = ["refund_after_payout_queued", "refund_exceeds_refundable", "refund_exceeds_payment", "refund_needs_captured_payment", "refund_key_reused", "refund_env_mismatch", "orphan_refund_must_be_full"];
 
 const DEFINITE_NO = new Set([400, 404, 422]);
 
@@ -81,6 +98,10 @@ export async function refundProviderPayment(db: RefundRpc, provider: PaymentProv
     p_idempotency_key: req.idempotencyKey,
     p_amount_cents: req.amountCents,
     p_reason: req.reason,
+    // Refused BEFORE the row is written when the payment is of the other environment: a sandbox
+    // payment is never refunded with live keys, nor the reverse, and no phantom claim is left.
+    p_env: provider.env,
+    p_max_total_cents: req.maxTotalCents ?? null,
   });
   if (claimed.error) {
     const code = guardCode(claimed.error.message);
@@ -94,8 +115,11 @@ export async function refundProviderPayment(db: RefundRpc, provider: PaymentProv
     return { kind: "refused", code: "refund_env_mismatch", message: `payment is ${claim.env}, provider is ${provider.env}`, refundRowId: claim.refund_id };
   }
   if (claim.status === "completed" && claim.provider_refund_id) {
-    return { kind: "refunded", refundRowId: claim.refund_id, providerRefundId: claim.provider_refund_id, settled: true, amountCents: claim.amount_cents, replay: true, paymentStatus: null };
+    return { kind: "refunded", refundRowId: claim.refund_id, providerRefundId: claim.provider_refund_id, settled: true, amountCents: claim.amount_cents, askedCents: claim.amount_cents, amountMismatch: false, replay: true, paymentStatus: null };
   }
+  // `replay` below means "PayPal's answer was already recorded once" (whoever recorded it told the
+  // payer); a claim whose answer was lost is NOT a replay: this run is the first to learn the refund.
+  const answeredBefore = claim.provider_refund_id !== null;
   if (claim.status === "failed" || claim.status === "cancelled") {
     return { kind: "refused", code: "earlier_attempt_failed", message: `this refund (${req.idempotencyKey}) already ${claim.status}`, refundRowId: claim.refund_id };
   }
@@ -116,8 +140,8 @@ export async function refundProviderPayment(db: RefundRpc, provider: PaymentProv
       if (marked.error) return { kind: "retry", message: `PayPal refused (${e.issue ?? e.httpStatus}) and the row could not be marked failed: ${marked.error.message}`, refundRowId: claim.refund_id };
       return { kind: "refused", code: "provider_refused", message: `${e.issue ?? e.errorName ?? e.httpStatus}: ${msg}`, refundRowId: claim.refund_id };
     }
-    // Transport, 5xx, 429, a declined-in-2xx status or an unreadable answer: we do not know whether
-    // PayPal refunded. The row stays pending (the money stays spoken for); retry with the same key.
+    // Transport, 5xx, 429, a 401/403 or an unreadable answer: we do not know whether PayPal refunded.
+    // The row stays pending (the money stays spoken for); retry with the same key.
     return { kind: "retry", message: msg, refundRowId: claim.refund_id };
   }
 
@@ -131,14 +155,16 @@ export async function refundProviderPayment(db: RefundRpc, provider: PaymentProv
   if (recorded.error) {
     return { kind: "recorded_late", message: recorded.error.message, refundRowId: claim.refund_id, providerRefundId: paid.providerRefundId, amountCents: paid.amountCents };
   }
-  const rec = recorded.data as { payment_status?: string } | null;
+  const rec = recorded.data as { payment_status?: string; amount_mismatch?: boolean } | null;
   return {
     kind: "refunded",
     refundRowId: claim.refund_id,
     providerRefundId: paid.providerRefundId,
     settled: paid.settled,
     amountCents: paid.amountCents,
-    replay: claim.replay,
+    askedCents: req.amountCents,
+    amountMismatch: rec?.amount_mismatch === true || paid.amountCents !== req.amountCents,
+    replay: answeredBefore,
     paymentStatus: rec?.payment_status ?? null,
   };
 }

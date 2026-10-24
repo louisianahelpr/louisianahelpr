@@ -7,6 +7,8 @@
  *   PLANT=no_fee_stamp     ... # RED: a tester's new job is not stamped 8% + 70c
  *   PLANT=claim_no_replay  ... # RED: a replayed refund claim makes a second refund row
  *   PLANT=no_refund_guard  ... # RED: over-refund and refund-after-payout-queued are let through
+ *   PLANT=no_orphan_carveout ... # RED: an orphan capture cannot be refunded
+ *   PLANT=no_ceiling       ... # RED: two keys together pass the refundable ceiling
  *
  * Proves: the fee is stamped AT POST only while paypal_payments is on for the poster (8/70),
  * cleared for everyone else exactly as before, server inserts untouched, and members still cannot
@@ -16,7 +18,10 @@
  * payment to partially_refunded / refunded; PAYMENT.CAPTURE.REFUNDED reconciles (known refund,
  * lost answer attached, refund made outside the app recorded, outside refund while a payout is
  * queued holds that payout), and a 3x replay leaves one refund row; the cancelled-jobs hand-out;
- * members and anon cannot call any of it.
+ * review round 1: env refused before a row, the refundable ceiling under the lock, a job with a live
+ * refund under another key not handed out, a failed cancel refund re-offered under a new key, the
+ * unsettled-cancel safety net; orphan captures refunded in full only; members and anon cannot call
+ * any of it.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  */
@@ -32,11 +37,14 @@ const plant = (from, to) => {
   mig = mig.replace(from, to);
 };
 if (process.env.PLANT === "no_fee_stamp") plant("IF public.feature_enabled_for_user('paypal_payments', NEW.customer_id) THEN", "IF false THEN");
+if (process.env.PLANT === "no_orphan_carveout") plant("IF NOT v_orphan AND NOT EXISTS (SELECT 1 FROM public.provider_payments", "IF NOT EXISTS (SELECT 1 FROM public.provider_payments");
+if (process.env.PLANT === "no_ceiling") plant("+ p_amount_cents > p_max_total_cents THEN", "+ p_amount_cents > p_max_total_cents + 1000000 THEN");
 if (process.env.PLANT === "claim_no_replay") {
   plant("SELECT * INTO v_ref FROM public.provider_refunds WHERE idempotency_key = p_idempotency_key;\n  IF FOUND THEN", "SELECT * INTO v_ref FROM public.provider_refunds WHERE false;\n  IF FOUND THEN");
   plant("EXCEPTION WHEN unique_violation THEN", "EXCEPTION WHEN division_by_zero THEN");
 }
 const p1Run = process.env.PLANT === "no_refund_guard" ? p1.replace(/CREATE TRIGGER trg_provider_refunds_guard[\s\S]*?;/, "") : p1;
+if (process.env.PLANT === "no_refund_guard") mig = mig.replace(/CREATE TRIGGER trg_provider_refunds_guard[\s\S]*?;/, "");
 const db = new PGlite();
 const U = { ordinary: "11111111-1111-4111-8111-111111111111", tester: "22222222-2222-4222-8222-222222222222", admin: "33333333-3333-4333-8333-333333333333" };
 await db.exec(`
@@ -222,6 +230,69 @@ const h2 = await jx(claim(P3, K(JOB3, "admin:e0000000-0000-4000-8000-00000000000
 o = await jx(recon("CAP3", "REF-H2", "completed", 1000, "sandbox", h2.refund_id));
 check("custom_id names the claim: the SECOND same-amount claim takes it, not the oldest", o.outcome === "attached" && (await one(`select provider_refund_id from provider_refunds where id='${h2.refund_id}'`)).provider_refund_id === "REF-H2" && (await one(`select provider_refund_id from provider_refunds where id='${h1.refund_id}'`)).provider_refund_id === null, o);
 
+// ── 2b. review round 1 (lh-money-escrow / lh-silent-failure 2026-10-23) ──
+const JOB4 = "b0000000-0000-4000-8000-000000000004";
+await db.exec(`reset role; insert into jobs(id, customer_id, status, payment_status, budget) values ('${JOB4}', '${U.tester}', 'cancelled', 'escrow', 100); set role service_role`);
+const P4 = await payRow("lh:job:p4:checkout:amt10000:a1", JOB4, 10000, "CAP4");
+const claim6 = (pay, key, amt, env, max) => `select public.paypal_refund_claim('${pay}', '${key}', ${amt}, 'test', ${env ? `'${env}'` : "null"}, ${max ?? "null"}) j`;
+o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000001"), 100, "live"));
+check("env mismatch is refused BEFORE a row is written (no phantom claim)", /refund_env_mismatch/.test(o.error ?? "") && (await one(`select count(*)::int n from provider_refunds where provider_payment_id='${P4}'`)).n === 0, o);
+o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000002"), 9700, "sandbox", 9611));
+check("the refundable ceiling (PayPal keeps its fee) is enforced under the lock", /refund_exceeds_refundable/.test(o.error ?? ""), o);
+const okClaim = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000003"), 9000, "sandbox", 9611));
+o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000004"), 612, "sandbox", 9611));
+check("a second key racing the first cannot pass the ceiling together (9000 + 612 > 9611)", okClaim.refund_id && /refund_exceeds_refundable/.test(o.error ?? ""), { okClaim, o });
+o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000003"), 9000, "sandbox", 9611));
+check("...while the first key's replay still answers its row", o.refund_id === okClaim.refund_id && o.replay === true, o);
+check("a job with a live refund under another key is not handed out for a cancel refund", !(await due()).some((d) => d.job_id === JOB4), await due());
+await jx(`select public.paypal_refund_record('${okClaim.refund_id}', 'REF-P4', 'failed', 9000) j`);
+let d4 = (await due()).find((d) => d.job_id === JOB4);
+check("once that refund failed at PayPal, the job is handed out again", !!d4 && d4.cancel_attempts === 0, d4);
+const c4 = await jx(claim6(P4, K(JOB4, "cancel"), 9611, "sandbox", 9611));
+await jx(`select public.paypal_refund_record('${c4.refund_id}', 'REF-P4C', 'pending', 9611) j`);
+o = await jx(recon("CAP4", "REF-P4C", "failed", 9611));
+check("PayPal failing a recorded cancel refund: 'updated' with the key and previous status (the handler pages)", o.outcome === "updated" && o.status === "failed" && o.previous_status === "pending" && o.idempotency_key === K(JOB4, "cancel"), o);
+d4 = (await due()).find((d) => d.job_id === JOB4);
+check("...and the job comes back with one failed cancel attempt (the next key is :a2)", !!d4 && d4.cancel_attempts === 1, d4);
+const c4b = await jx(claim6(P4, K(JOB4, "cancel:a2"), 9611, "sandbox", 9611));
+await jx(`select public.paypal_refund_record('${c4b.refund_id}', 'REF-P4C2', 'completed', 9611) j`);
+const unsettled = (await db.query("select * from public.paypal_cancelled_jobs_unsettled(20)")).rows;
+check("a completed cancel refund on a job not yet marked refunded is handed to the safety net", unsettled.some((u) => u.job_id === JOB4 && u.refund_id === c4b.refund_id), unsettled);
+await db.exec(`reset role; update jobs set payment_status = 'refunded' where id = '${JOB4}'; set role service_role`);
+check("...and leaves it once the job says refunded", !(await db.query("select * from public.paypal_cancelled_jobs_unsettled(20)")).rows.some((u) => u.job_id === JOB4), null);
+
+// orphan captures (phase 3's contract: voided + capture + status_reason 'orphan:%'; phase 3 adds the column)
+await db.exec("reset role; alter table public.provider_payments add column if not exists status_reason text; set role service_role");
+const JOB5 = "b0000000-0000-4000-8000-000000000005";
+const orphan = async (key, subject, amount, capture, reason) => (await one(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents, status, provider_capture_id, status_reason)
+  values ('job', '${subject}', '${U.tester}', 'paypal_checkout', 'sandbox', '${key}', 'O-${key}', ${amount}, 'voided', '${capture}', ${reason ? `'${reason}'` : "null"}) returning id`)).id;
+const PO = await orphan("lh:job:p5:checkout:amt4000:a2", JOB5, 4000, "CAP-ORPH", "orphan:second_capture");
+const PV = await orphan("lh:job:p5:checkout:amt4000:a3", JOB5, 4000, "CAP-VOID", null);
+const odue = (await db.query("select * from public.paypal_orphan_refunds_due(20)")).rows;
+check("an orphan capture is handed out for a full refund; a plain voided row is not", odue.some((r) => r.provider_payment_id === PO && r.orphan_reason === "orphan:second_capture") && !odue.some((r) => r.provider_payment_id === PV), odue);
+const OK_ = (id) => `lh:pp:${id}:refund:orphan`;
+o = await jx(claim6(PO, OK_(PO), 3000, "sandbox", null));
+check("an orphan cannot be refunded in part", /orphan_refund_must_be_full/.test(o.error ?? ""), o);
+o = await jx(claim6(PV, OK_(PV), 4000, "sandbox", null));
+check("a voided row that is not an orphan still cannot be refunded", /refund_needs_captured_payment/.test(o.error ?? ""), o);
+const co = await jx(claim6(PO, OK_(PO), 4000, "sandbox", 4000));
+check("an orphan is refunded in full (card fee included: the money was never ours)", !!co.refund_id && co.status === "pending", co);
+check("...and is not handed out twice", !(await db.query("select * from public.paypal_orphan_refunds_due(20)")).rows.some((r) => r.provider_payment_id === PO), null);
+o = await jx(`select public.paypal_refund_record('${co.refund_id}', 'REF-ORPH', 'completed', 4000) j`);
+check("a fully refunded orphan reads 'refunded' (phase 3's orphan alert clears)", o.payment_status === "refunded" && (await one(`select status from provider_payments where id='${PO}'`)).status === "refunded", o);
+
+// PayPal refunds LESS than asked (phase 6's sandbox probe): the real amount is recorded and flagged.
+const JOB6 = "b0000000-0000-4000-8000-000000000006";
+await db.exec(`reset role; insert into jobs(id, customer_id, status, payment_status, budget) values ('${JOB6}', '${U.tester}', 'completed', 'escrow', 50); set role service_role`);
+const P6 = await payRow("lh:job:p6:checkout:amt5000:a1", JOB6, 5000, "CAP6");
+const c6 = await jx(claim6(P6, K(JOB6, "admin:a0000000-0000-4000-8000-000000000006"), 5000, "sandbox", null));
+o = await jx(`select public.paypal_refund_record('${c6.refund_id}', 'REF-P6', 'completed', 3000) j`);
+check("PayPal answering with less than asked: the real amount is recorded and flagged", o.amount_mismatch === true && Number(o.asked_cents) === 5000 && (await one(`select amount_cents from provider_refunds where id='${c6.refund_id}'`)).amount_cents === "3000" || (await one(`select amount_cents from provider_refunds where id='${c6.refund_id}'`)).amount_cents === 3000, o);
+await expectErr("more than claimed is never recorded", `select public.paypal_refund_record('${c6.refund_id}', 'REF-P6', 'completed', 6000)`, /refund_amount_mismatch/);
+const c6b = await jx(claim6(P6, K(JOB6, "admin:a0000000-0000-4000-8000-000000000007"), 1500, "sandbox", null));
+o = await jx(recon("CAP6", "REF-P6B", "completed", 1200, "sandbox", c6b.refund_id));
+check("a lost answer of a smaller amount is attached to the claim PayPal names, at PayPal's amount", o.outcome === "attached" && o.amount_mismatch === true && Number((await one(`select amount_cents from provider_refunds where id='${c6b.refund_id}'`)).amount_cents) === 1200, o);
+
 // ── 3. who can call it ──
 await db.exec("reset role");
 for (const role of ["authenticated", "anon"]) {
@@ -231,6 +302,8 @@ for (const role of ["authenticated", "anon"]) {
   await expectErr(`${role} cannot record a refund`, `select public.paypal_refund_record('${c3.refund_id}', 'R', 'completed', 1)`, /permission denied/);
   await expectErr(`${role} cannot reconcile`, recon("CAP2", "R", "completed", 1), /permission denied/);
   await expectErr(`${role} cannot list due refunds`, "select * from public.paypal_cancelled_job_refunds_due(1)", /permission denied/);
+  await expectErr(`${role} cannot list unsettled cancels`, "select * from public.paypal_cancelled_jobs_unsettled(1)", /permission denied/);
+  await expectErr(`${role} cannot list orphans`, "select * from public.paypal_orphan_refunds_due(1)", /permission denied/);
   await expectErr(`${role} cannot run the status sync`, `select public.paypal_payment_sync_refund_status('${P2}')`, /permission denied/);
   await db.exec("reset role");
 }

@@ -30,6 +30,15 @@
 --    must never strand money already taken). The admin door (paypal-refunds admin_refund) checks
 --    the switch for the admin with requireFeature.
 --
+-- 2b. ORPHAN CAPTURES (contract from phase 3, lead 2026-10-23): a capture that cannot fund its job
+--    (a second tab's second capture, a price that changed, a job closed or gone) is a provider_payments
+--    row 'voided' with its capture id and status_reason 'orphan:<why>'. The money is not ours: it is
+--    refunded IN FULL, automatically (paypal-refunds), card fee included (owner 2026-10-14: a refund
+--    caused by our own mistake goes back in full). provider_refunds_guard is restated with that one
+--    carve-out (full refund only, no payout can exist), and a fully refunded orphan reads 'refunded',
+--    which clears phase 3's orphan alert. status_reason is phase 3's column, read through to_jsonb so
+--    this migration does not depend on the order the two land in.
+--
 -- 3. The cron: paypal-refunds every 10 minutes (cancelled fee-0 jobs, retrying a claim whose
 --    PayPal answer was lost). It acts only on rows that exist, i.e. testers' while the switch is
 --    testers-only.
@@ -102,6 +111,14 @@ BEGIN
    WHERE r.provider_payment_id = p_payment_id
      AND r.status IN ('pending', 'completed');
   v_new := v_pay.status;
+  -- An orphan capture (phase 3: voided with its capture, status_reason 'orphan:%') refunded in full
+  -- reads 'refunded', which clears its alert; until then it stays voided (never funded).
+  IF v_pay.status = 'voided' AND v_pay.provider_capture_id IS NOT NULL
+     AND COALESCE(to_jsonb(v_pay) ->> 'status_reason', '') LIKE 'orphan:%'
+     AND v_live >= v_pay.amount_cents THEN
+    UPDATE public.provider_payments SET status = 'refunded', updated_at = now() WHERE id = p_payment_id;
+    v_new := 'refunded';
+  END IF;
   -- Only money states that refunds move between; a disputed/reversed payment keeps its status
   -- (phase 7 owns those).
   IF v_pay.status IN ('captured', 'partially_refunded', 'refunded') THEN
@@ -121,7 +138,13 @@ CREATE OR REPLACE FUNCTION public.paypal_refund_claim(
   p_payment_id uuid,
   p_idempotency_key text,
   p_amount_cents bigint,
-  p_reason text
+  p_reason text,
+  -- The provider's environment: a payment of the other one is refused BEFORE a row is written.
+  p_env text DEFAULT NULL,
+  -- The most all live refunds of this payment may total (what was paid less what is kept: PayPal's
+  -- fee, the setup fee, the tax on them), checked under the payment lock so two refunds racing on
+  -- different keys cannot both fit (lh-money-escrow review 2026-10-23, #6). NULL = the payment.
+  p_max_total_cents bigint DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -145,12 +168,26 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'refund_payment_not_found' USING ERRCODE = '22023';
   END IF;
+  IF p_env IS NOT NULL AND v_pay.env IS DISTINCT FROM p_env THEN
+    RAISE EXCEPTION 'refund_env_mismatch' USING ERRCODE = '23514',
+      DETAIL = format('payment %s is %s, the refund was asked on %s', p_payment_id, v_pay.env, p_env);
+  END IF;
   -- A replay first: an existing claim is answered as it stands, even after a payout was queued
   -- since (the guard decides only a NEW refund), so a retry can always finish the refund it began.
   SELECT * INTO v_ref FROM public.provider_refunds WHERE idempotency_key = p_idempotency_key;
   IF FOUND THEN
     v_replay := true;
   ELSE
+    IF p_max_total_cents IS NOT NULL THEN
+      -- Payment lock first (the order every money write here uses), then the live total.
+      PERFORM 1 FROM public.provider_payments WHERE id = p_payment_id FOR UPDATE;
+      IF (SELECT COALESCE(sum(r.amount_cents), 0) FROM public.provider_refunds r
+           WHERE r.provider_payment_id = p_payment_id AND r.status IN ('pending', 'completed'))
+         + p_amount_cents > p_max_total_cents THEN
+        RAISE EXCEPTION 'refund_exceeds_refundable' USING ERRCODE = '23514',
+          DETAIL = format('refunds of payment %s would pass %s cents (PayPal keeps its fee)', p_payment_id, p_max_total_cents);
+      END IF;
+    END IF;
     BEGIN
       INSERT INTO public.provider_refunds (provider_payment_id, idempotency_key, amount_cents, status, reason)
       VALUES (p_payment_id, p_idempotency_key, p_amount_cents, 'pending', left(p_reason, 500))
@@ -182,8 +219,8 @@ BEGIN
     'replay', v_replay);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_refund_claim(uuid, text, bigint, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_refund_claim(uuid, text, bigint, text) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_refund_claim(uuid, text, bigint, text, text, bigint) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_refund_claim(uuid, text, bigint, text, text, bigint) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.paypal_refund_record(
   p_refund_id uuid,
@@ -199,6 +236,7 @@ AS $fn$
 DECLARE
   v_ref public.provider_refunds%ROWTYPE;
   v_sync jsonb;
+  v_mismatch boolean := false;
 BEGIN
   IF p_status IS NULL OR p_status NOT IN ('pending', 'completed', 'failed', 'cancelled') THEN
     RAISE EXCEPTION 'refund_status_invalid' USING ERRCODE = '22023';
@@ -217,25 +255,35 @@ BEGIN
     RAISE EXCEPTION 'refund_id_mismatch' USING ERRCODE = '23514',
       DETAIL = format('row %s is PayPal refund %s, not %s', p_refund_id, v_ref.provider_refund_id, p_provider_refund_id);
   END IF;
-  -- PayPal refunded a different amount than we claimed: never paper over it.
+  -- PayPal refunded a different amount than we claimed. Measured by phase 6 in the sandbox
+  -- (2026-10-23): asking for the whole capture after a partial refund is NOT refused; PayPal refunds
+  -- what is left and answers with the smaller amount. On PayPal's FIRST answer for this row a smaller
+  -- amount is recorded as the real one and flagged (amount_mismatch: the caller pages); anything
+  -- else (more than claimed, or a change after the row was answered) is refused, never papered over.
   IF p_amount_cents IS NOT NULL AND p_amount_cents <> v_ref.amount_cents THEN
-    RAISE EXCEPTION 'refund_amount_mismatch' USING ERRCODE = '23514',
-      DETAIL = format('row %s claims %s cents, PayPal says %s', p_refund_id, v_ref.amount_cents, p_amount_cents);
+    IF p_amount_cents > v_ref.amount_cents OR p_amount_cents <= 0 OR v_ref.provider_refund_id IS NOT NULL THEN
+      RAISE EXCEPTION 'refund_amount_mismatch' USING ERRCODE = '23514',
+        DETAIL = format('row %s claims %s cents, PayPal says %s', p_refund_id, v_ref.amount_cents, p_amount_cents);
+    END IF;
+    v_mismatch := true;
   END IF;
   -- completed, failed and cancelled are final at PayPal; only pending moves.
   IF v_ref.status <> 'pending' AND p_status <> v_ref.status THEN
     RAISE EXCEPTION 'refund_status_final' USING ERRCODE = '23514',
       DETAIL = format('row %s is %s, PayPal now says %s', p_refund_id, v_ref.status, p_status);
   END IF;
-  IF p_status <> v_ref.status OR (p_provider_refund_id IS NOT NULL AND v_ref.provider_refund_id IS NULL) THEN
+  IF p_status <> v_ref.status OR (p_provider_refund_id IS NOT NULL AND v_ref.provider_refund_id IS NULL) OR v_mismatch THEN
     UPDATE public.provider_refunds
        SET provider_refund_id = COALESCE(provider_refund_id, p_provider_refund_id),
            status = p_status,
+           amount_cents = CASE WHEN v_mismatch THEN p_amount_cents ELSE amount_cents END,
            updated_at = now()
      WHERE id = p_refund_id;
   END IF;
   v_sync := public.paypal_payment_sync_refund_status(v_ref.provider_payment_id);
-  RETURN v_sync || jsonb_build_object('refund_id', p_refund_id, 'status', p_status, 'changed', p_status <> v_ref.status);
+  RETURN v_sync || jsonb_build_object('refund_id', p_refund_id, 'status', p_status, 'changed', p_status <> v_ref.status,
+                                      'previous_status', v_ref.status, 'idempotency_key', v_ref.idempotency_key,
+                                      'amount_mismatch', v_mismatch, 'asked_cents', v_ref.amount_cents);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.paypal_refund_record(uuid, text, text, bigint) FROM PUBLIC, anon, authenticated;
@@ -285,7 +333,8 @@ BEGIN
     END IF;
     IF v_ref.status = p_status THEN
       RETURN public.paypal_payment_sync_refund_status(v_pay.id)
-             || jsonb_build_object('outcome', 'already', 'refund_id', v_ref.id);
+             || jsonb_build_object('outcome', 'already', 'refund_id', v_ref.id, 'status', p_status,
+                                   'idempotency_key', v_ref.idempotency_key);
     END IF;
     v_rec := public.paypal_refund_record(v_ref.id, p_provider_refund_id, p_status, p_amount_cents);
     RETURN v_rec || jsonb_build_object('outcome', 'updated');
@@ -295,7 +344,10 @@ BEGIN
   -- PayPal id, same amount; the one PayPal names (custom_id) first, else the oldest.
   SELECT * INTO v_ref FROM public.provider_refunds
    WHERE provider_payment_id = v_pay.id AND provider_refund_id IS NULL
-     AND status = 'pending' AND amount_cents = p_amount_cents
+     AND status = 'pending'
+     -- The claim PayPal names (custom_id), whatever amount PayPal really refunded; else one of the
+     -- same amount.
+     AND (id IS NOT DISTINCT FROM p_refund_row_hint OR amount_cents = p_amount_cents)
    ORDER BY (id IS NOT DISTINCT FROM p_refund_row_hint) DESC, created_at
    LIMIT 1
      FOR UPDATE;
@@ -327,17 +379,20 @@ BEGIN
                               'payment_id', v_pay.id);
   END;
   RETURN public.paypal_payment_sync_refund_status(v_pay.id)
-         || jsonb_build_object('outcome', 'recorded_outside', 'payment_id', v_pay.id);
+         || jsonb_build_object('outcome', 'recorded_outside', 'payment_id', v_pay.id, 'status', p_status);
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) TO service_role;
 
--- Cancelled jobs paid through PayPal whose cancel refund has not been claimed yet. The edge sweep
--- refunds the fee-0 ones; the rest (a late-cancel fee, a crew, a series) wait for their phase.
+-- Cancelled jobs paid through PayPal whose cancel refund has not started (no LIVE refund of the
+-- payment under any key: an admin full refund or an agreed "refund all" already settled it), fee-free
+-- ones first so the ones waiting for phase 6 (a late-cancel fee, a crew, a series) never starve them
+-- (lh-money-escrow / lh-silent-failure reviews 2026-10-23). cancel_attempts counts this job's earlier
+-- cancel refunds that PayPal failed or cancelled: the next one gets its own key.
 CREATE OR REPLACE FUNCTION public.paypal_cancelled_job_refunds_due(p_limit integer DEFAULT 20)
 RETURNS TABLE(job_id uuid, provider_payment_id uuid, payment_amount_cents bigint, job_payment_status text,
-              cancellation_fee_cents bigint, has_crew boolean, is_series boolean)
+              cancellation_fee_cents bigint, has_crew boolean, is_series boolean, cancel_attempts integer)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
@@ -346,20 +401,135 @@ AS $fn$
   SELECT j.id, pp.id, pp.amount_cents, j.payment_status,
          round(COALESCE(j.cancellation_fee, 0) * 100)::bigint,
          COALESCE(j.is_group_job, false),
-         (j.recurrence_days IS NOT NULL OR j.parent_job_id IS NOT NULL)
+         (j.recurrence_days IS NOT NULL OR j.parent_job_id IS NOT NULL),
+         (SELECT count(*)::integer FROM public.provider_refunds r
+           WHERE r.provider_payment_id = pp.id
+             AND r.idempotency_key LIKE 'lh:job:' || j.id::text || ':refund:cancel%'
+             AND r.status IN ('failed', 'cancelled'))
     FROM public.provider_payments pp
     JOIN public.jobs j ON j.id = pp.subject_id
    WHERE pp.subject_kind = 'job'
      AND pp.status IN ('captured', 'partially_refunded')
      AND j.status = 'cancelled'
+     AND j.payment_status IS DISTINCT FROM 'refunded'
      AND NOT EXISTS (SELECT 1 FROM public.provider_refunds r
-                      WHERE r.provider_payment_id = pp.id
-                        AND r.idempotency_key = 'lh:job:' || j.id::text || ':refund:cancel')
-   ORDER BY pp.created_at
+                      WHERE r.provider_payment_id = pp.id AND r.status IN ('pending', 'completed'))
+   ORDER BY (COALESCE(j.cancellation_fee, 0) > 0 OR COALESCE(j.is_group_job, false)
+             OR j.recurrence_days IS NOT NULL OR j.parent_job_id IS NOT NULL),
+            pp.created_at
    LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 50))
 $fn$;
 REVOKE ALL ON FUNCTION public.paypal_cancelled_job_refunds_due(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_cancelled_job_refunds_due(integer) TO service_role;
+
+-- Cancelled jobs whose cancel refund is DONE at PayPal but whose job does not say so yet (the
+-- webhook attached a lost answer, or the job flip failed): the sweep settles the job and tells the
+-- poster. A safety net; the doors and the webhook normally do it at once.
+CREATE OR REPLACE FUNCTION public.paypal_cancelled_jobs_unsettled(p_limit integer DEFAULT 20)
+RETURNS TABLE(job_id uuid, refund_id uuid)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+  SELECT j.id, r.id
+    FROM public.provider_refunds r
+    JOIN public.provider_payments pp ON pp.id = r.provider_payment_id AND pp.subject_kind = 'job'
+    JOIN public.jobs j ON j.id = pp.subject_id
+   WHERE r.status = 'completed'
+     AND r.idempotency_key LIKE 'lh:job:' || j.id::text || ':refund:cancel%'
+     AND j.status = 'cancelled'
+     AND j.payment_status IS DISTINCT FROM 'refunded'
+   ORDER BY r.updated_at
+   LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 50))
+$fn$;
+REVOKE ALL ON FUNCTION public.paypal_cancelled_jobs_unsettled(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_cancelled_jobs_unsettled(integer) TO service_role;
+
+-- Orphan captures not refunded yet (no live refund): refunded in full by the sweep.
+CREATE OR REPLACE FUNCTION public.paypal_orphan_refunds_due(p_limit integer DEFAULT 20)
+RETURNS TABLE(provider_payment_id uuid, subject_kind text, subject_id uuid, payer_id uuid,
+              amount_cents bigint, env text, orphan_reason text, failed_attempts integer)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+  SELECT pp.id, pp.subject_kind, pp.subject_id, pp.payer_id, pp.amount_cents, pp.env,
+         to_jsonb(pp) ->> 'status_reason',
+         (SELECT count(*)::integer FROM public.provider_refunds r
+           WHERE r.provider_payment_id = pp.id AND r.status IN ('failed', 'cancelled'))
+    FROM public.provider_payments pp
+   WHERE pp.status = 'voided'
+     AND pp.provider_capture_id IS NOT NULL
+     AND COALESCE(to_jsonb(pp) ->> 'status_reason', '') LIKE 'orphan:%'
+     AND NOT EXISTS (SELECT 1 FROM public.provider_refunds r
+                      WHERE r.provider_payment_id = pp.id AND r.status IN ('pending', 'completed'))
+   ORDER BY pp.updated_at
+   LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 50))
+$fn$;
+REVOKE ALL ON FUNCTION public.paypal_orphan_refunds_due(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_orphan_refunds_due(integer) TO service_role;
+
+-- Phase 1's refund rule, restated from 20261023223419 with ONE carve-out: an orphan capture (above)
+-- may be refunded, in full only. Everything else is phase 1's text: no refund while a payout of the
+-- same money is queued, held or sent; never more than the payment.
+CREATE OR REPLACE FUNCTION public.provider_refunds_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $fn$
+DECLARE
+  v_refunded bigint;
+  v_pay jsonb;
+  v_orphan boolean;
+BEGIN
+  IF NEW.status IN ('failed', 'cancelled') THEN
+    RETURN NEW;
+  END IF;
+  -- Serialize money movements on one payment (refund vs payout vs refund).
+  PERFORM 1 FROM public.provider_payments WHERE id = NEW.provider_payment_id FOR UPDATE;
+  SELECT to_jsonb(p) INTO v_pay FROM public.provider_payments p WHERE p.id = NEW.provider_payment_id;
+  v_orphan := v_pay IS NOT NULL
+              AND v_pay ->> 'status' = 'voided'
+              AND v_pay ->> 'provider_capture_id' IS NOT NULL
+              AND COALESCE(v_pay ->> 'status_reason', '') LIKE 'orphan:%';
+  -- A NEW refund (or a dead one brought back) is the decision point. A live refund's later status
+  -- update (pending -> completed) must always be recordable, whatever was queued since.
+  IF TG_OP = 'INSERT' OR OLD.status IN ('failed', 'cancelled') OR NEW.provider_payment_id IS DISTINCT FROM OLD.provider_payment_id THEN
+    IF NOT v_orphan AND NOT EXISTS (SELECT 1 FROM public.provider_payments
+                    WHERE id = NEW.provider_payment_id AND status IN ('captured', 'partially_refunded', 'disputed')) THEN
+      RAISE EXCEPTION 'refund_needs_captured_payment' USING ERRCODE = '42501';
+    END IF;
+    IF v_orphan AND NEW.amount_cents IS DISTINCT FROM (v_pay ->> 'amount_cents')::bigint THEN
+      RAISE EXCEPTION 'orphan_refund_must_be_full' USING ERRCODE = '23514',
+        DETAIL = 'a capture that funded nothing goes back in full';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.provider_payouts p
+                WHERE p.provider_payment_id = NEW.provider_payment_id
+                  AND p.status NOT IN ('failed', 'returned', 'canceled')) THEN
+      RAISE EXCEPTION 'refund_after_payout_queued' USING ERRCODE = '42501',
+        DETAIL = 'a payout of this payment is queued or sent; cancel it first';
+    END IF;
+  END IF;
+  SELECT COALESCE(sum(r.amount_cents), 0) INTO v_refunded
+    FROM public.provider_refunds r
+   WHERE r.provider_payment_id = NEW.provider_payment_id
+     AND r.id <> NEW.id
+     AND r.status NOT IN ('failed', 'cancelled');
+  IF v_refunded + NEW.amount_cents > (SELECT amount_cents FROM public.provider_payments WHERE id = NEW.provider_payment_id) THEN
+    RAISE EXCEPTION 'refund_exceeds_payment' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.provider_refunds_guard() FROM PUBLIC, anon, authenticated;
+
+DROP TRIGGER IF EXISTS trg_provider_refunds_guard ON public.provider_refunds;
+CREATE TRIGGER trg_provider_refunds_guard
+  BEFORE INSERT OR UPDATE ON public.provider_refunds
+  FOR EACH ROW EXECUTE FUNCTION public.provider_refunds_guard();
 
 -- ── 3. The cron: paypal-refunds every 10 minutes ────────────────────────────
 DO $do$

@@ -15,6 +15,8 @@
  *   unknown_capture     not one of our payments: final, nothing to do.
  */
 import { postSlackOpsAlert } from "../../slack-alerts.ts";
+import { createPayPalCheckoutProvider } from "../paypalCheckout.ts";
+import { followUpRecordedRefund, pageRefundUndone, type JobRefundDeps } from "../paypalJobRefunds.ts";
 import { readRefund } from "../paypalReads.ts";
 import { PayPalEventFinal, PayPalEventRetry, type PayPalEventHandler, type PayPalEventHandlers } from "./eventTypes.ts";
 
@@ -40,9 +42,41 @@ export const handleRefundEvent: PayPalEventHandler = async (event, ctx) => {
     p_amount_cents: refund.amountCents,
     p_refund_row_hint: refund.customId,
   });
-  if (error) throw new PayPalEventRetry(`reconcile ${refund.id}: ${error.message}`);
-  const out = data as { outcome?: string; reason?: string; payouts_held?: number; payment_id?: string; payment_status?: string };
+  if (error) {
+    if (/reconcile_env_mismatch/.test(error.message)) {
+      // Crossed configuration (a sandbox payment's refund arriving on live, or the reverse): a
+      // redelivery changes nothing, so it is final, and a person is paged.
+      await postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title: "PayPal refund event from the other environment", message: `Refund ${refund.id} on capture ${refund.captureId}: ${error.message.slice(0, 300)}. Check PAYPAL_ENV and the webhook subscriptions.`, oncePerDayKey: "paypal-refund-env-mismatch" });
+      throw new PayPalEventFinal(`refund ${refund.id}: environment mismatch`);
+    }
+    throw new PayPalEventRetry(`reconcile ${refund.id}: ${error.message}`);
+  }
+  const out = data as {
+    outcome?: string; reason?: string; payouts_held?: number; payment_id?: string; payment_status?: string;
+    refund_id?: string; status?: string; previous_status?: string; idempotency_key?: string; amount_mismatch?: boolean; asked_cents?: number;
+  };
   if (out?.outcome === "unknown_capture") throw new PayPalEventFinal(`refund ${refund.id} is on capture ${refund.captureId}, not one of ours`);
+  const deps: JobRefundDeps = {
+    db: ctx.supabase as unknown as JobRefundDeps["db"],
+    provider: createPayPalCheckoutProvider(ctx.client),
+    client: ctx.client,
+    alert: postSlackOpsAlert as unknown as JobRefundDeps["alert"],
+  };
+  if (out?.amount_mismatch) {
+    await postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title: "PayPal refunded a different amount than asked (refund_amount_mismatch)", message: `Refund ${refund.id}: we claimed ${out.asked_cents} cents, PayPal refunded ${refund.amountCents}; the ledger now records ${refund.amountCents}. Check this payment's other refunds.`, fields: { refund_id: refund.id, capture_id: refund.captureId, key: out.idempotency_key ?? null } });
+  }
+  if ((out?.outcome === "updated" || out?.outcome === "attached") && (refund.status === "failed" || refund.status === "cancelled") && out.idempotency_key) {
+    // A refund we had counted on came back dead: the poster may have been told; page, and reopen a
+    // cancelled job for a new attempt.
+    await pageRefundUndone(deps, out.idempotency_key, refund.id, refund.status);
+  }
+  if (out?.outcome === "attached" && out.refund_id && (refund.status === "completed" || refund.status === "pending")) {
+    // The door's own call never saw PayPal's answer: settle the job and tell the poster now.
+    await followUpRecordedRefund(deps, out.refund_id);
+  }
+  if (out?.outcome === "recorded_outside") {
+    await postSlackOpsAlert({ kind: "custom", severity: "info", title: "PayPal refund made outside the app", message: `Refund ${refund.id} (${refund.amountCents} cents) on capture ${refund.captureId} was made in PayPal and is now in the ledger (payment ${out.payment_id ?? "?"} reads ${out.payment_status ?? "?"}). The job and the poster were not updated by the app.`, oncePerDayKey: `paypal-refund-outside:${refund.id}` });
+  }
   if (out?.outcome === "outside_refund_refused") {
     await postSlackOpsAlert({
       kind: "money_at_risk",

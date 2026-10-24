@@ -91,7 +91,7 @@ export async function payPalRefundDoorFor(
       reason: typeof body?.reason === "string" && body.reason.trim() ? body.reason.trim() : "admin refund",
     },
   );
-  if (res.status === 200) {
+  if (res.status === 200 || res.body.recordedLate === true) {
     // Q76: the money moving, by this admin. Non-fatal (the refund is done), never silent.
     await writeAdminAudit(supabaseAdmin, {
       adminId: user.id,

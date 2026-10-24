@@ -33,6 +33,10 @@ const FEE_IN_WORDS: Record<string, { says: RegExp } | { exempt: string }> = {
   "src/pages/home/homeDashboard/FirstJobHome.tsx": {
     says: /of a job, and your payout is rounded down to the whole dollar \(Helpr keeps the cents; tips are paid in full\)\./,
   },
+  // PayPal phase 5: renders helpCenterContent's answers for the viewer's fee (faqSectionsFor).
+  "src/pages/info/HelpCenter.tsx": { exempt: "renders faqSectionsFor(viewer fee); the sentences live in helpCenterContent.ts" },
+  // The quote stepper states a take-home figure already floored to the dollar (formatPriceFloor).
+  "src/components/quotes/QuotePriceStepper.tsx": { exempt: "states the floored take-home itself, not the fee rule" },
   // The fee answer says it and quotes the rounded take-home (floorPayoutDollars, Q236).
   "src/pages/info/helpCenter/helpCenterContent.ts": {
     says: /Job payouts are rounded down to the whole dollar \(tips are paid in full\), so on a \$100 job you receive \$\$\{FLAT_TAKE_HOME_ON_100\}/,
@@ -41,8 +45,10 @@ const FEE_IN_WORDS: Record<string, { says: RegExp } | { exempt: string }> = {
 
 function filesNamingTheFee(): string[] {
   const files = trackedFiles("src")
-    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.(ts|tsx)$/.test(f) && f !== "src/lib/helprFlatFee.ts");
-  return files.filter((f) => /\bHELPR_FLAT_FEE_PHRASE\b/.test(blankComments(readFileSync(f, "utf8")))).sort();
+    .filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.(ts|tsx)$/.test(f) && f !== "src/lib/helprFlatFee.ts" && f !== "src/hooks/useHelprJobFee.ts");
+  // The fee in words: the 5% phrase, or (PayPal phase 5) the viewer's fee, which is the same words
+  // or 8% + $0.70 on the PayPal path.
+  return files.filter((f) => /\bHELPR_FLAT_FEE_PHRASE\b|\buseHelprJobFee\(\)|\bhelprJobFeeFor\(/.test(blankComments(readFileSync(f, "utf8")))).sort();
 }
 
 describe("Helpr payout rounding is disclosed wherever the fee is stated (owner 2026-10-21)", () => {

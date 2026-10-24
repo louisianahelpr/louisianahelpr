@@ -787,6 +787,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewShares.ts";`,
   );
 
+  // PayPal Plan A, phase 5: the Stripe-era refund paths ask the PayPal ledger first and step aside
+  // for a PayPal-paid job. Their tests drive Stripe jobs, so the ledger reads answer "no PayPal
+  // payment" (./mocks/paypal.ts); the PayPal side is proved in PGlite and the sandbox.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/(?:paypalJobRefunds|paypalRefundDoors)\.ts["'];?/g,
+    `import {$1} from "./mocks/paypal.ts";`,
+  );
+
   // Owner 2026-10-14 (never absorb a fee): `_shared/refundAmount.ts` has ZERO
   // imports and is THE refund-amount definition every refund path uses, so the
   // real module runs and the amounts sent to Stripe stay under test.

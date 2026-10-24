@@ -236,6 +236,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # refund-request-sweep (board 141, Q2272): pg_cron posts `Bearer <service_role_key>`; verifyCronSecret checks it.
   [functions.refund-request-sweep]
     verify_jwt = false
+  # paypal-refunds (PayPal phase 5): pg_cron's service key and refund-request-sweep's, checked in the
+  # handler by verifyCronSecret; no member calls it.
+  [functions.paypal-refunds]
+    verify_jwt = false
   # execute-dispute-split: an admin JWT (verified in the handler with
   # auth.getUser + has_role) or, from refund-request-sweep, the exact service
   # key (sb_secret_*, not a JWT), which settles only a split the two parties

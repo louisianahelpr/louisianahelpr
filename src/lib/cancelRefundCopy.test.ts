@@ -146,7 +146,7 @@ describe("cancelRefundToast", () => {
 
   it("CancellationDialog passes the job's own fee model and gift to it", () => {
     const src = blankComments(readFileSync("src/components/CancellationDialog.tsx", "utf8"));
-    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew \}\)/);
+    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew, paypal \}\)/);
     expect(src).toMatch(/cardShareCents = cardShareCentsFromRead\(giftRows, costCents\);/);
     expect(src).toMatch(/gift = giftOnJobFromRead\(giftRows, giftErr, costCents\);/);
     // The fee model is the job's own stamp plus its poster-fee stamp (a legacy job moved
@@ -179,3 +179,20 @@ describe("giftCostCents (Q2082 d): the cost redeem_gift_card compares a gift wit
   });
 });
 
+describe("PayPal path cancel copy (PayPal phase 5)", () => {
+  const base = { wasFunded: true, flatModel: true, keptFeeSentence: "", gift: "none" as const, paypal: true };
+  it("a fee-free cancel says PayPal, the sweep's timing and PayPal's kept fee; never Stripe or a card", () => {
+    const t = cancelRefundToast({ ...base, appliedFee: 0 });
+    expect(t).toBe("Job cancelled. Your payment comes back to you through PayPal within about 10 minutes, less the processing fee PayPal keeps.");
+    expect(t).not.toMatch(/Stripe|card/);
+  });
+  it("a late-cancel fee promises no time (phase 6 is not built)", () => {
+    const t = cancelRefundToast({ ...base, appliedFee: 25 });
+    expect(t).toContain("The $25 cancellation fee applies");
+    expect(t).toContain("We'll let you know when it's sent.");
+    expect(t).not.toMatch(/minutes|hour|Stripe/);
+  });
+  it("off the PayPal path the copy is unchanged", () => {
+    expect(cancelRefundToast({ ...base, paypal: false, appliedFee: 0 })).toBe("Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.");
+  });
+});

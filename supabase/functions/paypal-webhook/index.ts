@@ -29,6 +29,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { PayPalClient } from "../_shared/payments/paypalClient.ts";
 import { parseProviderEnv } from "../_shared/payments/registry.ts";
 import { isAllowedCertUrl, verifyPayPalWebhook } from "../_shared/payments/paypalWebhookVerify.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -61,7 +62,7 @@ serve(async (req) => {
       clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "",
     });
   } catch (e) {
-    return await notConfigured(e instanceof Error ? e.message : String(e));
+    return await notConfigured(caughtMessage(e));
   }
   if (!webhookId) return await notConfigured("PAYPAL_WEBHOOK_ID unset");
 

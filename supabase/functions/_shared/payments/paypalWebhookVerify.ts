@@ -23,6 +23,7 @@
  */
 import type { PayPalClient } from "./paypalClient.ts";
 import type { ProviderEnv } from "./types.ts";
+import { caughtMessage } from "../caughtMessage.ts";
 
 const PAYPAL_CERT_HOSTS: Record<ProviderEnv, readonly string[]> = {
   sandbox: ["api.sandbox.paypal.com", "api-m.sandbox.paypal.com"],
@@ -251,7 +252,7 @@ export async function verifyPayPalWebhook(headers: Headers, rawBody: string, dep
     if (typeof status === "number" && status >= 400 && status < 500 && status !== 429) {
       return { ok: false, final: true, reason: `postback_refused_${status}` };
     }
-    postbackError = e instanceof Error ? e.message : String(e);
+    postbackError = caughtMessage(e);
   }
 
   // 2. PayPal unreachable: verify locally against its certificate.
@@ -265,7 +266,7 @@ export async function verifyPayPalWebhook(headers: Headers, rawBody: string, dep
     const ok = await verifyWithCertificate(cached.pem, h, deps.webhookId, new TextEncoder().encode(rawBody), now);
     return ok ? { ok: true, via: "certificate" } : { ok: false, final: true, reason: "certificate_signature_mismatch" };
   } catch (e) {
-    return { ok: false, final: false, reason: `unavailable: ${postbackError}; certificate: ${e instanceof Error ? e.message : String(e)}` };
+    return { ok: false, final: false, reason: `unavailable: ${postbackError}; certificate: ${caughtMessage(e)}` };
   }
 }
 

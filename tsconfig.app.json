@@ -93,6 +93,7 @@
     "supabase/functions/_shared/payments/paypalSavedCharge.ts",
     "supabase/functions/_shared/payments/paypalAutoTip.ts",
     "supabase/functions/_shared/payments/paypalVisitFunding.ts",
+    "supabase/functions/_shared/payments/vaultTokenDeleted.ts",
     "supabase/functions/_shared/smsPolicy.ts",
     "supabase/functions/stripe-webhook/handlers/_payoutRetry.ts",
     "supabase/functions/_shared/memberDisplayName.ts",

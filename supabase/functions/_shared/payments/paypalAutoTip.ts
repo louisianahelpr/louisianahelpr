@@ -18,6 +18,8 @@
  * releaseClaimForRetry); this module decides, and says which of them to call.
  */
 import type { TipChargeBreakdown } from "../tipFees.ts";
+// The quote passed in is paypalTipChargeBreakdown (tips lane, PAYPAL_RATES in providerFees.ts):
+// the poster pays PayPal's cost on top, the Helpr receives 100% of the tip.
 import { chargeSavedPayment, type SavedChargeDeps } from "./paypalSavedCharge.ts";
 import type { ManualPayoutQueue } from "./manualPayoutQueue.ts";
 
@@ -90,6 +92,7 @@ export async function chargePayPalAutoTip(deps: PayPalAutoTipDeps, i: PayPalAuto
         platformFeeCents: 0,
         source: "auto_tip",
         providerPaymentId: res.paymentId,
+        tipCapture: { providerOrderId: res.orderId, providerCaptureId: res.captureId, amountCents: res.amountCents, settled: true },
       });
       return { outcome: "charged", paymentId: res.paymentId, payoutQueued: q.recorded, payoutReason: q.recorded ? null : `${q.outcome}${q.reason ? `: ${q.reason}` : ""}` };
     }
@@ -103,6 +106,10 @@ export interface OwedTipPayout {
   jobId: string;
   helperId: string;
   tipCents: number;
+  providerOrderId: string;
+  providerCaptureId: string;
+  /** What the tip's payment captured (tip + fee). */
+  chargedCents: number;
 }
 
 /**
@@ -112,7 +119,10 @@ export interface OwedTipPayout {
 export async function retryOwedTipPayouts(queue: ManualPayoutQueue, owed: readonly OwedTipPayout[]): Promise<OwedTipPayout[]> {
   const still: OwedTipPayout[] = [];
   for (const o of owed) {
-    const q = await queue.queue({ jobId: o.jobId, helperId: o.helperId, amountCents: o.tipCents, platformFeeCents: 0, source: "auto_tip", providerPaymentId: o.paymentId });
+    const q = await queue.queue({
+      jobId: o.jobId, helperId: o.helperId, amountCents: o.tipCents, platformFeeCents: 0, source: "auto_tip", providerPaymentId: o.paymentId,
+      tipCapture: { providerOrderId: o.providerOrderId, providerCaptureId: o.providerCaptureId, amountCents: o.chargedCents, settled: true },
+    });
     if (!q.recorded) still.push(o);
   }
   return still;

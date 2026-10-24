@@ -145,13 +145,15 @@ CREATE TRIGGER trg_provider_payments_funds_job_set_once
 
 -- 3. Auto-tips charged through PayPal whose Helpr payout is not queued yet.
 CREATE OR REPLACE FUNCTION public.paypal_owed_tip_payouts()
-RETURNS TABLE (payment_id uuid, tip_id uuid, job_id uuid, helper_id uuid, tip_cents integer)
+RETURNS TABLE (payment_id uuid, tip_id uuid, job_id uuid, helper_id uuid, tip_cents integer,
+               provider_order_id text, provider_capture_id text, amount_cents bigint)
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT p.id, t.id, t.job_id, t.helper_id, round(t.amount * 100)::integer
+  SELECT p.id, t.id, t.job_id, t.helper_id, round(t.amount * 100)::integer,
+         p.provider_order_id, p.provider_capture_id, p.amount_cents
     FROM public.provider_payments p
     JOIN public.tips t ON t.id = p.subject_id
    WHERE p.subject_kind = 'tip'

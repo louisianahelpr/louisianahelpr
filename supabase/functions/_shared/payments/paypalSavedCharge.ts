@@ -47,6 +47,7 @@ export interface SavedPaymentRow {
   idempotencyKey: string;
   status: string;
   amountCents: number;
+  providerOrderId: string;
   providerCaptureId: string | null;
   createdAtMs: number;
 }
@@ -80,7 +81,7 @@ export interface SavedChargeInput {
 
 export type SavedChargeOutcome =
   /** Captured and settled (COMPLETED). */
-  | { outcome: "charged"; paymentId: string; captureId: string; amountCents: number }
+  | { outcome: "charged"; paymentId: string; orderId: string; captureId: string; amountCents: number }
   /** Captured but not settled (PENDING, e.g. an eCheck): NOT funded yet. */
   | { outcome: "pending"; paymentId: string; captureId: string }
   | { outcome: "switch_off" }
@@ -109,7 +110,7 @@ export async function chargeSavedPayment(deps: SavedChargeDeps, input: SavedChar
   let row = await deps.store.paymentByKey(key);
   if (row) {
     if (DONE.has(row.status)) {
-      return { outcome: "charged", paymentId: row.id, captureId: row.providerCaptureId ?? "", amountCents: row.amountCents };
+      return { outcome: "charged", paymentId: row.id, orderId: row.providerOrderId, captureId: row.providerCaptureId ?? "", amountCents: row.amountCents };
     }
     if (row.status === "capture_pending") return { outcome: "pending", paymentId: row.id, captureId: row.providerCaptureId ?? "" };
     if (row.status === "failed" || row.status === "voided") return { outcome: "declined", paymentId: row.id, reason: `earlier_attempt_${row.status}` };
@@ -160,7 +161,7 @@ export async function chargeSavedPayment(deps: SavedChargeDeps, input: SavedChar
     return { outcome: "needs_review", paymentId: row.id, reason: `captured_amount_mismatch: asked ${input.amountCents}, PayPal captured ${cap.amountCents}` };
   }
   if (!cap.settled) return { outcome: "pending", paymentId: row.id, captureId: cap.providerCaptureId };
-  return { outcome: "charged", paymentId: row.id, captureId: cap.providerCaptureId, amountCents: cap.amountCents };
+  return { outcome: "charged", paymentId: row.id, orderId: cap.providerOrderId, captureId: cap.providerCaptureId, amountCents: cap.amountCents };
 }
 
 /**
@@ -189,10 +190,11 @@ export function supabaseSavedChargeStore(db: Db): SavedChargeStore {
     idempotencyKey: String(r.idempotency_key),
     status: String(r.status),
     amountCents: Number(r.amount_cents),
+    providerOrderId: String(r.provider_order_id),
     providerCaptureId: (r.provider_capture_id as string | null) ?? null,
     createdAtMs: Date.parse(String(r.created_at)),
   });
-  const COLS = "id, idempotency_key, status, amount_cents, provider_capture_id, created_at";
+  const COLS = "id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at";
   return {
     async switchOnFor(userId) {
       const { data, error } = await db.rpc("feature_enabled_for_user", { p_key: "paypal_payments", p_user_id: userId });

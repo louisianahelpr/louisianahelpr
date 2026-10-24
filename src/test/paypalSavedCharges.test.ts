@@ -29,7 +29,7 @@ import type { ManualPayoutQueue, QueueManualPayoutInput } from "../../supabase/f
 import { PayPalClient } from "../../supabase/functions/_shared/payments/paypalClient.ts";
 import { createPayPalCheckoutProvider } from "../../supabase/functions/_shared/payments/paypalCheckout.ts";
 import { ProviderApiError, type CaptureResult } from "../../supabase/functions/_shared/payments/types.ts";
-import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees.ts";
+import { paypalTipChargeBreakdown } from "../../supabase/functions/_shared/tipFees.ts";
 
 const POSTER = "c0000000-0000-4000-8000-000000000001";
 const METHOD: SavedMethod = { id: "m1", userId: POSTER, env: "sandbox", vaultId: "VAULT1", source: "card" };
@@ -43,11 +43,11 @@ function store(opts: { switchOn?: boolean; method?: SavedMethod | null; rows?: S
     async insertPayment(r) {
       const dup = rows.find((x) => x.idempotencyKey === r.idempotencyKey);
       if (dup) return dup;
-      const row = { id: `P${rows.length + 1}`, idempotencyKey: r.idempotencyKey, status: "created", amountCents: r.amountCents, providerCaptureId: null, createdAtMs: 1_000, subjectId: r.subjectId };
+      const row = { id: `P${rows.length + 1}`, idempotencyKey: r.idempotencyKey, status: "created", amountCents: r.amountCents, providerOrderId: `pending:${r.idempotencyKey}`, providerCaptureId: null as string | null, createdAtMs: 1_000, subjectId: r.subjectId };
       rows.push(row);
       return row;
     },
-    async markCaptured(id, c) { const r = rows.find((x) => x.id === id)!; r.status = c.status; r.providerCaptureId = c.providerCaptureId; },
+    async markCaptured(id, c) { const r = rows.find((x) => x.id === id)!; r.status = c.status; r.providerCaptureId = c.providerCaptureId; r.providerOrderId = c.providerOrderId; },
     async markFailed(id) { rows.find((x) => x.id === id)!.status = "failed"; },
   };
   return { s, rows };
@@ -71,7 +71,7 @@ describe("chargeSavedPayment", () => {
   it("writes the 'created' row BEFORE the charge, charges the saved token with the row's key, records the capture", async () => {
     const st = store(); const p = provider(["ok"]);
     const out = await chargeSavedPayment({ store: st.s, provider: p, env: "sandbox" }, input);
-    expect(out).toEqual({ outcome: "charged", paymentId: "P1", captureId: "CAP1", amountCents: 538 });
+    expect(out).toEqual({ outcome: "charged", paymentId: "P1", orderId: "ORD1", captureId: "CAP1", amountCents: 538 });
     expect(p.calls).toEqual([{ idempotencyKey: "lh:pp:tip:t0000000-0000-4000-8000-000000000001:amt538:a1", vaultId: "VAULT1", amountCents: 538, vaultSource: "card" }]);
     expect(st.rows[0]).toMatchObject({ status: "captured", providerCaptureId: "CAP1" });
   });
@@ -164,15 +164,17 @@ function queue(supports: boolean, answer: "queued" | "refused" = "queued") {
 }
 
 describe("auto-tip through PayPal", () => {
-  const tip = { tipId: "t0000000-0000-4000-8000-000000000009", jobId: "j1", posterId: POSTER, helperId: "h1", quote: tipChargeBreakdown(500) };
-  it("today's money shape: the poster's saved method is charged tip + card fee; the Helpr's 100% goes on the pay queue", async () => {
+  const tip = { tipId: "t0000000-0000-4000-8000-000000000009", jobId: "j1", posterId: POSTER, helperId: "h1", quote: paypalTipChargeBreakdown(500) };
+  it("today's money shape on PayPal's rate: the saved method is charged tip + PayPal's fee; the Helpr's 100% goes to the tips lane's recorder", async () => {
     const st = store(); const p = provider(["ok"]); const q = queue(true);
     const out = await chargePayPalAutoTip({ charge: { store: st.s, provider: p, env: "sandbox" }, queue: q.q, jobStateNow: async () => "chargeable" }, tip);
     expect(out).toEqual({ outcome: "charged", paymentId: "P1", payoutQueued: true, payoutReason: null });
     expect(p.calls[0].amountCents).toBe(tip.quote.chargeCents);
-    expect(q.calls).toEqual([{ jobId: "j1", helperId: "h1", amountCents: 500, platformFeeCents: 0, source: "auto_tip", providerPaymentId: "P1" }]);
+    expect(tip.quote.chargeCents).toBe(569); // $5 tip + 69c: the smallest fee covering 3.49% + 49c of the whole charge
+    expect(q.calls).toEqual([{ jobId: "j1", helperId: "h1", amountCents: 500, platformFeeCents: 0, source: "auto_tip", providerPaymentId: "P1",
+      tipCapture: { providerOrderId: "ORD1", providerCaptureId: "CAP1", amountCents: 569, settled: true } }]);
   });
-  it("not charged when the queue cannot record a tip payout (phase 4 today)", async () => {
+  it("not charged when the queue cannot record a tip payout", async () => {
     const st = store(); const p = provider([]); const q = queue(false);
     expect(await chargePayPalAutoTip({ charge: { store: st.s, provider: p, env: "sandbox" }, queue: q.q, jobStateNow: async () => "chargeable" }, tip)).toEqual({ outcome: "payout_unsupported" });
     expect(p.calls).toEqual([]);
@@ -191,7 +193,7 @@ describe("auto-tip through PayPal", () => {
     expect(await mk(store(), ["timeout"])).toMatchObject({ outcome: "ambiguous" });
   });
   it("a charged tip whose payout did not queue is retried until it does", async () => {
-    const owed = [{ paymentId: "P1", tipId: "t", jobId: "j1", helperId: "h1", tipCents: 500 }];
+    const owed = [{ paymentId: "P1", tipId: "t", jobId: "j1", helperId: "h1", tipCents: 500, providerOrderId: "O", providerCaptureId: "C", chargedCents: 570 }];
     expect(await retryOwedTipPayouts(queue(true, "refused").q, owed)).toEqual(owed);
     expect(await retryOwedTipPayouts(queue(true).q, owed)).toEqual([]);
   });

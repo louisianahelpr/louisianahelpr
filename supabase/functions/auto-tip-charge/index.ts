@@ -29,7 +29,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
-import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
+import { TIP_MIN_CENTS, paypalTipChargeBreakdown, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
@@ -573,6 +573,9 @@ serve(async (req) => {
         continue;
       }
       if (paypalJob) {
+        // The PayPal tip quote (tips lane, PAYPAL_RATES in _shared/payments/providerFees.ts): the
+        // poster pays PayPal's cost on top, the Helpr receives 100% of the tip.
+        const ppQuote = paypalTipChargeBreakdown(tipCents);
         paypalRuntime ??= paypalRuntimeFromEnv();
         if (!paypalRuntime.ok) {
           await releaseClaimForRetry("paypal not configured");
@@ -587,7 +590,7 @@ serve(async (req) => {
             const { data, error } = await supabase.rpc("auto_tip_job_state", { p_job_id: id });
             return error || typeof data !== "string" ? new Error(error?.message ?? "no answer") : data;
           },
-        }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, quote: tipQuote })
+        }, { tipId: tipRow.id, jobId, posterId: c.customer_id as string, helperId: c.helper_id as string, quote: ppQuote })
           // A database read/write that threw mid-way: the outcome is unknown, so the claim stays
           // 'pending' with the reason and the run pages (never a second charge on retry).
           .catch((e: unknown) => ({ outcome: "ambiguous" as const, reason: `threw: ${caughtMessage(e)}` }));
@@ -605,7 +608,7 @@ serve(async (req) => {
                 user_id: c.customer_id,
                 type: "payment",
                 title: "Your auto-tip was sent",
-                message: `We sent your Helpr a $${(tipQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your PayPal payment method was charged $${(tipQuote.chargeCents / 100).toFixed(2)}, including $${(tipQuote.feeCents / 100).toFixed(2)} processing. No action needed.`,
+                message: `We sent your Helpr a $${(ppQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your PayPal payment method was charged $${(ppQuote.chargeCents / 100).toFixed(2)}, including $${(ppQuote.feeCents / 100).toFixed(2)} processing. No action needed.`,
                 link: `/posts?job=${c.job_id}`,
               });
               if (okNotifyErr) defects.record(`tip-success notification ${jobId}: ${okNotifyErr.message}`);
@@ -979,8 +982,9 @@ serve(async (req) => {
       } else if (Array.isArray(owed) && owed.length > 0) {
         const still = await retryOwedTipPayouts(
           rpcManualPayoutQueue(supabase),
-          (owed as Array<{ payment_id: string; tip_id: string; job_id: string; helper_id: string; tip_cents: number }>).map((o) => ({
+          (owed as Array<{ payment_id: string; tip_id: string; job_id: string; helper_id: string; tip_cents: number; provider_order_id: string; provider_capture_id: string; amount_cents: number }>).map((o) => ({
             paymentId: o.payment_id, tipId: o.tip_id, jobId: o.job_id, helperId: o.helper_id, tipCents: o.tip_cents,
+            providerOrderId: o.provider_order_id, providerCaptureId: o.provider_capture_id, chargedCents: Number(o.amount_cents),
           })),
         );
         if (still.length > 0) {

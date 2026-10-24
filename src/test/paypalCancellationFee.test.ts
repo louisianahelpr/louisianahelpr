@@ -12,6 +12,8 @@
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | const own = refunds.find((r) => r.idempotencyKey === key) ?? null; | const own = null as RefundRow \| null;
  * @mutate supabase/functions/_shared/payments/paypalCancellation.ts | if (payment.env !== deps.env) return | if (false) return
  * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | const recorded = (outcome === "queued" \|\| outcome === "already_queued" \|\| outcome === "held") && payoutId !== null; | const recorded = outcome !== "refused";
+ * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | if (input.source === "auto_tip") return await recordTip(db, input); | void recordTip;
+ * @mutate supabase/functions/_shared/payments/manualPayoutQueue.ts | return { outcome, reason, payoutId, recorded: true }; | return { outcome, reason, payoutId, recorded: payoutId === "never" };
  */
 import { describe, expect, it } from "vitest";
 import {
@@ -23,7 +25,7 @@ import {
   type PayPalCancelJob,
   type RefundRow,
 } from "../../supabase/functions/_shared/payments/paypalCancellation.ts";
-import { parseQueueAnswer, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
+import { parseQueueAnswer, parseTipRecord, rpcManualPayoutQueue, type ManualPayoutQueue, type QueueManualPayoutInput } from "../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
 import { ProviderApiError } from "../../supabase/functions/_shared/payments/types.ts";
 import { computeCancellationFee } from "../../supabase/functions/_shared/cancellationFee.ts";
 
@@ -277,11 +279,24 @@ describe("the pay-queue door (stub of phase 4's paypal_queue_manual_payout)", ()
     const missing = rpcManualPayoutQueue({ rpc: async () => ({ data: null, error: { message: "not found", code: "PGRST202" } }) });
     expect(await missing.queue({ jobId: "j", helperId: "h", amountCents: 1, platformFeeCents: 0, source: "cancellation_fee", providerPaymentId: "p" })).toMatchObject({ outcome: "refused", reason: "queue_writer_not_deployed", recorded: false });
   });
-  it("does not take tips until phase 4 takes the tip's own payment (its already_queued would name the JOB's payout)", async () => {
-    let called = false;
-    const q = rpcManualPayoutQueue({ rpc: async () => { called = true; return { data: { outcome: "already_queued", payout_id: "JOBS" }, error: null }; } });
-    expect(q.supports("auto_tip")).toBe(false);
-    expect(await q.queue({ jobId: "j", helperId: "h", amountCents: 500, platformFeeCents: 0, source: "auto_tip", providerPaymentId: "tip" })).toMatchObject({ recorded: false });
-    expect(called).toBe(false);
+  it("an auto-tip goes to the tips lane's recorder (never phase 4's writer, whose already_queued names the JOB's payout)", async () => {
+    const calls: Array<[string, Record<string, unknown>]> = [];
+    const q = rpcManualPayoutQueue({ rpc: async (fn, args) => { calls.push([fn, args]); return { data: { payout_id: "PT", payout_status: "pending", payout_reason: "queued" }, error: null }; } });
+    expect(q.supports("auto_tip")).toBe(true);
+    const tip = { jobId: "j", helperId: "h", amountCents: 500, platformFeeCents: 0, source: "auto_tip" as const, providerPaymentId: "tip-pay" };
+    expect(await q.queue({ ...tip, tipCapture: { providerOrderId: "O1", providerCaptureId: "C1", amountCents: 570, settled: true } })).toMatchObject({ outcome: "queued", payoutId: "PT", recorded: true });
+    expect(calls).toEqual([["paypal_record_tip_capture", { p_provider_payment_id: "tip-pay", p_order_id: "O1", p_outcome: "completed", p_capture_id: "C1", p_amount_cents: 570 }]]);
+    // No capture, or a platform cut on a tip: refused without a call.
+    expect(await q.queue(tip)).toMatchObject({ recorded: false, reason: "tip_capture_missing" });
+    expect(await q.queue({ ...tip, platformFeeCents: 1, tipCapture: { providerOrderId: "O1", providerCaptureId: "C1", amountCents: 570, settled: true } })).toMatchObject({ recorded: false });
+    expect(calls).toHaveLength(1);
+  });
+  it("reads the tips recorder's answer: recorded only with a payout row", () => {
+    expect(parseTipRecord({ payout_id: "x", payout_status: "pending", payout_reason: "queued" })).toMatchObject({ outcome: "queued", recorded: true });
+    expect(parseTipRecord({ payout_id: "x", payout_status: "held", payout_reason: "held" })).toMatchObject({ outcome: "held", recorded: true });
+    expect(parseTipRecord({ payout_id: "x", payout_status: "pending", payout_reason: "already_queued" })).toMatchObject({ outcome: "already_queued", recorded: true });
+    expect(parseTipRecord({ payout_id: null, payout_reason: "no_payable_destination" })).toMatchObject({ outcome: "waiting_for_payee", recorded: false });
+    expect(parseTipRecord({ payout_id: null, payout_reason: "not_settled" })).toMatchObject({ outcome: "refused", recorded: false });
+    expect(parseTipRecord(null)).toMatchObject({ recorded: false });
   });
 });

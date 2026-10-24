@@ -34,11 +34,15 @@ import { readFileSync } from "node:fs";
 import os from "node:os";
 import { planPayPalCancellation, settlePayPalCancellation } from "../../../supabase/functions/_shared/payments/paypalCancellation.ts";
 import { chargeSavedPayment } from "../../../supabase/functions/_shared/payments/paypalSavedCharge.ts";
+import { chargePayPalAutoTip, retryOwedTipPayouts } from "../../../supabase/functions/_shared/payments/paypalAutoTip.ts";
+import { rpcManualPayoutQueue } from "../../../supabase/functions/_shared/payments/manualPayoutQueue.ts";
+import { paypalTipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees.ts";
 
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const read = (f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url).pathname, "utf8");
 const foundation = read("20261023223419_paypal_provider_foundation.sql");
+const tipsLane = read("20261023232059_paypal_tips.sql");
 let mig = read("20261023233301_paypal_phase6_saved_methods.sql");
 if (process.env.PLANT === "no_saved_method_guard") mig = mig.replace(/CREATE TRIGGER trg_paypal_saved_methods_guard[\s\S]*?;/, "");
 if (process.env.PLANT === "funds_job_any") mig = mig.replace(/CHECK \(funds_job_id IS NULL OR subject_kind = 'recurring_visit'\)/, "CHECK (true)");
@@ -88,18 +92,45 @@ $function$;
 REVOKE ALL ON FUNCTION public.feature_enabled_for_user(text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.feature_enabled_for_user(text, uuid) TO service_role;
 create table public.payout_transfers(id uuid primary key default gen_random_uuid());
--- The jobs columns phase 6 reads or writes (prod-shaped names; the full table has many more).
-create table public.jobs(id uuid primary key, payment_status text, cancellation_fee_status text);
-create table public.tips(id uuid primary key, job_id uuid, helper_id uuid, amount numeric);
+-- The jobs columns phase 6 and the tips lane read or write (prod-shaped names; prod has many more).
+create table public.jobs(id uuid primary key, title text, status text, payment_status text, cancellation_fee_status text,
+  poster_completed_at timestamptz, helper_completed_at timestamptz);
+-- The tips lane's migration (20261023232059) runs verbatim below; these are the tables it reads,
+-- shaped as its own PGlite proof shapes them (src/test/pglite/paypalTips.pglite.mjs).
+create table public.payout_holds(helper_id uuid primary key, reason text);
+create table public.ban_settlement_queue(user_id uuid, review_state text);
+create table public.admin_audit_log(id uuid primary key default gen_random_uuid(), admin_id uuid not null, action text not null, target_type text, target_id text, details jsonb, created_at timestamptz not null default now());
+-- prod's tips (information_schema.columns + pg_constraint, 2026-10-23, as the tips lane measured)
+create table public.tips(
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references public.jobs(id) on delete cascade,
+  tipper_id uuid not null, helper_id uuid not null, amount numeric not null,
+  stripe_session_id text, payment_status text not null default 'pending',
+  created_at timestamptz not null default now(), stripe_payment_intent_id text,
+  source text not null default 'manual', auto_prompt_sent_at timestamptz, failure_reason text,
+  constraint tips_amount_positive check (amount > 0 and amount <= 1000),
+  constraint tips_payment_status_valid check (payment_status in ('pending','paid','failed')),
+  constraint tips_source_valid check (source in ('manual','auto')));
+CREATE OR REPLACE FUNCTION public.feature_enabled_for(p_key text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $function$ SELECT public.feature_enabled_for_user(p_key, (SELECT auth.uid())); $function$;
+CREATE OR REPLACE FUNCTION public.require_feature(p_key text) RETURNS void LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF NOT public.feature_enabled_for(p_key) THEN
+    RAISE EXCEPTION 'feature_disabled' USING ERRCODE = '42501';
+  END IF;
+END;
+$function$;
 grant usage on schema public to anon, authenticated, service_role;
 grant usage on schema auth to anon, authenticated, service_role;
 grant select on auth.users to service_role;
 grant select, update on public.jobs to service_role;
-grant select on public.tips to service_role;
+grant all on public.tips to service_role;
+grant select on public.payout_holds, public.ban_settlement_queue to service_role;
 grant select, insert on public.payout_transfers to service_role;
 grant select on public.feature_switches, public.test_accounts, public.user_roles to service_role;
 insert into auth.users values ('${U.ordinary}'), ('${U.tester}'), ('${U.tester2}'), ('${U.admin}'), ('${U.helpr}');
-insert into public.test_accounts(user_id) values ('${U.tester}'), ('${U.tester2}');
+insert into public.test_accounts(user_id) values ('${U.tester}'), ('${U.tester2}'), ('${U.helpr}');
 insert into public.user_roles values ('${U.admin}', 'admin');
 `);
 const r = {};
@@ -113,6 +144,7 @@ const one = async (sql, p) => (await db.query(sql, p)).rows[0];
 const eq = (label, got, want) => { r[label] = JSON.stringify(got) === JSON.stringify(want) ? "ok" : `bad: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`; };
 
 await db.exec(foundation);
+await db.exec(tipsLane);
 for (let i = 1; i <= 3; i++) await db.exec(mig);
 r.applied3x = "ok";
 await db.exec("update feature_switches set audience='testers' where key='paypal_payments'");
@@ -153,7 +185,7 @@ await expectOk("after revoking, a new token can be saved", save(U.tester, tPay, 
 // ── 2. funds_job_id ──
 const visitJob = uuid("c");
 await db.query("reset role");
-await db.query("insert into jobs(id, payment_status) values ($1, 'escrow')", [visitJob]);
+await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [visitJob]);
 await db.exec("set role service_role");
 const jobPay = await payment(U.tester);
 const visitPay = await payment(U.tester, { kind: "recurring_visit" });
@@ -162,7 +194,7 @@ await expectErr("a job's own payment cannot claim to fund a visit", `update prov
 await expectErr("a visit payment that never captured cannot fund a visit", `update provider_payments set funds_job_id='${visitJob}' where id='${visitCreated}'`, /funds_job_needs_captured_payment/);
 await expectOk("a captured visit payment names its visit", `update provider_payments set funds_job_id='${visitJob}' where id='${visitPay}'`);
 const otherJob = uuid("c");
-await db.query("reset role"); await db.query("insert into jobs(id, payment_status) values ($1, 'escrow')", [otherJob]); await db.exec("set role service_role");
+await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [otherJob]); await db.exec("set role service_role");
 await expectErr("and never another one", `update provider_payments set funds_job_id='${otherJob}' where id='${visitPay}'`, /funds_job_is_frozen/);
 const visitPay2 = await payment(U.tester, { kind: "recurring_visit" });
 await expectErr("two payments cannot fund one visit", `update provider_payments set funds_job_id='${visitJob}' where id='${visitPay2}'`, /duplicate key/);
@@ -195,7 +227,7 @@ const pgStore = {
   async markRefund(id, p) { await db.query("update provider_refunds set status=$2, provider_refund_id=coalesce($3, provider_refund_id) where id=$1", [id, p.status, p.providerRefundId ?? null]); },
   async setPaymentStatus(pid, s) { await db.query("update provider_payments set status=$2 where id=$1 and status in ('captured','partially_refunded')", [pid, s]); },
   async settleJob(id, patch) {
-    return (await db.query("update jobs set payment_status=$2, cancellation_fee_status=$3 where id=$1 and payment_status='escrow' returning id", [id, patch.payment_status, patch.cancellation_fee_status])).rows.length === 1;
+    return (await db.query("update jobs set payment_status=$2, cancellation_fee_status=$3 where id=$1 and status='cancelled' and payment_status='escrow' returning id", [id, patch.payment_status, patch.cancellation_fee_status])).rows.length === 1;
   },
 };
 let refundCalls = 0;
@@ -220,7 +252,7 @@ for (const [label, hours, want] of [
   ["50% (1 h out)", 1, { refund: 4602, payout: 4500, status: "partially_refunded", fee: "charged" }],
 ]) {
   const jid = uuid("d");
-  await db.query("reset role"); await db.query("insert into jobs(id, payment_status) values ($1,'escrow')", [jid]); await db.exec("set role service_role");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid]); await db.exec("set role service_role");
   const pid = await payment(U.tester, { subject: jid });
   const before = refundCalls;
   const out = await settlePayPalCancellation(deps, jobRow(jid, hours), false);
@@ -244,7 +276,7 @@ for (const [label, hours, want] of [
 // The other order is refused by the database (why the settlement refunds first).
 {
   const jid = uuid("d");
-  await db.query("reset role"); await db.query("insert into jobs(id, payment_status) values ($1,'escrow')", [jid]); await db.exec("set role service_role");
+  await db.query("reset role"); await db.query("insert into jobs(id, status, payment_status) values ($1, 'cancelled', 'escrow')", [jid]); await db.exec("set role service_role");
   const pid = await payment(U.tester, { subject: jid });
   const plan = planPayPalCancellation({ job: jobRow(jid, 10), sellerFault: false, capturedCents: 10000, providerFeeCents: PAYPAL_FEE, alreadyRefundedCents: 0 });
   if (process.env.PLANT === "payout_before_refund") {
@@ -262,33 +294,59 @@ for (const [label, hours, want] of [
 const pgCharge = {
   async switchOnFor(u) { return (await one("select public.feature_enabled_for_user('paypal_payments', $1) ok", [u])).ok === true; },
   async activeMethod(u, env) { const m = await one("select id, user_id, env, vault_id, source from paypal_saved_payment_methods where user_id=$1 and env=$2 and status='active'", [u, env]); return m ? { id: m.id, userId: m.user_id, env: m.env, vaultId: m.vault_id, source: m.source } : null; },
-  async paymentByKey(k) { const x = await one("select id, idempotency_key, status, amount_cents, provider_capture_id, created_at from provider_payments where idempotency_key=$1", [k]); return x ? { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerCaptureId: x.provider_capture_id, createdAtMs: new Date(x.created_at).getTime() } : null; },
+  async paymentByKey(k) { const x = await one("select id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at from provider_payments where idempotency_key=$1", [k]); return x ? { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerOrderId: x.provider_order_id, providerCaptureId: x.provider_capture_id, createdAtMs: new Date(x.created_at).getTime() } : null; },
   async insertPayment(p) {
     const x = (await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents, status)
-      values ($1,$2,$3,'paypal_checkout',$4,$5,$6,$7,'created') returning id, idempotency_key, status, amount_cents, provider_capture_id, created_at`,
+      values ($1,$2,$3,'paypal_checkout',$4,$5,$6,$7,'created') returning id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at`,
     [p.subjectKind, p.subjectId, p.payerId, p.env, p.idempotencyKey, `pending:${p.idempotencyKey}`, p.amountCents])).rows[0];
-    return { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerCaptureId: null, createdAtMs: new Date(x.created_at).getTime() };
+    return { id: x.id, idempotencyKey: x.idempotency_key, status: x.status, amountCents: Number(x.amount_cents), providerOrderId: x.provider_order_id, providerCaptureId: null, createdAtMs: new Date(x.created_at).getTime() };
   },
   async markCaptured(id, c) { await db.query("update provider_payments set provider_order_id=$2, provider_capture_id=$3, status=$4 where id=$1 and status='created'", [id, c.providerOrderId, c.providerCaptureId, c.status]); },
   async markFailed(id) { await db.query("update provider_payments set status='failed' where id=$1", [id]); },
 };
 let chargeCalls = 0;
 const fakeSaved = { async chargeSaved(i) { chargeCalls++; return { providerOrderId: `ORD${chargeCalls}`, providerCaptureId: `CAPS${chargeCalls}`, status: "COMPLETED", settled: true, amountCents: i.amountCents, feeCents: 30, vaultId: null }; } };
+// A completed job and its auto tip claim row, as auto-tip-charge writes it before the charge.
+const tipJob = uuid("f");
 const tipId = uuid("e");
-await db.query("reset role"); await db.query("insert into tips(id, job_id, helper_id, amount) values ($1, $2, $3, 5)", [tipId, uuid("f"), U.helpr]); await db.exec("set role service_role");
-const tipOut = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "tip", subjectId: tipId, payerId: U.tester, amountCents: 538 });
-eq("saved charge: a tester's tip is charged and recorded captured", [tipOut.outcome, (await one("select status from provider_payments where subject_id=$1", [tipId]))?.status], ["charged", "captured"]);
+await db.query("reset role");
+await db.query("insert into jobs(id, title, status, payment_status, poster_completed_at) values ($1, 'Mow', 'completed', 'released', now() - interval '1 day')", [tipJob]);
+await db.query("insert into tips(id, job_id, tipper_id, helper_id, amount, source, payment_status) values ($1, $2, $3, $4, 5, 'auto', 'pending')", [tipId, tipJob, U.tester, U.helpr]);
+await db.exec("set role service_role");
+// The tips lane's recorder, called through the REAL queue door with a PGlite rpc().
+const pgRpc = {
+  async rpc(fn, args) {
+    if (fn !== "paypal_record_tip_capture") return { data: null, error: { message: `not in this proof: ${fn}`, code: "PGRST202" } };
+    try {
+      const x = await one("select public.paypal_record_tip_capture($1, $2, $3, $4, $5) a", [args.p_provider_payment_id, args.p_order_id, args.p_outcome, args.p_capture_id, args.p_amount_cents]);
+      return { data: x.a, error: null };
+    } catch (e) { return { data: null, error: { message: e.message } }; }
+  },
+};
+const quote = paypalTipChargeBreakdown(500);
+const tipDeps = { charge: { store: pgCharge, provider: fakeSaved, env: "sandbox" }, queue: rpcManualPayoutQueue(pgRpc), jobStateNow: async () => "chargeable" };
+const tipIn = { tipId, jobId: tipJob, posterId: U.tester, helperId: U.helpr, quote };
+// No payable PayPal email for the Helpr yet: charged, paid, payout owed (not lost).
+const t1 = await chargePayPalAutoTip(tipDeps, tipIn);
+const owedNow = (await db.query("select * from paypal_owed_tip_payouts()")).rows;
+eq("auto-tip: charged tip + PayPal's fee (paypalTipChargeBreakdown), Helpr's payout owed while they have no PayPal email",
+  [t1.outcome, t1.payoutQueued, (await one("select amount_cents from provider_payments where subject_id=$1", [tipId])).amount_cents * 1, owedNow.map((o) => [o.tip_id, o.tip_cents])],
+  ["charged", false, quote.chargeCents, [[tipId, 500]]]);
+eq("auto-tip: the tips lane marked the tip paid", (await one("select payment_status from tips where id=$1", [tipId])).payment_status, "paid");
+// The Helpr adds their PayPal email; the owed-tip sweep queues it, once.
+await db.query("insert into payee_accounts(user_id, provider, env, paypal_email, payable) values ($1, 'paypal', 'sandbox', 'helpr@example.com', true)", [U.helpr]);
+const still = await retryOwedTipPayouts(rpcManualPayoutQueue(pgRpc), owedNow.map((o) => ({ paymentId: o.payment_id, tipId: o.tip_id, jobId: o.job_id, helperId: o.helper_id, tipCents: o.tip_cents, providerOrderId: o.provider_order_id, providerCaptureId: o.provider_capture_id, chargedCents: Number(o.amount_cents) })));
+const tipPayouts = (await db.query("select amount_cents, status, tip_id from provider_payouts where tip_id=$1", [tipId])).rows.map((x) => [Number(x.amount_cents), x.status]);
+eq("owed-tip sweep: ONE payout of exactly the tip (100%), named by the tip", [still.length, tipPayouts], [0, [[500, "pending"]]]);
+eq("once queued it is not owed", (await db.query("select * from paypal_owed_tip_payouts()")).rows.length, 0);
+// A second run of the same claim: no second charge, no second payout.
+const callsBefore = chargeCalls;
+const t2 = await chargePayPalAutoTip(tipDeps, tipIn);
+eq("auto-tip re-run: no second charge, no second payout", [t2.outcome, t2.payoutQueued, chargeCalls - callsBefore, (await one("select count(*)::int c from provider_payouts where tip_id=$1", [tipId])).c], ["charged", true, 0, 1]);
 const before = chargeCalls;
 const ordOut = await chargeSavedPayment({ store: pgCharge, provider: fakeSaved, env: "sandbox" }, { subjectKind: "tip", subjectId: uuid("e"), payerId: U.ordinary, amountCents: 538 });
 eq("saved charge: an ordinary account is refused before any write or charge", [ordOut.outcome, chargeCalls - before], ["switch_off", 0]);
 await expectErr("and the database refuses the row even if that check were skipped", `insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, amount_cents) values ('tip', '${uuid("e")}', '${U.ordinary}', 'paypal_checkout', 'sandbox', 'k-ord', 'pending:k-ord', 538)`, /feature_disabled/);
-
-// ── 5. paypal_owed_tip_payouts() ──
-const owed1 = (await db.query("select * from paypal_owed_tip_payouts()")).rows.map((x) => [x.tip_id, x.tip_cents]);
-eq("a charged tip without a payout is owed (the tip, 100%, not the charge)", owed1, [[tipId, 500]]);
-const tipPay = (await one("select id from provider_payments where subject_id=$1", [tipId])).id;
-await queueAsPhase4.queue({ jobId: uuid("f"), helperId: U.helpr, amountCents: 500, platformFeeCents: 0, source: "auto_tip", providerPaymentId: tipPay });
-eq("once queued it is not owed", (await db.query("select * from paypal_owed_tip_payouts()")).rows.length, 0);
 await db.exec("reset role");
 
 for (const role of ["authenticated", "anon"]) {

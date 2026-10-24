@@ -28,6 +28,9 @@
 --     overrides an admin who turned the member's payouts off. A CHANGED email holds every queued manual payout to the old
 --     one (status 'held'; the destination on a payout is frozen, so an admin re-queues it to the new
 --     email after checking). Then the Helpr's waiting accepts and crew Confirms complete.
+--     A banned account is refused (account_restricted). A change is recorded in
+--     payee_account_changes (old and new address), the member is notified, and held payouts are
+--     logged to error_logs for the team (lh-authz-rls / lh-silent-failure reviews, 2026-10-23).
 --   * get_my_paypal_payee(): the member's own state, the email masked (payee_accounts stays
 --     server-only: members cannot read it directly).
 --
@@ -38,7 +41,7 @@
 CREATE OR REPLACE FUNCTION public.paypal_payee_env()
 RETURNS text
 LANGUAGE sql
-IMMUTABLE
+STABLE
 SET search_path TO 'public'
 AS $fn$
   -- Sandbox only until the live-keys change (PAYPAL_LIVE_ALLOWED = false).
@@ -179,7 +182,7 @@ BEGIN
         CASE WHEN r.seed THEN 'info' ELSE 'error' END,
         'pending accept completion failed',
         jsonb_build_object('source', 'complete_pending_accepts_on_setup' || CASE WHEN r.seed THEN '-seed' ELSE '' END,
-                           'seed', r.seed, 'job_id', r.job_id::text),
+                           'seed', r.seed, 'job_id', r.job_id::text, 'via', p_via),
         jsonb_build_object('job_id', r.job_id, 'helper_id', p_user_id, 'err', SQLERRM, 'sqlstate', SQLSTATE)
       );
     END;
@@ -324,6 +327,34 @@ $fn$;
 REVOKE ALL ON FUNCTION public.paypal_email_masked(text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_email_masked(text) TO service_role;
 
+-- Every change of a member's PayPal payout email (lh-authz-rls review 2026-10-23, should-fix 2): the
+-- old address would otherwise be gone, and a changed email is the account-takeover signal. Written
+-- only by set_paypal_payee_email; server-only (RLS on, no policy, no member grant).
+CREATE TABLE IF NOT EXISTS public.payee_account_changes (
+  id bigserial PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  env text NOT NULL CHECK (env IN ('sandbox', 'live')),
+  old_email text,
+  new_email text NOT NULL,
+  -- Queued manual payouts to the old email that the change put on hold.
+  held_payouts integer NOT NULL DEFAULT 0 CHECK (held_payouts >= 0),
+  changed_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS payee_account_changes_user_idx ON public.payee_account_changes (user_id, changed_at DESC);
+ALTER TABLE public.payee_account_changes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.payee_account_changes FROM PUBLIC, anon, authenticated;
+GRANT SELECT, INSERT ON public.payee_account_changes TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.payee_account_changes_id_seq TO service_role;
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+COMMENT ON TABLE public.payee_account_changes IS
+  'Each change of a member''s PayPal payout email (old and new address, held payouts). Written by set_paypal_payee_email only; service role only.';
+
 -- The member's one write: their PayPal email, typed twice.
 CREATE OR REPLACE FUNCTION public.set_paypal_payee_email(p_email text, p_email_confirm text)
 RETURNS jsonb
@@ -342,10 +373,15 @@ DECLARE
   v_held    integer := 0;
   v_accepts integer := 0;
   v_crew    integer := 0;
+  v_seed    boolean;
 BEGIN
   PERFORM public.require_feature('paypal_payments');
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  -- A banned account keeps its session, but never points where money goes (lh-authz-rls 2026-10-23).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   IF v_email = '' THEN
     RAISE EXCEPTION 'paypal_email_required' USING ERRCODE = '22023';
@@ -387,6 +423,29 @@ BEGIN
        AND env = v_env
        AND status = 'pending';
     GET DIAGNOSTICS v_held = ROW_COUNT;
+    -- The record of the change, and a notice to the member: if someone else changed it, they hear.
+    INSERT INTO public.payee_account_changes (user_id, env, old_email, new_email, held_payouts)
+    VALUES (v_uid, v_env, v_old, v_email, v_held);
+    INSERT INTO public.notifications (user_id, title, message, type, link)
+    VALUES (
+      v_uid,
+      'Your PayPal email was changed',
+      'We''ll pay ' || public.paypal_email_masked(v_email) || ' from now on. If you didn''t change it, write to us from Help right away.',
+      'financial_alerts',
+      '/profile?tab=payment'
+    );
+    -- Money held for a check: the team hears about it (seed/test accounts log under '-seed').
+    IF v_held > 0 THEN
+      SELECT pr.is_seed INTO v_seed FROM public.profiles pr WHERE pr.user_id = v_uid;
+      INSERT INTO public.error_logs (severity, message, tags, context)
+      VALUES (
+        CASE WHEN v_seed IS TRUE THEN 'info' ELSE 'warning' END,
+        'payouts held: PayPal email changed with payouts queued',
+        jsonb_build_object('source', 'set_paypal_payee_email' || CASE WHEN v_seed IS TRUE THEN '-seed' ELSE '' END,
+                           'seed', coalesce(v_seed, false)),
+        jsonb_build_object('user_id', v_uid, 'held_payouts', v_held, 'env', v_env)
+      );
+    END IF;
   END IF;
 
   -- A first email, or a change from a payable one, is payable. Neither a re-save nor a change

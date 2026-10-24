@@ -95,7 +95,7 @@ export function ApplyBody({
   // `helper_unknown` is excluded deliberately — see helperApplyBlockNotice.
   // It means the profile could not be read at all, which is not something to
   // report to somebody mid-application.
-  const awardBlockReason = useAwardBlockReason();
+  const awardBlockReason = useAwardBlockReason({ paypal: true });
   // Owner ruling 2026-10-23: while payout setup is paused, the payout notice
   // (and its "Set up payouts" link) gives way to the paused notice.
   const setupPaused = usePayoutSetupPaused();

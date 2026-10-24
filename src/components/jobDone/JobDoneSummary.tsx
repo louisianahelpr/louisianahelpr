@@ -242,7 +242,8 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
   });
   // PayPal phase 2: a saved PayPal email is payout setup while `paypal_payments` is on.
   const paypal = usePayPalPayee();
-  const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled && !paypal.ready;
+  // No line at all until the PayPal answer is in (never "set up payouts" on a guess).
+  const needsPayoutSetup = transfers.length === 0 && payout != null && !payout.payouts_enabled && !paypal.ready && !paypal.loading;
   // Owner ruling 2026-10-23: while payout setup is paused the "Set up payouts"
   // link gives way to the paused notice (or, with PayPal on, to "Add your PayPal email").
   const setupPaused = usePayoutSetupPaused();
@@ -274,9 +275,11 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       {needsPayoutSetup && setupPaused && (
         <>
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            {paypal.on
-              ? "Your pay is kept for you and is sent once you add your PayPal email."
-              : "Your pay is kept for you and is sent once payout setup is back."}
+            {!paypal.on
+              ? "Your pay is kept for you and is sent once payout setup is back."
+              : paypal.status === "none"
+                ? "Your pay is kept for you and is sent once you add your PayPal email."
+                : "Your pay is kept for you."}
           </p>
           <PayoutSetupNotice compact className="text-left" />
         </>

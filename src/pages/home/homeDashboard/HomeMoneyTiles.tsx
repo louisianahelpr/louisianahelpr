@@ -3,7 +3,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { HomeMoney } from "./homeMoney";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { usePayPalPayee } from "@/hooks/usePayPalPayee";
+import { usePayPalPayee, type PayPalPayeeState } from "@/hooks/usePayPalPayee";
 
 /** "Fri, Oct 23": the day the approved money reaches the member's wallet. */
 const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -15,10 +15,15 @@ const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { w
  *  - else the REAL soonest date ("First" when the rows arrive on several days);
  *  - no date on any row: the rule, never a made-up date.
  */
-function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean, paypal: { on: boolean; ready: boolean } = { on: false, ready: false }): string {
-  // PayPal phase 2: with `paypal_payments` on, a saved PayPal email is the payout account.
-  const hasAccount = c.hasPayoutAccount || paypal.ready;
-  if (!hasAccount && paypal.on) return "Add your PayPal email to get it";
+function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean, paypal: Pick<PayPalPayeeState, "on" | "status"> = { on: false, status: "none" }): string {
+  // PayPal phase 2: with `paypal_payments` on, a saved PayPal email is the payout account; an
+  // unanswered or failed PayPal read is no verdict (the tile opens Money, which says what is wrong).
+  if (!c.hasPayoutAccount && paypal.on) {
+    if (paypal.status === "none") return "Add your PayPal email to get it";
+    if (paypal.status === "on_hold") return "Your payouts are on hold";
+    if (paypal.status !== "ready") return "Approved for you";
+  }
+  const hasAccount = c.hasPayoutAccount || (paypal.on && paypal.status === "ready");
   // Payout setup paused (owner 2026-10-23): no "add your account" ask; the tile
   // opens You › Money, where PayoutSetupPausedNotice says the whole of it.
   if (!hasAccount && setupPaused) return "Payout setup is paused for now";

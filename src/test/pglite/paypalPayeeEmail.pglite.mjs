@@ -7,6 +7,7 @@
  *   PLANT=old_gate node src/test/pglite/paypalPayeeEmail.pglite.mjs          # RED: helper_accept_missing ignores PayPal
  *   PLANT=no_hold node src/test/pglite/paypalPayeeEmail.pglite.mjs           # RED: an email change holds nothing
  *   PLANT=no_require_feature node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: the read RPC skips the switch
+ *   PLANT=no_ban_gate node src/test/pglite/paypalPayeeEmail.pglite.mjs       # RED: a banned account saves a destination
  *   PLANT=same_email_reenables node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: a re-save overrides an admin's stop
  *   PLANT=change_overrides_stop node src/test/pglite/paypalPayeeEmail.pglite.mjs # RED: a new email overrides an admin's stop
  *
@@ -60,6 +61,7 @@ if (PLANT === "no_require_feature") {
   const parts = phase2.split("CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()");
   phase2 = parts[0] + "CREATE OR REPLACE FUNCTION public.get_my_paypal_payee()" + parts[1].replace("  PERFORM public.require_feature('paypal_payments');\n", "");
 }
+if (PLANT === "no_ban_gate") plant("  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted'", "  IF false THEN\n    RAISE EXCEPTION 'account_restricted'");
 if (PLANT === "same_email_reenables") plant("  IF v_changed AND (NOT v_found OR v_old_ok) THEN", "  IF true THEN");
 if (PLANT === "change_overrides_stop") plant("  IF v_changed AND (NOT v_found OR v_old_ok) THEN", "  IF v_changed THEN");
 
@@ -102,7 +104,7 @@ create table public.feature_switches(key text primary key, audience text not nul
 insert into public.feature_switches(key, audience, description) values ('identity_check', 'off', 'ID check');
 create table public.profiles(user_id uuid primary key, full_name text, is_seed boolean default false,
   stripe_account_id text, stripe_payouts_enabled boolean default false, idv_status text,
-  stripe_identity_verified boolean not null default false, ban_status text, auto_suspended_until timestamptz);
+  stripe_identity_verified boolean not null default false, ban_status text, auto_suspended_until timestamptz, under_13_blocked_at timestamptz);
 create table public.jobs(id uuid primary key, title text, customer_id uuid, helper_id uuid, status text, is_seed boolean default false,
   offered_to_helper_id uuid, direct_offer_status text, direct_offer_expires_at timestamptz, helper_confirmed_at timestamptz);
 create table public.job_accept_pending(job_id uuid primary key, helper_id uuid not null, requested_at timestamptz not null default now());
@@ -114,6 +116,7 @@ create table public.payout_transfers(id uuid primary key default gen_random_uuid
 -- the jobs side, stubbed (see header)
 create function public.complete_job_accept(p_job_id uuid) returns boolean language plpgsql security definer set search_path to 'public' as $$
 begin
+  if (select title from public.jobs where id = p_job_id) = 'Explodes' then raise exception 'offer_not_active'; end if;
   update public.jobs set helper_confirmed_at = now() where id = p_job_id and helper_confirmed_at is null;
   delete from public.job_accept_pending where job_id = p_job_id;
   return true;
@@ -139,6 +142,7 @@ for (const [file, name] of [
   ["20261012031120_hidden_feature_switches.sql", "require_feature"],
   ["20261023213857_identity_check_switch.sql", "helper_accept_missing"],
   ["20261003193541_accept_completes_after_stripe_setup.sql", "helper_accept_block_reason"],
+  ["20261022002144_under_13_birthday_blocks_and_deletes.sql", "is_caller_banned"],
 ]) await db.exec(fnText(file, name));
 const r = {};
 const as = async (who, sql) => {
@@ -156,7 +160,8 @@ const expectOk = async (label, who, sql, check) => {
     r[label] = check ? (check(res.rows) ? "ok" : `bad: ${JSON.stringify(res.rows)}`) : "ok";
   } catch (e) { r[label] = `bad: ${e.message}`; }
 };
-const one = async (sql) => (await db.query(sql)).rows[0] ?? {};
+// A read that errors (PLANT=base: no phase 2 objects) reads as no row, so its check FAILs instead of crashing.
+const one = async (sql) => { try { return (await db.query(sql)).rows[0] ?? {}; } catch { /* missing object under PLANT=base: the check fails below */ return {}; } };
 const save = (e, c = e) => `select public.set_paypal_payee_email('${e}', '${c}') as j`;
 const missing = async (u) => (await one(`select public.helper_accept_missing('${u}') as m`)).m;
 
@@ -202,11 +207,16 @@ r["before saving: payout_setup is missing"] = JSON.stringify(await missing(U.tes
 await db.exec(`
 insert into public.jobs(id, title, customer_id, helper_id, status) values ('${J.a}', 'Mow the lawn', '${U.poster}', '${U.tester}', 'accepted');
 insert into public.job_accept_pending(job_id, helper_id) values ('${J.a}', '${U.tester}');
+insert into public.jobs(id, title, customer_id, helper_id, status) values ('a0000000-0000-4000-8000-0000000000ee', 'Explodes', '${U.poster}', '${U.tester}', 'accepted');
+insert into public.job_accept_pending(job_id, helper_id, requested_at) values ('a0000000-0000-4000-8000-0000000000ee', '${U.tester}', now() + interval '1 second');
 insert into public.jobs(id, title, customer_id, status) values ('${J.crew}', 'Move a couch', '${U.poster}', 'open');
 insert into public.group_job_helpers(id, helper_id) values ('c0000000-0000-4000-8000-000000000001', '${U.tester}');
 insert into public.crew_confirm_pending(slot_id, job_id, helper_id) values ('c0000000-0000-4000-8000-000000000001', '${J.crew}', '${U.tester}');
 `);
-await expectOk("tester saves an email (normalised)", "tester", save("  T.Tester@Example.com ", "t.tester@example.com"), (rows) => rows[0].j.ok === true && rows[0].j.changed === true && rows[0].j.email_masked === "t•••@example.com");
+await expectOk("tester saves an email (normalised)", "tester", save("  T.Tester@Example.com ", "t.tester@example.com"), (rows) => rows[0].j.ok === true && rows[0].j.changed === true && rows[0].j.email_masked === "t•••@example.com" && rows[0].j.accepts_completed === 1);
+r["a failing completion is logged (with via), the save still commits"] = (await one(`select count(*)::int as n from public.error_logs where tags->>'source' = 'complete_pending_accepts_on_setup' and tags->>'via' = 'paypal' and context->>'job_id' = 'a0000000-0000-4000-8000-0000000000ee'`)).n === 1 ? "ok" : "bad";
+r["a first save records no change and sends no change notice"] = (await one(`select count(*)::int as n from public.payee_account_changes`)).n === 0
+  && (await one(`select count(*)::int as n from public.notifications where title = 'Your PayPal email was changed'`)).n === 0 ? "ok" : "bad";
 const row = await one(`select user_id, env, paypal_email, verified, payable from public.payee_accounts where user_id = '${U.tester}'`);
 r["own row only, env sandbox, normalised email"] = row && row.env === "sandbox" && row.paypal_email === "t.tester@example.com" ? "ok" : `bad: ${JSON.stringify(row)}`;
 r["a new email is payable, not verified"] = row && row.payable === true && row.verified === false ? "ok" : `bad: ${JSON.stringify(row)}`;
@@ -214,7 +224,7 @@ r["only the caller's row was written"] = (await one("select count(*)::int as n f
 r["after saving: payout_setup is no longer missing"] = JSON.stringify(await missing(U.tester)) === "[]" ? "ok" : `bad: ${JSON.stringify(await missing(U.tester))}`;
 r["ordinary: payout_setup still missing"] = JSON.stringify(await missing(U.ordinary)).includes("payout_setup") ? "ok" : "bad";
 r["the waiting accept completed"] = (await one(`select helper_confirmed_at is not null as c from public.jobs where id = '${J.a}'`)).c === true
-  && (await one(`select count(*)::int as n from public.job_accept_pending where helper_id = '${U.tester}'`)).n === 0 ? "ok" : "bad";
+  && (await one(`select count(*)::int as n from public.job_accept_pending where job_id = '${J.a}'`)).n === 0 ? "ok" : "bad";
 r["the accept notice says PayPal"] = (await one(`select count(*)::int as n from public.notifications where user_id = '${U.tester}' and job_id = '${J.a}' and message like 'Your PayPal email is saved, so you''ve accepted "Mow the lawn", and Pat Poster has been told.'`)).n === 1 ? "ok" : "bad";
 r["the waiting crew Confirm completed"] = (await one("select helper_confirmed_at is not null as c from public.group_job_helpers where id = 'c0000000-0000-4000-8000-000000000001'")).c === true
   && (await one(`select count(*)::int as n from public.crew_confirm_pending where helper_id = '${U.tester}'`)).n === 0 ? "ok" : "bad";
@@ -244,6 +254,10 @@ insert into public.provider_payouts(id, provider_payment_id, payout_transfer_id,
 `);
 await expectOk("a changed email holds one queued payout", "tester", save("new.tester@example.com"), (rows) => rows[0].j.changed === true && rows[0].j.held_payouts === 1 && rows[0].j.payable === true);
 const held = await one("select status, destination_value from public.provider_payouts where id = 'e0000000-0000-4000-8000-000000000001'");
+const change = await one(`select old_email, new_email, held_payouts from public.payee_account_changes where user_id = '${U.tester}' order by id desc limit 1`);
+r["the change is recorded (old and new address, held count)"] = change.old_email === "t.tester@example.com" && change.new_email === "new.tester@example.com" && change.held_payouts === 1 ? "ok" : `bad: ${JSON.stringify(change)}`;
+r["the member is told their PayPal email changed"] = (await one(`select count(*)::int as n from public.notifications where user_id = '${U.tester}' and title = 'Your PayPal email was changed' and message like 'We''ll pay n•••@example.com from now on.%'`)).n === 1 ? "ok" : "bad";
+r["held payouts are logged for the team"] = (await one(`select count(*)::int as n from public.error_logs where tags->>'source' = 'set_paypal_payee_email' and severity = 'warning' and (context->>'held_payouts')::int = 1`)).n === 1 ? "ok" : "bad";
 r["the queued payout is held, its destination unchanged"] = held.status === "held" && held.destination_value === "t.tester@example.com" ? "ok" : `bad: ${JSON.stringify(held)}`;
 r["a paid payout is untouched"] = (await one("select status from public.provider_payouts where id = 'e0000000-0000-4000-8000-000000000002'")).status === "success" ? "ok" : "bad";
 r["another member's queued payout is untouched"] = (await one("select status from public.provider_payouts where id = 'e0000000-0000-4000-8000-000000000003'")).status === "pending" ? "ok" : "bad";
@@ -255,7 +269,9 @@ await db.exec(`
 insert into public.jobs(id, title, customer_id, helper_id, status) values ('a0000000-0000-4000-8000-0000000000bb', 'Paint a fence', '${U.poster}', '${U.banned}', 'accepted');
 insert into public.job_accept_pending(job_id, helper_id) values ('a0000000-0000-4000-8000-0000000000bb', '${U.banned}');
 `);
-await expectOk("banned: the email saves, no accept completes", "banned", save("b@example.com"), (rows) => rows[0].j.accepts_completed === 0);
+await expectErr("banned: refused (a banned account never points where money goes)", "banned", save("b@example.com"), /account_restricted/);
+r["banned: no payout destination stored"] = (await one(`select count(*)::int as n from public.payee_accounts where user_id = '${U.banned}'`)).n === 0 ? "ok" : "bad";
+await db.exec(`update public.profiles set stripe_account_id = 'acct_b', stripe_payouts_enabled = true where user_id = '${U.banned}'`);
 r["banned: the accept still waits"] = (await one(`select count(*)::int as n from public.job_accept_pending where helper_id = '${U.banned}'`)).n === 1 ? "ok" : "bad";
 
 // --- Stripe's status write still completes through the profiles trigger (one implementation)

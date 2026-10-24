@@ -91,20 +91,22 @@ export function PayPalPayeeCard({ onSettled }: { onSettled?: () => void } = {}) 
       // The accept gate and every "set up payouts" prompt read these.
       void qc.invalidateQueries({ queryKey: paypalPayeeQueryKey(user.id) });
       void qc.invalidateQueries({ queryKey: queryKeys.payoutSetup.all });
+      // The offer card's "Not accepted yet" reads this: an accept the save completed must not linger there.
+      void qc.invalidateQueries({ queryKey: queryKeys.activity.acceptPending(user.id) });
       setEditing(false);
       setEmail("");
       setConfirm("");
       setTouched(false);
+      // Every outcome the server reported, in one toast: the hold, held money, completed accepts.
       const done = saved.acceptsCompleted + saved.crewConfirmsCompleted;
-      toast.success(
+      const parts = [
         !saved.payable
-          ? "Saved. Your payouts are still on hold. Write to us from Help and we'll sort it out."
-          : saved.heldPayouts > 0
-          ? "Saved. Money already on its way to your old email waits until our team checks the change."
-          : done > 0
-            ? `Saved. ${done === 1 ? "The job you accepted is" : `The ${done} jobs you accepted are`} now confirmed.`
-            : "Saved. We'll pay you at this PayPal email.",
-      );
+          ? "Your payouts are still on hold. Write to us from Help and we'll sort it out."
+          : "We'll pay you at this PayPal email.",
+        saved.heldPayouts > 0 ? "Money already on its way to your old email waits until our team checks the change." : null,
+        done > 0 ? `${done === 1 ? "The job you accepted is" : `The ${done} jobs you accepted are`} now confirmed.` : null,
+      ].filter(Boolean);
+      toast.success(`Saved. ${parts.join(" ")}`);
     } finally {
       setSaving(false);
     }

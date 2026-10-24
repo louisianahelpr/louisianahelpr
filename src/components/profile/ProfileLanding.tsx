@@ -31,11 +31,13 @@ export function ProfileLanding({
   const paypal = usePayPalPayee();
   const payoutPrompt: PayoutPrompt = !paypal.on
     ? stripePrompt
-    : paypal.loading
+    : paypal.status === "loading"
       ? { kind: "reserve" }
-      : paypal.ready
-        ? { kind: "none" }
-        : { kind: "setup" };
+      : paypal.status === "error"
+        ? { kind: "error" }
+        : paypal.status === "ready"
+          ? { kind: "none" }
+          : { kind: "setup" };
 
   return (
     <>
@@ -73,7 +75,7 @@ export function ProfileLanding({
           <PayoutStatusRow
             prompt={payoutPrompt}
             onSetUp={() => onSelectTab("payment")}
-            onRetry={refetchStatus}
+            onRetry={paypal.on ? paypal.refetch : refetchStatus}
             setupPaused={setupPaused && !paypal.on}
           />
         </div>

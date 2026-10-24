@@ -9,12 +9,31 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 /** User-scoped; never persisted (where a member is paid must not survive a sign-out on a shared device). */
 export const paypalPayeeQueryKey = (userId: string | undefined | null) => ["paypal-payee", userId] as const;
 
+/**
+ * Where the member's PayPal payout setup stands, kept apart so no screen reads
+ * "not set up" for a read that failed or is still on its way (lh-silent-failure
+ * review 2026-10-23):
+ *   loading  the switch or the payee read has not answered yet: say nothing;
+ *   error    the payee read failed: say we couldn't check (never "add your email");
+ *   none     no email saved;
+ *   on_hold  an email is saved but our team has payouts to it on hold;
+ *   ready    a payable email (helper_accept_missing's PayPal arm on the server).
+ */
+export type PayPalPayeeStatus = "loading" | "error" | "none" | "on_hold" | "ready";
+
 export interface PayPalPayeeState {
-  /** The `paypal_payments` switch is on for this member (false while loading, on error, signed out). */
+  /**
+   * `paypal_payments` is on for this member. A failed re-read of the switch
+   * keeps the last answer the server gave (useFeatureStatus.lastAnswer), so a
+   * network blip never swaps a PayPal member's screens back to Stripe's paused
+   * ones; the server decides every write on its own anyway.
+   */
   on: boolean;
+  /** Meaningful only while `on`. */
+  status: PayPalPayeeStatus;
   /** The switch, or the payee read behind it, has not answered yet. */
   loading: boolean;
-  /** The member has a PayPal email we will pay: payout setup is done (helper_accept_missing's PayPal arm). */
+  /** status === "ready": payout setup is done. */
   ready: boolean;
   payee: PayPalPayee | null;
   error: unknown;
@@ -26,12 +45,12 @@ export interface PayPalPayeeState {
 /**
  * Where this member is paid through PayPal, while `paypal_payments` is on for
  * them. Reads public.get_my_paypal_payee only while the switch is on (the RPC
- * refuses otherwise). `ready` mirrors the server's paypal_payee_ready: switch
- * on AND a payable email.
+ * refuses otherwise).
  */
 export function usePayPalPayee(): PayPalPayeeState {
-  const { on, settled } = useFeatureStatus("paypal_payments");
+  const sw = useFeatureStatus("paypal_payments");
   const { user } = useAuthReady();
+  const on = sw.on || sw.lastAnswer === true;
   const q = useQuery({
     queryKey: paypalPayeeQueryKey(user?.id),
     enabled: on && !!user?.id,
@@ -40,10 +59,22 @@ export function usePayPalPayee(): PayPalPayeeState {
     queryFn: async (): Promise<PayPalPayee> => parsePayPalPayee(unwrap(await supabase.rpc("get_my_paypal_payee"))),
   });
   const payee = on ? (q.data ?? null) : null;
+  const loading = !sw.settled || (on && !!user?.id && q.isPending);
+  const failed = on && !q.data && !!q.error;
+  const status: PayPalPayeeStatus = loading
+    ? "loading"
+    : failed
+      ? "error"
+      : !payee?.hasEmail
+        ? "none"
+        : payee.payable
+          ? "ready"
+          : "on_hold";
   return {
     on,
-    loading: !settled || (on && !!user?.id && q.isPending),
-    ready: on && payee?.payable === true,
+    status,
+    loading,
+    ready: on && status === "ready",
     payee,
     error: on ? q.error : null,
     errorMessage: on && q.error ? (rpcErrorMessage("get_my_paypal_payee", q.error) ?? "We couldn't load your payout details.") : null,

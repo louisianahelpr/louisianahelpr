@@ -55,6 +55,7 @@ const NO_AGE_PRUNE: Record<string, string> = {
   helpr_task_events: "The step history of a Helpr delivery (taken, picked up, wrong code, delivered, confirmed): the evidence an admin decides a delivery problem or damage with, and the record of money owed to a Helpr; rows go with their task (ON DELETE CASCADE), 20261017055505.",
   declutter_offer_events: "The step history of a Declutter offer (offer, counters, accept/decline): the record of a money agreement between two members; rows go with their offer (ON DELETE CASCADE), 20261014210518.",
   admin_audit_log: "The record of what admins did to accounts and money; kept for the life of the platform.",
+  payee_account_changes: "Each change of a member's PayPal payout email, 20261023231647: the old and new address an admin reads when a payout was held or an account looks taken over. Kept like admin_audit_log; goes with the account (ON DELETE CASCADE).",
   paypal_webhook_events: "The verified record of what PayPal told us about money (captures, refunds, payouts, disputes), 20261023223419: reconciliation and dispute evidence read it, and its event-id key is what makes a redelivery a no-op. Kept like admin_audit_log.",
   str_processed_events: "Dedupe ledger for imported iCal events: deleting a row makes str-ical-sync import the checkout (and notify the host) again. Rows go with their connection (ON DELETE CASCADE).",
   cron_catchup_runs: "One claim row per missed cron slot that was re-run or alerted (5 rows on 2026-09-25); run_missed_cron_catch_up reads it to never act on a slot twice.",

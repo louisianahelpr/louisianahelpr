@@ -37,7 +37,10 @@
  * @mutate src/components/payouts/PayoutSetupNotice.tsx |   if (paypal.on) { |   if (false) {
  * @mutate src/components/PaymentTab.tsx |           ) : paypal ? ( |           ) : false ? (
  * @mutate src/components/profile/ProfileLanding.tsx |             setupPaused={setupPaused && !paypal.on} |             setupPaused={setupPaused}
- * @mutate src/hooks/useAwardBlockReason.ts |   return reasonFromMissing(acceptMissingFromProfile(profile, { paypalReady: paypal.ready })); |   return reasonFromMissing(acceptMissingFromProfile(profile));
+ * @mutate src/hooks/useAwardBlockReason.ts |   return reasonFromMissing(acceptMissingFromProfile(profile, { paypalReady: withPayPal && paypal.ready })); |   return reasonFromMissing(acceptMissingFromProfile(profile));
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | useAwardBlockReason({ paypal: true }) | useAwardBlockReason()
+ * @mutate src/components/payouts/PayoutSetupNotice.tsx |       case "error":\n | \n
+ * @mutate src/hooks/usePayPalPayee.ts |     : failed\n      ? "error"\n |     : failed\n      ? "none"\n
  */
 import { describe, expect, it } from "vitest";
 import fs from "node:fs";
@@ -174,10 +177,14 @@ describe("Get paid with PayPal: every entry point and member RPC follows the swi
     expect(renderers(code, "PayPalPayeePrompt")).toEqual(["src/components/payouts/PayoutSetupNotice.tsx"]);
     expect(renderers(code, "PayPalPayeeCard")).toEqual(["src/components/PaymentTab.tsx"]);
     const tab = code.get("src/components/PaymentTab.tsx") ?? "";
-    expect(tab).toMatch(/const \{ on: paypal, settled: paypalSettled \} = useFeatureStatus\("paypal_payments"\);/);
+    expect(tab).toMatch(/const paypalSwitch = useFeatureStatus\("paypal_payments"\);\s+const paypal = paypalSwitch\.on \|\| paypalSwitch\.lastAnswer === true;/);
     expect(tab).toMatch(/\) : paypal \? \(\s*<PayPalPayeeCard\b/);
     const notice = code.get("src/components/payouts/PayoutSetupNotice.tsx") ?? "";
-    expect(notice).toMatch(/if \(paypal\.on\) \{\s*if \(paypal\.loading \|\| paypal\.ready\) return null;\s*return <PayPalPayeePrompt\b/);
+    // The prompt ("add your email") only for "none"; loading and ready say nothing; a failed read
+    // and a hold each say what they are (lh-silent-failure review 2026-10-23).
+    expect(notice).toMatch(/if \(paypal\.on\) \{\s*switch \(paypal\.status\) \{\s*case "loading":\s*case "ready":\s*return null;\s*case "none":\s*return <PayPalPayeePrompt\b/);
+    expect(notice).toMatch(/case "on_hold":\s*return \([\s\S]*?data-paypal-payee-hold=""/);
+    expect(notice).toMatch(/case "error":\s*return \([\s\S]*?data-paypal-payee-unknown=""/);
     const writers = [...code].filter(([, c]) => /\.rpc\(\s*["']set_paypal_payee_email["']/.test(c)).map(([f]) => f);
     expect(writers).toEqual(["src/components/payouts/PayPalPayeeCard.tsx"]);
   });
@@ -205,7 +212,17 @@ describe("Get paid with PayPal: every entry point and member RPC follows the swi
     expect(acceptMissingFromProfile({ stripe_account_id: null }, { paypalReady: false })).toEqual(["payout_setup"]);
     expect(acceptMissingFromProfile({ stripe_account_id: null })).toEqual(["payout_setup"]);
     const hooks = code.get("src/hooks/useAwardBlockReason.ts") ?? "";
-    expect(hooks.match(/acceptMissingFromProfile\(profile, \{ paypalReady: paypal\.ready \}\)/g)?.length).toBe(2);
+    expect(hooks.match(/acceptMissingFromProfile\(profile, \{ paypalReady: (?:withPayPal && )?paypal\.ready \}\)/g)?.length).toBe(2);
     expect(hooks.match(/const paypal = usePayPalPayee\(\);/g)?.length).toBe(2);
+    // An unknown PayPal answer is no verdict in either hook.
+    expect(hooks).toMatch(/if \(withPayPal && \(paypal\.status === "loading" \|\| paypal\.status === "error"\)\) return null;/);
+    expect(hooks).toMatch(/if \(paypal\.on && paypal\.status === "error"\) return \{ loading: true, reason: null, missing: \[\] \};/);
+    // Jobs callers opt in; Declutter's listing gate is still Stripe-only on the server, so its callers do not.
+    const callers = [...code].filter(([f, c]) => f !== "src/hooks/useAwardBlockReason.ts" && /\buseAwardBlockReason\(/.test(c));
+    expect(callers.length, "floor").toBeGreaterThan(2);
+    for (const [f, c] of callers) {
+      const jobs = !f.startsWith("src/components/declutter/");
+      expect(/\buseAwardBlockReason\(\{ paypal: true \}\)/.test(c), `${f}: ${jobs ? "a jobs caller must pass { paypal: true }" : "Declutter must not count a PayPal email"}`).toBe(jobs);
+    }
   });
 });

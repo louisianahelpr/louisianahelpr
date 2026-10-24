@@ -86,7 +86,11 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
   // PayPal Plan A, phase 2: while `paypal_payments` is on for the member, their
   // payout setup is a PayPal email (PayPalPayeeCard) in place of Stripe's form,
   // and Stripe's return banner and weekly estimate do not apply.
-  const { on: paypal, settled: paypalSettled } = useFeatureStatus("paypal_payments");
+  // A failed re-read of the switch keeps the last answer (lastAnswer), so a blip never swaps a
+  // PayPal member's saved email for Stripe's paused form (lh-silent-failure review 2026-10-23).
+  const paypalSwitch = useFeatureStatus("paypal_payments");
+  const paypal = paypalSwitch.on || paypalSwitch.lastAnswer === true;
+  const paypalSettled = paypalSwitch.settled;
   const showConnectReturn = !paypal && (connectReturn === "success" || (!!connectReturn && !setupPaused));
   const [formSettled, setFormSettled] = useState(false);
   const markFormSettled = useCallback(() => setFormSettled(true), []);

@@ -43,9 +43,16 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
         ? { key: "id", label: "Photo ID", done: false, state: "Checking" }
         : { key: "id", label: "Photo ID", done: false, state: "Verify now", onClick: () => openIdentityCheck("general") },
     paypal.on && !profile?.stripe_payouts_enabled
-      ? paypal.ready
+      ? paypal.status === "ready"
         ? { key: "bank", label: "PayPal email", done: true, state: "Done" }
-        : { key: "bank", label: "PayPal email", done: false, state: "Add", onClick: () => navigate("/profile?tab=payment") }
+        : paypal.status === "none" && profile
+          ? { key: "bank", label: "PayPal email", done: false, state: "Add", onClick: () => navigate("/profile?tab=payment") }
+          : paypal.status === "on_hold"
+            ? { key: "bank", label: "PayPal email", done: false, state: "On hold", onClick: () => navigate("/profile?tab=payment") }
+            : paypal.status === "error"
+              ? { key: "bank", label: "PayPal email", done: false, state: "Check", onClick: () => navigate("/profile?tab=payment") }
+              // Still loading (the switch, the PayPal read or the profile): no verdict yet.
+              : { key: "bank", label: "PayPal email", done: false, state: "…" }
       : profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
       : bankPaused

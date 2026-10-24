@@ -101,6 +101,8 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
   const payoutsDone = profile?.stripe_payouts_enabled === true || paypal.ready;
   // Not while the profile is still loading (null is not "not set up").
   const payoutStepPaused = setupPaused && !paypal.on && !!profile && !payoutsDone;
+  // No verdict on the PayPal step until its answer is in (loading, or a failed read).
+  const payoutStepUnknown = paypal.loading || (paypal.on && paypal.status === "error");
   // The ID step only while the ID check is on (switch `identity_check`, owner 2026-10-23: off).
   const idOn = useIdentityCheckOnStore();
   const allSteps = [
@@ -110,7 +112,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
     { key: "payouts", label: paypal.on ? "Add your PayPal email" : "Add your payout bank", done: payoutsDone, go: () => navigate("/profile?tab=payment") },
     { key: "apply", label: "Apply to your first job", done: false, go: () => navigate("/jobs") },
   ];
-  const steps = allSteps.filter((st) => (st.key !== "payouts" || !payoutStepPaused) && (st.key !== "id" || idOn));
+  const steps = allSteps.filter((st) => (st.key !== "payouts" || (!payoutStepPaused && !payoutStepUnknown)) && (st.key !== "id" || idOn));
   const jobs = near.data ?? [];
 
   return (
@@ -135,7 +137,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
             </li>
           ))}
         </ul>
-        {payoutStepPaused && <PayoutSetupNotice compact className="mt-2" />}
+        {payoutStepPaused && !payoutStepUnknown && <PayoutSetupNotice compact className="mt-2" />}
       </section>
 
       {jobs.length > 0 && (

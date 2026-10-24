@@ -24,7 +24,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { openIdentityCheck } from "@/lib/identityCheck";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupNotice } from "@/components/payouts/PayoutSetupNotice";
-import { useFeature } from "@/hooks/useFeature";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 
 /**
  * What a Helpr sees when their accept needs Stripe setup first.
@@ -66,11 +66,15 @@ export function AwardGateDialog({
   // the notice: say what happens to the accept instead (lh-silent-failure #1-2).
   // PayPal phase 2: with `paypal_payments` on, payout setup is a PayPal email
   // (the notice below links to it), not a pause.
-  const paypal = useFeature("paypal_payments");
-  const title = payoutPaused && !pendingMissing ? (paypal ? "Add your PayPal email" : "Payout setup is paused") : copy.title;
+  const paypalState = usePayPalPayee();
+  const paypal = paypalState.on;
+  const onHold = paypal && paypalState.status === "on_hold";
+  const title = payoutPaused && !pendingMissing ? (onHold ? "Your payouts are on hold" : paypal ? "Add your PayPal email" : "Payout setup is paused") : copy.title;
   const body = !payoutPaused
     ? copy.body
-    : paypal
+    : onHold
+      ? `You're not booked yet${pendingMissing ? ": your accept is saved" : ""}. Your payouts are on hold, so write to us from Help and we'll sort it out.`
+      : paypal
       ? pendingMissing
         ? `You're not booked yet. Your accept is saved and goes through once you add your PayPal email${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
         : "Add the PayPal email we should pay, and this job can be booked for you."

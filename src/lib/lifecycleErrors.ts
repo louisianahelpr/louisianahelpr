@@ -1480,6 +1480,7 @@ export const RPC_ERROR_COPY = {
   },
   // PayPal phase 2 (20261023231647): "Get paid with PayPal" (PayPalPayeeCard).
   set_paypal_payee_email: {
+    account_restricted: "Your account is restricted right now, so you can't change where we pay you.",
     feature_disabled: "Getting paid with PayPal isn't available on your account yet.",
     not_authenticated: "Sign in again to save your PayPal email.",
     paypal_email_required: "Enter the email on your PayPal account.",

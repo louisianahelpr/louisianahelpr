@@ -42,21 +42,32 @@ import { acceptMissingFromProfile, reasonFromMissing, type AcceptMissing, type A
  * Stripe ID, so this mirrors helper_accept_block_reason: payouts first, then
  * identity. Identity still gates nothing else (20261001222911).
  */
-export function useAwardBlockReason(): AwardBlockReason | null {
+export function useAwardBlockReason(opts: {
+  /**
+   * JOBS callers only (PayPal phase 2): a saved PayPal email is payout setup
+   * for jobs while `paypal_payments` is on. Declutter's listing gate is still
+   * Stripe-only on the server (helper_award_block_reason), so its callers leave
+   * this off (lh-silent-failure review 2026-10-23, finding 4).
+   */
+  paypal?: boolean;
+} = {}): AwardBlockReason | null {
   const { profile } = useCurrentUser();
   // Re-render when the ID check switch arrives or flips (acceptMissingFromProfile reads it).
   useIdentityCheckOnStore();
   // PayPal phase 2: a saved PayPal email is payout setup while `paypal_payments` is on.
   const paypal = usePayPalPayee();
+  const withPayPal = opts.paypal === true && paypal.on;
 
   // No profile loaded is not "blocked" — it is "we do not know yet". Saying
   // nothing is the only honest render; `helper_unknown` is a real server
   // verdict about a MISSING row, not about a slow one.
   if (!profile) return null;
+  // The PayPal answer is not in yet, or could not be read: no verdict (never "set up payouts" on a guess).
+  if (withPayPal && (paypal.status === "loading" || paypal.status === "error")) return null;
 
   // helper_accept_missing / helper_accept_block_reason (20261003193541),
   // mirrored branch for branch: the seed carve-out, payouts, then Stripe ID.
-  return reasonFromMissing(acceptMissingFromProfile(profile, { paypalReady: paypal.ready }));
+  return reasonFromMissing(acceptMissingFromProfile(profile, { paypalReady: withPayPal && paypal.ready }));
 }
 
 /**
@@ -74,5 +85,7 @@ export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | 
   const paypal = usePayPalPayee();
   if (!profile) return { loading: isLoading, reason: null, missing: [] };
   const missing = acceptMissingFromProfile(profile, { paypalReady: paypal.ready });
+  // A failed PayPal read is not "not set up" either: the card shows no verdict until it is known.
+  if (paypal.on && paypal.status === "error") return { loading: true, reason: null, missing: [] };
   return { loading: paypal.loading, reason: reasonFromMissing(missing), missing };
 }

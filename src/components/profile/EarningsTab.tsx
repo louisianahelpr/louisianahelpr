@@ -49,6 +49,7 @@ import { SpentSection } from "@/components/profile/earningsTab/SpentSection";
 import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRows";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
+import { usePayPalPayee } from "@/hooks/usePayPalPayee";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -144,7 +145,11 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending);
   const hasStripeAccount = !!profile?.stripe_account_id;
   const stripeAnswered = !stripeLoading && !stripeError;
-  const showConnect = stripeAnswered && !stripeData?.connected;
+  // PayPal phase 2: with `paypal_payments` on, the payout block is the PayPal email card, at the
+  // top, whatever Stripe answers (Stripe is closed: a failed or missing Stripe status must not
+  // hide where this member is paid). Stripe's bottom block is then not shown.
+  const paypalPayout = usePayPalPayee().on;
+  const showConnect = paypalPayout || (stripeAnswered && !stripeData?.connected);
 
   const { handleExportCSV } = usePayoutsCsvExport(stripeData?.payouts);
 
@@ -325,7 +330,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </Suspense>
         </div>
       )}
-      {!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />}
+      {(paypalPayout ? !connectSettled : !hasStripeAccount && (stripeLoading || (showConnect && !connectSettled))) && <EarningsPayoutSetupSkeleton />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible
@@ -508,7 +513,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               the bank account and when the next payout is expected. A helpr
               who has not connected gets this block at the top instead. It
               draws its own bones while its Stripe read answers. */}
-          {stripeAnswered && stripeData?.connected && (
+          {!paypalPayout && stripeAnswered && stripeData?.connected && (
             <>
               <SectionRule />
               <section id="earnings-bank-account" className="space-y-4">

@@ -30,6 +30,7 @@
  * - An event type with no handler stays stored with processed_at NULL (200):
  *   a later phase's handler picks it up on PayPal's next delivery of it.
  */
+import { caughtMessage } from "../caughtMessage.ts";
 import {
   PayPalEventFinal,
   type PayPalEventContext,
@@ -81,7 +82,7 @@ export async function dispatchPayPalEvent(
   try {
     return { kind: "done", note: await handler(event, ctx) };
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = caughtMessage(e);
     if (e instanceof PayPalEventFinal) return { kind: "final", note: msg };
     return { kind: "retry", note: msg };
   }

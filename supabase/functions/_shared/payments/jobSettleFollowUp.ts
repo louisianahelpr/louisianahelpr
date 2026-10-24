@@ -9,6 +9,7 @@
  *   a one-time setup fee collected twice, pages ops. Never silent: these are a
  *   refund someone has to make (phase 5 builds the refund path).
  */
+import { caughtMessage } from "../caughtMessage.ts";
 import type { SettleOutcome } from "./paypalJobCheckout.ts";
 
 /** postSlackOpsAlert, passed in by the edge function (so this module stays free of its I/O). */
@@ -72,6 +73,6 @@ export async function followUpJobSettle(
     });
     if (error) console.warn(`[paypal-job] instant-job-match failed after funding job ${jobId}: ${error.message}`);
   } catch (e) {
-    console.warn(`[paypal-job] instant-job-match threw after funding job ${jobId}: ${e instanceof Error ? e.message : String(e)}`);
+    console.warn(`[paypal-job] instant-job-match threw after funding job ${jobId}: ${caughtMessage(e)}`);
   }
 }

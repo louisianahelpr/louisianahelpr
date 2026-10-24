@@ -24,6 +24,7 @@
  * it is stamped 8/70. The poster pays the job price (plus the one-time setup
  * fee on a first job, as today), no service fee.
  */
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { PublicError } from "../_shared/publicError.ts";
 import { featureEnabledForUser, requireFeature } from "../_shared/featureSwitch.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
@@ -89,7 +90,7 @@ function checkoutCtx(db: Db): JobCheckoutCtx | null {
     return { db, provider, env };
   } catch (e) {
     // Unset or invalid PAYPAL_* secrets, or live keys in a sandbox-only build: no money moves.
-    console.error(`[create-payment] PayPal not configured: ${e instanceof Error ? e.message : String(e)}`);
+    console.error(`[create-payment] PayPal not configured: ${caughtMessage(e)}`);
     return null;
   }
 }
@@ -245,7 +246,7 @@ export async function handlePayPalEscrow({ db, user, body, isNative, corsHeaders
         : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative),
     });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = caughtMessage(e);
     console.error(`[create-payment] PayPal checkout failed for job ${jobId}: ${msg}`);
     if (/price_changed/.test(msg)) throw new PublicError("This job's pay changed while checkout was opening. Please try again so you pay the new amount.");
     if (/job_already_paid/.test(msg)) throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");

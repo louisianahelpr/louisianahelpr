@@ -25,6 +25,7 @@
  * that leaves PayPal holding money the job does not is returned as a
  * `money_at_risk` outcome for the caller to alert on, never swallowed.
  */
+import { caughtMessage } from "../caughtMessage.ts";
 import { ProviderApiError, type CaptureResult, type OrderState, type PaymentProvider, type ProviderEnv } from "./types.ts";
 
 interface RpcClient {
@@ -357,7 +358,7 @@ export async function openJobCheckout(ctx: JobCheckoutCtx, input: OpenCheckoutIn
   } catch (e) {
     // A concurrent tap opened a different order first (one open order per job), or the job
     // moved under us. The order we just made is never recorded, so it can never be captured.
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = caughtMessage(e);
     if (/provider_payments_one_open_per_subject|duplicate key/.test(msg)) return { kind: "processing", why: "another checkout for this job opened first", settled };
     throw e;
   }

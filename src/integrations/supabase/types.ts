@@ -14424,6 +14424,55 @@ export type Database = {
         Returns: number
       }
       job_is_funded: { Args: { p_job_id: string }; Returns: boolean }
+      job_provider_payment_held: { Args: { p_job_id: string }; Returns: boolean }
+      paypal_job_capture_claim: { Args: { p_payment_id: string }; Returns: Json }
+      paypal_job_capture_failed: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: boolean
+      }
+      paypal_job_capture_record: {
+        Args: {
+          p_amount_cents: number
+          p_capture_id: string
+          p_fee_cents: number
+          p_payment_id: string
+          p_settled: boolean
+        }
+        Returns: Json
+      }
+      paypal_job_money_rows_exist: {
+        Args: { p_job_id: string; p_statuses: string[] }
+        Returns: boolean
+      }
+      paypal_job_order_open: {
+        Args: {
+          p_amount_cents: number
+          p_breakdown: Json
+          p_env: string
+          p_idempotency_key: string
+          p_job_id: string
+          p_order_id: string
+          p_payer_id: string
+        }
+        Returns: Json
+      }
+      paypal_job_order_void: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: boolean
+      }
+      paypal_job_payment_by_order: { Args: { p_order_id: string }; Returns: Json }
+      paypal_job_payment_state: { Args: { p_job_id: string }; Returns: Json }
+      paypal_job_price_matches: {
+        Args: {
+          p_breakdown: Json
+          p_job: Database["public"]["Tables"]["jobs"]["Row"]
+        }
+        Returns: boolean
+      }
+      paypal_payment_subject_by_order: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
       job_legacy_completed_at: {
         Args: {
           _helper_completed_at: string

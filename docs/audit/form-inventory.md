@@ -220,7 +220,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/AddressBlock.tsx` | input×3 | text | 200, 10 | location-label · address-summary · streetAddress · Start typing, then pick your address · Street address · city · state · State (Louisiana) |
 | `src/components/postjob/AiJobBuilder.tsx` | textarea×1 |  |  | Describe your job |
 | `src/components/postjob/BudgetSection.tsx` | input×1, checkbox/switch/radio×1 | number |  | Lower the budget by $5 · Raise the budget by $5 · budget · Job budget in dollars · urgent · custom-urgent-fee · Custom urgent fee amount in dollars |
-| `src/components/postjob/CheckoutStep.tsx` | input×1, checkbox/switch/radio×2, date/calendar×1 | checkbox |  | save-card · confirm-details |
+| `src/components/postjob/CheckoutStep.tsx` | input×1, checkbox/switch/radio×2, date/calendar×1 | checkbox |  | save-card · confirm-details · paypal-checkout-block |
 | `src/components/postjob/detailsSection/DescriptionField.tsx` | textarea×1 |  |  | description · description-contact-leak |
 | `src/components/postjob/detailsSection/PhotoProofToggle.tsx` | checkbox/switch/radio×1 |  |  | require-photo-proof |
 | `src/components/postjob/detailsSection/PhotoReorderGrid.tsx` | input×1 | file |  | photo-grid · Remove photo · Add another photo |

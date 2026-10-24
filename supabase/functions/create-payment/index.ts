@@ -30,6 +30,8 @@ import {
   serviceFeeCentsFor,
 } from "../_shared/jobCheckout.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { escrowCancelQuoteRequestId, refuseQuoteJobPriceMismatch } from "../_shared/jobEscrowGuards.ts";
+import { handlePayPalCancelQuote, handlePayPalCapture, handlePayPalEscrow, payPalPaymentsOn, refuseStripeActionOnPayPalJob } from "./paypalEscrow.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -207,56 +209,6 @@ const TAX_BEHAVIOR = "exclusive" as const;
 const FUNDING_CLOSED_JOB_STATUSES = new Set(["completed", "cancelled"]);
 
 /**
- * Q1862: where a cancelled escrow checkout returns. Post a Job is the default;
- * a quote checkout returns to its request page, /quotes/request/<uuid>. Any
- * other returnPath is refused (never used as a redirect). Returns the quote
- * request id, or null for the default; the caller spells each target as a
- * literal buildRedirectUrl path (src/test/deepLinkOneRouter.test.ts proves
- * every literal is a route App.tsx serves).
- */
-const QUOTE_REQUEST_RETURN_PATH = /^\/quotes\/request\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
-
-function escrowCancelQuoteRequestId(returnPath: unknown): string | null {
-  if (returnPath === undefined || returnPath === null) return null;
-  const m = typeof returnPath === "string" ? QUOTE_REQUEST_RETURN_PATH.exec(returnPath) : null;
-  if (m) return m[1];
-  throw new PublicError("That page can't be used to come back from checkout.");
-}
-
-/**
- * Q1867: refuse to charge a job booked from an agreed quote at anything but
- * the accepted quote's price. Reads every quote request linked to the job and
- * its accepted quote; an unreadable table refuses the checkout.
- */
-async function refuseQuoteJobPriceMismatch(
-  // deno-lint-ignore no-explicit-any
-  db: any,
-  jobId: string,
-  budget: unknown,
-): Promise<void> {
-  const { data: links, error: linkErr } = await db
-    .from("job_quote_requests").select("id").eq("job_id", jobId).limit(5);
-  if (linkErr) {
-    console.error(`[create-payment] quote request read failed for job ${jobId}; refusing escrow:`, linkErr);
-    throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
-  }
-  const ids = ((links ?? []) as Array<{ id: string }>).map((r) => r.id);
-  if (ids.length === 0) return;
-  const { data: accepted, error: acceptedErr } = await db
-    .from("job_quotes").select("price_cents").in("request_id", ids).eq("status", "accepted");
-  if (acceptedErr) {
-    console.error(`[create-payment] accepted quote read failed for job ${jobId}; refusing escrow:`, acceptedErr);
-    throw new PublicError("Could not check this job's agreed quote. Please try again in a moment.");
-  }
-  const budgetCents = Math.round(Number(budget) * 100);
-  const mismatch = ((accepted ?? []) as Array<{ price_cents: unknown }>).some((q) => Number(q.price_cents) !== budgetCents);
-  if (mismatch) {
-    console.error(`[create-payment] job ${jobId} budget ${budgetCents} != accepted quote price; refusing escrow`);
-    throw new PublicError("This job's price doesn't match the quote you agreed, so it can't be paid for. Contact support.");
-  }
-}
-
-/**
  * NOTIFICATION LINKS: `?job=<id>`, never a fixed `?filter=`.
  *
  * Every Activity notification this function writes carries the job id and lets
@@ -337,6 +289,28 @@ serve(async (req) => {
     const body = await req.json();
     const isNative = isNativeRequest(body);
     const { action } = body;
+
+    // ─── PayPal (Plan A, phase 3): routed by the paypal_payments switch ───
+    // Before any Stripe work: a poster the switch is on for pays through PayPal
+    // (create-payment/paypalEscrow.ts); everyone else takes the Stripe path
+    // below, unchanged. A switch read error is OFF (fail closed). The return
+    // page's capture is PayPal-only and answers 403 with the switch off.
+    // Both only ever FUND an unfunded job (never a decided dispute's escrow: the PayPal escrow
+    // refuses a decided dispute like the Stripe one, and a capture is claimed only while the job
+    // is still unpaid). Not `if (action === ...)` blocks: they are routing, not actions here.
+    const payPalRoute = action === "paypal_capture"
+      ? "capture"
+      : action === "escrow" && await payPalPaymentsOn(supabaseAdmin, user) ? "escrow" : null;
+    if (payPalRoute === "capture") {
+      return await handlePayPalCapture({ db: supabaseAdmin, user, body, isNative, corsHeaders });
+    }
+    if (payPalRoute === "escrow") {
+      return await handlePayPalEscrow({ db: supabaseAdmin, user, body, isNative, corsHeaders });
+    }
+    // Every other action is Stripe-era: refused on a job carrying a PayPal payment (paypalEscrow.ts).
+    const onPayPalJob = await refuseStripeActionOnPayPalJob(supabaseAdmin, user, action, body?.jobId, corsHeaders,
+      (row) => handlePayPalCancelQuote({ db: supabaseAdmin, user, body, isNative, corsHeaders }, row));
+    if (onPayPalJob) return onPayPalJob;
 
     // Stripe mode (owner 2026-10-12, "Test mode for test accounts"): TEST when
     // every party to this payment is a test account, LIVE when none is, and

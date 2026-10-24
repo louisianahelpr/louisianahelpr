@@ -72,6 +72,11 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
   ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
+  ('job_provider_payment_held',     'allow',    'PayPal phase 3 (20261023232151): no PayPal payment on the job, or one is captured; half of job_is_funded and the award gate'),
+  ('paypal_job_price_matches',      'allow',    'PayPal phase 3 (20261023232151): the job still has the price an order was made for; a capture is claimed only when TRUE'),
+  ('paypal_job_money_rows_exist',   'deny',     'PayPal phase 3 (20261023232151): TRUE = PayPal money is tied to this job, so a Stripe-era payment_status write, a member cancel/delete or a re-price is refused; a NULL job id is no job (FALSE)'),
+  ('paypal_job_order_void',         'action',   'VOLATILE: retires an unapproved PayPal order (service only; a NULL id matches no row and answers FALSE; 20261023232151)'),
+  ('paypal_job_capture_failed',     'action',   'VOLATILE: marks a declined PayPal capture failed (service only; a NULL id matches no row and answers FALSE; 20261023232151)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
   ('user_may_see_job_address',      'allow',    'user may see the exact job address'),
   ('is_series_party',               'allow',    'user is on the recurring series (reads its holds, offers, releases; 20260927012806)'),
@@ -223,6 +228,10 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('job_announceable_to',           NULL, ARRAY['(SELECT j FROM public.jobs j WHERE j.id = ''00000000-0000-4000-8140-000000000101''::uuid)', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
+  -- J has no PayPal payment (a Stripe-era job), so the non-NULL call is TRUE.
+  ('job_provider_payment_held',     NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
+  -- J's own price facts, so the non-NULL call is TRUE.
+  ('paypal_job_price_matches',      NULL, ARRAY['(SELECT j FROM public.jobs j WHERE j.id = ''00000000-0000-4000-8140-000000000101''::uuid)', '(SELECT jsonb_build_object(''budget'', j.budget, ''urgent_fee'', j.urgent_fee, ''is_urgent'', j.is_urgent, ''category'', j.category, ''helpers_needed'', j.helpers_needed, ''recurrence_days'', to_jsonb(j.recurrence_days)) FROM public.jobs j WHERE j.id = ''00000000-0000-4000-8140-000000000101''::uuid)'], ARRAY[1,2]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A posts J, so A (the caller) is a party to it as a series (the poster branch).

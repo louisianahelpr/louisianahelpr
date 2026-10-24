@@ -1,7 +1,7 @@
 /**
  * PaymentProvider for PayPal Checkout (Orders v2, intent CAPTURE) into HELPR's
- * own account: Plan A's money-in leg. Phase 1: built and sandbox-proved, called
- * by nothing yet (phase 3 wires create-payment to it).
+ * own account: Plan A's money-in leg. Built in phase 1; phase 3 calls it for job
+ * checkouts (_shared/payments/paypalJobCheckout.ts).
  *
  * Behaviour measured on the sandbox 2026-10-23 (design doc §2):
  * - A card order with payment_source.card completes in one call (no redirect).
@@ -20,6 +20,7 @@ import {
   type CaptureResult,
   type CheckoutCreated,
   type CreateCheckoutInput,
+  type OrderState,
   type PaymentProvider,
   type RefundResult,
 } from "./types.ts";
@@ -36,7 +37,16 @@ interface PayPalOrder {
   status: string;
   links?: Array<{ href: string; rel: string }>;
   payment_source?: { card?: { attributes?: { vault?: { id?: string } } }; paypal?: { attributes?: { vault?: { id?: string } } } };
-  purchase_units?: Array<{ payments?: { captures?: PayPalCapture[] } }>;
+  purchase_units?: Array<{ amount?: Money; payments?: { captures?: PayPalCapture[] } }>;
+}
+
+/** PayPal order ids are upper-case letters and digits; anything else never reaches a URL. */
+function assertOrderId(id: string): void {
+  if (!/^[A-Z0-9]+$/.test(id)) throw new Error(`not a PayPal order id: ${id}`);
+}
+
+function approveLinkOf(order: PayPalOrder): string | null {
+  return order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href ?? null;
 }
 
 /**
@@ -51,6 +61,9 @@ function assertOrderKeyNamesAmount(key: string, amountCents: number): void {
     throw new Error(`order idempotency key must name the amount (${amountCents}): ${key}`);
   }
 }
+
+/** The name PayPal's checkout page shows for us (lead 2026-10-23). */
+export const PAYPAL_BRAND_NAME = "Louisiana Helpr";
 
 function usd(cents: number): Money {
   return { currency_code: "USD", value: centsToDollars(cents) };
@@ -119,6 +132,11 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
             paypal: {
               experience_context: {
                 user_action: "PAY_NOW",
+                // Only funding that settles at once (lead 2026-10-23): no eCheck-style payment whose
+                // capture sits PENDING for days. capture_pending is still handled, defensively.
+                payment_method_preference: "IMMEDIATE_PAYMENT_REQUIRED",
+                // What PayPal's page calls us ("Cancel and return to Louisiana Helpr"), not the account's default.
+                brand_name: PAYPAL_BRAND_NAME,
                 shipping_preference: "NO_SHIPPING",
                 return_url: input.returnUrl,
                 cancel_url: input.cancelUrl,
@@ -129,12 +147,37 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
         },
       });
       if (!order?.id) throw new Error("paypal order response has no id");
-      const approve = order.links?.find((l) => l.rel === "payer-action" || l.rel === "approve")?.href ?? null;
-      return { providerOrderId: order.id, approveUrl: approve, status: order.status };
+      return { providerOrderId: order.id, approveUrl: approveLinkOf(order), status: order.status };
+    },
+
+    async getOrder(providerOrderId: string): Promise<OrderState> {
+      assertOrderId(providerOrderId);
+      let order: PayPalOrder;
+      try {
+        order = await client.request<PayPalOrder>("GET", `/v2/checkout/orders/${providerOrderId}`);
+      } catch (e) {
+        // 404: PayPal no longer has it (an order nobody approved expires). Nothing can be captured.
+        if (e instanceof ProviderApiError && e.httpStatus === 404) {
+          return { providerOrderId, status: "GONE", amountCents: null, approveUrl: null, capture: null };
+        }
+        throw e;
+      }
+      if (!order?.id || order.id !== providerOrderId) throw new Error(`paypal order read returned ${order?.id ?? "no id"} for ${providerOrderId}`);
+      const units = order.purchase_units ?? [];
+      if (units.length !== 1) throw new Error(`paypal order ${order.id} has ${units.length} purchase units; we create exactly one`);
+      const amt = units[0].amount;
+      if (amt && amt.currency_code !== "USD") throw new Error(`paypal order ${order.id} is ${amt.currency_code}, not USD`);
+      return {
+        providerOrderId: order.id,
+        status: order.status,
+        amountCents: amt ? dollarsToCents(amt.value) : null,
+        approveUrl: order.status === "COMPLETED" || order.status === "VOIDED" ? null : approveLinkOf(order),
+        capture: order.status === "COMPLETED" ? captureFromOrder(order) : null,
+      };
     },
 
     async capture(idempotencyKey: string, providerOrderId: string): Promise<CaptureResult> {
-      if (!/^[A-Z0-9]+$/.test(providerOrderId)) throw new Error(`not a PayPal order id: ${providerOrderId}`);
+      assertOrderId(providerOrderId);
       const order = await client.request<PayPalOrder>("POST", `/v2/checkout/orders/${providerOrderId}/capture`, {
         idempotencyKey,
         prefer: "return=representation",

@@ -667,6 +667,19 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/banReview.ts";`,
   );
 
+  // PayPal (Plan A, phase 3): create-payment's PayPal path. The escrow guards moved out of
+  // create-payment/index.ts and the PayPal tax line import only salesTax.ts/publicError.ts; the
+  // payments layer is the REAL module graph, with PayPal's HTTP reached through the global
+  // fetch, which a test stubs (createPaymentPayPalEscrow.test.ts). No real PayPal call is made.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(jobEscrowGuards|jobSalesTax)\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/$2.ts";`,
+  );
+  out = out.replace(
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/(registry|paypalJobCheckout|jobSettleFollowUp|types)\.ts["'];?/g,
+    `import $1{$2} from "../../../supabase/functions/_shared/payments/$3.ts";`,
+  );
+
   // Refund-request hold (board 141, Q2272): `_shared/refundRequestHold.ts` has
   // ZERO imports, so the REAL liveness rule and lookup run inside the money
   // crons and the release button.

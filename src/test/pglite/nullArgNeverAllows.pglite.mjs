@@ -88,7 +88,9 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   subscription_tier text, subscription_expires_at timestamptz, ban_status text, auto_suspended_until timestamptz,
   is_seed boolean DEFAULT false,
   -- is_identity_verified (20261019051407) reads the two identity verdict columns.
-  idv_status text, stripe_identity_verified boolean DEFAULT false);
+  idv_status text, stripe_identity_verified boolean DEFAULT false,
+  -- is_caller_banned (20261022002144) reads the under-13 refusal stamp.
+  under_13_blocked_at timestamptz);
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL,
   UNIQUE (user_id, role));
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text NOT NULL,
@@ -101,7 +103,11 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   -- The CI fixture inserts start_time (jobs.start_time is NOT NULL on prod since Q-start-time).
   is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, recurring_helper_id uuid, start_time time,
   -- job_announceable_to (20260927015010) reads p_job.parent_job_id (a vacated series visit).
-  parent_job_id uuid);
+  parent_job_id uuid,
+  -- paypal_job_price_matches (20261023232151) reads the price facts an order was made for.
+  urgent_fee numeric, is_urgent boolean DEFAULT false, helpers_needed integer, recurrence_days integer[]);
+-- job_provider_payment_held (20261023232151) reads the PayPal payment rows (phase 1, 20261023223419).
+CREATE TABLE public.provider_payments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subject_kind text NOT NULL, subject_id uuid NOT NULL, status text NOT NULL);
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.
@@ -200,7 +206,9 @@ $function$;
 const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job", "can_send_message_to_in_job",
   "check_dispute_velocity", "credential_document_path_ok", "dispute_evidence_url_ok", "has_role",
   "helper_credential_document_ok", "identity_is_verified", "is_party_to_job",
-  "is_party_to_job_folder", "job_announceable_to", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
+  // job_provider_payment_held before job_is_funded: its SQL body calls it (20261023232151, PayPal phase 3).
+  "is_party_to_job_folder", "job_announceable_to", "job_provider_payment_held", "job_is_funded", "job_payment_is_funded", "user_has_pending_application",
+  "paypal_job_price_matches",
   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
   "can_read_job_detail_change", "feature_enabled_for_user", "feature_enabled_for",
   // After feature_enabled_for_user: since 20261017085012 (Q1844) its SQL body calls it, and a SQL body is validated at CREATE.

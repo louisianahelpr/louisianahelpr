@@ -75,10 +75,27 @@ export interface RefundResult {
   amountCents: number;
 }
 
+/**
+ * An order as PayPal says it is NOW (GET /v2/checkout/orders/{id}). Webhooks and
+ * the return page act on this re-read, never on an event body or event order.
+ */
+export interface OrderState {
+  providerOrderId: string;
+  /** CREATED | SAVED | PAYER_ACTION_REQUIRED | APPROVED | VOIDED | COMPLETED, or "GONE" when PayPal no longer has it (404: expired). */
+  status: string;
+  /** The order's total, in cents; null when GONE. */
+  amountCents: number | null;
+  /** Where to send the payer to approve, while the order still waits for them. */
+  approveUrl: string | null;
+  /** The capture, when the order is COMPLETED (throws like capture() for DECLINED/FAILED). */
+  capture: CaptureResult | null;
+}
+
 export interface PaymentProvider {
   readonly id: PaymentProviderId;
   readonly env: ProviderEnv;
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutCreated>;
+  getOrder(providerOrderId: string): Promise<OrderState>;
   capture(idempotencyKey: string, providerOrderId: string): Promise<CaptureResult>;
   chargeSaved(input: { idempotencyKey: string; referenceId: string; vaultId: string; amountCents: number }): Promise<CaptureResult>;
   refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string }): Promise<RefundResult>;

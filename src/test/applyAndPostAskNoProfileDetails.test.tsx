@@ -43,6 +43,8 @@ vi.mock("sonner", () => ({
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => null }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0 }));
+// PayPal phase 3: CheckoutStep reads paypal_payments; off and answered here (the Stripe flow these tests pin).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
 vi.mock("@/hooks/useStripeSalesTax", () => ({
   useStripeSalesTax: () => ({ salesTax: 0, loading: false, jurisdiction: null }),
 }));

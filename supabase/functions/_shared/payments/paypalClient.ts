@@ -14,6 +14,7 @@
  * - Plain fetch, no SDK; injectable fetch so tests run without a network.
  */
 import { ProviderApiError, type ProviderEnv } from "./types.ts";
+import { caughtMessage } from "../caughtMessage.ts";
 
 /** Phase 1: live PayPal is refused outright. */
 export const PAYPAL_LIVE_ALLOWED = false;
@@ -188,7 +189,7 @@ export class PayPalClient {
       return { status: res.status, ok: res.ok, text: await res.text() };
     } catch (e) {
       // Transport failure or timeout: status 0 marks it retryable (same idempotency key).
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = caughtMessage(e);
       throw new ProviderApiError(`paypal ${label}: transport failure: ${msg}`, 0, null, null, null);
     } finally {
       clearTimeout(timer);

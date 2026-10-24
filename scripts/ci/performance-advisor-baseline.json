@@ -7,6 +7,11 @@
   },
   "unused_index": [
     "public.admin_user_notes.idx_admin_user_notes_admin_id",
+    "public.payee_accounts.payee_accounts_email_idx",
+    "public.paypal_webhook_events.paypal_webhook_events_unprocessed_idx",
+    "public.provider_payments.provider_payments_subject_idx",
+    "public.provider_payouts.provider_payouts_payment_idx",
+    "public.provider_refunds.provider_refunds_payment_idx",
     "public.job_approval_escalations.job_approval_escalations_open_idx",
     "public.support_replies.support_replies_report_created_idx",
     "public.sms_consent_events.sms_consent_events_user_idx",

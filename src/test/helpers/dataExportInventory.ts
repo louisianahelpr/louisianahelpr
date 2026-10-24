@@ -468,6 +468,11 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  "payee_accounts.user_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
+  "payee_accounts.paypal_email": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
+  "provider_payments.payer_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
+  "provider_payouts.payee_user_id": { reason: "PayPal phase 1 (20261023223419, 2026-10-23): switch paypal_payments is off, so no member rows exist; export added before the switch goes to everyone (OPEN Q2377, a go-live blocker)" },
+  "provider_payouts.marked_paid_by": { reason: "the staff member who marked a manual PayPal payout paid (PayPal phase 1, 20261023223419); the payout is the Helpr's and is exported with it once Q2377 lands, with this staff id dropped" },
   // Quotes slice 1 (20261015091114): NOT exported yet, tracked by docs/OPEN.md
   // Q?quotes-export. ready/rentals-s1 also restates export_my_data, so the quotes
   // sections wait for it to land; the 'quotes' switch stays off until they do.

@@ -32,12 +32,17 @@ import { chargeSavedPayment, visitSubjectId, type SavedChargeDeps } from "./payp
 import type { PaymentProvider } from "./types.ts";
 
 /** The parent (series) columns charge-recurring-visits already selects. */
-export type SeriesParent = Record<string, unknown> & {
+export interface SeriesParent {
   id: string;
   customer_id: string;
   category: string | null;
   budget: number | string;
-};
+  helper_fee_flat_cents?: number | string | null;
+  helper_fee_percent?: number | string | null;
+  poster_fee_flat_cents?: number | string | null;
+  platform_fee_percent?: number | string | null;
+  [column: string]: unknown;
+}
 
 export type VisitPlan =
   | { kind: "plan"; budgetCents: number; feeCents: number; taxCents: 0; totalCents: number; helperFeePercent: number; helperFeeAmount: number }

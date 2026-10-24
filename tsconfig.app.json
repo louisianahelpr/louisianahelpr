@@ -87,6 +87,7 @@
     "supabase/functions/_shared/payments/paypalWebhookVerify.ts",
     "supabase/functions/_shared/payments/registry.ts",
     "supabase/functions/_shared/payments/providerFees.ts",
+    "supabase/functions/_shared/posterCancelSplit.ts",
     "supabase/functions/_shared/payments/manualPayoutQueue.ts",
     "supabase/functions/_shared/payments/paypalCancellation.ts",
     "supabase/functions/_shared/payments/paypalSavedCharge.ts",

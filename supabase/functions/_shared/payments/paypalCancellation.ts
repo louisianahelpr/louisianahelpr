@@ -79,7 +79,7 @@ export type PayPalCancelPlan =
       /** The late-cancellation fee, cents (0 / 25 / 50% of the budget). */
       feeCents: number;
       /** The fee tier, for logs and the poster's notice. */
-      feePercent: 0 | 25 | 50;
+      feePercent: number;
       /** The partial refund to the poster now, cents (0 = send nothing). */
       refundCents: number;
       /** What the Helpr is paid out of the fee (whole dollars), cents. */
@@ -117,7 +117,7 @@ export function planPayPalCancellation(i: PayPalCancelPlanInput): PayPalCancelPl
   const feeCents = Math.round(feeDollars * 100);
   const feePercent = (feeCents === 0
     ? 0
-    : cancellationFeePercent(helperIsCommitted(job), hoursUntilJob(job.date_needed as string, job.cancelled_at, job.start_time))) as 0 | 25 | 50;
+    : cancellationFeePercent(helperIsCommitted(job), hoursUntilJob(job.date_needed as string, job.cancelled_at, job.start_time)));
   // A fee is paid from the Helpr's flat stamp; a PayPal job without one was funded outside the
   // contract (phase 5 stamps every PayPal job). Refuse rather than guess a tier percent.
   if (feeCents > 0 && !isFlatFeeJob(job)) return { kind: "refuse", reason: "fee_model_unstamped" };

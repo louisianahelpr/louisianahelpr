@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 939,
+    "calls": 940,
     "files": 242,
-    "rendering": 807,
+    "rendering": 808,
     "suppressedByPolicy": 132,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 673,
+      "toast.error": 674,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 436,
       "template": 100,
-      "dynamic": 452,
+      "dynamic": 453,
       "jsx": 0
     }
   },
@@ -1092,7 +1092,7 @@
     },
     {
       "file": "src/components/PayPalTipReturn.tsx",
-      "line": 35,
+      "line": 39,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1102,7 +1102,20 @@
     },
     {
       "file": "src/components/PayPalTipReturn.tsx",
-      "line": 36,
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "res.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: res.message"
+      ]
+    },
+    {
+      "file": "src/components/PayPalTipReturn.tsx",
+      "line": 41,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -1115,11 +1128,11 @@
     },
     {
       "file": "src/components/PayPalTipReturn.tsx",
-      "line": 40,
+      "line": 47,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "userFacingError(err, \"We couldn't confirm your tip yet. Refresh in a moment to check.\")"
+        "text": "userFacingError(err, \"We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute.\")"
       },
       "renders": true
     },

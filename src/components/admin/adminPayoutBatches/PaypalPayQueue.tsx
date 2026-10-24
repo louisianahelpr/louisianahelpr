@@ -475,7 +475,8 @@ function RequeueDialog({ group, onClose, onDone }: { group: PayGroup; onClose: (
       if (error) {
         report(error, { tags: { source: "PaypalPayQueue.requeue" } });
         const why = rpcErrorMessage("admin_requeue_held_paypal_payout", error) ?? userFacingError(error, "Couldn't queue it to the checked email. Try again.");
-        toast.error(moved > 0 ? `${moved} of ${jobLines.length} queued, then one failed: ${why}` : why);
+        if (moved > 0) toast.error(`${moved} of ${jobLines.length} queued, then it stopped`, { description: why });
+        else toast.error(why);
         setBusy(false);
         onDone();
         return;

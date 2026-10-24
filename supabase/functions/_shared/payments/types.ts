@@ -91,7 +91,8 @@ export interface PaymentProvider {
   capture(idempotencyKey: string, providerOrderId: string): Promise<CaptureResult>;
   /** A merchant-initiated charge of a saved method (repeat visits, auto-tip). `vaultSource` defaults to "card". */
   chargeSaved(input: { idempotencyKey: string; referenceId: string; vaultId: string; amountCents: number; vaultSource?: VaultSource }): Promise<CaptureResult>;
-  refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string }): Promise<RefundResult>;
+  /** `invoiceId`: our refund row id, recorded on the refund at PayPal for reconciliation. */
+  refund(input: { idempotencyKey: string; providerCaptureId: string; amountCents: number; note?: string; invoiceId?: string }): Promise<RefundResult>;
 }
 
 /** Where a payout goes, as stored in public.payee_accounts. */

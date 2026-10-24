@@ -12,7 +12,12 @@
  *   2. The key is deterministic (subject + amount + attempt) and is ALSO PayPal's
  *      PayPal-Request-Id: a retry after a timeout replays the original order instead of charging
  *      again (sandbox 2026-10-23: same key, same order id). A re-price changes the key
- *      (`amt<cents>`), so an old price is never replayed.
+ *      (`amt<cents>`), so an old price is never replayed, AND every row of the subject is read
+ *      before any charge: a funded row is adopted, an open one at another price stops for a
+ *      person (lh-money-escrow review, #2). The row id is the order's invoice_id, so PayPal
+ *      itself refuses a second order for one row (DUPLICATE_INVOICE_ID), past request-id memory.
+ *   2b. A decline stands until the member saves a new method (then one new attempt); the
+ *      member is told about each decline once.
  *   3. A 'created' row older than PAYPAL_REPLAY_WINDOW_MS is NOT re-sent: past PayPal's request-id
  *      memory a re-send could be a second charge. It is reported for a person to check instead.
  *   4. The switch: a provider_payments INSERT is refused in the database when paypal_payments is
@@ -40,6 +45,8 @@ export interface SavedMethod {
   env: ProviderEnv;
   vaultId: string;
   source: VaultSource;
+  /** When the member saved it: a decline is retried only on a method saved AFTER it. */
+  createdAtMs: number;
 }
 
 export interface SavedPaymentRow {
@@ -50,15 +57,23 @@ export interface SavedPaymentRow {
   providerOrderId: string;
   providerCaptureId: string | null;
   createdAtMs: number;
+  updatedAtMs: number;
 }
 
 export interface SavedChargeStore {
-  switchOnFor(userId: string): Promise<boolean>;
+  /** The switch for this payer. An Error = could not tell (never read as "off" or "on"). */
+  switchOnFor(userId: string): Promise<boolean | Error>;
   activeMethod(userId: string, env: ProviderEnv): Promise<SavedMethod | null>;
-  paymentByKey(idempotencyKey: string): Promise<SavedPaymentRow | null>;
+  /** EVERY money row for this subject, whatever its key or amount (a re-price is not a new subject). */
+  paymentsForSubject(subjectKind: SavedChargeSubject, subjectId: string): Promise<SavedPaymentRow[]>;
   /** Insert the 'created' row. On a UNIQUE key clash returns the existing row. */
   insertPayment(row: { subjectKind: SavedChargeSubject; subjectId: string; payerId: string; env: ProviderEnv; idempotencyKey: string; amountCents: number }): Promise<SavedPaymentRow>;
   markCaptured(id: string, c: { providerOrderId: string; providerCaptureId: string; status: "captured" | "capture_pending" }): Promise<void>;
+  /**
+   * PayPal captured a different amount than we asked: record its order and capture ids but keep
+   * the row 'created' (never funded), so no later run, sweep or booking treats it as paid.
+   */
+  markCaptureMismatch(id: string, c: { providerOrderId: string; providerCaptureId: string }): Promise<void>;
   markFailed(id: string): Promise<void>;
 }
 
@@ -71,23 +86,27 @@ export interface SavedChargeDeps {
 
 export interface SavedChargeInput {
   subjectKind: SavedChargeSubject;
-  /** tips.id for a tip; visitSubjectId(parent, date) for a repeat visit. */
+  /** visitSubjectId(parent, date) for a repeat visit. */
   subjectId: string;
   payerId: string;
   amountCents: number;
-  /** 1 for the first try; a NEW attempt after a decline is a new key (the old row stays 'failed'). */
-  attempt?: number;
 }
 
 export type SavedChargeOutcome =
-  /** Captured and settled (COMPLETED). */
+  /** Captured and settled (COMPLETED), now or by an earlier run. */
   | { outcome: "charged"; paymentId: string; orderId: string; captureId: string; amountCents: number }
   /** Captured but not settled (PENDING, e.g. an eCheck): NOT funded yet. */
   | { outcome: "pending"; paymentId: string; captureId: string }
   | { outcome: "switch_off" }
   | { outcome: "no_saved_method" }
-  /** PayPal answered and refused: nothing was charged. */
-  | { outcome: "declined"; paymentId: string; reason: string }
+  /**
+   * PayPal refused: nothing was charged. `fresh` is true only for THIS run's decline; a decline an
+   * earlier run already told the member about is not fresh (no second notice), and is retried
+   * only once they save a new method.
+   */
+  | { outcome: "declined"; paymentId: string; reason: string; fresh: boolean }
+  /** A read failed before anything was written or sent: nothing happened; try next run. */
+  | { outcome: "unreadable"; reason: string }
   /** Outcome unknown (timeout, 5xx): the row stays 'created'; the next run replays the same key. */
   | { outcome: "retry"; paymentId: string | null; reason: string }
   /** A person must look before anything else is charged for this subject. */
@@ -101,65 +120,110 @@ export function savedChargeKey(i: { subjectKind: SavedChargeSubject; subjectId: 
 }
 
 const DONE = new Set(["captured", "partially_refunded", "refunded", "disputed", "reversed"]);
+const DEAD = new Set(["failed", "voided"]);
 
 export async function chargeSavedPayment(deps: SavedChargeDeps, input: SavedChargeInput): Promise<SavedChargeOutcome> {
   const now = deps.now ?? Date.now;
-  const key = savedChargeKey(input);
-  if (!(await deps.store.switchOnFor(input.payerId))) return { outcome: "switch_off" };
+  if (!Number.isInteger(input.amountCents) || input.amountCents <= 0) throw new Error(`amountCents must be a positive integer: ${input.amountCents}`);
 
-  let row = await deps.store.paymentByKey(key);
-  if (row) {
-    if (DONE.has(row.status)) {
-      return { outcome: "charged", paymentId: row.id, orderId: row.providerOrderId, captureId: row.providerCaptureId ?? "", amountCents: row.amountCents };
-    }
-    if (row.status === "capture_pending") return { outcome: "pending", paymentId: row.id, captureId: row.providerCaptureId ?? "" };
-    if (row.status === "failed" || row.status === "voided") return { outcome: "declined", paymentId: row.id, reason: `earlier_attempt_${row.status}` };
-    if (row.status !== "created") return { outcome: "needs_review", paymentId: row.id, reason: `unexpected_status_${row.status}` };
-    if (now() - row.createdAtMs > PAYPAL_REPLAY_WINDOW_MS) {
-      return { outcome: "needs_review", paymentId: row.id, reason: `created_past_replay_window: check PayPal for PayPal-Request-Id ${key} before charging again` };
-    }
+  // ── Reads only: a failure here has changed nothing anywhere. ──
+  let rows: SavedPaymentRow[];
+  let method: SavedMethod | null;
+  try {
+    const sw = await deps.store.switchOnFor(input.payerId);
+    if (sw instanceof Error) return { outcome: "unreadable", reason: `switch read: ${sw.message}` };
+    if (!sw) return { outcome: "switch_off" };
+    rows = await deps.store.paymentsForSubject(input.subjectKind, input.subjectId);
+    method = await deps.store.activeMethod(input.payerId, deps.env);
+  } catch (e) {
+    return { outcome: "unreadable", reason: (e instanceof Error ? e.message : String(e)).slice(0, 200) };
   }
 
-  const method = await deps.store.activeMethod(input.payerId, deps.env);
+  // ── What this subject already has, at ANY amount ──
+  const funded = rows.find((r) => DONE.has(r.status));
+  if (funded) {
+    // Adopt it. A funded row at another price is never topped up or charged again: a person decides.
+    if (funded.amountCents !== input.amountCents) {
+      return { outcome: "needs_review", paymentId: funded.id, reason: `funded_at_other_amount: ${funded.amountCents} paid, ${input.amountCents} asked` };
+    }
+    return { outcome: "charged", paymentId: funded.id, orderId: funded.providerOrderId, captureId: funded.providerCaptureId ?? "", amountCents: funded.amountCents };
+  }
+  const pendingCap = rows.find((r) => r.status === "capture_pending");
+  if (pendingCap) return { outcome: "pending", paymentId: pendingCap.id, captureId: pendingCap.providerCaptureId ?? "" };
+  const open = rows.find((r) => !DONE.has(r.status) && !DEAD.has(r.status));
+  let row: SavedPaymentRow | null = null;
+  if (open) {
+    if (open.status !== "created") return { outcome: "needs_review", paymentId: open.id, reason: `unexpected_status_${open.status}` };
+    if (open.providerCaptureId) return { outcome: "needs_review", paymentId: open.id, reason: "captured_amount_mismatch_recorded: PayPal captured a different amount; settle by hand" };
+    // An unknown outcome at another price: never a second order beside it.
+    if (open.amountCents !== input.amountCents) {
+      return { outcome: "needs_review", paymentId: open.id, reason: `open_charge_at_other_amount: ${open.amountCents} in flight, ${input.amountCents} asked` };
+    }
+    if (now() - open.createdAtMs > PAYPAL_REPLAY_WINDOW_MS) {
+      return { outcome: "needs_review", paymentId: open.id, reason: `created_past_replay_window: check PayPal for PayPal-Request-Id ${open.idempotencyKey} (invoice ${open.id}) before charging again` };
+    }
+    row = open;
+  }
+
   if (!method) {
     // A resumed 'created' row with no method left: nothing was charged that we know of.
     return row ? { outcome: "needs_review", paymentId: row.id, reason: "saved_method_gone_mid_charge" } : { outcome: "no_saved_method" };
   }
 
-  row ??= await deps.store.insertPayment({
-    subjectKind: input.subjectKind,
-    subjectId: input.subjectId,
-    payerId: input.payerId,
-    env: deps.env,
-    idempotencyKey: key,
-    amountCents: input.amountCents,
-  });
-  if (row.status !== "created") return chargeSavedPayment(deps, input); // a concurrent run finished it
+  if (!row) {
+    // A decline is retried only on a method saved after it (the member fixed it); else it stands.
+    const dead = rows.filter((r) => DEAD.has(r.status));
+    const lastDeadMs = Math.max(0, ...dead.map((r) => r.updatedAtMs));
+    if (dead.length > 0 && !(method.createdAtMs > lastDeadMs)) {
+      const last = dead.reduce((a, b) => (b.updatedAtMs > a.updatedAtMs ? b : a));
+      return { outcome: "declined", paymentId: last.id, reason: `earlier_attempt_${last.status}`, fresh: false };
+    }
+    try {
+      row = await deps.store.insertPayment({
+        subjectKind: input.subjectKind,
+        subjectId: input.subjectId,
+        payerId: input.payerId,
+        env: deps.env,
+        idempotencyKey: savedChargeKey({ ...input, attempt: dead.length + 1 }),
+        amountCents: input.amountCents,
+      });
+    } catch (e) {
+      // Nothing was sent to PayPal: this is a refused or failed write, not an unknown charge.
+      return { outcome: "unreadable", reason: `payment row insert: ${(e instanceof Error ? e.message : String(e)).slice(0, 180)}` };
+    }
+    if (row.status !== "created") return { outcome: "needs_review", paymentId: row.id, reason: `concurrent_run_left_${row.status}` };
+  }
 
   let cap: CaptureResult;
   try {
     cap = await deps.provider.chargeSaved({
-      idempotencyKey: key,
+      idempotencyKey: row.idempotencyKey,
+      // Also PayPal's invoice_id: a second order for this row is refused (DUPLICATE_INVOICE_ID).
       referenceId: row.id,
       vaultId: method.vaultId,
-      amountCents: input.amountCents,
+      amountCents: row.amountCents,
       vaultSource: method.source,
     });
   } catch (e) {
+    if (e instanceof ProviderApiError && e.issue === "DUPLICATE_INVOICE_ID") {
+      // PayPal already has an order for this row: never "declined", never charged again.
+      return { outcome: "needs_review", paymentId: row.id, reason: "duplicate_invoice: PayPal already has an order for this payment row; find it by invoice id" };
+    }
     if (e instanceof ProviderApiError && !e.retryable) {
       await deps.store.markFailed(row.id);
-      return { outcome: "declined", paymentId: row.id, reason: `${e.issue ?? e.errorName ?? e.httpStatus}`.slice(0, 120) };
+      return { outcome: "declined", paymentId: row.id, reason: `${e.issue ?? e.errorName ?? e.httpStatus}`.slice(0, 120), fresh: true };
     }
     return { outcome: "retry", paymentId: row.id, reason: (e instanceof Error ? e.message : String(e)).slice(0, 200) };
+  }
+  if (cap.amountCents !== row.amountCents) {
+    await deps.store.markCaptureMismatch(row.id, { providerOrderId: cap.providerOrderId, providerCaptureId: cap.providerCaptureId });
+    return { outcome: "needs_review", paymentId: row.id, reason: `captured_amount_mismatch: asked ${row.amountCents}, PayPal captured ${cap.amountCents}` };
   }
   await deps.store.markCaptured(row.id, {
     providerOrderId: cap.providerOrderId,
     providerCaptureId: cap.providerCaptureId,
     status: cap.settled ? "captured" : "capture_pending",
   });
-  if (cap.amountCents !== input.amountCents) {
-    return { outcome: "needs_review", paymentId: row.id, reason: `captured_amount_mismatch: asked ${input.amountCents}, PayPal captured ${cap.amountCents}` };
-  }
   if (!cap.settled) return { outcome: "pending", paymentId: row.id, captureId: cap.providerCaptureId };
   return { outcome: "charged", paymentId: row.id, orderId: cap.providerOrderId, captureId: cap.providerCaptureId, amountCents: cap.amountCents };
 }
@@ -193,29 +257,31 @@ export function supabaseSavedChargeStore(db: Db): SavedChargeStore {
     providerOrderId: String(r.provider_order_id),
     providerCaptureId: (r.provider_capture_id as string | null) ?? null,
     createdAtMs: Date.parse(String(r.created_at)),
+    updatedAtMs: Date.parse(String(r.updated_at ?? r.created_at)),
   });
-  const COLS = "id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at";
+  const COLS = "id, idempotency_key, status, amount_cents, provider_order_id, provider_capture_id, created_at, updated_at";
   return {
     async switchOnFor(userId) {
       const { data, error } = await db.rpc("feature_enabled_for_user", { p_key: "paypal_payments", p_user_id: userId });
-      // Fail closed: an error is "off".
-      return !error && data === true;
+      // Fail closed, but loudly: an error is "could not tell", never a silent "off".
+      if (error) return new Error(error.message);
+      return data === true;
     },
     async activeMethod(userId, env) {
       const { data, error } = await db
         .from("paypal_saved_payment_methods")
-        .select("id, user_id, env, vault_id, source")
+        .select("id, user_id, env, vault_id, source, created_at")
         .eq("user_id", userId)
         .eq("env", env)
         .eq("status", "active")
         .maybeSingle();
       must("saved method read", error);
-      return data ? { id: String(data.id), userId: String(data.user_id), env: data.env, vaultId: String(data.vault_id), source: data.source } : null;
+      return data ? { id: String(data.id), userId: String(data.user_id), env: data.env, vaultId: String(data.vault_id), source: data.source, createdAtMs: Date.parse(String(data.created_at)) } : null;
     },
-    async paymentByKey(key) {
-      const { data, error } = await db.from("provider_payments").select(COLS).eq("idempotency_key", key).maybeSingle();
+    async paymentsForSubject(kind, id) {
+      const { data, error } = await db.from("provider_payments").select(COLS).eq("subject_kind", kind).eq("subject_id", id);
       must("provider_payments read", error);
-      return data ? toRow(data) : null;
+      return ((data ?? []) as Array<Record<string, unknown>>).map(toRow);
     },
     async insertPayment(r) {
       const { data, error } = await db
@@ -253,9 +319,20 @@ export function supabaseSavedChargeStore(db: Db): SavedChargeStore {
       must("provider_payments capture write", error);
       if (!data || data.length === 0) throw new Error(`provider_payments capture write matched 0 rows (${id}): PayPal captured ${c.providerCaptureId}`);
     },
+    async markCaptureMismatch(id, c) {
+      const { data, error } = await db
+        .from("provider_payments")
+        .update({ provider_order_id: c.providerOrderId, provider_capture_id: c.providerCaptureId, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("status", "created")
+        .select("id");
+      must("provider_payments mismatch write", error);
+      if (!data || data.length === 0) throw new Error(`provider_payments mismatch write matched 0 rows (${id}): PayPal captured ${c.providerCaptureId}`);
+    },
     async markFailed(id) {
-      const { error } = await db.from("provider_payments").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", id).eq("status", "created");
+      const { data, error } = await db.from("provider_payments").update({ status: "failed", updated_at: new Date().toISOString() }).eq("id", id).eq("status", "created").select("id");
       must("provider_payments failed write", error);
+      if (!data || data.length === 0) throw new Error(`provider_payments failed write matched 0 rows (${id})`);
     },
   };
 }

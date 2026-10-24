@@ -90,6 +90,8 @@ export type PayPalCancelPlan =
       providerFeeKeptCents: number;
       setupFeeKeptCents: number;
       taxKeptCents: number;
+      /** A ban-ended visit owes no fee; what the booked Helpr would otherwise be owed (Q738: told to admins). */
+      withheldForBanCents: number;
     }
   | { kind: "refuse"; reason: string };
 
@@ -112,6 +114,9 @@ export function planPayPalCancellation(i: PayPalCancelPlanInput): PayPalCancelPl
   if (job.is_group_job) return { kind: "refuse", reason: "crew_job_not_on_paypal" };
   if (!Number.isInteger(i.capturedCents) || i.capturedCents <= 0) return { kind: "refuse", reason: "no_capture" };
   if (!Number.isInteger(i.providerFeeCents) || i.providerFeeCents < 0) return { kind: "refuse", reason: "provider_fee_unknown" };
+  // A10 seller fault: today the card fee becomes the Declutter seller's debt
+  // (declutter_setup_job_fee_debt). Declutter is not on PayPal; refuse rather than absorb it.
+  if (i.sellerFault) return { kind: "refuse", reason: "seller_fault_not_on_paypal" };
   // The same expression void-cancelled-payments prices a single job with (Part A).
   const feeDollars = i.sellerFault || refundsSeriesVisitInFull(job) ? 0 : computeCancellationFee(job);
   const feeCents = Math.round(feeDollars * 100);
@@ -137,6 +142,9 @@ export function planPayPalCancellation(i: PayPalCancelPlanInput): PayPalCancelPl
   if (split.state !== "captured") return { kind: "refuse", reason: "split_not_captured" };
   // Stripe's sweep pays a fee the card cannot cover from a gift (Q1806); PayPal has no gift leg.
   if (!split.feesFitCard) return { kind: "refuse", reason: "fee_exceeds_payment" };
+  // The Stripe sweep's guard: earlier refunds already returned more than this cancel may give back
+  // (refunded > ceiling + 1c). Paying the Helpr's fee then would come out of money already gone.
+  if (cents(i.alreadyRefundedCents) > split.split.ceilingCents + 1) return { kind: "refuse", reason: "refunded_past_kept" };
   const platformCutCents = feeCents > 0 ? helprFlatFeeCents(feeCents, job) : 0;
   const helprPayoutCents = Math.max(0, roundPayoutDownCents(feeCents - platformCutCents));
   return {
@@ -149,6 +157,7 @@ export function planPayPalCancellation(i: PayPalCancelPlanInput): PayPalCancelPl
     providerFeeKeptCents: split.split.feeKeptCents,
     setupFeeKeptCents: split.split.setupKeptCents,
     taxKeptCents: split.split.taxKeptCents,
+    withheldForBanCents: job.series_ban_cancelled_at && job.helper_id ? Math.round(computeCancellationFee(job) * 100) : 0,
   };
 }
 
@@ -168,6 +177,7 @@ export interface RefundRow {
   amountCents: number;
   status: "pending" | "completed" | "failed" | "cancelled";
   providerRefundId: string | null;
+  createdAtMs: number;
 }
 
 /** Everything the settlement reads or writes, so tests run on an in-memory twin. */
@@ -177,9 +187,10 @@ export interface CancellationStore {
   refundsFor(paymentId: string): Promise<RefundRow[]>;
   /** Insert the pending refund row. Returns the row; on a UNIQUE key clash returns the existing row. */
   insertRefund(row: { paymentId: string; idempotencyKey: string; amountCents: number; reason: string }): Promise<RefundRow>;
-  markRefund(id: string, patch: { status: RefundRow["status"]; providerRefundId?: string | null }): Promise<void>;
+  /** `amountCents`: what PayPal says it refunded, when that differs from the row (kept, so the mismatch is durable). */
+  markRefund(id: string, patch: { status: RefundRow["status"]; providerRefundId?: string | null; amountCents?: number }): Promise<void>;
   setPaymentStatus(paymentId: string, status: "partially_refunded" | "refunded"): Promise<void>;
-  /** Flip the job out of escrow (only while it still reads 'escrow'). False = zero rows matched. */
+  /** Flip the job out of escrow (only while it still reads cancelled + 'escrow'). False = zero rows matched; throws on an error. */
   settleJob(jobId: string, patch: { payment_status: "refunded"; cancellation_fee_status: "charged" | null }): Promise<boolean>;
 }
 
@@ -194,7 +205,7 @@ export interface SettleDeps {
 }
 
 export type SettleOutcome =
-  | { outcome: "settled"; plan: Extract<PayPalCancelPlan, { kind: "plan" }>; refundStatus: "none" | "completed" | "pending"; payoutId: string | null }
+  | { outcome: "settled"; plan: Extract<PayPalCancelPlan, { kind: "plan" }>; refundStatus: "none" | "completed" | "pending"; providerRefundId: string | null; payoutId: string | null }
   | { outcome: "not_paypal" }
   /** Nothing moved, or only what is safe to resume; the job stays in escrow and the next run retries. */
   | { outcome: "retry"; reason: string }
@@ -208,10 +219,18 @@ export function cancelRefundKey(paymentId: string): string {
 
 const LIVE_REFUND = (r: RefundRow) => r.status !== "failed" && r.status !== "cancelled";
 
+/**
+ * How long an unanswered refund may be re-sent with the same PayPal-Request-Id (the same bound
+ * as a saved charge, PAYPAL_REPLAY_WINDOW_MS: PayPal's request-id memory is hours). Past it a
+ * person checks PayPal (the refund carries invoice_id = our row id) before anything is re-sent.
+ */
+export const REFUND_REPLAY_WINDOW_MS = 3 * 60 * 60 * 1000;
+
 export async function settlePayPalCancellation(
   deps: SettleDeps,
   job: PayPalCancelJob,
   sellerFault: boolean,
+  now: () => number = Date.now,
 ): Promise<SettleOutcome> {
   const payment = await deps.store.fundedPaymentForJob(job.id);
   if (!payment) return { outcome: "not_paypal" };
@@ -241,13 +260,17 @@ export async function settlePayPalCancellation(
 
   // ── 1. The poster's share: one partial refund ──
   let refundStatus: "none" | "completed" | "pending" = "none";
+  let providerRefundId: string | null = null;
   if (plan.refundCents > 0) {
     const row = own ?? await deps.store.insertRefund({ paymentId: payment.id, idempotencyKey: key, amountCents: plan.refundCents, reason: "poster_cancel" });
+    providerRefundId = row.providerRefundId;
     if (row.status === "completed") {
       refundStatus = "completed";
     } else if (row.providerRefundId) {
       // PayPal has it (PENDING at PayPal); its webhook reconciles completion. Nothing to resend.
       refundStatus = "pending";
+    } else if (now() - row.createdAtMs > REFUND_REPLAY_WINDOW_MS) {
+      return { outcome: "needs_review", reason: `refund_unanswered_past_replay_window: check PayPal for invoice ${row.id} on capture ${payment.providerCaptureId} before re-sending` };
     } else {
       try {
         const r = await deps.provider.refund({
@@ -255,9 +278,12 @@ export async function settlePayPalCancellation(
           providerCaptureId: payment.providerCaptureId,
           amountCents: row.amountCents,
           note: "Your cancelled Louisiana Helpr job",
+          invoiceId: row.id,
         });
+        providerRefundId = r.providerRefundId;
         if (r.amountCents !== row.amountCents) {
-          await deps.store.markRefund(row.id, { status: r.settled ? "completed" : "pending", providerRefundId: r.providerRefundId });
+          // Recorded as PayPal did it, so every later run sees the mismatch too (never "settled").
+          await deps.store.markRefund(row.id, { status: r.settled ? "completed" : "pending", providerRefundId: r.providerRefundId, amountCents: r.amountCents });
           return { outcome: "needs_review", reason: `refund_amount_mismatch: asked ${row.amountCents}, PayPal refunded ${r.amountCents}` };
         }
         await deps.store.markRefund(row.id, { status: r.settled ? "completed" : "pending", providerRefundId: r.providerRefundId });
@@ -302,7 +328,7 @@ export async function settlePayPalCancellation(
     cancellation_fee_status: plan.feeCents > 0 ? "charged" : null,
   });
   if (!flipped) return { outcome: "needs_review", reason: "settled_not_flipped: money moved but jobs.payment_status did not leave 'escrow'" };
-  return { outcome: "settled", plan, refundStatus, payoutId };
+  return { outcome: "settled", plan, refundStatus, providerRefundId, payoutId };
 }
 
 // ── The supabase twin of CancellationStore ──────────────────────────────────
@@ -323,6 +349,7 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
     amountCents: Number(r.amount_cents),
     status: r.status as RefundRow["status"],
     providerRefundId: (r.provider_refund_id as string | null) ?? null,
+    createdAtMs: Date.parse(String(r.created_at)),
   });
   return {
     async fundedPaymentForJob(jobId) {
@@ -342,7 +369,7 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
       return { id: String(r.id), env: r.env as ProviderEnv, amountCents: Number(r.amount_cents), providerCaptureId: String(r.provider_capture_id), status: String(r.status) };
     },
     async refundsFor(paymentId) {
-      const { data, error } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id").eq("provider_payment_id", paymentId);
+      const { data, error } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at").eq("provider_payment_id", paymentId);
       must("provider_refunds read", error);
       return ((data ?? []) as Array<Record<string, unknown>>).map(toRefund);
     },
@@ -350,10 +377,10 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
       const { data, error } = await db
         .from("provider_refunds")
         .insert({ provider_payment_id: row.paymentId, idempotency_key: row.idempotencyKey, amount_cents: row.amountCents, reason: row.reason, status: "pending" })
-        .select("id, idempotency_key, amount_cents, status, provider_refund_id")
+        .select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at")
         .single();
       if (error?.code === "23505") {
-        const { data: again, error: againErr } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id").eq("idempotency_key", row.idempotencyKey).single();
+        const { data: again, error: againErr } = await db.from("provider_refunds").select("id, idempotency_key, amount_cents, status, provider_refund_id, created_at").eq("idempotency_key", row.idempotencyKey).single();
         must("provider_refunds re-read", againErr);
         return toRefund(again);
       }
@@ -363,7 +390,12 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
     async markRefund(id, patch) {
       const { data, error } = await db
         .from("provider_refunds")
-        .update({ status: patch.status, ...(patch.providerRefundId ? { provider_refund_id: patch.providerRefundId } : {}), updated_at: new Date().toISOString() })
+        .update({
+          status: patch.status,
+          ...(patch.providerRefundId ? { provider_refund_id: patch.providerRefundId } : {}),
+          ...(patch.amountCents !== undefined ? { amount_cents: patch.amountCents } : {}),
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", id)
         .select("id");
       must("provider_refunds update", error);
@@ -389,7 +421,8 @@ export function supabaseCancellationStore(db: Db): CancellationStore {
         .eq("status", "cancelled")
         .eq("payment_status", "escrow")
         .select("id");
-      if (error) return false;
+      // An error is not "zero rows": throw with it, so the page names the real cause.
+      if (error) throw new Error(`jobs settle write failed: ${error.message}`);
       return !!data && data.length > 0;
     },
   };

@@ -99,7 +99,7 @@ import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.t
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { paypalRuntimeFromEnv } from "../_shared/payments/paypalRuntime.ts";
 import { paypalFundedJob } from "../_shared/payments/paypalFundedJob.ts";
-import { fundPayPalVisitFromCron } from "./paypalVisit.ts";
+import { bookPayPalVisitParties, fundPayPalVisitFromCron, tellPosterVisitRefund } from "./paypalVisit.ts";
 
 /**
  * The client type these helpers accept.
@@ -1621,14 +1621,33 @@ serve(async (req) => {
           paypalRuntime ??= paypalRuntimeFromEnv();
           const pv = await fundPayPalVisitFromCron(supabase, paypalRuntime, parent as never, visitDate, holderId);
           switch (pv.outcome) {
-            case "funded": results.funded++; break;
+            case "funded":
+              results.funded++;
+              // Book the parties exactly as the Stripe path does (application row, notices).
+              if (pv.booked) (await bookPayPalVisitParties(supabase, parent, pv.childJobId, holderId, visitDate)).forEach(fail);
+              break;
             case "exists": results.skippedExisting++; break;
-            case "awaiting_settlement": results.awaitingPayment++; break;
+            case "awaiting_settlement":
+              // Captured but not settled: no visit until it is. Paged so it never sits unseen.
+              results.awaitingPayment++;
+              fail(`series ${parent.id} ${visitDate}: PayPal visit charge ${pv.paymentId} captured but not settled (PENDING); no visit yet`);
+              break;
             case "no_saved_method":
+              results.declined++;
+              (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, "no_saved_paypal_method")).forEach(fail);
+              break;
             case "declined":
               results.declined++;
-              (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, pv.outcome === "declined" ? `paypal_declined: ${pv.reason}` : "no_saved_paypal_method")).forEach(fail);
+              // Told once per decline: a standing decline (no new method saved since) is not re-sent.
+              if (pv.fresh) (await notifyPosterCardProblem(supabase, parent, holderId, visitDate, `paypal_declined: ${pv.reason}`)).forEach(fail);
               break;
+            case "refunded_unbooked":
+            case "refunded_duplicate": {
+              fail(`series ${parent.id} ${visitDate}: PayPal visit ${pv.outcome}: ${pv.paymentId} refunded ${pv.refundCents}c`);
+              const told = await tellPosterVisitRefund(supabase, parent, visitDate, pv.refundCents, pv.outcome === "refunded_duplicate" ? "duplicate" : "unbooked");
+              if (told) fail(told);
+              break;
+            }
             case "refused":
             case "retry":
             case "needs_review":

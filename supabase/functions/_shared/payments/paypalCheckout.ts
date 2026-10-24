@@ -158,7 +158,9 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
         prefer: "return=representation",
         body: {
           intent: "CAPTURE",
-          purchase_units: [{ reference_id: input.referenceId, custom_id: input.referenceId, amount: usd(input.amountCents) }],
+          // invoice_id = our row id: PayPal refuses a second order with the same invoice id
+          // (DUPLICATE_INVOICE_ID), a lock that outlives PayPal-Request-Id's memory.
+          purchase_units: [{ reference_id: input.referenceId, custom_id: input.referenceId, invoice_id: input.referenceId.slice(0, 127), amount: usd(input.amountCents) }],
           // A PayPal-wallet token is charged as payment_source.paypal (vaulted with usage_type
           // MERCHANT at checkout); a card token as payment_source.card with the stored-credential
           // flags (MEASURED #12). Charging one as the other is refused by PayPal, never charged.
@@ -184,7 +186,11 @@ export function createPayPalCheckoutProvider(client: PayPalClient): PaymentProvi
         {
           idempotencyKey: input.idempotencyKey,
           prefer: "return=representation",
-          body: { amount: usd(input.amountCents), ...(input.note ? { note_to_payer: input.note.slice(0, 255) } : {}) },
+          body: {
+            amount: usd(input.amountCents),
+            ...(input.invoiceId ? { invoice_id: input.invoiceId.slice(0, 127) } : {}),
+            ...(input.note ? { note_to_payer: input.note.slice(0, 255) } : {}),
+          },
         },
       );
       if (!r?.id) throw new Error("paypal refund response has no id");

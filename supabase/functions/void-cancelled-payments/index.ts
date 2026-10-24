@@ -1714,7 +1714,7 @@ serve(async (req) => {
     // PayPal phase 6: which cancelled jobs are paid through PayPal. Those are settled by the
     // PayPal leg at the top of the loop and never reach the Stripe code below. A failed read
     // (null) lets no job without a Stripe payment through this run: it could be PayPal money.
-    const paypalJobs = await paypalFundedJobIds(supabaseAdmin, (jobs ?? []).map((j) => j.id));
+    const paypalJobs = await paypalFundedJobIds(supabaseAdmin, jobs ?? []);
     if (paypalJobs === null) defects.record("paypal funded-job read failed: jobs with no Stripe payment are not settled this run");
     let paypalRuntime: ReturnType<typeof paypalRuntimeFromEnv> | null = null;
 
@@ -1824,17 +1824,32 @@ serve(async (req) => {
           paypalRuntime ??= paypalRuntimeFromEnv();
           const pp = await settlePayPalCancelledJob(supabaseAdmin, job.id, paypalRuntime);
           const reason = "reason" in pp ? pp.reason : null;
-          if (pp.outcome === "settled") refunded++;
-          if (pp.outcome === "needs_review" || (pp.outcome === "skipped" && pp.defect) || (pp.outcome === "retry" && reason && !/^payment_disputed|^capture_not_settled/.test(reason))) {
+          if (pp.outcome === "settled" && pp.plan.refundCents > 0) refunded++;
+          // Every outcome but a clean settle (or a dispute that owns the money) is a defect: a
+          // capture still pending, a fee payout not queued, a job routed here with no PayPal
+          // money found (not_paypal: a visit whose payment could not be found) all page.
+          if (pp.outcome === "needs_review" || pp.outcome === "not_paypal" || (pp.outcome === "skipped" && pp.defect) || (pp.outcome === "retry" && reason !== "payment_disputed")) {
             defects.record(`paypal cancel ${job.id}: ${pp.outcome}: ${reason}`);
           }
-          if (pp.outcome === "needs_review") {
+          if (pp.outcome === "settled") for (const pr of pp.problems ?? []) defects.record(`paypal cancel ${job.id}: ${pr}`);
+          if (pp.outcome === "settled" && pp.plan.withheldForBanCents > 0) {
+            // Q738, as the Stripe path does: a ban-ended visit owes no fee; admins decide by hand.
+            await postSlackOpsAlert({
+              kind: "custom",
+              severity: "warning",
+              title: "Cancellation fee withheld: a ban ended this visit",
+              message: `A PayPal series visit ended by a ban is refunded without a late fee, so the booked Helpr is not paid the $${formatExactDollars(pp.plan.withheldForBanCents / 100)} they would otherwise be owed. If the ban was the poster's, decide whether to pay the Helpr by hand.`,
+              fields: { job_id: job.id, helper_id: job.helper_id ?? null, withheld_fee: pp.plan.withheldForBanCents / 100 },
+              oncePerDayKey: `paypal-ban-withheld-fee:${job.id}`,
+            });
+          }
+          if (pp.outcome === "needs_review" || pp.outcome === "not_paypal") {
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "critical",
               title: "A cancelled PayPal job needs a person",
-              message: `The PayPal cancellation of job ${job.id} stopped: ${reason}. Nothing more moves for it until someone settles it by hand (PayPal dashboard + provider_refunds / provider_payouts).`,
-              fields: { job_id: job.id, reason: String(reason).slice(0, 200) },
+              message: `The PayPal cancellation of job ${job.id} stopped: ${reason ?? "it was routed to PayPal but no PayPal payment for it was found"}. It stays in escrow and is re-checked every hour; settle it by hand (PayPal dashboard + provider_refunds / provider_payouts).`,
+              fields: { job_id: job.id, reason: String(reason ?? pp.outcome).slice(0, 200) },
               oncePerDayKey: `paypal-cancel-review:${job.id}`,
             });
           }

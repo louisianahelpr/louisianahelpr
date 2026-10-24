@@ -35,6 +35,7 @@ export function PayPalTipReturn() {
           return p;
         }, { replace: true });
         if (res.state === "paid") toast.success("Tip sent. All of it goes to your Helpr.");
+        else if (res.state === "declined" && res.message) toast.error(res.message);
         else if (res.message) toast(res.message);
         await queryClient.invalidateQueries();
       } catch (err) {

@@ -21,6 +21,7 @@
 // fee on its own or pays the Helpr less than the tip.
 
 import { STRIPE_FLAT_CENTS, STRIPE_PCT, stripeProcessingCostCents } from "./stripeFees.ts";
+import { PAYPAL_RATES, TIP_PAYPAL_METHOD, paypalProcessingCostCents, type PayPalMethod } from "./payments/providerFees.ts";
 
 /** Smallest tip, in cents ($3; owner 2026-09-24/25). create-payment, the tip
  *  dialogs and auto-tip-charge all read this; below it the card fee would be a
@@ -48,13 +49,22 @@ export const TIP_PAYMENT_METHOD_TYPES: ("card" | "link")[] = ["card", "link"];
  * nothing beyond it. Returns 0 for a non-positive tip.
  */
 function tipCardFeeCents(tipCents: number): number {
+  return smallestCoveringFee(tipCents, STRIPE_PCT, STRIPE_FLAT_CENTS, stripeProcessingCostCents);
+}
+
+/**
+ * The smallest whole-cent `fee` with `fee >= cost(tip + fee)`: the fee covers
+ * the processor's cost on the WHOLE charge and keeps nothing beyond it.
+ * `pct`/`flat` only seed the search; `cost` is the exact answer it settles on.
+ */
+function smallestCoveringFee(tipCents: number, pct: number, flatCents: number, cost: (amountCents: number) => number): number {
   if (!(tipCents > 0)) return 0;
   // Closed-form starting point from the real-valued equation
   // fee = (tip + fee) * pct + flat, then settle on the exact integer answer
-  // against the round-based cost Stripe's rate produces.
-  let fee = Math.ceil((tipCents * STRIPE_PCT + STRIPE_FLAT_CENTS) / (1 - STRIPE_PCT));
-  while (fee > 0 && fee - 1 >= stripeProcessingCostCents(tipCents + fee - 1)) fee--;
-  while (fee < stripeProcessingCostCents(tipCents + fee)) fee++;
+  // against the round-based cost the processor's rate produces.
+  let fee = Math.ceil((tipCents * pct + flatCents) / (1 - pct));
+  while (fee > 0 && fee - 1 >= cost(tipCents + fee - 1)) fee--;
+  while (fee < cost(tipCents + fee)) fee++;
   return fee;
 }
 
@@ -74,4 +84,23 @@ export function tipChargeBreakdown(tipCents: number): TipChargeBreakdown {
   const tip = tipCents > 0 ? Math.round(tipCents) : 0;
   const feeCents = tipCardFeeCents(tip);
   return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip };
+}
+
+/**
+ * A tip paid through PayPal (paypal-tip; behind the paypal_payments switch).
+ * TODAY'S RULE, unchanged (owner 2026-09-25; lead 2026-10-23: "keep today's
+ * rule ... using PayPal's published rate for the method used"): the Helpr
+ * receives exactly the tip, and PayPal's processing cost on the whole charge is
+ * added on top for the poster, at the rate of the method the tip order uses
+ * (TIP_PAYPAL_METHOD, _shared/payments/providerFees.ts). The platform keeps
+ * nothing beyond that cost. Same shape as tipChargeBreakdown, so every quote and
+ * every charge reads one function.
+ */
+export function paypalTipChargeBreakdown(tipCents: number, method: PayPalMethod = TIP_PAYPAL_METHOD): TipChargeBreakdown {
+  const tip = tipCents > 0 ? Math.round(tipCents) : 0;
+  // `method`: how the tip is paid. A tip prompt is PayPal Checkout (the default); an auto-tip
+  // charged to a saved card (phase 6, chargeSaved) is priced at that card method's rate.
+  const rate = PAYPAL_RATES[method];
+  const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate));
+  return { tipCents: tip, feeCents, chargeCents: tip + feeCents, helperCents: tip } satisfies TipChargeBreakdown;
 }

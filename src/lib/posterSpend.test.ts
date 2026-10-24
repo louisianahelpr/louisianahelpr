@@ -20,7 +20,8 @@
 // @mutate src/lib/posterSpend.ts | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)) + Math.max(0, Math.round(blockFeeCents) \|\| 0)); | return Math.min(chargedCents, Math.max(0, cents(job.cancellation_fee ?? 0)));
 // @mutate src/lib/posterSpend.ts | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0, blockFeeByJob.get(job.id) ?? 0) | posterSpentCents(job, refundedByJob.get(job.id) ?? 0, giftByJob.get(job.id) ?? 0)
 // @mutate src/lib/posterSpend.ts | return Math.max(0, charged - Math.max(0, refundedCents)); | return Math.max(0, charged);
-// @mutate src/lib/posterSpend.ts | const charged = tipChargeBreakdown(cents(tip.amount ?? 0)).chargeCents; | const charged = cents(tip.amount ?? 0);
+// @mutate src/lib/posterSpend.ts | const charged = (isPayPalTip(tip) ? paypalTipChargeBreakdown(tipCents) : tipChargeBreakdown(tipCents)).chargeCents; | const charged = tipCents;
+// @mutate src/lib/posterSpend.ts | return tip.stripe_session_id === null && !tip.stripe_payment_intent_id; | return false;
 // @mutate src/lib/posterSpend.ts | job.payment_status === "cancelled" && (refundedCents > 0 \|\| job.cancellation_fee_status === "charged"); | false;
 // @mutate src/lib/posterSpend.ts | job.payment_status === "cancelled" && (refundedCents > 0 \|\| job.cancellation_fee_status === "charged"); | job.payment_status === "cancelled";
 // @mutate src/lib/posterSpend.ts | if (!job.stripe_payment_intent_id) return 0; | if (!job.stripe_payment_intent_id && false) return 0;
@@ -171,6 +172,15 @@ describe("tips count (owner, 2026-10-05)", () => {
     expect(tipChargeBreakdown(300).chargeCents).toBe(340);
     expect(tipSpentCents(tip({ amount: 3 }), 0)).toBe(340);
     expect(tipSpentCents(tip(), 0)).toBe(T10);
+  });
+
+  it("a PayPal tip (no Stripe id) counts what PayPal charged: the tip plus PayPal's fee", () => {
+    // paypal-tip charges paypalTipChargeBreakdown: $5.00 -> $5.69, $20.00 -> $21.23.
+    expect(tipSpentCents(tip({ amount: 5, stripe_payment_intent_id: null, stripe_session_id: null }), 0)).toBe(569);
+    expect(tipSpentCents(tip({ amount: 20, stripe_payment_intent_id: null, stripe_session_id: null }), 0)).toBe(2123);
+    // A Stripe tip keeps the card rate; an older select without stripe_session_id reads as Stripe.
+    expect(tipSpentCents(tip({ amount: 5, stripe_session_id: "cs_1" }), 0)).toBe(546);
+    expect(tipSpentCents(tip({ amount: 5, stripe_payment_intent_id: null }), 0)).toBe(546);
   });
 
   it("pending and failed tips count $0", () => {

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import {
   Dialog,
@@ -22,8 +21,9 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
-import { isNativePlatform } from "@/lib/nativeInit";
 import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
+import { startTipCheckout } from "@/lib/tipCheckout";
+import { useFeature } from "@/hooks/useFeature";
 import { formatPriceExact } from "@/lib/format";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
@@ -84,6 +84,8 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
   const [customTip, setCustomTip] = useState<number | undefined>(undefined);
   // Board 180: the tip step's base price and the job title under the question.
   const tipJob = useTipJob(jobId);
+  // The server decides; false while loading, so the prompt never quotes PayPal before it is on.
+  const paypal = useFeature("paypal_payments");
   const tipValid = customTip !== undefined && Math.round(customTip * 100) >= TIP_MIN_CENTS && Math.round(customTip * 100) <= TIP_MAX_CENTS; // whole cents, as sent
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [referralCopied, setReferralCopied] = useState(false);
@@ -263,16 +265,11 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
       return;
     }
     try {
-      const { data, error } = await supabase.functions.invoke("create-payment", {
-        body: { action: "tip", jobId, amount, tipAttemptId: tipAttemptIdRef.current, native: isNativePlatform },
-      });
-      // A non-2xx leaves `error` a FunctionsHttpError whose .message is
-      // "Edge Function returned a non-2xx status code"; the function's own
-      // sentence (a 409 guard, a 429) is in the body. See functionErrorMessage.
-      if (error) throw new Error(await functionErrorMessage(error, "Couldn't send that tip — please try again"));
-      if (data?.error) throw new Error(data.error);
-      if (data?.url) await openExternalUrl(data.url);
-      else throw new Error("Couldn't start checkout. Please try again.");
+      const url = await startTipCheckout(
+        { jobId, amount, tipAttemptId: tipAttemptIdRef.current, paypal },
+        "Couldn't send that tip — please try again",
+      );
+      await openExternalUrl(url);
     } catch (err) {
       const message = userFacingError(err, "Couldn't send that tip — please try again.");
       toast.error(message);
@@ -330,12 +327,12 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
               Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
             </p>
             <TipPicker jobPriceDollars={tipJob?.shareDollars ?? null} valueDollars={customTip} onChange={setCustomTip} />
-            {tipValid && <TipCostBreakdown tipDollars={customTip!} receiverName={revieweeName} />}
+            {tipValid && <TipCostBreakdown tipDollars={customTip!} receiverName={revieweeName} paypal={paypal} />}
           </div>
           <DialogFooter>
             <DialogSecondaryAction onClick={() => setStep("share")}>No tip</DialogSecondaryAction>
             <DialogPrimaryAction onClick={() => sendTip(customTip ?? 0)} disabled={saving || customTip === undefined || customTip <= 0}>
-              {saving ? "Opening checkout…" : customTip !== undefined && customTip > 0 ? `Tip ${centsLabel(Math.round(customTip * 100))}` : "Tip"}
+              {saving ? (paypal ? "Opening PayPal…" : "Opening checkout…") : customTip !== undefined && customTip > 0 ? `Tip ${centsLabel(Math.round(customTip * 100))}` : "Tip"}
             </DialogPrimaryAction>
           </DialogFooter>
         </DialogContent>

@@ -7640,11 +7640,12 @@ export type Database = {
           env: string
           external_txn_id: string | null
           fee_cents: number | null
+          held_reason: string | null
           id: string
           marked_paid_at: string | null
           marked_paid_by: string | null
           payee_user_id: string | null
-          payout_transfer_id: string
+          payout_transfer_id: string | null
           provider: string
           provider_batch_id: string | null
           provider_item_id: string | null
@@ -7652,6 +7653,7 @@ export type Database = {
           return_ref: string | null
           sender_batch_id: string | null
           status: string
+          tip_id: string | null
           updated_at: string
         }
         Insert: {
@@ -7662,11 +7664,12 @@ export type Database = {
           env: string
           external_txn_id?: string | null
           fee_cents?: number | null
+          held_reason?: string | null
           id?: string
           marked_paid_at?: string | null
           marked_paid_by?: string | null
           payee_user_id?: string | null
-          payout_transfer_id: string
+          payout_transfer_id?: string | null
           provider: string
           provider_batch_id?: string | null
           provider_item_id?: string | null
@@ -7674,6 +7677,7 @@ export type Database = {
           return_ref?: string | null
           sender_batch_id?: string | null
           status?: string
+          tip_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -7684,11 +7688,12 @@ export type Database = {
           env?: string
           external_txn_id?: string | null
           fee_cents?: number | null
+          held_reason?: string | null
           id?: string
           marked_paid_at?: string | null
           marked_paid_by?: string | null
           payee_user_id?: string | null
-          payout_transfer_id?: string
+          payout_transfer_id?: string | null
           provider?: string
           provider_batch_id?: string | null
           provider_item_id?: string | null
@@ -7696,6 +7701,7 @@ export type Database = {
           return_ref?: string | null
           sender_batch_id?: string | null
           status?: string
+          tip_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -7711,6 +7717,13 @@ export type Database = {
             columns: ["provider_payment_id"]
             isOneToOne: false
             referencedRelation: "provider_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_payouts_tip_id_fkey"
+            columns: ["tip_id"]
+            isOneToOne: false
+            referencedRelation: "tips"
             referencedColumns: ["id"]
           },
         ]
@@ -12092,6 +12105,10 @@ export type Database = {
         Args: { p_helper_id: string }
         Returns: boolean
       }
+      admin_requeue_paypal_tip_payout: {
+        Args: { p_confirm_no_send_money?: boolean; p_tip_id: string }
+        Returns: Json
+      }
       admin_resolve_ban_evasion_match: {
         Args: { p_match_id: string }
         Returns: boolean
@@ -14701,6 +14718,31 @@ export type Database = {
       payout_send_marks_for: {
         Args: { p_ids: string[]; p_kind: string }
         Returns: string[]
+      }
+      paypal_open_tip: {
+        Args: {
+          p_charge_cents: number
+          p_env: string
+          p_helper_id: string
+          p_idempotency_key: string
+          p_job_id: string
+          p_order_id: string
+          p_source?: string
+          p_tip_cents: number
+          p_tip_id?: string
+          p_tipper_id: string
+        }
+        Returns: Json
+      }
+      paypal_record_tip_capture: {
+        Args: {
+          p_amount_cents: number
+          p_capture_id: string
+          p_order_id: string
+          p_outcome: string
+          p_provider_payment_id: string
+        }
+        Returns: Json
       }
       poster_cancel_job: {
         Args: { p_expected_fee_cents?: number; p_job_id: string; p_reason?: string }

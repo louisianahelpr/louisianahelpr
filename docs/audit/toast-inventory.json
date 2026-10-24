@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 936,
-    "files": 241,
-    "rendering": 805,
-    "suppressedByPolicy": 131,
+    "calls": 940,
+    "files": 242,
+    "rendering": 808,
+    "suppressedByPolicy": 132,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 65,
-      "toast.error": 672,
+      "toast": 66,
+      "toast.error": 674,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 135,
+      "toast.success": 136,
       "toast.warning": 25
     },
     "copyPiecesByForm": {
-      "literal": 435,
+      "literal": 436,
       "template": 100,
-      "dynamic": 450,
+      "dynamic": 453,
       "jsx": 0
     }
   },
@@ -324,7 +324,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 130,
+      "line": 132,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -334,7 +334,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 154,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -344,7 +344,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 185,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -354,7 +354,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 186,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -364,7 +364,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 187,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -374,7 +374,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 260,
+      "line": 262,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -384,7 +384,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 278,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1091,6 +1091,52 @@
       "renders": true
     },
     {
+      "file": "src/components/PayPalTipReturn.tsx",
+      "line": 39,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Tip sent. All of it goes to your Helpr."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/PayPalTipReturn.tsx",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "res.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: res.message"
+      ]
+    },
+    {
+      "file": "src/components/PayPalTipReturn.tsx",
+      "line": 41,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "res.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: res.message"
+      ]
+    },
+    {
+      "file": "src/components/PayPalTipReturn.tsx",
+      "line": 47,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/PayoutSetupForm.tsx",
       "line": 129,
       "kind": "toast.error",
@@ -1603,7 +1649,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 47,
+      "line": 48,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1613,7 +1659,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1623,7 +1669,7 @@
     },
     {
       "file": "src/components/TipDialog.tsx",
-      "line": 93,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

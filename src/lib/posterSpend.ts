@@ -1,5 +1,5 @@
 import { posterPaidDollars, type PosterChargedJob } from "@/lib/posterJobCost";
-import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
+import { paypalTipChargeBreakdown, tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
 import { cardCostFeeCents } from "@/lib/refundAmount";
 
@@ -111,7 +111,18 @@ export interface PosterTipRow {
   amount: number;
   payment_status: string | null;
   stripe_payment_intent_id: string | null;
+  /** Set on every Stripe tip (create-payment's Checkout); absent from an older select. */
+  stripe_session_id?: string | null;
   created_at?: string | null;
+}
+
+/**
+ * A tip paid through PayPal (paypal-tip) carries no Stripe id: create-payment's tip always stores
+ * its Checkout session id and auto-tip-charge its PaymentIntent (measured on prod 2026-10-23: the
+ * one tips row has both). PayPal's fee is priced differently, so it is charged at its own rate.
+ */
+function isPayPalTip(tip: PosterTipRow): boolean {
+  return tip.stripe_session_id === null && !tip.stripe_payment_intent_id;
 }
 
 const cents = (dollars: number) => Math.round(dollars * 100);
@@ -142,7 +153,8 @@ export function posterSpentCents(job: PosterSpendJob, refundedCents: number, gif
 /** Card cents the poster kept paying for one tip (0 unless it was paid). */
 export function tipSpentCents(tip: PosterTipRow, refundedCents: number): number {
   if (tip.payment_status !== "paid") return 0;
-  const charged = tipChargeBreakdown(cents(tip.amount ?? 0)).chargeCents;
+  const tipCents = cents(tip.amount ?? 0);
+  const charged = (isPayPalTip(tip) ? paypalTipChargeBreakdown(tipCents) : tipChargeBreakdown(tipCents)).chargeCents;
   return Math.max(0, charged - Math.max(0, refundedCents));
 }
 

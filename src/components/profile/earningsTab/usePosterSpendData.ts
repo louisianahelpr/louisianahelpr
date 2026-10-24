@@ -55,7 +55,7 @@ export function usePosterSpendData(userId: string | undefined) {
         supabase.from("payment_refunds").select("job_id, amount_cents, stripe_payment_intent_id, source").eq("customer_id", posterId),
         supabase.from("gift_cards").select("job_id, amount").eq("recipient_id", posterId).eq("status", "redeemed"),
         // Tips this person PAID (tips RLS also shows tips they received).
-        supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, created_at").eq("tipper_id", posterId),
+        supabase.from("tips").select("id, job_id, amount, payment_status, stripe_payment_intent_id, stripe_session_id, created_at").eq("tipper_id", posterId),
         // Q1736: the crew block fees an uncaptured hold's capture took with the
         // cancellation fee. The ledger has no client grant, so a definer RPC
         // answers the poster's own jobs only.

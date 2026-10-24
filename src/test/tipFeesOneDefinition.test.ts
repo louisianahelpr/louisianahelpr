@@ -14,9 +14,13 @@
  *      metadata says `type: "tip"`) takes its amount, line items and
  *      application fee from one `tipChargeBreakdown` result, and computes no
  *      fee of its own.
- *   3. Every client tip surface (inventory: each `action: "tip"` request, plus
- *      the Auto-tip settings page) quotes through TipCostBreakdown, which
- *      imports the edge module the server charges with.
+ *   3. Every client tip surface (inventory: each file that starts a tip
+ *      checkout through startTipCheckout or sends an `action: "tip"` request,
+ *      plus the Auto-tip settings page) quotes through TipCostBreakdown, which
+ *      imports the edge module the server charges with. The request helper
+ *      itself (src/lib/tipCheckout.ts) quotes nothing and computes no fee.
+ *   5. The PayPal tip (paypal-tip, behind paypal_payments): the same rule at
+ *      PayPal's published rate (paypalTipChargeBreakdown), for every tip.
  *
  *   4. Every client surface that reads tip rows (inventory: each src file whose
  *      code queries `from("tips")` or names a tip sum) shows the Helpr the tip
@@ -26,13 +30,16 @@
  * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
+ * @mutate supabase/functions/_shared/tipFees.ts | const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate)); | const feeCents = smallestCoveringFee(tip, rate.pct, rate.flatCents, (a) => paypalProcessingCostCents(a, rate)) - 1;
+ * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip } satisfies TipChargeBreakdown; | helperCents: tip - 1 } satisfies TipChargeBreakdown;
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
  */
 import { readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
-import { tipChargeBreakdown, TIP_MAX_CENTS } from "../../supabase/functions/_shared/tipFees";
+import { paypalTipChargeBreakdown, tipChargeBreakdown, TIP_MAX_CENTS } from "../../supabase/functions/_shared/tipFees";
+import { PAYPAL_RATES, TIP_PAYPAL_METHOD, paypalProcessingCostCents } from "../../supabase/functions/_shared/payments/providerFees";
 import { stripeProcessingCostCents } from "../../supabase/functions/_shared/stripeFees";
 import { sumHelperTipDollars } from "@/lib/helperEarnings";
 import { readdirSync } from "./helpers/trackedFiles";
@@ -75,6 +82,31 @@ describe("tipChargeBreakdown: the Helpr receives the whole tip", () => {
     expect(tipChargeBreakdown(500)).toEqual({ tipCents: 500, feeCents: 46, chargeCents: 546, helperCents: 500 });
     expect(tipChargeBreakdown(1000)).toEqual({ tipCents: 1000, feeCents: 61, chargeCents: 1061, helperCents: 1000 });
     expect(tipChargeBreakdown(2000)).toEqual({ tipCents: 2000, feeCents: 91, chargeCents: 2091, helperCents: 2000 });
+  });
+});
+
+describe("paypalTipChargeBreakdown: the Helpr receives the whole tip (PayPal)", () => {
+  const rate = PAYPAL_RATES[TIP_PAYPAL_METHOD];
+  it("for every tip from 1 cent to $1,000, at PayPal's rate for the tip order's method", () => {
+    const bad: string[] = [];
+    for (let tip = 1; tip <= TIP_MAX_CENTS; tip++) {
+      const q = paypalTipChargeBreakdown(tip);
+      const cost = paypalProcessingCostCents(q.chargeCents, rate);
+      if (q.helperCents !== tip) bad.push(`${tip}: helper ${q.helperCents}`);
+      else if (q.chargeCents - q.feeCents !== tip) bad.push(`${tip}: charge-fee ${q.chargeCents - q.feeCents}`);
+      else if (q.feeCents < cost) bad.push(`${tip}: fee ${q.feeCents} < paypal ${cost}`);
+      else if (q.feeCents - 1 >= paypalProcessingCostCents(q.chargeCents - 1, rate)) bad.push(`${tip}: fee ${q.feeCents} not the smallest`);
+      if (bad.length > 5) break;
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("prices the published examples (PayPal Checkout 3.49% + 49c on the whole charge)", () => {
+    expect(TIP_PAYPAL_METHOD).toBe("paypal_checkout");
+    expect(rate).toEqual({ pct: 0.0349, flatCents: 49 });
+    expect(paypalTipChargeBreakdown(300)).toEqual({ tipCents: 300, feeCents: 62, chargeCents: 362, helperCents: 300 });
+    expect(paypalTipChargeBreakdown(500)).toEqual({ tipCents: 500, feeCents: 69, chargeCents: 569, helperCents: 500 });
+    expect(paypalTipChargeBreakdown(1000)).toEqual({ tipCents: 1000, feeCents: 87, chargeCents: 1087, helperCents: 1000 });
   });
 });
 
@@ -129,14 +161,26 @@ describe("every edge tip charge takes its money fields from one tipChargeBreakdo
 
 // ── Client: every place a tip is quoted ───────────────────────────────────────
 const srcFiles = walk(join(ROOT, "src"), (n) => /\.tsx?$/.test(n) && !/\.test\./.test(n));
+const TIP_REQUEST_HELPER = "src/lib/tipCheckout.ts";
 const tipSurfaces = srcFiles
-  .filter((f) => /body:\s*\{[^{}]*action:\s*"tip"/.test(blankComments(readFileSync(f, "utf8"))) || f.endsWith("src/pages/profile/AutoTip.tsx"))
+  .filter((f) => {
+    const code = blankComments(readFileSync(f, "utf8"));
+    return /body:\s*\{[^{}]*action:\s*"tip"/.test(code) || /\bstartTipCheckout\(/.test(code) || f.endsWith("src/pages/profile/AutoTip.tsx");
+  })
   .map((f) => relative(ROOT, f))
+  .filter((f) => f !== TIP_REQUEST_HELPER)
   .sort();
 
 describe("every client tip quote uses the server's definition", () => {
   it("the inventory is real (TipDialog, CompletionPrompts, AutoTip)", () => {
     expect(tipSurfaces.length).toBeGreaterThan(2);
+    expect(tipSurfaces).toEqual(expect.arrayContaining(["src/components/TipDialog.tsx", "src/components/CompletionPrompts.tsx", "src/pages/profile/AutoTip.tsx"]));
+  });
+
+  it("the request helper quotes nothing and computes no tip fee", () => {
+    const code = blankComments(readFileSync(join(ROOT, TIP_REQUEST_HELPER), "utf8"));
+    expect(code).toMatch(/export async function startTipCheckout\(/);
+    expect(code).not.toMatch(/tipChargeBreakdown|paypalTipChargeBreakdown|stripeProcessingCostCents|paypalProcessingCostCents|STRIPE_PCT|0\.029|0\.0349/);
   });
 
   it("TipCostBreakdown quotes from the edge module the server charges with", () => {

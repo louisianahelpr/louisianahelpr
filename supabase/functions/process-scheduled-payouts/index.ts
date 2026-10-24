@@ -32,7 +32,7 @@ import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRea
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
-import { isExpectedWait, isQueued, paypalJobIds, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
+import { isExpectedWait, isQueued, paypalJobIds, queueManualPaypalPayout, tellPayeeToAddPaypalEmail } from "../_shared/payments/manualPayoutQueue.ts";
 
 
 serve(async (req) => {
@@ -168,6 +168,12 @@ serve(async (req) => {
       const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "system", source: "process-scheduled-payouts" });
       if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
       else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
+      if (queued.outcome === "waiting_for_payee") {
+        // A PayPal job never gets the Stripe "Payout account required" notice (that path is below,
+        // for Stripe jobs only): its Helpr is asked for a PayPal email, once a day at most.
+        const told = await tellPayeeToAddPaypalEmail(supabaseAdmin, job);
+        if (told === "error") jobDefect(job.id, `paypal pay queue ${job.id}: could not tell the Helpr to add a PayPal email`);
+      }
       results.push({ job_id: job.id, status: "paypal_pay_queue", ...queued });
     }
 

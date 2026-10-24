@@ -612,6 +612,59 @@ v = (await db.query(mark([PR], "6RR11111AA222222B", 6000))).rows[0].v;
 const rj = await one(`select payment_status from jobs where id='${R.ok}'`);
 check("remainder: Mark paid releases the held job", v.outcome === "marked_paid" && rj.payment_status === "released", { v, rj });
 
+// --- phase 6: a cancellation fee (lead 2026-10-23), p_source='cancellation_fee' only. The repeat-visit
+//     case needs phase 6's provider_payments.funds_job_id; simulated here with that column's shape.
+await as("postgres");
+await db.exec(`alter table provider_payments add column if not exists funds_job_id uuid`);
+const CF = { own: "e0000000-0000-4000-8000-000000000001", visit: "e0000000-0000-4000-8000-000000000002", flipped: "e0000000-0000-4000-8000-000000000003" };
+for (const [k, id] of Object.entries(CF)) {
+  await db.exec(`insert into jobs(id, title, status, payment_status, helper_id, customer_id, accepted_at) values ('${id}', 'Cancelled ${k}', 'cancelled', '${k === "flipped" ? "refunded" : "escrow"}', '${U.helpr}', '${U.poster}', clock_timestamp())`);
+}
+await as("service");
+for (const [k, id] of Object.entries(CF)) {
+  const visit = k === "visit";
+  await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, provider_capture_id, amount_cents, status${visit ? ", funds_job_id" : ""})
+    values ('${visit ? "recurring_visit" : "job"}', '${visit ? "f0000000-0000-4000-8000-000000000002" : id}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:cf:${k}', 'O-cf${k}', 'C-cf${k}', 8000, 'captured'${visit ? `, '${id}'` : ""})`);
+}
+const cfq = (job, source = "cancellation_fee") => `select public.paypal_queue_manual_payout('${job}', '${U.helpr}', 2200, 300, 'system', null, '${source}') as v`;
+check("cancellation fee: an ordinary release of a cancelled job is refused", (await db.query(cfq(CF.own, "release"))).rows[0].v.reason === "job_not_approved", null);
+check("cancellation fee: refused once the job's money is no longer held", (await db.query(cfq(CF.flipped))).rows[0].v.reason === "job_not_cancelled_with_held_money", null);
+v = (await db.query(cfq(CF.own))).rows[0].v;
+check("cancellation fee: queued out of the job's own payment", v.outcome === "queued", v);
+const PCF = v.payout_id;
+v = (await db.query(cfq(CF.visit))).rows[0].v;
+const visitPay = await one(`select pp.provider_payment_id = (select id from provider_payments where idempotency_key = 'lh:cf:visit') ok from provider_payouts pp where pp.id = '${v.payout_id}'`);
+check("cancellation fee: queued out of the repeat visit's payment that funded the job", v.outcome === "queued" && visitPay?.ok === true, { v, visitPay });
+await as("admin");
+v = (await db.query(mark([PCF], "3CF11111AA222222B", 2200))).rows[0].v;
+const cfJob = await one(`select payment_status from jobs where id = '${CF.own}'`);
+check("cancellation fee: Mark paid records it and leaves the cancelled job's state to phase 6", v.outcome === "marked_paid" && cfJob.payment_status === "escrow" && v.jobs_not_released.length === 0, { v, cfJob });
+
+// --- tip lines (pp-tips adds provider_payouts.tip_id and makes payout_transfer_id nullable; simulated
+//     here with that shape): due 3 days after queueing, paid with the job in one press, and a PayPal tip
+//     with no payout line is listed as owed.
+await as("postgres");
+await db.exec(`alter table provider_payouts add column if not exists tip_id uuid; alter table provider_payouts alter column payout_transfer_id drop not null`);
+const TIP1 = "a1000000-0000-4000-8000-000000000001", TIP2 = "a1000000-0000-4000-8000-000000000002";
+await db.exec(`insert into tips(id, job_id, helper_id, amount) values ('${TIP1}', '${J13}', '${U.helpr}', 5), ('${TIP2}', '${J13}', '${U.helpr}', 7)`);
+await as("service");
+for (const [n, id] of [[1, TIP1], [2, TIP2]]) {
+  await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, provider_capture_id, amount_cents, status)
+    values ('tip', '${id}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:tip:${n}', 'O-tip${n}', 'C-tip${n}', ${n === 1 ? 500 : 700}, 'captured')`);
+}
+await db.query(`insert into provider_payouts(provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents)
+  select id, '${TIP1}', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'hal@example.com', 500 from provider_payments where idempotency_key = 'lh:tip:1'`);
+await as("admin");
+const qlines = (await db.query("select * from admin_paypal_payout_queue()")).rows;
+const tipLine = qlines.find((x) => x.tip_id === TIP1 && x.row_kind === "payout");
+const dueGap = tipLine ? (new Date(tipLine.pay_on_or_after).getTime() - new Date(tipLine.queued_at).getTime()) / 86_400_000 : null;
+check("a tip line is a tip, with its own due date (queued + 3 days)", tipLine?.line_kind === "tip" && Math.abs(dueGap - 3) < 0.001, { tipLine, dueGap });
+const owedTip = qlines.find((x) => x.row_kind === "tip_not_queued");
+check("a PayPal tip with no payout line is listed as owed", owedTip?.tip_id === TIP2 && owedTip.amount_cents === 700, owedTip);
+const P13job = qlines.find((x) => x.payout_id === P13);
+v = (await db.query(mark([P13, tipLine.payout_id], "7TP11111AA222222B", 1500))).rows[0].v;
+check("job pay and a tip, one Send Money, one press", v.outcome === "marked_paid" && v.payout_ids.length === 2 && P13job?.line_kind === "job", v);
+
 // --- grants
 await as("postgres");
 for (const [fn, sig] of [["paypal_queue_manual_payout", "uuid, uuid, integer, integer, text, uuid, text"], ["paypal_payout_destination", "uuid, text"],

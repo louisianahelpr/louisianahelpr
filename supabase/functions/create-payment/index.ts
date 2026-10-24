@@ -63,7 +63,7 @@ import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/str
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
-import { jobPaypalPayment, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
+import { jobPaypalPayment, queueManualPaypalPayout, tellPayeeToAddPaypalEmail } from "../_shared/payments/manualPayoutQueue.ts";
 import {
   giftCardStripeMode,
   jobMoneyMode,
@@ -1760,6 +1760,10 @@ serve(async (req) => {
             });
           }
           else console.log(`[create-payment] release: job ${jobId} PayPal pay queue: ${queued.outcome}${"reason" in queued && queued.reason ? ` (${queued.reason})` : ""}`);
+          if (queued.outcome === "waiting_for_payee") {
+            const told = await tellPayeeToAddPaypalEmail(supabaseAdmin, job);
+            if (told === "error") console.error(`[create-payment] release: could not tell the Helpr of job ${jobId} to add a PayPal email`);
+          }
         }
       }
 

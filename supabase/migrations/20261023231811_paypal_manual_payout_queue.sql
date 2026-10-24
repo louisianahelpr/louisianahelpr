@@ -146,12 +146,17 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'job_not_found');
   END IF;
 
+  -- The money this pays out of: the job's own payment; for a cancellation fee also a repeat visit's
+  -- payment that funded this job (phase 6's provider_payments.funds_job_id, read through to_jsonb so
+  -- this compiles and runs before that column exists).
   SELECT p.id, p.env, p.amount_cents, p.status
     INTO v_pay
     FROM public.provider_payments p
-   WHERE p.subject_kind = 'job' AND p.subject_id = p_job_id
-     AND p.status IN ('captured', 'partially_refunded')
-   ORDER BY p.created_at DESC
+   WHERE p.status IN ('captured', 'partially_refunded')
+     AND ((p.subject_kind = 'job' AND p.subject_id = p_job_id)
+          OR (p_source = 'cancellation_fee' AND p.subject_kind = 'recurring_visit'
+              AND NULLIF(to_jsonb(p) ->> 'funds_job_id', '')::uuid = p_job_id))
+   ORDER BY (p.subject_kind = 'job') DESC, p.created_at DESC
    LIMIT 1;
   IF NOT FOUND THEN
     -- Not a PayPal job (or its money is not settled): nothing here may queue it.
@@ -197,7 +202,17 @@ BEGIN
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'crew_not_supported');
   END IF;
 
-  IF p_source = 'refund_request_remainder' THEN
+  IF p_source = 'cancellation_fee' THEN
+    -- Phase 6 (lead 2026-10-23): the Helpr's share of a cancellation fee, queued while the cancelled
+    -- job's money is still held ('escrow'), before phase 6 flips it.
+    IF v_job.status <> 'cancelled' OR v_job.payment_status <> 'escrow' THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'job_not_cancelled_with_held_money',
+                                'status', v_job.status, 'payment_status', v_job.payment_status);
+    END IF;
+    IF v_job.disputed_at IS NOT NULL AND COALESCE(v_job.dispute_status, '') NOT IN ('resolved', 'auto_resolved') THEN
+      RETURN jsonb_build_object('outcome', 'refused', 'reason', 'dispute_open');
+    END IF;
+  ELSIF p_source = 'refund_request_remainder' THEN
     -- Phase 5's agreed refund request (lead 2026-10-23): the poster's part was refunded first
     -- (partially_refunded), the job is completed with its money still held ('escrow'), and the
     -- job's ONE live dispute is the agreement being executed. The Helpr's remainder is queued here.
@@ -237,6 +252,12 @@ BEGIN
     END IF;
   END IF;
 
+  -- Lock the destination row for this transaction (phase 2 review 2026-10-23): an email change
+  -- committing meanwhile waits for this INSERT, then holds the row it finds (set_paypal_payee_email),
+  -- instead of this copying the old email into a payout left pending.
+  PERFORM 1 FROM public.payee_accounts a
+   WHERE a.user_id = p_helper_id AND a.provider = 'paypal' AND a.env = v_pay.env
+     FOR SHARE;
   SELECT * INTO v_dest FROM public.paypal_payout_destination(p_helper_id, v_pay.env) LIMIT 1;
   IF NOT FOUND THEN
     RETURN jsonb_build_object('outcome', 'waiting_for_payee', 'reason', 'no_payable_paypal_account');
@@ -410,7 +431,8 @@ RETURNS TABLE (
   marked_paid_at timestamptz,
   marked_paid_by_name text,
   pay_blocked text,             -- payout_hold | job_hold | ban_review | payment_disputed | payment_refunded | null
-  held_reason text              -- 'destination_changed_since_hire' (written held) | 'email_changed_after_queue' | null
+  held_reason text,             -- 'destination_changed_since_hire' (written held) | 'email_changed_after_queue' | null
+  tip_id uuid                   -- the tip a tip line (or an unqueued tip) pays out; null for job pay
 )
 LANGUAGE plpgsql
 STABLE
@@ -435,12 +457,16 @@ BEGIN
          l.id, l.status, j.id, j.title::text, l.payee_user_id, pr.full_name::text,
          l.destination_kind, l.destination_value,
          (SELECT d.destination_value FROM public.paypal_payout_destination(l.payee_user_id, l.env) d LIMIT 1),
-         l.amount_cents, l.env, j.payout_scheduled_at, l.created_at, l.external_txn_id, l.marked_paid_at,
+         -- A tip clears on its own clock: 3 days after it was queued, like job pay after approval.
+         l.amount_cents, l.env,
+         CASE WHEN l.tip_ref IS NOT NULL THEN l.created_at + interval '3 days' ELSE j.payout_scheduled_at END,
+         l.created_at, l.external_txn_id, l.marked_paid_at,
          mp.full_name::text,
          CASE WHEN l.status = 'success' THEN NULL ELSE public.paypal_pay_blocked(j.id, l.payee_user_id, pay.status) END,
          CASE WHEN l.status <> 'held' THEN NULL
               WHEN pt.metadata ->> 'held_reason' IS NOT NULL THEN pt.metadata ->> 'held_reason'
-              ELSE 'email_changed_after_queue' END
+              ELSE 'email_changed_after_queue' END,
+         l.tip_ref
     FROM lines l
     JOIN public.provider_payments pay ON pay.id = l.provider_payment_id
     LEFT JOIN public.payout_transfers pt ON pt.id = l.payout_transfer_id
@@ -469,7 +495,7 @@ BEGIN
          (SELECT d.destination_value FROM public.paypal_payout_destination(j.helper_id, p.env) d LIMIT 1),
          NULL::bigint, p.env, j.payout_scheduled_at, NULL::timestamptz, NULL::text, NULL::timestamptz, NULL::text,
          public.paypal_pay_blocked(j.id, j.helper_id, p.status),
-         NULL::text
+         NULL::text, NULL::uuid
     FROM public.jobs j
     JOIN public.provider_payments p
       ON p.subject_kind = 'job' AND p.subject_id = j.id AND p.status NOT IN ('created', 'voided', 'failed')
@@ -482,6 +508,24 @@ BEGIN
                              AND d.decided_via = 'agreement' AND d.execution_status = 'executing')))
      AND NOT EXISTS (SELECT 1 FROM public.payout_transfers x
                       WHERE x.job_id = j.id AND x.status IN ('pending', 'paid', 'reversed'))
+  UNION ALL
+  -- Tips paid through PayPal with no live payout line yet (most often: no PayPal email). tip_id on
+  -- provider_payouts is read through to_jsonb (pp-tips adds the column).
+  SELECT 'tip_not_queued'::text, 'tip'::text, NULL::uuid,
+         CASE WHEN NOT EXISTS (SELECT 1 FROM public.paypal_payout_destination(t.helper_id, p.env)) THEN 'no_payable_paypal_account'
+              ELSE 'not_queued_yet' END,
+         t.job_id, tj.title::text, t.helper_id, pr.full_name::text, NULL::text, NULL::text,
+         (SELECT d.destination_value FROM public.paypal_payout_destination(t.helper_id, p.env) d LIMIT 1),
+         p.amount_cents, p.env, NULL::timestamptz, NULL::timestamptz, NULL::text, NULL::timestamptz, NULL::text,
+         public.paypal_pay_blocked(t.job_id, t.helper_id, p.status), NULL::text, t.id
+    FROM public.tips t
+    JOIN public.provider_payments p
+      ON p.subject_kind = 'tip' AND p.subject_id = t.id AND p.status IN ('captured', 'partially_refunded')
+    LEFT JOIN public.jobs tj ON tj.id = t.job_id
+    LEFT JOIN public.profiles pr ON pr.user_id = t.helper_id
+   WHERE NOT EXISTS (SELECT 1 FROM public.provider_payouts o
+                      WHERE NULLIF(to_jsonb(o) ->> 'tip_id', '')::uuid = t.id
+                        AND o.status NOT IN ('canceled', 'failed', 'returned'))
    ORDER BY 1 DESC, 15 NULLS LAST;
 END;
 $fn$;
@@ -619,7 +663,12 @@ BEGIN
              j.dispute_status::text AS dispute_status
         INTO v_job FROM public.jobs j WHERE j.id = v_pt.job_id FOR SHARE;
       v_block := public.paypal_pay_blocked(v_pt.job_id, v_pp.payee_user_id, v_pay.status);
-      IF v_block IS NULL AND v_pt.queued_by = 'refund_request_remainder' THEN
+      IF v_block IS NULL AND v_pt.queued_by = 'cancellation_fee' THEN
+        -- A cancellation fee pays out of a cancelled job; phase 6 settles the job's own state.
+        IF v_job.status <> 'cancelled' THEN
+          v_block := 'job_not_payable';
+        END IF;
+      ELSIF v_block IS NULL AND v_pt.queued_by = 'refund_request_remainder' THEN
         IF v_job.status <> 'completed' OR v_job.payment_status <> 'escrow' THEN
           v_block := 'job_not_payable';
         END IF;
@@ -672,18 +721,23 @@ BEGIN
        WHERE id = v_pp.payout_transfer_id
       RETURNING job_id, metadata ->> 'queued_by' INTO v_job_id, v_queued_by;
       v_jobs := v_jobs || v_job_id;
-      -- The job reads released only now. A refund-request remainder was queued with the job still
-      -- held ('escrow', phase 5's agreed split); its Helpr leg is paid here, so it is released too.
-      UPDATE public.jobs SET payment_status = 'released'
-       WHERE id = v_job_id
-         AND (payment_status::text = 'payout_pending'
-              OR (payment_status::text = 'escrow' AND v_queued_by = 'refund_request_remainder'));
-      IF FOUND THEN
-        v_released := v_released || v_job_id;
+      IF v_queued_by = 'cancellation_fee' THEN
+        -- A cancellation fee's job is cancelled; its state belongs to phase 6, never flipped here.
+        NULL;
       ELSE
-        -- The Helpr IS paid (recorded above), but the job is no longer where a payout leaves it
-        -- (a chargeback, a dispute, a refund state). Answered, never silent: the screen warns.
-        v_not_released := v_not_released || v_job_id;
+        -- The job reads released only now. A refund-request remainder was queued with the job still
+        -- held ('escrow', phase 5's agreed split); its Helpr leg is paid here, so it is released too.
+        UPDATE public.jobs SET payment_status = 'released'
+         WHERE id = v_job_id
+           AND (payment_status::text = 'payout_pending'
+                OR (payment_status::text = 'escrow' AND v_queued_by = 'refund_request_remainder'));
+        IF FOUND THEN
+          v_released := v_released || v_job_id;
+        ELSE
+          -- The Helpr IS paid (recorded above), but the job is no longer where a payout leaves it
+          -- (a chargeback, a dispute, a refund state). Answered, never silent: the screen warns.
+          v_not_released := v_not_released || v_job_id;
+        END IF;
       END IF;
     END IF;
   END LOOP;
@@ -761,6 +815,9 @@ BEGIN
     RAISE EXCEPTION 'payout_claim_not_pending' USING ERRCODE = '42501';
   END IF;
 
+  PERFORM 1 FROM public.payee_accounts a
+   WHERE a.user_id = v_pp.payee_user_id AND a.provider = 'paypal' AND a.env = v_pp.env
+     FOR SHARE;
   SELECT * INTO v_dest FROM public.paypal_payout_destination(v_pp.payee_user_id, v_pp.env) LIMIT 1;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'no_payable_paypal_account' USING ERRCODE = '42501',

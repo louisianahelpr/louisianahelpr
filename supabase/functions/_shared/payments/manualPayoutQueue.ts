@@ -25,6 +25,7 @@ import { DEFAULT_TIER_FEE_PERCENT, getHelperFeePercent, jobHelprCommissionDollar
 import { flatFeePercentOf } from "../helprFlatFee.ts";
 import { roundPayoutDownCents } from "../money.ts";
 import { netUrgentFeeDollars } from "../stripeFees.ts";
+import { insertNotifications } from "../insertNotifications.ts";
 
 /** provider_payments statuses that do NOT make a job PayPal's (an order never paid). */
 const NOT_PAYPAL_YET = "(created,voided,failed)";
@@ -162,6 +163,46 @@ export async function queueManualPaypalPayout(
 export function isExpectedWait(o: QueueOutcome): boolean {
   if (o.outcome === "waiting_for_payee" || o.outcome === "held") return true;
   return o.outcome === "refused" && (o.reason === "canceled_by_admin" || o.reason === "crew_not_supported");
+}
+
+export const ADD_PAYPAL_EMAIL_TITLE = "Add your PayPal email to get paid";
+
+/**
+ * A PayPal job approved for a Helpr with no PayPal email that can be paid (outcome waiting_for_payee):
+ * tell them what to do, at most once a day per job (the crons retry hourly). Never the Stripe
+ * "Payout account required" notice: a PayPal job is paid to a PayPal email (phase 2 review).
+ * Never throws; a failed read or write is returned for the caller to count.
+ */
+export async function tellPayeeToAddPaypalEmail(
+  admin: AdminClient,
+  job: { id: string; title?: string | null; helper_id?: string | null },
+): Promise<"sent" | "already_told" | "no_helpr" | "error"> {
+  if (!job.helper_id) return "no_helpr";
+  try {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data, error } = await admin
+      .from("notifications")
+      .select("id")
+      .eq("user_id", job.helper_id)
+      .eq("job_id", job.id)
+      .eq("title", ADD_PAYPAL_EMAIL_TITLE)
+      .gte("created_at", since)
+      .limit(1);
+    if (error) return "error";
+    if ((data ?? []).length > 0) return "already_told";
+    const ok = await insertNotifications(admin, {
+      user_id: job.helper_id,
+      job_id: job.id,
+      title: ADD_PAYPAL_EMAIL_TITLE,
+      message: `"${job.title ?? "Your job"}" is approved. Add your PayPal email in Profile, Payments and we'll send your pay.`,
+      type: "financial_alerts",
+      link: "/profile?tab=payment",
+    });
+    return ok ? "sent" : "error";
+  } catch {
+    // Reported by the caller as a defect; this helper never throws into a payout run.
+    return "error";
+  }
 }
 
 /** The answers a release path counts as done: the claim and the payout row exist (held or not). */

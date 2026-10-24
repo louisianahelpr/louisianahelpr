@@ -128,6 +128,7 @@ const FLAT_FEE_PHRASE = fee.phrase;
 const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000, { helper_fee_flat_cents: fee.cents, helper_fee_percent: fee.percent }) / 100);
 // What a cancel refund keeps for the processor: Stripe's card fee, or PayPal's processing fee.
 const PROCESSOR_FEE_KEPT = fee.paypal ? "the processing fee PayPal keeps" : "the card-processing fee Stripe keeps";
+const PROCESSOR_FEE_COVERED = fee.paypal ? "PayPal's processing fee" : "card processing";
 return [
   {
     topic: "Getting Started",
@@ -252,7 +253,7 @@ return [
         // unrounded, and the refund sentence left out the kept setup fee and
         // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
         // it is a live DB setting (see "When do I get paid?").
-        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less ${PROCESSOR_FEE_KEPT}, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
+        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers ${PROCESSOR_FEE_COVERED}. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less ${PROCESSOR_FEE_KEPT}, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",

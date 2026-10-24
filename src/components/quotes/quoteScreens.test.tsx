@@ -12,7 +12,7 @@
  * @mutate src/components/quotes/quotesUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
  * @mutate src/lib/escrowCheckout.ts |       action: "escrow", |       action: "quote_checkout",
  * @mutate src/lib/escrowCheckout.ts |       ...(opts.returnPath ? { returnPath: opts.returnPath } : {}), |       ...{},
- * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!posterFee.settled \|\| posterFee.on \|\| !feeKnown) return null; |   if (posterFee.on) return null;
+ * @mutate src/components/quotes/QuotePriceStepper.tsx |   if (!posterFee.settled \|\| posterFee.on \|\| !feeKnown \|\| !fee.settled) return null; |   if (posterFee.on) return null;
  * @mutate src/components/quotes/QuotePriceStepper.tsx | const STEP = 5; | const STEP = 10;
  * @mutate src/components/quotes/QuotesSideBySide.tsx |   if (live.length < 2) return null; |   return null;
  * @mutate src/pages/quotes/QuoteRequestPage.tsx |   if (reqs.isError) { |   if (reqs.isError \|\| quotes.isError) {
@@ -50,6 +50,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const state = {
   feature: true,
   posterFee: true,
+  /** paypal_payments (PayPal phase 5): on = the booked job is stamped 8% + $0.70. */
+  paypal: false,
   feeKnown: true,
   /** false: the switch's answer has not arrived (the gate's loading frame). */
   switchSettled: true,
@@ -64,8 +66,8 @@ const state = {
 // 'jobs_poster_fee' is off on prod (2026-10-21): a booked quote is on the flat Helpr fee model.
 vi.mock("@/hooks/useFeature", async (orig) => ({
   ...(await orig<typeof import("@/hooks/useFeature")>()),
-  useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : state.feature),
-  useFeatureStatus: (key: string) => ({ on: key === "jobs_poster_fee" ? state.posterFee : state.feature, settled: state.switchSettled, lastAnswer: null }),
+  useFeature: (key: string) => (key === "jobs_poster_fee" ? state.posterFee : key === "paypal_payments" ? state.paypal : state.feature),
+  useFeatureStatus: (key: string) => ({ on: key === "jobs_poster_fee" ? state.posterFee : key === "paypal_payments" ? state.paypal : state.feature, settled: state.switchSettled, lastAnswer: null }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeDollars: () => 0, useFirstPayoutFeeKnown: () => state.feeKnown }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -404,6 +406,21 @@ describe("a job made from a request but not paid yet can always be paid (lh-mone
 });
 
 describe("the quoter's send-a-quote form", () => {
+  it("on the PayPal path the take-home is priced at 8% + $0.70 (owner fee ruling 2026-10-23)", async () => {
+    state.rpc.list_open_quote_requests = [OPEN];
+    state.posterFee = false;
+    state.paypal = true;
+    try {
+      at("/quotes/send/r9", <SendQuotePage />, "/quotes/send/:id");
+      expect(await screen.findByText("Mow and edge a corner lot")).toBeInTheDocument();
+      fireEvent.change(screen.getByLabelText("Your price in whole dollars"), { target: { value: "120" } });
+      // $120 - (8% of $120 + $0.70 = $10.30) = $109.70, floored to the dollar the transfer pays.
+      expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$109 after the Helpr fee \(8% \+ \$0\.70\) if this quote is booked/);
+    } finally {
+      state.paypal = false;
+    }
+  });
+
   it("sends price, note, when and photos only once all three are filled", async () => {
     state.rpc.list_open_quote_requests = [OPEN];
     state.rpc.submit_job_quote = "q9";

@@ -6,7 +6,7 @@
 // @mutate src/lib/cancelRefundCopy.ts | "the rest, less the service fee you paid at checkout, returns to your card." | "the rest returns to your card."
 // @mutate src/lib/cancelRefundCopy.ts | "the rest, less the card-processing fee Stripe keeps, returns to your card." | "the rest returns to your card."
 // @mutate src/lib/cancelRefundCopy.ts |   if (!wasFunded) { |   if (false) {
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }),
 // Q?gift-cancel-copy (lh-money-escrow review of 7166349cd, #7, and the Q1806
 // design review, 2026-10-17): a gift-paid job's money goes back to the GIFT
 // balance; the card copy ("returns to your card, less ...") was false for it.
@@ -35,7 +35,7 @@
 // @mutate src/lib/cancelRefundCopy.ts |     if (reserved.payment_status != null && reserved.payment_status !== "paid") return "unknown"; |     if (false) return "unknown";
 // @mutate src/lib/cancelRefundCopy.ts |     return appliedFee > 0\n      ? neutral | return appliedFee < 0\n      ? neutral
 // @mutate src/components/job-card/ActivityDialogs.tsx | &&\n            props.cancelDialogJob.payment_status !== "failed" | && true
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew, paypal }),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "./cancelRefundCopy";

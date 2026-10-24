@@ -1,5 +1,6 @@
 import { FileCheck2, FileText, X } from "lucide-react";
 import { FORM_1099K_TRANSACTION_THRESHOLD, form1099kGrossLabel } from "@/lib/moneyLimits";
+import { useFeature } from "@/hooks/useFeature";
 
 interface ThresholdBannerProps {
   ytdYear: number;
@@ -16,6 +17,8 @@ interface ThresholdBannerProps {
 // tax note at the bottom of the same tab said $20,000 / 200 transactions.
 // One screen, two answers about the same tax form.
 export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdBannerProps) {
+  // PayPal path: no claim about who issues the form (manual PayPal payouts; Q2383).
+  const paypalPayouts = useFeature("paypal_payments");
   return (
     <div
       className="rounded-2xl p-4 flex items-start gap-3"
@@ -50,7 +53,9 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
           className="font-sans mt-1 leading-snug text-ds-12"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
         >
-          With {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions you may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
+          {paypalPayouts
+            ? <>Keep a record of your payouts for tax time. Download a payout statement now so you're not scrambling in April.</>
+            : <>With {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions you may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.</>}
         </p>
         <div className="mt-2 flex items-center gap-2">
           <button

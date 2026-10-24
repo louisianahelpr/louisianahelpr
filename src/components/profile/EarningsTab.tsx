@@ -24,6 +24,7 @@ import { useArrivalGate } from "@/hooks/useArrivalGate";
 import { MonthlyGoalCard } from "@/components/profile/MonthlyGoalCard";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useFeature } from "@/hooks/useFeature";
 import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { useHelperMilestones } from "@/hooks/useHelperMilestones";
@@ -91,6 +92,9 @@ function SectionRule() {
 export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
+  // PayPal path (PayPal phase 5, lead 2026-10-23): payouts are sent by hand through PayPal, so the
+  // tax note makes no claim about who issues a 1099 (owner/advisor question, Q2383).
+  const paypalPayouts = useFeature("paypal_payments");
   const money = useHomeMoney(user);
   const streakState = useHelperStreak(helperId);
   const [payoutDialogOpen, setPayoutDialogOpen] = useState(false);
@@ -533,7 +537,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           <p className="text-ds-11 text-muted-foreground leading-relaxed pt-2 flex gap-1.5">
             <Info className="w-3 h-3 mt-0.5 shrink-0" />
             <span>
-              <strong className="text-muted-foreground">Tax reporting:</strong> If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}
+              <strong className="text-muted-foreground">Tax reporting:</strong>{" "}
+              {paypalPayouts
+                ? <>Your payouts are sent through PayPal. Whether a tax form such as a Form 1099 is issued for them, and by whom, depends on how they were paid and on the year&rsquo;s federal thresholds, so keep your payout statements. It&rsquo;s a federal matter, not a Louisiana one. The thresholds have changed several times recently, so check{" "}</>
+                : <>If your payments pass the federal Form 1099-K reporting thresholds for the year, Stripe issues the form automatically — no action needed on your side. It&rsquo;s a federal filing, not a Louisiana one. The thresholds have changed several times recently, so check{" "}</>}
               <a
                 href="https://www.irs.gov/businesses/understanding-your-form-1099-k"
                 target="_blank"

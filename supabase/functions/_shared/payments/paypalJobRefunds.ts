@@ -317,8 +317,9 @@ async function afterRefund(deps: JobRefundDeps, row: ClaimRow & { idempotency_ke
   if (out.kind !== "refunded") return;
   const full = (row.reason ?? "").startsWith("admin_full");
   if (full) {
+    // Pinned to the status read (race class): a job that moved in between keeps its own.
     const flip = await deps.db.from("jobs").update({ status: "cancelled", payment_status: "refunded" })
-      .eq("id", jobId).neq("status", "disputed").select("id");
+      .eq("id", jobId).eq("status", (job as JobMoneyRow).status).neq("status", "disputed").select("id");
     if (flip.error || (flip.data ?? []).length === 0) {
       await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal admin refund made, job not cancelled", message: `Job ${jobId}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-admin-flip:${jobId}` });
     }
@@ -582,8 +583,9 @@ export async function adminRefundPayPalJob(deps: JobRefundDeps, input: AdminRefu
   if (out.kind === "recorded_late") return { status: 500, body: { error: "PayPal refunded it, but our ledger is behind. Ops has been paged.", paypalRefundId: out.providerRefundId, recordedLate: true } };
   if (full) {
     // A full admin refund cancels the job, as admin_refund_general does on Stripe.
+    // Pinned to the status read (race class): a job that moved in between keeps its own.
     const flip = await deps.db.from("jobs").update({ status: "cancelled", payment_status: "refunded" })
-      .eq("id", j.id).neq("status", "disputed").select("id");
+      .eq("id", j.id).eq("status", j.status).neq("status", "disputed").select("id");
     if (flip.error || (flip.data ?? []).length === 0) {
       await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal admin refund made, job not cancelled", message: `Job ${j.id}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-admin-flip:${j.id}` });
     }

@@ -71,7 +71,7 @@ import { sameRegion } from "./helpers/sameRegion";
 // @mutate supabase/functions/create-payment/index.ts | const generalSettlement = await checkUnsettledDispute(supabaseAdmin, jobId); | const generalSettlement = { blocked: false } as never;
 // @mutate supabase/functions/create-payment/index.ts | if ("refusal" in refundClaim) return refundClaim.refusal; | void refundClaim;
 // @mutate supabase/functions/money-reconciliation/index.ts | pi = await stripe.paymentIntents.retrieve( | pi = await stripe.paymentIntents.cancel(
-// @mutate supabase/functions/void-cancelled-payments/index.ts | const jobs = cancelledJobs; | const jobs = cancelledJobs;\n    for (const j of jobs \|\| []) await stripe.refunds.create({ payment_intent: String(j.id) });
+// @mutate supabase/functions/void-cancelled-payments/index.ts | const jobs = paypalJobs.error ? [] : (cancelledJobs ?? []).filter((j: { id: string }) => !paypalJobs.ids.has(j.id)); | const jobs = paypalJobs.error ? [] : (cancelledJobs ?? []).filter((j: { id: string }) => !paypalJobs.ids.has(j.id));\n    for (const j of jobs \|\| []) await stripe.refunds.create({ payment_intent: String(j.id) });
 // @mutate supabase/functions/execute-dispute-split/index.ts | "claim_dispute_settlement", | "claim_dispute_settlement_x",
 // Transitive (Q728): a money helper reached through another helper, called once outside the guarded loop.
 // @mutate supabase/functions/process-scheduled-payouts/index.ts |     const crewSettled = new Set<string>(); |     const crewSettled = new Set<string>();\n    const early = () => crewReadyToRelease(null as never);

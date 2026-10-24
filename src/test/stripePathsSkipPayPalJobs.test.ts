@@ -51,6 +51,7 @@ const AWARE: Record<string, { steps: RegExp; before: RegExp }> = {
 };
 
 /** Files with a Stripe refund that never meet a PayPal job (reason given). */
+// @two-way src/test/stripePathsSkipPayPalJobs.test.ts:expect(found).toEqual([...Object.keys(AWARE), ...Object.keys(EXEMPT)].sort());
 const EXEMPT: Record<string, string> = {
   "supabase/functions/process-scheduled-payouts/index.ts": "refunds a crew's unfilled spots from its Stripe charge; payouts are pp-phase4's and crews are not on PayPal (phase 6)",
   "supabase/functions/charge-recurring-visits/index.ts": "repeat visits are charged per visit on Stripe; PayPal visits are phase 6",

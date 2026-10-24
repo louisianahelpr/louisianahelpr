@@ -48,6 +48,7 @@ const STAMP: Record<string, string> = {
   "src/components/dashboard/applyConfirmDialog/applyTakeHome.ts": "the apply sheet: the job's own stamp (HELPR_FLAT_FEE_CENTS only labels a stamp that has no cents)",
   "src/lib/cancellationHelperShare.ts": "the cancel fee's Helpr share: the job's own stamp",
 };
+// @two-way src/test/helprFeeCopyFollowsPayPalPath.test.ts:expect(found).toEqual([...Object.keys(FOLLOWS), ...Object.keys(STAMP), ...Object.keys(EXEMPT)].sort());
 const EXEMPT: Record<string, string> = {
   "src/hooks/useHelprJobFee.ts": "the viewer-fee hook itself",
   "src/lib/posterJobFee.ts": "the poster-fee model (switch jobs_poster_fee); the PayPal path never uses it",

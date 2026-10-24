@@ -22,8 +22,8 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * src/test/pglite/jobsPosterFeeModel.pglite.mjs.
  */
 
-// @mutate supabase/migrations/20261017230824_jobs_poster_fee_model.sql |     NEW.poster_fee_flat_cents := NULL;\n |
-// @mutate supabase/migrations/20261017230824_jobs_poster_fee_model.sql |   IF NEW.poster_fee_flat_cents IS DISTINCT FROM OLD.poster_fee_flat_cents THEN | IF false THEN
+// @mutate supabase/migrations/20261023232438_paypal_refunds_and_helpr_fee.sql |     NEW.poster_fee_flat_cents := NULL;\n |
+// @mutate supabase/migrations/20261023232438_paypal_refunds_and_helpr_fee.sql |   IF NEW.poster_fee_flat_cents IS DISTINCT FROM OLD.poster_fee_flat_cents THEN | IF false THEN
 // @mutate supabase/migrations/20261017230824_jobs_poster_fee_model.sql |       ADD CONSTRAINT jobs_poster_fee_model_consistent | ADD CONSTRAINT jobs_poster_fee_model_consistent_x
 // @mutate supabase/migrations/20261017230824_jobs_poster_fee_model.sql |         (poster_fee_flat_cents IS NULL) = (helper_fee_flat_cents IS DISTINCT FROM 0) |         (poster_fee_flat_cents IS NULL) = NOT (COALESCE(helper_fee_flat_cents = 0 AND helper_fee_percent = 0, false))
 

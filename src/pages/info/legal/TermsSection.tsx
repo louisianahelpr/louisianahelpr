@@ -543,7 +543,9 @@ export const TermsContent = () => {
         icon={Receipt}
         title="Platform (Helpr, LLC)"
         body={
-          <p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met — {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions, for 2025 and later. (The One Big Beautiful Bill repealed the planned $2,500 and $600 step-downs, so this threshold does not drop in 2026.) The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
+          <p>{fee.paypal
+            ? <>Payouts are sent through PayPal; whether a <strong className="text-foreground">Form 1099</strong> is issued for them, and by whom, depends on how they were paid and on federal thresholds — for <strong className="text-foreground">Form 1099-K</strong> that is {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions, for 2025 and later.</>
+            : <>Stripe issues <strong className="text-foreground">Form 1099-K</strong> when federal thresholds are met — {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions, for 2025 and later.</>} (The One Big Beautiful Bill repealed the planned $2,500 and $600 step-downs, so this threshold does not drop in 2026.) The 1099-NEC threshold rises to $2,000 on Jan 1, 2026. Once Helpr exceeds $100k in gross Louisiana revenue, we collect and remit state and parish sales tax. All Louisiana returns are filed electronically through the LDR portal.</p>
         }
       />
       <PolicyRowItem

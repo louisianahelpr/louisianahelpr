@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 936,
-    "files": 241,
-    "rendering": 805,
-    "suppressedByPolicy": 131,
+    "calls": 952,
+    "files": 242,
+    "rendering": 814,
+    "suppressedByPolicy": 138,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 65,
-      "toast.error": 672,
+      "toast.error": 680,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 135,
-      "toast.warning": 25
+      "toast.success": 142,
+      "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 435,
-      "template": 100,
-      "dynamic": 450,
+      "literal": 441,
+      "template": 106,
+      "dynamic": 455,
       "jsx": 0
     }
   },
@@ -2445,7 +2445,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 156,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2455,7 +2455,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 190,
+      "line": 195,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2465,7 +2465,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 265,
+      "line": 270,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3404,6 +3404,170 @@
             "text": "Marked settled by hand."
           }
         ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 85,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(fnError, \"Couldn't add it to the list. Nothing was sent. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 87,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Added to the list to send."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 89,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Added, but held: the Helpr's PayPal email changed after they were hired. Check it with them."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 91,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Not added: ${notQueuedReason(outcome?.reason ?? \"not_queued_yet\")}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 265,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "${label} copied."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 266,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Couldn't copy the ${label.toLowerCase()}. Select it and copy it by hand."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 413,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"admin_mark_paypal_payout_paid\", error) ?? userFacingError(error, \"Couldn't mark it paid. Nothing was changed. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 418,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Already marked paid with that ID."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 420,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Marked paid. ${group.helperName} has been told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 422,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Recorded as paid, but a job had moved on (a dispute or chargeback) and was not marked released. Check that job."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 426,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "We couldn't confirm it was marked paid. Refresh the list before you try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 496,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "${moved} of ${jobLines.length} queued, then it stopped"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "why"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 497,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "why"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 505,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Queued to ${group.currentDestination}.${tipLines > 0 ? ` ${tipLines} tip line${tipLines === 1 ? \"\" : \"s\"} stay held.` : \"\"}"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 552,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"admin_cancel_paypal_payout\", error) ?? userFacingError(error, \"Couldn't cancel it. Nothing was changed. Try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx",
+      "line": 556,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Payout canceled. The job stays approved; press Queue now to put it back."
       },
       "renders": false
     },

@@ -26,6 +26,11 @@ import { report } from "@/lib/errorLogger";
  */
 function assertTransferHappened(data: unknown): void {
   const d = data as Record<string, unknown> | null | undefined;
+  // A PayPal-paid job: release-payout put it in the "Pay this Helpr (PayPal)" list. Nothing was sent;
+  // the owner pays it by hand from that list.
+  if (d && d.manual_payout === true) {
+    throw new Error("Not sent: this job was paid through PayPal, so it is in the Pay this Helpr (PayPal) list to pay by hand.");
+  }
   if (d && ("connected" in d || "payouts_enabled" in d)) {
     throw new Error(
       "Payout not sent. The endpoint this button calls only reads a Connect balance — it never creates a transfer, so no money moved. Escrow release still runs automatically; this batch is unchanged.",

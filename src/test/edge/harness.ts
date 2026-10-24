@@ -332,6 +332,16 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/releaseFlip.ts";`,
   );
 
+  // PayPal manual payout queue (phase 4): `_shared/payments/manualPayoutQueue.ts` imports only pure
+  // fee helpers and takes the Supabase client as a parameter, so the generated file points at the REAL
+  // module: it is what keeps every Stripe payout path off a PayPal-paid job, and a mock would put that
+  // divert outside the tests of those paths. With no provider_payments rows in a scenario every job
+  // is a Stripe job, exactly as before.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payments\/manualPayoutQueue\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payments/manualPayoutQueue.ts";`,
+  );
+
   // Unsettled-dispute gate: `_shared/unsettledDispute.ts` has ZERO imports (it
   // takes the Supabase client as a parameter), so the generated file points at
   // the REAL module — same reasoning as releaseFlip above. It is the ONLY thing

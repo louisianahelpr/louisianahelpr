@@ -277,6 +277,50 @@ export const ADMIN_RPC_ERROR_COPY = {
   resolve_approval_escalation: {
     not_authorized: "Only an admin can close a job waiting on approval.",
   },
+  // PayPal Plan A, phase 4: the hand-paid "Pay this Helpr" queue (20261023231811).
+  admin_paypal_payout_queue: {
+    admin_only: "Only admins can see the PayPal pay list.",
+  },
+  admin_mark_paypal_payout_paid: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can mark a payout paid.",
+    txn_id_required: "Paste the PayPal transaction ID from the Send Money receipt.",
+    txn_id_invalid: "That doesn't look like a PayPal transaction ID. It's letters and numbers only, usually 17.",
+    payouts_required: "Nothing was picked to mark paid. Refresh the list.",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payouts_not_one_payee: "Mark paid one Helpr and one PayPal account at a time.",
+    payout_already_marked_paid: "This was already marked paid with a different PayPal transaction ID. Nothing was changed.",
+    payout_held_email_changed: "The Helpr changed their PayPal email after this was queued. Check the new email and queue it again.",
+    payout_not_payable: "This payout was canceled or came back, so it can't be marked paid. Refresh the list.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
+    payout_amount_mismatch: "The amount changed since this list loaded. Refresh the list and check the total before you mark it paid.",
+    txn_id_already_used: "That PayPal transaction ID was already used. Each Send Money is marked once, with all its lines together. Check the receipt.",
+    payout_needs_recheck: "This payout goes to a PayPal email changed after the Helpr was hired. Check it with them and queue it again first.",
+    payout_blocked: "Don't send this payout: it's on hold, under review or its payment is disputed. If you already sent it before that, tick the box to record it.",
+  },
+  admin_requeue_held_paypal_payout: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can queue a payout again.",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payout_not_held: "This payout isn't held any more. Refresh the list.",
+    confirm_no_send_money: "Tick the box to confirm no PayPal Send Money went out for this payout. If one did, mark it paid instead.",
+    payout_not_job_pay: "Only job pay can be queued again here.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
+    no_payable_paypal_account: "The Helpr has no PayPal email that can be paid yet.",
+    payout_held: "This Helpr's payouts are on hold. Release the hold first.",
+    payout_blocked: "This payout can't be queued again right now (a hold, a review or a payment dispute). Check the job first.",
+  },
+  admin_cancel_paypal_payout: {
+    feature_disabled: "PayPal payments are switched off for your account. Turn them on for testers in Admin > Settings.",
+    admin_only: "Only an admin can cancel a payout.",
+    confirm_no_send_money: "Tick the box to confirm no PayPal Send Money went out for this payout. If one did, mark it paid instead.",
+    reason_required: "Say why it is canceled (5 characters or more).",
+    payout_not_found: "That payout isn't in the list any more. Refresh the list.",
+    payout_not_payable: "This payout was already paid, canceled or returned. Refresh the list.",
+    payout_not_job_pay: "Only job pay can be canceled here.",
+    payout_cancel_not_here: "This payout belongs to an agreed refund or a cancellation fee. Settle it from that job instead.",
+    payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type AdminMappedRpc = keyof typeof ADMIN_RPC_ERROR_COPY;

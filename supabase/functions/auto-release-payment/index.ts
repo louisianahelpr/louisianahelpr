@@ -16,6 +16,7 @@ import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { isExpectedWait, isQueued, jobPaypalPayment, paypalJobIds, queueManualPaypalPayout, tellPayeeToAddPaypalEmail } from "../_shared/payments/manualPayoutQueue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -471,6 +472,10 @@ serve(async (req) => {
       }
     }
 
+    // PayPal Plan A, phase 4: which approved jobs were paid through PayPal (one read; unreadable = none
+    // of them is released this run).
+    const paypalApproved = await paypalJobIds(supabaseAdmin, approvedJobs.map((j) => j.id as string));
+    if (!paypalApproved.ok) defects.record(`provider_payments read: ${paypalApproved.message}`);
     for (const job of approvedJobs) {
       if (!banReview.ok || frozenByBanReview(banReview, job)) {
         results.push({ job_id: job.id, status: "ban_review", skipped: true });
@@ -480,86 +485,104 @@ serve(async (req) => {
         results.push({ job_id: job.id, status: "refund_requested", skipped: true });
         continue;
       }
-      // ── Step 0: Gift card detection ──
-      // A gift-card-funded job has NO Stripe charge — it was funded from the
-      // platform's prepaid balance when a redeemed gift_card was applied.
-      // Detect it via a redeemed credit pointing at this job so we can skip
-      // the payment-intent resolution + capture verification (which would
-      // otherwise dead-end at skipped_no_pi and strand the helper's money).
-      // Fail closed on a read error: don't release without knowing.
-      const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
-        .from("gift_cards")
-        .select("id")
-        .eq("job_id", job.id)
-        .eq("status", "redeemed")
-        .limit(1)
-        .maybeSingle();
-      if (giftCardErr) {
-        console.error(`[auto-release-payment] gift_cards check failed for job ${job.id}:`, giftCardErr);
-        results.push({ job_id: job.id, status: "gift_card_check_error", error: giftCardErr.message });
+      // PayPal Plan A, phase 4: a job paid through PayPal has no Stripe charge to verify. Its money is
+      // held when its provider_payments row is captured; anything else (unreadable, pending, refunded,
+      // disputed) is not released this run.
+      let paymentIntentId = job.stripe_payment_intent_id;
+      const paidThroughPaypal = paypalApproved.ok ? paypalApproved.ids.has(job.id) : null;
+      if (paidThroughPaypal === null) {
+        results.push({ job_id: job.id, status: "provider_read_error", skipped: true });
         continue;
       }
-      const isPifFunded = !!giftCardRow;
-
-      // ── Step 1: Resolve payment intent ID (skipped for gift cards — no charge) ──
-      let paymentIntentId = job.stripe_payment_intent_id;
-
-      if (!isPifFunded) {
-        let stripe: Stripe;
-        try {
-          ({ stripe } = await stripes.clientForJob(job.id, "read"));
-        } catch (e) {
-          if (!(e instanceof StripeModeRefused)) throw e;
-          results.push({ job_id: job.id, status: "stripe_mode_refused", error: e.reason });
-          jobDefect(job.id, `stripe mode ${job.id}: ${e.reason}: ${e.message}`);
+      if (paidThroughPaypal) {
+        const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id);
+        if (paypalPayment.kind !== "paypal" || !["captured", "partially_refunded"].includes(paypalPayment.status)) {
+          if (paypalPayment.kind === "error") jobDefect(job.id, `provider_payments read ${job.id}: ${paypalPayment.message}`);
+          results.push({ job_id: job.id, status: "paypal_not_captured", skipped: true });
           continue;
         }
-        if (!paymentIntentId && job.stripe_session_id) {
+      } else {
+        // ── Step 0: Gift card detection ──
+        // A gift-card-funded job has NO Stripe charge — it was funded from the
+        // platform's prepaid balance when a redeemed gift_card was applied.
+        // Detect it via a redeemed credit pointing at this job so we can skip
+        // the payment-intent resolution + capture verification (which would
+        // otherwise dead-end at skipped_no_pi and strand the helper's money).
+        // Fail closed on a read error: don't release without knowing.
+        const { data: giftCardRow, error: giftCardErr } = await supabaseAdmin
+          .from("gift_cards")
+          .select("id")
+          .eq("job_id", job.id)
+          .eq("status", "redeemed")
+          .limit(1)
+          .maybeSingle();
+        if (giftCardErr) {
+          console.error(`[auto-release-payment] gift_cards check failed for job ${job.id}:`, giftCardErr);
+          results.push({ job_id: job.id, status: "gift_card_check_error", error: giftCardErr.message });
+          continue;
+        }
+        const isPifFunded = !!giftCardRow;
+
+        // ── Step 1: Resolve payment intent ID (skipped for gift cards — no charge) ──
+
+        if (!isPifFunded) {
+          let stripe: Stripe;
           try {
-            const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
-            paymentIntentId = typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : session.payment_intent?.id;
-            if (paymentIntentId) {
-              await supabaseAdmin.from("jobs").update({
-                stripe_payment_intent_id: paymentIntentId,
-              }).eq("id", job.id);
-            }
+            ({ stripe } = await stripes.clientForJob(job.id, "read"));
           } catch (e) {
+            if (!(e instanceof StripeModeRefused)) throw e;
+            results.push({ job_id: job.id, status: "stripe_mode_refused", error: e.reason });
+            jobDefect(job.id, `stripe mode ${job.id}: ${e.reason}: ${e.message}`);
+            continue;
+          }
+          if (!paymentIntentId && job.stripe_session_id) {
+            try {
+              const session = await stripe.checkout.sessions.retrieve(job.stripe_session_id, { expand: ["payment_intent"] });
+              paymentIntentId = typeof session.payment_intent === "string"
+                ? session.payment_intent
+                : session.payment_intent?.id;
+              if (paymentIntentId) {
+                await supabaseAdmin.from("jobs").update({
+                  stripe_payment_intent_id: paymentIntentId,
+                }).eq("id", job.id);
+              }
+            } catch (e) {
+              if (isTestObjectUnderLiveKey(e)) {
+                logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+                results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
+                continue;
+              }
+              console.error(`Failed to retrieve session for job ${job.id}:`, e);
+            }
+          }
+
+          if (!paymentIntentId) {
+            console.error(`No payment intent for job ${job.id} — cannot auto-release`);
+            results.push({ job_id: job.id, status: "skipped_no_pi" });
+            continue;
+          }
+
+          // ── Step 2: Verify charge is captured (immediate capture — should be succeeded) ──
+          try {
+            const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+            if (pi.status !== "succeeded") {
+              console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot auto-release`);
+              results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
+              continue;
+            }
+          } catch (e: any) {
             if (isTestObjectUnderLiveKey(e)) {
-              logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "checkout.session", id: job.stripe_session_id });
+              logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
               results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
               continue;
             }
-            console.error(`Failed to retrieve session for job ${job.id}:`, e);
-          }
-        }
-
-        if (!paymentIntentId) {
-          console.error(`No payment intent for job ${job.id} — cannot auto-release`);
-          results.push({ job_id: job.id, status: "skipped_no_pi" });
-          continue;
-        }
-
-        // ── Step 2: Verify charge is captured (immediate capture — should be succeeded) ──
-        try {
-          const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-          if (pi.status !== "succeeded") {
-            console.error(`Payment ${paymentIntentId} for job ${job.id} has status "${pi.status}" — cannot auto-release`);
-            results.push({ job_id: job.id, status: `pi_status_${pi.status}`, skipped: true });
+            console.error(`Failed to verify payment for job ${job.id}:`, e);
+            results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
             continue;
           }
-        } catch (e: any) {
-          if (isTestObjectUnderLiveKey(e)) {
-            logTestObjectUnderLiveKey("auto-release-payment", { job_id: job.id, object: "payment_intent", id: paymentIntentId });
-            results.push({ job_id: job.id, status: "skipped_test_mode_object", skipped: true });
-            continue;
-          }
-          console.error(`Failed to verify payment for job ${job.id}:`, e);
-          results.push({ job_id: job.id, status: "verify_failed", error: (e as Error).message });
-          continue;
         }
+
       }
 
       // ── Step 3: Schedule the payout ──
@@ -678,6 +701,17 @@ serve(async (req) => {
       }
       released++;
       results.push({ job_id: job.id, status: "released", paymentIntentId });
+      // Approved: a PayPal job goes to the admin "Pay this Helpr" queue now. A failure here is healed
+      // by Phase 2 and process-scheduled-payouts (the writer is idempotent); it is counted, not hidden.
+      if (paidThroughPaypal) {
+        const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "auto", source: "auto-release" });
+        if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+        else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
+        if (queued.outcome === "waiting_for_payee" && (await tellPayeeToAddPaypalEmail(supabaseAdmin, job)) === "error") {
+          jobDefect(job.id, `paypal pay queue ${job.id}: could not tell the Helpr to add a PayPal email`);
+        }
+        results.push({ job_id: job.id, status: "paypal_pay_queue", ...queued });
+      }
     }
 
     // ── Phase 2: Process payout_pending jobs whose 24h hold has elapsed ──
@@ -734,8 +768,21 @@ serve(async (req) => {
         // agree exactly on what "group" means.
         .or("is_group_job.is.null,is_group_job.eq.false,helpers_needed.lte.1");
       if (!includeSeed) dueQuery2 = dueQuery2.eq("is_seed", false);
-      const { data: dueJobs, error: dueJobsErr } = await dueQuery2;
-      noteSeed(dueJobs);
+      const { data: dueSelected, error: dueJobsErr } = await dueQuery2;
+      noteSeed(dueSelected);
+      // PayPal Plan A, phase 4: a PayPal job is never sent to release-payout's Stripe leg from here,
+      // and a "no PayPal email yet" answer is never recorded as a failed transfer attempt. It goes
+      // straight to the admin pay queue (idempotent heal; normally queued at approval above).
+      // Unreadable = none of the due jobs is paid this run.
+      const duePaypal = await paypalJobIds(supabaseAdmin, (dueSelected ?? []).map((j) => j.id as string));
+      if (!duePaypal.ok) defects.record(`provider_payments read (due payouts): ${duePaypal.message}`);
+      const dueJobs = duePaypal.ok ? (dueSelected ?? []).filter((j) => !duePaypal.ids.has(j.id as string)) : [];
+      for (const job of duePaypal.ok ? (dueSelected ?? []).filter((j) => duePaypal.ids.has(j.id as string)) : []) {
+        const queued = await queueManualPaypalPayout(supabaseAdmin, { jobId: job.id, initiatedBy: "auto", source: "auto-release-due" });
+        if (queued.outcome === "error") jobDefect(job.id, `paypal pay queue ${job.id}: ${queued.message}`);
+        else if (!isQueued(queued) && !isExpectedWait(queued)) jobDefect(job.id, `paypal pay queue ${job.id} refused: ${"reason" in queued ? queued.reason : queued.outcome}`);
+        payoutResults.push({ job_id: job.id, status: `paypal_pay_queue:${queued.outcome}`, detail: "reason" in queued ? queued.reason : undefined });
+      }
 
       // A dropped read here silently returns paid=0 with no signal, leaving
       // matured payouts stranded until someone notices the money never moved.

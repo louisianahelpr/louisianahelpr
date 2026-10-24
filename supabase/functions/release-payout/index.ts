@@ -54,6 +54,7 @@ import {
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
+import { isQueued, jobPaypalPayment, queueManualPaypalPayout } from "../_shared/payments/manualPayoutQueue.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
 // stranded payout that made a retry non-optional.
@@ -161,6 +162,33 @@ serve(async (req) => {
   }
   if (!job.helper_id) {
     return jsonResponse({ error: "job has no helper_id" }, 409);
+  }
+
+  // PayPal Plan A, phase 4: a job paid through PayPal is never paid by a Stripe transfer. It goes to
+  // the admin "Pay this Helpr" queue (the owner pays it by hand, then marks it paid); the queue
+  // writer runs its own approval / crew / dispute / hold checks in one transaction. Checked before
+  // the ledger read below, which would otherwise treat the manual claim as an orphaned Stripe claim
+  // and resume it. Unreadable = refuse (fail closed).
+  const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id);
+  if (paypalPayment.kind === "error") {
+    console.error(`[release-payout] provider_payments read failed for job ${job.id}: ${paypalPayment.message}`);
+    return jsonResponse({ error: "could not tell how this job was paid — payout refused, retry" }, 500);
+  }
+  if (paypalPayment.kind === "paypal") {
+    const queued = await queueManualPaypalPayout(supabaseAdmin, {
+      jobId: job.id,
+      initiatedBy,
+      initiatedByUserId,
+      // An admin's press ("Queue now" in the PayPal pay list) may re-queue a payout an admin canceled;
+      // the automated callers may not.
+      // Only a real admin login (the JWT path sets initiatedByUserId); a cron's body cannot claim it.
+      source: initiatedByUserId ? "admin_queue_now" : "release-payout",
+    });
+    if (queued.outcome === "error") {
+      console.error(`[release-payout] PayPal pay queue write failed for job ${job.id}: ${queued.message}`);
+      return jsonResponse({ error: "could not add this job to the PayPal pay queue — retry", manual_payout: true }, 500);
+    }
+    return jsonResponse({ success: isQueued(queued), manual_payout: true, job_id: job.id, ...queued }, isQueued(queued) ? 200 : 409);
   }
 
   // Group jobs: refuse rather than silently pay 1 of N.

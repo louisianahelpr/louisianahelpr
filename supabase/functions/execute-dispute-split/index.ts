@@ -75,6 +75,7 @@ import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { jobPaypalPayment } from "../_shared/payments/manualPayoutQueue.ts";
 
 /**
  * The client type these helpers accept.
@@ -342,6 +343,19 @@ serve(async (req) => {
     return await refuse({ error: "job lookup failed — retry" }, 500);
   }
   if (!job) return await refuse({ error: "job not found for this dispute" }, 404);
+  // PayPal Plan A, phase 4: a job paid through PayPal has no Stripe charge to refund or transfer
+  // from. Its dispute split (a partial PayPal refund + a manual payout line) is a later phase; until
+  // then nothing moves here, and an admin settles it by hand. Unreadable = refuse (fail closed).
+  const paypalPayment = await jobPaypalPayment(supabaseAdmin, job.id);
+  if (paypalPayment.kind !== "none") {
+    if (paypalPayment.kind === "error") console.error(`[execute-dispute-split] provider_payments read failed for ${job.id}: ${paypalPayment.message}`);
+    return await refuse(
+      paypalPayment.kind === "error"
+        ? { error: "could not tell how this job was paid — nothing was moved, retry" }
+        : { error: "this job was paid through PayPal; its dispute split is not automated yet — nothing was moved. Settle it by hand.", paid_through: "paypal" },
+      paypalPayment.kind === "error" ? 500 : 409,
+    );
+  }
   // The agreement is between THIS job's poster and Helpr, re-read now.
   if (agreement && (agreement.jobId !== job.id || agreement.posterId !== job.customer_id || agreement.helperId !== job.helper_id)) {
     return await refuse({ error: "the recorded agreement does not match this job's poster and Helpr — nothing was moved" }, 409);

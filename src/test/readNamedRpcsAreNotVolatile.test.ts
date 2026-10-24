@@ -34,7 +34,7 @@
 // read-named function and this guard must name it. (It has also failed for
 // real twice — see the header and the commit that added it.)
 // @mutate supabase/migrations/20261019043416_feature_switches_for_me.sql | STABLE\nSECURITY INVOKER | VOLATILE\nSECURITY INVOKER
-// @mutate supabase/migrations/20261015034233_payout_batches_flat_fee.sql | STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id, | VOLATILE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id,
+// @mutate supabase/migrations/20261023231811_paypal_manual_payout_queue.sql | STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id, | VOLATILE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT\n    j.helper_id,
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

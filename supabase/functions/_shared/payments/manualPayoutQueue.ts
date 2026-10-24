@@ -119,8 +119,18 @@ export async function queueManualPaypalPayout(
     initiatedBy: "system" | "admin" | "auto";
     initiatedByUserId?: string | null;
     source: string;
+    /**
+     * Required for a PART of the payment (refund_request_remainder, cancellation_fee): the agreed
+     * amount. Without it this helper would queue the FULL job share (lh-money-escrow re-review).
+     */
+    amountCents?: number;
+    platformFeeCents?: number;
   },
 ): Promise<QueueOutcome> {
+  if ((opts.source === "refund_request_remainder" || opts.source === "cancellation_fee")
+      && !(Number.isInteger(opts.amountCents) && (opts.amountCents as number) > 0)) {
+    return { outcome: "refused", reason: "amount_required" };
+  }
   try {
     const { data: job, error: jobErr } = await admin.from("jobs").select(PAYOUT_JOB_COLUMNS).eq("id", opts.jobId).maybeSingle();
     if (jobErr) return { outcome: "error", message: `job read failed: ${jobErr.message ?? jobErr}` };
@@ -133,7 +143,9 @@ export async function queueManualPaypalPayout(
       j.helper_id,
       frozen !== null && Number.isFinite(frozen) ? frozen : DEFAULT_TIER_FEE_PERCENT,
     );
-    const { payoutCents, platformFeeCents } = manualPayoutCents(j, percent);
+    const computed = manualPayoutCents(j, percent);
+    const payoutCents = opts.amountCents ?? computed.payoutCents;
+    const platformFeeCents = opts.amountCents !== undefined ? (opts.platformFeeCents ?? 0) : computed.platformFeeCents;
     if (!(payoutCents > 0)) return { outcome: "refused", reason: "computed_payout_not_positive" };
     const { data, error } = await admin.rpc("paypal_queue_manual_payout", {
       p_job_id: j.id,

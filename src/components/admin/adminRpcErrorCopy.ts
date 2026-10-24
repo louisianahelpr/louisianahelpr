@@ -318,6 +318,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     payout_not_found: "That payout isn't in the list any more. Refresh the list.",
     payout_not_payable: "This payout was already paid, canceled or returned. Refresh the list.",
     payout_not_job_pay: "Only job pay can be canceled here.",
+    payout_cancel_not_here: "This payout belongs to an agreed refund or a cancellation fee. Settle it from that job instead.",
     payout_claim_not_pending: "This payout changed while you were looking at it. Refresh the list.",
   },
 } satisfies Record<string, Record<string, string>>;

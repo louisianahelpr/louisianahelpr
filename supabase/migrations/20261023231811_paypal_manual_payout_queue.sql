@@ -25,7 +25,11 @@
 --      admin_requeue_held_paypal_payout() cancels the held claim and row and queues a fresh one to
 --      the CURRENT payable email after the admin has checked it AND confirmed no Send Money went out.
 --
--- THE SWITCH. The three admin RPCs start with require_feature('paypal_payments'). The writer
+-- THE SWITCH. The admin RPCs that RECORD money (Mark paid, re-queue, cancel) start with
+-- require_feature('paypal_payments'). The ONE lead-approved exception (2026-10-23, after the
+-- lh-silent-failure review) is the read admin_paypal_payout_queue(): admin only (has_role), never
+-- behind the switch, so money already owed stays visible when the switch is off; a future "every
+-- PayPal RPC starts with require_feature" guard must allowlist it, not "fix" it. The writer
 -- paypal_queue_manual_payout() is service-role only and has no signed-in user (it runs from the
 -- release paths and crons); it acts only on a job that already has a captured provider_payments row,
 -- which the database refuses to create for anyone the switch is off for (design 5.2).
@@ -42,7 +46,15 @@
 -- refuses to queue a pending payout to a destination changed since then until an admin re-confirms
 -- it (the row is written 'held').
 -- ---------------------------------------------------------------------------------------------
-ALTER TABLE public.payee_accounts ADD COLUMN IF NOT EXISTS destination_changed_at timestamptz NOT NULL DEFAULT now();
+-- Rows that already exist keep their own last-change time (not this migration's), so a payout
+-- for a job hired before deploy is not held for a re-check by mistake (lh-silent-failure re-review).
+-- The backfill runs before the stamp trigger exists; on a replay it matches nothing.
+ALTER TABLE public.payee_accounts ADD COLUMN IF NOT EXISTS destination_changed_at timestamptz;
+DROP TRIGGER IF EXISTS trg_payee_accounts_stamp_destination_change ON public.payee_accounts;
+UPDATE public.payee_accounts SET destination_changed_at = COALESCE(updated_at, created_at)
+ WHERE destination_changed_at IS NULL;
+ALTER TABLE public.payee_accounts ALTER COLUMN destination_changed_at SET DEFAULT now();
+ALTER TABLE public.payee_accounts ALTER COLUMN destination_changed_at SET NOT NULL;
 
 CREATE OR REPLACE FUNCTION public.payee_accounts_stamp_destination_change()
 RETURNS trigger
@@ -200,6 +212,15 @@ BEGIN
   IF v_job.is_group_job IS TRUE AND COALESCE(v_job.helpers_needed, 1) > 1 THEN
     -- A crew's frozen per-member shares are not built for PayPal yet.
     RETURN jsonb_build_object('outcome', 'refused', 'reason', 'crew_not_supported');
+  END IF;
+
+  -- A refund-request remainder or a cancellation fee is a PART of the payment, paid after the
+  -- poster's refund: what is queued may never exceed what is left after completed refunds.
+  IF p_source IN ('cancellation_fee', 'refund_request_remainder')
+     AND p_amount_cents + p_platform_fee_cents > v_pay.amount_cents
+         - COALESCE((SELECT sum(r.amount_cents) FROM public.provider_refunds r
+                      WHERE r.provider_payment_id = v_pay.id AND r.status = 'completed'), 0) THEN
+    RETURN jsonb_build_object('outcome', 'refused', 'reason', 'amount_exceeds_what_is_left');
   END IF;
 
   IF p_source = 'cancellation_fee' THEN
@@ -681,8 +702,16 @@ BEGIN
           v_block := 'dispute_open';
         END IF;
       END IF;
-    ELSIF v_pay.status NOT IN ('captured', 'partially_refunded') THEN
-      v_block := CASE WHEN v_pay.status IN ('disputed', 'reversed') THEN 'payment_disputed' ELSE 'payment_refunded' END;
+    ELSE
+      -- A line with no job claim (a tip, pp-tips): the same holds, read through its tip's job.
+      v_block := public.paypal_pay_blocked(
+        (SELECT t.job_id FROM public.tips t WHERE t.id = NULLIF(to_jsonb(v_pp) ->> 'tip_id', '')::uuid),
+        v_pp.payee_user_id, v_pay.status);
+    END IF;
+    -- Only settled money is recorded as paid out: captured or partially refunded (not pending,
+    -- approved or created), whatever else passed above.
+    IF v_block IS NULL AND v_pay.status NOT IN ('captured', 'partially_refunded') THEN
+      v_block := 'payment_not_settled';
     END IF;
     IF v_block IS NOT NULL THEN
       IF NOT COALESCE(p_sent_before_hold, false) THEN
@@ -1017,6 +1046,12 @@ BEGIN
   SELECT pt.* INTO v_pt FROM public.payout_transfers pt WHERE pt.id = v_pp.payout_transfer_id FOR UPDATE;
   IF NOT FOUND OR v_pt.status <> 'pending' THEN
     RAISE EXCEPTION 'payout_claim_not_pending' USING ERRCODE = '42501';
+  END IF;
+  -- A refund-request remainder or a cancellation fee is settled by its own flow (phases 5 and 6),
+  -- and "Queue now" could not put it back: cancelling it here would strand it.
+  IF v_pt.metadata ->> 'queued_by' IN ('refund_request_remainder', 'cancellation_fee') THEN
+    RAISE EXCEPTION 'payout_cancel_not_here' USING ERRCODE = '42501',
+      DETAIL = 'This payout belongs to an agreed refund or a cancellation fee. Settle it from that job instead.';
   END IF;
 
   UPDATE public.provider_payouts SET status = 'canceled', updated_at = now() WHERE id = v_pp.id;

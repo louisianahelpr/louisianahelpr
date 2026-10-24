@@ -181,7 +181,8 @@ serve(async (req) => {
       initiatedByUserId,
       // An admin's press ("Queue now" in the PayPal pay list) may re-queue a payout an admin canceled;
       // the automated callers may not.
-      source: initiatedBy === "admin" ? "admin_queue_now" : "release-payout",
+      // Only a real admin login (the JWT path sets initiatedByUserId); a cron's body cannot claim it.
+      source: initiatedByUserId ? "admin_queue_now" : "release-payout",
     });
     if (queued.outcome === "error") {
       console.error(`[release-payout] PayPal pay queue write failed for job ${job.id}: ${queued.message}`);

@@ -79,7 +79,13 @@ export function PaypalPayQueue({ adminId, switchOn }: { adminId: string | undefi
     setQueuing(l.job_id);
     const { data, error: fnError } = await supabase.functions.invoke("release-payout", { body: { job_id: l.job_id } });
     setQueuing(null);
-    const outcome = (data as { outcome?: string; reason?: string } | null) ?? null;
+    // release-payout answers 409 with the queue writer's outcome for anything it did not queue;
+    // supabase-js then returns data = null, so the answer is read from the error's response body.
+    let outcome = (data as { outcome?: string; reason?: string } | null) ?? null;
+    if (!outcome && fnError) {
+      const ctx = (fnError as { context?: { clone?: () => { json: () => Promise<unknown> } } }).context;
+      outcome = (await ctx?.clone?.().json().catch(() => null)) as { outcome?: string; reason?: string } | null ?? null;
+    }
     if (fnError && !outcome?.outcome) {
       report(fnError, { tags: { source: "PaypalPayQueue.queueNow" } });
       toast.error(userFacingError(fnError, "Couldn't add it to the list. Nothing was sent. Try again."));
@@ -271,21 +277,13 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-function Lines({ group, onCancel }: { group: PayGroup; onCancel?: (l: PaypalQueueLine) => void }) {
+function Lines({ group }: { group: PayGroup }) {
   return (
     <ul className="space-y-1">
       {group.lines.map((l) => (
-        <li key={l.payout_id} className="flex items-start justify-between gap-3 text-ds-12">
+        <li key={l.payout_id} className="flex items-baseline justify-between gap-3 text-ds-12">
           <span className="text-muted-foreground break-words min-w-0">
             {l.line_kind === "tip" ? "Tip" : "Job pay"} · {l.job_title ?? "Job"}
-            {onCancel && l.line_kind === "job" && (
-              <>
-                {" · "}
-                <button type="button" className="text-ds-12 text-muted-foreground underline underline-offset-2" onClick={() => onCancel(l)}>
-                  Cancel
-                </button>
-              </>
-            )}
           </span>
           <span className="tabular-nums text-foreground shrink-0">{centsLabel(l.amount_cents ?? 0)}</span>
         </li>
@@ -302,6 +300,7 @@ function SendGroup({ group, canRecord, onMarkPaid, onCancel }: {
 }) {
   const due = group.payOnOrAfter ? new Date(group.payOnOrAfter) : null;
   const early = due !== null && due.getTime() > Date.now();
+  const jobLines = group.lines.filter((l) => l.line_kind === "job");
   return (
     <div className="rounded-ds-md liquid-glass p-card space-y-3" data-testid="paypal-pay-group">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
@@ -314,7 +313,7 @@ function SendGroup({ group, canRecord, onMarkPaid, onCancel }: {
         </div>
         <p className="text-ds-20 font-bold tabular-nums text-foreground sm:text-right">Send {centsLabel(group.totalCents)}</p>
       </div>
-      <Lines group={group} onCancel={canRecord ? onCancel : undefined} />
+      <Lines group={group} />
       <div className="flex flex-wrap items-center gap-2">
         <EnvBadge env={group.env} />
         {group.payBlocked && <Badge tone="danger">{payBlockedCopy(group.payBlocked)}</Badge>}
@@ -333,6 +332,11 @@ function SendGroup({ group, canRecord, onMarkPaid, onCancel }: {
             <CheckCircle2 className="w-3.5 h-3.5 mr-1" aria-hidden="true" /> Mark paid
           </Button>
         )}
+        {canRecord && jobLines.map((l) => (
+          <Button key={l.payout_id} type="button" size="sm" variant="ghost" onClick={() => onCancel(l)}>
+            {jobLines.length === 1 ? "Cancel payout" : `Cancel: ${l.job_title ?? "job pay"}`}
+          </Button>
+        ))}
       </div>
     </div>
   );

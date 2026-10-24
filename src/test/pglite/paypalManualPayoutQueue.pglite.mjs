@@ -603,6 +603,7 @@ const remq = (job, source, cents = 6000) => `select public.paypal_queue_manual_p
 check("remainder: an ordinary release of a held ('escrow') job is still refused", (await db.query(remq(R.ok, "release"))).rows[0].v.reason === "job_not_approved", null);
 check("remainder: two live disputes refused", (await db.query(remq(R.twoDisputes, "refund_request_remainder"))).rows[0].v.reason === "remainder_needs_executing_agreement", null);
 check("remainder: the poster's part must be refunded first", (await db.query(remq(R.notPartial, "refund_request_remainder"))).rows[0].v.reason === "remainder_needs_partial_refund", null);
+check("remainder: never more than what the completed refunds left (money re-review #1)", (await db.query(remq(R.ok, "refund_request_remainder", 6001))).rows[0].v.reason === "amount_exceeds_what_is_left", null);
 v = (await db.query(remq(R.ok, "refund_request_remainder"))).rows[0].v;
 check("remainder: queued to the Helpr's PayPal email", v.outcome === "queued", v);
 const PR = v.payout_id;
@@ -664,6 +665,19 @@ check("a PayPal tip with no payout line is listed as owed", owedTip?.tip_id === 
 const P13job = qlines.find((x) => x.payout_id === P13);
 v = (await db.query(mark([P13, tipLine.payout_id], "7TP11111AA222222B", 1500))).rows[0].v;
 check("job pay and a tip, one Send Money, one press", v.outcome === "marked_paid" && v.payout_ids.length === 2 && P13job?.line_kind === "job", v);
+// A hold placed after a TIP was queued stops its Mark paid too (money re-review #2).
+await as("postgres");
+const TIP3 = "a1000000-0000-4000-8000-000000000003";
+await db.exec(`insert into tips(id, job_id, helper_id, amount) values ('${TIP3}', '${J13}', '${U.helpr}', 3)`);
+await as("service");
+await db.query(`insert into provider_payments(subject_kind, subject_id, payer_id, provider, env, idempotency_key, provider_order_id, provider_capture_id, amount_cents, status)
+  values ('tip', '${TIP3}', '${U.poster}', 'paypal_checkout', 'sandbox', 'lh:tip:3', 'O-tip3', 'C-tip3', 300, 'captured')`);
+const PT3 = (await one(`insert into provider_payouts(provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents)
+  select id, '${TIP3}', '${U.helpr}', 'manual_paypal', 'sandbox', 'paypal_email', 'hal@example.com', 300 from provider_payments where idempotency_key = 'lh:tip:3' returning id`)).id;
+await as("postgres"); await db.exec(`insert into job_payout_holds(job_id) values ('${J13}')`);
+await as("admin");
+await expectErr("a job hold placed after a tip was queued stops the tip's Mark paid", mark([PT3], "9TP11111AA222222B", 300), /payout_blocked/);
+await as("postgres"); await db.exec(`delete from job_payout_holds`);
 
 // --- grants
 await as("postgres");

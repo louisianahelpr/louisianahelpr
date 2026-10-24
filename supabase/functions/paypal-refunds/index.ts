@@ -4,13 +4,11 @@
  * admin_refund_general (_shared/payments/paypalRefundDoors.ts), so the admin screen is unchanged.
  *
  *   {"action":"sweep"}  every 10 minutes (cron paypal-refunds, 20261023232438):
- *     1. cancelled PayPal-funded jobs whose cancel refund has not started
- *        (paypal_cancelled_job_refunds_due): fee-0 ones are refunded (less PayPal's fee); a late-cancel
- *        fee, a crew or a series waits for phase 6 and pages ops once a day.
- *     2. orphan captures (phase 3: a capture that funded nothing): refunded in full.
- *     3. a cancel refund done at PayPal but not on its job yet: the job settled, the poster told.
- *     4. unfinished refunds: a lost PayPal answer asked again with the same key; one pending at
+ *     1. orphan captures (phase 3: a capture that funded nothing): refunded in full.
+ *     2. unfinished refunds: a lost PayPal answer asked again with the same key; one pending at
  *        PayPal for over an hour re-read; one unanswered for over an hour paged for a person.
+ *     A cancelled job's money is NOT settled here: phase 6's cancellation sweep does it through the
+ *     same engine and key (lead decision 2026-10-23).
  *   {"action":"settle_refund_agreement","dispute_id":"<uuid>"}  refund-request-sweep's door for an
  *     agreed refund request on a PayPal job: the poster's part refunded first, then (a partial
  *     one) the Helpr's rest queued in phase 4's admin pay queue (paypal_queue_manual_payout).
@@ -26,7 +24,7 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { refundCancelledJob, refundOrphan, retryLostRefunds, settleRefundAgreement, settleUnsettledCancels, type CancelledDueRow, type JobRefundDeps, type OrphanDueRow } from "../_shared/payments/paypalJobRefunds.ts";
+import { refundOrphan, retryLostRefunds, settleRefundAgreement, type JobRefundDeps, type OrphanDueRow } from "../_shared/payments/paypalJobRefunds.ts";
 import { payPalFromEnv } from "../_shared/payments/paypalRefundDoors.ts";
 
 const FN = "paypal-refunds";
@@ -75,50 +73,22 @@ serve(async (req) => {
   const startedAt = Date.now();
   try {
     const defects = defectTracker();
-    const { data: dueData, error: dueErr } = await db.rpc("paypal_cancelled_job_refunds_due", { p_limit: 20 });
-    if (dueErr) {
-      defects.record(`paypal_cancelled_job_refunds_due failed: ${dueErr.message}`);
-      return cronResult(FN, { due: null }, defects.defects, corsHeaders);
-    }
-    const due = (dueData ?? []) as CancelledDueRow[];
     const { data: orphanData, error: orphanErr } = await db.rpc("paypal_orphan_refunds_due", { p_limit: 20 });
     if (orphanErr) defects.record(`paypal_orphan_refunds_due failed: ${orphanErr.message}`);
     const orphans = (orphanData ?? []) as OrphanDueRow[];
-    const { data: unsettledData, error: unsettledErr } = await db.rpc("paypal_cancelled_jobs_unsettled", { p_limit: 1 });
-    if (unsettledErr) defects.record(`paypal_cancelled_jobs_unsettled failed: ${unsettledErr.message}`);
     const { count: openCount, error: openErr } = await db.from("provider_refunds")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending").like("idempotency_key", "lh:%");
     if (openErr) defects.record(`unfinished-refund count failed: ${openErr.message}`);
-    if (due.length === 0 && orphans.length === 0 && (unsettledData ?? []).length === 0 && (openCount ?? 0) === 0) {
-      return cronResult(FN, { due: 0, orphans: 0, unfinished: 0 }, defects.defects, corsHeaders);
+    if (orphans.length === 0 && (openCount ?? 0) === 0) {
+      return cronResult(FN, { orphans: 0, unfinished: 0 }, defects.defects, corsHeaders);
     }
     let d: JobRefundDeps;
     try {
       d = paypalDeps();
     } catch (e) {
-      defects.record(`PayPal is not configured but ${due.length} cancelled job(s), ${orphans.length} orphan payment(s) and ${openCount ?? 0} unfinished refund(s) wait: ${caughtMessage(e)}`);
-      return cronResult(FN, { due: due.length, orphans: orphans.length, unfinished: openCount ?? 0 }, defects.defects, corsHeaders);
-    }
-    const outcomes: Record<string, number> = {};
-    for (const row of due) {
-      if (!row || typeof row.job_id !== "string" || !UUID_RE.test(row.job_id)) {
-        defects.record(`due row with no usable job id: ${JSON.stringify(row).slice(0, 200)}`);
-        continue;
-      }
-      let outcome: string;
-      try {
-        outcome = await refundCancelledJob(d, row);
-      } catch (e) {
-        outcome = "error";
-        defects.record(`cancel refund ${row.job_id}: ${caughtMessage(e)}`);
-      }
-      const word = outcome.split(":")[0];
-      outcomes[word] = (outcomes[word] ?? 0) + 1;
-      // Work this run meant to do and could not (a transient read, PayPal not answering, a ledger
-      // write that failed): a defect. A row-shaped problem (amount_unknown, held, gave_up) is paged
-      // once a day by refundCancelledJob instead of turning every run red.
-      if (/^(job_read_failed|payment_read_failed|retry|recorded_late)/.test(outcome)) defects.record(`cancel refund ${row.job_id}: ${outcome}`);
+      defects.record(`PayPal is not configured but ${orphans.length} orphan payment(s) and ${openCount ?? 0} unfinished refund(s) wait: ${caughtMessage(e)}`);
+      return cronResult(FN, { orphans: orphans.length, unfinished: openCount ?? 0 }, defects.defects, corsHeaders);
     }
     const orphanOutcomes: Record<string, number> = {};
     for (const row of orphans) {
@@ -131,13 +101,9 @@ serve(async (req) => {
       }
       const word = outcome.split(":")[0];
       orphanOutcomes[word] = (orphanOutcomes[word] ?? 0) + 1;
+      // Work this run meant to do and could not: a defect. A refusal or gave_up is paged once a day
+      // by refundOrphan instead of turning every run red.
       if (/^(retry|recorded_late)/.test(outcome)) defects.record(`orphan refund ${row.provider_payment_id}: ${outcome}`);
-    }
-    let unsettled = 0;
-    try {
-      unsettled = await settleUnsettledCancels(d);
-    } catch (e) {
-      defects.record(`unsettled cancels: ${caughtMessage(e)}`);
     }
     let lost = { retried: 0, finished: 0, stale: 0, rechecked: 0 };
     try {
@@ -145,7 +111,7 @@ serve(async (req) => {
     } catch (e) {
       defects.record(`lost-refund retry: ${caughtMessage(e)}`);
     }
-    return cronResult(FN, { due: due.length, outcomes, orphans: orphans.length, orphanOutcomes, unsettled, lost, ms: Date.now() - startedAt }, defects.defects, corsHeaders);
+    return cronResult(FN, { orphans: orphans.length, orphanOutcomes, lost, ms: Date.now() - startedAt }, defects.defects, corsHeaders);
   } catch (e) {
     return cronError(FN, caughtMessage(e), corsHeaders);
   }

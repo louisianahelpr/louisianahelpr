@@ -16,7 +16,7 @@
  *
  * @mutate supabase/functions/_shared/payments/providerRefunds.ts | const claimed = await db.rpc("paypal_refund_claim", { | const claimed = await db.rpc("paypal_refund_peek", {
  * @mutate supabase/functions/_shared/payments/providerRefunds.ts | paid = await provider.refund({ idempotencyKey: req.idempotencyKey, | paid = await provider.refund({ idempotencyKey: `${req.idempotencyKey}:${Date.now()}`,
- * @mutate supabase/functions/_shared/payments/paypalJobRefunds.ts |   const out = await refundProviderPayment(deps.db, deps.provider, {\n    paymentId: payment.id,\n    idempotencyKey: key,\n    amountCents: amounts.refundCents,\n    reason: "poster cancelled before the work; no cancellation fee", |   const out = await deps.provider.refund({\n    providerCaptureId: payment.provider_capture_id ?? "",\n    idempotencyKey: key,\n    amountCents: amounts.refundCents,\n    note: "poster cancelled before the work; no cancellation fee",
+ * @mutate supabase/functions/_shared/payments/paypalJobRefunds.ts |   const out = await refundProviderPayment(deps.db, deps.provider, {\n    paymentId: row.provider_payment_id,\n    idempotencyKey: key, |   const out = await deps.provider.refund({\n    providerCaptureId: row.provider_payment_id,\n    idempotencyKey: key,
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -70,10 +70,11 @@ describe("PayPal refunds are claimed before PayPal is asked (PayPal phase 5)", (
   it("(c) every refund door goes through the engine, each under its business-event key", () => {
     const doors = flat(code("supabase/functions/_shared/payments/paypalJobRefunds.ts"));
     const uses = doors.match(/await refundProviderPayment\(deps\.db, deps\.provider, \{/g) ?? [];
-    // cancelled job, lost-answer retry, admin refund, agreed refund request, orphan capture
-    expect(uses.length).toBeGreaterThan(4);
+    // lost-answer retry, admin refund, agreed refund request, orphan capture (a cancelled job is
+    // refunded by phase 6's sweep through this same engine, under cancelRefundKey)
+    expect(uses.length).toBeGreaterThan(3);
+    expect(doors).toContain("export const cancelRefundKey = (jobId: string, earlierAttempts = 0) =>");
     for (const key of [
-      "const key = cancelRefundKey(jobId, Number(due.cancel_attempts));",
       "idempotencyKey: row.idempotency_key,",
       "const key = `lh:job:${j.id}:refund:admin:${input.requestId.toLowerCase()}`;",
       "const key = `lh:dispute:${disputeId}:refund`;",
@@ -82,6 +83,6 @@ describe("PayPal refunds are claimed before PayPal is asked (PayPal phase 5)", (
       expect(doors).toContain(key);
     }
     // Every fresh door claim carries the refundable ceiling (PayPal keeps its fee), checked under the lock.
-    expect((doors.match(/maxTotalCents: /g) ?? []).length).toBeGreaterThan(3);
+    expect((doors.match(/maxTotalCents: /g) ?? []).length).toBeGreaterThan(2);
   });
 });

@@ -24,7 +24,9 @@
 --                              refund made outside the app; one made outside while a payout is
 --                              queued cannot be recorded (the guard), so the queued payouts are
 --                              put on hold and the caller pages ops.
---      paypal_cancelled_job_refunds_due  cancelled PayPal-funded jobs whose refund has not started.
+--      paypal_job_mark_refunded  a refund door settles its job, under phase 3's money flag.
+--      paypal_poster_cancel_job  a poster cancels a PayPal-paid job: cancel ONLY; phase 6's
+--                              cancellation sweep refunds it through the engine (lead 2026-10-23).
 --    Not behind require_feature: require_feature reads auth.uid(), which a service call does not
 --    have, and refunds only follow a payment that already exists (phase 1: turning the switch off
 --    must never strand money already taken). The admin door (paypal-refunds admin_refund) checks
@@ -39,8 +41,8 @@
 --    which clears phase 3's orphan alert. status_reason is phase 3's column, read through to_jsonb so
 --    this migration does not depend on the order the two land in.
 --
--- 3. The cron: paypal-refunds every 10 minutes (cancelled fee-0 jobs, retrying a claim whose
---    PayPal answer was lost). It acts only on rows that exist, i.e. testers' while the switch is
+-- 3. The cron: paypal-refunds every 10 minutes (orphan captures refunded in full; a claim whose
+--    PayPal answer was lost asked again; one pending at PayPal re-read). It acts only on rows that exist, i.e. testers' while the switch is
 --    testers-only.
 --
 -- REPLAY-SAFETY: CREATE OR REPLACE / DROP TRIGGER IF EXISTS / ON CONFLICT; every block is guarded
@@ -134,6 +136,8 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.paypal_payment_sync_refund_status(uuid) FROM PUBLIC, anon, authenticated, service_role;
 
+-- An earlier WIP of this file had a 4-argument claim; never two overloads.
+DROP FUNCTION IF EXISTS public.paypal_refund_claim(uuid, text, bigint, text);
 CREATE OR REPLACE FUNCTION public.paypal_refund_claim(
   p_payment_id uuid,
   p_idempotency_key text,
@@ -289,6 +293,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.paypal_refund_record(uuid, text, text, bigint) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_refund_record(uuid, text, text, bigint) TO service_role;
 
+DROP FUNCTION IF EXISTS public.paypal_refund_reconcile(text, text, text, text, bigint);
 CREATE OR REPLACE FUNCTION public.paypal_refund_reconcile(
   p_env text,
   p_capture_id text,
@@ -385,66 +390,89 @@ $fn$;
 REVOKE ALL ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.paypal_refund_reconcile(text, text, text, text, bigint, uuid) TO service_role;
 
--- Cancelled jobs paid through PayPal whose cancel refund has not started (no LIVE refund of the
--- payment under any key: an admin full refund or an agreed "refund all" already settled it), fee-free
--- ones first so the ones waiting for phase 6 (a late-cancel fee, a crew, a series) never starve them
--- (lh-money-escrow / lh-silent-failure reviews 2026-10-23). cancel_attempts counts this job's earlier
--- cancel refunds that PayPal failed or cancelled: the next one gets its own key.
-CREATE OR REPLACE FUNCTION public.paypal_cancelled_job_refunds_due(p_limit integer DEFAULT 20)
-RETURNS TABLE(job_id uuid, provider_payment_id uuid, payment_amount_cents bigint, job_payment_status text,
-              cancellation_fee_cents bigint, has_crew boolean, is_series boolean, cancel_attempts integer)
-LANGUAGE sql
-STABLE
+-- A refund door settles its job (an admin full refund cancels it; an agreed "refund all" marks it
+-- refunded). Phase 3's paypal_job_money_state_guard refuses any payment_status change on a
+-- PayPal-funded job unless the transaction says app.paypal_money_write = '1', so the change goes
+-- through this one service-only function: it checks the refund is a LIVE refund of THIS job's
+-- payment, compares-and-swaps the status it was read in, and sets the flag only around its own
+-- UPDATE (lh-money-escrow review round 2, #1a).
+CREATE OR REPLACE FUNCTION public.paypal_job_mark_refunded(
+  p_job_id uuid,
+  p_refund_id uuid,
+  p_cancel boolean,
+  p_expect_status text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT j.id, pp.id, pp.amount_cents, j.payment_status,
-         round(COALESCE(j.cancellation_fee, 0) * 100)::bigint,
-         COALESCE(j.is_group_job, false),
-         (j.recurrence_days IS NOT NULL OR j.parent_job_id IS NOT NULL),
-         (SELECT count(*)::integer FROM public.provider_refunds r
-           WHERE r.provider_payment_id = pp.id
-             AND r.idempotency_key LIKE 'lh:job:' || j.id::text || ':refund:cancel%'
-             AND r.status IN ('failed', 'cancelled'))
-    FROM public.provider_payments pp
-    JOIN public.jobs j ON j.id = pp.subject_id
-   WHERE pp.subject_kind = 'job'
-     AND pp.status IN ('captured', 'partially_refunded')
-     AND j.status = 'cancelled'
-     AND j.payment_status IS DISTINCT FROM 'refunded'
-     AND NOT EXISTS (SELECT 1 FROM public.provider_refunds r
-                      WHERE r.provider_payment_id = pp.id AND r.status IN ('pending', 'completed'))
-   ORDER BY (COALESCE(j.cancellation_fee, 0) > 0 OR COALESCE(j.is_group_job, false)
-             OR j.recurrence_days IS NOT NULL OR j.parent_job_id IS NOT NULL),
-            pp.created_at
-   LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 50))
+DECLARE
+  v_n integer;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.provider_refunds r
+                   JOIN public.provider_payments pp ON pp.id = r.provider_payment_id
+                  WHERE r.id = p_refund_id AND r.status IN ('pending', 'completed')
+                    AND pp.subject_kind = 'job' AND pp.subject_id = p_job_id) THEN
+    RAISE EXCEPTION 'refund_not_for_job' USING ERRCODE = '22023',
+      DETAIL = format('refund %s is not a live refund of job %s', p_refund_id, p_job_id);
+  END IF;
+  PERFORM set_config('app.paypal_money_write', '1', true);
+  UPDATE public.jobs
+     SET payment_status = 'refunded',
+         status = CASE WHEN p_cancel THEN 'cancelled' ELSE status::text END::public.job_status
+   WHERE id = p_job_id
+     AND status::text = p_expect_status
+     AND status::text <> 'disputed';
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  PERFORM set_config('app.paypal_money_write', '', true);
+  RETURN jsonb_build_object('updated', v_n);
+END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_cancelled_job_refunds_due(integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_cancelled_job_refunds_due(integer) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_job_mark_refunded(uuid, uuid, boolean, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_job_mark_refunded(uuid, uuid, boolean, text) TO service_role;
 
--- Cancelled jobs whose cancel refund is DONE at PayPal but whose job does not say so yet (the
--- webhook attached a lost answer, or the job flip failed): the sweep settles the job and tells the
--- poster. A safety net; the doors and the webhook normally do it at once.
-CREATE OR REPLACE FUNCTION public.paypal_cancelled_jobs_unsettled(p_limit integer DEFAULT 20)
-RETURNS TABLE(job_id uuid, refund_id uuid)
-LANGUAGE sql
-STABLE
+-- A poster cancels a job paid through PayPal (lead decision 2026-10-23: ONE money path). Phase 3's
+-- paypal_capture_locks_job_price refuses a member's cancel while the PayPal money is held, because
+-- the Stripe-era cancel refunds nothing. This is the sanctioned door: it ONLY cancels, through the
+-- existing poster_cancel_job (who may cancel, the fee tier, the notices: unchanged), and moves no
+-- money. payment_status stays 'escrow'; phase 6's cancellation sweep then settles the money through
+-- the refund engine under the key lh:job:<job>:refund:cancel (one key: one refund, however often it
+-- runs). The transaction-local flag app.paypal_sanctioned_cancel tells phase 3's lock this cancel came
+-- through here (the flag name is the contract with phase 3). Members cannot set it themselves:
+-- set_config is not reachable through the API.
+-- Not behind require_feature: it serves only jobs that already hold PayPal money, and switching
+-- the feature off must never leave a poster unable to cancel a paid job.
+CREATE OR REPLACE FUNCTION public.paypal_poster_cancel_job(
+  p_job_id uuid,
+  p_reason text DEFAULT NULL,
+  p_expected_fee_cents bigint DEFAULT NULL
+)
+RETURNS jsonb
+LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $fn$
-  SELECT j.id, r.id
-    FROM public.provider_refunds r
-    JOIN public.provider_payments pp ON pp.id = r.provider_payment_id AND pp.subject_kind = 'job'
-    JOIN public.jobs j ON j.id = pp.subject_id
-   WHERE r.status = 'completed'
-     AND r.idempotency_key LIKE 'lh:job:' || j.id::text || ':refund:cancel%'
-     AND j.status = 'cancelled'
-     AND j.payment_status IS DISTINCT FROM 'refunded'
-   ORDER BY r.updated_at
-   LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 20), 50))
+DECLARE
+  v_out jsonb;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.provider_payments p
+                  WHERE p.subject_kind = 'job' AND p.subject_id = p_job_id
+                    AND p.status IN ('captured', 'partially_refunded')) THEN
+    RAISE EXCEPTION 'not_a_paypal_job' USING ERRCODE = '22023',
+      HINT = 'This job is not paid through PayPal: cancel it the usual way.';
+  END IF;
+  PERFORM set_config('app.paypal_sanctioned_cancel', '1', true);
+  v_out := public.poster_cancel_job(p_job_id, p_reason, p_expected_fee_cents);
+  PERFORM set_config('app.paypal_sanctioned_cancel', '', true);
+  RETURN v_out;
+END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_cancelled_jobs_unsettled(integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_cancelled_jobs_unsettled(integer) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_poster_cancel_job(uuid, text, bigint) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.paypal_poster_cancel_job(uuid, text, bigint) TO authenticated, service_role;
 
 -- Orphan captures not refunded yet (no live refund): refunded in full by the sweep.
 CREATE OR REPLACE FUNCTION public.paypal_orphan_refunds_due(p_limit integer DEFAULT 20)
@@ -537,7 +565,7 @@ BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('paypal-refunds', interval '30 minutes',
-            'PayPal phase 5: every 10 minutes, refunds cancelled PayPal-funded jobs that owe no cancellation fee, and re-asks PayPal about a refund whose answer was lost.',
+            'PayPal phase 5: every 10 minutes, refunds orphan PayPal captures in full, re-asks PayPal about a refund whose answer was lost, and re-reads refunds still pending at PayPal.',
             'exempt',
             'While paypal_payments is off or testers-only, a run that finds nothing to do is the healthy state.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,

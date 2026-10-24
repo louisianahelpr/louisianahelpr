@@ -9,6 +9,8 @@
  *   PLANT=no_refund_guard  ... # RED: over-refund and refund-after-payout-queued are let through
  *   PLANT=no_orphan_carveout ... # RED: an orphan capture cannot be refunded
  *   PLANT=no_ceiling       ... # RED: two keys together pass the refundable ceiling
+ *   PLANT=no_money_flag    ... # RED: a refund door cannot settle its job (phase 3's guard)
+ *   PLANT=no_sanctioned_flag ... # RED: the poster's PayPal cancel is refused (phase 3's lock)
  *
  * Proves: the fee is stamped AT POST only while paypal_payments is on for the poster (8/70),
  * cleared for everyone else exactly as before, server inserts untouched, and members still cannot
@@ -18,10 +20,11 @@
  * payment to partially_refunded / refunded; PAYMENT.CAPTURE.REFUNDED reconciles (known refund,
  * lost answer attached, refund made outside the app recorded, outside refund while a payout is
  * queued holds that payout), and a 3x replay leaves one refund row; the cancelled-jobs hand-out;
- * review round 1: env refused before a row, the refundable ceiling under the lock, a job with a live
- * refund under another key not handed out, a failed cancel refund re-offered under a new key, the
- * unsettled-cancel safety net; orphan captures refunded in full only; members and anon cannot call
- * any of it.
+ * review round 1: env refused before a row, the refundable ceiling under the lock; a cancelled
+ * PayPal job (lead decision 2026-10-23): the poster's door only cancels (phase 3's lock and money
+ * guard copied in), the cancellation sweep's key gives exactly one refund, and the job is settled
+ * only under phase 3's money flag; orphan captures refunded in full only; PayPal refunding less than
+ * asked is recorded and flagged; members and anon cannot call any of it.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  */
@@ -38,6 +41,8 @@ const plant = (from, to) => {
 };
 if (process.env.PLANT === "no_fee_stamp") plant("IF public.feature_enabled_for_user('paypal_payments', NEW.customer_id) THEN", "IF false THEN");
 if (process.env.PLANT === "no_orphan_carveout") plant("IF NOT v_orphan AND NOT EXISTS (SELECT 1 FROM public.provider_payments", "IF NOT EXISTS (SELECT 1 FROM public.provider_payments");
+if (process.env.PLANT === "no_money_flag") plant("  PERFORM set_config('app.paypal_money_write', '1', true);\n  UPDATE public.jobs", "  UPDATE public.jobs");
+if (process.env.PLANT === "no_sanctioned_flag") plant("  PERFORM set_config('app.paypal_sanctioned_cancel', '1', true);\n", "");
 if (process.env.PLANT === "no_ceiling") plant("+ p_amount_cents > p_max_total_cents THEN", "+ p_amount_cents > p_max_total_cents + 1000000 THEN");
 if (process.env.PLANT === "claim_no_replay") {
   plant("SELECT * INTO v_ref FROM public.provider_refunds WHERE idempotency_key = p_idempotency_key;\n  IF FOUND THEN", "SELECT * INTO v_ref FROM public.provider_refunds WHERE false;\n  IF FOUND THEN");
@@ -94,8 +99,9 @@ REVOKE ALL ON FUNCTION public.feature_enabled_for_user(text, uuid) FROM PUBLIC, 
 GRANT EXECUTE ON FUNCTION public.feature_enabled_for_user(text, uuid) TO service_role;
 create table public.payout_transfers(id uuid primary key default gen_random_uuid());
 -- jobs, prod-shaped for the columns these functions touch (+ prod's poster-fee CHECK, 20261017230824)
+create type public.job_status as enum ('open', 'accepted', 'in_progress', 'revision_requested', 'completed', 'cancelled', 'disputed');
 create table public.jobs(
-  id uuid primary key default gen_random_uuid(), customer_id uuid, status text not null default 'open',
+  id uuid primary key default gen_random_uuid(), customer_id uuid, status public.job_status not null default 'open',
   payment_status text, budget numeric, helper_fee_flat_cents integer, helper_fee_percent numeric,
   poster_fee_flat_cents integer, cancellation_fee numeric, is_group_job boolean default false,
   recurrence_days integer, parent_job_id uuid,
@@ -164,9 +170,6 @@ const P1 = await payRow("lh:job:p1:checkout:amt10000:a1", JOB, 10000, "CAP1");
 const P2 = await payRow("lh:job:p2:checkout:amt5000:a1", JOB2, 5000, "CAP2");
 const K = (job, tail) => `lh:job:${job}:refund:${tail}`;
 const claim = (pay, key, amt) => `select public.paypal_refund_claim('${pay}', '${key}', ${amt}, 'test') j`;
-const due = async () => (await db.query("select * from public.paypal_cancelled_job_refunds_due(20)")).rows;
-check("the cancelled PayPal job is handed out for its cancel refund", (await due()).some((d) => d.job_id === JOB && d.cancellation_fee_cents === "0" || d.job_id === JOB && Number(d.cancellation_fee_cents) === 0), await due());
-check("a completed job is not", !(await due()).some((d) => d.job_id === JOB2), await due());
 
 let c1 = (await jx(claim(P1, K(JOB, "cancel"), 9611)));
 check("claim: a pending row", c1.status === "pending" && c1.replay === false && c1.capture_id === "CAP1", c1);
@@ -175,7 +178,6 @@ check("claim replay: the same row, said as a replay", c1b.refund_id === c1.refun
 await expectErr("the same key for another amount is refused", claim(P1, K(JOB, "cancel"), 9000), /refund_key_reused/);
 await expectErr("a key that is not ours is refused", claim(P1, "rf-random", 100), /refund_key_invalid/);
 check("one row per key after the replays", (await one(`select count(*)::int n from provider_refunds where idempotency_key = '${K(JOB, "cancel")}'`)).n === 1, null);
-check("handed out no more once claimed", !(await due()).some((d) => d.job_id === JOB), await due());
 check("a pending refund already moves the payment to partially_refunded", (await one(`select status from provider_payments where id='${P1}'`)).status === "partially_refunded", null);
 await expectErr("over-refund: more than what is left is refused", claim(P1, K(JOB, "admin:" + "d0000000-0000-4000-8000-000000000001"), 390), /refund_exceeds_payment/);
 let rec = (await jx(`select public.paypal_refund_record('${c1.refund_id}', 'REF1', 'completed', 9611) j`));
@@ -244,22 +246,81 @@ o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000004"), 6
 check("a second key racing the first cannot pass the ceiling together (9000 + 612 > 9611)", okClaim.refund_id && /refund_exceeds_refundable/.test(o.error ?? ""), { okClaim, o });
 o = await jx(claim6(P4, K(JOB4, "admin:f0000000-0000-4000-8000-000000000003"), 9000, "sandbox", 9611));
 check("...while the first key's replay still answers its row", o.refund_id === okClaim.refund_id && o.replay === true, o);
-check("a job with a live refund under another key is not handed out for a cancel refund", !(await due()).some((d) => d.job_id === JOB4), await due());
 await jx(`select public.paypal_refund_record('${okClaim.refund_id}', 'REF-P4', 'failed', 9000) j`);
-let d4 = (await due()).find((d) => d.job_id === JOB4);
-check("once that refund failed at PayPal, the job is handed out again", !!d4 && d4.cancel_attempts === 0, d4);
 const c4 = await jx(claim6(P4, K(JOB4, "cancel"), 9611, "sandbox", 9611));
 await jx(`select public.paypal_refund_record('${c4.refund_id}', 'REF-P4C', 'pending', 9611) j`);
 o = await jx(recon("CAP4", "REF-P4C", "failed", 9611));
-check("PayPal failing a recorded cancel refund: 'updated' with the key and previous status (the handler pages)", o.outcome === "updated" && o.status === "failed" && o.previous_status === "pending" && o.idempotency_key === K(JOB4, "cancel"), o);
-d4 = (await due()).find((d) => d.job_id === JOB4);
-check("...and the job comes back with one failed cancel attempt (the next key is :a2)", !!d4 && d4.cancel_attempts === 1, d4);
-const c4b = await jx(claim6(P4, K(JOB4, "cancel:a2"), 9611, "sandbox", 9611));
-await jx(`select public.paypal_refund_record('${c4b.refund_id}', 'REF-P4C2', 'completed', 9611) j`);
-const unsettled = (await db.query("select * from public.paypal_cancelled_jobs_unsettled(20)")).rows;
-check("a completed cancel refund on a job not yet marked refunded is handed to the safety net", unsettled.some((u) => u.job_id === JOB4 && u.refund_id === c4b.refund_id), unsettled);
-await db.exec(`reset role; update jobs set payment_status = 'refunded' where id = '${JOB4}'; set role service_role`);
-check("...and leaves it once the job says refunded", !(await db.query("select * from public.paypal_cancelled_jobs_unsettled(20)")).rows.some((u) => u.job_id === JOB4), null);
+check("PayPal failing a recorded refund: 'updated' with the key and previous status (the handler pages)", o.outcome === "updated" && o.status === "failed" && o.previous_status === "pending" && o.idempotency_key === K(JOB4, "cancel"), o);
+
+// ── 2c. one money path for a cancelled PayPal job (lead decision 2026-10-23) ──
+// Phase 3's two triggers, copied from wip/pp-phase3 @048e868bd2 (20261023232151 lines 166-237):
+// the money-state guard verbatim; the member cancel lock with the ONE line this phase proposes as
+// the contract (honour app.paypal_sanctioned_cancel, set only by paypal_poster_cancel_job).
+// poster_cancel_job: a stand-in for prod's (13 kB): the poster cancels; the fee tier is recorded.
+await db.exec(`reset role;
+CREATE OR REPLACE FUNCTION public.paypal_job_money_state_guard() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
+BEGIN
+  IF NEW.payment_status IS DISTINCT FROM OLD.payment_status
+     AND current_setting('app.paypal_money_write', true) IS DISTINCT FROM '1'
+     AND EXISTS (SELECT 1 FROM public.provider_payments p
+                  WHERE p.subject_kind = 'job' AND p.subject_id = OLD.id
+                    AND p.status IN ('approved', 'capture_pending', 'captured', 'partially_refunded', 'disputed')) THEN
+    RAISE EXCEPTION 'paypal_job_money_outside_paypal' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+CREATE TRIGGER trg_paypal_job_money_state_guard BEFORE UPDATE OF payment_status ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.paypal_job_money_state_guard();
+CREATE OR REPLACE FUNCTION public.paypal_capture_locks_job_price() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
+BEGIN
+  IF public.is_server_context() THEN
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+  END IF;
+  IF (TG_OP = 'DELETE' OR (NEW.status IS DISTINCT FROM OLD.status AND NEW.status::text = 'cancelled'))
+     AND NOT (TG_OP = 'UPDATE' AND current_setting('app.paypal_sanctioned_cancel', true) IS NOT DISTINCT FROM '1')
+     AND EXISTS (SELECT 1 FROM public.provider_payments p
+                  WHERE p.subject_kind = 'job' AND p.subject_id = OLD.id
+                    AND p.status IN ('captured', 'partially_refunded', 'disputed')) THEN
+    RAISE EXCEPTION 'paypal_payment_held' USING ERRCODE = '42501';
+  END IF;
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$fn$;
+CREATE TRIGGER trg_paypal_capture_locks_job_price BEFORE UPDATE OR DELETE ON public.jobs FOR EACH ROW EXECUTE FUNCTION public.paypal_capture_locks_job_price();
+CREATE OR REPLACE FUNCTION public.poster_cancel_job(p_job_id uuid, p_reason text DEFAULT NULL, p_expected_fee_cents bigint DEFAULT NULL)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $fn$
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  UPDATE public.jobs SET status = 'cancelled', cancellation_fee = 0 WHERE id = p_job_id AND customer_id = auth.uid() AND status::text IN ('open', 'accepted');
+  IF NOT FOUND THEN RAISE EXCEPTION 'not_cancellable'; END IF;
+  RETURN jsonb_build_object('cancelled', true, 'fee', 0);
+END;
+$fn$;
+GRANT EXECUTE ON FUNCTION public.poster_cancel_job(uuid, text, bigint) TO authenticated;`);
+for (let i = 0; i < 2; i++) await db.exec(mig);
+const JOB7 = "b0000000-0000-4000-8000-000000000007";
+await db.exec(`insert into jobs(id, customer_id, status, payment_status, budget) values ('${JOB7}', '${U.tester}', 'open', 'escrow', 40); set role service_role`);
+const P7 = await payRow("lh:job:p7:checkout:amt4000:a1", JOB7, 4000, "CAP7");
+try { await asMember(U.tester, `update jobs set status = 'cancelled' where id = '${JOB7}'`); r["phase 3's lock refuses the ordinary member cancel while PayPal money is held"] = "bad: allowed"; }
+catch (e) { r["phase 3's lock refuses the ordinary member cancel while PayPal money is held"] = /paypal_payment_held/.test(e.message) ? "ok" : `wrong: ${e.message}`; }
+try { await asMember(U.ordinary, `select public.paypal_poster_cancel_job('${JOB7}')`); r["another member cannot cancel through the PayPal door"] = "bad: allowed"; }
+catch (e) { r["another member cannot cancel through the PayPal door"] = /not_cancellable/.test(e.message) ? "ok" : `wrong: ${e.message}`; }
+try { row = (await asMember(U.tester, `select public.paypal_poster_cancel_job('${JOB7}', 'plans changed') j`)).rows[0]; } catch (e) { row = { error: e.message }; }
+const j7 = await one(`select status::text, payment_status from jobs where id='${JOB7}'`);
+check("the poster cancels through the PayPal door: cancelled, money untouched (payment_status escrow, no refund)", j7.status === "cancelled" && j7.payment_status === "escrow" && (await one(`select count(*)::int n from provider_refunds where provider_payment_id='${P7}'`)).n === 0, { row, j7 });
+try { await asMember(U.tester, `select public.paypal_poster_cancel_job('${JOB}')`); r["the PayPal door refuses a job with no held PayPal money"] = "bad: allowed"; }
+catch (e) { r["the PayPal door refuses a job with no held PayPal money"] = /not_a_paypal_job/.test(e.message) ? "ok" : `wrong: ${e.message}`; }
+const sweep = async () => jx(claim6(P7, K(JOB7, "cancel"), 3847, "sandbox", 3847));
+const s1 = await sweep(); const s2 = await sweep(); const s3 = await sweep();
+check("cancel, then the cancellation sweep run 3 times = exactly ONE refund (one key)", s1.refund_id && s2.refund_id === s1.refund_id && s3.replay === true && (await one(`select count(*)::int n from provider_refunds where provider_payment_id='${P7}'`)).n === 1, { s1, s2, s3 });
+await expectErr("phase 3's guard refuses a plain payment_status write on a PayPal job", `update jobs set payment_status = 'refunded' where id = '${JOB7}'`, /paypal_job_money_outside_paypal/);
+o = await jx(`select public.paypal_job_mark_refunded('${JOB7}', '${s1.refund_id}', false, 'cancelled') j`);
+check("paypal_job_mark_refunded settles it under the money flag", o.updated === 1 && (await one(`select payment_status from jobs where id='${JOB7}'`)).payment_status === "refunded", o);
+await expectErr("...and the flag does not outlive the function", `update jobs set payment_status = 'escrow' where id = '${JOB7}'`, /paypal_job_money_outside_paypal/);
+o = await jx(`select public.paypal_job_mark_refunded('${JOB7}', '${c3.refund_id}', false, 'cancelled') j`);
+check("a refund of ANOTHER job cannot settle this one", /refund_not_for_job/.test(o.error ?? ""), o);
+o = await jx(`select public.paypal_job_mark_refunded('${JOB7}', '${s1.refund_id}', true, 'open') j`);
+check("compare-and-swap: a job no longer in the status read is left alone", o.updated === 0, o);
 
 // orphan captures (phase 3's contract: voided + capture + status_reason 'orphan:%'; phase 3 adds the column)
 await db.exec("reset role; alter table public.provider_payments add column if not exists status_reason text; set role service_role");
@@ -301,9 +362,9 @@ for (const role of ["authenticated", "anon"]) {
   await expectErr(`${role} cannot claim a refund`, claim(P2, K(JOB2, "x"), 1), /permission denied/);
   await expectErr(`${role} cannot record a refund`, `select public.paypal_refund_record('${c3.refund_id}', 'R', 'completed', 1)`, /permission denied/);
   await expectErr(`${role} cannot reconcile`, recon("CAP2", "R", "completed", 1), /permission denied/);
-  await expectErr(`${role} cannot list due refunds`, "select * from public.paypal_cancelled_job_refunds_due(1)", /permission denied/);
-  await expectErr(`${role} cannot list unsettled cancels`, "select * from public.paypal_cancelled_jobs_unsettled(1)", /permission denied/);
+  await expectErr(`${role} cannot settle a job's payment status`, `select public.paypal_job_mark_refunded('${JOB7}', '${c3.refund_id}', false, 'cancelled')`, /permission denied/);
   await expectErr(`${role} cannot list orphans`, "select * from public.paypal_orphan_refunds_due(1)", /permission denied/);
+  if (role === "anon") await expectErr("anon cannot use the PayPal cancel door", `select public.paypal_poster_cancel_job('${JOB7}')`, /permission denied/);
   await expectErr(`${role} cannot run the status sync`, `select public.paypal_payment_sync_refund_status('${P2}')`, /permission denied/);
   await db.exec("reset role");
 }

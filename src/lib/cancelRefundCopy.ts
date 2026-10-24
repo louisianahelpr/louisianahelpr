@@ -152,12 +152,11 @@ export function cancelRefundToast(args: {
   const { wasFunded, appliedFee, flatModel, keptFeeSentence } = args;
   const gift = args.gift ?? "none";
   if (args.paypal && wasFunded && gift === "none") {
-    // PayPal phase 5 refunds a fee-free cancel within about 10 minutes (the paypal-refunds sweep).
-    // A late-cancel fee is not built on PayPal yet (phase 6): the money is held and the poster is
-    // told when it is sent, never promised a time.
+    // The cancellation sweep (phase 6) refunds it through PayPal; no time is promised, and the
+    // poster's refund notice says when it is sent.
     return appliedFee > 0
       ? `Job cancelled. The $${formatPriceExact(appliedFee)} cancellation fee applies; the rest comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}`
-      : `Job cancelled. Your payment comes back to you through PayPal within about 10 minutes, less the processing fee PayPal keeps.${keptFeeSentence}`;
+      : `Job cancelled. Your payment comes back to you through PayPal, less the processing fee PayPal keeps. We'll let you know when it's sent.${keptFeeSentence}`;
   }
   const neutral = `Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.${keptFeeSentence}`;
   // A reserved gift is never spent before its card leg completes, so it comes

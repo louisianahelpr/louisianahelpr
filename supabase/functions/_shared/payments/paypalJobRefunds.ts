@@ -1,14 +1,16 @@
 /**
- * Job-level PayPal refunds (PayPal Plan A, phase 5; design §6 row 5): the three doors that give a
- * poster money back on a job paid through PayPal, each through refundProviderPayment (claim first,
- * one key per business event, the database refusing once a payout is queued).
+ * Job-level PayPal refunds (PayPal Plan A, phase 5; design §6 row 5), each through
+ * refundProviderPayment (claim first, one key per business event, the database refusing once a
+ * payout is queued):
  *
- *   refundCancelledJob       a poster cancelled before the work (poster_cancel_job): fee 0 only.
- *                            A late-cancel fee (25/50%), a crew or a series waits for phase 6 and
- *                            pages ops once a day; the money stays held, never half-refunded.
  *   adminRefundPayPalJob     an admin's refund, full (the job is cancelled) or partial.
  *   settleRefundAgreement    an agreed refund request (Board 141): the poster's part refunded first,
  *                            then (a partial one) the Helpr's rest queued in phase 4's pay queue.
+ *   refundOrphan             a capture that funded nothing (phase 3), refunded in full.
+ *   cancelRefundKey          the ONE key a cancelled job is refunded under. Phase 6's cancellation
+ *                            sweep settles every cancelled PayPal job (fee 0/25/50%) through the
+ *                            engine with it (lead decision 2026-10-23: one money path per cancel);
+ *                            a poster's cancel itself only cancels (paypal_poster_cancel_job, SQL).
  *
  * WHAT A REFUND KEEPS (owner 2026-10-14: "if admin refunds we keep the fee also. we should never
  * absorb any fee"): PayPal keeps its processing fee on every refund (sandbox 2026-10-23: refund
@@ -55,13 +57,11 @@ export interface PayPalJobPayment {
   amount_cents: number;
   provider_capture_id: string | null;
   env: string;
-  /** Phase 3's checkout breakdown (absent before it lands); the setup fee it charged is kept on a refund. */
-  breakdown?: { onboarding_fee_cents?: number | string | null } | null;
 }
 
 /** The PayPal payment on a job, or null for a Stripe-era / unpaid job. Fails CLOSED: an error is returned, never "none". */
 export async function readPayPalJobPayment(db: { from: (t: string) => any }, jobId: string): Promise<{ payment: PayPalJobPayment | null; error: string | null }> {
-  // "*": phase 3's breakdown column is read when it exists, and this read never names a column
+  // "*": this read never names a column
   // that a deploy order could leave missing (a failed read here fails closed everywhere).
   const { data, error } = await db.from("provider_payments")
     .select("*")
@@ -142,19 +142,24 @@ export async function refundableNow(deps: JobRefundDeps, payment: PayPalJobPayme
     capturedCents: payment.amount_cents,
     actualFeeCents: cap.feeCents,
     customerFeeCents: cents(job.customer_fee_amount),
-    // The one-time setup fee is kept (owner Q1346/Q1674): Stripe-era jobs carry it on the job,
-    // PayPal checkouts (phase 3) in the payment's breakdown (lh-money-escrow review #3).
-    setupFeeCents: Math.max(cents(job.onboarding_fee_amount), Math.max(0, Math.round(Number(payment.breakdown?.onboarding_fee_cents ?? 0)))),
+    // The one-time setup fee is kept (owner Q1346/Q1674), read from the job: phase 3's capture
+    // record writes jobs.onboarding_fee_amount from the order's breakdown, as the Stripe path does.
+    // Not from the breakdown itself: a duplicate collection (onboarding_fee_duplicate) is refunded
+    // by hand and must not be kept again (lh-money-escrow round 2, #4).
+    setupFeeCents: cents(job.onboarding_fee_amount),
     taxCents: cents(job.sales_tax_amount),
     alreadyRefundedCents: already,
     requestedCents,
   });
 }
 
-/** keptIsFee: what the payment kept is PayPal's fee (and the tax on it), not money a partial refund left. */
+/**
+ * Tell the payer (keptIsFee: what the payment kept is PayPal's fee and the tax on it, not money a
+ * partial refund left). Not gated on "replay": sendRefundNotice claims one notice per
+ * `refund:<PayPal refund id>`, so whoever finishes a refund (a door, the retry, the webhook) may ask
+ * and the payer is told exactly once (lh-silent-failure review round 2, N1).
+ */
 async function tellPayer(deps: JobRefundDeps, job: JobMoneyRow, out: Extract<RefundOutcome, { kind: "refunded" }>, keptCents: number, taxKeptCents: number, keptIsFee: boolean) {
-  // Told already by the run that first recorded PayPal's answer (sendRefundNotice also dedupes by key).
-  if (out.replay) return;
   const told = await sendRefundNotice(deps.db, {
     key: `refund:${out.providerRefundId}`,
     kind: "refund",
@@ -180,6 +185,7 @@ async function pageOutcome(deps: JobRefundDeps, where: string, jobId: string, ou
       kind: "money_at_risk", severity: "critical", title: "PayPal refunded a different amount than asked (refund_amount_mismatch)",
       message: `${where} job ${jobId}: asked ${out.askedCents} cents, PayPal refunded ${out.amountCents} (${out.providerRefundId}); the ledger now records ${out.amountCents}. Our ledger and PayPal disagreed about what was left: check this payment's other refunds.`,
       fields: { job_id: jobId, refund_row: out.refundRowId, paypal_refund: out.providerRefundId },
+      oncePerDayKey: `paypal-refund-mismatch:${out.refundRowId}`,
     });
   }
   if (out.kind === "recorded_late") {
@@ -187,156 +193,99 @@ async function pageOutcome(deps: JobRefundDeps, where: string, jobId: string, ou
       kind: "money_at_risk", severity: "critical", title: "PayPal refund made but not recorded",
       message: `${where} job ${jobId}: PayPal refunded ${out.amountCents} cents (${out.providerRefundId}) but provider_refunds did not take it: ${out.message}. PAYMENT.CAPTURE.REFUNDED will attach it; check the row.`,
       fields: { job_id: jobId, refund_row: out.refundRowId, paypal_refund: out.providerRefundId },
+      oncePerDayKey: `paypal-refund-late:${out.refundRowId}`,
     });
   } else if (out.kind === "retry") {
     await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund not finished", message: `${where} job ${jobId}: ${out.message.slice(0, 300)}. The next run retries with the same key.`, oncePerDayKey: `paypal-refund-retry:${where}:${jobId}` });
   } else if (out.kind === "refused" && out.code === "refund_after_payout_queued") {
-    // Not an error in the admin door (the admin is told), but a cancelled job whose Helpr payout is
-    // queued needs a person: cancel the payout or settle by hand.
+    // Not an error in the admin door (the admin is told there), but anywhere else a person decides.
     if (where !== "admin") {
-      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund blocked by a queued payout", message: `${where} job ${jobId}: a Helpr payout of this payment is queued, held or sent, so the poster cannot be refunded until an admin cancels it or settles by hand.`, oncePerDayKey: `paypal-refund-payout-queued:${where}:${jobId}` });
+      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund blocked by a queued payout", message: `${where} job ${jobId}: a Helpr payout of this payment is queued, held or sent, so the payer cannot be refunded until an admin cancels it or settles by hand.`, oncePerDayKey: `paypal-refund-payout-queued:${where}:${jobId}` });
     }
   } else if (out.kind === "refused") {
-    await deps.alert({ kind: "money_at_risk", severity: "critical", title: "PayPal refund refused", message: `${where} job ${jobId}: ${out.code}: ${out.message.slice(0, 300)}. The poster has not been refunded.`, oncePerDayKey: `paypal-refund-refused:${where}:${jobId}` });
+    await deps.alert({ kind: "money_at_risk", severity: "critical", title: "PayPal refund refused", message: `${where} job ${jobId}: ${out.code}: ${out.message.slice(0, 300)}. The payer has not been refunded.`, oncePerDayKey: `paypal-refund-refused:${where}:${jobId}` });
   }
 }
 
-export interface CancelledDueRow {
-  job_id: string;
-  provider_payment_id: string;
-  payment_amount_cents: number;
-  job_payment_status: string | null;
-  cancellation_fee_cents: number;
-  has_crew: boolean;
-  is_series: boolean;
-  /** Earlier cancel-refund attempts that failed or were cancelled at PayPal. */
-  cancel_attempts: number;
-}
-
-/** A cancelled job's refund key; a later attempt after a FAILED/CANCELLED one gets its own key. */
-export const cancelRefundKey = (jobId: string, earlierAttempts = 0) =>
-  earlierAttempts > 0 ? `lh:job:${jobId}:refund:cancel:a${earlierAttempts + 1}` : `lh:job:${jobId}:refund:cancel`;
-const CANCEL_KEY_RE = /^lh:job:([0-9a-f-]{36}):refund:cancel(?::a\d+)?$/;
-const ADMIN_KEY_RE = /^lh:job:([0-9a-f-]{36}):refund:admin:[0-9a-f-]{36}$/;
-const MAX_CANCEL_ATTEMPTS = 3;
-
-/** One cancelled PayPal job. Returns a short outcome word for the sweep's summary. */
-export async function refundCancelledJob(deps: JobRefundDeps, due: CancelledDueRow): Promise<string> {
-  const jobId = due.job_id;
-  if (due.has_crew || due.is_series || Number(due.cancellation_fee_cents) > 0) {
-    // Phase 6 (cancellation fees, crews, repeat visits). Held, never half-refunded.
-    await deps.alert({
-      kind: "money_at_risk", severity: "warning", title: "Cancelled PayPal job waits for the cancellation-fee build",
-      message: `Job ${jobId} was cancelled with ${due.has_crew ? "a crew" : due.is_series ? "a repeat series" : `a ${due.cancellation_fee_cents}-cent late-cancel fee`}. PayPal phase 5 refunds only fee-free cancellations; the poster's money stays held until phase 6 (or an admin refunds it by hand).`,
-      oncePerDayKey: `paypal-cancel-held:${jobId}`,
-    });
-    return "held_for_phase6";
+/** Settle a job after its refund, under phase 3's money flag (paypal_job_mark_refunded). Pages on failure. */
+async function markJobRefunded(deps: JobRefundDeps, jobId: string, refundRowId: string, cancel: boolean, expectStatus: string, what: string): Promise<boolean> {
+  const { data, error } = await deps.db.rpc("paypal_job_mark_refunded", { p_job_id: jobId, p_refund_id: refundRowId, p_cancel: cancel, p_expect_status: expectStatus });
+  const n = Number((data as { updated?: number } | null)?.updated ?? 0);
+  if (error || n === 0) {
+    await deps.alert({ kind: "money_at_risk", severity: "warning", title: `PayPal ${what} made, job not settled`, message: `Job ${jobId}: ${error ? error.message : `matched no row (the job is no longer ${expectStatus})`}. The refund itself is recorded.`, oncePerDayKey: `paypal-job-settle:${jobId}` });
+    return false;
   }
-  if (Number(due.cancel_attempts) >= MAX_CANCEL_ATTEMPTS) {
-    await deps.alert({ kind: "money_at_risk", severity: "critical", title: "PayPal cancel refund failed repeatedly", message: `Job ${jobId}: PayPal failed or cancelled the cancel refund ${due.cancel_attempts} times. The poster has NOT been refunded; refund by hand from the admin screen.`, oncePerDayKey: `paypal-cancel-gave-up:${jobId}` });
-    return "gave_up";
-  }
-  const { data: job, error: jobErr } = await deps.db.from("jobs").select(JOB_COLS).eq("id", jobId).maybeSingle();
-  if (jobErr || !job) return `job_read_failed:${jobErr?.message ?? "missing"}`;
-  if ((job as JobMoneyRow).status !== "cancelled") return "no_longer_cancelled";
-  const { data: payRow, error: payErr } = await deps.db.from("provider_payments")
-    .select("*").eq("id", due.provider_payment_id).maybeSingle();
-  if (payErr || !payRow) return `payment_read_failed:${payErr?.message ?? "missing"}`;
-  const payment = payRow as PayPalJobPayment;
-  if (!REFUNDABLE.has(payment.status)) return `not_refundable:${payment.status}`;
-  const key = cancelRefundKey(jobId, Number(due.cancel_attempts));
-  let amounts;
-  try {
-    amounts = await refundableNow(deps, payment, job as JobMoneyRow, null, key);
-  } catch (e) {
-    // Not a transient read: a capture that disagrees with our row, or no fee yet. Once a day, not
-    // a red run every 10 minutes.
-    const why = e instanceof Error ? e.message : String(e);
-    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "Cancelled PayPal job: refund amount unknown", message: `Job ${jobId}: ${why}. The poster has not been refunded yet.`, oncePerDayKey: `paypal-cancel-amount:${jobId}` });
-    return `amount_unknown:${why}`;
-  }
-  if (amounts.refundCents <= 0) {
-    await deps.alert({ kind: "custom", severity: "info", title: "Cancelled PayPal job: nothing to refund", message: `Job ${jobId}: PayPal's fee and earlier refunds take the whole payment.`, oncePerDayKey: `paypal-cancel-nothing:${jobId}` });
-    return "nothing_refundable";
-  }
-  const out = await refundProviderPayment(deps.db, deps.provider, {
-    paymentId: payment.id,
-    idempotencyKey: key,
-    amountCents: amounts.refundCents,
-    reason: "poster cancelled before the work; no cancellation fee",
-    noteToPayer: "Your Louisiana Helpr job was cancelled. PayPal keeps its processing fee.",
-    maxTotalCents: amounts.ceilingCents,
-  });
-  return await afterCancelRefund(deps, job as JobMoneyRow, out, payment.amount_cents, amounts.taxKeptCents);
-}
-
-async function afterCancelRefund(deps: JobRefundDeps, job: JobMoneyRow, out: RefundOutcome, capturedCents: number, taxKeptCents = 0): Promise<string> {
-  await pageOutcome(deps, "cancel", job.id, out);
-  if (out.kind !== "refunded") return out.kind === "refused" ? `refused:${out.code}` : out.kind;
-  // The job's money is settled: pinned to cancelled, so a job that moved in between keeps its own.
-  const flip = await deps.db.from("jobs").update({ payment_status: "refunded" })
-    .eq("id", job.id).eq("status", "cancelled")
-    .select("id");
-  if (flip.error || (flip.data ?? []).length === 0) {
-    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund made, job not marked refunded", message: `Job ${job.id}: refunded ${out.amountCents} cents (${out.providerRefundId}) but the job flip ${flip.error ? `failed: ${flip.error.message}` : "matched no row (the job moved)"}.`, oncePerDayKey: `paypal-cancel-flip:${job.id}` });
-  }
-  await tellPayer(deps, job, out, Math.max(0, capturedCents - out.amountCents), taxKeptCents, true);
-  return out.replay ? "already_refunded" : "refunded";
+  return true;
 }
 
 /**
- * What follows a finished refund for its key, whoever finished it (the lost-answer retry here; the
- * doors run their own). Cancel: settle the job and tell the poster. Admin: a full one cancels the
- * job (as the door does), then tell the poster. Agreement: the next hand-out re-runs the settle
- * (which replays the refund and queues the Helpr's part); here it only pages.
+ * THE key of a cancelled job's refund (lead 2026-10-23: phase 6's cancellation sweep settles all
+ * money for cancelled PayPal jobs, through refundProviderPayment under this key, so a cancel can
+ * never be refunded twice). A later attempt after PayPal FAILED/CANCELLED one gets `:a<n>`.
+ */
+export const cancelRefundKey = (jobId: string, earlierAttempts = 0) =>
+  earlierAttempts > 0 ? `lh:job:${jobId}:refund:cancel:a${earlierAttempts + 1}` : `lh:job:${jobId}:refund:cancel`;
+const ADMIN_KEY_RE = /^lh:job:([0-9a-f-]{36}):refund:admin:[0-9a-f-]{36}$/;
+const DISPUTE_KEY_RE = /^lh:dispute:([0-9a-f-]{36}):refund$/;
+const ORPHAN_KEY_RE = /^lh:pp:([0-9a-f-]{36}):refund:orphan(?::a\d+)?$/;
+const MAX_ORPHAN_ATTEMPTS = 3;
+
+/**
+ * What follows a refund someone other than its door finished (the lost-answer retry, the webhook):
+ *   admin key     a full one cancels the job (as the door does), then the payer is told;
+ *   dispute key   the agreement's settle is run again (it replays the refund and queues the Helpr's
+ *                 part, then marks the dispute executed), so a refund that was PENDING or lost never
+ *                 strands the Helpr's share (reviews round 2: money #2, silent-failure N2);
+ *   orphan key    the payer is told;
+ *   anything else (a cancel key: phase 6's sweep owns the follow-up and replays the key) only pages.
  */
 async function afterRefund(deps: JobRefundDeps, row: ClaimRow & { idempotency_key: string }, out: RefundOutcome): Promise<void> {
-  const cancel = CANCEL_KEY_RE.exec(row.idempotency_key);
+  const dispute = DISPUTE_KEY_RE.exec(row.idempotency_key);
+  if (dispute) {
+    await pageOutcome(deps, "agreement", row.idempotency_key, out);
+    if (out.kind === "refunded" && out.settled) {
+      const res = await settleRefundAgreement(deps, dispute[1]);
+      if (res.status !== 200 && res.status !== 409) {
+        await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement not finished after its refund", message: `Dispute ${dispute[1]}: ${String(res.body.error ?? res.status).slice(0, 200)}.`, oncePerDayKey: `paypal-agreement-after:${dispute[1]}` });
+      }
+    }
+    return;
+  }
+  if (ORPHAN_KEY_RE.test(row.idempotency_key)) {
+    await pageOutcome(deps, "orphan", row.idempotency_key, out);
+    if (out.kind === "refunded") await tellOrphanPayer(deps, row.provider_payment_id, out);
+    return;
+  }
   const admin = ADMIN_KEY_RE.exec(row.idempotency_key);
-  const jobId = cancel?.[1] ?? admin?.[1] ?? null;
-  if (!jobId) {
+  if (!admin) {
     await pageOutcome(deps, "retry", row.idempotency_key, out);
     return;
   }
+  const jobId = admin[1];
+  await pageOutcome(deps, "admin", jobId, out);
+  if (out.kind !== "refunded") return;
   const [{ data: job, error: jobErr }, { data: pay, error: payErr }] = await Promise.all([
     deps.db.from("jobs").select(JOB_COLS).eq("id", jobId).maybeSingle(),
     deps.db.from("provider_payments").select("amount_cents").eq("id", row.provider_payment_id).maybeSingle(),
   ]);
   if (jobErr || payErr || !job || !pay) {
-    // Never silent: the outcome itself is paged, and the missing follow-up with it.
-    await pageOutcome(deps, cancel ? "cancel" : "admin", jobId, out);
-    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund follow-up not run", message: `Job ${jobId} (${row.idempotency_key}): ${out.kind}; the job/payment read failed (${jobErr?.message ?? payErr?.message ?? "missing row"}), so the job was not settled and the poster not told. Check it by hand.`, oncePerDayKey: `paypal-refund-followup:${row.id}` });
+    await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund follow-up not run", message: `Job ${jobId} (${row.idempotency_key}): refunded, but the job/payment read failed (${jobErr?.message ?? payErr?.message ?? "missing row"}), so the job was not settled and the payer not told. Check it by hand.`, oncePerDayKey: `paypal-refund-followup:${row.id}` });
     return;
   }
-  const captured = Number((pay as { amount_cents: number }).amount_cents);
-  if (cancel) {
-    await afterCancelRefund(deps, job as JobMoneyRow, out, captured);
-    return;
-  }
-  await pageOutcome(deps, "admin", jobId, out);
-  if (out.kind !== "refunded") return;
   const full = (row.reason ?? "").startsWith("admin_full");
-  if (full) {
-    // Pinned to the status read (race class): a job that moved in between keeps its own.
-    const flip = await deps.db.from("jobs").update({ status: "cancelled", payment_status: "refunded" })
-      .eq("id", jobId).eq("status", (job as JobMoneyRow).status).neq("status", "disputed").select("id");
-    if (flip.error || (flip.data ?? []).length === 0) {
-      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal admin refund made, job not cancelled", message: `Job ${jobId}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-admin-flip:${jobId}` });
-    }
-  }
+  if (full) await markJobRefunded(deps, jobId, row.id, true, (job as JobMoneyRow).status, "admin refund");
   let other = 0;
   try {
     other = await liveRefundedCents(deps.db, row.provider_payment_id, row.idempotency_key);
   } catch (e) {
     console.error(`[paypal-refunds] refund total read failed for ${row.id}: ${e instanceof Error ? e.message : String(e)}`);
   }
-  await tellPayer(deps, job as JobMoneyRow, out, Math.max(0, captured - other - out.amountCents), 0, full);
+  await tellPayer(deps, job as JobMoneyRow, out, Math.max(0, Number((pay as { amount_cents: number }).amount_cents) - other - out.amountCents), 0, full);
 }
 
 /**
  * A refund the webhook (or the pending re-check) just recorded for one of our keys, whose door did
- * not see PayPal's answer (it timed out): run that door's follow-up now (settle the job, tell the
- * poster). Reads fail loudly through afterRefund.
+ * not see PayPal's answer (it timed out) or saw it PENDING: run that key's follow-up now.
  */
 export async function followUpRecordedRefund(deps: JobRefundDeps, refundRowId: string): Promise<void> {
   const { data, error } = await deps.db.from("provider_refunds")
@@ -357,13 +306,14 @@ export async function followUpRecordedRefund(deps: JobRefundDeps, refundRowId: s
 interface PendingRow { id: string; provider_payment_id: string; idempotency_key: string; amount_cents: number; status: string; provider_refund_id: string | null; reason: string | null; created_at: string; updated_at: string }
 
 /**
- * The sweep's second half: refunds not finished yet.
+ * The sweep's unfinished-refund half:
  *   (a) a claim whose PayPal answer was lost (pending, no PayPal id, claimed 2-60 minutes ago): asked
  *       again with the SAME key, so PayPal answers with the same refund;
  *   (b) older than an hour with no answer: a person checks PayPal first (PayPal's memory of a
  *       PayPal-Request-Id is not on the pages read; ASSUMED hours), paged once a day each;
  *   (c) PENDING at PayPal for over an hour (a PayPal id, webhook not arrived): re-read from PayPal
- *       and reconciled, paged once a day each after 24 hours still pending.
+ *       and reconciled, the oldest-checked first (each check stamps updated_at), paged once a day
+ *       each after 24 hours still pending.
  */
 export async function retryLostRefunds(deps: JobRefundDeps, now = Date.now()): Promise<{ retried: number; finished: number; stale: number; rechecked: number }> {
   const iso = (ms: number) => new Date(ms).toISOString();
@@ -400,8 +350,14 @@ export async function retryLostRefunds(deps: JobRefundDeps, now = Date.now()): P
       });
       if (rec.error) throw new Error(rec.error.message);
       if (r.status === "failed" || r.status === "cancelled") await pageRefundUndone(deps, row.idempotency_key, r.id, r.status);
-      if (r.status === "pending" && now - Date.parse(row.created_at) > 24 * 3600_000) {
-        await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund pending for over a day", message: `provider_refunds ${row.id} (${row.idempotency_key}): PayPal still says PENDING for refund ${r.id}.`, oncePerDayKey: `paypal-refund-pending-day:${row.id}` });
+      if (r.status === "completed") await followUpRecordedRefund(deps, row.id);
+      if (r.status === "pending") {
+        // Still pending: stamp the check so the next run reaches the rows behind it.
+        const { error: touchErr } = await deps.db.from("provider_refunds").update({ updated_at: new Date(now).toISOString() }).eq("id", row.id).eq("status", "pending").select("id");
+        if (touchErr) console.error(`[paypal-refunds] could not stamp the re-check of ${row.id}: ${touchErr.message}`);
+        if (now - Date.parse(row.created_at) > 24 * 3600_000) {
+          await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal refund pending for over a day", message: `provider_refunds ${row.id} (${row.idempotency_key}): PayPal still says PENDING for refund ${r.id}.`, oncePerDayKey: `paypal-refund-pending-day:${row.id}` });
+        }
       }
     } catch (e) {
       await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal pending refund could not be re-checked", message: `provider_refunds ${row.id} (${row.idempotency_key}): ${e instanceof Error ? e.message : String(e)}`, oncePerDayKey: `paypal-refund-recheck:${row.id}` });
@@ -411,23 +367,16 @@ export async function retryLostRefunds(deps: JobRefundDeps, now = Date.now()): P
 }
 
 /**
- * A refund we had recorded as made came back FAILED or CANCELLED from PayPal: the poster may have
- * been told it was refunded. Page a person, and put a cancelled job's money back in the cancel
- * hand-out (jobs.payment_status back to 'escrow'; paypal_cancelled_job_refunds_due then offers it
- * again under a new attempt key, at most MAX_CANCEL_ATTEMPTS times).
+ * A refund we had recorded as made came back FAILED or CANCELLED from PayPal: the payer may have
+ * been told it was refunded. A person decides (for a cancel key, phase 6's sweep offers the job
+ * again under a new attempt key: cancelRefundKey). One page per refund, whoever saw it first.
  */
 export async function pageRefundUndone(deps: JobRefundDeps, key: string, paypalRefundId: string, status: string): Promise<void> {
-  const cancel = CANCEL_KEY_RE.exec(key);
-  let reopened = "";
-  if (cancel) {
-    const back = await deps.db.from("jobs").update({ payment_status: "escrow" })
-      .eq("id", cancel[1]).eq("status", "cancelled").eq("payment_status", "refunded").select("id");
-    reopened = back.error ? ` Reopening the job for a new refund failed: ${back.error.message}.` : (back.data ?? []).length > 0 ? " The job is back in the cancel sweep for a new attempt." : "";
-  }
   await deps.alert({
     kind: "money_at_risk", severity: "critical", title: "PayPal refund failed after it was recorded",
-    message: `PayPal refund ${paypalRefundId} (${key}) is ${status.toUpperCase()}. The poster may have been told they were refunded; they were not.${reopened}`,
+    message: `PayPal refund ${paypalRefundId} (${key}) is ${status.toUpperCase()}. The payer may have been told they were refunded; they were not. Refund by hand or let the owning sweep retry under a new key.`,
     fields: { key, paypal_refund: paypalRefundId },
+    oncePerDayKey: `paypal-refund-undone:${paypalRefundId}`,
   });
 }
 
@@ -442,15 +391,34 @@ export interface OrphanDueRow {
   failed_attempts: number;
 }
 
+/** The payer of an orphan capture (a job's poster or a tipper) is told, by their own id. */
+async function tellOrphanPayer(deps: JobRefundDeps, paymentId: string, out: Extract<RefundOutcome, { kind: "refunded" }>): Promise<void> {
+  const { data, error } = await deps.db.from("provider_payments").select("payer_id, subject_kind, subject_id").eq("id", paymentId).maybeSingle();
+  const p = data as { payer_id: string | null; subject_kind: string; subject_id: string } | null;
+  if (error || !p?.payer_id) {
+    await deps.alert({ kind: "custom", severity: "warning", title: "Orphan PayPal refund: payer not told", message: `Payment ${paymentId}: ${error?.message ?? "no payer on the payment"}. The refund itself is made.`, oncePerDayKey: `paypal-orphan-notice:${paymentId}` });
+    return;
+  }
+  const told = await sendRefundNotice(deps.db, {
+    key: `refund:${out.providerRefundId}`, kind: "refund", paymentIntentId: null, amountCents: out.amountCents, keptCents: 0,
+    method: { type: "paypal" }, recipientId: p.payer_id, jobId: p.subject_kind === "job" ? p.subject_id : null, jobByPayment: false,
+    extra: "This PayPal payment did not go through to a job, so it comes back in full.",
+    testMode: deps.provider.env === "sandbox",
+  });
+  const problem = refundNoticeProblem(told);
+  if (problem) await deps.alert({ kind: "custom", severity: "warning", title: "Orphan PayPal refund: payer not told", message: `Payment ${paymentId}: ${problem}`, oncePerDayKey: `paypal-orphan-notice:${paymentId}` });
+}
+
 /**
  * An orphan capture (phase 3: a capture that could not fund its job, e.g. a second tab's second
  * payment): refunded IN FULL, PayPal's fee included (the money was never ours: owner 2026-10-14,
- * a refund caused by our side goes back in full), automatically, under its own key. A fully
- * refunded orphan reads 'refunded', which clears phase 3's orphan alert.
+ * a refund caused by our side goes back in full; whether job_closed/price_changed orphans count is
+ * an owner question, Q2379), automatically, under its own key. A fully refunded orphan reads
+ * 'refunded', which clears phase 3's orphan alert.
  */
 export async function refundOrphan(deps: JobRefundDeps, row: OrphanDueRow): Promise<string> {
   const tries = Number(row.failed_attempts);
-  if (tries >= MAX_CANCEL_ATTEMPTS) {
+  if (tries >= MAX_ORPHAN_ATTEMPTS) {
     await deps.alert({ kind: "money_at_risk", severity: "critical", title: "Orphan PayPal payment could not be refunded", message: `Payment ${row.provider_payment_id} (${row.orphan_reason ?? "orphan"}, ${row.amount_cents} cents): PayPal failed the full refund ${tries} times. Refund it by hand in PayPal.`, oncePerDayKey: `paypal-orphan-gave-up:${row.provider_payment_id}` });
     return "gave_up";
   }
@@ -465,20 +433,8 @@ export async function refundOrphan(deps: JobRefundDeps, row: OrphanDueRow): Prom
   });
   await pageOutcome(deps, "orphan", row.subject_id, out);
   if (out.kind !== "refunded") return out.kind === "refused" ? `refused:${out.code}` : out.kind;
-  if (row.subject_kind === "job") {
-    const { data: job, error } = await deps.db.from("jobs").select(JOB_COLS).eq("id", row.subject_id).maybeSingle();
-    if (!error && job) await tellPayer(deps, job as JobMoneyRow, out, 0, 0, false);
-  }
+  await tellOrphanPayer(deps, row.provider_payment_id, out);
   return out.replay ? "already_refunded" : "refunded";
-}
-
-/** The safety net: a cancelled job whose cancel refund is done at PayPal but not on the job yet. */
-export async function settleUnsettledCancels(deps: JobRefundDeps): Promise<number> {
-  const { data, error } = await deps.db.rpc("paypal_cancelled_jobs_unsettled", { p_limit: 20 });
-  if (error) throw new Error(`unsettled-cancel read failed: ${error.message}`);
-  const rows = (data ?? []) as Array<{ job_id: string; refund_id: string }>;
-  for (const r of rows) await followUpRecordedRefund(deps, r.refund_id);
-  return rows.length;
 }
 
 export interface AdminRefundInput {
@@ -581,15 +537,10 @@ export async function adminRefundPayPalJob(deps: JobRefundDeps, input: AdminRefu
   }
   if (out.kind === "retry") return { status: 503, body: { error: "PayPal did not answer. Press again: the same refund is retried, never doubled.", retry: true } };
   if (out.kind === "recorded_late") return { status: 500, body: { error: "PayPal refunded it, but our ledger is behind. Ops has been paged.", paypalRefundId: out.providerRefundId, recordedLate: true } };
-  if (full) {
-    // A full admin refund cancels the job, as admin_refund_general does on Stripe.
-    // Pinned to the status read (race class): a job that moved in between keeps its own.
-    const flip = await deps.db.from("jobs").update({ status: "cancelled", payment_status: "refunded" })
-      .eq("id", j.id).eq("status", j.status).neq("status", "disputed").select("id");
-    if (flip.error || (flip.data ?? []).length === 0) {
-      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal admin refund made, job not cancelled", message: `Job ${j.id}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-admin-flip:${j.id}` });
-    }
-  }
+  // A full admin refund cancels the job, as admin_refund_general does on Stripe; pinned to the
+  // status read (race class) and written under phase 3's money flag. Only a refund PayPal has
+  // COMPLETED settles the job; a PENDING one is settled by whoever records its completion.
+  if (full && out.settled) await markJobRefunded(deps, j.id, out.refundRowId, true, j.status, "admin refund");
   let other = 0;
   try {
     other = await liveRefundedCents(deps.db, prior?.provider_payment_id ?? payment!.id, key);
@@ -717,6 +668,11 @@ export async function settleRefundAgreement(deps: JobRefundDeps, disputeId: stri
   }
   // Never executed (and never a Helpr payout queued) on a refund PayPal has not completed: if it later
   // fails, the poster would hold nothing while the dispute says settled. The next hand-out re-asks.
+  // Told as soon as the poster's part is refunded, whatever happens to the Helpr's part
+  // (silent-failure round 2, N1); sendRefundNotice tells them once per PayPal refund.
+  if (out?.kind === "refunded") {
+    await tellPayer(deps, job, out, Math.max(0, payment.amount_cents - out.amountCents), taxKeptCents, !partial);
+  }
   if (out && !out.settled) {
     await markFailed(`the poster's refund ${out.providerRefundId} is PENDING at PayPal; settled on a later run`);
     return { status: 409, body: { error: "refund pending at PayPal", pending: true, refunded: out.amountCents } };
@@ -750,11 +706,9 @@ export async function settleRefundAgreement(deps: JobRefundDeps, disputeId: stri
       }
       payout = { outcome, amountCents: helperCents, platformFeeCents: feeCents };
     }
-  } else {
-    const flip = await deps.db.from("jobs").update({ payment_status: "refunded" }).eq("id", ag.job_id).eq("status", "cancelled").select("id");
-    if (flip.error || (flip.data ?? []).length === 0) {
-      await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement refunded, job not marked refunded", message: `Job ${ag.job_id}: ${flip.error?.message ?? "matched no row"}.`, oncePerDayKey: `paypal-agreement-flip:${ag.job_id}` });
-    }
+  } else if (out?.kind === "refunded") {
+    // refund_agreements_due already cancelled the job; its money is now settled (phase 3's flag).
+    await markJobRefunded(deps, ag.job_id, out.refundRowId, false, "cancelled", "agreed refund");
   }
   const done = await deps.db.from("disputes").update({
     execution_status: "executed",
@@ -766,9 +720,6 @@ export async function settleRefundAgreement(deps: JobRefundDeps, disputeId: stri
   }).eq("id", disputeId).eq("execution_status", "executing").select("id");
   if (done.error || (done.data ?? []).length === 0) {
     await deps.alert({ kind: "money_at_risk", severity: "warning", title: "PayPal agreement settled, dispute not marked executed", message: `Dispute ${disputeId}: ${done.error?.message ?? "matched no row"}. Every leg replays as a no-op.`, oncePerDayKey: `paypal-agreement-mark:${disputeId}` });
-  }
-  if (out?.kind === "refunded") {
-    await tellPayer(deps, job, out, Math.max(0, payment.amount_cents - out.amountCents), taxKeptCents, !partial);
   }
   return { status: 200, body: { settled: true, refundCents: out?.amountCents ?? 0, paypalRefundId: out?.providerRefundId ?? null, payout } };
 }

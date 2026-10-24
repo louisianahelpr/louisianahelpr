@@ -29,7 +29,7 @@ export const PAYPAL_GUARDED_REFUND_ACTIONS = [
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const REFUSAL: Record<string, string> = {
-  cancel_escrow: "This job was paid with PayPal. Cancel it with Cancel job: the refund follows within minutes. No money was moved.",
+  cancel_escrow: "This job was paid with PayPal. Cancel it with Cancel job: the refund follows through PayPal. No money was moved.",
   cancel_quote: "This job was paid with PayPal, so its quote is cancelled with Cancel job. No money was moved.",
   admin_refund_dispute: "This job was paid with PayPal. PayPal dispute settlement is not built yet (PayPal phase 7); settle it by hand. No money was moved.",
   admin_bill_helpr_fault: "This job was paid with PayPal. Helpr-at-fault billing on PayPal is not built yet (PayPal phase 7). No money was moved.",

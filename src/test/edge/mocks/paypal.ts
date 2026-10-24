@@ -19,3 +19,11 @@ export async function payPalFundedJobIds(_db: unknown, _jobIds: string[]): Promi
 export async function payPalRefundDoorFor(..._args: unknown[]): Promise<Response | null> {
   return null;
 }
+
+export async function settleRefundAgreement(..._args: unknown[]): Promise<{ status: number; body: Record<string, unknown> }> {
+  return { status: 500, body: { error: "the edge harness does not settle PayPal agreements" } };
+}
+
+export function payPalFromEnv(): never {
+  throw new Error("the edge harness has no PayPal");
+}

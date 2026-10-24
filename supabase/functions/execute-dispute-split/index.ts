@@ -75,7 +75,8 @@ import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
-import { readPayPalJobPayment } from "../_shared/payments/paypalJobRefunds.ts";
+import { readPayPalJobPayment, settleRefundAgreement } from "../_shared/payments/paypalJobRefunds.ts";
+import { payPalFromEnv } from "../_shared/payments/paypalRefundDoors.ts";
 
 /**
  * The client type these helpers accept.
@@ -286,7 +287,22 @@ serve(async (req) => {
       return json({ error: "could not check how this job was paid — nothing was moved, retry" }, 503);
     }
     if (pp.payment) {
-      return json({ error: "this job was paid with PayPal: its split is not a Stripe split (agreed full refunds settle through paypal-refunds; other PayPal splits wait for PayPal phase 7) — nothing was moved", code: "paypal_job" }, 409);
+      // An AGREED refund request on a PayPal job settles through the PayPal path, from here too, so
+      // an admin's "Retry settlement" still works (money review round 2, #2). It re-checks the
+      // recorded agreement itself and replays every leg already done.
+      const { data: ppAgreement, error: ppAgreementErr } = await supabaseAdmin.rpc("refund_agreement_for_dispute", { p_dispute_id: disputeId });
+      if (ppAgreementErr) return json({ error: "could not verify the refund agreement — nothing was moved, retry" }, 503);
+      if ((ppAgreement as { job_id?: string } | null)?.job_id) {
+        let pp5;
+        try {
+          pp5 = payPalFromEnv();
+        } catch (e) {
+          return json({ error: `PayPal is not configured (${e instanceof Error ? e.message : String(e)}) — nothing was moved` }, 503);
+        }
+        const settled = await settleRefundAgreement({ db: supabaseAdmin, provider: pp5.provider, client: pp5.client, alert: postSlackOpsAlert as never }, disputeId);
+        return json({ ...settled.body, success: settled.status === 200 }, settled.status);
+      }
+      return json({ error: "this job was paid with PayPal: its split is not a Stripe split (agreed refunds settle through paypal-refunds; other PayPal splits wait for PayPal phase 7) — nothing was moved", code: "paypal_job" }, 409);
     }
   }
 

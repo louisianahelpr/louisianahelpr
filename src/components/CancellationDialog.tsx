@@ -258,6 +258,17 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           p_reason: reason.trim() || undefined,
         }));
       }
+      // PayPal (phase 5, lead 2026-10-23): the database refuses the ordinary cancel while a job's
+      // PayPal money is held (paypal_payment_held); its own door cancels it the same way and moves
+      // no money. The refund follows from the cancellation sweep, under one key, never twice.
+      if (error && /paypal_payment_held/.test(`${error.message ?? ""} ${error.hint ?? ""}`)) {
+        ({ data: verdict, error } = await supabase.rpc("paypal_poster_cancel_job", {
+          p_job_id: jobId,
+          p_reason: reason.trim() || undefined,
+          // The same quoted fee: the PayPal door runs poster_cancel_job itself.
+          p_expected_fee_cents: quotedFeeCents ?? undefined,
+        }));
+      }
       if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
         // Nothing was cancelled. Show the new fee and let the poster decide again.
         // Reported (lh-money-escrow review): a tier crossing clears on the

@@ -18,7 +18,7 @@
  *
  * @mutate supabase/functions/void-cancelled-payments/index.ts | const jobs = paypalJobs.error ? [] : (cancelledJobs ?? []).filter((j: { id: string }) => !paypalJobs.ids.has(j.id)); | const jobs = cancelledJobs ?? [];
  * @mutate supabase/functions/create-payment/index.ts |     if (payPalDoor) return payPalDoor; |     void payPalDoor;
- * @mutate supabase/functions/execute-dispute-split/index.ts |     if (pp.payment) {\n      return json({ error: "this job was paid with PayPal | if (false) {\n      return json({ error: "this job was paid with PayPal
+ * @mutate supabase/functions/execute-dispute-split/index.ts |     if (pp.payment) {\n      // An AGREED refund request on a PayPal job | if (false) {\n      // An AGREED refund request on a PayPal job
  * @mutate supabase/functions/refund-request-sweep/index.ts | const settler = pp.payment ? "paypal-refunds" : "execute-dispute-split"; | const settler = "execute-dispute-split";
  * @mutate supabase/functions/_shared/payments/paypalRefundDoors.ts |   if (!found.payment) return null;\n\n  if (action !== "admin_refund_general") { |   if (found.payment) return null;\n\n  if (action !== "admin_refund_general") {
  */
@@ -45,7 +45,7 @@ const AWARE: Record<string, { steps: RegExp; before: RegExp }> = {
     before: /let voided = 0;/,
   },
   "supabase/functions/execute-dispute-split/index.ts": {
-    steps: /const pp = await readPayPalJobPayment\(supabaseAdmin, dispute\.job_id\); if \(pp\.error\) \{[\s\S]*?return json\([^;]*503\); \} if \(pp\.payment\) \{ return json\(/,
+    steps: /const pp = await readPayPalJobPayment\(supabaseAdmin, dispute\.job_id\); if \(pp\.error\) \{[\s\S]*?return json\([^;]*503\); \} if \(pp\.payment\) \{[\s\S]*?return json\(\{ error: "this job was paid with PayPal/,
     before: /refunds\.create\(/,
   },
 };

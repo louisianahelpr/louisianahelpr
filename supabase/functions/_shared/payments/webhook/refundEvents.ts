@@ -6,7 +6,8 @@
  * refund changing state; all in the sandbox event catalogue, design #16):
  * the event names a refund. Re-read it from PayPal (status, amount, its capture), never trusting
  * the body, and hand that to paypal_refund_reconcile, which records it exactly once:
- *   already / updated   a refund we made; PayPal's newer status recorded.
+ *   already / updated   a refund we made; PayPal's newer status recorded (pending -> completed runs
+ *                       the key's follow-up; -> failed/cancelled pages a person).
  *   attached            our claim whose PayPal answer was lost (timeout) takes PayPal's id.
  *   recorded_outside    made in the PayPal dashboard: the ledger records it.
  *   outside_refund_refused  made in the dashboard while a payout of the same money was queued or
@@ -43,6 +44,12 @@ export const handleRefundEvent: PayPalEventHandler = async (event, ctx) => {
     p_refund_row_hint: refund.customId,
   });
   if (error) {
+    if (/refund_amount_mismatch/.test(error.message)) {
+      // PayPal says this refund is LARGER than the claim it names, or changed after it was
+      // answered: never recorded on its own, never retried 25 times in silence.
+      await postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title: "PayPal refund disagrees with our ledger", message: `Refund ${refund.id} (${refund.amountCents} cents) on capture ${refund.captureId}: ${error.message.slice(0, 300)}. Check the payment's refunds by hand.`, oncePerDayKey: `paypal-refund-ledger-clash:${refund.id}` });
+      throw new PayPalEventFinal(`refund ${refund.id}: amount disagrees with the ledger`);
+    }
     if (/reconcile_env_mismatch/.test(error.message)) {
       // Crossed configuration (a sandbox payment's refund arriving on live, or the reverse): a
       // redelivery changes nothing, so it is final, and a person is paged.
@@ -66,12 +73,14 @@ export const handleRefundEvent: PayPalEventHandler = async (event, ctx) => {
     await postSlackOpsAlert({ kind: "money_at_risk", severity: "critical", title: "PayPal refunded a different amount than asked (refund_amount_mismatch)", message: `Refund ${refund.id}: we claimed ${out.asked_cents} cents, PayPal refunded ${refund.amountCents}; the ledger now records ${refund.amountCents}. Check this payment's other refunds.`, fields: { refund_id: refund.id, capture_id: refund.captureId, key: out.idempotency_key ?? null } });
   }
   if ((out?.outcome === "updated" || out?.outcome === "attached") && (refund.status === "failed" || refund.status === "cancelled") && out.idempotency_key) {
-    // A refund we had counted on came back dead: the poster may have been told; page, and reopen a
-    // cancelled job for a new attempt.
+    // A refund we had counted on came back dead: the payer may have been told; a person decides.
     await pageRefundUndone(deps, out.idempotency_key, refund.id, refund.status);
   }
-  if (out?.outcome === "attached" && out.refund_id && (refund.status === "completed" || refund.status === "pending")) {
-    // The door's own call never saw PayPal's answer: settle the job and tell the poster now.
+  const finishedNow = (out?.outcome === "attached" && (refund.status === "completed" || refund.status === "pending"))
+    || (out?.outcome === "updated" && refund.status === "completed" && out.previous_status === "pending");
+  if (finishedNow && out?.refund_id) {
+    // The door never saw this answer (lost) or saw it PENDING: run its key's follow-up now (an
+    // agreement re-settles and queues the Helpr's part; an admin full refund settles the job).
     await followUpRecordedRefund(deps, out.refund_id);
   }
   if (out?.outcome === "recorded_outside") {

@@ -3,9 +3,9 @@
  * and PayPal account, with the lines' total (PayPal Plan A, phase 4). A wrong group or total is money:
  * Mark paid refuses any total but the lines' own, and a mixed group would send one person another's pay.
  *
- * @mutate src/components/admin/adminPayoutBatches/paypalPayQueueView.ts |     const key = `${l.helper_id ?? "none"}|${l.destination_value ?? ""}|${l.env}`; |     const key = `${l.helper_id ?? "none"}`;
+ * @mutate src/components/admin/adminPayoutBatches/paypalPayQueueView.ts |     const key = `${l.helper_id ?? "none"}\|${l.destination_value ?? ""}\|${l.env}`; |     const key = `${l.helper_id ?? "none"}`;
  * @mutate src/components/admin/adminPayoutBatches/paypalPayQueueView.ts |     g.totalCents += l.amount_cents ?? 0; |     g.totalCents = l.amount_cents ?? 0;
- * @mutate src/components/admin/adminPayoutBatches/paypalPayQueueView.ts |     g.needsRecheck ||= l.held_reason === "destination_changed_since_hire"; |     g.needsRecheck ||= false;
+ * @mutate src/components/admin/adminPayoutBatches/paypalPayQueueView.ts |     g.needsRecheck \|\|= l.held_reason === "destination_changed_since_hire"; |     g.needsRecheck \|\|= false;
  */
 import { describe, expect, it } from "vitest";
 import { buildPaypalQueueView, looksLikeTxnId, normaliseTxnId, type PaypalQueueLine } from "./paypalPayQueueView";

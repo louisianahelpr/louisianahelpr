@@ -302,7 +302,7 @@ function SendGroup({ group, canRecord, onMarkPaid, onCancel }: {
   const early = due !== null && due.getTime() > Date.now();
   const jobLines = group.lines.filter((l) => l.line_kind === "job");
   return (
-    <div className="rounded-ds-md liquid-glass p-card space-y-3" data-testid="paypal-pay-group">
+    <div className="rounded-ds-md border border-border/60 bg-background/40 p-card space-y-3" data-testid="paypal-pay-group">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0 space-y-1">
           <p className="text-ds-15 font-semibold text-foreground break-words">{group.helperName}</p>

@@ -814,6 +814,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // PayPal Plan A, phase 4 (2026-10-23): the admin "Pay this Helpr" queue.
+  "src/components/admin/adminPayoutBatches/PaypalPayQueue.tsx": "admin only, behind paypal_payments (created off) and not on prod until its migration deploys; the one typed field (PayPal transaction ID) is normalised and shape-checked in the dialog (looksLikeTxnId) and again by admin_mark_paypal_payout_paid (txn_id_required / txn_id_invalid), and the cancel reason is length-checked by admin_cancel_paypal_payout (reason_required), all proven in src/test/pglite/paypalManualPayoutQueue.pglite.mjs",
   // Builder 1j (2026-10-21, board 191): the admin funnel's filters.
   "src/components/admin/adminAnalytics/SectionFunnel.tsx": "no typed text: two fixed-option selects (7/30/90 days; a parish from the RPC's own list) and two section pills; it writes nothing (an admin-only read whose server refuses any other window)",
   // Builder 1h (2026-10-21, board 91, Q2275): saved searches.

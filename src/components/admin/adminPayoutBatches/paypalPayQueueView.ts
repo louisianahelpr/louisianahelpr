@@ -113,7 +113,7 @@ export function buildPaypalQueueView(lines: readonly PaypalQueueLine[]): PaypalQ
 }
 
 /** Why an approved PayPal job is not in the queue yet, in plain words. */
-export const NOT_QUEUED_REASON: Record<string, string> = {
+const NOT_QUEUED_REASON: Record<string, string> = {
   no_payable_paypal_account: "The Helpr hasn't added a PayPal email yet. Once they do, press Queue now.",
   payout_hold: "This Helpr's payouts are on hold. Release the hold, then press Queue now.",
   job_hold: "This job's payout is on hold. Sort out the hold, then press Queue now.",
@@ -132,7 +132,7 @@ export const NOT_QUEUED_REASON: Record<string, string> = {
 export const QUEUE_NOW_REASONS = new Set(["not_queued_yet", "canceled_by_admin", "no_payable_paypal_account", "payout_hold", "job_hold"]);
 
 /** Why a queued line must not be sent now, in plain words. */
-export const PAY_BLOCKED_COPY: Record<string, string> = {
+const PAY_BLOCKED_COPY: Record<string, string> = {
   payout_hold: "Helpr's payouts are on hold. Don't send.",
   job_hold: "This job's payout is on hold. Don't send.",
   ban_review: "Ban review open. Don't send.",

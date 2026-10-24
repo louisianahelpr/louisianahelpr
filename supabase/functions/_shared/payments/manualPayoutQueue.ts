@@ -82,7 +82,7 @@ export interface PayoutJobFields {
   poster_fee_flat_cents?: number | string | null;
 }
 
-export const PAYOUT_JOB_COLUMNS =
+const PAYOUT_JOB_COLUMNS =
   "id, helper_id, budget, urgent_fee, is_group_job, helpers_needed, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents";
 
 /**
@@ -177,7 +177,7 @@ export function isExpectedWait(o: QueueOutcome): boolean {
   return o.outcome === "refused" && (o.reason === "canceled_by_admin" || o.reason === "crew_not_supported");
 }
 
-export const ADD_PAYPAL_EMAIL_TITLE = "Add your PayPal email to get paid";
+const ADD_PAYPAL_EMAIL_TITLE = "Add your PayPal email to get paid";
 
 /**
  * A PayPal job approved for a Helpr with no PayPal email that can be paid (outcome waiting_for_payee):

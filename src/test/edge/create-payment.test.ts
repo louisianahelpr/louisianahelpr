@@ -1153,10 +1153,10 @@ describe("create-payment edge function", () => {
     // accepted quote's price, and a quote checkout may come back to its request
     // page; any other returnPath is refused before Stripe is called.
     // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
-    // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
-    // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
+    // @mutate supabase/functions/_shared/jobEscrowGuards.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
+    // @mutate supabase/functions/_shared/jobEscrowGuards.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
     // @mutate supabase/functions/create-payment/index.ts |           : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative), |           : buildRedirectUrl(`/post-job`, isNative),
-    // @mutate supabase/functions/create-payment/index.ts |   if (m) return m[1];\n  throw new PublicError("That page can't be used to come back from checkout."); |   return m ? m[1] : null;
+    // @mutate supabase/functions/_shared/jobEscrowGuards.ts |   if (m) return m[1];\n  throw new PublicError("That page can't be used to come back from checkout."); |   return m ? m[1] : null;
     describe("a job booked from an agreed quote (Q1867, Q1862)", () => {
       const REQ_ID = "6f1c2a0e-1b2c-4d5e-8f90-123456789abc";
       function seedQuoteJob(budget: number, accepted: Array<{ price_cents: number }> | Error, links: Array<{ id: string }> | Error = [{ id: REQ_ID }]) {
@@ -1225,7 +1225,8 @@ describe("create-payment edge function", () => {
           rows: [{ id: "job-q", customer_id: POSTER.id, budget: 250, category: "cleaning", title: "Quote job", status: "open",
             payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
         };
-        scenario.rpc.feature_enabled_for_user = true;
+        // Only jobs_poster_fee: paypal_payments (PayPal phase 3) stays off, so the Stripe path runs.
+        scenario.rpc.feature_enabled_for_user = (a?: unknown) => (a as { p_key?: string } | undefined)?.p_key === "jobs_poster_fee";
         const feeQuote = buildFeeQuote({ switchOn: true, jobPriceCents: 26_000, payInFour: false });
         const { res, body } = await escrow({ feeQuote });
         expect(body.error).toBeUndefined();

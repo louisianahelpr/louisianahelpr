@@ -40,6 +40,7 @@ import {
   type UnknownReason,
 } from "./paymentReturnCopy";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { capturePayPalReturn, isPayPalReturn } from "@/lib/paypalReturn";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -289,6 +290,19 @@ const PaymentSuccess = () => {
       const { data: auth, error: authError } = await supabase.auth.getSession();
       if (cancelled) return;
       const viewerId = authError ? null : auth.session?.user?.id ?? null;
+      // Back from PayPal (phase 3): capture the approved order first. Only a
+      // "replaced" answer (the job changed while they paid; nothing was taken)
+      // decides the page; every other answer, a failure included, falls through
+      // to the payment_status read below, which alone may say money is held.
+      if (isPayPalReturn(searchParams) && viewerId) {
+        const captured = await capturePayPalReturn(resolvedJobId);
+        if (cancelled) return;
+        if (captured === "replaced") {
+          fireReturnEvents();
+          setConfirmState("not_held");
+          return;
+        }
+      }
       for (let attempt = 0; attempt < PENDING_POLL_ATTEMPTS; attempt += 1) {
         if (attempt > 0) {
           await sleep(PENDING_POLL_INTERVAL_MS);
@@ -350,7 +364,7 @@ const PaymentSuccess = () => {
       setConfirmState("unknown");
     })();
     return () => { cancelled = true; };
-  }, [resolvedJobId, confirmAttempt, fireReturnEvents]);
+  }, [resolvedJobId, confirmAttempt, fireReturnEvents, searchParams]);
 
   // Celebrate only what we actually confirmed. The success haptic used to
   // fire on mount, i.e. also when every request behind this screen had died.

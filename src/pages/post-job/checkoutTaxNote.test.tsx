@@ -15,6 +15,8 @@ import { CheckoutStepView } from "./CheckoutStepView";
 import type { usePostJobForm } from "./usePostJobForm";
 
 let mockTax: number | null = null;
+// PayPal phase 3: CheckoutStep reads paypal_payments; off and answered here (the Stripe flow these tests pin).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
 vi.mock("@/hooks/useStripeSalesTax", () => ({
   useStripeSalesTax: () => ({ salesTax: mockTax, loading: false, jurisdiction: null }),
 }));

@@ -31,6 +31,8 @@ import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import { payPalCheckoutBlock } from "@/lib/paypalCheckout";
 import { formatJobDate } from "@/lib/dateUtils";
 import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
 
@@ -145,6 +147,15 @@ export function CheckoutStep({
   // Q1586(c): a saved birthday under 18 greys the post button out (the server
   // refuses the jobs insert too).
   const { underAge } = useAgeGate();
+  // PayPal (Plan A, phase 3): with paypal_payments on, the job is paid on PayPal's page.
+  // The server decides (create-payment routes by the same switch and refuses the same
+  // cases); this only says so before the job is posted, so no unpayable job is created.
+  const paypalSwitch = useFeatureStatus("paypal_payments");
+  const paypal = paypalSwitch.on;
+  // Until the switch has answered, which flow applies is unknown: the button waits rather than
+  // showing (and posting into) the wrong one.
+  const payFlowUnknown = !paypalSwitch.settled;
+  const paypalBlock = paypal ? payPalCheckoutBlock({ category, isRecurring, hasGift }) : null;
   // The tax STRIPE WILL CHARGE, asked of Stripe rather than recomputed here.
   //
   // This used to read a rate out of our own `parish_tax_rates` and multiply it
@@ -157,7 +168,8 @@ export function CheckoutStep({
   // The poster's service fee on a taxable job is taxed with it (tax memo,
   // owner 2026-10-18); 0 on the flat model, so nothing changes there.
   const taxedAmount = budgetNum + (hasTaxableLine(category) ? customerFeeAmount : 0);
-  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, zipCode);
+  // Under PayPal there is no Stripe Tax to ask (no ZIP = no call); a taxable category is refused below.
+  const { salesTax, loading: taxLoading, jurisdiction } = useStripeSalesTax(taxedAmount, category, paypal ? null : zipCode);
   // J3: the tax note names what is taxed, from the SAME taxedAmount the quote is asked for.
   const taxedWhat = `$${formatPriceExact(taxedAmount)} ${hasTaxableLine(category) && customerFeeAmount > 0 ? "(the job budget and service fee)" : "job budget"}`;
   // Sales tax, resolved ONCE. Both the summary card at the top of the screen
@@ -280,7 +292,7 @@ export function CheckoutStep({
                 {/* Never on the gift path: that total is exact, and a
                     "+ tax" caveat on a $0.00 charge is noise that reads as
                     doubt. */}
-                {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
+                {!hasGift && salesTax === null && !paypal && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
               </p>
               {budgetNum > 0 && (
                 <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
@@ -570,7 +582,9 @@ export function CheckoutStep({
             // total is exact, not an estimate. No $0.00 tax row and no
             // "No Louisiana sales tax applies…" note under the total (owner,
             // 2026-10-09: remove it); the Total line says it all.
-            if (!taxable) {
+            // Under PayPal a taxable category is refused (paypalBlock, by the button), so its
+            // total is shown like an exempt one: no Stripe tax line is ever quoted for it.
+            if (!taxable || paypalBlock) {
               return (
                 <>
                   <div className="h-px bg-border" />
@@ -698,7 +712,7 @@ export function CheckoutStep({
           the create-payment edge function. Default off, sticky in
           localStorage so a returning poster who turned it on once
           doesn't have to re-tap it every post. */}
-      {setSaveCardForFuture && (
+      {setSaveCardForFuture && !paypal && (
         <label
           htmlFor="save-card"
           className="flex items-center justify-between gap-3 rounded-ds-md liquid-glass p-card cursor-pointer"
@@ -763,12 +777,17 @@ export function CheckoutStep({
           button for that beat is the difference between quoting a price and
           guessing one. */}
       <div className="space-y-3">
+        {paypalBlock && (
+          <p role="alert" className="rounded-ds-md liquid-glass p-card text-ds-12 leading-relaxed text-foreground" data-testid="paypal-checkout-block">
+            {paypalBlock}
+          </p>
+        )}
         <Button
           variant="primary"
           className="w-full rounded-ds-md"
           size="lg"
           onClick={onSubmit}
-          disabled={saving || uploading || !confirmed || giftLoading || underAge}
+          disabled={saving || uploading || !confirmed || giftLoading || underAge || !!paypalBlock || payFlowUnknown}
         >
           {saving || uploading ? (
             <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden />
@@ -795,7 +814,9 @@ export function CheckoutStep({
                     // straight to /payment-success.
                     : giftCoversEverything
                       ? "Post job — covered by your gift"
-                      : "Continue to payment"}
+                      : paypal
+                        ? "Continue to PayPal"
+                        : "Continue to payment"}
         </Button>
         {underAge && <AgeGateNote kind="post" className="text-center" />}
         {/* Escrow-trust microline — sits right under the pay CTA so the
@@ -804,7 +825,11 @@ export function CheckoutStep({
             it no longer echoes a fuller panel above, because there isn't one. */}
         <p className="flex items-center justify-center gap-1.5 text-ds-11 text-muted-foreground">
           <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-          {giftCoversEverything ? "Held safely until the job's done." : `${payNextLine()} Held safely until the job's done.`}
+          {giftCoversEverything
+            ? "Held safely until the job's done."
+            : paypal
+              ? "Next: pay with PayPal, or a card through PayPal, on PayPal's secure page. Held safely until the job's done."
+              : `${payNextLine()} Held safely until the job's done.`}
         </p>
         {/* A second "Back to edit" ghost button used to sit under the CTA. Removed on owner instruction: the
             page-header arrow already goes back, and a back control under the pay button competes with it. */}

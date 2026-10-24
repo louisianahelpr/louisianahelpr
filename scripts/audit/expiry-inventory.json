@@ -205,6 +205,10 @@
   ],
   "undated": {
     "ANTHROPIC_API_KEY": "Anthropic API key (Claude, the AI job builder and Declutter listing help); no expiry date",
+    "PAYPAL_CLIENT_ID": "PayPal REST app client id (PayPal phase 1); an identifier, no expiry date",
+    "PAYPAL_CLIENT_SECRET": "PayPal REST app secret (PayPal phase 1); PayPal secrets carry no expiry date, rotated by hand in the PayPal developer dashboard",
+    "PAYPAL_ENV": "config (sandbox | live), not a credential",
+    "PAYPAL_WEBHOOK_ID": "the PayPal webhook id the signature check verifies against (PayPal phase 1); an identifier, no expiry date",
     "APNS_BUNDLE_ID": "config, not a credential",
     "TWILIO_ACCOUNT_SID": "SMS alerts (2026-10-20): account id, not a credential; does not expire",
     "TWILIO_AUTH_TOKEN": "SMS alerts (2026-10-20): Twilio auth token has no expiry date; rotated by the owner in the Twilio console (Admin > Settings > Text alerts > Check Twilio reads whether it still works)",

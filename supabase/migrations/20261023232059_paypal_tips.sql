@@ -113,11 +113,16 @@ CREATE TRIGGER trg_provider_payouts_tip_link_guard
 
 -- Step 1: the pending tip and its PayPal payment, in one transaction. Called by paypal-tip after
 -- PayPal answered the order (the order key is deterministic, so a retry of the same attempt gets
--- the same order id from PayPal and the same rows here). Auto-tip (phase 6) calls it the same way
--- after chargeSaved with p_source 'auto', then paypal_record_tip_capture: a cron retry with the same
--- key gets the same capture from PayPal and finds these rows, so money taken is never left unrecorded. The edge function has already checked
--- the job (completed, caller is its poster, the Helpr worked it, bans, payout hold, a payable
--- PayPal destination); this re-checks only what money depends on.
+-- the same order id from PayPal and the same rows here). Auto-tip (phase 6) CLAIMS FIRST: it writes
+-- the pending 'auto' tips row, charges the saved card with a key derived from that row
+-- (lh:autotip:<tip id>:charge:amt<cents>:a1, so every retry reuses it and PayPal answers with the same
+-- capture), then calls this with p_source 'auto' and p_tip_id, then paypal_record_tip_capture.
+-- The caller has already checked the job (completed, caller is its poster, the Helpr worked it,
+-- bans, payout hold, a payable PayPal destination); this re-checks only what money depends on.
+-- Earlier drafts of this function took 8 and 9 arguments; a database that ran one keeps it beside
+-- this one and an 8-argument call would be ambiguous. Drop them (replay-safe).
+DROP FUNCTION IF EXISTS public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text);
+DROP FUNCTION IF EXISTS public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text);
 CREATE OR REPLACE FUNCTION public.paypal_open_tip(
   p_job_id uuid,
   p_tipper_id uuid,
@@ -130,7 +135,11 @@ CREATE OR REPLACE FUNCTION public.paypal_open_tip(
   -- 'manual' (a tip prompt, paid on PayPal's page) or 'auto' (auto-tip, phase 6: charged off-session
   -- with chargeSaved, so the order is already captured when this is called; tips_one_auto_per_job_member
   -- keeps one auto tip per job + Helpr).
-  p_source text DEFAULT 'manual'
+  p_source text DEFAULT 'manual',
+  -- Auto-tip only: the pending 'auto' tips row the caller wrote BEFORE charging (the claim:
+  -- tips_one_auto_per_job_member allows one per job + Helpr). It is taken over, not duplicated, so
+  -- a card is never charged without a row that names the tip (lh-money-escrow round 3, #1).
+  p_tip_id uuid DEFAULT NULL
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -169,9 +178,29 @@ BEGIN
     RETURN jsonb_build_object('tip_id', v_pay.subject_id, 'provider_payment_id', v_pay.id, 'status', v_pay.status, 'replay', true);
   END IF;
 
-  INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, payment_status, source)
-  VALUES (p_job_id, p_tipper_id, p_helper_id, p_tip_cents / 100.0, 'pending', p_source)
-  RETURNING id INTO v_tip_id;
+  IF p_tip_id IS NOT NULL THEN
+    -- Take over the caller's claim: it must be this very tip, still pending, with no payment yet.
+    IF p_source <> 'auto' THEN
+      RAISE EXCEPTION 'tip_claim_is_auto_only' USING ERRCODE = '22023';
+    END IF;
+    SELECT t.id INTO v_tip_id FROM public.tips t
+     WHERE t.id = p_tip_id AND t.source = 'auto' AND t.payment_status = 'pending'
+       AND t.job_id = p_job_id AND t.tipper_id = p_tipper_id AND t.helper_id = p_helper_id
+       AND round(t.amount * 100) = p_tip_cents
+     FOR UPDATE;
+    IF v_tip_id IS NULL THEN
+      RAISE EXCEPTION 'tip_claim_mismatch' USING ERRCODE = '42501',
+        DETAIL = 'p_tip_id must be a pending auto tip for this job, tipper, Helpr and amount';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.provider_payments p WHERE p.subject_kind = 'tip' AND p.subject_id = v_tip_id) THEN
+      RAISE EXCEPTION 'tip_claim_has_payment' USING ERRCODE = '23505',
+        DETAIL = 'this tip already has a PayPal payment under another key';
+    END IF;
+  ELSE
+    INSERT INTO public.tips (job_id, tipper_id, helper_id, amount, payment_status, source)
+    VALUES (p_job_id, p_tipper_id, p_helper_id, p_tip_cents / 100.0, 'pending', p_source)
+    RETURNING id INTO v_tip_id;
+  END IF;
 
   -- paypal_entry_requires_switch refuses this for a payer the switch is off for.
   INSERT INTO public.provider_payments
@@ -182,8 +211,8 @@ BEGIN
   RETURN jsonb_build_object('tip_id', v_tip_id, 'provider_payment_id', v_pay.id, 'status', v_pay.status, 'replay', false);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text) TO service_role;
+REVOKE ALL ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.paypal_open_tip(uuid, uuid, uuid, bigint, bigint, text, text, text, text, uuid) TO service_role;
 
 -- Step 2: record what PayPal says about the tip's capture, and queue the tip's payout.
 -- Idempotent: the return page and the webhook may both call it, any number of times, in any order.
@@ -291,6 +320,11 @@ BEGIN
   END IF;
 
   -- Where the Helpr is paid, for this payment's environment; copied onto the payout and frozen.
+  -- FOR SHARE (as phase 4's queue writer): an email change (phase 2's set_paypal_payee_email, which
+  -- holds the Helpr's pending payouts) waits for this payout row to commit, then holds it too;
+  -- without the lock it could miss this not-yet-committed row (lh-money-escrow round 3, #2).
+  PERFORM 1 FROM public.payee_accounts a
+   WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env FOR SHARE;
   SELECT a.paypal_email INTO v_dest
     FROM public.payee_accounts a
    WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env
@@ -386,6 +420,8 @@ BEGIN
         DETAIL = 'Confirm that no PayPal Send Money went out for this tip. If one did, mark it paid instead.';
     END IF;
   END IF;
+  PERFORM 1 FROM public.payee_accounts a
+   WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env FOR SHARE;
   SELECT a.paypal_email INTO v_dest FROM public.payee_accounts a
    WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env
      AND a.payable AND a.paypal_email IS NOT NULL;

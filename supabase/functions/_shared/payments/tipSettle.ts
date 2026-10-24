@@ -90,6 +90,19 @@ function isDecline(e: unknown): e is ProviderApiError {
   return e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL" && (e.issue === "DECLINED" || e.issue === "FAILED");
 }
 
+/** A capture PayPal reports neither settled nor declined (REFUNDED, PARTIALLY_REFUNDED, ...): money that
+ *  moved and came back outside our records. Never recorded as a decline; a human is told, then it throws. */
+async function alertUnexpectedCapture(row: { id: string; provider_order_id: string }, e: ProviderApiError): Promise<never> {
+  await postSlackOpsAlert({
+    kind: "money_at_risk",
+    severity: "critical",
+    title: "PayPal tip capture in an unexpected state",
+    message: `Tip payment ${row.id} (PayPal order ${row.provider_order_id}): PayPal reports the capture as ${e.issue ?? "unknown"}, which we never recorded. The tip is left as it was; check the order in PayPal and settle it by hand.`,
+    oncePerDayKey: `paypal-tip-unexpected-capture:${row.id}`,
+  });
+  throw e;
+}
+
 async function record(db: TipSettleDb, row: TipPaymentRow, outcome: "completed" | "pending" | "failed", cap: Pick<CaptureResult, "providerCaptureId" | "amountCents"> | null): Promise<TipCaptureRecord> {
   const { data, error } = await db.rpc("paypal_record_tip_capture", {
     p_provider_payment_id: row.id,
@@ -143,6 +156,7 @@ export async function settlePayPalTip(
         await record(db, row, "failed", null);
         return { state: "declined", issue: e.issue };
       }
+      if (e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL") await alertUnexpectedCapture(row, e);
       throw e;
     }
   } else if (order.status === "APPROVED") {
@@ -168,6 +182,7 @@ export async function settlePayPalTip(
             await record(db, row, "failed", null);
             return { state: "declined", issue: inner.issue };
           }
+          if (inner instanceof ProviderApiError && inner.errorName === "CAPTURE_NOT_SUCCESSFUL") await alertUnexpectedCapture(row, inner);
           throw inner;
         }
       } else {

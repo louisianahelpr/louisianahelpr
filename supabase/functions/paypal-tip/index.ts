@@ -81,6 +81,8 @@ serve(async (req) => {
   const anonClient = createClient(supabaseUrl, (Deno.env.get("PUBLISHABLE_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY")) ?? "");
   const admin = createClient(supabaseUrl, (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "");
 
+  // Which action, for the wording of a failure: "don't tip again" is only true once PayPal may have the money.
+  let capturing = false;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return json(401, { error: "Missing authorization header" });
@@ -93,6 +95,7 @@ serve(async (req) => {
     // A body that is not JSON is answered "Invalid request" just below, never ignored.
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object") throw new PublicError("Invalid request");
+    capturing = body.action === "capture";
 
     let env: "sandbox" | "live";
     let client: PayPalClient;
@@ -101,7 +104,9 @@ serve(async (req) => {
       client = new PayPalClient({ env, clientId: Deno.env.get("PAYPAL_CLIENT_ID") ?? "", clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "" });
     } catch (e) {
       console.error(`[paypal-tip] PayPal not configured: ${caughtMessage(e)}`);
-      return json(503, { error: "PayPal isn't reachable right now. If you already paid on PayPal, please don't tip again; refresh this page in a minute." });
+      return json(503, { error: capturing
+        ? "PayPal isn't reachable right now. Please don't tip again; refresh this page in a minute."
+        : "Tips through PayPal aren't available right now. Please try again later." });
     }
     const provider = paymentProviderFor("paypal_checkout", { paypal: { env, clientId: Deno.env.get("PAYPAL_CLIENT_ID") ?? "", clientSecret: Deno.env.get("PAYPAL_CLIENT_SECRET") ?? "" } });
 
@@ -209,8 +214,9 @@ serve(async (req) => {
       const { data: pay, error: payErr } = await admin.from("provider_payments")
         .select("id, subject_kind, payer_id").eq("provider_order_id", orderId).maybeSingle();
       if (payErr) {
+        // Transient, not final: 503 keeps the order id on the return page so a refresh captures it.
         console.error(`[paypal-tip] payment read failed for order ${orderId}:`, payErr);
-        throw new PublicError("Could not check your tip — please refresh in a moment");
+        return json(503, { error: "We couldn't check your tip just now. Please don't tip again; refresh this page in a minute." });
       }
       // Only the payer finishes their own tip from the return page (the webhook needs no caller).
       if (!pay || pay.subject_kind !== "tip" || pay.payer_id !== user.id) return json(404, { error: "We couldn't find that tip." });
@@ -230,7 +236,9 @@ serve(async (req) => {
 
     throw new PublicError("Unknown action");
   } catch (err) {
-    const message = publicErrorMessage(err, "Something went wrong with your tip. If you already paid on PayPal, please don't tip again; refresh this page in a minute.");
+    const message = publicErrorMessage(err, capturing
+      ? "Something went wrong confirming your tip. Please don't tip again; refresh this page in a minute."
+      : "Something went wrong with your tip — please try again.");
     if (!(err instanceof PublicError)) console.error(`[paypal-tip] ${caughtMessage(err)}`);
     return json(err instanceof PublicError ? 400 : 500, { error: message });
   }

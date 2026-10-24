@@ -8,6 +8,8 @@
  *   PLANT=no_amount_check node src/test/pglite/paypalTips.pglite.mjs # RED: a short capture reads as a paid tip
  *   PLANT=no_admin_check node src/test/pglite/paypalTips.pglite.mjs  # RED: a member can re-queue a tip payout
  *   PLANT=no_email_change_hold node src/test/pglite/paypalTips.pglite.mjs  # RED: a PayPal email swapped after the hire is paid
+ *   PLANT=strict_gt / PLANT=null_anchor_pays                                # RED: a change at the hire time / a job with no hire time is paid
+ * (The FOR SHARE lock on the payee row is a two-session race; one PGlite session cannot show it.)
  *
  * Proves: both migrations apply 3x; a tip opens as one pending tips row + one
  * provider_payments row (subject 'tip'), and a retry of the same attempt finds
@@ -42,6 +44,8 @@ const base = readMig("20261023223419_paypal_provider_foundation.sql");
 let mig = readMig("20261023232059_paypal_tips.sql");
 if (process.env.PLANT === "no_link_guard") mig = mig.replace(/CREATE TRIGGER trg_provider_payouts_tip_link_guard[\s\S]*?;/, "");
 if (process.env.PLANT === "no_email_change_hold") mig = mig.replace("(v_approved_at IS NULL OR v_changed_at >= v_approved_at)", "false");
+if (process.env.PLANT === "strict_gt") mig = mig.replace("v_changed_at >= v_approved_at", "v_changed_at > v_approved_at");
+if (process.env.PLANT === "null_anchor_pays") mig = mig.replace("(v_approved_at IS NULL OR v_changed_at >= v_approved_at)", "(v_approved_at IS NOT NULL AND v_changed_at >= v_approved_at)");
 if (process.env.PLANT === "no_admin_check") mig = mig.replace("IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN", "IF false THEN");
 if (process.env.PLANT === "no_amount_check") mig = mig.replace(/IF p_amount_cents IS DISTINCT FROM v_pay\.amount_cents THEN/, "IF false THEN");
 
@@ -292,16 +296,36 @@ await db.exec(`reset role; update payee_accounts set destination_changed_at = no
 const o11 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a11", "ORD11"))).j;
 const p11 = await oneJ("o11 capture ran", record(o11.provider_payment_id, "ORD11", "completed", "CAP11", 980));
 check("an email set before the hire: the tip payout is pending", p11.payout_status === "pending", p11);
+// Changed at exactly the hire time: held (>=, as phase 4).
+await db.exec(`reset role; update jobs set accepted_at = '2026-10-20T12:00:00Z' where id='${JOB}'; update payee_accounts set destination_changed_at = '2026-10-20T12:00:00Z' where user_id='${U.helpr2}'; set role service_role`);
+const o12 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a12", "ORD12"))).j;
+const p12 = await oneJ("o12 capture ran", record(o12.provider_payment_id, "ORD12", "completed", "CAP12", 980));
+check("an email changed at exactly the hire time: held", p12.payout_status === "held", p12);
+// A job with no hire or approval time: held whenever the change time is known.
+await db.exec(`reset role; update jobs set accepted_at = null, poster_completed_at = null, helper_completed_at = null where id='${JOB}'; update payee_accounts set destination_changed_at = now() - interval '30 days' where user_id='${U.helpr2}'; set role service_role`);
+const o13 = (await one(open(U.helpr2, 900, 980, "lh:tip:job1:checkout:amt980:a13", "ORD13"))).j;
+const p13 = await oneJ("o13 capture ran", record(o13.provider_payment_id, "ORD13", "completed", "CAP13", 980));
+check("a job with no hire or approval time: held", p13.payout_status === "held", p13);
+// Back to the fixture's times, the change long before them, for the cases below.
+await db.exec(`reset role; update jobs set accepted_at = now() - interval '3 days', poster_completed_at = now() - interval '1 day' where id='${JOB}'; set role service_role`);
 
-// --- an auto-tip (phase 6): charged off-session, so the order is already captured; source 'auto'
-const oA = (await one(`select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'auto') j`)).j;
-const oA2 = (await one(`select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'auto') j`)).j;
-check("auto-tip: one tips row with source auto; a cron retry finds the same rows", oA2.replay === true && oA2.tip_id === oA.tip_id && (await one(`select source from tips where id='${oA.tip_id}'`)).source === "auto", [oA, oA2]);
-await expectErr("auto-tip: the same key cannot be replayed as a manual tip", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a1', 'ORDA1', 'manual')`, /tip_key_reused/);
-await expectErr("auto-tip: one auto tip per job + Helpr (existing index)", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a2', 'ORDA2', 'auto')`, /tips_one_auto_per_job_member|duplicate key/);
+// --- an auto-tip (phase 6): CLAIM FIRST (a pending 'auto' tips row), charge off-session, then hand the
+//     claim to paypal_open_tip (p_tip_id) and record the capture. No return page.
+const claim = (await one(`insert into tips(job_id, tipper_id, helper_id, amount, payment_status, source) values ('${JOB}', '${U.poster}', '${U.helpr2}', 5, 'pending', 'auto') returning id`)).id;
+await expectErr("auto-tip: a second claim for the same job + Helpr is refused BEFORE any charge", `insert into tips(job_id, tipper_id, helper_id, amount, payment_status, source) values ('${JOB}', '${U.poster}', '${U.helpr2}', 5, 'pending', 'auto')`, /tips_one_auto_per_job_member|duplicate key/);
+const autoKey = `lh:autotip:${claim}:charge:amt565:a1`;
+const openAuto = (order) => `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', '${autoKey}', '${order}', 'auto', '${claim}') j`;
+const oA = await oneJ("auto-tip open ran", openAuto("ORDA1"));
+const oA2 = await oneJ("auto-tip retry ran", openAuto("ORDA1"));
+check("auto-tip: the claim row is taken over (no second tips row); a cron retry finds the same rows",
+  oA.tip_id === claim && oA2.replay === true && oA2.tip_id === claim && (await one(`select count(*)::int n from tips where source='auto'`)).n === 1, [oA, oA2]);
+await expectErr("auto-tip: the claim's key cannot be replayed as a manual tip", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', '${autoKey}', 'ORDA1', 'manual')`, /tip_key_reused/);
+await expectErr("auto-tip: a claim cannot take a second payment under another key", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:other:charge:amt565:a1', 'ORDA9', 'auto', '${claim}')`, /tip_claim_mismatch|tip_claim_has_payment/);
+await expectErr("auto-tip: a claim for another amount is refused", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 600, 670, 'sandbox', 'lh:autotip:x:charge:amt670:a1', 'ORDA8', 'auto', '${claim}')`, /tip_claim_mismatch/);
+await expectErr("a claim id is for auto-tips only", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:tip:y:checkout:amt565:a1', 'ORDA7', 'manual', '${claim}')`, /tip_claim_is_auto_only/);
 await expectErr("tip source must be manual or auto", `select public.paypal_open_tip('${JOB}', '${U.poster}', '${U.helpr2}', 500, 565, 'sandbox', 'lh:autotip:job1:charge:amt565:a3', 'ORDA3', 'gift')`, /tip_source_invalid/);
 const cA = await oneJ("auto-tip capture ran", record(oA.provider_payment_id, "ORDA1", "completed", "CAPA1", 565));
-check("auto-tip: recorded with no return page: paid and its payout queued", cA.tip_status === "paid" && ["pending", "held"].includes(cA.payout_status), cA);
+check("auto-tip: recorded with no return page: paid and its payout queued (pending)", cA.tip_status === "paid" && cA.payout_status === "pending", cA);
 
 // --- the link guard
 await db.exec("reset role; insert into payout_transfers(id) values ('c0000000-0000-4000-8000-000000000009'); set role service_role");

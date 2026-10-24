@@ -14726,6 +14726,7 @@ export type Database = {
           p_order_id: string
           p_source?: string
           p_tip_cents: number
+          p_tip_id?: string
           p_tipper_id: string
         }
         Returns: Json

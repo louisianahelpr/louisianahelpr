@@ -285,7 +285,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/open-assign-numbers.mjs": "one-shot fix-up run by land.sh after the rebase: gives each Q?<tag> placeholder item in docs/OPEN.md and the archives the next free number, and land.sh commits that. Not an inventory with output to re-derive; a placeholder left behind reads as an unnumbered line to openUnnumberedRatchet.test.ts",
   "scripts/open-renumber.mjs": "one-shot fix-up run by land.sh after the rebase: renames the branch's copy of a Q number that origin/main already uses, in docs/OPEN.md and the archives, and land.sh commits that. Not an inventory with output to re-derive; a duplicate left behind is caught by duplicateIds in queueItemsNameTheirGuard.test.ts",
   "scripts/paypal-phase6-sandbox-journey.mjs": "PayPal phase 6 sandbox journey JSON to ~/.lh-shots/pp-phase6 (evidence outside the repo); nothing committed",
-  "scripts/load/load-test.mjs":"Q60: per-run JSON (run-<runId>.json) to --out, default ~/.lh-shots/q60 (outside the repo)",
+  "scripts/load/load-test.mjs": "Q60: per-run JSON (run-<runId>.json) to --out, default ~/.lh-shots/q60 (outside the repo)",
   "scripts/open-done-when.mjs": "--out report (/tmp/done-when.md in open-done-when.yml, the nightly-red issue body), never a repo file",
   "scripts/prod-deploy.mjs": "action/sha/deployment to $GITHUB_OUTPUT in prod-deploy.yml (a CI step output, never a repo file)",
   "scripts/rollback/drill-web.mjs": "current/restored/timings to $GITHUB_OUTPUT in rollback-drill.yml (a CI step output, never a repo file)",

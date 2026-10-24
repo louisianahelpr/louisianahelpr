@@ -17,8 +17,10 @@
  *      useFeature("paypal_payments"), starts the checkout through
  *      startTipCheckout with that answer, and quotes with the same answer;
  *   3. the server: paypal-tip refuses a member the switch is off for before
- *      any PayPal call, charges paypalTipChargeBreakdown's total, and returns
- *      to a page that mounts PayPalTipReturn.
+ *      any new money (the order, the tip row), never gates the capture of money
+ *      already taken, captures only the payer's own tip, charges
+ *      paypalTipChargeBreakdown's total, and returns to a page that mounts
+ *      PayPalTipReturn.
  *
  * @mutate src/components/TipDialog.tsx | <TipCostBreakdown tipDollars={amount!} receiverName={helperName} paypal={paypal} /> | <TipCostBreakdown tipDollars={amount!} receiverName={helperName} />
  * @mutate src/components/CompletionPrompts.tsx | { jobId, amount, tipAttemptId: tipAttemptIdRef.current, paypal }, | { jobId, amount, tipAttemptId: tipAttemptIdRef.current, paypal: false },
@@ -26,6 +28,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx | <RefundsSwitchProvider><PayPalTipReturn /><JobListPage key="posted" | <RefundsSwitchProvider><JobListPage key="posted"
  * @mutate supabase/functions/paypal-tip/index.ts | const refused = await requireFeature(admin, "paypal_payments", user, corsHeaders); | const refused = null;
  * @mutate supabase/functions/paypal-tip/index.ts | amountCents: quote.chargeCents, | amountCents: quote.tipCents,
+ * @mutate supabase/functions/paypal-tip/index.ts | if (!pay \|\| pay.subject_kind !== "tip" \|\| pay.payer_id !== user.id) | if (!pay \|\| pay.subject_kind !== "tip")
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
@@ -102,18 +105,26 @@ describe("every tip prompt offers PayPal when the switch is on", () => {
   });
 });
 
-describe("paypal-tip: switch first, PayPal's total, and a return that is read", () => {
+describe("paypal-tip: switch before new money, PayPal's total, and a return that is read", () => {
   const fn = read("supabase/functions/paypal-tip/index.ts");
 
-  it("refuses a member the switch is off for before any PayPal call", () => {
+  it("refuses a member the switch is off for before any new money (order or tip row)", () => {
+    const create = fn.indexOf('if (body.action === "create") {');
     const gate = fn.search(/const refused = await requireFeature\(admin, "paypal_payments", user, corsHeaders\);\s*if \(refused\) return refused;/);
-    const firstPayPal = Math.min(...["new PayPalClient(", "paymentProviderFor(", ".createCheckout(", "settlePayPalTip("].map((s) => {
-      const i = fn.indexOf(s);
-      return i < 0 ? Infinity : i;
-    }));
-    expect(gate).toBeGreaterThan(0);
-    expect(firstPayPal).toBeLessThan(Infinity);
-    expect(gate).toBeLessThan(firstPayPal);
+    const order = fn.indexOf(".createCheckout(");
+    const open = fn.indexOf('rpc("paypal_open_tip"');
+    expect(create).toBeGreaterThan(0);
+    expect(gate).toBeGreaterThan(create);
+    expect(order).toBeGreaterThan(gate);
+    expect(open).toBeGreaterThan(gate);
+  });
+
+  it("captures only the payer's own tip, and a capture is never switch-gated (money already taken)", () => {
+    const capture = fn.slice(fn.indexOf('if (body.action === "capture") {'));
+    expect(capture.length).toBeGreaterThan(100);
+    expect(capture.indexOf("pay.payer_id !== user.id")).toBeGreaterThan(0);
+    expect(capture.indexOf("pay.payer_id !== user.id")).toBeLessThan(capture.indexOf("settlePayPalTip("));
+    expect(capture.slice(0, capture.indexOf("settlePayPalTip("))).not.toMatch(/requireFeature\(/);
   });
 
   it("charges paypalTipChargeBreakdown's total and computes no fee of its own", () => {

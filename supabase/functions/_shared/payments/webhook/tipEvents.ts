@@ -54,7 +54,13 @@ export const tipOrderEventHandler: PayPalEventHandler = async (event, ctx) => {
   try {
     outcome = await settlePayPalTip(ctx.supabase as unknown as TipSettleDb, createPayPalCheckoutProvider(ctx.client), ctx.client, row.id);
   } catch (e) {
+    // Not finished (PayPal or the database unreachable, or a bug): 503, PayPal redelivers and the
+    // dispatcher alerts. The settle is idempotent, so the redelivery simply runs it again.
     throw new PayPalEventRetry(`tip ${row.id} not settled: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  if (outcome.state === "not_approved" && event.event_type === "CHECKOUT.ORDER.APPROVED") {
+    // PayPal says approved but its order read does not yet: never close the event on a stale read.
+    throw new PayPalEventRetry(`order ${orderId} reads ${outcome.orderStatus} after CHECKOUT.ORDER.APPROVED`);
   }
   await alertIfTipOwedWithoutDestination(outcome);
   if (outcome.state === "recorded") {

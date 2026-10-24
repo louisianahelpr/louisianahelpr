@@ -24,20 +24,23 @@ export function PayPalTipReturn() {
   useEffect(() => {
     if (!orderId || handled.current === orderId) return;
     handled.current = orderId;
-    setParams((prev) => {
-      const p = new URLSearchParams(prev);
-      for (const k of ["tip", "token", "PayerID"]) p.delete(k);
-      return p;
-    }, { replace: true });
     void (async () => {
       try {
         const res = await finishPayPalTip(orderId);
+        // Only an ANSWER clears the order id from the URL. On a failure it stays, so the refresh the
+        // message asks for captures again (the server is idempotent; the webhook also finishes it).
+        setParams((prev) => {
+          const p = new URLSearchParams(prev);
+          for (const k of ["tip", "token", "PayerID"]) p.delete(k);
+          return p;
+        }, { replace: true });
         if (res.state === "paid") toast.success("Tip sent. All of it goes to your Helpr.");
         else if (res.message) toast(res.message);
         await queryClient.invalidateQueries();
       } catch (err) {
+        // Reported and shown; the URL keeps the order id for the refresh.
         report(err, { tags: { source: "money.tip", action: "paypal_capture" }, context: { orderId } });
-        toast.error(userFacingError(err, "We couldn't confirm your tip yet. Refresh in a moment to check."));
+        toast.error(userFacingError(err, "We couldn't confirm your tip yet. Please don't tip again; refresh this page in a minute."));
       }
     })();
   }, [orderId, setParams, queryClient]);

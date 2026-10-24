@@ -59,11 +59,15 @@ async function tipOrderKey(jobId: string, tipperId: string, helperId: string, ti
 
 function describeForPoster(outcome: TipSettleOutcome): { state: string; tipStatus: string | null; message?: string } {
   if (outcome.state === "not_approved") return { state: "not_approved", tipStatus: "pending", message: "Your tip wasn't finished on PayPal, so nothing was charged." };
-  if (outcome.state === "declined") return { state: "declined", tipStatus: "failed", message: "PayPal declined that payment, so nothing was charged. You can try again with another way to pay." };
+  if (outcome.state === "declined") {
+    // INSTRUMENT_DECLINED leaves the order open (the row stays pending); a declined capture fails it.
+    return { state: "declined", tipStatus: outcome.issue === "INSTRUMENT_DECLINED" ? "pending" : "failed", message: "PayPal declined that payment, so nothing was charged. You can try again with another way to pay." };
+  }
   const rec = outcome.record;
   if (rec.tip_status === "paid") return { state: "paid", tipStatus: "paid" };
   if (rec.payment_status === "capture_pending") return { state: "processing", tipStatus: "pending", message: "PayPal is still processing your tip. We'll let your Helpr know once it clears." };
-  return { state: rec.payment_status, tipStatus: rec.tip_status };
+  if (rec.tip_status === "failed") return { state: "declined", tipStatus: "failed", message: "PayPal declined that payment, so nothing was charged." };
+  return { state: rec.payment_status, tipStatus: rec.tip_status, message: "We're still confirming your tip with PayPal. Please don't tip again." };
 }
 
 serve(async (req) => {
@@ -86,9 +90,6 @@ serve(async (req) => {
     if (!user?.email) return json(401, { error: "Not authenticated" });
     const unconfirmed = refuseUnconfirmedEmail(user, corsHeaders);
     if (unconfirmed) return unconfirmed;
-    const refused = await requireFeature(admin, "paypal_payments", user, corsHeaders);
-    if (refused) return refused;
-
     // A body that is not JSON is answered "Invalid request" just below, never ignored.
     const body = await req.json().catch(() => null) as Record<string, unknown> | null;
     if (!body || typeof body !== "object") throw new PublicError("Invalid request");
@@ -106,6 +107,10 @@ serve(async (req) => {
 
     // ─── CREATE ───
     if (body.action === "create") {
+      // The switch gates new money only. A capture is never gated: the poster has already paid on
+      // PayPal, and turning the switch off must never strand that (the webhook captures it anyway).
+      const refused = await requireFeature(admin, "paypal_payments", user, corsHeaders);
+      if (refused) return refused;
       const jobId = typeof body.jobId === "string" && UUID.test(body.jobId) ? body.jobId : null;
       if (!jobId) throw new PublicError("Missing jobId");
       // Required here (the Stripe path had a time-bucket fallback for old builds; this path has no old builds).
@@ -210,7 +215,15 @@ serve(async (req) => {
       // Only the payer finishes their own tip from the return page (the webhook needs no caller).
       if (!pay || pay.subject_kind !== "tip" || pay.payer_id !== user.id) return json(404, { error: "We couldn't find that tip." });
 
-      const outcome = await settlePayPalTip(admin as unknown as TipSettleDb, provider, client, pay.id);
+      let outcome: TipSettleOutcome;
+      try {
+        outcome = await settlePayPalTip(admin as unknown as TipSettleDb, provider, client, pay.id);
+      } catch (e) {
+        // PayPal may already have taken the money: never "try again" (a new tip is a second charge).
+        // 503: the page keeps the order id and can ask again; the webhook also finishes it.
+        console.error(`[paypal-tip] capture of tip payment ${pay.id} not finished: ${caughtMessage(e)}`);
+        return json(503, { error: "We're still confirming your tip with PayPal. Please don't tip again; refresh this page in a minute." });
+      }
       await alertIfTipOwedWithoutDestination(outcome);
       return json(200, describeForPoster(outcome));
     }

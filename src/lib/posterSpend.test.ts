@@ -173,6 +173,15 @@ describe("tips count (owner, 2026-10-05)", () => {
     expect(tipSpentCents(tip(), 0)).toBe(T10);
   });
 
+  it("a PayPal tip (no Stripe id) counts what PayPal charged: the tip plus PayPal's fee", () => {
+    // paypal-tip charges paypalTipChargeBreakdown: $5.00 -> $5.69, $20.00 -> $21.23.
+    expect(tipSpentCents(tip({ amount: 5, stripe_payment_intent_id: null, stripe_session_id: null }), 0)).toBe(569);
+    expect(tipSpentCents(tip({ amount: 20, stripe_payment_intent_id: null, stripe_session_id: null }), 0)).toBe(2123);
+    // A Stripe tip keeps the card rate; an older select without stripe_session_id reads as Stripe.
+    expect(tipSpentCents(tip({ amount: 5, stripe_session_id: "cs_1" }), 0)).toBe(546);
+    expect(tipSpentCents(tip({ amount: 5, stripe_payment_intent_id: null }), 0)).toBe(546);
+  });
+
   it("pending and failed tips count $0", () => {
     expect(tipSpentCents(tip({ payment_status: "pending" }), 0)).toBe(0);
     expect(tipSpentCents(tip({ payment_status: "failed" }), 0)).toBe(0);

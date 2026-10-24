@@ -127,7 +127,17 @@ export async function settlePayPalTip(
 
   let cap: CaptureResult;
   if (order.status === "COMPLETED") {
-    cap = captureFromOrder(order as Parameters<typeof captureFromOrder>[0]);
+    try {
+      cap = captureFromOrder(order as Parameters<typeof captureFromOrder>[0]);
+    } catch (e) {
+      // A capture PayPal reports DECLINED (or a pending one later DENIED) is a final answer: record
+      // it as failed (the RPC never undoes settled money), so a redelivered event does not retry it.
+      if (e instanceof ProviderApiError && e.errorName === "CAPTURE_NOT_SUCCESSFUL") {
+        await record(db, row, "failed", null);
+        return { state: "declined", issue: e.issue };
+      }
+      throw e;
+    }
   } else if (order.status === "APPROVED") {
     try {
       cap = await provider.capture(tipCaptureKey(row.id), row.provider_order_id);
@@ -144,7 +154,15 @@ export async function settlePayPalTip(
       if (e instanceof ProviderApiError && e.issue === "ORDER_ALREADY_CAPTURED") {
         // Captured by an earlier call whose request id PayPal no longer remembers: read it.
         const again = await client.request<PayPalOrderLite>("GET", `/v2/checkout/orders/${encodeURIComponent(row.provider_order_id)}`);
-        cap = captureFromOrder(again as Parameters<typeof captureFromOrder>[0]);
+        try {
+          cap = captureFromOrder(again as Parameters<typeof captureFromOrder>[0]);
+        } catch (inner) {
+          if (inner instanceof ProviderApiError && inner.errorName === "CAPTURE_NOT_SUCCESSFUL") {
+            await record(db, row, "failed", null);
+            return { state: "declined", issue: inner.issue };
+          }
+          throw inner;
+        }
       } else {
         throw e;
       }
@@ -165,17 +183,22 @@ export async function settlePayPalTip(
 }
 
 /**
- * A captured tip whose Helpr has no payable PayPal email has no payout row yet (money owed, nowhere
- * to send it). Both callers alert ops; the next settle (any return-page retry or redelivery, or a
- * later sweep) queues it once the Helpr adds an email.
+ * A captured tip that is owed but not payable from the queue: no payable PayPal email (no payout row
+ * yet), or a payout written 'held' (a payout hold, a ban review, or an email changed after the job
+ * was approved). Nothing re-tries either on its own: an admin re-queues it once it is clear
+ * (admin_requeue_paypal_tip_payout). Both callers alert ops, once a day per tip.
  */
 export async function alertIfTipOwedWithoutDestination(outcome: TipSettleOutcome): Promise<void> {
-  if (outcome.state !== "recorded" || outcome.record.payout_reason !== "no_payable_destination") return;
+  if (outcome.state !== "recorded") return;
+  const r = outcome.record;
+  if (r.payout_reason !== "no_payable_destination" && r.payout_reason !== "held") return;
   await postSlackOpsAlert({
     kind: "money_at_risk",
     severity: "warning",
-    title: "PayPal tip captured, Helpr has no PayPal email",
-    message: `Tip ${outcome.record.tip_id} was paid through PayPal but the Helpr has no payable PayPal email, so no payout is queued. It queues on the next settle once they add one.`,
-    oncePerDayKey: `paypal-tip-no-destination:${outcome.record.tip_id}`,
+    title: r.payout_reason === "held" ? "PayPal tip captured, payout held" : "PayPal tip captured, Helpr has no PayPal email",
+    message: r.payout_reason === "held"
+      ? `Tip ${r.tip_id} was paid through PayPal; its payout ${r.payout_id} is HELD (payout hold, ban review, or the Helpr changed their PayPal email after the job was approved). Check it, then re-queue it with admin_requeue_paypal_tip_payout('${r.tip_id}', true).`
+      : `Tip ${r.tip_id} was paid through PayPal but the Helpr has no payable PayPal email, so no payout is queued. Ask them to add one, then queue it with admin_requeue_paypal_tip_payout('${r.tip_id}').`,
+    oncePerDayKey: `paypal-tip-owed:${r.tip_id}`,
   });
 }

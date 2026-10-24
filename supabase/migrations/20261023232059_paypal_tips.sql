@@ -202,6 +202,8 @@ DECLARE
   v_payout_status text;
   v_reason text;
   v_held boolean;
+  v_changed_at timestamptz;
+  v_approved_at timestamptz;
 BEGIN
   IF p_outcome NOT IN ('completed', 'pending', 'failed') THEN
     RAISE EXCEPTION 'tip_capture_outcome_invalid' USING ERRCODE = '22023';
@@ -220,7 +222,8 @@ BEGIN
 
   IF p_outcome = 'failed' THEN
     -- A decline never undoes settled money (a stale "declined" after a later successful capture).
-    IF v_pay.status IN ('created', 'approved') THEN
+    -- A pending capture that PayPal later DENIES (an eCheck that bounced) is a decline too.
+    IF v_pay.status IN ('created', 'approved', 'capture_pending') THEN
       UPDATE public.provider_payments SET status = 'failed', updated_at = now() WHERE id = v_pay.id;
       UPDATE public.tips SET payment_status = 'failed', failure_reason = 'paypal_capture_declined'
        WHERE id = v_tip.id AND payment_status = 'pending';
@@ -293,6 +296,18 @@ BEGIN
   v_held := EXISTS (SELECT 1 FROM public.payout_holds h WHERE h.helper_id = v_tip.helper_id)
          OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q
                      WHERE q.review_state = 'open' AND q.user_id IN (v_tip.helper_id, v_tip.tipper_id));
+  -- Phase 4's rule for job pay, applied to the tip (lh-money-escrow review 2026-10-23, F2): a PayPal
+  -- email changed after the job was approved is not paid on its own say-so (an account takeover
+  -- swaps the email, then a tip arrives). payee_accounts.destination_changed_at is phase 4's
+  -- column, read through to_jsonb so this compiles before and after it exists (NULL = unknown =
+  -- not held: phase 2 also holds a Helpr's pending payouts when they change the email).
+  SELECT (to_jsonb(a) ->> 'destination_changed_at')::timestamptz INTO v_changed_at
+    FROM public.payee_accounts a
+   WHERE a.user_id = v_tip.helper_id AND a.provider = 'paypal' AND a.env = v_pay.env;
+  -- FOR SHARE: the approval time decides held vs pending; it cannot move under this write.
+  SELECT COALESCE(j.poster_completed_at, j.helper_completed_at) INTO v_approved_at
+    FROM public.jobs j WHERE j.id = v_tip.job_id FOR SHARE;
+  v_held := v_held OR (v_approved_at IS NOT NULL AND v_changed_at IS NOT NULL AND v_changed_at > v_approved_at);
 
   INSERT INTO public.provider_payouts
     (provider_payment_id, tip_id, payee_user_id, provider, env, destination_kind, destination_value, amount_cents, status)
@@ -334,13 +349,14 @@ BEGIN
   IF v_admin IS NULL OR NOT COALESCE(public.has_role(v_admin, 'admin'::app_role), false) THEN
     RAISE EXCEPTION 'admin_only' USING ERRCODE = '42501';
   END IF;
-  SELECT * INTO v_tip FROM public.tips WHERE id = p_tip_id FOR UPDATE;
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'tip_not_found' USING ERRCODE = 'P0002';
-  END IF;
+  -- Lock order: the payment, then the tip (as paypal_record_tip_capture does), so the two never deadlock.
   SELECT * INTO v_pay FROM public.provider_payments
    WHERE subject_kind = 'tip' AND subject_id = p_tip_id AND status = 'captured' FOR UPDATE;
-  IF NOT FOUND OR v_tip.payment_status <> 'paid' THEN
+  SELECT * INTO v_tip FROM public.tips WHERE id = p_tip_id FOR UPDATE;
+  IF v_tip.id IS NULL THEN
+    RAISE EXCEPTION 'tip_not_found' USING ERRCODE = 'P0002';
+  END IF;
+  IF v_pay.id IS NULL OR v_tip.payment_status <> 'paid' THEN
     RAISE EXCEPTION 'tip_not_captured' USING ERRCODE = '42501',
       DETAIL = 'Only a tip PayPal captured (and not refunded or disputed) is paid out.';
   END IF;

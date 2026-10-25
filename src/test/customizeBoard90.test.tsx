@@ -23,7 +23,7 @@ import { CustomizeSheet } from "@/components/sections/CustomizeSheet";
 afterEach(cleanup);
 
 describe("Customize sections matches board 90", () => {
-  it("Always on group, a both-sides line per section, switches only for open sections", () => {
+  it("Home and Messages always on (one line), a both-sides line per section, switches only for open sections", () => {
     render(<CustomizeSheet open onOpenChange={() => {}} />);
     expect(screen.getByText("Customize sections")).toBeInTheDocument();
     expect(document.querySelectorAll("[data-always-on]").length).toBe(2);

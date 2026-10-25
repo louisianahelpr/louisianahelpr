@@ -151,16 +151,10 @@ export function FormStep({ form }: FormStepProps) {
           ? { page: 3, label: "Set a budget to continue" }
           : null;
 
-  // The action bar floats over the form only while its button does something.
-  const barFloats = backTo && !atOpenJobLimit && !underAge ? true : !lastPage ? pageReady : !submitDisabled;
-
   return (
     // Desktop (board 166): step rail left, the step centred (max 640px), the live
     // "What Helprs will see" card right. The phone is the one centred column.
-    // The card joins at xl, not lg (lead, 2026-10-25): beside the 248px app rail
-    // the three columns left the form about 215px at 1024 and 370px at 1180
-    // (measured), so from lg to xl it is the step list and the form only.
-    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
+    <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
       <PostJobStepRail
         screen={screenOfFormPage(page, !!openGroup)}
         canPick={(s) => FORM_PAGE_OF[s] !== undefined && !(s === "kind")}
@@ -317,8 +311,8 @@ export function FormStep({ form }: FormStepProps) {
         </div>
         )}
           {!askingQuotes && (
-            // Below xl only: from xl the same card stays in the right column on every screen.
-            <div className="xl:hidden"><PostJobPreviewCard
+            // Phone only: on desktop the same card stays in the right column on every screen.
+            <div className="lg:hidden"><PostJobPreviewCard
               title={form.title}
               category={form.category}
               photo={form.imagePreviews?.[0]}
@@ -387,12 +381,8 @@ export function FormStep({ form }: FormStepProps) {
             column is 2xl (board 167: a flow step centred, about 640px). */}
         {/* Not on screen 1 (owner 2026-10-21): a tap on a category IS the choice, so no floating
             "Pick a category" / "Continue" button sits over the tiles. */}
-        {/* It floats only once it can be pressed (lead, 2026-10-25): a greyed "Add the
-            address to continue" riding over the screen covered the very calendar and
-            time picker it was asking for. Until then it sits at the end of the form,
-            still naming what is missing. Guard: postJobFitsItsColumn.test.ts. */}
         {page !== 1 && (
-        <div data-testid="post-job-action-bar" className={`${barFloats ? "sticky bottom-safe-nav" : "relative"} z-10 bg-premium-page pt-3 pb-2`}>
+        <div className="sticky bottom-safe-nav z-10 bg-premium-page pt-3 pb-2">
           {backTo && !atOpenJobLimit && !underAge ? (
             <Button
               variant="primary"
@@ -454,7 +444,7 @@ export function FormStep({ form }: FormStepProps) {
         )}
       </form>
       </div>
-      <aside className="hidden xl:block sticky top-6">
+      <aside className="hidden lg:block sticky top-6">
         <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={askingQuotes ? 0 : form.budgetNum} />
       </aside>
     </div>

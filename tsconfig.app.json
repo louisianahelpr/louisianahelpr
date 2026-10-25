@@ -142,6 +142,8 @@
     "supabase/functions/_shared/louisianaDate.ts",
     "supabase/functions/_shared/stripeIdentity.ts",
     "supabase/functions/_shared/stripeAccountUsable.ts",
+    "supabase/functions/_shared/stripeRefusal.ts",
+    "supabase/functions/_shared/refundReason.ts",
     // src/test/livePayoutGateClassifiesRejections.test.ts (lead 2026-10-23).
     "supabase/functions/_shared/livePayoutGate.ts",
     "supabase/functions/_shared/stripeMode.ts",

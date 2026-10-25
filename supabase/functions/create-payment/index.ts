@@ -57,6 +57,8 @@ import { cancellationFeePercent, computeCancellationFee, helperIsCommitted, hour
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { isTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
+import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { checkPayoutHold, checkJobPayoutHold, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
@@ -2714,7 +2716,7 @@ serve(async (req) => {
       // moved. The claim admits 'escrow' OR an earlier stranded 'cancelling'
       // (job 36eebad4 is one); putting 'cancelling' back would leave it stuck,
       // so a re-entered claim goes back to 'escrow' (lh-money-escrow review).
-      const putCancelClaimBack = async (why: string) => {
+      const putCancelClaimBack = async (why: string): Promise<boolean> => {
         const restoreTo = job.payment_status === "cancelling" ? "escrow" : job.payment_status;
         const { data: putBack, error: putBackErr } = await supabaseAdmin
           .from("jobs")
@@ -2727,9 +2729,10 @@ serve(async (req) => {
           await claimPutBackMissed(supabaseAdmin, {
             jobId, path: "cancel_escrow", why, restoreTo: restoreTo ?? null, dbError: putBackErr?.message ?? null,
           });
-        } else {
-          await deleteRefundClaim(supabaseAdmin, jobId);
+          return false;
         }
+        await deleteRefundClaim(supabaseAdmin, jobId);
+        return true;
       };
       // A sandbox payment or session seen through the live key: nothing real to
       // refund, and nothing this call can do about it. Put the claim back (no
@@ -2888,10 +2891,67 @@ serve(async (req) => {
               });
             }
           } else if (refundAmount > 0) {
-            const refund = await stripe.refunds.create(
-              { payment_intent: cancelPaymentIntentId, amount: refundAmount },
-              { idempotencyKey: `cancel-escrow-${jobId}` },
-            );
+            let refund: Stripe.Refund;
+            try {
+              refund = await stripe.refunds.create(
+                { payment_intent: cancelPaymentIntentId, amount: refundAmount },
+                { idempotencyKey: `cancel-escrow-${jobId}` },
+              );
+            } catch (refundErr) {
+              // Stripe ANSWERED "no" (job 2c8480ae, 2026-10-23: 400 "This
+              // account is not currently able to refund charges"): no refund
+              // exists, and the same key replays the same "no" for 24 hours.
+              // The claim used to stay 'cancelling' behind a 500, so the job
+              // was stuck mid-cancel with its money still captured and nothing
+              // ever settled it. Hand the claim back (the job is funded again,
+              // exactly as before the press) and say so plainly. A re-entered
+              // claim goes back only when the charge shows no earlier refund
+              // (an earlier run that refunded is read from amount_refunded).
+              // Anything that is not a definite answer (timeout, 5xx, rate
+              // limit) may have refunded: the claim stays and the error
+              // rethrows, as before, so a retry on the same key settles it.
+              if (!isDefinitiveStripeRefusal(refundErr)) throw refundErr;
+              // A refusal that says the CHARGE changed under us (refunded or
+              // disputed since we read it, or less left than we asked) is not
+              // "nothing happened": the job must not read funded again. It
+              // stays 'cancelling' for a person (lh-money-escrow review
+              // 2026-10-25 #4).
+              const refusalCode = String((refundErr as { code?: unknown }).code ?? "");
+              const chargeChanged = ["charge_already_refunded", "charge_disputed", "amount_too_large"].includes(refusalCode) ||
+                // An amount refusal may carry no code, only param 'amount'.
+                String((refundErr as { param?: unknown }).param ?? "") === "amount";
+              const safeToPutBack = !chargeChanged && (job.payment_status === "escrow" || alreadyRefundedCents === 0);
+              const putBack = safeToPutBack
+                ? await putCancelClaimBack(`Stripe refused the refund: ${caughtMessage(refundErr)}`)
+                : false;
+              console.error(
+                `[create-payment] cancel_escrow: Stripe refused the refund for job ${jobId} (${cancelPaymentIntentId}); ` +
+                  `${putBack ? "claim put back, job still funded" : safeToPutBack ? "claim put-back MISSED (paged)" : chargeChanged ? `claim kept (${refusalCode})` : "claim kept (the charge shows an earlier refund)"}:`,
+                caughtMessage(refundErr),
+              );
+              await postSlackOpsAlert({
+                kind: "money_at_risk",
+                severity: "warning",
+                title: "Stripe refused a cancellation refund",
+                message: `Stripe refused the refund for a poster's cancel. No money moved in this call. ${putBack ? "The job was put back to funded (escrow), so the poster can try again." : safeToPutBack ? "Putting the job back to funded FAILED (see the claim put-back alert); it reads 'cancelling'." : chargeChanged ? `Stripe says the charge changed (${refusalCode}): check it in Stripe; the job stays 'cancelling' for a person.` : "The job stays 'cancelling' because its charge already shows an earlier refund; reconcile by hand."}`,
+                fields: {
+                  job_id: jobId,
+                  payment_intent: cancelPaymentIntentId,
+                  refund_cents: refundAmount,
+                  stripe_status: (refundErr as { statusCode?: number }).statusCode ?? null,
+                  stripe_message: caughtMessage(refundErr),
+                  stripe_code: refusalCode || null,
+                  claim_put_back: putBack ? "yes" : "no",
+                },
+                oncePerDayKey: `cancel-escrow-refund-refused:${jobId}`,
+              });
+              return new Response(JSON.stringify({
+                error: putBack
+                  ? "The payment processor refused this refund right now. No money was moved and your job is still paid for; try again later or contact support."
+                  : "The payment processor refused this refund. No money was moved by this request; support has the details and will finish the cancellation.",
+                refundRefused: true,
+              }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 502 });
+            }
             await recordRefund(supabaseAdmin, {
               refund,
               jobId,
@@ -2899,9 +2959,23 @@ serve(async (req) => {
               paymentIntentId: cancelPaymentIntentId,
               source: "cancel_escrow",
               isPartial: nonRefundableCents > 0,
-              // A poster-fee job keeps the card processing cost, not a service
-              // fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
-              reason: `escrow cancellation refund (minus ${isPosterFeeJob(job) ? "the card processing fee" : "non-refundable service fee"}${setupFeeCents > 0 ? " and the kept $2 setup fee" : ""})`,
+              // What was REALLY kept, in dollars (it said "minus non-refundable
+              // service fee" when only Stripe's card fee was kept; see
+              // _shared/refundReason.ts). A poster-fee job keeps the card
+              // processing cost, never a service fee (Q2082 slice 4 #7).
+              reason: (() => {
+                const setupKept = Math.min(setupFeeCents, nonRefundableCents);
+                const feeKept = Math.max(0, nonRefundableCents - setupKept);
+                // A flat-model job's customer_fee_amount is its card cost, not a
+                // service fee (cardCostFeeCents; lh-money-escrow review 2026-10-25 #2).
+                const serviceKept = isPosterFeeJob(job) || cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, feeKept);
+                return refundReasonWithKeptParts("escrow cancellation refund", {
+                  serviceFeeCents: serviceKept,
+                  processingFeeCents: feeKept - serviceKept,
+                  taxCents: cancelSplit.taxKeptCents,
+                  setupFeeCents: setupKept,
+                });
+              })(),
               initiatedByUserId: user.id,
             });
             // Q1714: the poster is told at once, with what was kept and why
@@ -2923,6 +2997,10 @@ serve(async (req) => {
                   ? setupFeeKeptReason(
                     keptCents - setupFeeCents - cancelSplit.taxKeptCents <= 0
                       ? null
+                      // A flat-model job's customer_fee_amount is its card cost
+                      // (cardCostFeeCents), never a service fee.
+                      : cardCostFeeCents(job) > 0
+                      ? "the card processing fee, which can't be returned"
                       : keptCents - setupFeeCents - cancelSplit.taxKeptCents === serviceFeeCents
                       ? "the service fee, which isn't refunded when a job is cancelled"
                       : serviceFeeCents > 0

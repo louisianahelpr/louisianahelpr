@@ -2452,6 +2452,110 @@ describe("create-payment edge function", () => {
       expect((jobUpdates[jobUpdates.length - 1].payload as Record<string, unknown>).payment_status).toBe("escrow");
     });
 
+    // Job 2c8480ae (2026-10-23, E2E run 39936058676): refunds.create answered
+    // 400 "This account is not currently able to refund charges". The claim
+    // stayed 'cancelling' behind a 500 and the job was stuck mid-cancel.
+    // @mutate supabase/functions/create-payment/index.ts | if (!isDefinitiveStripeRefusal(refundErr)) throw refundErr; | throw refundErr;
+    describe("Stripe REFUSES the cancellation refund", () => {
+      const refused = () => Object.assign(
+        new Error("This account is not currently able to refund charges. Please contact us via https://support.stripe.com/contact/ for further information."),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      );
+      const seedFunded = (paymentStatus: string, amountRefunded = 0) => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", payment_status: paymentStatus, stripe_payment_intent_id: "pi_1", budget: 45, customer_fee_amount: 0 }],
+        };
+        if (paymentStatus === "cancelling") {
+          scenario.reads.job_refund_claims = { rows: [{ claimed_by: "cancel_escrow", claimed_at: "2026-10-23T08:50:00.000Z" }] };
+        }
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_1", status: "succeeded", amount: 411, amount_received: 411,
+          latest_charge: { id: "ch_1", amount_refunded: amountRefunded, balance_transaction: { fee: 42 } },
+        });
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      };
+      const call = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      };
+      const jobUpdates = () => scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+
+      it("a fresh claim goes back to 'escrow', answers a clear 502 (not a 500), pages ops, never cancels", async () => {
+        seedFunded("escrow");
+        stripeMock.refunds.create.mockRejectedValue(refused());
+        const res = await call();
+        expect(res.status).toBe(502);
+        const body = await json(res);
+        expect(body.refundRefused).toBe(true);
+        expect(String(body.error)).toMatch(/No money was moved/);
+        const updates = jobUpdates();
+        expect((updates[0].payload as Record<string, unknown>).payment_status).toBe("cancelling");
+        const last = updates[updates.length - 1];
+        expect((last.payload as Record<string, unknown>).payment_status).toBe("escrow");
+        expect(last.filters).toContainEqual(expect.objectContaining({ column: "payment_status", value: "cancelling" }));
+        expect(updates.some((w) => (w.payload as Record<string, unknown>).status === "cancelled")).toBe(false);
+        expect(slackAlerts.some((a) => (a as { title?: string }).title === "Stripe refused a cancellation refund")).toBe(true);
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | const safeToPutBack = !chargeChanged && (job.payment_status === "escrow" \|\| alreadyRefundedCents === 0); | const safeToPutBack = !chargeChanged && job.payment_status === "escrow";
+      it("a stranded 'cancelling' claim (the 2c8480ae shape: no refund on the charge) is put back to 'escrow' on retry", async () => {
+        seedFunded("cancelling", 0);
+        stripeMock.refunds.create.mockRejectedValue(refused());
+        const res = await call();
+        expect(res.status).toBe(502);
+        const updates = jobUpdates();
+        expect((updates[updates.length - 1].payload as Record<string, unknown>).payment_status).toBe("escrow");
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts | const safeToPutBack = !chargeChanged && (job.payment_status === "escrow" \|\| alreadyRefundedCents === 0); | const safeToPutBack = true;
+      it("a re-entered claim whose charge already shows a refund stays 'cancelling' (an earlier run may have refunded)", async () => {
+        seedFunded("cancelling", 100);
+        stripeMock.refunds.create.mockRejectedValue(refused());
+        const res = await call();
+        expect(res.status).toBe(502);
+        const updates = jobUpdates();
+        expect(updates.every((w) => (w.payload as Record<string, unknown>).payment_status !== "escrow")).toBe(true);
+      });
+
+      // lh-money-escrow review 2026-10-25 #4: a refusal that says the charge
+      // changed (refunded or disputed since it was read) must not make the job
+      // read funded again.
+      // @mutate supabase/functions/create-payment/index.ts |               const safeToPutBack = !chargeChanged && (job.payment_status === "escrow" \|\| alreadyRefundedCents === 0); |               const safeToPutBack = job.payment_status === "escrow" \|\| alreadyRefundedCents === 0;
+      it("a refusal that says the charge changed (charge_disputed / charge_already_refunded) keeps the claim and never says the job is still paid for", async () => {
+        for (const extra of [{ code: "charge_disputed" }, { code: "charge_already_refunded" }, { code: "amount_too_large" }, { param: "amount" }]) {
+          const code = JSON.stringify(extra);
+          resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+          seedFunded("escrow");
+          stripeMock.refunds.create.mockRejectedValue(Object.assign(refused(), extra));
+          const res = await call();
+          expect(res.status, code).toBe(502);
+          expect(jobUpdates().every((w) => (w.payload as Record<string, unknown>).payment_status !== "escrow"), code).toBe(true);
+          expect(String((await json(res)).error), code).not.toMatch(/still paid for/);
+        }
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |           return false;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId);\n        return true; |           return true;\n        }\n        await deleteRefundClaim(supabaseAdmin, jobId);\n        return true;
+      it("a put-back that misses never tells the poster the job is still paid for", async () => {
+        seedFunded("escrow");
+        stripeMock.refunds.create.mockRejectedValue(refused());
+        scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.payment_status === "escrow", rows: [] }];
+        const res = await call();
+        expect(res.status).toBe(502);
+        expect(String((await json(res)).error)).toMatch(/support has the details/);
+        expect(slackAlerts.some((a) => /FAILED/.test(String((a as { message?: string }).message)))).toBe(true);
+      });
+
+      // The classifier itself is pinned in src/test/stripeRefusal.test.ts.
+      it("a Stripe 5xx is NOT a definite answer: the claim stays 'cancelling' and the error surfaces (a retry on the same key settles it)", async () => {
+        seedFunded("escrow");
+        stripeMock.refunds.create.mockRejectedValue(Object.assign(new Error("upstream"), { type: "StripeAPIError", statusCode: 500 }));
+        const res = await call();
+        expect(res.status).toBe(500);
+        expect(jobUpdates().every((w) => (w.payload as Record<string, unknown>).payment_status !== "escrow")).toBe(true);
+      });
+    });
+
     // Q891 item 3: the session-retrieve catch swallowed every error and went on
     // with no PI, so a transient Stripe error skipped the refund and still
     // cancelled the job, leaving the poster's money captured on a dead job.
@@ -2743,7 +2847,7 @@ describe("create-payment edge function", () => {
       expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
       expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_first", amount: 3500 });
       const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
-      expect(String((ledger?.payload as Record<string, unknown>)?.reason)).toContain("kept $2 setup fee");
+      expect((ledger?.payload as Record<string, unknown>)?.reason).toBe("escrow cancellation refund (minus $4.20 service fee and $2.00 one-time setup fee)");
     });
 
     it("a job with no setup fee still refunds all but the service fee (Q1674 changes nothing else)", async () => {

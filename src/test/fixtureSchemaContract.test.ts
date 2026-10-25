@@ -306,6 +306,12 @@ describe("every fixture literal could be inserted", () => {
     // helper_credentials row), the charge-recurring-visits mock reads `{ rows, count }` (not an ops_alert_ledger
     // row), and a source string `count: ..., stars: 0` (ReviewsSection's display object, not a declutter_reviews row).
     { file: "src/test/edge/verification-webhook.test.ts", keys: ["certificate_id", "expiration_date"] },
+    // 20261025161801 put gift_cards_payment_status_check in the migrations for the first time (it was
+    // only on prod), so two test BLOCKS read as one literal became gradable as gift rows: a jobs mock
+    // rewrite next to a gift read (`payment_status: "failed"` is the JOB's) and the gift-ledger cases
+    // whose `{ ...job, payment_status: "unpaid" }` sits beside gift rows. Neither is one row.
+    { file: "src/test/edge/money-reconciliation.test.ts", keys: ["rows", "poster_completed_at", "restored_from_job_id"] },
+    { file: "src/test/giftCardJourneyLedger.test.ts", keys: ["id", "recipient_id", "redeemed_at", "job_id"] },
     { file: "src/test/edge/charge-recurring-visits.test.ts", keys: ["rows", "count"] },
     // Shops M1 (20261018164442) gave shop_orders a decline_reason, so an applications mock read `{ rows: [{
     // status, decline_reason }], count }` lost its applications marker and `count` pointed at ops_alert_ledger.

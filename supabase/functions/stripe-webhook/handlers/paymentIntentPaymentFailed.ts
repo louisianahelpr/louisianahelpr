@@ -86,6 +86,7 @@ async function unfundFailedEscrow(
   } else if (cancelOutcome === "cancelled") {
     const told = (cancelVerdict as { helpers_told?: unknown[] }).helpers_told ?? [];
     logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });
+    await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false);
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",
@@ -150,6 +151,7 @@ async function unfundFailedEscrow(
     return;
   }
   logStep("Funded job's payment failed — taken out of escrow", { jobId: job.id, piId, from: job.payment_status, liveStatus });
+  await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false);
 
   // Q1971 + Q1876: a funded job nobody was hired on was, like an unpaid
   // bounce, never paid for, so the gift its checkout spent goes back (the job
@@ -223,6 +225,67 @@ async function unfundFailedEscrow(
         link: null,
       });
     }
+  }
+}
+
+/**
+ * A bank (ACH) debit that FAILED after its Checkout Session completed leaves
+ * the PaymentIntent at requires_payment_method forever: nothing in the app can
+ * pay it again (the session is complete; a new checkout makes a new
+ * PaymentIntent). pi_3UPmYCKp2H4b7tEC07QmgrHJ (job 7440a72d, insufficient
+ * funds, 2026-10-15) was still requires_payment_method on 2026-10-25 after the
+ * job was cancelled. Cancel it, so Stripe, money-reconciliation and support
+ * all read the same dead payment.
+ *
+ * Only a PaymentIntent whose Checkout Session is COMPLETE is cancelled: a card
+ * declined inside an OPEN session is also requires_payment_method, and there
+ * the poster can still try another card. A PaymentIntent with no session is
+ * left alone too. Decided on Stripe's live state, never the event payload.
+ *
+ * Runs AFTER the job write, and never throws: the job side is settled and a
+ * Stripe retry of this event would not reach here again (the job is no longer
+ * funded). A failure pages ops to cancel it by hand instead.
+ */
+async function cancelDeadBankPayment(
+  stripe: Stripe,
+  piId: string,
+  jobId: string,
+  logStep: WebhookContext["logStep"],
+  seed: boolean,
+): Promise<"canceled" | "left"> {
+  try {
+    const live = await stripe.paymentIntents.retrieve(piId);
+    const status = (live as { status?: string | null }).status ?? null;
+    if (status !== "requires_payment_method") {
+      logStep("Failed bank payment not cancelled: live PI is not requires_payment_method", { jobId, piId, status });
+      return "left";
+    }
+    const sessions = await stripe.checkout.sessions.list({ payment_intent: piId, limit: 1 });
+    const session = sessions?.data?.[0] as { id?: string; status?: string | null } | undefined;
+    if (!session || session.status !== "complete") {
+      logStep("Failed payment not cancelled: its checkout is not complete (the poster may still pay)", {
+        jobId, piId, session: session?.id ?? null, sessionStatus: session?.status ?? null,
+      });
+      return "left";
+    }
+    await stripe.paymentIntents.cancel(
+      piId,
+      { cancellation_reason: "abandoned" },
+      { idempotencyKey: `cancel-failed-bank-payment-${piId}` },
+    );
+    logStep("Failed bank payment cancelled at Stripe", { jobId, piId });
+    return "canceled";
+  } catch (e) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "A failed bank payment could not be cancelled at Stripe",
+      message: `Job ${jobId}'s bank payment failed and the job was settled, but its PaymentIntent ${piId} could not be cancelled (${(e as Error)?.message ?? String(e)}). No money is held by it; cancel it in Stripe by hand so it stops reading as open.`,
+      fields: { job_id: jobId, payment_intent: piId },
+      oncePerDayKey: `failed-bank-payment-cancel:${piId}`,
+      seed,
+    });
+    return "left";
   }
 }
 
@@ -561,6 +624,9 @@ export async function handlePaymentIntentPaymentFailed(
       });
       return;
     }
+    // A COMPLETED checkout whose bank debit failed (clearSessionId: the
+    // session is complete and its PI is failed): the PaymentIntent is dead.
+    if (clearSessionId) await cancelDeadBankPayment(stripe, pi.id, String(failedJob.id), logStep, failedJob.is_seed ?? false);
     // Q1876: the bank debit behind a COMPLETED gift-shortfall checkout bounced.
     // That completion spent the gift; the job was never funded, so it comes back.
     const giftBack = clearSessionId && giftCardId

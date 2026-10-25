@@ -249,7 +249,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
   // cancel of a paid poster-fee job keeps Stripe's card cost only, never the
   // whole 5% + 70c (posterCancelKeptFeeCents).
   // @mutate supabase/functions/create-payment/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
-  // @mutate supabase/functions/create-payment/index.ts | ${isPosterFeeJob(job) ? "the card processing fee" : "non-refundable service fee"} | non-refundable service fee
+  // @mutate supabase/functions/create-payment/index.ts | const serviceKept = isPosterFeeJob(job) \|\| cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, feeKept); | const serviceKept = feeKept;
   it("cancel_escrow on a paid poster-fee job returns $105.70 less Stripe's card cost ($3.37), not less the $5.70 fee", async () => {
     resetSupabaseMock();
     scenario.authUser = POSTER;
@@ -270,7 +270,32 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_pf", amount: 10_233 }, { idempotencyKey: "cancel-escrow-job-pf" });
     // The ledger names what was kept: the card processing fee, not a service fee.
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
-    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("escrow cancellation refund (minus the card processing fee)");
+    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("escrow cancellation refund (minus $3.37 card processing fee)");
+  });
+
+  // lh-money-escrow review 2026-10-25 #2: a flat-model job (platform_fee_percent
+  // 0) paid its card cost as customer_fee_amount; the ledger and the notice
+  // name it the card processing fee, never a service fee.
+  // @mutate supabase/functions/create-payment/index.ts | const serviceKept = isPosterFeeJob(job) \|\| cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, feeKept); | const serviceKept = isPosterFeeJob(job) ? 0 : Math.min(serviceFeeCents, feeKept);
+  it("cancel_escrow on a flat-model job keeps its $1.06 card cost and calls it the card processing fee", async () => {
+    resetSupabaseMock();
+    scenario.authUser = POSTER;
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
+    scenario.reads.jobs = {
+      rows: [{
+        id: "job-flat", customer_id: POSTER.id, status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_flat",
+        budget: 25, customer_fee_amount: 1.06, platform_fee_percent: 0, helper_fee_flat_cents: 70, helper_fee_percent: 5, poster_fee_flat_cents: null,
+      }],
+    };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_flat", status: "succeeded", amount: 2_606, amount_received: 2_606 });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_flat", amount: 2_500 });
+    scenario.writeSelectRows.jobs = [{ id: "job-flat" }];
+    const fn = await load();
+    const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-flat" } }));
+    expect(res.status).toBe(200);
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_flat", amount: 2_500 }, { idempotencyKey: "cancel-escrow-job-flat" });
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("escrow cancellation refund (minus $1.06 card processing fee)");
   });
 
   // Gift first (owner 2026-10-18; redeem_gift_card 20261018031451 prices the

@@ -26,6 +26,15 @@
  *   - A failed read of test_accounts/profiles refuses the payment (fail
  *     closed): which mode applies is unknown, and guessing either way breaks
  *     one of the two rules above.
+ *   - A TEST-LOOKING account that is not a properly enrolled test account is
+ *     REFUSED, never sent to live mode (Oct 2026 audit, finding 7: the shared
+ *     e2e accounts were re-created on 10-09 and enrolled only on 10-12, and in
+ *     that gap their checkouts ran LIVE). Test-looking means is_seed without a
+ *     test_accounts row, a test_accounts row without is_seed, or a fixture
+ *     inbox email (is_fixture_email: @mailinator.com, @helpr.test, eli.test.*)
+ *     without a test_accounts row. New money and payouts refuse; a refund or a
+ *     read of money already taken still runs where the money sits (owner via
+ *     lead 2026-10-25, Q4), so money can always go back where it came from.
  *
  * ZERO imports on purpose: the edge test harness runs this real module, and it
  * never constructs a Stripe client itself (each function does, with the key
@@ -45,7 +54,19 @@ export type StripeModeRefusalReason =
   | "mixed_parties"
   | "test_key_missing"
   | "test_key_not_test"
-  | "lookup_failed";
+  | "lookup_failed"
+  /** is_seed or a test_accounts row, but not both: a test account half-made. */
+  | "unenrolled_seed"
+  /** A fixture inbox email (is_fixture_email) on an account that is not enrolled. */
+  | "fixture_email"
+  /** An enrolled test account at a function that only runs on the live key. */
+  | "test_account_live_only"
+  /**
+   * ANOTHER party on the payment is a test-looking account that is not
+   * enrolled. Told in words that do not say which kind of account the other
+   * party has (lh-authz-rls + lh-money-escrow reviews 2026-10-25).
+   */
+  | "counterparty_refused";
 
 /**
  * A payment that must not run in either mode. `publicMessage` is written for
@@ -58,10 +79,56 @@ export class StripeModeRefused extends Error {
     super(message);
     this.name = "StripeModeRefused";
     this.reason = reason;
-    this.publicMessage = reason === "mixed_parties"
-      ? "This job pairs a test account with a real account, so no money can move on it."
-      : "Payments are unavailable for this account right now. No money was moved.";
+    this.publicMessage = REFUSAL_COPY[reason] ?? REFUSAL_COPY.lookup_failed;
   }
+}
+
+/** What the person is told, per refusal. Written for people, never a bare error. */
+const REFUSAL_COPY: Record<StripeModeRefusalReason, string> = {
+  mixed_parties: "This job pairs a test account with a real account, so no money can move on it.",
+  test_key_missing: "Payments are unavailable for this account right now. No money was moved.",
+  test_key_not_test: "Payments are unavailable for this account right now. No money was moved.",
+  lookup_failed: "Payments are unavailable for this account right now. No money was moved.",
+  unenrolled_seed: "Payments are unavailable for this account right now. No money was moved.",
+  // Owner via lead 2026-10-25 (Q2): a clear message, never a bare error.
+  fixture_email:
+    "To pay or get paid, use a regular email address on your account. Test inboxes like Mailinator can't be used for payments. No money was moved.",
+  test_account_live_only: "This isn't available on a test account. No money was moved.",
+  counterparty_refused: "This payment can't go through right now because of the other account on it. No money was moved.",
+};
+
+/**
+ * True for a refusal about WHO is on the payment: a mix of test and real, or a
+ * party that looks like a test account without being enrolled. It does not
+ * clear on its own on the next run (unlike a failed read), so a cron treats it
+ * like a mix: money already taken goes back, nothing new is sent, no attempt
+ * is burnt.
+ */
+export function isPartyRefusal(e: unknown): e is StripeModeRefused {
+  return e instanceof StripeModeRefused &&
+    (e.reason === "mixed_parties" || e.reason === "unenrolled_seed" || e.reason === "fixture_email" ||
+      e.reason === "counterparty_refused");
+}
+
+/**
+ * How the mode decision sees one person:
+ *   test             enrolled (public.test_accounts) AND profiles.is_seed;
+ *   real             neither, and not a fixture inbox;
+ *   unenrolled_seed  one of the two without the other;
+ *   fixture_email    a fixture inbox (is_fixture_email), not enrolled.
+ * The last two are refused for new money and payouts (never live).
+ */
+export type PartyClass = "test" | "real" | "unenrolled_seed" | "fixture_email";
+
+/**
+ * public.is_fixture_email (20260926040523), the same three patterns:
+ * lower(btrim(email)) LIKE '%@mailinator.com' | '%@helpr.test' | 'eli.test.%'.
+ * src/test/stripeKeyChosenByMode.test.ts pins the two against each other.
+ */
+export function isFixtureEmail(email: string | null | undefined): boolean {
+  if (typeof email !== "string") return false;
+  const e = email.trim().toLowerCase();
+  return e.endsWith("@mailinator.com") || e.endsWith("@helpr.test") || e.startsWith("eli.test.");
 }
 
 // deno-lint-ignore no-explicit-any
@@ -82,36 +149,120 @@ export function decideStripeMode(
 }
 
 /**
- * Which of `ids` are TEST ACCOUNTS (public.test_accounts row AND
- * profiles.is_seed). `db` must be a SERVICE-ROLE client: test_accounts has no
- * client grant. Throws StripeModeRefused("lookup_failed") on a failed read.
+ * Each of `ids` as the mode decision sees it (PartyClass). `db` must be a
+ * SERVICE-ROLE client: test_accounts has no client grant. Throws
+ * StripeModeRefused("lookup_failed") on a failed read (fail closed).
  */
+export async function classifyParties(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  ids: ReadonlyArray<string | null | undefined>,
+): Promise<Map<string, PartyClass>> {
+  const wanted = uniqIds(ids);
+  const out = new Map<string, PartyClass>();
+  if (wanted.length === 0) return out;
+  const enrolledRes = await db.from("test_accounts").select("user_id").in("user_id", wanted);
+  if (enrolledRes?.error || !Array.isArray(enrolledRes?.data)) {
+    throw new StripeModeRefused("lookup_failed", `test_accounts read failed: ${enrolledRes?.error?.message ?? "no rows array"}`);
+  }
+  // Intersected with `wanted` as well as filtered by `.in()`: an id is
+  // enrolled only when it was asked about AND came back.
+  const asked = new Set(wanted);
+  const enrolled = new Set(uniqIds((enrolledRes.data as Array<{ user_id?: string | null }>).map((r) => r.user_id))
+    .filter((id) => asked.has(id)));
+  // Every party's profile, enrolled or not: a seed or fixture-inbox account
+  // that is NOT enrolled must be seen, so it can be refused instead of run live.
+  const profRes = await db.from("profiles").select("user_id, is_seed, email").in("user_id", wanted);
+  if (profRes?.error || !Array.isArray(profRes?.data)) {
+    throw new StripeModeRefused("lookup_failed", `profiles is_seed read failed: ${profRes?.error?.message ?? "no rows array"}`);
+  }
+  const seed = new Set<string>();
+  const fixture = new Set<string>();
+  for (const r of profRes.data as Array<{ user_id?: string | null; is_seed?: boolean | null; email?: string | null }>) {
+    if (typeof r?.user_id !== "string" || !asked.has(r.user_id)) continue;
+    if (r.is_seed === true) seed.add(r.user_id);
+    if (isFixtureEmail(r.email)) fixture.add(r.user_id);
+  }
+  for (const id of wanted) {
+    const isEnrolled = enrolled.has(id);
+    const isSeed = seed.has(id);
+    if (isEnrolled && isSeed) out.set(id, "test");
+    else if (isEnrolled || isSeed) out.set(id, "unenrolled_seed");
+    else if (fixture.has(id)) out.set(id, "fixture_email");
+    else out.set(id, "real");
+  }
+  return out;
+}
+
+/** Which of `ids` are TEST ACCOUNTS (enrolled AND is_seed). Throws StripeModeRefused("lookup_failed"). */
 async function loadTestAccountIds(
   // deno-lint-ignore no-explicit-any
   db: any,
   ids: ReadonlyArray<string | null | undefined>,
 ): Promise<Set<string>> {
-  const wanted = uniqIds(ids);
-  if (wanted.length === 0) return new Set();
-  const enrolledRes = await db.from("test_accounts").select("user_id").in("user_id", wanted);
-  if (enrolledRes?.error || !Array.isArray(enrolledRes?.data)) {
-    throw new StripeModeRefused("lookup_failed", `test_accounts read failed: ${enrolledRes?.error?.message ?? "no rows array"}`);
+  const classes = await classifyParties(db, ids);
+  return new Set([...classes].filter(([, c]) => c === "test").map(([id]) => id));
+}
+
+/**
+ * Throws StripeModeRefused when any of `ids` is a test-looking account that is
+ * not a properly enrolled test account (PartyClass unenrolled_seed or
+ * fixture_email): such an account is never sent to live mode.
+ *
+ * `self` is whoever will read the answer (the caller). Only when the caller IS
+ * the refused account is the reason (and its sentence: a fixture inbox is told
+ * to use a regular email, owner via lead 2026-10-25, Q2) about them; when it is
+ * another party the answer is "counterparty_refused", so a poster is neither
+ * blamed nor told what kind of account their Helpr has. With no `self`, a
+ * lone party is taken to be the caller.
+ */
+export function refuseUnenrolled(
+  classes: ReadonlyMap<string, PartyClass>,
+  ids: ReadonlyArray<string | null | undefined>,
+  what: string,
+  self?: string | null,
+): void {
+  const parties = uniqIds(ids);
+  const bad = parties.filter((id) => {
+    const c = classes.get(id);
+    return c === "unenrolled_seed" || c === "fixture_email";
+  });
+  if (bad.length === 0) return;
+  const me = self === undefined ? (parties.length === 1 ? parties[0] : null) : self;
+  const mine = me ? classes.get(me) : undefined;
+  const reason: StripeModeRefusalReason = me && bad.includes(me) && (mine === "unenrolled_seed" || mine === "fixture_email")
+    ? mine
+    : "counterparty_refused";
+  throw new StripeModeRefused(
+    reason,
+    `${what}: ${bad.length} party(ies) look like test accounts but are not enrolled (${bad.map((id) => classes.get(id)).join(", ")})`,
+  );
+}
+
+/**
+ * For a function that only ever runs on the LIVE key and starts something new
+ * there (Pro checkout, Stripe Identity): the refusal for any test account
+ * (enrolled: it must never reach live mode) and any test-looking account that
+ * is not enrolled, or null for a real account. A failed read is a refusal too
+ * ("lookup_failed", fail closed). Never throws a StripeModeRefused; answer a
+ * non-null result with stripeModeRefusedResponse BEFORE building the client.
+ */
+export async function refuseLiveOnlyForTestOrSeed(
+  // deno-lint-ignore no-explicit-any
+  db: any,
+  userId: string,
+): Promise<StripeModeRefused | null> {
+  try {
+    const classes = await classifyParties(db, [userId]);
+    if (classes.get(userId) === "test") {
+      return new StripeModeRefused("test_account_live_only", "a test account at a live-only Stripe function");
+    }
+    refuseUnenrolled(classes, [userId], "live-only Stripe function", userId);
+    return null;
+  } catch (e) {
+    if (e instanceof StripeModeRefused) return e;
+    return new StripeModeRefused("lookup_failed", `test-account read failed: ${e instanceof Error ? e.message : String(e)}`);
   }
-  // Intersected with `wanted` as well as filtered by `.in()`: an id is a test
-  // account only when it was asked about AND came back.
-  const asked = new Set(wanted);
-  const enrolled = uniqIds((enrolledRes.data as Array<{ user_id?: string | null }>).map((r) => r.user_id))
-    .filter((id) => asked.has(id));
-  if (enrolled.length === 0) return new Set();
-  const seedRes = await db.from("profiles").select("user_id, is_seed").in("user_id", enrolled).eq("is_seed", true);
-  if (seedRes?.error || !Array.isArray(seedRes?.data)) {
-    throw new StripeModeRefused("lookup_failed", `profiles is_seed read failed: ${seedRes?.error?.message ?? "no rows array"}`);
-  }
-  // is_seed re-checked on the row as well as filtered by `.eq()`.
-  const seed = new Set(uniqIds(
-    (seedRes.data as Array<{ user_id?: string | null; is_seed?: boolean | null }>).filter((r) => r.is_seed === true).map((r) => r.user_id),
-  ));
-  return new Set(enrolled.filter((id) => seed.has(id)));
 }
 
 /**
@@ -123,9 +274,23 @@ export async function stripeModeForParties(
   // deno-lint-ignore no-explicit-any
   db: any,
   ids: ReadonlyArray<string | null | undefined>,
+  /**
+   * What the payment does. "new" (the default) and "payout" refuse a
+   * test-looking account that is not enrolled; "refund" and "read" (money
+   * already taken goes back, or nothing moves) treat it as a real account.
+   */
+  opts: {
+    kind?: MoneyKind;
+    /** Whoever reads the answer, so a refusal names their own account only (see refuseUnenrolled). */
+    caller?: string | null;
+    /** Only these parties must be properly enrolled (a payout: the payees). Default: every party. */
+    mustBeEnrolled?: ReadonlyArray<string | null | undefined>;
+  } = {},
 ): Promise<StripeMode> {
   const parties = uniqIds(ids);
-  const tests = await loadTestAccountIds(db, parties);
+  const classes = await classifyParties(db, parties);
+  if (strictKind(opts.kind)) refuseUnenrolled(classes, opts.mustBeEnrolled ?? parties, "parties", opts.caller);
+  const tests = new Set(parties.filter((id) => classes.get(id) === "test"));
   const decided = decideStripeMode(parties.map((id) => ({ id, test: tests.has(id) })));
   if (!decided.ok) {
     throw new StripeModeRefused("mixed_parties", `parties mix test accounts and real accounts: ${parties.length} parties, ${tests.size} test`);
@@ -207,6 +372,9 @@ export async function readJobParties(
  */
 export type MoneyKind = "new" | "payout" | "refund" | "read";
 
+/** New money and payouts refuse an unenrolled test-looking account; refunds and reads do not (Q4). */
+const strictKind = (kind: MoneyKind | undefined): boolean => kind === undefined || kind === "new" || kind === "payout";
+
 /**
  * The mode for one action on one job's money (see MoneyKind).
  *
@@ -237,7 +405,13 @@ export async function jobMoneyMode(
   const job = opts.job ?? await readJobParties(db, jobId);
   const extra = uniqIds(opts.extraParties ?? []);
   const actor = typeof opts.actorId === "string" && opts.actorId.length > 0 ? opts.actorId : null;
-  const tests = await loadTestAccountIds(db, [...job.partyIds, ...extra, actor]);
+  const classes = await classifyParties(db, [...job.partyIds, ...extra, actor]);
+  // Who must not be an unenrolled test-looking account: everyone new money
+  // touches; for a payout, whoever it pays and whoever acts. A refund or a
+  // read moves no new money and pays nobody new, so it is not refused here.
+  if (opts.kind === "new") refuseUnenrolled(classes, [...job.partyIds, ...extra, actor], `job ${jobId ?? "none"} (new)`, actor);
+  else if (opts.kind === "payout") refuseUnenrolled(classes, [...job.payeeIds, ...extra, actor], `job ${jobId ?? "none"} (payout)`, actor);
+  const tests = new Set([...classes].filter(([, c]) => c === "test").map(([id]) => id));
   const testActor = actor && tests.has(actor) ? [actor] : [];
   const stored = opts.kind === "new" ? null : sessionIdMode(job.storedSessionId);
   if (!stored) {
@@ -479,8 +653,20 @@ export function sessionIdMode(sessionId: string | null | undefined): StripeMode 
 }
 
 /** The JSON answer for a refused mode: 409 for the payment itself, 503 for our own misconfiguration or a failed read. */
+/**
+ * The HTTP status for a refusal: 409 this payment can never run as it stands
+ * (a mix, or another party's account); 403 this ACCOUNT may not move money here
+ * (a test-looking account, or a test account at a live-only function); 503 our
+ * own misconfiguration or a failed read (try again).
+ */
+export function stripeModeRefusedStatus(err: StripeModeRefused): 403 | 409 | 503 {
+  if (err.reason === "mixed_parties" || err.reason === "counterparty_refused") return 409;
+  if (err.reason === "unenrolled_seed" || err.reason === "fixture_email" || err.reason === "test_account_live_only") return 403;
+  return 503;
+}
+
 export function stripeModeRefusedResponse(err: StripeModeRefused, headers: Record<string, string>): Response {
-  const status = err.reason === "mixed_parties" ? 409 : 503;
+  const status = stripeModeRefusedStatus(err);
   console.error(JSON.stringify({ event: "stripe_mode_refused", reason: err.reason, detail: err.message }));
   return new Response(JSON.stringify({ error: err.publicMessage, code: "stripe_mode_refused", reason: err.reason }), {
     headers: { ...headers, "Content-Type": "application/json" },
@@ -499,7 +685,7 @@ export function createStripeModeResolver<S>(
   makeClient: (key: string) => S,
 ) {
   const clients = new Map<StripeMode, S>();
-  const known = new Map<string, boolean>();
+  const known = new Map<string, PartyClass>();
   const clientFor = (mode: StripeMode): S => {
     const cached = clients.get(mode);
     if (cached) return cached;
@@ -507,14 +693,26 @@ export function createStripeModeResolver<S>(
     clients.set(mode, made);
     return made;
   };
-  const modeForParties = async (ids: ReadonlyArray<string | null | undefined>): Promise<StripeMode> => {
+  /**
+   * `kind` as stripeModeForParties: "new" (default) and "payout" refuse an
+   * unenrolled test-looking party; `mustBeEnrolled` narrows that to these
+   * parties (a payout: the payee, so a buyer's account never blocks a real
+   * seller's payout of money already taken).
+   */
+  const modeForParties = async (
+    ids: ReadonlyArray<string | null | undefined>,
+    kind: MoneyKind = "new",
+    mustBeEnrolled?: ReadonlyArray<string | null | undefined>,
+  ): Promise<StripeMode> => {
     const parties = uniqIds(ids);
     const unknown = parties.filter((id) => !known.has(id));
     if (unknown.length > 0) {
-      const tests = await loadTestAccountIds(db, unknown);
-      for (const id of unknown) known.set(id, tests.has(id));
+      const classes = await classifyParties(db, unknown);
+      for (const id of unknown) known.set(id, classes.get(id) ?? "real");
     }
-    const decided = decideStripeMode(parties.map((id) => ({ id, test: known.get(id) === true })));
+    // A cron: nobody reads the sentence, so no caller (self null).
+    if (strictKind(kind)) refuseUnenrolled(known, mustBeEnrolled ?? parties, "parties", null);
+    const decided = decideStripeMode(parties.map((id) => ({ id, test: known.get(id) === "test" })));
     if (!decided.ok) {
       throw new StripeModeRefused("mixed_parties", `parties mix test accounts and real accounts: ${parties.length} parties`);
     }
@@ -524,8 +722,12 @@ export function createStripeModeResolver<S>(
     clientFor,
     modeForParties,
     /** The client for these parties' mode. Throws StripeModeRefused on a mix, a failed read or a missing test key. */
-    async clientForParties(ids: ReadonlyArray<string | null | undefined>): Promise<{ mode: StripeMode; stripe: S }> {
-      const mode = await modeForParties(ids);
+    async clientForParties(
+      ids: ReadonlyArray<string | null | undefined>,
+      kind: MoneyKind = "new",
+      mustBeEnrolled?: ReadonlyArray<string | null | undefined>,
+    ): Promise<{ mode: StripeMode; stripe: S }> {
+      const mode = await modeForParties(ids, kind, mustBeEnrolled);
       return { mode, stripe: clientFor(mode) };
     },
     /**

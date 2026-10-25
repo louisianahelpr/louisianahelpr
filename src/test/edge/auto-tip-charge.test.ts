@@ -70,7 +70,12 @@ async function runWithFailedHelperRead(): Promise<Response> {
       tip_amount: 10, tip_state: "chargeable",
     },
   ];
-  scenario.reads.profiles = { error: { message: "connection reset", code: "08006" } };
+  scenario.reads.profiles = {
+    error: { message: "connection reset", code: "08006" },
+    // The Stripe-mode read (_shared/stripeMode.ts classifyParties) answers, so
+    // the run reaches the claim and fails on the helper profile read itself.
+    selectOverrides: [{ includes: "user_id, is_seed, email", result: { rows: [] } }],
+  };
   return fn.fetch(cronRequest(fn));
 }
 

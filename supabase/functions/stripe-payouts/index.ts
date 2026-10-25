@@ -114,7 +114,9 @@ serve(async (req) => {
 
     // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
     // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id])), {
+    // "read": this function only reads the account, its balance and payouts, so
+    // a test-looking account still sees its own earnings (owner Q4, 2026-10-25).
+    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabaseAdmin, [user.id], { kind: "read" })), {
       apiVersion: "2025-08-27.basil",
     });
 

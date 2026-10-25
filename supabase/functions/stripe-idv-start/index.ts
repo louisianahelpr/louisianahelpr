@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { refuseLiveOnlyForTestOrSeed, stripeModeRefusedResponse } from "../_shared/stripeMode.ts";
 
 /** Profile states whose stored session is read at Stripe before anything is claimed. */
 const RESUMABLE_OR_REVIEW = ["pending", "processing", "manual_review"];
@@ -109,6 +110,12 @@ serve(async (req) => {
     if (idSwitch !== true) {
       return fail(409, "ID checks are turned off right now. Nothing is needed from you.", { code: "identity_check_off" });
     }
+
+    // Stripe Identity runs only on the LIVE key (no test-mode endpoint), and a
+    // live check is billed: a test account, or a test-looking account that is
+    // not enrolled, is refused before any Stripe call (Oct 2026 audit, finding 7).
+    const liveOnlyRefusal = await refuseLiveOnlyForTestOrSeed(supabaseAdmin, user.id);
+    if (liveOnlyRefusal) return stripeModeRefusedResponse(liveOnlyRefusal, corsHeaders);
 
     const { data: profile, error: profileErr } = await supabaseAdmin
       .from("profiles")

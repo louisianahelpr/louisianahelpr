@@ -74,7 +74,7 @@ import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundP
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
-import { jobMoneyMode, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
+import { jobMoneyMode, StripeModeRefused, stripeModeRefusedStatus, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 /**
  * The client type these helpers accept.
@@ -487,7 +487,7 @@ serve(async (req) => {
     console.error(JSON.stringify({ event: "stripe_mode_refused", fn: "execute-dispute-split", reason: modeErr.reason, detail: modeErr.message, job_id: job.id }));
     return await refuse(
       { error: modeErr.publicMessage, code: "stripe_mode_refused", reason: modeErr.reason },
-      modeErr.reason === "mixed_parties" ? 409 : 503,
+      stripeModeRefusedStatus(modeErr),
     );
   }
   const stripe = new Stripe(stripeSecretKey, { apiVersion: "2025-08-27.basil" });

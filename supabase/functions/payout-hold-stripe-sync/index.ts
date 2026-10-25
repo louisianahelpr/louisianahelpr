@@ -142,7 +142,8 @@ serve(async (req) => {
   for (const id of helperIds) {
     let port: ReturnType<typeof portFor>;
     try {
-      port = portFor((await stripes.clientForParties([id])).stripe);
+      // "read": a hold only stops payouts, so it still reaches an unenrolled test-looking Helpr's account.
+      port = portFor((await stripes.clientForParties([id], "read")).stripe);
     } catch (modeErr) {
       if (!(modeErr instanceof StripeModeRefused)) throw modeErr;
       const failed: Extract<FreezeOutcome, { kind: "failed" }> = { kind: "failed", state: null, message: `stripe mode ${modeErr.reason}: ${modeErr.message}`, attempts: null, requestedBy: null };

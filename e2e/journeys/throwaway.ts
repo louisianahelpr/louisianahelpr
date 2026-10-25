@@ -81,7 +81,7 @@ export async function createThrowaway(api: APIRequestContext, key: string, label
   const email = `helpr-journey-throwaway-${tag}@mailinator.com`;
   if (!THROWAWAY_EMAIL_RE.test(email)) throw new Error(`generated ${email} does not match THROWAWAY_EMAIL_RE`);
   const password = strongTestPassword();
-  // seed-policy: patched — the profile comes from the signup trigger, and the profile PATCH below sets is_seed: true before anything else touches it
+  // seed-policy: patched — the profile comes from the signup trigger (handle_new_user, which writes is_seed false), and the profile PATCH below sets is_seed: true before anything else touches it
   const user = await ok(
     await srFetch(key, "POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
       data: { email, password, email_confirm: true, user_metadata: { full_name: `SEED Journey ${label}` } },

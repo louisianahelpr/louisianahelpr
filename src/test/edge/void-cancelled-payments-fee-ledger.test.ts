@@ -437,7 +437,36 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
     // $330 captured, less only the non-refundable $30 service fee: the $150
     // cancellation fee goes back to the poster.
     expect(refundParams.amount).toBe(30000);
-    expect((slackAlerts as Array<{ title?: string }>).some((a) => /other Stripe mode/.test(a.title ?? ""))).toBe(true);
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /cannot be paid in this job's Stripe mode/.test(a.title ?? ""))).toBe(true);
+  });
+
+  // Oct 2026 money audit, finding 7 (lh-money-escrow review 2026-10-25,
+  // finding 1): a Helpr that looks like a test account without being enrolled
+  // (is_seed, no test_accounts row) is refused for payouts. That refusal never
+  // clears by itself, so it must send the fee back with the refund like a mix,
+  // not skip the job as an unreadable mode on every run (the poster's refund
+  // would never run).
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (isPartyRefusal(e as unknown)) return false; |           if (e.reason === "mixed_parties") return false;
+  it("an unenrolled seed Helpr on a real poster's cancelled job: the poster is still refunded, fee included, no fee transfer", async () => {
+    seed();
+    scenario.reads.jobs.selectOverrides!.unshift({
+      includes: "customer_id, helper_id, stripe_session_id",
+      result: { rows: [{ customer_id: "poster-1", helper_id: "helper-1", stripe_session_id: null }] },
+    });
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.reads.profiles = {
+      ...scenario.reads.profiles,
+      selectOverrides: [{ includes: "user_id, is_seed, email", result: { rows: [{ user_id: "helper-1", is_seed: true, email: "x@example.com" }] } }],
+    };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    const body = JSON.parse(await res.text()) as Record<string, unknown>;
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { amount?: number }).amount).toBe(30000);
+    expect(JSON.stringify(body)).not.toContain("stripe_mode_unreadable");
+    // Ops is told in words that fit an unenrolled payee, not only a mix.
+    expect((slackAlerts as Array<{ message?: string }>).some((a) => /looks like a test account but is not enrolled/.test(a.message ?? ""))).toBe(true);
   });
 
   // lh-money-escrow review of the rebuild, finding 3: the fee payees' mode

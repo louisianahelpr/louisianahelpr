@@ -71,6 +71,7 @@ import {
   stripeModeRefusedResponse,
   StripeModeRefused,
   stripeSecretKeyFor,
+  type MoneyKind,
   type StripeMode,
 } from "../_shared/stripeMode.ts";
 
@@ -126,10 +127,14 @@ async function readOrder(admin: Db, orderId: string): Promise<OrderMoneyRow | nu
   return (data as OrderMoneyRow | null) ?? null;
 }
 
-/** The Stripe client for an order's existing money: recorded mode / page prefix, else the parties. */
-async function stripeForOrder(admin: Db, o: OrderMoneyRow): Promise<Stripe> {
+/**
+ * The Stripe client for an order's existing money: recorded mode / page prefix, else the parties.
+ * `kind`: a capture takes the money ("new"), so an unenrolled test-looking party refuses; a release,
+ * refund or refund read gives back or reads ("refund"/"read"), and still runs (Q4).
+ */
+async function stripeForOrder(admin: Db, o: OrderMoneyRow, kind: MoneyKind): Promise<Stripe> {
   const mode = shopOrderMode({ livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id })
-    ?? await stripeModeForParties(admin, [o.buyer_id, o.seller_id]);
+    ?? await stripeModeForParties(admin, [o.buyer_id, o.seller_id], { kind });
   return stripeFor(mode);
 }
 
@@ -248,7 +253,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   let mode: StripeMode | null = null;
   let location: string | null = null;
   if (ownerId) {
-    mode = await stripeModeForParties(admin, [user.id, ownerId]);
+    mode = await stripeModeForParties(admin, [user.id, ownerId], { caller: user.id });
     const loc = await pickupTaxLocation(stripeFor(mode), admin, shopId, mode);
     if (loc === "missing") return json({ error: "pickup_address_missing" }, 409);
     if (loc === "unusable") return json({ error: "pickup_address_unusable" }, 409);
@@ -389,7 +394,7 @@ async function accept(body: Record<string, unknown>, asMaker: Db, admin: Db) {
   if ((data as { captured?: boolean } | null)?.captured === true) return json({ accepted: true, charged: true });
   const o = await readOrder(admin, orderId);
   if (!o?.stripe_payment_intent_id) return json({ error: TRY_AGAIN }, 503);
-  const outcome = await captureShopHold(await stripeForOrder(admin, o), admin, o.id, o.stripe_payment_intent_id, o.capture_attempts ?? 0);
+  const outcome = await captureShopHold(await stripeForOrder(admin, o, "new"), admin, o.id, o.stripe_payment_intent_id, o.capture_attempts ?? 0);
   if (outcome === "hold_lost") return json({ error: "hold_lost" }, 409);
   // will_retry: the order IS accepted; declutter-money finishes the charge.
   return json({ accepted: true, charged: outcome === "captured" });
@@ -404,7 +409,7 @@ async function letGo(admin: Db, orderId: string): Promise<void> {
     return;
   }
   try {
-    await releaseShopHold(await stripeForOrder(admin, o), admin, {
+    await releaseShopHold(await stripeForOrder(admin, o, "refund"), admin, {
       order_id: o.id, buyer_id: o.buyer_id, seller_id: o.seller_id, payment_intent_id: o.stripe_payment_intent_id,
       livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id,
     });
@@ -446,7 +451,7 @@ async function sendRefundNow(admin: Db, orderId: string, refundId: unknown): Pro
     if (!row) return "sent";
     const o = await readOrder(admin, orderId);
     if (!o) throw new Error("order vanished");
-    const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, row);
+    const outcome = await sendShopRefund(await stripeForOrder(admin, o, "refund"), admin, row);
     return outcome === "failed" ? "pending" : "sent";
   } catch (e) {
     console.error(JSON.stringify({ event: "shop_refund_deferred", order: orderId, refund: refundId, detail: caughtMessage(e, "send failed").slice(0, 200) }));
@@ -537,7 +542,7 @@ async function adminRecordHandRefund(body: Record<string, unknown>, userId: stri
   if (!role) return json({ error: "admin_only" }, 403);
   const o = await readOrder(admin, orderId);
   if (!o?.stripe_payment_intent_id) return json({ error: "order_not_found" }, 404);
-  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o, "read"), refundId);
   if (!refund) return json({ error: "refund_not_found" }, 404);
   const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
   if (refundPi !== o.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
@@ -574,7 +579,7 @@ async function adminSettleHeldRefund(body: Record<string, unknown>, userId: stri
   if (!row) return json({ error: "refund_not_found" }, 404);
   const o = await readOrder(admin, row.order_id as string);
   if (!o?.stripe_payment_intent_id) return json({ error: "refund_not_found" }, 404);
-  const refund = await retrieveRefund(await stripeForOrder(admin, o), refundId);
+  const refund = await retrieveRefund(await stripeForOrder(admin, o, "read"), refundId);
   if (!refund) return json({ error: "refund_not_found" }, 404);
   const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);

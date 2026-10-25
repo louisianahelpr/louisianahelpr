@@ -31,20 +31,24 @@
  *                                       the site;
  *   not prod …                        — only for NOT_PROD_WRITERS below.
  * The database side (20260926040523_seed_flag_derived_at_birth.sql) marks what
- * no writer can: GoTrue-created fixture accounts and service-role jobs of a
- * seed account; PGlite: src/test/pglite/seedPurge.pglite.mjs.
+ * no writer can: service-role jobs of a seed account; PGlite:
+ * src/test/pglite/seedPurge.pglite.mjs. It used to mark GoTrue-created
+ * fixture-email accounts too, and that made is_seed self-grantable by any
+ * stranger with a @mailinator.com address (Q2244): 20261025161836 dropped that
+ * trigger, so an account is seed only when its writer says so (this test) or
+ * an admin does. No live INSERT trigger on profiles may assign is_seed.
  *
  * RED ON THE ORIGINAL: with the writer files and the birth migration at
  * cac623e3b, 4 of 6 tests fail: "every site" lists the 11 sites above, the
  * floor reads 19 set (< 20), NOT_PROD_WRITERS has no not-prod site, and the
  * database test finds neither trigger.
  *
- * @mutate scripts/audit/prod-seed.mjs | payment_status: "unpaid", is_seed: true }; | payment_status: "unpaid" };
+ * @mutate scripts/audit/prod-seed.mjs |       await upsert("jobs", missing.map((r) => ({ ...r, is_seed: true }))); |       await upsert("jobs", missing.map((r) => ({ ...r })));
  * @mutate e2e/journeys/time-travel.spec.ts |           is_seed: true, |           seeded: true,
  * @mutate scripts/ci/race-runner.mjs | if (!["localhost", "127.0.0.1", "::1"].includes(process.env.PGHOST | if (![].includes(process.env.PGHOST
  * @mutate scripts/create-app-review-demo-account.mjs | is_seed: true, | seeded: true,
  * @mutate supabase/migrations/20260926040523_seed_flag_derived_at_birth.sql | EXECUTE FUNCTION public.jobs_seed_from_poster(); | EXECUTE FUNCTION public.some_other_fn();
- * @mutate supabase/migrations/20260926040523_seed_flag_derived_at_birth.sql | IF public.is_server_context() AND public.is_fixture_email(NEW.email) THEN\n    NEW.is_seed := true; | IF public.is_server_context() AND public.is_fixture_email(NEW.email) THEN\n    NULL;
+ * @mutate supabase/migrations/20261025161836_seed_flag_not_self_grantable.sql |     DROP TRIGGER IF EXISTS trg_profiles_seed_from_fixture_email ON public.profiles; |     NULL;
  */
 import { describe, it, expect } from "vitest";
 import { execFileSync } from "node:child_process";
@@ -166,8 +170,13 @@ describe("every fixture writer sets is_seed at insert time (Q46)", () => {
     expect(Object.keys(NOT_PROD_WRITERS).filter((f) => !used.has(f))).toEqual([]);
   });
 
-  it("the database marks what no writer can: fixture accounts and seed-account jobs from the service role", () => {
-    expect(derivesOn("trg_profiles_seed_from_fixture_email", "profiles")).toBe(true);
+  it("the database marks what no writer can (seed-account jobs from the service role), and never a profile from its email", () => {
+    // Q2244: is_seed is not self-grantable. No live INSERT trigger on profiles
+    // assigns it (a sign-up's profile is written in server context, so any such
+    // trigger would hand the flag to whoever picks the right email).
+    expect(derivesOn("trg_profiles_seed_from_fixture_email", "profiles")).toBe(false);
+    const profileSeeders = [...insertTriggers].filter(([, t]) => t.table === "profiles" && assignsIsSeed(t.fn)).map(([n]) => n);
+    expect(profileSeeders).toEqual([]);
     expect(derivesOn("trg_jobs_seed_from_poster", "jobs")).toBe(true);
     // the signed-in poster's insert: the lock derives it from the account
     expect(derivesOn("trg_jobs_insert_column_lock", "jobs")).toBe(true);

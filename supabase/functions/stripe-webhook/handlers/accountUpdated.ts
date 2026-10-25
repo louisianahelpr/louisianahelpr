@@ -5,6 +5,7 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { isUnusableConnectAccountError } from "../../_shared/stripeAccountUsable.ts";
 import { enforceConnectAccountFingerprints } from "../../_shared/paymentFingerprint.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
+import { handlePlatformAccountUpdated } from "./platformAccountUpdated.ts";
 
 const NEEDS_ATTENTION_TITLE = "Payout account needs attention";
 
@@ -12,6 +13,13 @@ export async function handleAccountUpdated(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {
+  // Our OWN account's event carries no `event.account` (a connected account's
+  // does). It pages the owner instead of looking for a Helpr profile
+  // (platformAccountUpdated.ts, owner 2026-10-25).
+  if (!event.account) {
+    await handlePlatformAccountUpdated(event, logStep);
+    return;
+  }
   const accountId = (event.data.object as Stripe.Account).id;
 
   // Find the helper with this Stripe account.

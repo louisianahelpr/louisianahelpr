@@ -4,8 +4,14 @@
  * for the platform was skipped with "no profile links this account".
  */
 import { describe, expect, it } from "vitest";
-import { platformAccountProblems } from "../../../supabase/functions/stripe-webhook/handlers/platformAccountUpdated";
 import { readFileSync } from "node:fs";
+
+// Non-literal specifier: tsconfig.app.json does not include supabase/functions
+// modules (TS6307); this one is typechecked by `npm run typecheck:edge`.
+const HANDLER_PATH = "../../../supabase/functions/stripe-webhook/handlers/platformAccountUpdated.ts";
+const { platformAccountProblems } = (await import(/* @vite-ignore */ HANDLER_PATH)) as {
+  platformAccountProblems: (account: never) => { problems: string[]; healthy: boolean };
+};
 
 const healthy = {
   id: "acct_platform", charges_enabled: true, payouts_enabled: true,

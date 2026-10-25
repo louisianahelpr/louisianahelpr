@@ -130,5 +130,10 @@
     "observable": "stuck_payment_stripe_checks",
     "why": "Every 15 minutes it writes one row per unpaid job's Checkout Session with Stripe's answer (checked_at); no rows for an hour while unpaid jobs exist means it is not running",
     "status": "NEVER"
+  },
+  "payout-setup-reminders": {
+    "observable": "payout_setup_reminders.sent_at (and the notifications it inserts)",
+    "why": "Owner 2026-10-25: one ledger row per reminder sent to a hired Helpr without payout setup, stamped sent_at after the notice and email; behind payout_after_hire AND payout_setup (payout_setup is off on prod), so none yet",
+    "status": "NEVER"
   }
 }

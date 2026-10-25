@@ -34,7 +34,7 @@
  * when an admin sets Everyone) and src/test/edge/stripeIdvStartIdentityCheckOff.test.ts.
  *
  * @mutate supabase/migrations/20261023213857_identity_check_switch.sql |     NOT public.feature_enabled_for_user('identity_check', p_user_id)\n    OR COALESCE(( |     COALESCE((
- * @mutate supabase/migrations/20261023213857_identity_check_switch.sql |             CASE WHEN public.feature_enabled_for_user('identity_check', p.user_id)\n                       AND NOT public.identity_is_verified | CASE WHEN NOT public.identity_is_verified
+ * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |             CASE WHEN public.feature_enabled_for_user('identity_check', p.user_id)\n                       AND NOT public.identity_is_verified | CASE WHEN NOT public.identity_is_verified
  * @mutate src/lib/identityCheck.ts |   if (!identityCheckOn()) return false;\n  state = { open: true, reason }; |   state = { open: true, reason };
  * @mutate src/lib/awardGate.ts |   if (identityCheckOn() && !hasIdBadge(profile.idv_status)) missing.push("stripe_id"); |   if (!hasIdBadge(profile.idv_status)) missing.push("stripe_id");
  * @mutate src/pages/posts/PostedJobsTab.tsx | we'll match you with Louisiana Helprs nearby. | we'll match you with ID-verified Louisiana Helprs nearby.

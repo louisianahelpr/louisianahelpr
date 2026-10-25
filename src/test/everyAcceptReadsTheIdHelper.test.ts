@@ -36,7 +36,7 @@
  * @mutate supabase/migrations/20261021062140_member_display_name_crew_confirm.sql |   IF public.helper_accept_block_reason(NEW.user_id) IS NOT NULL THEN | IF public.helper_award_block_reason(NEW.user_id) IS NOT NULL THEN
  * @mutate supabase/migrations/20261021061341_member_display_name.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
  * @mutate supabase/migrations/20261020043346_id_once_gates_every_accept.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
- * @mutate supabase/migrations/20261023213857_identity_check_switch.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
+ * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
  * @mutate supabase/migrations/20261020044552_delivery_accept_reads_id_helper.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId }); | const { data: notReady, error: readyErr } = { data: null, error: null };
  */

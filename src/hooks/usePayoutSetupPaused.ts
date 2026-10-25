@@ -2,7 +2,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { usePayoutSetupHireAllowed } from "@/hooks/usePayoutSetupHireAllowed";
 
 /** Why setup is not offered right now: paused for everyone, or not hired yet; null when it is offered. */
-export type PayoutSetupBlock = "paused" | "needs_hire" | null;
+type PayoutSetupBlock = "paused" | "needs_hire" | null;
 
 /** The reason behind usePayoutSetupPaused(), for the notice that explains it. */
 export function usePayoutSetupBlock(): PayoutSetupBlock {

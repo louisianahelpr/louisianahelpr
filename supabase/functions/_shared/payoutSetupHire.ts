@@ -23,7 +23,7 @@
  */
 
 /** The machine code of the refusal (403). */
-export const PAYOUT_SETUP_NEEDS_HIRE_CODE = "payout_setup_needs_hire";
+const PAYOUT_SETUP_NEEDS_HIRE_CODE = "payout_setup_needs_hire";
 
 /**
  * The same words as the app notice (PAYOUT_SETUP_NEEDS_HIRE_COPY in

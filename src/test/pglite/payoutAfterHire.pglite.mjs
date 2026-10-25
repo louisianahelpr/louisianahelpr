@@ -63,7 +63,7 @@ CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, is_seed boolean NOT NULL DEFAULT false, stripe_account_id text,
   stripe_payouts_enabled boolean NOT NULL DEFAULT false, stripe_identity_verified boolean NOT NULL DEFAULT false, idv_status text);
-CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text, customer_id uuid, helper_id uuid, payment_status text,
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text, customer_id uuid, helper_id uuid, status text NOT NULL DEFAULT 'accepted', payment_status text,
   cancellation_fee_status text);
 CREATE TABLE public.group_job_helpers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL);
 CREATE TABLE public.job_accept_pending (job_id uuid PRIMARY KEY, helper_id uuid NOT NULL, requested_at timestamptz NOT NULL DEFAULT now());
@@ -261,6 +261,7 @@ const forUid = (rows, uid) => rows.filter((r) => r.helper_id === uid);
 let rows = await claimReminders();
 ok(rows.length === 0, "(D) payout_setup off (paused): no reminder at all");
 await setAudience("payout_setup", "everyone");
+await db.exec(`INSERT INTO public.jobs (id, title, helper_id, status, payment_status) VALUES ('${id(130)}', 'Cancelled hire', '${IDLE_TESTER}', 'cancelled', 'escrow')`);
 rows = await claimReminders();
 ok(forUid(rows, TESTER).length === 1 && forUid(rows, TESTER)[0].stage === "hired" && forUid(rows, TESTER)[0].job_id === JOB_TESTER,
   "(D) a hired tester with no account gets the 'hired' reminder, naming the job");
@@ -268,7 +269,7 @@ ok(forUid(rows, TESTER)[0]?.job_title === "Tester hire", "(D) ...with the job's 
 ok(forUid(rows, ESCROW_H).length === 0 && forUid(rows, PAYOUT_H).length === 0, "(D) never an ordinary member (payout_after_hire off for them)");
 ok(forUid(rows, READY_TESTER).length === 0, "(D) never a Helpr whose payouts are ready");
 ok(forUid(rows, SEAT).length === 0, "(D) never a fixture seat (accept-ready with no account)");
-ok(forUid(rows, IDLE_TESTER).length === 0, "(D) never a tester nobody hired");
+ok(forUid(rows, IDLE_TESTER).length === 0, "(D) never a tester whose only hire was cancelled");
 rows = await claimReminders();
 ok(rows.length === 0, "(D) a second run at once sends nothing (claimed, and at most one a day)");
 const back = (h) => q(`UPDATE public.payout_setup_reminders SET claimed_at = claimed_at - interval '${h} hours' WHERE helper_id = '${TESTER}'`);

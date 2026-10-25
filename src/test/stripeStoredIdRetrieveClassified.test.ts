@@ -205,6 +205,9 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
   "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
   "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#2": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
   "stripe-connect/index.ts::stripe.accounts.retrieve(profile.stripe_account_id)#3": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
+  // Owner 2026-10-25 (freshIfRejected): its own catch keeps only a "has been rejected" answer;
+  // anything else (an unusable id included) is rethrown to the handler's outer catch.
+  "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)#2": /const isStaleAccountErr = isUnusableConnectAccountError\(err\)/,
   // Q1221: the sync hands its retrieve to syncPayoutHold, which asks isAccountGone.
   "payout-hold-stripe-sync/index.ts::stripe.accounts.retrieve(accountId)": /isAccountGone:\s*\(err: unknown\) => isUnusableConnectAccountError\(err\)/,
 };

@@ -175,7 +175,8 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // (owner 2026-10-18; measured on prod 2026-10-18).
 // last_edit_notice_at: server-owned hour of the last open-job edit notice (board 66/172 s4, 20261021111723).
 // Listed for coverage only; no client reads it.
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at"] as const;
+// poster_marked_done_at: a cancelled job filed under the poster's Done list (owner 2026-10-25, 20261025211357).
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at"] as const;
 
 /** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
 function withoutJobColumnsAheadOfDb(select: string): string {

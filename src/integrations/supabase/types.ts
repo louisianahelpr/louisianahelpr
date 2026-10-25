@@ -5275,6 +5275,7 @@ export type Database = {
           poster_confirmed_at: string | null
           poster_confirmed_working_at: string | null
           poster_fee_flat_cents: number | null
+          poster_marked_done_at: string | null
           pricing_mode: string
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
@@ -5397,6 +5398,7 @@ export type Database = {
           poster_confirmed_at?: string | null
           poster_confirmed_working_at?: string | null
           poster_fee_flat_cents?: number | null
+          poster_marked_done_at?: string | null
           pricing_mode?: string
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
@@ -5519,6 +5521,7 @@ export type Database = {
           poster_confirmed_at?: string | null
           poster_confirmed_working_at?: string | null
           poster_fee_flat_cents?: number | null
+          poster_marked_done_at?: string | null
           pricing_mode?: string
           proof_after_urls?: string[] | null
           proof_before_urls?: string[] | null
@@ -13961,6 +13964,7 @@ export type Database = {
           poster_confirmed_at: string | null
           poster_confirmed_working_at: string | null
           poster_fee_flat_cents: number | null
+          poster_marked_done_at: string | null
           pricing_mode: string
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null
@@ -14108,6 +14112,7 @@ export type Database = {
           poster_confirmed_at: string | null
           poster_confirmed_working_at: string | null
           poster_fee_flat_cents: number | null
+          poster_marked_done_at: string | null
           pricing_mode: string
           proof_after_urls: string[] | null
           proof_before_urls: string[] | null

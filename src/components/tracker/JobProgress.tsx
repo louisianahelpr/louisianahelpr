@@ -30,7 +30,8 @@ type StepState = "done" | "you" | "them" | "problem" | "alarm" | "todo";
 export const JOB_STEP_ICONS: readonly LucideIcon[] = [FileText, Clock, CheckCircle2, CalendarCheck, Truck, MapPin, Wrench, PartyPopper];
 
 const BAR: Record<StepState, string> = {
-  done: "bg-[hsl(var(--success-ink))]",
+  // Done steps are the app's olive (owner 2026-10-25: "the green on the tracker needs to match our green").
+  done: "bg-[hsl(var(--bark))]",
   // THE CURRENT STEP IS ALWAYS AMBER (owner, 2026-10-23: the old rail's rule wins over the 10-22 yellow/olive
   // split). Whose move it is stays on the step as its icon (a hand for yours, an hourglass for theirs) and in the
   // line and the aria sentence.
@@ -41,7 +42,7 @@ const BAR: Record<StepState, string> = {
   todo: "border border-border bg-transparent",
 };
 const TEXT: Record<StepState, string> = {
-  done: "text-[hsl(var(--success-ink))]",
+  done: "text-[hsl(var(--bark))]",
   you: "font-semibold text-[hsl(var(--amber-ink))]",
   them: "font-semibold text-[hsl(var(--amber-ink))]",
   problem: "font-semibold text-[hsl(var(--sienna-ink))]",

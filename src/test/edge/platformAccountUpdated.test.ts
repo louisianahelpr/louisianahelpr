@@ -40,10 +40,12 @@ describe("platform account early warning", () => {
     expect(platformAccountProblems(due as never).problems[0]).toMatch(/Stripe needs: company\.tax_id by 2026-/);
   });
 
-  it("the webhook routes our own account's events to the alert, before the Helpr lookup", () => {
+  it("the webhook routes our own account's events to the alert only when no Helpr profile links the account", () => {
     const src = readFileSync("supabase/functions/stripe-webhook/handlers/accountUpdated.ts", "utf8");
-    // @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts |   if (!event.account) { |   if (false) {
-    expect(src).toMatch(/if \(!event\.account\) \{\s+await handlePlatformAccountUpdated\(event, logStep\);\s+return;/);
-    expect(src.indexOf("handlePlatformAccountUpdated(event")).toBeLessThan(src.indexOf('.from("profiles")'));
+    // Lander 7, 2026-10-25: deciding on event.account alone sent Helpr events that lack it (the edge
+    // fixtures, and any such delivery) to the platform alert. The alert sits inside the no-profile branch.
+    // @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts |     if (!event.account) { |     if (false) {
+    expect(src).toMatch(/if \(!helperProfile\) \{[\s\S]*?if \(!event\.account\) \{\s+await handlePlatformAccountUpdated\(event, logStep\);\s+return;/);
+    expect(src.indexOf("handlePlatformAccountUpdated(event")).toBeGreaterThan(src.indexOf('.from("profiles")'));
   });
 });

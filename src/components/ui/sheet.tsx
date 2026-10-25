@@ -263,7 +263,7 @@ const SheetHero = ({
   moment = false,
 }: {
   /**
-   * A MOMENT title (owner, 2026-10-20): Bodoni via `.font-moment`, for a
+   * A MOMENT title (owner, 2026-10-20) via `.font-moment` (Montserrat since 2026-10-25), for a
    * step-flow question such as the create sheet's "What are we doing?". A
    * boolean, not a class hatch: the size, colour and lane stay this hero's.
    */

@@ -19,7 +19,7 @@
  *   the Jobs / Declutter / Shops / Homes switcher above its own tabs.
  * - On a phone a section's top bar reads "Explore" and has no "+" (mock-up 6;
  *   HELPR-DESIGN-SPEC §3 "no + in the top bar"): the center "+" creates.
- * - "What are we doing?" is a MOMENT title: Bodoni via `.font-moment`, which
+ * - "What are we doing?" is a MOMENT title via `.font-moment` (Montserrat like every page title since 2026-10-25), which
  *   outranks T1's upright-Montserrat `.font-display` rule.
  *
  * The dock and the sheet are RENDERED (network hooks stubbed); each @mutate
@@ -305,15 +305,23 @@ describe("Explore", () => {
   });
 });
 
-describe("Bodoni for moments", () => {
-  it("the sheet title wears .font-moment, and .font-moment outranks T1's .font-display rule", () => {
+describe("moment titles match page titles (owner 2026-10-25: one consistent font)", () => {
+  it("the sheet title wears .font-moment, and .font-moment is the page title's face", () => {
     renderDock();
     openSheet();
     const title = screen.getByText("What are we doing?");
     expect(title.className).toMatch(/\bfont-moment\b/);
     const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
     const m = css.match(/\.font-moment\.font-moment\.font-moment \{([^}]*)\}/);
-    expect(m?.[1]).toMatch(/"Bodoni Moda"[^;]*!important/);
+    // Same family, weight and tracking as .text-page-title: a greeting and the
+    // "Jobs" title can never disagree again.
+    const pageTitle = css.match(/\n\.text-page-title \{([^}]*)\}/)?.[1] ?? "";
+    const decl = (block: string, prop: string) => block.match(new RegExp(`${prop}:\\s*([^;]+);`))?.[1].trim();
+    for (const prop of ["font-family", "font-style", "font-weight", "letter-spacing"]) {
+      expect(decl(m?.[1] ?? "", prop), prop).toBeDefined();
+      expect(decl(m?.[1] ?? "", prop), prop).toBe(decl(pageTitle, prop));
+    }
+    expect(m?.[1]).not.toMatch(/Bodoni/);
     // J1 (Post a job step headers) adds `.font-moment` to the :not() list, so a moment title never meets T1's rule at all.
     expect(css).toMatch(/\.font-display:not\(\.landing-h1, \.landing-h1 \*(?:, \.font-moment)?\) \{/);
   });

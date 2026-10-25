@@ -618,7 +618,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName;
  * the old alert-dialog's copies of this block said the same thing.
  */
 const DialogHero = ({ title, moment = false }: {
-  moment?: boolean; // Bodoni `.font-moment` at display size for a celebration ("Job done", boards 35/36); a boolean, not a class hatch.
+  moment?: boolean; // `.font-moment` (page-title face since 2026-10-25) at display size for a celebration ("Job done", boards 35/36); a boolean, not a class hatch.
   // TITLE ONLY. `eyebrow` and `subtitle` used to be ACCEPTED-BUT-DISCARDED, on
   // the reasoning that keeping them in the type made a stray usage "a no-op
   // rather than a build break". That is the wrong way round: a no-op is

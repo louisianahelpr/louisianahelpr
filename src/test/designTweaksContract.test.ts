@@ -36,7 +36,7 @@ function rule(selector: string): string {
 }
 
 describe("design tweaks (owner 2026-10-18)", () => {
-  it("T1: page titles are Montserrat, upright; Bodoni only on the landing H1 and spec v2 §1.2 moments (.font-moment)", () => {
+  it("T1: page titles are Montserrat, upright; Bodoni only on the landing H1 (moments are Montserrat since 2026-10-25)", () => {
     const title = rule(".text-page-title");
     expect(title).toMatch(/font-family:\s*Montserrat/);
     expect(title).toMatch(/font-style:\s*normal/);

@@ -52,6 +52,7 @@
  *    AS the poster (session minted by scripts/test-signin-link.mjs), not by
  *    writing the disputes table.
  */
+import { needsIdvSeedReset, resetSeedIdv } from "./idvSeedReset.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -357,7 +358,7 @@ async function findAuthUser(email) {
 }
 
 async function profileByEmail(email) {
-  const rows = await select(`profiles?email=eq.${encodeURIComponent(email)}&select=user_id,email,is_seed,ban_status`);
+  const rows = await select(`profiles?email=eq.${encodeURIComponent(email)}&select=user_id,email,is_seed,ban_status,idv_status`);
   return rows[0] ?? null;
 }
 
@@ -405,6 +406,11 @@ async function ensureOwnedAccount(key, spec) {
     email_verified: true,
     ...(spec.profile ?? {}),
   };
+  // A verified ID is final except through the admin reset (20261022010525);
+  // an is_seed fixture that wants another IDV state takes that path first.
+  if (needsIdvSeedReset(prof, spec.profile)) {
+    await resetSeedIdv(user.id, (fn, args) => rest("POST", `rpc/${fn}`, args));
+  }
   await rest("PATCH", `profiles?user_id=eq.${user.id}`, patch, { prefer: "return=minimal" });
   // CI has no service role, so the prod a11y sweep signs these accounts in by
   // password (PLAYWRIGHT_INCOMPLETE_* / PLAYWRIGHT_ADMIN_* secrets). The

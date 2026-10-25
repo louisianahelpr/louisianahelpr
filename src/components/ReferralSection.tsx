@@ -9,6 +9,7 @@ import { useReferralData } from "@/hooks/useReferralData";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { queryKeys } from "@/lib/queryKeys";
 import { ReferralExtras } from "@/components/profile/ReferralExtras";
+import { EnterReferralCodeCard } from "@/components/referral/EnterReferralCodeCard";
 import { getPublicSiteUrl } from "@/lib/authRedirects";
 import { requireBiometric } from "@/lib/biometricGate";
 import { shareNative, copyToClipboard } from "@/lib/nativeShare";
@@ -184,6 +185,8 @@ const ReferralSection = ({ userId }: { userId: string }) => {
 
   return (
     <div className="space-y-section pb-24">
+      {/* Owner 2026-10-25: a new member (Apple/Google sign-up, or forgot it) adds a friend's code here for 7 days. */}
+      <EnterReferralCodeCard />
       {/* Code card — hero of the page */}
       {/* Spec v2 rebuild (audit 2026-10-21): the one card; no rust wash, no
           olive double border (olive is for actions, and the code is not one). */}
@@ -341,7 +344,7 @@ const ReferralSection = ({ userId }: { userId: string }) => {
         <div className="space-y-3">
           {[
             "Share your code with friends",
-            "They enter it at sign-up",
+            "They enter it at sign-up, or within 7 days of joining",
             "Once their first job is fully completed — whether they posted it or worked it — you both earn $5",
             "Cash out directly to your Stripe account",
           ].map((step, i) => (

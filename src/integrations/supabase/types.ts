@@ -13557,6 +13557,10 @@ export type Database = {
           credits_used: number
         }[]
       }
+      claim_my_referral_code: {
+        Args: { p_code: string }
+        Returns: string
+      }
       claim_series_dates: {
         Args: { p_dates: string[]; p_job_id: string }
         Returns: Json

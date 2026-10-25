@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { loginNotice } from "./loginNotice";
 import { AlertCircle, Clock } from "lucide-react";
 import { postAuthDestination, rememberSignupRedirect } from "@/lib/jobIntent";
+import { rememberReferralFromUrl } from "@/lib/pendingReferral";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,8 @@ const Login = () => {
   const pendingRedirect = searchParams.get("redirect");
   useEffect(() => {
     rememberSignupRedirect(pendingRedirect);
+    // A `?ref=` on a log-in link (an Apple/Google sign-up can start here): keep it for the Referrals card.
+    rememberReferralFromUrl(window.location.search);
   }, [pendingRedirect]);
   const bouncedFromGatedRoute = Boolean(safeInternalRedirect(pendingRedirect));
   // The job a bounced guest was trying to reach, if any — /jobs/<uuid> is the

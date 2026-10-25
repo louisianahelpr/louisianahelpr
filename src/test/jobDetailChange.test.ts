@@ -156,7 +156,11 @@ describe("a booked job's place and details change only by a request every booked
     // Q1503's parish/ZIP derivation is the one sibling allowed after it: it is
     // a place column too, not a lock (jobAddressRederivesPlace.test.ts holds
     // both after every other BEFORE trigger on jobs).
-    const placeSiblings = ["zzzzzz_jobs_location_rederives_place"];
+    // zzzzzzz_jobs_paid_fee_fields_fixed (20261025161802) also sorts after it: it
+    // judges only the six fee columns, which neither place trigger writes, so the
+    // clear can never read to it as a client write (it refuses or passes the
+    // whole UPDATE on fees alone).
+    const placeSiblings = ["zzzzzz_jobs_location_rederives_place", "zzzzzzz_jobs_paid_fee_fields_fixed"];
     expect(names.filter((n) => n !== mine && n > mine && !placeSiblings.includes(n))).toEqual([]);
     const geocoder = readFileSync("supabase/functions/backfill-job-geocode/index.ts", "utf8");
     expect(geocoder).toContain('const GEOCODE_STATUSES = ["open", "accepted", "in_progress"];');

@@ -28,6 +28,7 @@
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |     SELECT z.parish INTO NEW.parish FROM | SELECT z.parish INTO v_city FROM
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql | CREATE TRIGGER zzzzzz_jobs_location_rederives_place | CREATE TRIGGER aaa_jobs_location_rederives_place
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |   BEFORE UPDATE OF location ON public.jobs\n  FOR EACH ROW EXECUTE FUNCTION public.jobs_location_rederives_place(); |   BEFORE UPDATE OF title ON public.jobs\n  FOR EACH ROW EXECUTE FUNCTION public.jobs_location_rederives_place();
+ * @mutate supabase/migrations/20261025161802_paid_job_fees_are_fixed.sql |     IF coalesce(OLD.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed') THEN |     IF NEW.location IS NULL OR coalesce(OLD.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed') THEN
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql | REVOKE ALL ON FUNCTION public.jobs_location_rederives_place() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.jobs_location_rederives_place() FROM PUBLIC;
  * @mutate supabase/migrations/20261012070813_job_address_rederives_zip_and_parish.sql |  SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_zip | SET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_zip
  */
@@ -48,6 +49,16 @@ const before = jobsTriggers.filter((t) => t.timing === "BEFORE");
 /** The jobs columns that describe the job's place, all derived from jobs.location. */
 const PLACE_COLUMNS = ["latitude", "longitude", "zip_code", "parish"];
 
+/**
+ * BEFORE triggers allowed to sort AFTER the place triggers, with why. Each must
+ * still be a BEFORE trigger on jobs and its function may read neither
+ * jobs.location nor a place column, so the place triggers' writes can never
+ * reach what it judges (checked below, both ways).
+ */
+const AFTER_PLACE_OK: Record<string, string> = {
+  zzzzzzz_jobs_paid_fee_fields_fixed:
+    "lane-b-money-1 (20261025161802): the paid-job fee lock judges only the six fee columns; it sorts last so it sees every other trigger's fee writes",
+};
 const onLocationUpdate = before.filter((t) => /\bUPDATE\s+OF\b[\s\S]*\blocation\b/i.test(t.events));
 const assigns = (fn: string, col: string) => {
   const d = defs.get(fn);
@@ -68,8 +79,18 @@ describe("Q1503: a job's place columns follow its address", () => {
 
   it("the place triggers fire after every other BEFORE trigger on jobs (the lock and whitelist see the client's write)", () => {
     const place = onLocationUpdate.filter((t) => PLACE_COLUMNS.some((c) => assigns(t.fn, c))).map((t) => t.name);
-    const others = before.map((t) => t.name).filter((n) => !place.includes(n));
+    const others = before.map((t) => t.name).filter((n) => !place.includes(n) && !(n in AFTER_PLACE_OK));
     for (const p of place) for (const o of others) expect(o < p, `${o} sorts after ${p}`).toBe(true);
+    for (const name of Object.keys(AFTER_PLACE_OK)) {
+      const t = before.find((x) => x.name === name);
+      expect(t, `${name} is no longer a BEFORE trigger on jobs; drop it from AFTER_PLACE_OK`).toBeDefined();
+      const d = defs.get(t!.fn);
+      expect(d, `${name}'s function ${t!.fn} is not defined by the migrations`).toBeDefined();
+      const code = blankSqlComments(bodyOf(d!.stmt));
+      for (const col of ["location", ...PLACE_COLUMNS]) {
+        expect(new RegExp(`\\b(NEW|OLD)\\.${col}\\b`, "i").test(code), `${name} reads ${col}, so it must sort before the place triggers`).toBe(false);
+      }
+    }
   });
 
   it("account deletion's redaction (location NULL) is not a move: ZIP and parish stay for the earnings export", () => {

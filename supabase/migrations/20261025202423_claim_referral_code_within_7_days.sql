@@ -25,6 +25,10 @@ BEGIN
   IF v_uid IS NULL OR v_code = '' OR length(v_code) > 32 THEN
     RETURN 'invalid';
   END IF;
+  -- A banned account earns no referral credit (Q281 ban gate: every VOLATILE authenticated RPC is gated or exempt).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   SELECT u.created_at INTO v_created FROM auth.users u WHERE u.id = v_uid;
   IF v_created IS NULL OR v_created < now() - interval '7 days' THEN
     RETURN 'too_late';

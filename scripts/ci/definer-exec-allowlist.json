@@ -67,6 +67,7 @@
     "can_send_message_to_in_job(uuid, uuid)": "client",
     "cancel_quote_request(uuid)": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
     "choose_new_social_account(uuid)": "client",
+    "claim_my_referral_code(text)": "client",
     "claim_series_dates(uuid, date[])": "client",
     "clear_available_now()": "client",
     "clear_thread_mute(uuid, uuid)": "client",

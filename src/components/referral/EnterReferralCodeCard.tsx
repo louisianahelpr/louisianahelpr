@@ -14,7 +14,7 @@ import { clearPendingReferral, readPendingReferral } from "@/lib/pendingReferral
  * decides everything (public.claim_my_referral_code): the 7-day window, once
  * per account, a real code, not your own.
  */
-export const REFERRAL_CLAIM_DAYS = 7;
+const REFERRAL_CLAIM_DAYS = 7;
 
 const ANSWERS: Record<string, string> = {
   recorded: "Done. You and your friend each get $5 once you finish your first job.",

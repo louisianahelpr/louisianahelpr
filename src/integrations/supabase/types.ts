@@ -5232,6 +5232,7 @@ export type Database = {
           disputed_by: string | null
           estimated_hours: number | null
           expires_at: string | null
+          expiring_final_notif_sent: boolean | null
           expiring_notif_sent: boolean | null
           flag_reasons: string[] | null
           has_active_dispute: boolean
@@ -5355,6 +5356,7 @@ export type Database = {
           disputed_by?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
+          expiring_final_notif_sent?: boolean | null
           expiring_notif_sent?: boolean | null
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
@@ -5478,6 +5480,7 @@ export type Database = {
           disputed_by?: string | null
           estimated_hours?: number | null
           expires_at?: string | null
+          expiring_final_notif_sent?: boolean | null
           expiring_notif_sent?: boolean | null
           flag_reasons?: string[] | null
           has_active_dispute?: boolean
@@ -13921,6 +13924,7 @@ export type Database = {
           disputed_by: string | null
           estimated_hours: number | null
           expires_at: string | null
+          expiring_final_notif_sent: boolean | null
           expiring_notif_sent: boolean | null
           flag_reasons: string[] | null
           has_active_dispute: boolean
@@ -14069,6 +14073,7 @@ export type Database = {
           disputed_by: string | null
           estimated_hours: number | null
           expires_at: string | null
+          expiring_final_notif_sent: boolean | null
           expiring_notif_sent: boolean | null
           flag_reasons: string[] | null
           has_active_dispute: boolean

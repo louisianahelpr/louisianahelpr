@@ -92,7 +92,6 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_listing_photo_deletable','allow',   'TRUE = the caller may delete this listing-photos object (own folder, readable, attached to nothing; 20261019071203)'),
   ('application_email_should_wait', 'action',   'VOLATILE: paces a poster''s applicant emails (counts or stamps); a NULL user answers false = send now, never a held email (20261025182522)'),
   ('job_match_email_should_wait',   'action',   'VOLATILE: paces a member''s job-match emails to one a day; a NULL user answers false = send now (20261025182522)'),
-
   ('scanner_safe_confirm_link_for', 'deny',     'TRUE = send the scanner-safe link; a NULL user answers FALSE, so the email keeps GoTrue''s own link (20261025190000)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),

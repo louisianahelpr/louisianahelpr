@@ -334,6 +334,15 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/refundNotice.ts";`,
   );
 
+  // Abandoned-checkout nudge (lead 2026-10-25): `_shared/checkoutNudge.ts`
+  // imports only caughtMessage, functionFetch and featureSwitch (all real here;
+  // the email goes through the global `fetch`), so the REAL module runs: its
+  // switch, claim, notice and email are the behaviour under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/checkoutNudge\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/checkoutNudge.ts";`,
+  );
+
   // Post-transfer release flip: `_shared/releaseFlip.ts` has ZERO imports (it
   // takes the Supabase client as a parameter), so the generated file points at
   // the REAL module — same reasoning as payoutClaim above, and for the same

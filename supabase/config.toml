@@ -258,6 +258,10 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # JWT); the function checks it itself with verifyCronSecret.
   [functions.payout-setup-reminders]
     verify_jwt = false
+  # checkout-nudge-backfill: the lead/owner posts `Bearer <service key>` for ONE
+  # named job; the function checks it itself with verifyCronSecret.
+  [functions.checkout-nudge-backfill]
+    verify_jwt = false
   # record-signup-lead: called from sign-up step 1 by a visitor with no
   # account. Rate limited per address; the table write is service_role only.
   [functions.record-signup-lead]

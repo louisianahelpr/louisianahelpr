@@ -95,6 +95,7 @@
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/jpegStripMetadata.ts",
     "supabase/functions/_shared/functionFetch.ts",
+    "supabase/functions/_shared/checkoutNudge.ts",
     "supabase/functions/stripe-payouts/payoutDetail.ts",
     "supabase/functions/_shared/requireConfirmedEmail.ts",
     "supabase/functions/_shared/caughtMessage.ts",

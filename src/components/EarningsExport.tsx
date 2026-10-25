@@ -167,13 +167,12 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     };
     const headers = [
       "Date", "Job Title", "Category", "Parish", "Tax Status",
-      "Gross Earnings (USD)", "Platform Fee (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)",
+      "Gross Earnings (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)",
     ];
     const lines = [headers.join(",")];
-    let totGross = 0, totFee = 0, totTax = 0, totNet = 0;
+    let totGross = 0, totTax = 0, totNet = 0;
     for (const r of rows) {
       totGross += Number(r.gross_budget);
-      totFee += Number(r.platform_fee);
       totTax += Number(r.parish_tax_collected);
       totNet += Number(r.net_payout);
       lines.push([
@@ -183,13 +182,12 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
         escape(r.parish),
         r.tax_status,
         Number(r.gross_budget).toFixed(2),
-        Number(r.platform_fee).toFixed(2),
         Number(r.parish_tax_collected).toFixed(2),
         Number(r.net_payout).toFixed(2),
       ].join(","));
     }
     lines.push("");
-    lines.push(`TOTAL,,,,,${totGross.toFixed(2)},${totFee.toFixed(2)},${totTax.toFixed(2)},${totNet.toFixed(2)}`);
+    lines.push(`TOTAL,,,,,${totGross.toFixed(2)},${totTax.toFixed(2)},${totNet.toFixed(2)}`);
     lines.push("");
     lines.push(`Helper,${escape(helperName)}`);
     lines.push(`Period,${escape(label)}`);
@@ -217,11 +215,10 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     const totals = rows.reduce(
       (acc, r) => ({
         gross: acc.gross + Number(r.gross_budget),
-        fee: acc.fee + Number(r.platform_fee),
         tax: acc.tax + Number(r.parish_tax_collected),
         net: acc.net + Number(r.net_payout),
       }),
-      { gross: 0, fee: 0, tax: 0, net: 0 }
+      { gross: 0, tax: 0, net: 0 }
     );
 
     // Header
@@ -236,7 +233,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
 
     autoTable(doc, {
       startY: 120,
-      head: [["Date", "Job", "Category", "Parish", "Tax", "Gross", "Fee", "Parish Tax", "Net Payout"]],
+      head: [["Date", "Job", "Category", "Parish", "Tax", "Gross", "Parish Tax", "Net Payout"]],
       body: rows.map((r) => [
         r.date_completed,
         r.job_title.length > 28 ? r.job_title.slice(0, 26) + "…" : r.job_title,
@@ -244,14 +241,12 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
         r.parish,
         r.tax_status,
         `$${Number(r.gross_budget).toFixed(2)}`,
-        `$${Number(r.platform_fee).toFixed(2)}`,
         `$${Number(r.parish_tax_collected).toFixed(2)}`,
         `$${Number(r.net_payout).toFixed(2)}`,
       ]),
       foot: [[
         "", "", "", "", "TOTAL",
         `$${totals.gross.toFixed(2)}`,
-        `$${totals.fee.toFixed(2)}`,
         `$${totals.tax.toFixed(2)}`,
         `$${totals.net.toFixed(2)}`,
       ]],
@@ -259,8 +254,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       headStyles: { fillColor: [40, 40, 40] },
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
       columnStyles: {
-        5: { halign: "right" }, 6: { halign: "right" },
-        7: { halign: "right" }, 8: { halign: "right" },
+        5: { halign: "right" }, 6: { halign: "right" }, 7: { halign: "right" },
       },
     });
 
@@ -378,8 +372,8 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
 
           <DialogBody>
             <p>
-              Includes date, job, category, parish, taxable/exempt status, gross budget, platform fee,
-              parish tax collected, and net payout. Tips are tracked separately.
+              Includes date, job, category, parish, taxable/exempt status, gross budget, parish tax
+              collected, and net payout. Tips are tracked separately.
             </p>
           </DialogBody>
         </div>

@@ -82,6 +82,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock has no + since 2026-10-19; the entry is AppTopBar's +, which is gated",
   "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
   "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's + path; the entry a member taps is AppTopBar, which reads useAgeGate and greys it",
+  "src/components/landing/HowItWorksSection.tsx": "the landing page's Post a job (I need help side): signed out it goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/usePostJobForm.ts": "the /post-job form's own hook: an unusable ?maintenance= draft goes back to the plain gated form (Rentals S1)",

@@ -37,6 +37,8 @@ describe("auth-email-hook alerts ops on every failure (ED-002)", () => {
   it("the Q826 checker can fail (fixtures)", () => {
     const ok = "const supabase = createClient(u, k)\nconst { error: e1 } = await supabase.from('t').insert({})\nif (e1) {}";
     expect(unhandledSupabaseCalls(ok).problems).toEqual([]);
+    const read = "const supabase = createClient(u, k)\nconst { data: d1, error: e1 } = await supabase.rpc('f', {})\nif (e1) {}";
+    expect(unhandledSupabaseCalls(read).problems).toEqual([]);
     for (const bad of [
       "const supabase = createClient(u, k)\nawait supabase.from('t').insert({})",
       "const supabase = createClient(u, k)\nconst { data } = await supabase.from('t').select()",
@@ -45,6 +47,8 @@ describe("auth-email-hook alerts ops on every failure (ED-002)", () => {
       "const supabase = createClient(u, k)\nconst db = supabase",
       "const supabase = createClient(u, k)\nawait Promise.all([supabase.from('t').insert({})])",
       "const supabase = createClient(u, k)\nconst { error: e1 } = await supabase.from('t').insert({})",
+      "const supabase = createClient(u, k)\nconst { data: d1, error: e1 } = await supabase.rpc('f', {})",
+      "const supabase = createClient(u, k)\nconst { error: e1, data: d1 } = await supabase.rpc('f', {})\nif (e1) {}",
     ]) {
       expect(unhandledSupabaseCalls(bad).problems, bad).not.toEqual([]);
     }
@@ -53,7 +57,8 @@ describe("auth-email-hook alerts ops on every failure (ED-002)", () => {
 
 /**
  * Every use of the client must be `const { error: X } = await supabase.<call>`
- * on one line, and X must then be checked with `if (X)`. Anything else (a bare
+ * (or `const { data: D, error: X } = ...` for a read) on one line, and X must
+ * then be checked with `if (X)`. Anything else (a bare
  * await, a destructure without error, fire-and-forget, an alias, a call inside
  * Promise.all, a chain split across lines) is reported.
  */
@@ -65,7 +70,9 @@ function unhandledSupabaseCalls(code: string): { total: number; problems: string
       const at = m.index ?? 0;
       if (/\bconst\s+supabase\s*=\s*createClient\(/.test(line)) continue;
       total++;
-      const ok = line.slice(0, at + "supabase".length + 1).match(/const\s*\{\s*error\s*:\s*(\w+)\s*\}\s*=\s*await\s+supabase\.$/);
+      // `{ data: D, error: E }` is allowed too: a read needs its data, and E is still checked below (2026-10-25,
+      // the scanner-safe link check reads a boolean through rpc()).
+      const ok = line.slice(0, at + "supabase".length + 1).match(/const\s*\{\s*(?:data\s*:\s*\w+\s*,\s*)?error\s*:\s*(\w+)\s*\}\s*=\s*await\s+supabase\.$/);
       if (!ok || !/^\w/.test(line.slice(at + "supabase.".length))) {
         problems.push(`line ${i + 1}: ${line.trim()}`);
         continue;

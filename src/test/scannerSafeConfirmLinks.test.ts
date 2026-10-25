@@ -56,8 +56,8 @@ describe("scanner-safe confirm links", () => {
 
   it("the sign-up email uses the new link only behind its switch; GoTrue's link stays the fallback", () => {
     const hook = code("supabase/functions/auth-email-hook/index.ts");
-    // @mutate supabase/functions/auth-email-hook/index.ts | await scannerSafeFor(supabase, user.id) | true
-    expect(hook).toMatch(/await scannerSafeFor\(supabase, user\.id\)/);
+    // @mutate supabase/functions/auth-email-hook/index.ts | scannerSafe = scannerSafeOn === true | scannerSafe = true
+    expect(hook).toMatch(/scannerSafe = scannerSafeOn === true/);
     expect(hook).toMatch(/rpc\('scanner_safe_confirm_link_for'/);
     expect(hook).toMatch(/confirmLinkUrl\(getAppUrl\(\),\s*emailData\.token_hash,\s*'signup'\)/);
     expect(hook).toMatch(/:\s*verifyUrl\.toString\(\)/);

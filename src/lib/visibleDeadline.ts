@@ -131,6 +131,39 @@ export function raceVisibleDeadline<T>(pending: PromiseLike<T>, ms: number, mess
   });
 }
 
+/**
+ * raceVisibleDeadline for a request that can be CANCELLED: `start` gets an
+ * AbortSignal to hand to the request (supabase-js `.abortSignal(signal)`), and
+ * that signal fires when the deadline does, so a stalled request is dropped
+ * rather than left open behind the error card. A caller's own signal (React
+ * Query's `signal`) aborts it too.
+ *
+ * WHY. Measured on prod, Sentry JAVASCRIPT-44 "Loading jobs timed out" (18
+ * events, 13 people, iOS/Android web, 10-22..10-25): for the two newest
+ * events (10-25 13:35:12Z and 15:59:39Z) the edge logs hold every other read
+ * the same signed-in phone made in that second, all answered in < 400 ms,
+ * and NO open_jobs_browse request at all. The read never reached the server.
+ * Waiting longer cannot fix that; a fresh request can, and it should not
+ * share the stuck one's connection slot.
+ */
+export function raceVisibleDeadlineAbortable<T>(
+  start: (signal: AbortSignal) => PromiseLike<T>,
+  ms: number,
+  message: string,
+  outer?: AbortSignal,
+): Promise<T> {
+  const ctrl = new AbortController();
+  const onOuter = () => ctrl.abort(outer?.reason);
+  if (outer?.aborted) ctrl.abort(outer.reason);
+  else outer?.addEventListener("abort", onOuter, { once: true });
+  return raceVisibleDeadline(start(ctrl.signal), ms, message)
+    .catch((err: unknown) => {
+      if (err instanceof Error && err.message === message) ctrl.abort(err);
+      throw err;
+    })
+    .finally(() => outer?.removeEventListener("abort", onOuter));
+}
+
 /** Test-only: forget the visibility history so one test cannot feed the next. */
 export function __resetVisibleDeadlineForTests(): void {
   lastHiddenAt = Number.NEGATIVE_INFINITY;

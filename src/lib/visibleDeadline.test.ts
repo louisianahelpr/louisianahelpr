@@ -10,9 +10,16 @@
  * @mutate src/lib/visibleDeadline.ts |       if (pageHidden()) { |       if (false) {
  * @mutate src/lib/visibleDeadline.ts |       if ((frozen \|\| wentHidden) && restarts < MAX_RESTARTS) { |       if (frozen \|\| wentHidden) {
  * @mutate src/lib/visibleDeadline.ts |         arm(ms);\n        return;\n      }\n      const frozen |         return;\n      }\n      const frozen
+ * @mutate src/lib/visibleDeadline.ts |       if (err instanceof Error && err.message === message) ctrl.abort(err); |       void err;
+ * @mutate src/lib/visibleDeadline.ts |   else outer?.addEventListener("abort", onOuter, { once: true }); |   else void onOuter;
+ * @mutate src/hooks/useDashboardData.ts |           .abortSignal(abort)), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) | ), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal))
+ * @mutate src/hooks/useDashboardData.ts |         ? shouldRetryQuery(failureCount, error, 1) |         ? false
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { FROZEN_SLACK_MS, MAX_RESTARTS, __resetVisibleDeadlineForTests, raceVisibleDeadline } from "./visibleDeadline";
+import { readFileSync } from "node:fs";
+import { resolve as resolvePath } from "node:path";
+import { FROZEN_SLACK_MS, MAX_RESTARTS, __resetVisibleDeadlineForTests, raceVisibleDeadline, raceVisibleDeadlineAbortable } from "./visibleDeadline";
+import { blankComments } from "@/test/helpers/blankNonCode";
 
 let visibility: DocumentVisibilityState = "visible";
 
@@ -150,5 +157,70 @@ describe("raceVisibleDeadline", () => {
     visibility = "visible"; // and none on the way back either
     await vi.advanceTimersByTimeAsync(6_000);
     await expect(raced).rejects.toThrow("Profile request timed out");
+  });
+});
+
+// JAVASCRIPT-44 "Loading jobs timed out" (18 events, 13 people, 10-22..10-25):
+// on its two newest events the edge logs hold every other read the phone sent
+// in that second and no open_jobs_browse request at all, so the read never
+// reached the server. A timed-out read is now CANCELLED and the feed tries
+// once more with a fresh request. RED on origin/main 8ca225a0e3 (no
+// raceVisibleDeadlineAbortable; the feed's timeout retried 0 times).
+describe("raceVisibleDeadlineAbortable", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    visibility = "visible";
+    vi.spyOn(document, "visibilityState", "get").mockImplementation(() => visibility);
+    __resetVisibleDeadlineForTests();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it("aborts the request when the deadline fires", async () => {
+    let seen: AbortSignal | null = null;
+    const p = raceVisibleDeadlineAbortable((signal) => {
+      seen = signal;
+      return new Promise<never>(() => {});
+    }, 1_000, "Loading jobs timed out");
+    const settled = p.catch((e: Error) => e.message);
+    await vi.advanceTimersByTimeAsync(1_001);
+    expect(await settled).toBe("Loading jobs timed out");
+    expect(seen!.aborted).toBe(true);
+  });
+
+  it("does not abort a request that answered in time", async () => {
+    let seen: AbortSignal | null = null;
+    const d = deferred<string>();
+    const p = raceVisibleDeadlineAbortable((signal) => {
+      seen = signal;
+      return d.promise;
+    }, 1_000, "late");
+    d.resolve("rows");
+    expect(await p).toBe("rows");
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(seen!.aborted).toBe(false);
+  });
+
+  it("aborts the request when the caller's own signal does (React Query cancel)", async () => {
+    let seen: AbortSignal | null = null;
+    const outer = new AbortController();
+    const p = raceVisibleDeadlineAbortable((signal) => {
+      seen = signal;
+      return new Promise<never>(() => {});
+    }, 60_000, "late", outer.signal);
+    void p.catch(() => {});
+    expect(seen!.aborted).toBe(false);
+    outer.abort();
+    expect(seen!.aborted).toBe(true);
+  });
+
+  it("the browse feed cancels its read at the deadline and retries a timeout once", () => {
+    const src = blankComments(readFileSync(resolvePath(__dirname, "../hooks/useDashboardData.ts"), "utf8"));
+    const browse = src.slice(src.indexOf('.from("open_jobs_browse")') - 400, src.indexOf('.from("open_jobs_browse")') + 900);
+    expect(browse).toMatch(/raceVisibleDeadlineAbortable\(\(abort\) =>/);
+    expect(browse).toMatch(/\.abortSignal\(abort\)\)/);
+    expect(src).toMatch(/error\.message === JOBS_TIMEOUT_MESSAGE\s*\?\s*shouldRetryQuery\(failureCount, error, 1\)/);
   });
 });

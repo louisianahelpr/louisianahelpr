@@ -124,6 +124,10 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "refunds a checkout payment that funded nothing: the job was already funded another way or is closed, so the escrow write did not land (Q1419)",
   },
+  "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts": {
+    kind: "not-job-escrow",
+    why: "cancelDeadBankPayment (lane-b-money-1): cancels a job PaymentIntent only when Stripe reads it requires_payment_method with its Checkout Session complete, i.e. a bank debit that already FAILED; nothing was ever captured, so there is no escrow for a decided dispute to own",
+  },
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts": {
     kind: "not-job-escrow",
     why: "Declutter (slice 3b): refunds a Declutter order's own payment (metadata.kind declutter_order); a Declutter order is not a job escrow",

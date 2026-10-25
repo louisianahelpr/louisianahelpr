@@ -15,7 +15,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import { MemoryRouter } from "react-router-dom";
+import HowItWorksSectionBare from "@/components/landing/HowItWorksSection";
+
+// The section carries a router Link (its "Post a job" action), so it renders inside a router.
+const HowItWorksSection = () => <MemoryRouter><HowItWorksSectionBare /></MemoryRouter>;
 
 const SRC = readFileSync(join(process.cwd(), "src/components/landing/HowItWorksSection.tsx"), "utf8");
 const card = () => screen.getByText("Post what you need").closest("div[style]") as HTMLElement;

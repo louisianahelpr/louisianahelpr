@@ -1,4 +1,8 @@
 import { useLayoutEffect, useRef, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { signupUrlFor } from "@/lib/jobIntent";
+import { goSignedInOr } from "./goSignedInOr";
 import {
   SegmentedControl,
   type SegmentedOption,
@@ -66,10 +70,22 @@ const STEPS: Record<Side, { title: string; desc: string }[]> = {
  */
 type Reveal = "shown" | "waiting" | "revealed";
 
+/**
+ * The "I need help" side's own action (lead, 2026-10-25: the signed-out home
+ * had no way to post). A signed-out visitor goes to sign-up carrying /post-job
+ * as the return path (jobIntent's redirect, which survives the email
+ * confirmation round-trip); a signed-in one goes straight to /post-job. Not
+ * filled: the hero's Search and the close's account button stay the page's
+ * two primaries (landingFrontDoor.test.tsx).
+ */
+export const POST_JOB_PATH = "/post-job";
+export const POST_JOB_SIGNED_OUT = signupUrlFor(POST_JOB_PATH);
+
 const HowItWorksSection = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [reveal, setReveal] = useState<Reveal>("shown");
   const [side, setSide] = useState<Side>("hire");
+  const navigate = useNavigate();
 
   useLayoutEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
@@ -162,6 +178,22 @@ const HowItWorksSection = () => {
             </div>
           ))}
         </div>
+
+        {side === "hire" && (
+          <Link
+            to={POST_JOB_SIGNED_OUT}
+            onClick={(e) => {
+              e.preventDefault();
+              void goSignedInOr(navigate, POST_JOB_PATH, POST_JOB_SIGNED_OUT);
+            }}
+            data-testid="landing-post-job"
+            className="self-center sm:self-start inline-flex items-center justify-center gap-2 min-h-12 rounded-full px-7 text-ds-16 font-bold border-2 transition-colors"
+            style={{ color: "var(--lp-action-strong)", borderColor: "var(--lp-action)" }}
+          >
+            Post a job
+            <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden />
+          </Link>
+        )}
       </div>
     </section>
   );

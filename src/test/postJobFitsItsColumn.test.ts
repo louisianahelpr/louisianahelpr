@@ -35,14 +35,14 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 import { TITLE_MAX, TITLE_PLACEHOLDER_MAX, titlePlaceholders } from "@/components/postjob/detailsSection/detailsSectionConstants";
 
 const ROOT = process.cwd();
 const raw = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 const read = (rel: string) => blankComments(raw(rel));
-/** index.css with its comments removed (CSS comments only: no // in CSS). */
-const css = () => raw("src/index.css").replace(/\/\*[\s\S]*?\*\//g, "");
+/** index.css with its comments blanked. */
+const css = () => blankCssComments(raw("src/index.css"));
 
 /** The declarations of `selector` inside the top-level rule or the @container block that holds it. */
 function ruleBody(src: string, selector: string, container: string | null): string | null {

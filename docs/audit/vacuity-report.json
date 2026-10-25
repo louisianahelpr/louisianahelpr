@@ -1,8 +1,10 @@
 {
-  "generated": "2026-10-25T22:02:19.462Z",
-  "guards": 2387,
-  "registered": 2387,
-  "unregistered": [],
+  "generated": "2026-10-25T22:32:41.243Z",
+  "guards": 2393,
+  "registered": 2392,
+  "unregistered": [
+    "src/components/job-card/posterMarkedDone.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],

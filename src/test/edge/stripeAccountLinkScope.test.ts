@@ -18,8 +18,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | .eq("stripe_payouts_enabled", helperProfile.stripe_payouts_enabled)\n      .select("id"); | .eq("stripe_payouts_enabled", helperProfile.stripe_payouts_enabled);
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | if (!idvErr && (idvRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/accountUpdated.ts | return;\n      }\n      // Still linked, so | }\n      // Still linked, so
- * @mutate supabase/functions/stripe-connect/index.ts | .eq("user_id", user.id)\n          .is("stripe_account_id", null)\n          .select("id"); | .eq("user_id", user.id)\n          .select("id");
- * @mutate supabase/functions/stripe-connect/index.ts | .is("stripe_account_id", null)\n          .select("id"); | .is("stripe_account_id", null);
+ * @mutate supabase/functions/stripe-connect/index.ts | : linkWrite.is("stripe_account_id", null)\n        ).select("id"); | : linkWrite\n        ).select("id");
+ * @mutate supabase/functions/stripe-connect/index.ts |         ).select("id");\n        if (profileUpdateErr) { |         );\n        if (profileUpdateErr) {
  * @mutate supabase/functions/stripe-connect/index.ts | if ((linkedRows?.length ?? 0) === 0) { | if (false) {
  * @mutate supabase/functions/stripe-connect/index.ts | accountId = current.stripe_account_id; | accountId = accountId;
  * @mutate supabase/functions/stripe-connect/index.ts | if (reReadErr \|\| !current?.stripe_account_id) { | if (reReadErr) {

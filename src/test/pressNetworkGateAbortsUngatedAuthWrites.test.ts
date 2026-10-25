@@ -73,6 +73,8 @@ const AUTH_WRITES: Array<[string, string, string | null]> = [
   ["POST", "/auth/v1/token?grant_type=password", '{"email":"a@b.c","password":"x","gotrue_meta_security":{"captcha_token":"t"}}'],
   ["POST", "/auth/v1/token?grant_type=id_token", "{}"],
   ["POST", "/auth/v1/token?grant_type=pkce", "{}"],
+  // verifyOtp (the scanner-safe Confirm my email tap, 2026-10-25) spends a one-time token.
+  ["POST", "/auth/v1/verify", '{"type":"signup","token_hash":"h"}'],
   ["POST", "/auth/v1/verify", '{"type":"magiclink","token_hash":"h"}'],
   ["POST", "/auth/v1/otp", '{"email":"a@b.c","gotrue_meta_security":{"captcha_token":"t"}}'],
   ["POST", "/auth/v1/recover", '{"email":"a@b.c","gotrue_meta_security":{"captcha_token":"t"}}'],
@@ -86,7 +88,7 @@ const APP_AUTH_METHODS: Record<string, "read" | "write" | "local"> = {
   refreshSession: "read", // the allowed token refresh
   "mfa.listFactors": "read", "mfa.getAuthenticatorAssuranceLevel": "local",
   signOut: "write", updateUser: "write", signInWithOAuth: "write", signInWithPassword: "write",
-  signInWithIdToken: "write", signUp: "write", resetPasswordForEmail: "write", resend: "write",
+  signInWithIdToken: "write", signUp: "write", resetPasswordForEmail: "write", resend: "write", verifyOtp: "write",
   linkIdentity: "write", unlinkIdentity: "write", "mfa.enroll": "write", "mfa.unenroll": "write",
   "mfa.challengeAndVerify": "write",
 };

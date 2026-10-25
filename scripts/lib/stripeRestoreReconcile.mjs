@@ -145,6 +145,7 @@ export const NOT_MATCHED = {
   "shop_pickup_addresses.stripe_tax_location_mode": "the Stripe mode of that cached location (live/test), not a Stripe id",
   "stuck_payment_stripe_checks.stripe_session_id": "a cache of Stripe's answer about jobs.stripe_session_id, rewritten every 15 minutes by stuck-payment-check; the job row is the record",
   "stuck_payment_stripe_checks.payment_intent_id": "the session's PaymentIntent as stuck-payment-check last read it, for the alert text only; jobs.stripe_payment_intent_id is the matched record",
+  "job_checkout_nudges.stripe_session_id": "checkout nudge (20261025170841): the expired Checkout Session that triggered the one notice, kept for the notice trail; it never took money, nothing to restore",
   "jobs.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through jobs.stripe_payment_intent_id",
   "rental_rent_charges.rent_charge_id": "not a Stripe id: a late-fee row's link to the rent row it is for (Homes rent tracker, 20261019073106, pay direct; no money moves through the app)",
   "declutter_buyer_cards.stripe_customer_id": "a saved card's Stripe customer (row 36); no money moves on it, nothing to restore",

@@ -273,6 +273,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
       "sends \"Payout account verified\" the first time a Helpr's Stripe Connect account turns payouts-enabled (stripe-connect status check or the recheck-pending-accepts sweep); the shared accounts' Connect state is fixed and a journey never completes Connect onboarding on live Stripe",
   },
   "edge:_shared/chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
+  "edge:_shared/checkoutNudge": { uncovered: STRIPE_EVENT("checkout.session.expired on a new job's unpaid checkout (one \"Finish posting your job\" notice, switch checkout_nudge 'testers'); asserted in src/test/edge/checkoutNudge.test.ts") },
   "edge:_shared/heldTipRepay": { uncovered: STRIPE_EVENT("checkout.session.completed for a tip to a Helpr under a payout hold") },
   "edge:stripe-webhook/handlers/accountUpdated": { uncovered: STRIPE_EVENT("account.updated with a requirements change") },
   "edge:stripe-webhook/handlers/chargeDisputeClosed": { uncovered: STRIPE_EVENT("charge.dispute.closed") },

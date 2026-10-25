@@ -248,6 +248,8 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Checkout nudge (20261025170841): a service_role claim on ONE new job whose checkout expired unpaid.
+    ["public.claim_checkout_nudge", "single-job claim (service_role) on the poster's own unpaid job after its checkout expires; status is a precondition, not a feed"],
     // Board 141 refund requests (20261021102943): checks/mutations on ONE job the
     // caller is party to; 'open' (or under way) is a precondition, never a feed.
     ["public.refund_request_assert_job_open", "single-job precondition check (the job is still under way); not a feed"],

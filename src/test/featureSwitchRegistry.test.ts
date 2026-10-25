@@ -81,9 +81,15 @@ interface InsertFinding { file: string; problem: string }
  * (NOT EXISTS an admin_audit_log row for the switch).
  *   - come_back_emails: owner 2026-10-21 (Q2299, issue #3498), "turn it ON as
  *     written", asked for as a migration through the lead.
+ *   - confirm_reminders, scanner_safe_confirm_links: owner 2026-10-25 (pop-up,
+ *     through the lead): the checkout reminder, confirm-email reminders,
+ *     payout setup at hire and card hold at post "are not features. they
+ *     should be done always for everyone."
  */
 export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
   "20261021135921_come_back_emails_on_for_everyone.sql": "come_back_emails",
+  "20261025235208_confirm_reminders_on_for_everyone.sql": "confirm_reminders",
+  "20261025235210_scanner_safe_confirm_links_on_for_everyone.sql": "scanner_safe_confirm_links",
 };
 
 export function readRegistryFromMigrations(

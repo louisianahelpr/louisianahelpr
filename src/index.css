@@ -4888,6 +4888,9 @@ html.page-scrolled .page-title-card:has(.explore-header),
 }
 .landing-search .landing-search-field { background: transparent; box-shadow: none; }
 .landing-search .landing-search-field:focus-within { outline: none; }
+/* The pill's own ring is the focus mark; the global :focus-visible box on the
+   input drew a second, square line inside the pill (owner, 2026-10-25). */
+.landing-search input:focus-visible { outline: none; }
 .landing-search:focus-within { outline: 2px solid var(--lp-action); outline-offset: 0; }
 .landing-money-chip {
   background: var(--lp-money-tint);

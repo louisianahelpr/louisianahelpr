@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
 const src = readFileSync("supabase/functions/expiring-jobs-push/index.ts", "utf8");
 const copyFn = src.slice(src.indexOf("export function expiringJobCopy"), src.indexOf("/** Pending applications per job"));
 // The pure copy helper, evaluated as written (no Deno imports inside it).
-// eslint-disable-next-line @typescript-eslint/no-implied-eval
 const expiringJobCopy = new Function(
   `${copyFn.replace("export function", "function").replace(/: \{ title: string; message: string \}/, "").replace(/\(title: string \| null, waiting: number, when: "day" \| "final"\)/, "(title, waiting, when)")}; return expiringJobCopy;`,
 )() as (t: string | null, n: number, w: "day" | "final") => { title: string; message: string };

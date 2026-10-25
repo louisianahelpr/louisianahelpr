@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { rememberReferralFromUrl } from "@/lib/pendingReferral";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,6 +66,8 @@ const Signup = () => {
   useEffect(() => {
     if (pendingJobId) rememberJobIntent(pendingJobId);
     rememberSignupRedirect(pendingRedirect);
+    // An Apple/Google sign-up leaves this page for the provider: keep the friend's code for the Referrals card.
+    rememberReferralFromUrl(window.location.search);
   }, [pendingJobId, pendingRedirect]);
   // An already-authenticated visitor is bounced into the app (after isReady, never on the null snapshot).
   useEffect(() => {

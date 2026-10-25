@@ -28,7 +28,12 @@ import {
 
 /**
  * THE POSTER PAYS NOTHING ON TOP (owner 2026-10-20: the Terms describe the
- * current flat model). Read from the checkout's own fee functions at the
+ * current flat model). It said "Posting a job has no fee" and then named the
+ * setup fee charged at a first post (platform_settings.onboarding_fee_cents =
+ * 200, prod 2026-10-25): a "no fee" claim beside a fee that is charged is a
+ * misleading representation (FTC Act s.5, 15 U.S.C. 45(a); Louisiana Unfair
+ * Trade Practices Act, La. R.S. 51:1405), so it now says "no per-job posting
+ * fee" and when the setup fee applies. Read from the checkout's own fee functions at the
  * DEFAULT switch state (jobs_poster_fee off): if that ever charges a poster
  * fee, this sentence stops claiming none (termsPosterPaysNothing guards it).
  * If jobs_poster_fee is switched on for everyone, the Terms must change first
@@ -38,7 +43,7 @@ import {
 const POSTER_FEE_ON_DEFAULT_CENTS = serviceFeeCentsFor(jobFeeModelFor({ switchOn: false }), 10_000, false);
 const POSTER_PAYS_SENTENCE =
   POSTER_FEE_ON_DEFAULT_CENTS === 0
-    ? "Posting a job has no fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and the one-time account setup fee."
+    ? "There is no per-job posting fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and, once per account, the one-time account setup fee below."
     : "The poster pays the job price plus the service fee shown at checkout, before they pay.";
 
 

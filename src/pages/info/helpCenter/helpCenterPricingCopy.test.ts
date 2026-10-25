@@ -89,6 +89,23 @@ describe("Help Center describes today's job fee (Q1842)", () => {
     expect(m?.a).toMatch(/does not change the fee/);
   });
 
+  // Lead 2026-10-25 (item 14): the Terms say "There are no paid memberships
+  // right now" (prod: no profile holds a paid tier), so no answer may explain
+  // how a membership IS billed or how to cancel one today, as if one could be
+  // held. RED on 8ca225a0e3 (both answers did).
+  // @mutate src/pages/info/helpCenter/helpCenterContent.ts | There are no paid memberships right now, so nothing is billed for one. | A membership is billed securely through Stripe.
+  // @mutate src/pages/info/helpCenter/helpCenterContent.ts | No one has a paid membership right now, so there is nothing to cancel. | Yes — cancel at any time.
+  it("while memberships are paused, no answer bills or cancels one as if it could be held", () => {
+    const topic = answers.filter((x) => x.topic === "Membership & Billing");
+    expect(topic.length).toBeGreaterThan(2);
+    const billing = topic.find((x) => /billed/i.test(x.q));
+    const cancel = topic.find((x) => /cancel/i.test(x.q));
+    expect(billing?.a).toMatch(/There are no paid memberships right now/);
+    expect(billing?.a).not.toMatch(/is billed securely/);
+    expect(cancel?.a).toMatch(/nothing to cancel/);
+    expect(cancel?.a).not.toMatch(/^Yes/);
+  });
+
   it("every answer about a plan or a paid perk says memberships aren't available right now", () => {
     // The app's own words (SubscriptionTab's subscribe toast).
     expect(MEMBERSHIPS_PAUSED).toBe("Memberships aren't available right now.");

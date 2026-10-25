@@ -3,7 +3,7 @@ import { helperShareCount, type HelperEarningsJob } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
 import type { FlatFeeStamp } from "@/lib/helprFlatFee";
 
 type TakeHomeJob = HelperEarningsJob & FlatFeeStamp & {
@@ -31,19 +31,25 @@ function useHelprTakeHome(job: TakeHomeJob): { net: number; helpers: number } {
   return { net, helpers };
 }
 
-/** "Job price $120 · You take home $103" — both amounts rust (spec v2 §1.1). */
-export function JobPriceTakeHome({ job, className = "" }: { job: TakeHomeJob; className?: string }) {
-  const { net, helpers } = useHelprTakeHome(job);
-  const money = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
+/**
+ * "You take home $103" (rust). Never the job price beside it (owner 2026-10-25,
+ * job sheet screenshot: "this should never show job price. only what they take
+ * home"): a Helpr sees one figure, theirs. Guard: src/test/takeHomeOnlyNoJobPrice.test.ts.
+ */
+export function JobPriceTakeHome({ job, className = "", after = "", fallback = null }: {
+  job: TakeHomeJob;
+  className?: string;
+  /** Words after the figure ("…, paid once it's confirmed done"). */
+  after?: string;
+  /** What shows when there is no figure to give. */
+  fallback?: string | null;
+}) {
+  const { net } = useHelprTakeHome(job);
+  if (!(net > 0)) return fallback ? <>{fallback}</> : null;
   return (
     <span data-job-price-take-home="" className={className}>
-      Job price <span className={money}>${formatPrice(job.budget)}</span>
-      {helpers > 1 ? ` for ${helpers} Helprs` : ""}
-      {net > 0 && (
-        <>
-          {" · "}You take home <span className={money}>${formatPriceFloor(net)}</span>
-        </>
-      )}
+      You take home <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>
+      {after}
     </span>
   );
 }

@@ -80,6 +80,8 @@ describe("sign-up step 1 with a likely typo", () => {
     expect(screen.getByTestId("signup-email-typo").textContent).toContain("ann@gmail.com");
     expect(screen.getByRole("button", { name: "Use gmail.com" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Keep gmai.com" })).toBeTruthy();
+    // No green check over a likely typo (it read as "this is right").
+    expect(screen.getByLabelText("Email").parentElement?.querySelector("svg")).toBeNull();
   });
 
   it("Use fixes the address and Continue goes on", () => {
@@ -104,6 +106,7 @@ describe("sign-up step 1 with a likely typo", () => {
     const onContinue = vi.fn();
     render(<Harness onContinue={onContinue} initial="ann@gmail.com" />);
     expect(screen.queryByTestId("signup-email-typo")).toBeNull();
+    expect(screen.getByLabelText("Email").parentElement?.querySelector("svg")).not.toBeNull();
     fireEvent.click(continueButton());
     expect(onContinue).toHaveBeenCalledTimes(1);
   });

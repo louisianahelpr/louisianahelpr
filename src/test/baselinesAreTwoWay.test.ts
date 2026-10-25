@@ -237,6 +237,7 @@ const OUT_OF_SCOPE: Record<string, string> = {
   "src/lib/deepLinkRoute.ts::ALLOWED_DEEP_LINK_HOSTS": "app security allowlist (deep-link hosts)",
   "src/lib/imageUrl.ts::VERCEL_ALLOWED_WIDTHS": "app image-optimizer config",
   "src/pages/auth/completeProfile/constants.ts::ALLOWED_IMAGE_TYPES": "app upload MIME types",
+  "src/pages/auth/signup/signupHelpers.ts::KNOWN_EMAIL_DOMAINS": "real mail domains the sign-up typo suggester must never 'correct' (ymail.com, me.com…); app config, excuses no offender",
   "src/pages/profile/giftCards/StatusPill.tsx::UNKNOWN": "app display fallback (name contains KNOWN)",
   "src/pages/auth/signup/signupHelpers.ts::ALLOWED_IMAGE_TYPES": "app upload MIME types",
   "src/test/giftCardNaming.test.ts::SKIP_DIRS": "directory-walk skip set",

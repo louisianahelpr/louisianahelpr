@@ -30,6 +30,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+
+// deno-lint-ignore no-explicit-any
+type Client = any;
+
+/** What the poster reads: the applicants waiting, when there are any. */
+export function expiringJobCopy(title: string | null, waiting: number, when: "day" | "final"): { title: string; message: string } {
+  const what = title ? `"${title}"` : "Your job";
+  if (waiting > 0) {
+    const people = waiting === 1 ? "1 person has" : `${waiting} people have`;
+    return when === "final"
+      ? { title: "Pick someone today", message: `${people} applied to ${what}, and it expires in a few hours. Pick someone before it closes.` }
+      : { title: "Your job expires soon", message: `${people} applied to ${what}. Pick someone before it expires tomorrow.` };
+  }
+  return { title: "Your job expires soon", message: `${what} expires in less than 24 hours with no helpr yet. Boost it to get more visibility!` };
+}
+
+/** Pending applications per job, in one read. */
+async function pendingApplicantCounts(supabase: Client, jobIds: string[]): Promise<{ counts: Map<string, number>; error: string | null }> {
+  const counts = new Map<string, number>();
+  if (jobIds.length === 0) return { counts, error: null };
+  const { data, error } = await supabase.from("applications").select("job_id").in("job_id", jobIds).eq("status", "pending");
+  if (error) return { counts, error: `applicant counts: ${error.message}` };
+  for (const row of (data ?? []) as Array<{ job_id: string }>) counts.set(row.job_id, (counts.get(row.job_id) ?? 0) + 1);
+  return { counts, error: null };
+}
+
+/** The same words by email (send-notification-email applies the poster's job-update email switch and suppression). */
+async function emailPoster(userId: string, jobId: string, copy: { title: string; message: string }, notes: string[]): Promise<void> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
+    notes.push(`email ${jobId}: no SUPABASE_URL / service key`);
+    return;
+  }
+  try {
+    const res = await fetch(`${url}/functions/v1/send-notification-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({ user_id: userId, title: copy.title, message: copy.message, type: "job_update", link: `/posts?job=${jobId}`, job_id: jobId }),
+    });
+    if (!res.ok) notes.push(`email ${jobId}: send-notification-email answered ${res.status}`);
+  } catch (e) {
+    notes.push(`email ${jobId}: ${caughtMessage(e)}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -54,6 +100,9 @@ serve(async (req) => {
   try {
     const now = new Date();
     const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const in6h = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+    const defectsFromCounts: string[] = [];
+    const emailNotes: string[] = [];
 
     // Jobs expiring within the next 24 hours, still open, no helper
     // assigned, and the expiring-soon notification hasn't been sent yet.
@@ -84,6 +133,10 @@ serve(async (req) => {
 
     const results: Array<{ job_id: string; status: "sent" | "error"; error?: string }> = [];
     const markFailures: string[] = [];
+    // Hire nudge (owner 2026-10-25): name the applicants waiting, so a poster
+    // with 43 applicants is told to pick one, not to "boost" the job.
+    const applicantCounts = await pendingApplicantCounts(supabase, (jobs ?? []).map((j) => j.id));
+    if (applicantCounts.error) defectsFromCounts.push(applicantCounts.error);
 
     for (const job of jobs ?? []) {
       try {
@@ -91,10 +144,13 @@ serve(async (req) => {
         //    The fan_out_push_on_notification trigger (20260506120000)
         //    will auto-fire the APNs/FCM push when this row is inserted,
         //    meaning we get both in-app + push from a single INSERT.
+        const waiting = applicantCounts.counts.get(job.id) ?? 0;
+        const copy = expiringJobCopy(job.title, waiting, "day");
         const { error: notifErr } = await supabase.from("notifications").insert({
           user_id: job.customer_id,
-          title: "Your job expires soon",
-          message: `"${job.title}" expires in less than 24 hours with no helpr yet. Boost it to get more visibility!`,
+          job_id: job.id,
+          title: copy.title,
+          message: copy.message,
           type: "job_updates",
           // The expiring job itself. A job with no helpr yet and no pending
           // applications buckets to "Waiting", not the "Needs you" bucket a
@@ -123,11 +179,54 @@ serve(async (req) => {
           markFailures.push(`mark ${job.id}: ${markErr.message}`);
         }
 
+        if (waiting > 0) await emailPoster(job.customer_id, job.id, copy, emailNotes);
         results.push({ job_id: job.id, status: "sent" });
       } catch (err) {
         console.error(`[expiring-jobs-push] failed to notify for job ${job.id}`, err);
         results.push({ job_id: job.id, status: "error", error: String(err) });
       }
+    }
+
+    // Final reminder: the last 6 hours, someone has applied, nobody hired yet.
+    const { data: finalJobs, error: finalErr } = await supabase
+      .from("jobs")
+      .select("id, title, customer_id")
+      .eq("status", "open")
+      .eq("payment_status", "escrow")
+      .is("helper_id", null)
+      .not("customer_id", "is", null)
+      .is("expiring_final_notif_sent", null)
+      .gt("expires_at", now.toISOString())
+      .lte("expires_at", in6h.toISOString());
+    if (finalErr) defectsFromCounts.push(`final read: ${finalErr.message}`);
+    const finalCounts = await pendingApplicantCounts(supabase, (finalJobs ?? []).map((j: { id: string }) => j.id));
+    if (finalCounts.error) defectsFromCounts.push(finalCounts.error);
+    let finalSent = 0;
+    for (const job of (finalJobs ?? []) as Array<{ id: string; title: string | null; customer_id: string }>) {
+      const waiting = finalCounts.counts.get(job.id) ?? 0;
+      if (waiting === 0) continue;
+      const copy = expiringJobCopy(job.title, waiting, "final");
+      // Mark first: a failed mark sends nothing, so the poster is never nudged twice.
+      const { data: marked, error: markErr } = await supabase
+        .from("jobs")
+        .update({ expiring_final_notif_sent: true } as Record<string, unknown>)
+        .eq("id", job.id)
+        .is("expiring_final_notif_sent", null)
+        .select("id");
+      if (markErr) {
+        markFailures.push(`final mark ${job.id}: ${markErr.message}`);
+        continue;
+      }
+      if (!marked || marked.length === 0) continue; // another run took it
+      const { error: notifErr } = await supabase.from("notifications").insert({
+        user_id: job.customer_id, job_id: job.id, title: copy.title, message: copy.message, type: "job_updates", link: `/posts?job=${job.id}`,
+      });
+      if (notifErr) {
+        markFailures.push(`final notify ${job.id}: ${notifErr.message}`);
+        continue;
+      }
+      await emailPoster(job.customer_id, job.id, copy, emailNotes);
+      finalSent++;
     }
 
     const sent = results.filter((r) => r.status === "sent").length;
@@ -139,10 +238,11 @@ serve(async (req) => {
     // shape that hid payment-confirm-reminder's total failure behind a 200.
     return cronResult(
       "expiring-jobs-push",
-      { processed: results.length, sent, errors, results },
+      { processed: results.length, sent, errors, results, final_sent: finalSent, email_notes: emailNotes },
       {
-        count: errors + markFailures.length,
+        count: errors + markFailures.length + defectsFromCounts.length,
         reasons: [
+          ...defectsFromCounts,
           ...results.filter((r) => r.status === "error").map((r) => `notify ${r.job_id}: ${r.error}`),
           ...markFailures,
         ],

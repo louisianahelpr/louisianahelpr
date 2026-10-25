@@ -21,7 +21,32 @@
         }
       ],
       "destination": "https://www.louisianahelpr.com/:path",
-      "permanent": false
+      "permanent": true
+    },
+    {
+      "source": "/contact",
+      "destination": "/support",
+      "permanent": true
+    },
+    {
+      "source": "/become-a-helpr",
+      "destination": "/signup",
+      "permanent": true
+    },
+    {
+      "source": "/become-a-helper",
+      "destination": "/signup",
+      "permanent": true
+    },
+    {
+      "source": "/find-work",
+      "destination": "/signup",
+      "permanent": true
+    },
+    {
+      "source": "/work",
+      "destination": "/signup",
+      "permanent": true
     }
   ],
   "rewrites": [

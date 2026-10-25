@@ -28,7 +28,7 @@ import {
 } from "@/lib/payoutSetupQueries";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { usePayoutSetupBlock, usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /** Board 87, "Where should we send your money?": what adding a bank involves, said before the tap. */
@@ -55,6 +55,7 @@ export function PayoutSetupForm({ onSettled }: {
   // account. While paused this form shows the notice in place of every setup
   // control, and the handlers below never call stripe-connect.
   const setupPaused = usePayoutSetupPaused();
+  const setupBlock = usePayoutSetupBlock();
 
   // Both fetchers + their persistence policy live in src/lib/payoutSetupQueries.ts
   // so `usePrefetchUserData` can warm these exact keys from the Dashboard's idle
@@ -336,6 +337,11 @@ export function PayoutSetupForm({ onSettled }: {
       </div>
     );
   }
+
+  // Setup switched off for everyone and no account yet: nothing to show (owner
+  // 2026-10-25, no "paused" notice); PaymentTab hides the empty card. The
+  // not-hired-yet note (PayoutSetupPausedNotice) still shows below.
+  if (setupBlock === "paused" && !status?.connected) return null;
 
   return (
     <div className="space-y-4">

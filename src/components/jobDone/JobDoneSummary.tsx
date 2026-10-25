@@ -270,7 +270,7 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       {needsPayoutSetup && setupPaused && (
         <>
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Your pay is kept for you and is sent once payout setup is back.
+            Your pay is kept for you. We'll let you know when you can add where to send it.
           </p>
           <PayoutSetupPausedNotice compact className="text-left" />
         </>

@@ -1,6 +1,6 @@
-import { PauseCircle, BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness } from "lucide-react";
 import { MoneyNote } from "@/components/money/MoneyNote";
-import { PAYOUT_SETUP_NEEDS_HIRE_COPY, PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
+import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
 import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 
 /**
@@ -9,25 +9,24 @@ import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
  * (the one money-state note). `compact` drops the icon for tight spots (a
  * dialog row, a checklist line).
  *
- * It says WHICH reason holds (usePayoutSetupBlock): setup is paused for
- * everyone (owner 2026-10-23), or nobody has hired this member yet, so setup
- * comes with their first hire (owner 2026-10-25). The paused words win while
- * both hold.
+ * It shows only the NOT-HIRED-YET reason (usePayoutSetupBlock): nobody has
+ * hired this member yet, so setup comes with their first hire (owner
+ * 2026-10-25). While setup is switched off for everyone it renders NOTHING
+ * (owner 2026-10-25, Money page: "remove that red box. its not paused").
  */
 export function PayoutSetupPausedNotice({ compact = false, className = "" }: { compact?: boolean; className?: string }) {
   const block = usePayoutSetupBlock();
-  const needsHire = block === "needs_hire";
-  const Icon = needsHire ? BriefcaseBusiness : PauseCircle;
+  if (block !== "needs_hire") return null;
   return (
     <MoneyNote className={className}>
       <div
         role="status"
         data-payout-setup-paused=""
-        data-payout-setup-block={needsHire ? "needs_hire" : "paused"}
+        data-payout-setup-block="needs_hire"
         className="flex items-start gap-2.5"
       >
-        {!compact && <Icon className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />}
-        <p className="min-w-0">{needsHire ? PAYOUT_SETUP_NEEDS_HIRE_COPY : PAYOUT_SETUP_PAUSED_COPY}</p>
+        {!compact && <BriefcaseBusiness className="w-4 h-4 shrink-0 mt-0.5" aria-hidden />}
+        <p className="min-w-0">{PAYOUT_SETUP_NEEDS_HIRE_COPY}</p>
       </div>
     </MoneyNote>
   );

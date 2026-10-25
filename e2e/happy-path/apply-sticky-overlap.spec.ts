@@ -266,6 +266,9 @@ for (const { width, height, label } of [
         // Payout setup OPEN (switch payout_setup on): while it is paused (owner 2026-10-23) the apply sheet shows
         // the paused notice instead of the "Set up payouts" one this spec measures.
         mockRpc("feature_switches_for_me", { payout_setup: true }),
+        // Payout setup allowed for this Helpr (owner 2026-10-25, payout after the hire): an unhired Helpr sees
+        // "You'll set up payouts when you're hired" instead; this spec measures the "Set up payouts" notice.
+        mockRpc("payout_setup_hire_allowed_for_me", true),
         mockTable("open_jobs_browse", [BASE_JOB]),
         mockTable("helper_availability", []),
         mockTable("applications", []),

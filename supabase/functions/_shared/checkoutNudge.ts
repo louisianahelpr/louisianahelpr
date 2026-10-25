@@ -23,13 +23,13 @@
  * returned and logged by the caller. Guard:
  * src/test/edge/checkoutNudge.test.ts.
  */
+import { seedBoundaryDropsRow } from "./seedBoundary.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
 
 // deno-lint-ignore no-explicit-any
 type Client = any;
 
-export const CHECKOUT_NUDGE_SWITCH = "checkout_nudge";
 export const CHECKOUT_NUDGE_TITLE = "Finish posting your job";
 
 /** The notice's words. Nothing was charged, and the form opens with the job filled in. */
@@ -40,11 +40,11 @@ export function checkoutNudgeMessage(jobTitle: string | null | undefined): strin
 }
 
 /** Back to Post a job with this job's details filled in (the rebook loader reads the poster's own row). */
-export function checkoutNudgeLink(jobId: string): string {
+function checkoutNudgeLink(jobId: string): string {
   return `/post-job?rebook=${encodeURIComponent(jobId)}`;
 }
 
-export type CheckoutNudgeStatus =
+type CheckoutNudgeStatus =
   | "switch_off"   // the hidden switch is off for this poster: nothing done
   | "duplicate"    // this job was nudged before
   | "not_nudgeable" // not this poster's open, never-paid job (funded, cancelled, gone)
@@ -116,8 +116,15 @@ export async function sendCheckoutNudge(supabase: Client, input: CheckoutNudgeIn
     }
     const notificationId = (rows ?? [])[0]?.id as string | undefined;
     if (!notificationId) {
-      await stamp(supabase, input.jobId, { email_note: "dropped by the seed boundary" });
-      return { status: "dropped" };
+      // Zero rows: the seed boundary's drop (a seed job and a real poster) is by design;
+      // anything else is a lost notice.
+      const dropped = await seedBoundaryDropsRow(supabase, { user_id: input.customerId, job_id: input.jobId, link });
+      if (dropped === true) {
+        await stamp(supabase, input.jobId, { email_note: "dropped by the seed boundary" });
+        return { status: "dropped" };
+      }
+      await stamp(supabase, input.jobId, { email_note: "notice insert matched 0 rows" });
+      return { status: "failed", error: "notice insert matched 0 rows" };
     }
 
     const ep = input.endpoint ?? envEndpoint();

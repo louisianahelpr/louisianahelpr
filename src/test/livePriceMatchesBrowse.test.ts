@@ -14,7 +14,8 @@ describe("home Live now shows the /browse take-home", () => {
     const CASES = [[30, "$27"], [150, "$141"], [60, "$56"]] as const;
     expect(CASES.length).toBeGreaterThan(2);
     for (const [budget, want] of CASES) {
-      const job = { budget, helper_fee_flat_cents: 70 };
+      // The three measured jobs were stamped 5% + 70c; new jobs stamp 10% (owner 2026-10-25).
+      const job = { budget, helper_fee_flat_cents: 70, helper_fee_percent: 5 };
       const net = computeNet(budget, 0, 0, 1, 0, job).netEarnings;
       expect(liveJobPrice({ budget, pricing_mode: null, take_home: net })).toBe(want);
     }

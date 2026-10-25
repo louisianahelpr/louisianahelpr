@@ -19,7 +19,7 @@
  */
 // @mutate supabase/functions/auth-email-hook/index.ts |   if (answered) return answered | return await delivery
 // @mutate supabase/functions/auth-email-hook/index.ts |     waitUntil: rt?.waitUntil?.bind(rt), |     waitUntil: undefined,
-// @mutate supabase/functions/auth-email-hook/index.ts |       await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))\n    },\n    waitUntil | void error\n    },\n    waitUntil
+// @mutate supabase/functions/auth-email-hook/index.ts |       await alertAuthEmail('handler error', 'warning', caughtMessage(error))\n    },\n    waitUntil | void error\n    },\n    waitUntil
 // @mutate supabase/functions/auth-email-hook/index.ts | answerBudgetMs(startedAt) | 60_000
 // @mutate supabase/functions/_shared/answerWithin.ts | export const HOOK_ANSWER_BY_MS = 2_500; | export const HOOK_ANSWER_BY_MS = 4_500;
 // @mutate supabase/functions/_shared/answerWithin.ts |     timer = setTimeout(() => resolve(null), ms); |     void ms;

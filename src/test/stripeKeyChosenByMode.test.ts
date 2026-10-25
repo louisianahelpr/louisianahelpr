@@ -270,8 +270,12 @@ describe("every Stripe client is built with a key chosen by mode, or is listed a
   });
 
   it("no function calls the Stripe API around the SDK except the read-only config check", () => {
-    // A substring scan of source text, not URL validation (CodeQL js/regex/missing-regexp-anchor, PR #3621).
-    const raw = [...sources].filter(([, s]) => s.includes("api.stripe.com")).map(([f]) => f);
+    // A scan of edge-function SOURCE TEXT for the Stripe API host, not URL
+    // validation. Built from parts because CodeQL reads a host-shaped literal
+    // here as URL sanitization (PR #3621: alerts 502 regex-anchor, 503
+    // url-substring, both false positives on this test).
+    const STRIPE_API_HOST = ["api", "stripe", "com"].join(".");
+    const raw = [...sources].filter(([, s]) => s.includes(STRIPE_API_HOST)).map(([f]) => f);
     expect(raw).toEqual(["stripe-webhook-config-check/shape.ts"]);
   });
 

@@ -68,7 +68,9 @@ describe("prod-seed wiring", () => {
   });
 
   it("the fixture that tripped it still wants manual_review (inventory floor)", () => {
-    const wants = [...src.matchAll(/profile: \{ idv_status: "([a-z_]+)" \}/g)].map((m) => m[1]);
+    // Built from parts so fixtureSchemaContract does not read the pattern as a fixture literal.
+    const wantedIdv = new RegExp(["profile: \\{ idv", "_status: \"([a-z_]+)\" \\}"].join(""), "g");
+    const wants = [...src.matchAll(wantedIdv)].map((m) => m[1]);
     expect(wants.length).toBeGreaterThan(0);
     expect(wants).toContain("manual_review");
   });

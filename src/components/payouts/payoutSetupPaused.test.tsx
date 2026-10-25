@@ -18,10 +18,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, fireEvent } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
+import { PAYOUT_SETUP_NEEDS_HIRE_COPY, PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
 
 let paused = true;
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => paused }));
+// Why setup is not offered (owner 2026-10-25): "paused" for everyone, or "needs_hire".
+let block: "paused" | "needs_hire" = "paused";
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({
+  usePayoutSetupPaused: () => paused,
+  usePayoutSetupBlock: () => (paused ? block : null),
+}));
 
 const invokeMock = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({
@@ -75,6 +80,7 @@ const READY = { connected: true, details_submitted: true, payouts_enabled: true,
 
 beforeEach(() => {
   paused = true;
+  block = "paused";
   statusFixture = null;
   invokeMock.mockReset();
   toastError.mockReset();
@@ -169,5 +175,28 @@ describe("PayoutStatusRow (Profile and shop) while payout setup is paused", () =
     render(<PayoutStatusRow prompt={{ kind: "setup" }} onSetUp={onSetUp} onRetry={() => {}} />);
     fireEvent.click(screen.getByRole("button"));
     expect(onSetUp).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("not hired yet (owner 2026-10-25): the same controls give way to the hire notice", () => {
+  it("PayoutSetupForm, not connected: the hire words, no Set up control, no Stripe call", async () => {
+    block = "needs_hire";
+    statusFixture = NOT_CONNECTED;
+    wrap(<PayoutSetupForm />);
+    await drain();
+    expect(await screen.findByText(PAYOUT_SETUP_NEEDS_HIRE_COPY)).toBeTruthy();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
+    expect(screen.queryByRole("button", { name: /set up payouts/i })).toBeNull();
+    expect(stripeConnectWrites()).toEqual([]);
+    expect(toastError).not.toHaveBeenCalled();
+  });
+
+  it("hired and setup open: the Set up control, and neither notice", async () => {
+    paused = false;
+    statusFixture = NOT_CONNECTED;
+    wrap(<PayoutSetupForm />);
+    await drain();
+    expect(screen.queryByText(PAYOUT_SETUP_NEEDS_HIRE_COPY)).toBeNull();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
   });
 });

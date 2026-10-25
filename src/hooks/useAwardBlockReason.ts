@@ -1,5 +1,6 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { usePayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
 import { acceptMissingFromProfile, reasonFromMissing, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 
 /**
@@ -45,6 +46,8 @@ export function useAwardBlockReason(): AwardBlockReason | null {
   const { profile } = useCurrentUser();
   // Re-render when the ID check switch arrives or flips (acceptMissingFromProfile reads it).
   useIdentityCheckOnStore();
+  // Owner 2026-10-25: with payout_after_hire on, nothing gates the accept.
+  const payoutAfterHire = usePayoutAfterHireOn();
 
   // No profile loaded is not "blocked" — it is "we do not know yet". Saying
   // nothing is the only honest render; `helper_unknown` is a real server
@@ -53,7 +56,7 @@ export function useAwardBlockReason(): AwardBlockReason | null {
 
   // helper_accept_missing / helper_accept_block_reason (20261003193541),
   // mirrored branch for branch: the seed carve-out, payouts, then Stripe ID.
-  return reasonFromMissing(acceptMissingFromProfile(profile));
+  return reasonFromMissing(acceptMissingFromProfile(profile, { payoutAfterHire }));
 }
 
 /**
@@ -68,7 +71,8 @@ export function useAwardBlockReason(): AwardBlockReason | null {
 export function useAcceptGate(): { loading: boolean; reason: AwardBlockReason | null; missing: AcceptMissing[] } {
   const { profile, isLoading } = useCurrentUser();
   useIdentityCheckOnStore();
+  const payoutAfterHire = usePayoutAfterHireOn();
   if (!profile) return { loading: isLoading, reason: null, missing: [] };
-  const missing = acceptMissingFromProfile(profile);
+  const missing = acceptMissingFromProfile(profile, { payoutAfterHire });
   return { loading: false, reason: reasonFromMissing(missing), missing };
 }

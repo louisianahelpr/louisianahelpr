@@ -64,6 +64,8 @@ import { closeIdentityCheck, identityReviewIsStale, openIdentityCheck, IDENTITY_
 // 2026-10-23 (switch `identity_check`); src/test/identityCheckOffEntryPoints.test.ts
 // covers the off state.
 vi.mock("@/hooks/useIdentityCheckOn", () => ({ useIdentityCheckOn: () => true, useIdentityCheckStatus: () => ({ on: true, settled: true }) }));
+// The host also publishes payout_after_hire (owner 2026-10-25); off here, not what this test is about.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 beforeEach(() => setIdentityCheckOn(true));
 afterEach(() => setIdentityCheckOn(false));
 

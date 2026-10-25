@@ -33,6 +33,8 @@ import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.t
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
 
+/** The notice a payee with no payout account gets while their payout waits (sent at most once a day per job). */
+const PAYOUT_ACCOUNT_REQUIRED_TITLE = "Payout account required";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1137,10 +1139,22 @@ serve(async (req) => {
 
       if (!helperProfile?.stripe_account_id) {
         console.error(`Helper ${helperId} has no Stripe Connect for job ${job.id}`);
-        await insertNotifications(supabaseAdmin, {
+        // Once a day per job (lead, 2026-10-25): this cron runs hourly and the
+        // notifications dedupe trigger only looks back 10 minutes, so the same
+        // "Payout account required" notice went out every hour while the job
+        // waited. A failed read sends it (one extra notice beats none).
+        const { count: toldToday, error: toldErr } = await supabaseAdmin
+          .from("notifications")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", helperId)
+          .eq("job_id", job.id)
+          .eq("title", PAYOUT_ACCOUNT_REQUIRED_TITLE)
+          .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+        if (toldErr) console.error(`[process-scheduled-payouts] could not read today's notices for ${helperId} (job ${job.id}); sending:`, toldErr.message);
+        if (toldErr || !toldToday) await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,
-          title: "Payout account required",
+          title: PAYOUT_ACCOUNT_REQUIRED_TITLE,
           message: `$${formatPayoutDollars(helperPayout)} from "${job.title}" is ready, but your payout account isn't set up yet. Add it in Profile → Payments.`,
           // User-facing and about money the helpr is owed — `financial_alerts`,
           // the category the prefs screen calls "Payments & Tips". As `warning`

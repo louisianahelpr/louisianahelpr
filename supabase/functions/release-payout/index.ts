@@ -43,6 +43,7 @@ import { netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
+  CONNECT_MISSING_CODE,
   CONNECT_NOT_PAYABLE_CODE,
   CONNECT_REJECTED_CODE,
   STRIPE_PLATFORM_REJECTED_CODE,
@@ -303,8 +304,11 @@ serve(async (req) => {
   }
 
   if (!helper?.stripe_account_id) {
+    // Coded, so auto-release-payment reads it as a held payout (CONNECT_HELD_CODES)
+    // rather than a failed attempt that gives up after five (owner 2026-10-25:
+    // payout setup comes after the hire, so this wait is normal).
     return jsonResponse(
-      { error: "Helpr has not completed Stripe Connect onboarding" },
+      { error: "Helpr has not completed Stripe Connect onboarding", code: CONNECT_MISSING_CODE },
       409,
     );
   }

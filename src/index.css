@@ -415,8 +415,12 @@
      unaffected. Cowork audit 2026-07-08. */
   @media (pointer: coarse) {
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
-    textarea,
-    select {
+    textarea:not([data-zoom-guard-off]),
+    select:not([data-zoom-guard-off]) {
+      /* The :not() lifts textarea/select to the input selector's weight; a bare
+         `textarea` lost to any text-size utility (text-ds-14 on the apply
+         message), so typing there zoomed the whole app on iPhone and it never
+         zoomed back (owner 2026-10-25: "everything scrolls" on the phone). */
       font-size: max(16px, 1em);
     }
   }

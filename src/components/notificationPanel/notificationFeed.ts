@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { focusManager, onlineManager } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { report } from "@/lib/errorLogger";
@@ -170,10 +171,27 @@ const INITIAL_LOAD_DELAY_MS = 800;
 
 function openFeed(userId: string): Feed {
   setNotificationUser(userId);
+  // Whether the newest load of this feed failed. A failed load used to wait
+  // for a realtime reconnect or a pull-to-refresh: with the channel still up,
+  // a bell whose one load timed out ("notifications load timed out after
+  // 15000ms", Sentry, iOS web) stayed empty for the rest of the visit. Now it
+  // loads again when the person comes back to the app or the network returns
+  // (TanStack's focusManager / onlineManager: the browser events on the web,
+  // Capacitor's appStateChange / Network on native, src/lib/appLifecycle.ts).
+  let lastLoadFailed = false;
   const load = () =>
-    loadNotificationFeed(userId).catch((err) =>
-      report(err, { tags: { source: "notificationFeed.load" } }),
+    loadNotificationFeed(userId).then(
+      () => { lastLoadFailed = false; },
+      (err) => {
+        lastLoadFailed = true;
+        report(err, { tags: { source: "notificationFeed.load" } });
+      },
     );
+  const reloadIfFailed = () => {
+    if (lastLoadFailed && focusManager.isFocused() && onlineManager.isOnline()) void load();
+  };
+  const unsubscribeFocus = focusManager.subscribe((focused) => { if (focused) reloadIfFailed(); });
+  const unsubscribeOnline = onlineManager.subscribe((online) => { if (online) reloadIfFailed(); });
   // Deferred so the first paint is not competing with it (same delay the
   // panel always used).
   const timer = setTimeout(() => void load(), INITIAL_LOAD_DELAY_MS);
@@ -204,8 +222,12 @@ function openFeed(userId: string): Feed {
       // than resuming from whatever arrives next.
       onRecovered: () =>
         void loadNotificationFeed(userId).then(
-          () => { for (const l of [...recoveryListeners]) l(null); },
+          () => {
+            lastLoadFailed = false;
+            for (const l of [...recoveryListeners]) l(null);
+          },
           (err) => {
+            lastLoadFailed = true;
             // A mounted panel turns this into its error card / toast (and
             // reports it); with no panel, the feed reports it itself.
             if (recoveryListeners.size === 0) report(err, { tags: { source: "notificationFeed.load" } });
@@ -219,6 +241,8 @@ function openFeed(userId: string): Feed {
     close: () => {
       clearTimeout(timer);
       unsubscribe();
+      unsubscribeFocus();
+      unsubscribeOnline();
       // Last consumer out = signed out (or the app unmounted): drop this
       // person's list and count so the next account cannot inherit them.
       if (stillBound(userId)) setNotificationUser(null);

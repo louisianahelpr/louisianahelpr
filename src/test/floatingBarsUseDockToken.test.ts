@@ -57,7 +57,9 @@ describe("floating bottom bars clear the dock with the shared token (Q214/Q314)"
     // Since the five-screen flow the button is a sticky bar held above the
     // dock by `bottom-safe-nav` (AppPage's scroller carries the pb-safe-nav).
     const code = blankComments(readSource("src/pages/post-job/FormStep.tsx") ?? "");
-    expect(code).toMatch(/className="[^"]*\bsticky\b[^"]*\bbottom-safe-nav\b/);
+    // Since 2026-10-25 it floats only while its button can be pressed
+    // (postJobFitsItsColumn.test.ts), so the class sits in a template.
+    expect(code).toMatch(/className=(?:"[^"]*|\{`[^`]*)\bsticky\b[^"`]*\bbottom-safe-nav\b/);
   });
 
   it("LegalTab's bottomClearance reads the shared --safe-area-bottom var, not raw env() (Q314)", () => {

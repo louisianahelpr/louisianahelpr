@@ -3315,6 +3315,24 @@ button,
   .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
 }
 
+/* POST A JOB SIZES ITS GRIDS TO ITS OWN COLUMN, not the screen (lead, 2026-10-25). At 1180 the desktop
+   rail, the step list and the "What Helprs will see" card leave the form about 370px, but a screen breakpoint
+   (lg / md) gave it three category tiles ("Handym…", "Assembl…", a sub-line run out of its tile) and a 155px
+   calendar beside a 155px time card (arrows over "October 2026", "SUMOTUWETHFRSA"). Below a 560px column: two
+   tiles, no sub-line; from 560px: three tiles with the sub-line. Date and time stack below a 560px grid and
+   sit side by side from 560px (the 1440 card gives them 590px). Guard: src/test/postJobFitsItsColumn.test.ts. */
+.pj-cq { container-type: inline-size; }
+.pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pj-tile-sub { display: none; }
+.pj-when-grid { grid-template-columns: minmax(0, 1fr); }
+@container (min-width: 560px) {
+  .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pj-tile-sub { display: block; }
+}
+@container (min-width: 560px) {
+  .pj-when-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+}
+
 @keyframes step-current-pulse {
   0%, 100% {
     transform: scale(1);

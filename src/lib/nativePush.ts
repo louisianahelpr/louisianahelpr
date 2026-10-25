@@ -84,10 +84,11 @@ let currentDevicePlatform: "ios" | "android" | null = null;
  * check is async, so the native answer is pushed to it from here instead of
  * pulled.
  */
-function publishNativePermission(receive: string, source: "boot" | "request"): void {
+function publishNativePermission(receive: string, source: "boot" | "request" | "resume" | "signin"): void {
   // NB-018: the OS answer is otherwise recorded nowhere, so "0 push_tokens"
   // could not tell "never asked" from "said no" from "said yes, token lost".
   track("push_permission_state", { state: receive, source });
+  lastPublishedPermission = receive;
   if (receive === "granted") setNativePushPermission("granted");
   else if (receive === "denied") setNativePushPermission("denied");
   else setNativePushPermission("default"); // "prompt" | "prompt-with-rationale"
@@ -130,6 +131,44 @@ async function persistPushToken(userId: string, token: string, platform: "ios" |
   }
 }
 
+// The last OS permission answer published, so a resume only records a CHANGE
+// (the person flipped the switch in iOS Settings) rather than one analytics
+// row per foreground.
+let lastPublishedPermission: string | null = null;
+
+/**
+ * Ask the OS for the push permission and, when it is granted, call register()
+ * so APNs/FCM hands the token over again (the "registration" listener then
+ * saves it). Run at boot, on every return to the foreground and on every
+ * sign-in that has no token in hand (Q1475).
+ *
+ * WHY ALL THREE. Measured 2026-10-25 on prod: push_tokens 0 rows, the one
+ * device that ever held one lost it at a Log Out on 2026-10-09, and every iOS
+ * boot after that was signed out. Boot alone re-registers only on a COLD
+ * launch, so a person who signs back in on a warm app, or who turns
+ * notifications on in iOS Settings and comes back, stayed unreachable until
+ * iOS happened to kill the app. register() is idempotent and never prompts.
+ */
+async function syncNativeRegistration(source: "boot" | "resume" | "signin"): Promise<void> {
+  try {
+    const { PushNotifications } = await import("@capacitor/push-notifications");
+    const status = await PushNotifications.checkPermissions();
+    // Publish the native state to the synchronous accessor in
+    // pushNotifications.ts. `getPushPermission()` cannot await Capacitor, and
+    // NotificationPanel calls it inside a useEffect — without this prime it
+    // would report "default" forever on native and keep offering "Turn on
+    // notifications" to users who already granted it.
+    if (source === "boot" || status.receive !== lastPublishedPermission) {
+      publishNativePermission(status.receive, source);
+    }
+    if (status.receive === "granted") {
+      await PushNotifications.register();
+    }
+  } catch (regErr) {
+    report(regErr, { tags: { source: source === "boot" ? "push.autoRegister" : `push.reRegister.${source}` } });
+  }
+}
+
 function attachAuthListenerOnce() {
   if (authListenerAttached) return;
   authListenerAttached = true;
@@ -150,7 +189,12 @@ function attachAuthListenerOnce() {
     // write.
     if (event === "SIGNED_IN" && currentDeviceToken && currentDevicePlatform) {
       void persistPushToken(session.user.id, currentDeviceToken, currentDevicePlatform);
+      return;
     }
+    // SIGNED IN WITH NO TOKEN IN HAND: the boot register() never answered,
+    // or permission was granted after boot. Ask again; the registration
+    // listener saves what comes back for this (now signed-in) user.
+    if (event === "SIGNED_IN") void syncNativeRegistration("signin");
   });
 }
 
@@ -171,8 +215,11 @@ async function savePushToken(token: string, platform: "ios" | "android") {
       await persistPushToken(user.id, token, platform);
       return;
     }
-    // Session not yet restored — buffer the token and flush on first auth event.
+    // Session not yet restored, or nobody is signed in — buffer the token and
+    // flush on the next auth event. Recorded, so "permission granted, 0
+    // push_tokens" can be told apart from "token never arrived" (Q82).
     pendingToken = { token, platform };
+    track("push_token_buffered", { platform });
     attachAuthListenerOnce();
   } catch (err) {
     report(err, { tags: { source: "savePushToken" } });
@@ -373,20 +420,20 @@ export function useNativePushSetup() {
         // is the only other call site, and it's gated behind a 30-day
         // snooze on the dashboard prompt). Idempotent + fast when already
         // registered.
+        await syncNativeRegistration("boot");
+        // A sign-in with no token in hand asks again (see the auth listener).
+        attachAuthListenerOnce();
+        // And on every return to the foreground: a person who turned
+        // notifications on in iOS Settings, or whose row was removed while
+        // the app sat in the background, is re-registered without waiting
+        // for a cold launch.
         try {
-          const status = await PushNotifications.checkPermissions();
-          // Publish the native state to the synchronous accessor in
-          // pushNotifications.ts. `getPushPermission()` cannot await
-          // Capacitor, and NotificationPanel calls it inside a useEffect —
-          // without this prime it would report "default" forever on native
-          // and keep offering "Turn on notifications" to users who already
-          // granted it.
-          publishNativePermission(status.receive, "boot");
-          if (status.receive === "granted") {
-            await PushNotifications.register();
-          }
-        } catch (regErr) {
-          report(regErr, { tags: { source: "push.autoRegister" } });
+          const { App } = await import("@capacitor/app");
+          await App.addListener("appStateChange", ({ isActive }) => {
+            if (isActive) void syncNativeRegistration("resume");
+          });
+        } catch (resumeErr) {
+          report(resumeErr, { tags: { source: "push.resumeListener" } });
         }
       } catch (err) {
         report(err, { tags: { source: "useNativePushSetup" } });

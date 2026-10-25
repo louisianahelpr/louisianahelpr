@@ -38,6 +38,9 @@
 // @mutate src/lib/nativePush.ts | track("push_token_saved", { platform }); | void platform;
 // @mutate src/lib/nativePush.ts | track("push_permission_state", { state: receive, source }); | void source;
 // @mutate src/lib/nativePush.ts | void startDeepLinkRouting(navigate); | void startDeepLinkRouting;
+// @mutate src/lib/nativePush.ts | if (isActive) void syncNativeRegistration("resume"); | void isActive;
+// @mutate src/lib/nativePush.ts | if (event === "SIGNED_IN") void syncNativeRegistration("signin"); | void event;
+// @mutate src/lib/nativePush.ts | track("push_token_buffered", { platform }); | void platform;
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { MemoryRouter, useNavigate } from "react-router-dom";
@@ -258,5 +261,83 @@ describe("register -> save", () => {
     });
     expect(upsertMock).toHaveBeenCalledTimes(2);
     expect(upsertMock.mock.calls[1][0]).toMatchObject({ user_id: "user-2", token: "apns-token-abc" });
+  });
+});
+
+// Q1475. Measured 2026-10-25: push_tokens 0 rows; the only device that
+// ever held one lost it at a Log Out on 2026-10-09 and then booted signed out
+// every time. Boot was the ONLY place register() ran, so a warm sign-in or a
+// permission turned on in iOS Settings never produced a token until a cold
+// launch. RED on origin/main 8ca225a0e3: all four tests below fail (no
+// appStateChange listener, no register() on SIGNED_IN, no buffered event).
+describe("re-registration on resume and on sign-in", () => {
+  it("calls register() again when the app returns to the foreground", async () => {
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(appListeners.appStateChange).toBeTypeOf("function"));
+    await act(async () => {
+      await appListeners.appStateChange({ isActive: true });
+      await tick();
+      await tick();
+    });
+    await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(2));
+    // Going to the background does nothing.
+    await act(async () => {
+      await appListeners.appStateChange({ isActive: false });
+      await tick();
+    });
+    expect(registerMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("re-registers on resume after permission was turned on in Settings, recording the change once", async () => {
+    checkPermissionsMock.mockReturnValue({ receive: "prompt" });
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() => expect(appListeners.appStateChange).toBeTypeOf("function"));
+    expect(registerMock).not.toHaveBeenCalled();
+    checkPermissionsMock.mockReturnValue({ receive: "granted" });
+    await act(async () => {
+      await appListeners.appStateChange({ isActive: true });
+      await tick();
+      await tick();
+    });
+    await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(1));
+    expect(trackMock).toHaveBeenCalledWith("push_permission_state", { state: "granted", source: "resume" });
+    // A second resume with no change records nothing new.
+    const before = trackMock.mock.calls.filter((c) => c[0] === "push_permission_state").length;
+    await act(async () => {
+      await appListeners.appStateChange({ isActive: true });
+      await tick();
+      await tick();
+    });
+    expect(trackMock.mock.calls.filter((c) => c[0] === "push_permission_state").length).toBe(before);
+  });
+
+  it("asks for the token again when someone signs in and none is in hand", async () => {
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(authCallbacks.length).toBeGreaterThan(0));
+    await act(async () => {
+      for (const cb of authCallbacks) cb("SIGNED_IN", { user: { id: "user-2" } });
+      await tick();
+      await tick();
+    });
+    await waitFor(() => expect(registerMock).toHaveBeenCalledTimes(2));
+  });
+
+  it("records a token that arrives with nobody signed in, then saves it at sign-in", async () => {
+    getUserMock.mockResolvedValue({ data: { user: null } });
+    await bootAtRootWithLaunchRedirect();
+    await waitFor(() => expect(pushListeners.registration).toBeTypeOf("function"));
+    await act(async () => {
+      await pushListeners.registration({ value: "apns-token-guest" });
+    });
+    expect(upsertMock).not.toHaveBeenCalled();
+    expect(trackMock).toHaveBeenCalledWith("push_token_buffered", { platform: "ios" });
+    await act(async () => {
+      for (const cb of authCallbacks) cb("SIGNED_IN", { user: { id: "user-3" } });
+      await tick();
+    });
+    expect(upsertMock).toHaveBeenCalledTimes(1);
+    expect(upsertMock.mock.calls[0][0]).toMatchObject({ user_id: "user-3", token: "apns-token-guest" });
   });
 });

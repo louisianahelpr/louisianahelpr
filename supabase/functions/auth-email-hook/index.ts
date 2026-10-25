@@ -18,6 +18,7 @@ import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
 
+
 // ED-002: every failure branch here blocks a signup confirmation, password
 // reset or magic link. One user sees an error; a SYSTEMIC failure (secret
 // rotated, enqueue_email broken) blocks every one of them with no page, so
@@ -274,11 +275,27 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
   if (emailType) verifyUrl.searchParams.set('type', emailType)
   if (emailData.redirect_to) verifyUrl.searchParams.set('redirect_to', emailData.redirect_to)
 
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
+  )
+
+  // Scanner-safe sign-up link (lead, 2026-10-25; _shared/confirmLink.ts): the
+  // app's own page carries the token and only the person's tap spends it, so a
+  // mail scanner's pre-fetch no longer burns it. Behind the hidden switch
+  // scanner_safe_confirm_links, decided for this user; off (or a failed
+  // check, which fails closed) keeps GoTrue's own verify link above.
+  const scannerSafe = emailType === 'signup' && !!emailData.token_hash && !!user.id &&
+    await scannerSafeFor(supabase, user.id)
+  const confirmationUrl = scannerSafe
+    ? confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup')
+    : verifyUrl.toString()
+
   const templateProps = {
     siteName: SITE_NAME,
     siteUrl: getAppUrl(),
     recipient: user.email,
-    confirmationUrl: verifyUrl.toString(),
+    confirmationUrl,
     token: emailData.token,
     email: user.email,
     newEmail: user.new_email || emailData.new_email,
@@ -291,11 +308,7 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
     renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true }),
   ])
 
-  // Enqueue for async send via process-email-queue → Resend
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
-  )
+  // Enqueue for async send via process-email-queue → Resend (the client above).
 
   const messageId = crypto.randomUUID()
 
@@ -382,3 +395,25 @@ serve(async (req) => {
     )
   }
 })
+
+/**
+ * Scanner-safe sign-up link decided per account by
+ * public.scanner_safe_confirm_link_for (switch scanner_safe_confirm_links).
+ * Any error answers false, so the email keeps GoTrue's own link.
+ */
+async function scannerSafeFor(
+  supabase: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }> },
+  userId: string,
+): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('scanner_safe_confirm_link_for', { p_user_id: userId })
+    if (error) {
+      console.error('[auth-email-hook] scanner-safe link check failed; sending the standard link', { message: error.message })
+      return false
+    }
+    return data === true
+  } catch (e) {
+    console.error('[auth-email-hook] scanner-safe link check threw; sending the standard link', { message: e instanceof Error ? e.message : String(e) })
+    return false
+  }
+}

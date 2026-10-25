@@ -13,6 +13,8 @@ import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
+import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
+import { readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -222,6 +224,30 @@ const SignupPending = () => {
       </span>
     </div>
   );
+
+  // Scanner-safe confirm link (lead, 2026-10-25; _shared/confirmLink.ts): an
+  // email link that carries a token_hash opens this page and spends the token
+  // only on the person's tap, so a mail scanner's pre-fetch cannot use it up.
+  // An expired or already-used link lands here too, with a way to get a new one.
+  const confirmLink = readConfirmLink(location.search, location.hash);
+  if (confirmLink.kind !== "none") {
+    return (
+      <AuthShell hideHeader hideBack centerColumn maxWidth="sm" noWebChrome>
+        <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6">
+          <AuthCardHead testId="signup-pending-confirm-head" title="Confirm your email" />
+          <ConfirmLinkPanel
+            token={confirmLink.kind === "token" ? { tokenHash: confirmLink.tokenHash, type: confirmLink.type } : null}
+            email={prefillEmail}
+            setEmail={setPrefillEmail}
+            onConfirmed={() => navigate(postAuthDestination(), { replace: true })}
+            onResend={handleResend}
+            resending={resending}
+            resendCooldown={resendCooldown}
+          />
+        </div>
+      </AuthShell>
+    );
+  }
 
   return (
     /* Spec v2 rebuild (audit 2026-10-21): /login's centered card (maxWidth

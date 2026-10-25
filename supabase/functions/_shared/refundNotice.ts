@@ -659,7 +659,8 @@ export async function sendRefundNotice(supabase: Client, input: RefundNoticeInpu
       };
       let mode: string;
       try {
-        mode = await stripeModeForParties(supabase, [recipient]);
+        // "read": a notice moves no money; an unenrolled test-looking recipient reads as real (dropped below).
+        mode = await stripeModeForParties(supabase, [recipient], { kind: "read" });
       } catch (modeErr) {
         // Unknown whether the recipient is a test account: losing one sandbox
         // notice to a test account is harmless, telling a real person is not.

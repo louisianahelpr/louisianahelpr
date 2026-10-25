@@ -102,7 +102,17 @@ import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
-import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, isPartyRefusal, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+
+/**
+ * Why a party refusal (isPartyRefusal) holds a row back, in words: a mix of a
+ * test and a real account, or a party that looks like a test account without
+ * being enrolled (Oct 2026 money audit, finding 7).
+ */
+const partyWhy = (e: StripeModeRefused, what: string): string =>
+  e.reason === "mixed_parties"
+    ? `${what} mixes a test account and a real one`
+    : `a party on ${what} looks like a test account but is not enrolled`;
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import { helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
@@ -278,13 +288,14 @@ serve(async (req) => {
     const mode = recorded ?? byPage;
     if (mode) {
       if (hasParties) {
-        const byParties = await modes.modeForParties([r.buyer_id, r.seller_id]);
+        const byParties = await modes.modeForParties([r.buyer_id, r.seller_id], "refund");
         if (byParties !== mode) throw new Error(`refund row says ${mode} but its parties are ${byParties}`);
       }
       return { stripe: modes.clientFor(mode) };
     }
     if (!hasParties) return null;
-    return await modes.clientForParties([r.buyer_id, r.seller_id]);
+    // A refund returns money already taken: an unenrolled test-looking party is not refused (Q4).
+    return await modes.clientForParties([r.buyer_id, r.seller_id], "refund");
   };
   const out = {
     refunds_sent: 0, refunds_reconciled: 0, refunds_failed: 0, refunds_gave_up: 0,
@@ -607,9 +618,10 @@ serve(async (req) => {
       const sw = (swept.data ?? {}) as { no_answer?: number; page_unpaid?: number };
       out.shop_expired = Number(sw.no_answer ?? 0) + Number(sw.page_unpaid ?? 0);
     }
-    const shopClient = async (r: ShopHoldRow) => {
+    // A release gives the hold back ("refund", runs for anyone, Q4); a capture takes it ("new").
+    const shopClient = async (r: ShopHoldRow, kind: "new" | "refund") => {
       const mode = shopOrderMode(r);
-      return mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id])).stripe;
+      return mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], kind)).stripe;
     };
     const [releaseRes, captureRes] = await Promise.all([
       admin.rpc("shop_holds_to_release", { p_limit: BATCH }),
@@ -618,7 +630,7 @@ serve(async (req) => {
     if (releaseRes.error) defects.record(`shop_holds_to_release failed: ${releaseRes.error.message}`);
     for (const r of (releaseRes.data ?? []) as ShopHoldRow[]) {
       try {
-        const done = await releaseShopHold(await shopClient(r), admin, r);
+        const done = await releaseShopHold(await shopClient(r, "refund"), admin, r);
         if (done === "captured_needs_refund") defects.record(`shop order ${r.order_id}: closed but its payment was captured; refund it by hand`);
         else out.shop_holds_released++;
       } catch (e) {
@@ -629,7 +641,7 @@ serve(async (req) => {
     for (const c of (captureRes.data ?? []) as Array<ShopHoldRow & { attempts: number }>) {
       if (!c.payment_intent_id) continue;
       try {
-        const done = await captureShopHold(await shopClient(c), admin, c.order_id, c.payment_intent_id, Number(c.attempts ?? 0));
+        const done = await captureShopHold(await shopClient(c, "new"), admin, c.order_id, c.payment_intent_id, Number(c.attempts ?? 0));
         if (done === "captured") out.shop_captures++;
         else if (done === "hold_lost") out.shop_holds_lost++;
         else out.shop_capture_retries++;
@@ -655,7 +667,7 @@ serve(async (req) => {
     for (const r of (dueRefunds.data ?? []) as ShopRefundRow[]) {
       try {
         const mode = shopOrderMode({ livemode: r.livemode, checkout_session_id: r.checkout_session_id });
-        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id])).stripe;
+        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;
         const done = await sendShopRefund(stripe, admin, r);
         if (done === "sent") out.shop_refunds_sent++;
         else if (done === "reconciled") out.shop_refunds_reconciled++;
@@ -748,10 +760,11 @@ serve(async (req) => {
         const mode = shopOrderMode({ livemode: p.livemode, checkout_session_id: p.checkout_session_id });
         if (mode) {
           // The order's recorded mode must agree with its parties (a test order is never paid on the live key).
-          const byParties = await modes.modeForParties([p.buyer_id, p.seller_id]);
+          // Only the payee must be a properly enrolled account: a buyer's never blocks a real seller's payout.
+          const byParties = await modes.modeForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]);
           if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`);
         }
-        const resolved = mode ? { mode, stripe: modes.clientFor(mode) } : await modes.clientForParties([p.buyer_id, p.seller_id]);
+        const resolved = mode ? { mode, stripe: modes.clientFor(mode) } : await modes.clientForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]);
         const stripe = resolved.stripe;
         // Already found not payable this run, and no try used (no transfer can exist): defer now.
         if (!maybeSent_shop(p) && (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode))) continue;
@@ -797,11 +810,11 @@ serve(async (req) => {
         else out.shop_payouts_sent++;
         await clearWait("shop", p.payout_id);
       } catch (e) {
-        if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+        if (isPartyRefusal(e)) {
           out.mixed_parties++;
-          defects.record(`shop payout ${p.payout_id}: the order mixes a test account and a real one; settle it by hand`);
+          defects.record(`shop payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
           // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
-          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+          await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
           continue;
         }
         if (beforeSend && transientBeforeSend(e)) {
@@ -940,10 +953,10 @@ serve(async (req) => {
       // tell the buyer now, whether this run created it or adopted one the webhook did not record.
       await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);
     } catch (e) {
-      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+      if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`refund ${r.refund_id}: the order mixes a test account and a real one; settle it by hand`);
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        defects.record(`refund ${r.refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");
@@ -985,7 +998,8 @@ serve(async (req) => {
     }
     let beforeSend = true;
     try {
-      const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id]);
+      // Only the payee (the seller) must be a properly enrolled account.
+      const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]);
       // Already found not payable this run, and no try used (no transfer can exist): defer now.
       if (!maybeSent_declutter(p) && (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode))) continue;
       // Reconcile: one payout per order, so any transfer in the group to this account is the one.
@@ -1034,11 +1048,11 @@ serve(async (req) => {
       else out.payouts_sent++;
       await clearWait("declutter", p.payout_id);
     } catch (e) {
-      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+      if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`payout ${p.payout_id}: the order mixes a test account and a real one; settle it by hand`);
+        defects.record(`payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
         // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
-        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       if (beforeSend && transientBeforeSend(e)) {
@@ -1110,7 +1124,8 @@ serve(async (req) => {
     }
     let beforeSend = true;
     try {
-      const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id]);
+      // Only the payee (the Helpr) must be a properly enrolled account.
+      const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id], "payout", [h.helpr_id]);
       // Already found not payable this run, and no try used (no transfer can exist): defer now.
       if (!maybeSent_helpr_task(h) && (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode))) continue;
       // Reconcile: each part's one transfer for this row (the order part carries no raise_id), never sent twice.
@@ -1193,11 +1208,11 @@ serve(async (req) => {
       else out.helpr_payouts_sent++;
       await clearWait("helpr_task", h.payout_id);
     } catch (e) {
-      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+      if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`helpr payout ${h.payout_id}: the delivery mixes a test account and a real one; settle it by hand`);
+        defects.record(`helpr payout ${h.payout_id}: ${partyWhy(e, "the delivery")}; settle it by hand`);
         // Settled by hand: out of the queue for a day, not at its front, and no payee wait.
-        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "mixed_parties", partyWhy(e, "the delivery"));
         continue;
       }
       if (beforeSend && transientBeforeSend(e)) {
@@ -1287,10 +1302,10 @@ serve(async (req) => {
       else out.delivery_refunds_sent++;
       await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);
     } catch (e) {
-      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+      if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`delivery refund ${d.delivery_refund_id}: the order mixes a test account and a real one; settle it by hand`);
-        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", "the order mixes a test account and a real one");
+        defects.record(`delivery refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");
@@ -1374,10 +1389,10 @@ serve(async (req) => {
       else out.raise_refunds_sent++;
       await tellBuyerRefunded(admin, x.buyer_id, x.refund_cents);
     } catch (e) {
-      if (e instanceof StripeModeRefused && e.reason === "mixed_parties") {
+      if (isPartyRefusal(e)) {
         out.mixed_parties++;
-        defects.record(`raise refund ${x.raise_id}: the order mixes a test account and a real one; settle it by hand`);
-        await deferRaise(x, 1440, "the order mixes a test account and a real one");
+        defects.record(`raise refund ${x.raise_id}: ${partyWhy(e, "the order")}; settle it by hand`);
+        await deferRaise(x, 1440, partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");

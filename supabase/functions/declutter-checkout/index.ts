@@ -151,7 +151,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   if (!UUID_RE.test(sellerId)) return json({ error: "item_not_found" }, 404);
   const native = isNativeRequest(body);
 
-  const mode = await stripeModeForParties(admin, [user.id, sellerId]);
+  const mode = await stripeModeForParties(admin, [user.id, sellerId], { caller: user.id });
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
   /** A stored page runs in the mode its id was minted in (lh-money-escrow review 3b #9). */
   const stripeOf = (sessionId: string): Stripe => {
@@ -364,7 +364,7 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
   const parties = orderRow as { buyer_id: string | null; seller_id: string | null } | null;
   // Anyone but the buyer: the same answer as an unknown order (the RPC says so too).
   if (!parties || parties.buyer_id !== user.id) return json({ error: "item_not_found" }, 404);
-  const mode = await stripeModeForParties(admin, [user.id, parties.seller_id]);
+  const mode = await stripeModeForParties(admin, [user.id, parties.seller_id], { caller: user.id });
   const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
 
   // The open raise page first: already paid -> say so and replace nothing (the webhook applies it).

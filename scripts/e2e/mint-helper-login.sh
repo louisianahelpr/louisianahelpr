@@ -8,7 +8,7 @@ ELI_ID=11111111-1111-1111-1111-111111111104
 ELI_EMAIL=eli.seed.helper@louisianahelpr.com
 KEY=$(supabase projects api-keys --project-ref $REF -o json | python3 -c "import json,sys;print(next(k['api_key'] for k in json.load(sys.stdin) if k.get('name')=='service_role'))")
 # 1. auth user bound to the existing profile id (409 = already exists, fine)
-# seed-policy: patched — step 1b marks the profile is_seed (eli.seed.helper@ is not a fixture inbox that trg_profiles_seed_from_fixture_email matches)
+# seed-policy: patched — step 1b marks the profile is_seed (no trigger derives is_seed from an email since the seed_flag_not_self_grantable migration, 2026-10-25)
 curl -s -o /dev/null -w "create-user: %{http_code}\n" -X POST "https://$REF.supabase.co/auth/v1/admin/users" \
   -H "apikey: $KEY" -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d "{\"id\":\"$ELI_ID\",\"email\":\"$ELI_EMAIL\",\"email_confirm\":true,\"user_metadata\":{\"full_name\":\"Eli Thibodeaux\"}}"

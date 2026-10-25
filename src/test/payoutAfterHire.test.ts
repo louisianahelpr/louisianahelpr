@@ -86,8 +86,9 @@ describe("payout setup after the hire", () => {
 
   it("(c1) one set of words: the reminder's 'hired' notice is the prompt, and no copy promises a time", () => {
     expect(payoutSetupReminderCopy("hired", null)).toEqual({ title: appCopy.HIRED_PAYOUT_TITLE, message: appCopy.HIRED_PAYOUT_BODY });
-    const all = [
-      ...Object.values(appCopy).filter((v): v is string => typeof v === "string"),
+    const strings: string[] = Object.values(appCopy as Record<string, unknown>).filter((v): v is string => typeof v === "string");
+    const all: string[] = [
+      ...strings,
       appCopy.jobPayoutHeldLine("$40"),
       ...(["hired", "day1", "day3", "day7", "money"] as const).flatMap((s) => Object.values(payoutSetupReminderCopy(s, "Mow"))),
     ];

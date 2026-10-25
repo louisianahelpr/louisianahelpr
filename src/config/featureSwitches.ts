@@ -126,6 +126,17 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025170841; public.claim_checkout_nudge reads it per
   // poster. No screen: SERVER_ONLY below.
   "checkout_nudge",
+
+  // Confirm-your-email reminders (lead 2026-10-25, owner asked for them): at
+  // most two emails (about 1 hour and 24 hours after sign-up) to an email
+  // account that has not confirmed. Created 'testers' by 20261025190000;
+  // claim_confirm_reminders reads it per account. No screen: SERVER_ONLY below.
+  "confirm_reminders",
+  // Scanner-safe sign-up links (lead 2026-10-25): the confirmation email opens
+  // the app's Confirm page and only the person's tap spends the token. Created
+  // 'testers' by 20261025190000; auth-email-hook decides it per account. No
+  // screen: SERVER_ONLY below.
+  "scanner_safe_confirm_links",
 ] as const;
 
 /**
@@ -138,7 +149,7 @@ export const FEATURE_SWITCH_KEYS = [
  * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
  * ...); every other key is read by useFeature.
  */
-export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge"];
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

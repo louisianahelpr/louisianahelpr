@@ -216,7 +216,7 @@ async function loadTestAccountIds(
  * blamed nor told what kind of account their Helpr has. With no `self`, a
  * lone party is taken to be the caller.
  */
-export function refuseUnenrolled(
+function refuseUnenrolled(
   classes: ReadonlyMap<string, PartyClass>,
   ids: ReadonlyArray<string | null | undefined>,
   what: string,

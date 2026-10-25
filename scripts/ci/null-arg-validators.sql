@@ -87,6 +87,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_public_listing_visible','allow',    'may anyone with the link see this Homes listing (visible, Homes open to everyone, not a test or seed owner; 20261019062540)'),
   ('rentals_listing_photo_access',  'allow',    'TRUE = the caller may upload into / read this listing-photos object (own folder, own open listing, not taken down; 20261019071203)'),
   ('rentals_listing_photo_deletable','allow',   'TRUE = the caller may delete this listing-photos object (own folder, readable, attached to nothing; 20261019071203)'),
+  ('application_email_should_wait', 'action',   'VOLATILE: paces a poster''s applicant emails (counts or stamps); a NULL user answers false = send now, never a held email (20261025182522)'),
+  ('job_match_email_should_wait',   'action',   'VOLATILE: paces a member''s job-match emails to one a day; a NULL user answers false = send now (20261025182522)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),

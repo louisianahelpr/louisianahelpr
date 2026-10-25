@@ -64,7 +64,7 @@ serve(async (req) => {
     if (jobErr) return reply(500, { error: `job read: ${jobErr.message}` });
     if (!job) return reply(404, { error: "no such job" });
     const row = job as { id: string; customer_id: string | null; title: string | null; status: string | null; payment_status: string | null };
-    if (!row.customer_id) return reply(409, { error: "the job has no poster" });
+    if (!row.customer_id) return reply(409, { error: "the job has no account on it" });
     if (row.status !== "open" || !NUDGEABLE.has(row.payment_status ?? "unpaid")) {
       return reply(409, { error: `not a never-paid open job (status ${row.status}, payment ${row.payment_status})` });
     }

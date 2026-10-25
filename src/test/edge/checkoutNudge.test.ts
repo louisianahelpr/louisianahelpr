@@ -164,3 +164,19 @@ describe("checkout-nudge-backfill: ONE owner-approved job", () => {
     expect(claims().length).toBe(0);
   });
 });
+
+describe("sendCheckoutNudge answers what the claim said", () => {
+  const client = (data: unknown, error: { message: string } | null) =>
+    ({ rpc: async () => ({ data, error }), from: () => { throw new Error("no write expected"); } }) as never;
+  const input = { jobId: "job-1", customerId: "poster-1", title: "Mow", sessionId: "cs_1" };
+
+  it("switch off: switch_off, and nothing is written", async () => {
+    const { sendCheckoutNudge } = await import("../../../supabase/functions/_shared/checkoutNudge");
+    expect(await sendCheckoutNudge(client("switch_off", null), input)).toEqual({ status: "switch_off" });
+  });
+
+  it("a failed claim call: failed, naming the claim", async () => {
+    const { sendCheckoutNudge } = await import("../../../supabase/functions/_shared/checkoutNudge");
+    expect(await sendCheckoutNudge(client(null, { message: "connection reset" }), input)).toEqual({ status: "failed", error: "claim: connection reset" });
+  });
+});

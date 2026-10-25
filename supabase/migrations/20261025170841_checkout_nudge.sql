@@ -78,13 +78,15 @@ BEGIN
   END IF;
   -- Only the poster's own open job that was never paid: "finish posting"
   -- must be true when it lands.
-  IF NOT EXISTS (
-    SELECT 1 FROM public.jobs j
-     WHERE j.id = p_job_id
-       AND j.customer_id = p_user_id
-       AND j.status = 'open'
-       AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed')
-  ) THEN
+  -- Lock the job row: a payment landing at the same moment cannot slip past
+  -- the never-paid check (race class, scripts/check-race-class.mjs).
+  PERFORM 1 FROM public.jobs j
+   WHERE j.id = p_job_id
+     AND j.customer_id = p_user_id
+     AND j.status = 'open'
+     AND coalesce(j.payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed')
+   FOR UPDATE;
+  IF NOT FOUND THEN
     RETURN 'not_nudgeable';
   END IF;
   INSERT INTO public.job_checkout_nudges (job_id, user_id, stripe_session_id)
@@ -101,3 +103,12 @@ GRANT EXECUTE ON FUNCTION public.claim_checkout_nudge(uuid, uuid, text, boolean)
 
 COMMENT ON FUNCTION public.claim_checkout_nudge(uuid, uuid, text, boolean) IS
   'Abandoned-checkout nudge: claims ONE job for the "Finish posting your job" notice. Answers switch_off, not_nudgeable, duplicate or claimed (row written; send now). p_owner_approved skips the checkout_nudge switch (checkout-nudge-backfill, one owner-approved job). service_role only.';
+
+-- Q807: every public table carries the unconfirmed-email write gate.
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

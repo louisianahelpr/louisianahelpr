@@ -66,6 +66,8 @@ const CARDS = {
 /** Writes built in a variable before the `.from()` call, with the table they go to. */
 const DETACHED: { file: string; value: string; table: string }[] = [
   // The gift-card mint row (`mintRow`), inserted into gift_cards.
+  { file: "handlers/checkoutSessionExpired.ts", value: "abandoned", table: "gift_cards" },
+  // ^ the expired gift purchase (`expireGift` payload, 20261025161801): an unpaid gift_cards row, never a job.
   { file: "handlers/checkoutSessionCompleted.ts", value: "paid", table: "gift_cards" },
   // `updateData` for the job's own checkout: escrow (the dead re-pay branch that
   // wrote payout_pending was removed, Q343).

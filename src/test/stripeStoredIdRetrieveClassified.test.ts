@@ -311,6 +311,9 @@ const EXEMPT: Record<string, string> = {
   // piId = pi.id from the payment_intent.payment_failed event; stripe-webhook routes each event
   // to the client of the event's own mode (Q891), so this cannot be a test id under the live key.
   "stripe-webhook/handlers/paymentIntentPaymentFailed.ts::stripe.paymentIntents.retrieve(piId)#2": EVENT,
+  // #3, cancelDeadBankPayment (lane-b-money-1): re-reads the same event PaymentIntent live before
+  // cancelling it; piId is the event's own pi.id (every caller passes piId / pi.id), routed to that mode's client (Q891).
+  "stripe-webhook/handlers/paymentIntentPaymentFailed.ts::stripe.paymentIntents.retrieve(piId)#3": EVENT,
   "stripe-webhook/handlers/customerSubscriptionDeleted.ts::stripe.customers.retrieve(customerId)": EVENT,
   "stripe-webhook/handlers/customerSubscriptionUpdated.ts::stripe.customers.retrieve(customerId)": EVENT,
   "subscription-reconciliation/index.ts::stripe.customers.retrieve(customerId)":

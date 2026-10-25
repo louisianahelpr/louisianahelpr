@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * "What Helprs will see" (board 3): the card as it will read in Browse, built
+ * "How your post will look" (board 3; was "What Helprs will see" until the owner's 2026-10-25 price pick: the figure is the poster's own price): the card as it will read in Browse, built
  * only from what the poster has entered so far. No town or time yet: those
  * come on the next screen. With no photo there is no photo area at all
  * (owner, 2026-10-21), matching every surface a Helpr sees. The price is the job price the poster set,
@@ -20,8 +20,8 @@ interface Props {
  */
 export function PostJobPreviewCard({ title, category, photo, budget }: Props) {
   return (
-    <section aria-label="What Helprs will see" className="space-y-2.5">
-      <h3 className="font-sans text-ds-12 font-semibold text-muted-foreground">What Helprs will see</h3>
+    <section aria-label="How your post will look" className="space-y-2.5">
+      <h3 className="font-sans text-ds-12 font-semibold text-muted-foreground">How your post will look</h3>
       <div className="overflow-hidden rounded-ds-lg bg-card">
         {/* A real photo or nothing, exactly like Browse (JobCardHeroBand), the quick view and the job page. */}
         {photo && (

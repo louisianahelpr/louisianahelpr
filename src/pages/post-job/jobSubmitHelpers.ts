@@ -6,6 +6,7 @@ import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
+import { composeLocationString } from "./postJobFormHelpers";
 
 /**
  * Pure helpers for the Post-a-Task submit flow.
@@ -185,7 +186,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // Normalize the zip inside the human-readable location too — the raw
     // field allows ZIP+4 length, so pasting/typing extra digits produced
     // "LA 7050170501" on every card that renders `location`.
-    location: `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.replace(/\D/g, "").slice(0, 5)}`,
+    location: composeLocationString({ streetAddress, city, addrState, zipCode }),
     zip_code: zipCode.replace(/\D/g, "").slice(0, 5) || null,
     parish: parish,
     date_needed: firstVisit,

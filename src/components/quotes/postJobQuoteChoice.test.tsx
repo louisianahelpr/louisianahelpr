@@ -41,7 +41,7 @@ vi.mock("@/components/postjob/LogisticsSection", () => ({ LogisticsSection: () =
 vi.mock("@/pages/post-job/DirectOfferBanner", () => ({ DirectOfferBanner: () => <div>direct offer</div> }));
 vi.mock("@/components/postjob/BudgetSection", () => ({ BudgetSection: () => <div>Budget section</div> }));
 vi.mock("@/components/postjob/JobCategoryGroups", () => ({ JobCategoryGroups: () => <div>category groups</div> }));
-vi.mock("@/lib/geocode", () => ({ geocodeAddress: async () => null, composeJobAddress: () => "x" }));
+vi.mock("@/lib/geocode", async (importOriginal) => ({ ...(await importOriginal<typeof import("@/lib/geocode")>()), geocodeAddress: async () => null }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

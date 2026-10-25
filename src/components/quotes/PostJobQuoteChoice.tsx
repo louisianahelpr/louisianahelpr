@@ -20,6 +20,7 @@ import { SectionCard } from "@/components/postjob/SectionCard";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useQueryClient } from "@tanstack/react-query";
 import { composeJobAddress, geocodeAddress } from "@/lib/geocode";
+import { composeLocationString } from "@/pages/post-job/postJobFormHelpers";
 import { report } from "@/lib/errorLogger";
 import {
   DEFAULT_QUOTE_WINDOW,
@@ -155,7 +156,7 @@ function useAskForQuotes() {
     if (sending) return;
     setSending(true);
     try {
-      const location = `${f.streetAddress.trim()}, ${f.city.trim()}, ${f.addrState.trim()} ${f.zipCode.replace(/\D/g, "").slice(0, 5)}`;
+      const location = composeLocationString(f);
       // Best effort and capped like Post a Job's: a request without a map
       // point still takes quotes.
       // 2.5 s of VISIBLE time (raceVisibleDeadline): a backgrounded app does

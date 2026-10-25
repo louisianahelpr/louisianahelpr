@@ -139,7 +139,7 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  */
 /** A cancelled job filed under the poster's Done list (owner 2026-10-25;
  *  jobs.poster_marked_done_at, display only). */
-export function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: string | null }): boolean {
+function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: string | null }): boolean {
   return j.status === "cancelled" && !!j.poster_marked_done_at;
 }
 

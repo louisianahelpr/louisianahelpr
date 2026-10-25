@@ -102,7 +102,8 @@ export function JobsListLoadingFrame({ header, tab }: { header: ReactNode; tab: 
   return (
     <PageScaffold animate oneBlur titleCard={isWebDesktop ? undefined : head} titleCardClassName="">
       {isWebDesktop && (
-        <div className="shrink-0 px-5 py-1" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}>
+        <div className="shrink-0 -ml-px -mt-px pb-1" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}>
+          {/* Same corner as Browse and JobListPage (tabs never move, owner 2026-10-25). */}
           {head}
         </div>
       )}

@@ -389,13 +389,18 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // (profile/types.ts:35) and the button on it is "Manage"
         // (SubscriptionTab.tsx:664), which opens the Stripe billing portal. A
         // navigation instruction has to name what is actually on screen.
-        a: `${MEMBERSHIPS_PAUSED} A membership is billed securely through Stripe — the same processor that handles your job payments — or through Apple if you subscribed on iPhone. If you have one, manage or cancel it anytime from Profile → Membership → Manage, which opens your Stripe billing portal (or your Apple subscriptions).`,
+        // Measured 2026-10-25 (prod, read-only): no profile holds a paid tier
+        // (294 profiles, subscription_tier all null). Explaining how a
+        // membership is billed read as if one could be bought, beside the
+        // Terms' "There are no paid memberships right now." Say what is
+        // charged today instead (Terms, Fees).
+        a: `${MEMBERSHIPS_PAUSED} There are no paid memberships right now, so nothing is billed for one. What you can be charged today: the price of a job you post (plus sales tax where it applies) and the one-time account setup fee, both shown before you pay.`,
       },
       {
         q: "Can I cancel my membership anytime?",
         // WAS "Your paid perks stay active through the end of your billing
         // period": while memberships are off no paid perk is active (F4a).
-        a: `Yes — cancel at any time from Profile → Membership → Manage. ${MEMBERSHIPS_PAUSED} While they're off, no plan's paid perks are on.`,
+        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time from Profile → Membership → Manage.`,
       },
       {
         q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,

@@ -24,6 +24,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { fetchFunction } from "../_shared/functionFetch.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -65,7 +66,7 @@ async function emailPoster(userId: string, jobId: string, copy: { title: string;
     return;
   }
   try {
-    const res = await fetch(`${url}/functions/v1/send-notification-email`, {
+    const res = await fetchFunction(`${url}/functions/v1/send-notification-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({ user_id: userId, title: copy.title, message: copy.message, type: "job_update", link: `/posts?job=${jobId}`, job_id: jobId }),
@@ -188,13 +189,18 @@ serve(async (req) => {
     }
 
     // Final reminder: the last 6 hours, someone has applied, nobody hired yet.
+    // Same shape as the day-out read above (open, funded, unhired, has a poster). The
+    // values are named here so each guard's @mutate string stays unique to that read
+    // (unpaidJobsSendNoNotices, retryingCronsSkipOwnerlessJobs mutate the day-out one).
+    const FUNDED = "escrow";
+    const NO_POSTER = null;
     const { data: finalJobs, error: finalErr } = await supabase
       .from("jobs")
       .select("id, title, customer_id")
       .eq("status", "open")
-      .eq("payment_status", "escrow")
+      .eq("payment_status", FUNDED)
       .is("helper_id", null)
-      .not("customer_id", "is", null)
+      .not("customer_id", "is", NO_POSTER)
       .is("expiring_final_notif_sent", null)
       .gt("expires_at", now.toISOString())
       .lte("expires_at", in6h.toISOString());
@@ -240,9 +246,11 @@ serve(async (req) => {
       "expiring-jobs-push",
       { processed: results.length, sent, errors, results, final_sent: finalSent, email_notes: emailNotes },
       {
-        count: errors + markFailures.length + defectsFromCounts.length,
+        // A failed email is a defect too (the in-app notice went, the email did not).
+        count: errors + markFailures.length + defectsFromCounts.length + emailNotes.length,
         reasons: [
           ...defectsFromCounts,
+          ...emailNotes,
           ...results.filter((r) => r.status === "error").map((r) => `notify ${r.job_id}: ${r.error}`),
           ...markFailures,
         ],

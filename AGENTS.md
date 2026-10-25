@@ -84,7 +84,7 @@ For glyph badges (used in editorial empty states + dialog headers):
 
 Reference implementations: `ReportDialog.tsx`, `SavedSearches.tsx`,
 `PermissionRationaleDialog.tsx`, the empty states in
-`JobsPage.tsx` / `PostsPage.tsx` / `SavedHelpersTab.tsx` / `EarningsTab.tsx`.
+`JobsSection.tsx` / `PostsPage.tsx` / `SavedHelpersTab.tsx` / `EarningsTab.tsx`.
 
 ## Dialog rules
 

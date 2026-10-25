@@ -156,9 +156,13 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 // on each side, which a neighbour never claims (it takes its own 2px), so targets meet and never
                 // overlap. px-[2px] keeps the step's icon, bar and word exactly where they were. The row's layout
                 // does not change. Guard: e2e/happy-path/messages-thread.spec.ts (44px, no overlap).
-                className="block w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
+                // flex-col justify-start: a <button> CENTRES its content in the 44px, so a step with a time sat ~2px
+                // lower than a plain step beside it (owner 2026-10-25, "step labels uneven"; measured 188.3 vs 186.1
+                // on the job page). Top-aligned, every step's icon, bar and word share one line.
+                // Guard: src/test/jobStepsEvenRow.test.ts.
+                className="flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
               >
-                <span aria-hidden="true">{body}</span>
+                <span aria-hidden="true" className="block">{body}</span>
               </button>
             ) : (
               <div aria-hidden="true">{body}</div>

@@ -100,6 +100,11 @@ function usesTainted(node: ts.Node, names: ReadonlySet<string>): boolean {
     if (hit) return;
     // A property KEY is not a read of the variable that shares its name.
     if (ts.isPropertyAssignment(x)) return scan(x.initializer);
+    // A conditional's TEST only chooses a branch; its value never reaches the
+    // body. `refused ? "fixed A" : "fixed B"` (create-payment's refused cancel
+    // refund, lane-b-money-1) echoes nothing; `c ? err.message : "x"` still does,
+    // because the branch reads the error.
+    if (ts.isConditionalExpression(x)) { scan(x.whenTrue); scan(x.whenFalse); return; }
     // The ONE sanctioned way a caught error reaches a body:
     // publicErrorMessage(err, fallback) (supabase/functions/_shared/publicError.ts)
     // returns err.message only for a PublicError — a sentence written for the
@@ -335,6 +340,7 @@ describe("EF-5 · handlers do not echo raw internal error text", () => {
 //   × no edge function echoes a caught error into its Response body, beyond the known eight
 //   AssertionError: EF-5 is a CLASS, not six handlers. …
 // @mutate supabase/functions/instant-job-match/index.ts | JSON.stringify({ error: "Could not run the job match right now." }) | JSON.stringify({ error: (error as Error).message })
+// @mutate src/test/edge/error-leak-EF5.test.ts | { scan(x.whenTrue); scan(x.whenFalse); return; }\n    // The ONE sanctioned way | { scan(x.whenTrue); return; }\n    // The ONE sanctioned way
 
 describe("the publicErrorMessage exemption cannot be abused", () => {
   const sites = (code: string) => {
@@ -357,6 +363,12 @@ describe("the publicErrorMessage exemption cannot be abused", () => {
   const IMPORT = 'import { publicErrorMessage } from "../_shared/publicError.ts";\n';
   it("the real helper with a literal fallback is safe", () => {
     expect(sites(IMPORT + 'try {} catch (err) { return new Response(JSON.stringify({ error: publicErrorMessage(err, "fixed") })); }')).toBe(false);
+  });
+  it("a fixed sentence chosen by a condition derived from the error is safe", () => {
+    expect(sites('try {} catch (err) { const gone = String((err as any).code) === "x"; return new Response(JSON.stringify({ error: gone ? "fixed A" : "fixed B" })); }')).toBe(false);
+  });
+  it("is RED when either branch of that condition reads the error", () => {
+    expect(sites('try {} catch (err) { const gone = String((err as any).code) === "x"; return new Response(JSON.stringify({ error: gone ? "fixed" : (err as Error).message })); }')).toBe(true);
   });
   it("is RED on a tainted fallback", () => {
     expect(sites(IMPORT + 'try {} catch (err) { return new Response(JSON.stringify({ error: publicErrorMessage(err, err.message) })); }')).toBe(true);

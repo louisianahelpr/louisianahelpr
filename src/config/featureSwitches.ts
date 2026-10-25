@@ -113,6 +113,11 @@ export const FEATURE_SWITCH_KEYS = [
   // (paypal_entry_requires_switch). Phase 2 adds the first screen and moves it
   // out of SERVER_ONLY.
   "paypal_payments",
+  // Abandoned-checkout nudge (lead 2026-10-25): one "Finish posting your job"
+  // notice and email when a new job's checkout expires unpaid. Created
+  // 'testers' by 20261025170841; public.claim_checkout_nudge reads it per
+  // poster. No screen: SERVER_ONLY below.
+  "checkout_nudge",
 ] as const;
 
 /**
@@ -125,7 +130,7 @@ export const FEATURE_SWITCH_KEYS = [
  * useFeature and IS read by a migration's feature_enabled_for_user('<key>',
  * ...); every other key is read by useFeature.
  */
-export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments"];
+export const SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge"];
 
 export type FeatureKey = (typeof FEATURE_SWITCH_KEYS)[number];
 

@@ -68,7 +68,7 @@ CREATE FUNCTION public.has_role(_user_id uuid, _role app_role) RETURNS boolean L
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timestamptz NOT NULL DEFAULT now(), note text);
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
-CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, title text, payment_status text);
+CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, title text, status text NOT NULL DEFAULT 'open', payment_status text);
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.jobs TO service_role;
 `);
 await db.exec(SWITCHES);
@@ -78,8 +78,6 @@ if (process.env.NEW_MIGRATION !== "skip") {
     let err = null;
     try {
       await db.exec(MIGRATION);
-      // An admin turns the switch on after the first pass: a replay must not reset it.
-      if (i === 0) await db.exec(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'checkout_nudge'`).catch(() => {});
     } catch (e) {
       err = e.message;
     }
@@ -89,9 +87,18 @@ if (process.env.NEW_MIGRATION !== "skip") {
 
 const JOB = "11111111-1111-1111-1111-111111111111";
 const JOB2 = "22222222-2222-2222-2222-222222222222";
+const PAID = "44444444-4444-4444-4444-444444444444";
+const CANCELLED = "55555555-5555-5555-5555-555555555555";
 const POSTER = "33333333-3333-3333-3333-333333333333";
-await db.exec(`INSERT INTO public.jobs (id, customer_id, title, payment_status) VALUES
-  ('${JOB}', '${POSTER}', 'Mow', 'unpaid'), ('${JOB2}', '${POSTER}', 'Haul', 'abandoned')`);
+const TESTER = "66666666-6666-6666-6666-666666666666";
+const TJOB = "77777777-7777-7777-7777-777777777777";
+await db.exec(`INSERT INTO public.jobs (id, customer_id, title, status, payment_status) VALUES
+  ('${JOB}', '${POSTER}', 'Mow', 'open', 'unpaid'), ('${JOB2}', '${POSTER}', 'Haul', 'open', 'abandoned'),
+  ('${PAID}', '${POSTER}', 'Paid', 'open', 'escrow'), ('${CANCELLED}', '${POSTER}', 'Gone', 'cancelled', 'unpaid'),
+  ('${TJOB}', '${TESTER}', 'Tester job', 'open', 'unpaid');
+  INSERT INTO public.test_accounts (user_id) VALUES ('${TESTER}');`);
+const claim = (job, user, approved = false) =>
+  asRole(db, "service_role", `SELECT public.claim_checkout_nudge('${job}', '${user}', 'cs_1', ${approved}) AS r`);
 
 // 1. The table exists, RLS on, and no client role can touch it.
 let r = await tryq(db, `SELECT relrowsecurity FROM pg_class WHERE oid = to_regclass('public.job_checkout_nudges')`);
@@ -105,26 +112,48 @@ for (const role of ["anon", "authenticated"]) {
   check(`${role} has no privilege on it`, r.rows.length === 1 && !p.s && !p.i && !p.u && !p.d, JSON.stringify(r.rows));
   r = await asRole(db, role, `SELECT count(*) FROM public.job_checkout_nudges`);
   check(`${role} cannot read it`, !!r.error, r.error ?? "read succeeded");
+  r = await asRole(db, role, `SELECT public.claim_checkout_nudge('${JOB}', '${POSTER}', 'cs_1', true)`);
+  check(`${role} cannot call claim_checkout_nudge`, !!r.error, r.error ?? "call succeeded");
 }
 
-// 2. The claim: once per job.
-r = await asRole(db, "service_role", `INSERT INTO public.job_checkout_nudges (job_id, user_id, stripe_session_id) VALUES ('${JOB}', '${POSTER}', 'cs_1') RETURNING job_id`);
-check("the service role claims a job", r.rows.length === 1 && !r.error, r.error ?? "");
-r = await asRole(db, "service_role", `INSERT INTO public.job_checkout_nudges (job_id, user_id, stripe_session_id) VALUES ('${JOB}', '${POSTER}', 'cs_2') RETURNING job_id`);
-check("a second claim for the same job is refused with 23505", r.code === "23505", `${r.code} ${r.error}`);
-r = await asRole(db, "service_role", `INSERT INTO public.job_checkout_nudges (job_id, user_id) VALUES ('${JOB2}', '${POSTER}') RETURNING job_id`);
-check("another job (an abandoned one, the backfill) claims on its own", r.rows.length === 1 && !r.error, r.error ?? "");
-r = await asRole(db, "service_role", `UPDATE public.job_checkout_nudges SET notification_id = gen_random_uuid(), emailed = true, email_note = null WHERE job_id = '${JOB}' RETURNING job_id`);
-check("the service role stamps the outcome", r.rows.length === 1 && !r.error, r.error ?? "");
+// 2. The switch: created 'testers', so an ordinary poster is off and a tester is on.
+r = await claim(JOB, POSTER);
+check("switch at testers: an ordinary poster's job answers switch_off and writes nothing", r.rows[0]?.r === "switch_off", JSON.stringify(r));
+r = await tryq(db, `SELECT count(*)::int AS n FROM public.job_checkout_nudges`);
+check("nothing claimed while the switch is off", r.rows[0]?.n === 0, JSON.stringify(r.rows));
+r = await claim(TJOB, TESTER);
+check("a test account's job is claimed (testers)", r.rows[0]?.r === "claimed", JSON.stringify(r));
 
-// 3. A job deleted takes its claim with it.
+// 3. The owner-approved one-job backfill skips the switch, and the claim makes it once.
+r = await claim(JOB2, POSTER, true);
+check("owner-approved: an ABANDONED job of an ordinary poster is claimed", r.rows[0]?.r === "claimed", JSON.stringify(r));
+r = await claim(JOB2, POSTER, true);
+check("owner-approved twice: duplicate, nothing sent again", r.rows[0]?.r === "duplicate", JSON.stringify(r));
+r = await claim(PAID, POSTER, true);
+check("a funded job is not nudgeable", r.rows[0]?.r === "not_nudgeable", JSON.stringify(r));
+r = await claim(CANCELLED, POSTER, true);
+check("a cancelled job is not nudgeable", r.rows[0]?.r === "not_nudgeable", JSON.stringify(r));
+r = await claim(JOB, TESTER, true);
+check("another poster's job is not nudgeable", r.rows[0]?.r === "not_nudgeable", JSON.stringify(r));
+
+// 4. Everyone on: the webhook's ordinary claim, then a duplicate.
+await db.exec(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'checkout_nudge'`);
+r = await claim(JOB, POSTER);
+check("switch on: the poster's unpaid job is claimed", r.rows[0]?.r === "claimed", JSON.stringify(r));
+r = await claim(JOB, POSTER);
+check("a re-delivered expiry answers duplicate", r.rows[0]?.r === "duplicate", JSON.stringify(r));
+r = await asRole(db, "service_role", `UPDATE public.job_checkout_nudges SET notification_id = gen_random_uuid(), emailed = true WHERE job_id = '${JOB}' RETURNING job_id`);
+check("the service role stamps the outcome", r.rows.length === 1 && !r.error, r.error ?? "");
 await db.exec(`DELETE FROM public.jobs WHERE id = '${JOB2}'`);
 r = await tryq(db, `SELECT count(*)::int AS n FROM public.job_checkout_nudges WHERE job_id = '${JOB2}'`);
 check("deleting the job deletes its claim", r.rows[0]?.n === 0, JSON.stringify(r.rows));
+await db.exec(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'checkout_nudge'`);
 
-// 4. The switch: created 'testers', never reset by a replay.
+// 5. A replay never resets an admin's choice (ON CONFLICT DO NOTHING).
+await db.exec(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'checkout_nudge'`);
+if (process.env.NEW_MIGRATION !== "skip") await db.exec(MIGRATION);
 r = await tryq(db, `SELECT audience FROM public.feature_switches WHERE key = 'checkout_nudge'`);
-check("the checkout_nudge switch exists, and the replays kept the admin's choice", r.rows[0]?.audience === "everyone", JSON.stringify(r.rows));
+check("the checkout_nudge switch exists, and a replay kept the admin's choice", r.rows[0]?.audience === "off", JSON.stringify(r.rows));
 const created = /VALUES\s*\(\s*'checkout_nudge',\s*'testers'/.test(MIGRATION);
 check("the migration creates the switch at 'testers'", created);
 

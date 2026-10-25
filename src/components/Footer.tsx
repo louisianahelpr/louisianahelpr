@@ -179,6 +179,13 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 Help center
               </Link>
             </li>
+            <li>
+              {/* /contact redirects here too (vercel.json); this is where a
+                  person who wants to reach us lands. */}
+              <Link to="/support" className="link-standard">
+                Contact us
+              </Link>
+            </li>
           </ul>
         </div>
 

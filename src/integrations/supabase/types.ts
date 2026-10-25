@@ -4443,6 +4443,58 @@ export type Database = {
           },
         ]
       }
+      job_checkout_nudges: {
+        Row: {
+          created_at: string
+          email_note: string | null
+          emailed: boolean | null
+          job_id: string
+          notification_id: string | null
+          stripe_session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_note?: string | null
+          emailed?: boolean | null
+          job_id: string
+          notification_id?: string | null
+          stripe_session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email_note?: string | null
+          emailed?: boolean | null
+          job_id?: string
+          notification_id?: string | null
+          stripe_session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_checkout_nudges_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checkout_nudges_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_checkout_nudges_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_match_queue: {
         Row: {
           attempts: number
@@ -13327,6 +13379,15 @@ export type Database = {
       choose_new_social_account: {
         Args: { p_choice: string }
         Returns: boolean
+      }
+      claim_checkout_nudge: {
+        Args: {
+          p_job_id: string
+          p_owner_approved?: boolean
+          p_session_id: string
+          p_user_id: string
+        }
+        Returns: string
       }
       claim_dispute_settlement: {
         Args: { _action: string; _admin_id?: string; _job_id: string }

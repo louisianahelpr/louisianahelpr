@@ -1,6 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
+import { sendCheckoutNudge } from "../../_shared/checkoutNudge.ts";
 
 // A recipient started paying the shortfall on a gift card (their
 // credit was smaller than the job budget), so create-payment's gift card branch
@@ -68,7 +69,8 @@ export async function handleCheckoutSessionExpired(
     // Q769: the "not posted" notice for a declined card lives HERE, not in
     // payment_intent.payment_failed. Only now can the session no longer be
     // paid, so only now is "the job isn't posted" true. A job that was merely
-    // abandoned (still 'unpaid') gets no notice: the poster walked away.
+    // abandoned (still 'unpaid') gets the ONE "Finish posting your job" nudge
+    // below instead (lead, 2026-10-25; behind the checkout_nudge switch).
     if (released && released.payment_status === "failed" && released.customer_id) {
       await insertNotifications(supabase, {
         user_id: released.customer_id,
@@ -83,6 +85,25 @@ export async function handleCheckoutSessionExpired(
         link: "/post-job",
       });
       logStep("Notified poster: declined checkout expired, job not posted", { jobId });
+    }
+    // The abandoned-checkout nudge (_shared/checkoutNudge.ts): once per job,
+    // after the hold above is released, only for a job still 'unpaid' whose
+    // hold was THIS session's (a superseded or funded session nudges nobody).
+    // It never throws: the hold release is already written, and a nudge is
+    // never worth a Stripe retry of the whole event.
+    if (released && released.payment_status === "unpaid" && released.customer_id) {
+      const nudge = await sendCheckoutNudge(supabase, {
+        jobId: released.id,
+        customerId: released.customer_id,
+        title: released.title ?? null,
+        sessionId: session.id,
+      });
+      logStep(`Abandoned checkout nudge: ${nudge.status}`, {
+        jobId,
+        emailed: nudge.emailed ?? null,
+        emailSkipped: nudge.emailSkipped ?? null,
+        error: nudge.error ?? null,
+      });
     }
   }
 

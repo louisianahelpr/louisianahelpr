@@ -10,7 +10,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 
 /**
  * Customize sections = board 90 (2026-10-20; first built 2026-10-19). Home and
- * Messages are ALWAYS ON (their own group, no switch). Each section shows its
+ * Messages are ALWAYS ON (one line, no switch; owner 2026-10-25 no-scroll). Each section shows its
  * both-sides line and a switch, or "Opening soon" while it is closed to this
  * viewer. Reorder with the arrows (there is no drag, so the copy never says
  * drag). At least one section stays on. Opened from Home's "Your sections"
@@ -19,33 +19,23 @@ import { SoonPill } from "@/components/sections/SoonPill";
 export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const { prefs, setHidden, move } = useSectionPrefs();
   const live = useSectionTabs();
-  const row = "flex items-center gap-2 px-4 py-2.5 rounded-2xl border border-border/60";
+  const row = "flex items-center gap-2 px-4 py-2 rounded-2xl border border-border/60";
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" floor data-testid="customize-sheet" onOpenAutoFocus={(e) => e.preventDefault()}>
         <SheetHero title="Customize sections" />
+        {/* Fits without scrolling (owner 2026-10-25, "this doesn't need to scroll"):
+            measured 730px of content in a 600px box at a 700px-tall window. Home and
+            Messages, which have no control, are one line instead of two rows. */}
         <p className="text-ds-14 text-muted-foreground">
-          Use the arrows to reorder. Hidden sections leave Home, Explore and the + menu. Nothing is deleted, and open
-          chats stay in Messages.
+          Use the arrows to reorder. Hidden sections leave Home, Explore and the + menu. Nothing is deleted.
+        </p>
+        <p className="mt-2 text-ds-14 text-muted-foreground">
+          <span className="font-semibold text-foreground" data-always-on="Home">Home</span> and{" "}
+          <span className="font-semibold text-foreground" data-always-on="Messages">Messages</span> are always on.
         </p>
 
-        <h3 className="mt-4 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Always on</h3>
-        <ul className="flex flex-col gap-2">
-          {[
-            { label: "Home", line: "Your Next up card" },
-            { label: "Messages", line: "Every chat, every section" },
-          ].map((r) => (
-            <li key={r.label} className={row} style={{ background: "hsl(var(--card))" }} data-always-on={r.label}>
-              <span className="flex-1 min-w-0">
-                <span className="block text-ds-15 font-semibold">{r.label}</span>
-                <span className="block text-ds-13 text-muted-foreground">{r.line}</span>
-              </span>
-              <span className="text-ds-13 font-semibold text-muted-foreground">Always on</span>
-            </li>
-          ))}
-        </ul>
-
-        <h3 className="mt-4 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your sections</h3>
+        <h3 className="mt-3 mb-2 px-1 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Your sections</h3>
         <ul className="flex flex-col gap-2">
           {prefs.order.map((key, i) => {
             const s = sectionByKey(key);
@@ -82,7 +72,7 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
           })}
         </ul>
 
-        <SheetFooter className="mt-4">
+        <SheetFooter className="mt-3">
           <SheetPrimaryAction onClick={() => onOpenChange(false)}>Done</SheetPrimaryAction>
         </SheetFooter>
       </SheetContent>

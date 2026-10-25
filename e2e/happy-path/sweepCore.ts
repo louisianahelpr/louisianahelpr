@@ -49,6 +49,8 @@ import {
 export const OUTPUT_DIR = process.env.SWEEP_OUTPUT_DIR || resolve(homedir(), ".lh-shots", "ui-review");
 mkdirSync(OUTPUT_DIR, { recursive: true });
 
+/** How long a capture waits for loading placeholders to clear before it is judged "still loading". */
+export const STILL_LOADING_WAIT_MS = 15_000;
 const ROUTE_PARAM_TOKEN = "__LH_ROUTE_PARAM__";
 const ROUTE_WILDCARD_TOKEN = "__LH_ROUTE_WILDCARD__";
 
@@ -296,6 +298,20 @@ export async function captureScreen(
     // Settle deferred overlays + fades before the screenshot and the axe scan,
     // so neither captures a half-faded dialog. See settleAnimations' note.
     await settleAnimations(page);
+
+    // Wait (bounded) for the loading placeholders to go before judging the
+    // screen. The stuck check below used to run ONCE, 500 ms after
+    // networkidle, so a screen still loading at that instant failed the gate
+    // even though it finished: a11y-webkit-prod run 39967663191 (2026-10-23)
+    // failed on 135 helper-profile-security (phone-light) and 357 admin-health
+    // (phone-dark) "captured still loading", while the same two screens passed
+    // in every other variant of the same run. A screen still loading after
+    // STILL_LOADING_WAIT_MS is reported exactly as before.
+    await page
+      .waitForFunction(`(${detectStuckOrBlank.toString()})() === null`, undefined, { timeout: STILL_LOADING_WAIT_MS })
+      .catch(() => {
+        result.notes = (result.notes ?? "") + "still-loading-after-wait;";
+      });
 
     /**
      * IS THIS ACTUALLY THE SCREEN? The gate below already fails a screen that

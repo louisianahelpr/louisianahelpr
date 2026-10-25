@@ -25,7 +25,7 @@ export const SCANNER_SAFE_CONFIRM_SWITCH = "scanner_safe_confirm_links";
 export const CONFIRM_LINK_PATH = "/signup-pending";
 
 /** The token kinds the page will spend. signup: the first email; magiclink: an admin-minted link. */
-export const CONFIRM_LINK_TYPES = ["signup", "magiclink"] as const;
+const CONFIRM_LINK_TYPES = ["signup", "magiclink"] as const;
 export type ConfirmLinkType = (typeof CONFIRM_LINK_TYPES)[number];
 
 /** The link for an email: the token travels as data and is spent only by a tap. */

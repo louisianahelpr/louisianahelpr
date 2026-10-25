@@ -17,6 +17,7 @@ import { publicErrorMessage } from "../_shared/publicError.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
+import { confirmLinkUrl } from "../_shared/confirmLink.ts";
 
 
 // ED-002: every failure branch here blocks a signup confirmation, password
@@ -285,8 +286,22 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
   // mail scanner's pre-fetch no longer burns it. Behind the hidden switch
   // scanner_safe_confirm_links, decided for this user; off (or a failed
   // check, which fails closed) keeps GoTrue's own verify link above.
-  const scannerSafe = emailType === 'signup' && !!emailData.token_hash && !!user.id &&
-    await scannerSafeFor(supabase, user.id)
+  // Any failure answers false (fail closed): the email keeps GoTrue's own link.
+  let scannerSafe = false
+  if (emailType === 'signup' && !!emailData.token_hash && !!user.id) {
+    try {
+      const { data: scannerSafeOn, error: scannerSafeError } = await supabase.rpc('scanner_safe_confirm_link_for', { p_user_id: user.id })
+      if (scannerSafeError) {
+        console.error('[auth-email-hook] scanner-safe link check failed; sending the standard link', { message: scannerSafeError.message })
+        await alertAuthEmail('scanner-safe check failed', 'warning', `scanner_safe_confirm_link_for errored (${scannerSafeError.message}); the standard confirm link was sent.`)
+      } else {
+        scannerSafe = scannerSafeOn === true
+      }
+    } catch (e) {
+      console.error('[auth-email-hook] scanner-safe link check threw; sending the standard link', { message: caughtMessage(e) })
+      await alertAuthEmail('scanner-safe check threw', 'warning', `scanner_safe_confirm_link_for threw (${caughtMessage(e)}); the standard confirm link was sent.`)
+    }
+  }
   const confirmationUrl = scannerSafe
     ? confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup')
     : verifyUrl.toString()
@@ -396,24 +411,3 @@ serve(async (req) => {
   }
 })
 
-/**
- * Scanner-safe sign-up link decided per account by
- * public.scanner_safe_confirm_link_for (switch scanner_safe_confirm_links).
- * Any error answers false, so the email keeps GoTrue's own link.
- */
-async function scannerSafeFor(
-  supabase: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }> },
-  userId: string,
-): Promise<boolean> {
-  try {
-    const { data, error } = await supabase.rpc('scanner_safe_confirm_link_for', { p_user_id: userId })
-    if (error) {
-      console.error('[auth-email-hook] scanner-safe link check failed; sending the standard link', { message: error.message })
-      return false
-    }
-    return data === true
-  } catch (e) {
-    console.error('[auth-email-hook] scanner-safe link check threw; sending the standard link', { message: e instanceof Error ? e.message : String(e) })
-    return false
-  }
-}

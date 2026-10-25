@@ -35,4 +35,3 @@ export const ConfirmReminderEmail = ({ step, confirmationUrl }: ConfirmReminderE
   )
 }
 
-export default ConfirmReminderEmail

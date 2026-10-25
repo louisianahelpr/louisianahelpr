@@ -10,9 +10,6 @@
  * exclamation marks, "Helpr" never "helper", step 2 says it is the last one).
  */
 
-/** The hidden switch (public.feature_switches.key). */
-export const CONFIRM_REMINDER_SWITCH = "confirm_reminders";
-
 export type ConfirmReminderStep = 1 | 2;
 
 /** email_send_log.template_name and the queue label for each step. */

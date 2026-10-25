@@ -525,7 +525,7 @@ async function run(stateFile, priceCents) {
     // 1. Two throwaway test accounts.
     for (const role of ["seller", "buyer"]) {
       const email = proofEmail(state.runId, role);
-      // seed-policy: patched — the profile below is written is_seed: true (and the fixture-email trigger sets it too)
+      // seed-policy: patched — the profile below is written is_seed: true (no trigger derives it from the email since the seed_flag_not_self_grantable migration, 2026-10-25)
       const user = await c.authAdmin("POST", "users", {
         // No password: the run signs in only through mintAdminSession (a recovery link, never typed).
         email, email_confirm: true,

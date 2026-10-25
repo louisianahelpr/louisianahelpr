@@ -42,7 +42,7 @@ const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warni
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
-import { createStripeModeResolver, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, isPartyRefusal, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -1831,7 +1831,11 @@ serve(async (req) => {
           return true;
         } catch (e) {
           if (!(e instanceof StripeModeRefused)) throw e;
-          if (e.reason === "mixed_parties") return false;
+          // A mix, or a payee that looks like a test account without being
+          // enrolled: neither clears by itself, so the fee goes back to the
+          // payer with the refund instead of holding the refund forever
+          // (lh-money-escrow review 2026-10-25, finding 1).
+          if (isPartyRefusal(e as unknown)) return false;
           defects.record(`stripe mode (fee payees) ${job.id}: ${e.reason}: ${e.message} — not settled this run`);
           results.push({ job_id: job.id, title: job.title, status: "stripe_mode_unreadable" });
           return null;
@@ -2192,20 +2196,21 @@ serve(async (req) => {
         }
         singleFeePercent = feeRead.percent;
       }
-      // A fee owed to a Helpr of the other Stripe mode cannot be paid from this
-      // escrow, so it is NOT withheld: the poster gets it back with the refund,
+      // A fee owed to a Helpr of the other Stripe mode, or to one that looks like
+      // a test account without being enrolled (isPartyRefusal), cannot be paid
+      // from this escrow, so it is NOT withheld: the poster gets it back with the refund,
       // and admins are told (once a day per job).
       if (jobCancellationFee > 0 || blockFeeRows.length > 0) {
         const feePayees = [job.helper_id, ...(crewShares ?? []).map((s) => s.helper_id), ...blockFeeRows.map((r) => r.helper_id)];
         const feeShareMode = await feePayeesShareMode(feePayees);
         if (feeShareMode === null) continue;
         if (!feeShareMode) {
-          console.warn(`[void-cancelled-payments] job ${job.id}: the cancellation fee is owed to a payee in the other Stripe mode; refunding it to the person who paid it`);
+          console.warn(`[void-cancelled-payments] job ${job.id}: the cancellation fee is owed to a payee who cannot be paid in this job's Stripe mode; refunding it to the person who paid it`);
           await postSlackOpsAlert({
             kind: "custom",
             severity: "warning",
-            title: "Cancellation fee refunded: its payee is in the other Stripe mode",
-            message: "A test account and a real account are on this cancelled job, so its cancellation fee cannot be paid from the escrow. The cancellation fee was refunded to the person who paid it; decide by hand whether anyone on the job is owed anything.",
+            title: "Cancellation fee refunded: its payee cannot be paid in this job's Stripe mode",
+            message: "Either a test account and a real account are on this cancelled job, or a payee looks like a test account but is not enrolled in test_accounts, so its cancellation fee cannot be paid from the escrow. The cancellation fee was refunded to the person who paid it; decide by hand whether anyone on the job is owed anything.",
             fields: { job_id: job.id, fee: jobCancellationFee },
             oncePerDayKey: `cross-mode-fee:${job.id}`,
           });

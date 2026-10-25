@@ -52,7 +52,8 @@ serve(async (req) => {
     // Stripe mode (owner 2026-10-12): each Helpr's Connect account is read with
     // the key of that Helpr's own mode (a test account: the test key).
     const stripes = createStripeModeResolver(supabase, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
-    const stripeFor = async (helperId: string) => (await stripes.clientForParties([helperId])).stripe;
+    // "read": only reads each Connect account; paying it is release-payout's decision, which refuses.
+    const stripeFor = async (helperId: string) => (await stripes.clientForParties([helperId], "read")).stripe;
     const seen = new Set<string>();
     const { defects, ...counts } = await recheckPendingAccepts(stripeFor, supabase, seen);
     const { defects: refreshDefects, ...refresh } = await refreshAllConnectGates(stripeFor, supabase, seen);

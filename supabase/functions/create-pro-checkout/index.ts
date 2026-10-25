@@ -6,6 +6,7 @@ import { corsHeadersFull as corsHeaders, jsonResponse } from "../_shared/cors.ts
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { PRO_PRICE_MAP } from "../_shared/proTiers.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { refuseLiveOnlyForTestOrSeed, stripeModeRefusedResponse } from "../_shared/stripeMode.ts";
 
 // billing_cycle: "monthly" | "annual" | "one_time". Price IDs derive from the
 // single source of truth so the checkout can never drift from the displayed
@@ -70,6 +71,12 @@ serve(async (req) => {
         corsHeaders,
       );
     }
+
+    // Pro runs only on the LIVE key (fixed live Price ids), so a test account,
+    // or a test-looking account that is not enrolled, is refused before any
+    // Stripe call: it never opens a live checkout (Oct 2026 audit, finding 7).
+    const liveOnlyRefusal = await refuseLiveOnlyForTestOrSeed(serviceClient, user.id);
+    if (liveOnlyRefusal) return stripeModeRefusedResponse(liveOnlyRefusal, corsHeaders);
 
     const proBody = await req.json();
     const { tier, billing_cycle = "monthly", billing_day } = proBody;

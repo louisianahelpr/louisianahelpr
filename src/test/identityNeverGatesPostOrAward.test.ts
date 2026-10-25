@@ -30,7 +30,7 @@
 // `hasIdBadge` to draw a pill is fine. What is forbidden is the gate
 // vocabulary and the posting/award code paths consulting identity at all.
 //
-// @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql |     RETURN 'helper_payout_setup_incomplete'; |     RETURN CASE WHEN public.identity_is_verified(NULL, NULL) THEN NULL ELSE 'helper_payout_setup_incomplete' END;
+// @mutate supabase/migrations/20261025161836_seed_flag_not_self_grantable.sql |     RETURN 'helper_payout_setup_incomplete'; |     RETURN CASE WHEN public.identity_is_verified(NULL, NULL) THEN NULL ELSE 'helper_payout_setup_incomplete' END;
 // @mutate supabase/migrations/20261023213857_identity_check_switch.sql | AND NOT public.identity_is_verified(p.idv_status, p.stripe_identity_verified) THEN 'stripe_id' END | AND false THEN 'stripe_id' END
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call. |       // Q1180 (owner, 2026-10-02/03): the server decides, in one call.\n      void (user as { idv_status?: string } \| null)?.idv_status;
 import { describe, it, expect } from "vitest";

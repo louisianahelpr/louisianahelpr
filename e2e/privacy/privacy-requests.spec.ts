@@ -196,7 +196,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
   test.setTimeout(10 * 60_000);
 
   await test.step("create the disposable seed account", async () => {
-    // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
+    // seed-policy: patched — the profile PATCH below sets is_seed: true (no trigger derives it from the email since the seed_flag_not_self_grantable migration, 2026-10-25)
     const r = await srReq("POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
       data: { email: EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Journey" } },
     });
@@ -421,7 +421,7 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
   };
   try {
     await test.step("create a disposable account that never completed its profile (no avatar)", async () => {
-      // seed-policy: derived by trg_profiles_seed_from_fixture_email (a @mailinator.com inbox is seed from its first row); patched below as well
+      // seed-policy: patched — the profile PATCH below sets is_seed: true (no trigger derives it from the email since the seed_flag_not_self_grantable migration, 2026-10-25)
       const r = await srReq("POST", `${SUPABASE_URL}/auth/v1/admin/users`, {
         data: { email: INCOMPLETE_EMAIL, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "SEED Privacy Incomplete" } },
       });

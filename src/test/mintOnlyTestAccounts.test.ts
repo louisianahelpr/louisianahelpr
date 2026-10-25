@@ -9,9 +9,9 @@
  *
  * Now mintAdminSession refuses, before any network call, every address that is
  * not a shared test account (the six in scripts/test-signin-link.mjs ACCOUNTS)
- * or a @mailinator.com fixture inbox (every such account is is_seed from its
- * first row, trg_profiles_seed_from_fixture_email; the throwaway journey and
- * privacy specs create them). Measured before enforcing (2026-10-12, prod
+ * or a @mailinator.com fixture inbox (the throwaway journey and privacy specs
+ * create them and mark them is_seed; until 20261025161836 a trigger also did,
+ * for any sign-up). Measured before enforcing (2026-10-12, prod
  * auth.sessions, 5 days): every session from automation (node / headless user
  * agents) was on one of those addresses.
  *

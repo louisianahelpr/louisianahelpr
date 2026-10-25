@@ -783,7 +783,7 @@ serve(async (req) => {
       // failed test-account read never holds back a live refund or expiry.
       const mode = stored === "live"
         ? "live"
-        : (await stripes.modeForParties([row.payer_id as string | null])) === "live" ? "live" : stored ?? "test";
+        : (await stripes.modeForParties([row.payer_id as string | null], "refund")) === "live" ? "live" : stored ?? "test";
       return { mode, stripe: stripes.clientFor(mode) };
     };
     for (const row of [...(stale ?? []), ...seriesOverRows]) {

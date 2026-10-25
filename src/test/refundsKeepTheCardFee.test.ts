@@ -112,7 +112,7 @@
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
  * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
  * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
- * @mutate supabase/functions/shop-checkout/index.ts |     const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, row); |     const outcome = await sendShopRefund(await stripeForOrder(admin, o), admin, { ...row, refund_cents: row.refund_cents + 30 });
+ * @mutate supabase/functions/shop-checkout/index.ts |     const outcome = await sendShopRefund(await stripeForOrder(admin, o, "refund"), admin, row); |     const outcome = await sendShopRefund(await stripeForOrder(admin, o, "refund"), admin, { ...row, refund_cents: row.refund_cents + 30 });
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -194,7 +194,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
             "const { data, error } = await admin.rpc(\"shop_refund_to_send\", { p_refund_id: refundId });",
             "const row = ((data ?? []) as ShopRefundRow[])[0];",
           ],
-          call: "sendShopRefund(await stripeForOrder(admin, o), admin, row)", calls: { sendShopRefund: 1 },
+          call: "sendShopRefund(await stripeForOrder(admin, o, \"refund\"), admin, row)", calls: { sendShopRefund: 1 },
         },
         {
           file: "supabase/functions/declutter-money/index.ts", rpc: "shop_refunds_due", row: "r",
@@ -241,7 +241,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", `refund ${refund.id} not recorded`);",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"mixed_parties\", \"the order mixes a test account and a real one\");",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
         "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"data_defect\", \"no Stripe mode\");",
@@ -249,7 +249,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, \"record_failed\", `refund ${dRefund.id} not recorded`);",
         "message: `Stripe answered ${dRefund.status} for delivery refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
         "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
-        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", \"the order mixes a test account and a real one\");",
+        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
         // Q1929, step 4b: a raise refund's page text, the mode resolver's input, the amount it sends (the raise row's
         // refund_cents, decided in SQL) and the buyer's email. None writes a refund_cents.
         "`Raise ${x.raise_id} (${dollars(x.refund_cents)} to the buyer of order ${x.order_id}, payment ${x.payment_intent_id}) was not refunded: ${stuck}. Refund it by hand in Stripe; the refund settles the raise.`);",

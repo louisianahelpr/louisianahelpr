@@ -7,7 +7,7 @@ import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
-import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
+import { isPartyRefusal, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,7 +203,8 @@ serve(async (req) => {
           await stripeModeForParties(supabaseAdmin, [user.id, recipientUserId]).then(
             (mode) => mode === "test",
             (err) => {
-              if (err instanceof StripeModeRefused && err.reason === "mixed_parties") return false;
+              // A mix, or a recipient that looks like a test account without being enrolled.
+              if (isPartyRefusal(err)) return false;
               throw err;
             },
           );

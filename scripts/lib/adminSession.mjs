@@ -84,9 +84,9 @@ export function resolveServiceKey({ env = process.env, cwd = process.cwd() } = {
  * automation would have signed in as the owner. Allowed: the six shared test
  * accounts (scripts/test-signin-link.mjs ACCOUNTS; src/test/mintOnlyTestAccounts
  * .test.ts keeps the two lists equal) and any @mailinator.com fixture inbox
- * (every such account is is_seed from its first row via
- * trg_profiles_seed_from_fixture_email; the throwaway journey and the privacy
- * specs create them). Measured before enforcing (2026-10-12, prod
+ * (the throwaway journey and the privacy specs create them and mark them
+ * is_seed themselves; until 20261025161836 a trigger also did, for any
+ * sign-up). Measured before enforcing (2026-10-12, prod
  * auth.sessions over 5 days): every automated session was on one of these.
  */
 export const SHARED_TEST_EMAILS = Object.freeze([

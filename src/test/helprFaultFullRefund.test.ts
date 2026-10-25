@@ -22,7 +22,7 @@
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql | REVOKE ALL ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   job_id uuid NOT NULL UNIQUE REFERENCES public.jobs(id) ON DELETE CASCADE, |   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
  * @mutate supabase/functions/create-payment/index.ts |       if (helprFault && typeof amountCents === "number") { |       if (false) {
- * @mutate supabase/functions/create-payment/index.ts |                 : "The Helpr was at fault, so the card processing fee comes back to you too.") |                 : "")
+ * @mutate supabase/functions/create-payment/index.ts |                 : "The Helpr was at fault, so all of your payment for the job comes back to you.") |                 : "")
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |     IF v_existing.helper_id IS NULL OR v_existing.helper_id = p_helper_id THEN |     IF v_existing.helper_id = p_helper_id THEN
  * @mutate supabase/functions/create-payment/index.ts |           if (helprFault && !helprFaultGone) helprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents); |           if (helprFault) helprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
  * @mutate supabase/functions/create-payment/index.ts |         disputeHelprFaultGone = ruled.gone; |         disputeHelprFaultGone = false;
@@ -96,7 +96,7 @@ describe("Q2082 (b): Helpr at fault = full refund, Helpr billed the card fee, on
   it("the edge refund is full-only and tells the poster the card fee comes back", () => {
     const code = norm(blankComments(readFileSync(join(ROOT, "supabase/functions/create-payment/index.ts"), "utf8")));
     expect(code).toMatch(/if \(helprFault && typeof amountCents === "number"\) \{ throw new PublicError\(/);
-    expect(code).toContain(': "The Helpr was at fault, so the card processing fee comes back to you too.")');
+    expect(code).toContain(': "The Helpr was at fault, so all of your payment for the job comes back to you.")');
   });
 
   // Owner 2026-10-18 ~22:30Z: the Helpr's account is deleted (nobody to bill)

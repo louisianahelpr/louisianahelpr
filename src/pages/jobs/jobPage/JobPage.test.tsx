@@ -153,13 +153,14 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(screen.getByTestId("where").textContent).toContain("/jobs?tab=working");
   });
 
-  it("shows the real take-home, the fee line, the city only, and Apply opens the quick-apply sheet", () => {
+  it("shows the real take-home (no fee named), the city only, and Apply opens the quick-apply sheet", () => {
     state.job = row();
     renderPage();
     // $90 - (5% of $90 + 70c) = $84.80, floored to whole dollars on the headline (owner, 2026-08-19).
     expect(screen.getByText("You take home")).toBeTruthy();
     expect(screen.getByText("$84")).toBeTruthy();
-    expect(screen.getByText(/Helpr's fee \(5% \+ 70¢\) comes out of your payout/)).toBeTruthy();
+    // Owner 2026-10-25: no fee name, rate or maths beside the take-home.
+    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
     expect(screen.getByText(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`)).toBeTruthy();
     expect(document.body.textContent).not.toContain("123 Main St");
     expect(screen.getByText("The street address is shared after you're hired.")).toBeTruthy();
@@ -177,14 +178,14 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(pct).toBeGreaterThan(0);
     expect(screen.getByText("You take home")).toBeTruthy();
     expect(screen.getByText(`$${Math.floor(60 - (60 * pct) / 100)}`)).toBeTruthy();
-    expect(screen.getByText(new RegExp(`Helpr's fee \\(${pct}%\\) comes out of your payout`))).toBeTruthy();
+    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
   });
 
   it("a poster-fee job: the Helpr keeps the whole price", () => {
     state.job = row({ helper_fee_flat_cents: 0, helper_fee_percent: 0, poster_fee_flat_cents: 520 });
     renderPage();
     expect(screen.getByText("$90")).toBeTruthy();
-    expect(screen.getByText(/You keep the whole price\./)).toBeTruthy();
+    expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
   });
 });
 

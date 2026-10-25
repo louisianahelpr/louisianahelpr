@@ -12,7 +12,7 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const holdSplit = posterCancelSplit({ | const holdSplit = posterCancelSplitCopy({
 // @mutate supabase/functions/create-payment/index.ts |           const holdSplit = posterCancelSplit({ |           const holdSplit = posterCancelSplitCopy({
 // @mutate supabase/migrations/20261021130723_poster_cancel_checks_quoted_fee.sql |     RAISE EXCEPTION 'quote_changed' |     RAISE NOTICE 'quote_changed'
-// @mutate src/lib/lifecycleErrors.ts |     quote_changed: "The cancellation fee changed | quote_changed_old: "The cancellation fee changed
+// @mutate src/lib/lifecycleErrors.ts |     quote_changed: "The amount for your Helpr's time changed | quote_changed_old: "The amount for your Helpr's time changed
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);
 // @mutate src/components/CancellationDialog.tsx |         setQuoteNonce((n) => n + 1); |
@@ -82,7 +82,7 @@ describe("poster_cancel_job refuses a fee the poster was not shown", () => {
   });
 
   it("the refusal has words", () => {
-    expect(code("src/lib/lifecycleErrors.ts")).toMatch(/poster_cancel_job:\s*\{[\s\S]*?quote_changed:\s*"The cancellation fee changed/);
+    expect(code("src/lib/lifecycleErrors.ts")).toMatch(/poster_cancel_job:\s*\{[\s\S]*?quote_changed:\s*"The amount for your Helpr's time changed/);
   });
 });
 
@@ -121,11 +121,11 @@ describe("the dialog shows the server's number and nothing else", () => {
 
   it("quote_changed cancels nothing, says so, and asks the server again", async () => {
     invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 0, fee_percent: 0, back_to_you_cents: 10651, unquoted_reason: null, charge_state: "captured" }, error: null });
-    rpc.mockResolvedValue({ data: null, error: { message: "quote_changed", hint: "The cancellation fee is now $25.00.", code: "P0001" } });
+    rpc.mockResolvedValue({ data: null, error: { message: "quote_changed", hint: "The amount for your Helpr's time is now $25.00.", code: "P0001" } });
     render(<CancellationDialog {...props} />);
     await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$106.51"));
     fireEvent.click(screen.getByRole("button", { name: /^cancel job$/i }));
-    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/The cancellation fee changed/)));
+    await waitFor(() => expect(toastError).toHaveBeenCalledWith(expect.stringMatching(/The amount for your Helpr's time changed/)));
     expect(props.onCancelled).not.toHaveBeenCalled();
     await waitFor(() => expect(invoke).toHaveBeenCalledTimes(2));
   });

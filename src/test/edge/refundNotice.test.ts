@@ -107,14 +107,16 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // Q2082 slice 4 (lh-money-escrow review #4): a cancelled poster-fee job
   // keeps only the card processing fee, so a fallback notice never says a
   // service fee was kept.
-  // @mutate supabase/functions/_shared/refundNotice.ts |     const serviceCents = posterCancelKeptFeeCents(job); |     const serviceCents = cents(job.customer_fee_amount);
+  // Owner 2026-10-25: the card processor's cost is never named, and no notice
+  // sends the poster to support for it; the refund states the exact amount.
+  // @mutate supabase/functions/_shared/refundNotice.ts |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : ""; |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : " We kept the card processing fee, which can't be returned.";
   it("a cancelled poster-fee job ($105.70, $102.33 back): the fallback names the card processing fee, not a service fee", async () => {
     scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70 }] };
     stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_233 }] });
     await deliverChargeRefunded({ amount: 10_570, amount_refunded: 10_233 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $3.37: the card processing fee, which can't be returned.");
-    expect(msg).not.toMatch(/service fee/);
+    expect(msg).toContain('We refunded $102.33 for "Mow & Weed Eat Yard"');
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
   });
 
   // Q2082 (f), slice-4 delta re-review #1: a cancelled crew's kept remainder
@@ -137,8 +139,9 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733 }] });
     await deliverChargeRefunded({ amount: 10_570, amount_refunded: 9_733 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $8.37: $5 for the crew spots you closed close to the start and $3.37 card processing fee, which can't be returned.");
-    expect(msg).not.toMatch(/service fee/);
+    expect(msg).toContain("We refunded $97.33");
+    expect(msg).toContain("This refund doesn't include $5 for the crew spots you closed close to the start.");
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
   });
 
   it("a crew's block-fee read that fails sends no mislabelled notice and pages ops to tell the poster by hand (Q2082 f)", async () => {
@@ -157,9 +160,9 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   it("a refund that carries its own kept reason never reads block fees, so a failing read cannot fail it (Q2082 f)", async () => {
     scenario.reads.jobs = { rows: [{ ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, is_group_job: true }] };
     scenario.reads.crew_block_fees = { rows: null, error: { code: "57014", message: "statement timeout" } } as never;
-    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733, metadata: { kept_reason: "the card processing fee" } }] });
+    stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 9_733, metadata: { kept_reason: "the Helpr's share you agreed to" } }] });
     await deliverChargeRefunded({ amount: 10_570, amount_refunded: 9_733 });
-    expect(String(posterNotices()[0]?.message)).toContain("We kept $8.37: the card processing fee.");
+    expect(String(posterNotices()[0]?.message)).toContain("This refund doesn't include the Helpr's share you agreed to.");
   });
 
   // @mutate supabase/functions/_shared/refundNotice.ts |       job.is_group_job === true && !job.helper_id && Number(input.keptCents ?? 0) > 0 |       job.is_group_job === true && Number(input.keptCents ?? 0) > 0
@@ -174,7 +177,10 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 10_233 }] });
     await deliverChargeRefunded({ amount: 10_570, amount_refunded: 10_233 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $3.37: the card processing fee, which can't be returned.");
+    expect(msg).toContain("We refunded $102.33");
+    // The lead's crew withholds no block fees: nothing else is named.
+    expect(msg).not.toMatch(/crew spots/);
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
   });
 
   it("the owner's case: a $100.00 partial refund of $112.00 sends ONE notice and ONE email with the card, reference, timing and the kept fee", async () => {
@@ -187,7 +193,8 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     expect(msg).toContain('We refunded $100 for "Mow & Weed Eat Yard" to your Link account');
     expect(msg).toContain("refund reference re_3UOcZ8Kp2H4b7tEC1cVCF92O");
     expect(msg).toContain("5-10 business days");
-    expect(msg).toContain("We kept $12: the service fee, which isn't refunded when a job is cancelled.");
+    // Owner 2026-10-25: the exact amount back, no fee named.
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
     expect(String(notices[0].link)).toBe(`/posts?job=${OWNER_JOB.id}&refund=re_3UOcZ8Kp2H4b7tEC1cVCF92O`);
     expect(notificationEmails).toHaveLength(1);
     expect(notificationEmails[0]).toMatchObject({
@@ -385,8 +392,9 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
   // and the notice says so in plain words. The job's tax is read only when
   // the job query SELECTS sales_tax_amount (the mock returns seeded columns
   // whatever is selected).
-  // @mutate supabase/functions/_shared/refundNotice.ts | helper_id, sales_tax_amount"; | helper_id";
-  // @mutate supabase/functions/_shared/refundNotice.ts |     const andTax = taxed ? " and the sales tax on what we kept" : ""; |     const andTax = "";
+  // Owner 2026-10-25: neither the card cost nor the tax kept on it is named.
+  // @mutate supabase/functions/_shared/refundNotice.ts |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : ""; |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : (cents(job.sales_tax_amount) > 0 ? " The sales tax on what we kept isn't refunded." : "");
+  // @mutate supabase/functions/_shared/refundNotice.ts |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : ""; |     return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : (cents(job.sales_tax_amount) > 0 ? " We kept the card processing fee and the sales tax on it." : "");
   it("a cancelled TAXED poster-fee job: the fallback names the sales tax kept with the card processing fee (Q2082 a)", async () => {
     const taxedJob = { ...OWNER_JOB, customer_fee_amount: "5.70", poster_fee_flat_cents: 70, sales_tax_amount: "11.05" };
     const { sales_tax_amount: _t, ...noTax } = taxedJob;
@@ -395,7 +403,9 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     stripeMock.refunds.list.mockResolvedValue({ data: [{ ...OWNER_REFUND, amount: 11_267 }] });
     await deliverChargeRefunded({ amount: 11_675, amount_refunded: 11_267 });
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $4.08: the card processing fee and the sales tax on what we kept, which can't be returned.");
+    expect(msg).toContain("We refunded $112.67");
+    expect(msg).not.toMatch(/sales tax/i);
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
   });
 
   it("a first job's kept $2 setup fee is named on its own in the webhook's notice (Q1674)", async () => {
@@ -403,8 +413,8 @@ describe("Q1714: the charge.refunded webhook tells the poster about EVERY refund
     const res = await deliverChargeRefunded({ amount: 11400 });
     expect(res.status).toBe(200);
     const msg = String(posterNotices()[0]?.message);
-    expect(msg).toContain("We kept $14: $12 service fee, which isn't refunded when a job is cancelled and $2 one-time account setup fee, which is paid once and never refunded.");
-    expect(msg).not.toContain("card processing");
+    expect(msg).toContain("This refund doesn't include the one-time $2 account setup fee, which is paid once and never refunded.");
+    expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support/i);
   });
 
   it("a refund a path wrote to the ledger (void-cancelled-payments, cancel_escrow, crew) is left to that path", async () => {
@@ -624,7 +634,7 @@ describe("Q1714: void-cancelled-payments tells the poster when it releases a car
     expect(n[0].title).toBe("Refund issued: $100");
     expect(String(n[0].message)).toBe(
       'We refunded $100 for "Mow & Weed Eat Yard" to your Link account (refund reference re_3UOcZ8Kp2H4b7tEC1cVCF92O). ' +
-      "It usually shows on your statement within 5-10 business days. We kept $12: the service fee, which isn't refunded when a job is cancelled.",
+      "It usually shows on your statement within 5-10 business days.",
     );
     expect(notificationEmails).toHaveLength(1);
     expect(claims()).toEqual(["refund:re_3UOcZ8Kp2H4b7tEC1cVCF92O"]);
@@ -665,7 +675,8 @@ describe("Q1714: void-cancelled-payments tells the poster when it releases a car
     const released = (33000 - feeCents) / 100;
     expect(n[0].title).toBe(`Payment hold released: $${released.toLocaleString("en-US", { minimumFractionDigits: released % 1 ? 2 : 0 })}`);
     expect(String(n[0].message)).toContain("on your Visa ending in 4242 (reference pi_fee)");
-    expect(String(n[0].message)).toMatch(/We kept \$[\d.,]+: the cancellation fee for your Helpr\./);
+    expect(String(n[0].message)).toMatch(/This refund doesn't include \$[\d.,]+ for your Helpr's time\./);
+    expect(String(n[0].message)).not.toMatch(/cancellation fee|card processing|service fee/i);
     expect(notificationEmails).toHaveLength(1);
     expect(claims()).toEqual(["release:pi_fee"]);
   });

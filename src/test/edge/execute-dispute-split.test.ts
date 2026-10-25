@@ -309,7 +309,7 @@ describe("execute-dispute-split edge function", () => {
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept, never
     // split back to the poster; the poster's notice says so.
     // @mutate supabase/functions/execute-dispute-split/index.ts |     setupFeeCents: pi ? setupFeeKeptCents(job) : 0, |     setupFeeCents: 0,
-    // @mutate supabase/functions/execute-dispute-split/index.ts | : "the card processing fee, which can't be returned", setupFeeKeptCents(job)), | : "the card processing fee, which can't be returned", 0),
+    // @mutate supabase/functions/execute-dispute-split/index.ts | : null, setupFeeKeptCents(job)), | : null, 0),
     it("a first job's kept $2 setup fee is not part of the poster's share, and the notice says it was kept (Q1674)", async () => {
       seedExecutable(scenario, { helperShare: 0.6, job: { onboarding_fee_amount: 2 } });
       const fn = await load();
@@ -329,7 +329,9 @@ describe("execute-dispute-split edge function", () => {
     // leaves out the card processing fee the poster also did not get back.
     // Moved here from src/test/edge/refundNotice.test.ts, which never runs this
     // function, so the registration could not fail there (vacuity run 39112066893).
-    // @mutate supabase/functions/execute-dispute-split/index.ts |         keptCents: Math.max(0, capturedCents - refundCents), |         keptCents: movedHelperCents + movedPlatformFeeCents,
+    // Owner 2026-10-25: the notice names the Helpr's share and no fee, and states
+    // no "kept" total (that total included the card cost).
+    // @mutate supabase/functions/execute-dispute-split/index.ts | ? (agreement ? "the Helpr's share you agreed to" : "the Helpr's share under the dispute decision") | ? (agreement ? "the Helpr's share you agreed to" : "the Helpr's share under the dispute decision and the card processing fee")
     it("the poster's refund notice keeps captured minus refunded ($67.40), not the Helpr's share plus commission ($59.20)", async () => {
       seedExecutable(scenario, { helperShare: 0.6 });
       const fn = await load();
@@ -342,8 +344,11 @@ describe("execute-dispute-split edge function", () => {
         (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "poster-1",
       );
       const msg = String((note?.payload as Record<string, unknown>)?.message);
-      expect(msg).toContain("We kept $67.40: the Helpr's share under the dispute decision and the card processing fee");
+      expect(msg).toContain("We refunded $42.60");
+      expect(msg).toContain("This refund doesn't include the Helpr's share under the dispute decision.");
       expect(msg).not.toContain("$59.20");
+      expect(msg).not.toContain("$67.40");
+      expect(msg).not.toMatch(/card processing|service fee|card fee|Contact support|We kept/i);
     });
 
     it("sends the Stripe transfer with the escrow charge and a dispute-keyed idempotency key", async () => {

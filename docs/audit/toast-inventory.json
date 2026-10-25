@@ -93,17 +93,17 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 269,
+      "line": 264,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "rpcErrorMessage(\"poster_cancel_job\", error) ?? \"The cancellation fee changed. Check the new amount and confirm again.\""
+        "text": "rpcErrorMessage(\"poster_cancel_job\", error) ?? \"The amount for your Helpr's time changed. Check the new amount and confirm again.\""
       },
       "renders": true
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 326,
+      "line": 321,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -113,7 +113,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 328,
+      "line": 323,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -123,7 +123,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 373,
+      "line": 368,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -154,11 +154,11 @@
           },
           {
             "form": "dynamic",
-            "text": "appliedFee > 0 ? `Job cancelled. The ${fee} cancellation fee is paid from your gift; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}` : `Job cancelled. Your gift goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}`",
+            "text": "appliedFee > 0 ? `Job cancelled. ${fee} of your gift is for your Helpr's time; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}` : `Job cancelled. Your gift goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}`",
             "branches": [
               {
                 "form": "template",
-                "text": "Job cancelled. The ${fee} cancellation fee is paid from your gift; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}",
+                "text": "Job cancelled. ${fee} of your gift is for your Helpr's time; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}",
                 "holes": {
                   "fee": [
                     {
@@ -176,55 +176,21 @@
           },
           {
             "form": "template",
-            "text": "Job cancelled. Your card payment returns to your card, less ${cardKeeps}, and your gift goes back to your gift balance within the hour.${keptFeeSentence}",
-            "holes": {
-              "cardKeeps": [
-                {
-                  "form": "dynamic",
-                  "text": "flatModel ? \"the card-processing fee Stripe keeps\" : \"the service fee you paid at checkout\"",
-                  "branches": [
-                    {
-                      "form": "literal",
-                      "text": "the card-processing fee Stripe keeps"
-                    },
-                    {
-                      "form": "literal",
-                      "text": "the service fee you paid at checkout"
-                    }
-                  ]
-                }
-              ]
-            }
+            "text": "Job cancelled. Most of your card payment comes back to your card within the hour, and your gift goes back to your gift balance.${keptFeeSentence}"
           },
           {
             "form": "dynamic",
-            "text": "feeFitsInCard ? `Job cancelled. The ${fee} cancellation fee comes out of your card payment; the rest of it returns to your card, less ${cardKeeps}, and your gift goes back to your gift balance within the hour.${keptFeeSentence}` : neutral",
+            "text": "feeFitsInCard ? `Job cancelled. ${fee} of your card payment is for your Helpr's time; most of the rest comes back to your card within the hour, and your gift goes back to your gift balance.${keptFeeSentence}` : neutral",
             "branches": [
               {
                 "form": "template",
-                "text": "Job cancelled. The ${fee} cancellation fee comes out of your card payment; the rest of it returns to your card, less ${cardKeeps}, and your gift goes back to your gift balance within the hour.${keptFeeSentence}",
+                "text": "Job cancelled. ${fee} of your card payment is for your Helpr's time; most of the rest comes back to your card within the hour, and your gift goes back to your gift balance.${keptFeeSentence}",
                 "holes": {
                   "fee": [
                     {
                       "form": "template",
                       "text": "$${formatPriceExact(appliedFee)}"
                     }
-                  ],
-                  "cardKeeps": [
-                    {
-                      "form": "dynamic",
-                      "text": "flatModel ? \"the card-processing fee Stripe keeps\" : \"the service fee you paid at checkout\"",
-                      "branches": [
-                        {
-                          "form": "literal",
-                          "text": "the card-processing fee Stripe keeps"
-                        },
-                        {
-                          "form": "literal",
-                          "text": "the service fee you paid at checkout"
-                        }
-                      ]
-                    }
                   ]
                 }
               },
@@ -236,7 +202,7 @@
           },
           {
             "form": "dynamic",
-            "text": "appliedFee > 0 ? neutral : `Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card, less ${cardKeeps}.${keptFeeSentence}`",
+            "text": "appliedFee > 0 ? neutral : `Job cancelled. Your gift goes back to your gift balance within the hour, and most of any card payment comes back to your card.${keptFeeSentence}`",
             "branches": [
               {
                 "form": "dynamic",
@@ -244,69 +210,25 @@
               },
               {
                 "form": "template",
-                "text": "Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card, less ${cardKeeps}.${keptFeeSentence}",
-                "holes": {
-                  "cardKeeps": [
-                    {
-                      "form": "dynamic",
-                      "text": "flatModel ? \"the card-processing fee Stripe keeps\" : \"the service fee you paid at checkout\"",
-                      "branches": [
-                        {
-                          "form": "literal",
-                          "text": "the card-processing fee Stripe keeps"
-                        },
-                        {
-                          "form": "literal",
-                          "text": "the service fee you paid at checkout"
-                        }
-                      ]
-                    }
-                  ]
-                }
+                "text": "Job cancelled. Your gift goes back to your gift balance within the hour, and most of any card payment comes back to your card.${keptFeeSentence}"
               }
             ]
           },
           {
             "form": "template",
-            "text": "Job cancelled. The ${fee} cancellation fee applies — ${rest}${keptFeeSentence}",
+            "text": "Job cancelled. ${fee} is for your Helpr's time; most of the rest of your payment comes back to your card within the hour.${keptFeeSentence}",
             "holes": {
               "fee": [
                 {
                   "form": "template",
                   "text": "$${formatPriceExact(appliedFee)}"
                 }
-              ],
-              "rest": [
-                {
-                  "form": "dynamic",
-                  "text": "flatModel ? \"the rest, less the card-processing fee Stripe keeps, returns to your card.\" : \"the rest, less the service fee you paid at checkout, returns to your card.\"",
-                  "branches": [
-                    {
-                      "form": "literal",
-                      "text": "the rest, less the card-processing fee Stripe keeps, returns to your card."
-                    },
-                    {
-                      "form": "literal",
-                      "text": "the rest, less the service fee you paid at checkout, returns to your card."
-                    }
-                  ]
-                }
               ]
             }
           },
           {
-            "form": "dynamic",
-            "text": "flatModel ? `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}` : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`",
-            "branches": [
-              {
-                "form": "template",
-                "text": "Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}"
-              },
-              {
-                "form": "template",
-                "text": "Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}"
-              }
-            ]
+            "form": "template",
+            "text": "Job cancelled. Most of your payment comes back to your card within the hour.${keptFeeSentence}"
           }
         ]
       },
@@ -314,7 +236,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 387,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6713,11 +6635,11 @@
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "status === \"agreed\" ? `Agreed. ${first} gets the refund and the rest comes to you after your fee.` : status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
+        "text": "status === \"agreed\" ? `Agreed. ${first} gets the refund and you take home your pay on the rest.` : status === \"finish_offered\" ? `Sent. ${first} can accept or decline the new time.` : \"Sent. A real person at Helpr will decide.\"",
         "branches": [
           {
             "form": "template",
-            "text": "Agreed. ${first} gets the refund and the rest comes to you after your fee."
+            "text": "Agreed. ${first} gets the refund and you take home your pay on the rest."
           },
           {
             "form": "dynamic",

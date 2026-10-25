@@ -32,7 +32,7 @@ export function CancelSeriesNotice() {
  * confirm so there's no ambiguity. The dialog shows it only when a non-zero
  * fee applies (hasHelper + late).
  */
-export function CancelFeeCallout({ fee, percent, budget, crew, feeTier }: { fee: number; percent: number; budget: number; crew: boolean; feeTier: string }) {
+export function CancelFeeCallout({ fee, crew, feeTier }: { fee: number; crew: boolean; feeTier: string }) {
   return (
     <div
       className="flex items-start gap-2.5 rounded-ds-md p-3.5"
@@ -50,12 +50,12 @@ export function CancelFeeCallout({ fee, percent, budget, crew, feeTier }: { fee:
           className="font-sans font-bold text-ds-13"
           style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
         >
-          A cancellation fee of <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> applies
+          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : "your Helpr's"} time
         </p>
+        {/* Owner 2026-10-25: no fee names, percentages or maths to members; the dollar
+            amount for the Helpr's time, and that the rest comes back. */}
         <p className="text-ds-11 text-muted-foreground mt-0.5">
-          {crew
-            ? `${percent}% of each hired Helpr's share of the $${formatPrice(budget)} budget`
-            : `${percent}% of the $${formatPrice(budget)} budget`} · {feeTier.toLowerCase()}
+          {feeTier} · most of the rest of your payment comes back to you
         </p>
       </div>
     </div>
@@ -139,7 +139,7 @@ export function CancelHelprToldAndPaid({ helperName, fee }: { helperName?: strin
         className="font-sans text-ds-12"
         style={{ color: "hsl(var(--success-ink))" }}
       >
-        {helperName || "Your Helpr"} is notified the moment you confirm, and their share of the ${formatPrice(fee)} cancellation fee is transferred to them automatically within the hour.
+        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of the ${formatPrice(fee)} and is sent to them automatically within the hour.
       </p>
     </div>
   );

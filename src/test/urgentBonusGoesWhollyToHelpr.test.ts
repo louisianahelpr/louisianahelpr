@@ -130,11 +130,12 @@ describe("Q362: the urgent bonus goes wholly to the Helpr; the poster pays its c
     expect(floorCases).toBeGreaterThan(3);
   });
 
-  it("(5) the Post job copy promises the whole bonus and names the fee on top", () => {
+  it("(5) the Post job copy promises the whole bonus and names no fee (owner 2026-10-25)", () => {
     const copy = readFileSync(resolve(ROOT, "src/components/postjob/BudgetSection.tsx"), "utf8");
     const urgent = copy.match(/For jobs that need doing right away\.[^<]*/)?.[0] ?? "";
     expect(urgent.length).toBeGreaterThan(0);
     expect(urgent).toMatch(/gets all of your bonus/);
-    expect(urgent).toMatch(/card fee is added on top/);
+    expect(urgent).toMatch(/Your total is shown at checkout before you pay/);
+    expect(urgent).not.toMatch(/fee/i);
   });
 });

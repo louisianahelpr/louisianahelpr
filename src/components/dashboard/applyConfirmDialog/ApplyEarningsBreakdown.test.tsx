@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, cleanup } from "@testing-library/react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
 
@@ -15,6 +15,10 @@ import { ApplyEarningsBreakdown } from "./ApplyEarningsBreakdown";
  * The mocks sit at the data boundary (the viewer's profile row and the
  * platform's fee setting), so the real predicate that decides whether a fee is
  * due runs here, not a stub of it.
+ *
+ * Owner 2026-10-25: the sheet shows the take-home only (no fee name, rate or
+ * maths); the one fee it may name is the one-time setup fee, on the job whose
+ * payout it comes out of. The take-home figure itself is unchanged.
  */
 // @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts | const payout = netAfterFirstPayoutFee(beforeFirstPayoutFee, firstPayoutFee); | const payout = beforeFirstPayoutFee;
 
@@ -34,8 +38,9 @@ function job(overrides: Partial<EnrichedJob> = {}): EnrichedJob {
 
 function renderBreakdown(j = job()) {
   render(<ApplyEarningsBreakdown confirmApplyJob={j} platformFee={10} />);
-  fireEvent.click(screen.getByRole("button", { expanded: false }));
 }
+const NO_FEE_WORDS = /platform fee|helpr fee|%|commission|card fee/i;
+const text = () => document.body.textContent ?? "";
 
 afterEach(() => {
   cleanup();
@@ -44,84 +49,75 @@ afterEach(() => {
 });
 
 describe("ApplyEarningsBreakdown — one-time first-payout fee (ME-008)", () => {
-  it.each([false, null])("subtracts the fee from take-home when onboarding_fee_paid is %s", (paid) => {
+  it.each([false, null])("subtracts the setup fee from take-home when onboarding_fee_paid is %s", (paid) => {
     profileMock.mockReturnValue({ onboarding_fee_paid: paid });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown();
-    // $100 budget − 10% = $90, − $2 one-time fee = $88, in the headline AND the Take-home row.
-    expect(screen.getAllByText("$88")).toHaveLength(2);
+    // $100 budget − 10% = $90, − $2 one-time fee = $88.
+    expect(screen.getByText("$88")).toBeInTheDocument();
     expect(screen.queryByText("$90")).not.toBeInTheDocument();
-    expect(screen.getByText(/One-time setup fee \(first payout only\)/)).toBeInTheDocument();
-    expect(screen.getByText("−$2")).toBeInTheDocument();
+    expect(screen.getByTestId("apply-setup-fee-line").textContent).toBe("After the one-time $2 setup fee, taken from your first payout.");
+    expect(text()).not.toMatch(NO_FEE_WORDS);
   });
 
   it("takes the amount from platform_settings, never a constant", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: false });
     feeCentsMock.mockReturnValue(350);
     renderBreakdown();
-    expect(screen.getAllByText("$86")).toHaveLength(2); // 90 − 3.50 = 86.50, floored
-    expect(screen.getByText("−$3.50")).toBeInTheDocument();
+    expect(screen.getByText("$86")).toBeInTheDocument(); // 90 − 3.50 = 86.50, floored
+    expect(screen.getByTestId("apply-setup-fee-line").textContent).toMatch(/\$3\.50 setup fee/);
   });
 
-  it("shows no fee line once the fee is paid", () => {
+  it("shows no setup line once the fee is paid", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: true });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown();
-    expect(screen.getAllByText("$90")).toHaveLength(2);
-    expect(screen.queryByText(/one-time setup fee/i)).not.toBeInTheDocument();
+    expect(screen.getByText("$90")).toBeInTheDocument();
+    expect(screen.queryByText(/setup fee/i)).not.toBeInTheDocument();
   });
 
   it("copy addresses any account, not only Helprs", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: false });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown();
-    expect(screen.getByText(/One-time setup fee \(first payout only\)/).textContent).not.toMatch(/helpr/i);
+    expect(screen.getByTestId("apply-setup-fee-line").textContent).not.toMatch(/helpr/i);
   });
 });
 
-// Q1839 (lh-money-escrow review of the Q1839 branch, #1): a flat-model job's
-// apply-step take-home is the job price minus 5% + 70c, the transfer every
-// payout path makes, never the viewer's tier. $100 at 10% read $90; the
-// Helpr is paid $94 ($100 - $5.70, floored).
+// Q1839: a flat-model job's take-home is the job price minus its own stamped
+// fee (helprFlatFeeCents), never the viewer's tier. $100 stamped 5% + 70c pays
+// $94 ($100 - $5.70, floored); stamped 10% + 70c pays $89 ($100 - $10.70).
 // @mutate src/components/dashboard/applyConfirmDialog/applyTakeHome.ts |   const flat = isFlatFeeJob(confirmApplyJob); |   const flat = false;
 describe("ApplyEarningsBreakdown — flat-model jobs (Q1839)", () => {
-  it("prices a stamped job at 5% + 70c, not the viewer's tier", () => {
+  it("prices a stamped job from its stamp, not the viewer's tier, and names no fee", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: true });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown(job({ helper_fee_flat_cents: 70, helper_fee_percent: 5 } as Partial<EnrichedJob>));
-    expect(screen.getAllByText("$94")).toHaveLength(2);
+    expect(screen.getByText("$94")).toBeInTheDocument();
     expect(screen.queryByText("$90")).not.toBeInTheDocument();
-    expect(screen.getByText("− 5% + $0.70 platform fee")).toBeInTheDocument();
+    expect(text()).not.toMatch(NO_FEE_WORDS);
+    cleanup();
+    renderBreakdown(job({ helper_fee_flat_cents: 70, helper_fee_percent: 10 } as Partial<EnrichedJob>));
+    expect(screen.getByText("$89")).toBeInTheDocument();
   });
 
   it("keeps the tier rate on a legacy job (no stamp)", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: true });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown(job({ helper_fee_flat_cents: null } as Partial<EnrichedJob>));
-    expect(screen.getAllByText("$90")).toHaveLength(2);
-    expect(screen.getByText("− 10% platform fee")).toBeInTheDocument();
+    expect(screen.getByText("$90")).toBeInTheDocument();
+    expect(text()).not.toMatch(NO_FEE_WORDS);
   });
 });
 
 // lh-money-escrow review #4 (jobs poster fee, owner 2026-10-18): a poster-fee
-// job's Helpr pays nothing, so there is no fee line and no "0% + $0.00" label.
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |     noFee ? "no fee" : `− Helpr fee (${feeLabel})`, |     `− Helpr fee (${feeLabel})`,
-// @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |           {!noFee && ( |           {true && (
-describe("ApplyEarningsBreakdown — poster-fee jobs show no Helpr fee (review #4)", () => {
-  it("a poster-fee job: take-home is the whole budget, no fee row, the summary says no fee", () => {
+// job's Helpr pays nothing: the take-home is the whole budget.
+describe("ApplyEarningsBreakdown — poster-fee jobs", () => {
+  it("a poster-fee job: take-home is the whole budget, no fee named", () => {
     profileMock.mockReturnValue({ onboarding_fee_paid: true });
     feeCentsMock.mockReturnValue(200);
     renderBreakdown(job({ poster_fee_flat_cents: 70, helper_fee_flat_cents: 0, helper_fee_percent: 0 } as Partial<EnrichedJob>));
-    expect(screen.getAllByText("$100").length).toBeGreaterThan(0);
-    expect(screen.queryByText(/platform fee/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/0% \+ \$0\.00/)).not.toBeInTheDocument();
-    expect(screen.getByText(/no fee/)).toBeInTheDocument();
-  });
-
-  it("an F3 flat job still shows its 5% + $0.70 fee row", () => {
-    profileMock.mockReturnValue({ onboarding_fee_paid: true });
-    feeCentsMock.mockReturnValue(200);
-    renderBreakdown(job({ helper_fee_flat_cents: 70, helper_fee_percent: 5 } as Partial<EnrichedJob>));
-    expect(screen.getByText(/5% \+ \$0\.70 platform fee/)).toBeInTheDocument();
+    expect(screen.getByText("$100")).toBeInTheDocument();
+    expect(text()).not.toMatch(NO_FEE_WORDS);
   });
 });

@@ -24,7 +24,8 @@ describe("board 189: the first-job Home says only what is true", () => {
     const paid = src.slice(src.indexOf('aria-label="How you get paid"'));
     expect(paid).toMatch(/\{STANDARD_PAYOUT_PHRASE\}/);
     expect(paid).toMatch(/\{STANDARD_PAYOUT_WINDOW\}/);
-    expect(paid).toMatch(/\{HELPR_FLAT_FEE_PHRASE\}/);
+    // Owner 2026-10-25: no fee rate or name to members.
+    expect(paid.slice(0, paid.indexOf("</section>"))).not.toMatch(/HELPR_FLAT_FEE|\bfees?\b/i);
     expect(paid.slice(0, paid.indexOf("</section>"))).not.toMatch(/\b\d+\s*(days?|%|business)/);
   });
 

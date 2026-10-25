@@ -1064,16 +1064,16 @@ describe("create-payment edge function", () => {
           expect(total, `$${budget} + $${urgent}`).toBe(budget * 100 + urgent * 100 + setup);
           const stamp = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
           expect(stamp.customer_fee_amount).toBe(0);
-          // The single-Helpr fee recorded at escrow: 5% of budget + bonus, plus 70c.
-          expect(stamp.platform_fee_amount).toBe(Math.round((budget + urgent) * 5 + 70) / 100);
+          // The single-Helpr fee recorded at escrow: 10% of budget + bonus, plus 70c (owner 2026-10-25).
+          expect(stamp.platform_fee_amount).toBe(Math.round((budget + urgent) * 10 + 70) / 100);
         }
       });
 
-      // Q1845: each crew member pays 5% + 70c on their OWN share of budget +
-      // bonus, so a 3-member crew's escrow stamp is the SUM of three member
-      // fees (the payout's largest-remainder split), not one 70c on the whole.
-      // $100 + $15 bonus over 3: shares 3334/3333/3333 + 500 each -> 262 x 3 = 786c
-      // (one fee on the whole job was 645c). Both writes carry it: the
+      // Q1845: each crew member pays 10% + 70c (owner 2026-10-25) on their OWN
+      // share of budget + bonus, so a 3-member crew's escrow stamp is the SUM of
+      // three member fees (the payout's largest-remainder split), not one 70c on
+      // the whole. $100 + $15 bonus over 3: shares 3834/3833/3833 -> 453 x 3 =
+      // 1359c (one fee on the whole job is 1220c). Both writes carry it: the
       // fee-model stamp and the session stamp.
       // @mutate supabase/functions/create-payment/index.ts |       const escrowHelprCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1; |       const escrowHelprCount = 1;
       // @mutate supabase/functions/_shared/crewShares.ts |     total += helprFlatFeeCents(allocateCents(budgetCents, k, i) + allocateCents(urgentCents, k, i)); |     total += helprFlatFeeCents(allocateCents(budgetCents, k, i));
@@ -1084,14 +1084,14 @@ describe("create-payment edge function", () => {
         const jobWrites = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
         const modelStamp = jobWrites.find((w) => "helper_fee_flat_cents" in (w.payload as object))?.payload as Record<string, unknown>;
         const sessionStamp = jobWrites.filter((w) => "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
-        expect(modelStamp?.platform_fee_amount).toBe(7.86);
-        expect(sessionStamp?.platform_fee_amount).toBe(7.86);
-        // A single Helpr on the same price still pays one 5% + 70c: $6.45.
+        expect(modelStamp?.platform_fee_amount).toBe(13.59);
+        expect(sessionStamp?.platform_fee_amount).toBe(13.59);
+        // A single Helpr on the same price still pays one 10% + 70c: $12.20.
         resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
         seedUrgentJob({ budget: 100, is_urgent: true, urgent_fee: 15, status: "open" });
         await run();
         const single = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
-        expect(single?.platform_fee_amount).toBe(6.45);
+        expect(single?.platform_fee_amount).toBe(12.2);
       });
 
       it("Q362: a job with no urgent bonus has no urgent card fee line", async () => {
@@ -1340,7 +1340,7 @@ describe("create-payment edge function", () => {
             expect(stamp.customer_fee_amount).toBe(0);
             expect(stamp.platform_fee_percent).toBe(0);
             expect(stamp.helper_fee_flat_cents).toBe(70);
-            expect(stamp.helper_fee_percent).toBe(5);
+            expect(stamp.helper_fee_percent).toBe(10);
             expect(meta.customer_fee_percent).toBe("0");
             expect(meta.helper_fee_flat_cents).toBe("70");
             checked++;
@@ -1357,8 +1357,8 @@ describe("create-payment edge function", () => {
         await escrow();
         const first = scenario.writes.find((w) => w.table === "jobs" && w.op === "update");
         // platform_fee_amount rides the model stamp too (review N4): a $100 job
-        // pays 5% + 70c = $5.70 whichever branch funds it (a gift included).
-        expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_percent: 0, customer_fee_amount: 0, platform_fee_amount: 5.7 });
+        // pays 10% + 70c = $10.70 whichever branch funds it (a gift included).
+        expect(first?.payload).toEqual({ helper_fee_flat_cents: 70, helper_fee_percent: 10, platform_fee_percent: 0, customer_fee_amount: 0, platform_fee_amount: 10.7 });
         expect(JSON.stringify(first)).toContain("unpaid,abandoned,failed");
       });
 
@@ -1496,11 +1496,11 @@ describe("create-payment edge function", () => {
         expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
       });
 
-      it("the Helpr fee stamped at escrow is the flat 5% + 70c, whatever platform_settings or the tier says", async () => {
+      it("the Helpr fee stamped at escrow is the flat 10% + 70c (owner 2026-10-25), whatever platform_settings or the tier says", async () => {
         seedEscrowJob(100, { onboarding_fee_paid: true, subscription_tier: "elite", subscription_expires_at: FUTURE });
         const { stamp } = await escrow();
-        expect(stamp.helper_fee_percent).toBe(5);
-        expect(stamp.platform_fee_amount).toBe(5.7);
+        expect(stamp.helper_fee_percent).toBe(10);
+        expect(stamp.platform_fee_amount).toBe(10.7);
       });
 
       it("never bills the one-time onboarding fee when the profile read failed", async () => {
@@ -2135,10 +2135,15 @@ describe("create-payment edge function", () => {
       // top. A $15 tip charges 1500 + 76 = 1576 (Stripe's 2.9% + 30c on 1576
       // is round(45.7) + 30 = 76), the application fee is 76, and Stripe's
       // destination transfer (charge - application fee) is exactly 1500.
+      // Owner 2026-10-25: ONE line, the total, with no card-fee line.
       const units = args.line_items.map(
         (li: { price_data: { unit_amount: number } }) => li.price_data.unit_amount,
       );
-      expect(units).toEqual([1500, 76]);
+      expect(units).toEqual([1576]);
+      const names = args.line_items.map((li: { price_data: { product_data: { name: string; description?: string } } }) =>
+        `${li.price_data.product_data.name} ${li.price_data.product_data.description ?? ""}`);
+      expect(names.join(" ")).not.toMatch(/card processing|processing|card fee|service fee/i);
+      expect(names[0]).toContain("Your Helpr receives your whole $15.00 tip.");
       expect(args.payment_intent_data.application_fee_amount).toBe(76);
       const charged = units.reduce((a: number, b: number) => a + b, 0);
       expect(charged - args.payment_intent_data.application_fee_amount).toBe(1500);
@@ -2743,13 +2748,15 @@ describe("create-payment edge function", () => {
         { payment_intent: "pi_dup", amount: 9_994 },
         { idempotencyKey: "cancel-escrow-job-1" },
       );
-      // The notice keeps only the card fee: the $2 already went back, it was not kept.
-      // @mutate supabase/functions/create-payment/index.ts |              const keptCents = Math.max(0, capturedCents - alreadyRefundedCents - refundedCents); |              const keptCents = Math.max(0, capturedCents - refundedCents);
+      // Owner 2026-10-25: the notice states the exact refund and names no fee; the
+      // kept card cost is never named and never sends the poster to support.
+      // @mutate supabase/functions/create-payment/index.ts |                 keptReason: keptCents > 0 ? setupFeeKeptReason(null, setupFeeCents) : null,\n                keptUnnamed: true, |                 keptReason: keptCents > 0 ? setupFeeKeptReason(null, setupFeeCents) : null,\n                keptUnnamed: false,
       const notice = scenario.writes
         .filter((w) => w.table === "notifications" && w.op === "insert")
         .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
-        .find((m) => m.includes("We kept"));
-      expect(notice).toMatch(/We kept \$3\.36\b/);
+        .find((m) => m.includes("We refunded"));
+      expect(notice).toContain("We refunded $99.94");
+      expect(notice).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support|We kept/i);
     });
 
     // lh-money-escrow review of Q1675 #2: earlier refunds that returned MORE
@@ -3060,7 +3067,8 @@ describe("create-payment edge function", () => {
         expect(body.useCancelJob).toBe(true);
         expect(body.crewBlockFeeCents).toBe(2500);
         expect(String(body.error)).toContain("$25.00");
-        expect(String(body.error)).toContain("less the card fee");
+        expect(String(body.error)).toContain("for their time");
+        expect(String(body.error)).not.toMatch(/card fee|cancellation fee|card processing/i);
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
         expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
         expect(scenario.writes.filter((w) => w.table === "jobs")).toHaveLength(0);
@@ -3548,7 +3556,7 @@ describe("create-payment edge function", () => {
     // Q1674 (owner, 2026-10-12): a first job's $2 setup fee is kept even when
     // the poster wins the dispute, and the refund notice says so.
     // @mutate supabase/functions/create-payment/index.ts | customerFeeCents: cardCostFeeCents(job),\n              setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents, | customerFeeCents: cardCostFeeCents(job),\n              setupFeeCents: 0,\n              alreadyRefundedCents: disputeOtherRefundedCents,
-    // @mutate supabase/functions/create-payment/index.ts | : null, disputeSetupKeptCents) | : null, 0)
+    // @mutate supabase/functions/create-payment/index.ts | ? setupFeeKeptReason(null, disputeSetupKeptCents) | ? setupFeeKeptReason(null, 0)
     it("admin_refund_dispute on a first job keeps the $2 setup fee and the notice says so (Q1674)", async () => {
       seedAuth(scenario, ADMIN);
       scenario.rpc.has_role = true;
@@ -5152,7 +5160,7 @@ describe("create-payment edge function", () => {
       // FAILED refund, which returned nothing.
       // @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job),\n              alreadyRefundedCents: disputeOtherRefundedCents,\n              taxCents: disputeTaxCents,\n            });\n            // Q2082 (b): a live | setupFeeCents: setupFeeKeptCents(job),\n              taxCents: disputeTaxCents,\n            });\n            // Q2082 (b): a live
       // @mutate supabase/functions/create-payment/index.ts | (r.status === "succeeded" \|\| r.status === "pending") && r.metadata?.source !== "admin_refund_dispute") | r.metadata?.source !== "admin_refund_dispute")
-      // @mutate supabase/functions/create-payment/index.ts |               disputeKeptCents = Math.max(0, capturedCents - disputeOtherRefundedCents - disputeRefundCents); |               disputeKeptCents = Math.max(0, capturedCents - disputeRefundCents);
+      // @mutate supabase/functions/create-payment/index.ts |             ? setupFeeKeptReason(null, disputeSetupKeptCents)\n            : null,\n          keptUnnamed: true, |             ? setupFeeKeptReason(null, disputeSetupKeptCents)\n            : null,\n          keptUnnamed: false,
       it("Q1675: admin_refund_dispute after a duplicate $2 setup-fee refund does not return the $2 again", async () => {
         seedAuth(scenario, ADMIN);
         scenario.rpc.has_role = true;
@@ -5174,12 +5182,13 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(200);
         expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
         expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ payment_intent: "pi_r", amount: 9_994 });
-        // The notice keeps only the card fee: the $2 already went back.
+        // Owner 2026-10-25: the exact refund, no fee named, no "Contact support".
         const notice = scenario.writes
           .filter((w) => w.table === "notifications" && w.op === "insert")
           .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
-          .find((m) => m.includes("We kept"));
-        expect(notice).toMatch(/We kept \$3\.36\b/);
+          .find((m) => m.includes("We refunded"));
+        expect(notice).toContain("We refunded $99.94");
+        expect(notice).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support|We kept/i);
       });
 
       it("control: a PARTIAL prior refund does not count as the full one (the rest is refunded)", async () => {
@@ -5330,7 +5339,7 @@ describe("create-payment edge function", () => {
       // Q1674 (owner, 2026-10-12, second pop-up): an admin's FULL refund keeps a
       // first job's $2 setup fee too; the ledger reason and the notice say so.
       // @mutate supabase/functions/create-payment/index.ts | const keptSetupCents = isPartial ? 0 : split.setupKeptCents; | const keptSetupCents = 0;
-      // @mutate supabase/functions/create-payment/index.ts | : null, generalKeptSetupCents) | : null, 0)
+      // @mutate supabase/functions/create-payment/index.ts | ? setupFeeKeptReason(null, generalKeptSetupCents) | ? setupFeeKeptReason(null, 0)
       it("a full refund of a first job returns everything but the kept $2 setup fee, still cancels the job, and says so (Q1674)", async () => {
         seedFull();
         scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], onboarding_fee_amount: 2 };
@@ -5376,7 +5385,7 @@ describe("create-payment edge function", () => {
         // the card fee, so the notice names only the setup fee (lh-silent-failure
         // review of 79e9a6bb5, #2: worded from the money, not the rule).
         const msg = String((note?.payload as Record<string, unknown>)?.message);
-        expect(msg).toContain("The earlier refunds already returned everything except the one-time $2.00 account setup fee");
+        expect(msg).toContain("The earlier refunds already sent back what comes back to you; the one-time $2.00 account setup fee is paid once and never refunded.");
         expect(msg).not.toContain("card processing fee");
       });
 
@@ -5467,7 +5476,10 @@ describe("create-payment edge function", () => {
         const note = scenario.writes.find(
           (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
         );
-        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain("the card processing fee, which can't be returned");
+        const msg = String((note?.payload as Record<string, unknown>)?.message);
+        // Owner 2026-10-25: the exact refund, no fee named.
+        expect(msg).toContain("We refunded $25");
+        expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support|We kept/i);
       });
 
       // Q2082 (a), owner pop-up 2026-10-18: the sales tax Stripe leaves
@@ -5475,8 +5487,9 @@ describe("create-payment edge function", () => {
       // notice says so. A $100 taxable job: $5.70 fee, $11.05 tax, $116.75
       // paid, Stripe's fee $3.69: the tax on it, ceil(369 x 1105 / 10570) = 39c.
       // @mutate supabase/functions/create-payment/index.ts | requestedCents: isPartial ? requestedCents : null,\n            taxCents: generalTaxCents, | requestedCents: isPartial ? requestedCents : null,
-      // @mutate supabase/functions/_shared/refundNotice.ts |   if (why) return ` We kept ${kept}: ${why}${taxKept > 0 ? `; ${refundDollars(taxKept)} of that is the sales tax on what we kept, which isn't refunded` : ""}.`; |   if (why) return ` We kept ${kept}: ${why}.`;
-      // @mutate supabase/functions/create-payment/index.ts |               taxKeptCents: split.taxKeptCents, |               taxKeptCents: 0,
+      // Owner 2026-10-25: the notice names neither the card fee nor the tax kept on it.
+      // @mutate supabase/functions/_shared/refundNotice.ts |   if (input.keptUnnamed) return ""; |   if (input.keptUnnamed) return " We kept the card processing fee and the sales tax on it.";
+      // @mutate supabase/functions/create-payment/index.ts |           amountCents: generalRefundForNotice.amountCents, |           amountCents: generalRefundForNotice.amountCents + 39,
       it("a taxed job: a full admin refund also keeps the sales tax on the kept card fee, and the notice says so (Q2082 a)", async () => {
         seedFull();
         scenario.reads.jobs.rows![0] = { ...scenario.reads.jobs.rows![0], budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 };
@@ -5494,9 +5507,10 @@ describe("create-payment edge function", () => {
         const note = scenario.writes.find(
           (w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === POSTER.id,
         );
-        expect(String((note?.payload as Record<string, unknown>)?.message)).toContain(
-          "We kept $4.08: the card processing fee, which can't be returned; $0.39 of that is the sales tax on what we kept, which isn't refunded.",
-        );
+        const msg = String((note?.payload as Record<string, unknown>)?.message);
+        expect(msg).toContain("We refunded $112.67");
+        expect(msg).not.toMatch(/sales tax/i);
+        expect(msg).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support|We kept/i);
       });
 
       it("a full admin refund keeps Stripe's real fee when it is the larger one (no fee was charged to the poster)", async () => {

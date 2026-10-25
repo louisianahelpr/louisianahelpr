@@ -445,8 +445,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                     )}
                     {example > 0 && (
                       <>
-                        {" "}Your Helpr receives all ${formatPriceExact(example)}; with card processing you pay{" "}
-                        <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span>.
+                        {" "}Your Helpr receives all ${formatPriceExact(example)}; you pay{" "}
+                        <span className="font-semibold">{centsLabel(tipQuoteForDollars(example).chargeCents)}</span> in total.
                       </>
                     )}
                   </p>
@@ -456,7 +456,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           )}
 
           <p className={captionClass}>
-            Your Helpr gets 100% of every tip. Card processing is added on top. If you
+            Your Helpr gets 100% of every tip. If you
             haven't saved a card, we'll ask you to confirm the tip instead of charging it.
           </p>
         </div>

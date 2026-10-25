@@ -10,7 +10,7 @@ export function MoneyRecordRows({ showPayouts }: { showPayouts: boolean }) {
   const navigate = useNavigate();
   const rows = [
     ...(showPayouts ? [{ key: "payout_history", title: "Payout history", sub: "Each bank payout and what it carried" }] : []),
-    { key: "receipts", title: "Receipts", sub: "What you paid, fees owed and tax forms" },
+    { key: "receipts", title: "Receipts", sub: "What you paid, amounts owed and tax forms" },
   ];
   return (
     <div className="space-y-2" data-money-record-rows="">

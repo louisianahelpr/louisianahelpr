@@ -94,6 +94,19 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     expect(missing).toEqual([]);
   });
 
+  // (A') The reverse (lh-money-escrow review 2026-10-25, #2): since the fee on
+  // new jobs became 10% + 70c, a read that carries the stamp but not its
+  // percent prices a 5%-stamped job at the 10% fallback (helprFlatFeeCents).
+  // @mutate supabase/functions/create-payment/index.ts | is_urgent, helper_fee_flat_cents, helper_fee_percent, poster_fee_flat_cents | is_urgent, helper_fee_flat_cents, poster_fee_flat_cents
+  it("(A') every jobs read that selects helper_fee_flat_cents also selects helper_fee_percent", () => {
+    const withStamp = jobsSelects().filter((s) => /\bhelper_fee_flat_cents\b/.test(s.cols));
+    expect(withStamp.length).toBeGreaterThan(8);
+    const missing = withStamp
+      .filter((s) => !/\bhelper_fee_percent\b/.test(s.cols))
+      .map((s) => `${s.rel}: ${s.cols.replace(/\s+/g, " ").slice(0, 120)}`);
+    expect(missing).toEqual([]);
+  });
+
   it("(B) the legacy-only helperCommissionDollars is called only where a flat job cannot reach it", () => {
     // money-reconciliation: the live-tier drift check, which skips a flat job
     // first (isFlatFeeJob) and grades it against its stamp instead.
@@ -118,16 +131,17 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
 
   it("(C) create-payment charges the job price only and stamps the flat model", () => {
     const cp = FILES.find((f) => f.rel === "supabase/functions/create-payment/index.ts")!.code;
-    // The one "Service fee" line left is a recurring visit paid on-session,
-    // priced from its own row (charge-recurring-visits writes fee_cents 0 on a
-    // flat series; a series funded before F3 keeps the fee it was sold with).
+    // A recurring visit paid on-session is priced from its own row
+    // (charge-recurring-visits writes fee_cents 0 on a flat series; a series
+    // funded before F3 keeps the fee it was sold with). Owner 2026-10-25: that
+    // older fee is folded into the visit line, never shown as a fee line.
     const serviceLines = [...cp.matchAll(/name:\s*"Service fee"/g)].length;
-    const rowPriced = [...cp.matchAll(/name:\s*"Service fee",\s*tax_code:\s*NONTAXABLE_TAX_CODE\s*\},\s*unit_amount:\s*row\.fee_cents/g)].length;
+    const rowPriced = [...cp.matchAll(/unit_amount:\s*row\.budget_cents \+ Math\.max\(0, row\.fee_cents\)/g)].length;
     // The poster-fee model's line (owner 2026-10-18), only behind its stamp.
     const posterPriced = [...cp.matchAll(/if \(isPosterFee && posterFeeCents > 0\) \{\s*lineItems\.push\(\{[\s\S]{0,200}?name:\s*"Service fee"[\s\S]{0,400}?unit_amount:\s*posterFeeCents,/g)].length;
     expect(rowPriced).toBe(1);
     expect(posterPriced).toBe(1);
-    expect(serviceLines).toBe(rowPriced + posterPriced);
+    expect(serviceLines).toBe(posterPriced);
     expect(cp).not.toMatch(/name:\s*"Urgent bonus card fee"/);
     expect(cp).not.toMatch(/\burgentBonusCardFeeCents\s*\(/);
     expect(cp).toMatch(/const customerFeeAmount = isPosterFee \? posterFeeCents \/ 100 : 0;/);

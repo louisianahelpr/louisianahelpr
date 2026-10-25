@@ -26,7 +26,6 @@ import { formatPriceExact } from "@/lib/format";
 // into a `style` prop on the rendered <path>, where a runtime var reference
 // does not resolve — the same note EarningsBreakdownCharts.tsx carries.
 const TAKE_HOME_FILL = "hsl(70, 22%, 34%)"; // bark
-const FEE_FILL = "hsl(20, 60%, 62%)"; // burnt sienna, lightened so it reads as the minor share
 
 const TOOLTIP_STYLE = {
   background: "hsl(var(--ivory-sand) / 0.97)",
@@ -86,8 +85,8 @@ export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
             a 375px screenshot taken 1.2s after load, which is exactly what a
             person on a slow phone sees. A page whose whole purpose is not
             showing a false zero does not get to show one for a second. */}
-        <Bar dataKey="takeHome" name="You kept" stackId="m" fill={TAKE_HOME_FILL} isAnimationActive={false} />
-        <Bar dataKey="fees" name="Platform fee" stackId="m" fill={FEE_FILL} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+        {/* Owner 2026-10-25: members see their take-home only, never the fee. */}
+        <Bar dataKey="takeHome" name="You took home" stackId="m" fill={TAKE_HOME_FILL} radius={[4, 4, 0, 0]} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );

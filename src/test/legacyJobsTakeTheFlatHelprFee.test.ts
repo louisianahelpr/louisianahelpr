@@ -24,7 +24,6 @@ import { resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { cancelRefundIsLessCardFee } from "@/lib/cancelRefundCopy";
-import { jobFlatFeeTotalCents } from "../../supabase/functions/_shared/crewShares";
 
 const ROOT = resolve(__dirname, "../..");
 const DIR = resolve(ROOT, "supabase/migrations");
@@ -45,8 +44,9 @@ describe("legacy jobs whose Helpr is not paid take the flat 5% + $0.70 (owner 20
   it("stamps exactly create-payment's flat model: 70c, 5%, the flat fee on budget + bonus", () => {
     expect(sql).toContain("SET helper_fee_flat_cents = 70, helper_fee_percent = 5, platform_fee_amount = least(p.pay_cents, round(p.pay_cents * 5 / 100.0) + 70) / 100.0");
     expect(sql).toContain("round(COALESCE(x.budget, 0) * 100) + round(greatest(COALESCE(x.urgent_fee, 0), 0) * 100) AS pay_cents");
-    // The owner's example: $60, no bonus -> $3.70 fee, $56.30 take-home.
-    expect(jobFlatFeeTotalCents(6000, 0, 1)).toBe(370);
+    // The owner's 10-21 example: $60, no bonus -> $3.70 fee, $56.30 take-home, at the 5% the
+    // migration stamped (a historical record; new jobs are stamped 10% from 2026-10-25).
+    expect(Math.min(6000, Math.round((6000 * 5) / 100) + 70)).toBe(370);
   });
 
   it("only legacy, funded, unpaid-out, one-off jobs with no payout yet", () => {

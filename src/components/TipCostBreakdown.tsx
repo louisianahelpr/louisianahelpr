@@ -39,13 +39,11 @@ export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: num
   return (
     <div className="rounded-ds-lg p-4" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
       <dl className="space-y-1" aria-label="Tip cost breakdown">
-        {row("Tip", q.tipCents)}
-        {row("Card processing", q.feeCents)}
+        {/* Owner 2026-10-25: the tipper sees only the total they pay, no card-fee line. */}
         {row("You pay", q.chargeCents, true)}
-        {row(`${receiverName ? receiverName.trim().split(/\s+/)[0] : "Your Helpr"} receives`, q.helperCents)}
       </dl>
       <p className="font-sans text-ds-12 mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-        Tips go 100% to them. Card processing is added on top.
+        {receiverName ? receiverName.trim().split(/\s+/)[0] : "Your Helpr"} receives the whole {centsLabel(q.helperCents)} tip.
       </p>
     </div>
   );

@@ -283,7 +283,7 @@ export async function buildHomeHistoryPdf(
   const footer =
     `This record was generated from the completed jobs on this Helpr account on ` +
     `${formatLongRecordDate(input.generatedAt)}. Amounts are the total charged to the ` +
-    `property owner for each job, including the platform service fee, any urgent tip and ` +
+    `property owner for each job, including any urgent tip and ` +
     `Louisiana sales tax. Helpr is a Louisiana-based labor marketplace. ` +
     `For verification inquiries: ${VERIFICATION_EMAIL}`;
   doc.text(doc.splitTextToSize(footer, CONTENT_W) as string[], MARGIN, y + 20);

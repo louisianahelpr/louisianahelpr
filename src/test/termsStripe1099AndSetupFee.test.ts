@@ -18,7 +18,7 @@
  * @mutate src/pages/info/legal/TermsSection.tsx | <p>Stripe issues <strong className="text-foreground">Form 1099-K</strong> | <p>Helpr issues <strong className="text-foreground">Form 1099-K</strong>
  * @mutate src/pages/info/legal/TermsSection.tsx | A Helpr pays it out of their first payout; | A Helpr pays it once;
  * @mutate src/pages/info/legal/TermsSection.tsx | {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr | $2, once per account. A Helpr
- * @mutate src/pages/info/legal/TermsSection.tsx | the one-time account setup fee and the Helpr fee above. | the Helpr fee above.
+ * @mutate src/pages/info/legal/TermsSection.tsx | the one-time account setup fee and the service fee above. | the service fee above.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -73,7 +73,7 @@ describe("the Terms fee list discloses the one-time setup fee from the first pay
     expect(row).toContain('<strong className="text-foreground">One-time account setup fee:</strong>');
     expect(row).toContain("A Helpr pays it out of their first payout;");
     expect(row).toContain("It is never charged twice.");
-    expect(row).toContain("the one-time account setup fee and the Helpr fee above.");
+    expect(row).toContain("the one-time account setup fee and the service fee above.");
   });
 
   it("the amount is the live platform setting, never a hard-coded dollar figure", () => {

@@ -26,13 +26,11 @@ import { AlertTriangle, ShieldAlert, DollarSign, CheckCircle, ArrowRight } from 
 import { CancelBackToYou, CancelFeeCallout, CancelHelprToldAndPaid, CancelSeriesNotice } from "@/components/cancellationDialog/CancelDialogNotices";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { cancellationHelperShare } from "@/lib/cancellationHelperShare";
 import { type FlatFeeStamp } from "@/lib/helprFlatFee";
 import { cancelRefundIsLessCardFee, cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "@/lib/cancelRefundCopy";
 // The ladder this dialog quotes IS the ladder Community Rules publishes —
 // read the same two constants CommunitySection does rather than restating
 // "25"/"50" as prose.
-import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits";
 // formatPriceExact, not formatPrice: this block shows the fee arithmetic,
 // and whole-dollar rounding made the lines stop adding up.
 import { formatPriceExact as formatPrice } from "@/lib/format";
@@ -183,8 +181,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
     : quotedFeeCents !== null
       ? quotedFeeCents / 100
       : Math.round(jobBudget * cancellationFeePercent) / 100;
-  // One member's share: the smallest, so "at least" below stays a floor.
-  const payeeFee = crewQuote ? Math.min(...crewQuote.perMember.filter((f) => f > 0), cancellationFee) : cancellationFee;
   // The helper's share of the cancellation fee, from the POSTER's side.
   //
   // This used to read `jobs.helper_fee_percent`, on the belief that the column
@@ -204,7 +200,6 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A flat-model job (Q1839) is priced from its own stamp, 5% + 70c, the cut
   // void-cancelled-payments takes. Floored to the whole dollar the transfer
   // really pays (Q236), in cancellationHelperShare.
-  const { platformCut, helperPayout, feeLabel, noFee } = cancellationHelperShare(payeeFee, feeStamp);
   // Q1842: a flat-model job (F3, stamped at funding) was charged the job
   // price only, so there is no service fee to keep: its refund is what was
   // paid less the card-processing fee Stripe keeps (refundToPayerCents in
@@ -266,7 +261,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
           context: { job_id: jobId, expected_fee_cents: expectedFeeCents ?? null },
         });
         hapticError();
-        toast.error(rpcErrorMessage("poster_cancel_job", error) ?? "The cancellation fee changed. Check the new amount and confirm again.");
+        toast.error(rpcErrorMessage("poster_cancel_job", error) ?? "The amount for your Helpr's time changed. Check the new amount and confirm again.");
         setQuoteNonce((n) => n + 1);
         return;
       }
@@ -422,14 +417,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     while this text promised a "full refund", which is the part
                     that was wrong. */}
                 <p className="text-ds-11 text-muted-foreground mt-0.5">
-                  {flatModel
-                    ? "Cancel anytime with no cancellation fee. Your payment is refunded, less the card-processing fee Stripe keeps."
-                    : "Cancel anytime with no cancellation fee. Your job budget is refunded in full; the service fee isn't refundable once payment has been processed."}
+                  {/* Owner 2026-10-25: no fee names or numbers to members, only what comes back. */}
+                  Cancel anytime before you hire. Most of your payment comes back to your card within the hour.
                   {keptFeeSentence}
                 </p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <CheckCircle className="w-3 h-3 text-primary shrink-0" />
-                  <span className="text-ds-11 text-primary font-medium">{flatModel ? "$0 cancellation fee · Refunded less card fee · No consequences" : "$0 cancellation fee · Budget refunded · No consequences"}</span>
+                  <span className="text-ds-11 text-primary font-medium">Nothing goes to a Helpr · No consequences</span>
                 </div>
               </div>
             </div>
@@ -446,19 +440,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
                     {hasHelper && <span className="text-ds-10 font-bold bg-foreground text-background px-1.5 py-0.5 rounded-full">YOU ARE HERE</span>}
                   </div>
                   <p className="text-ds-11 text-muted-foreground mt-0.5">
-                    Cancellation fees are <strong className="text-foreground">tiered by timing</strong> to compensate the Helpr for their committed time:
+                    Cancelling <strong className="text-foreground">24 or more hours before</strong> the start sends nothing to your Helpr. Closer to the start, part of the job is for your Helpr&rsquo;s time, they set aside; you see the exact amount here before you confirm.
                   </p>
-                  <ul className="text-ds-11 text-muted-foreground mt-1 space-y-0.5 list-disc list-inside">
-                    <li><strong className="text-foreground">24+ hours before:</strong> 0% (free)</li>
-                    <li><strong className="text-foreground">Less than 24 hours:</strong> {LATE_CANCEL_PERCENT}% fee</li>
-                    <li><strong className="text-foreground">Less than 2 hours:</strong> {VERY_LATE_CANCEL_PERCENT}% fee</li>
-                  </ul>
                   {hasHelper && keptFeeSentence && <p className="text-ds-11 text-muted-foreground mt-1">{keptFeeSentence.trim()}</p>}
                   {hasHelper && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <DollarSign className="w-3 h-3 text-muted-foreground shrink-0" />
                       <span className="text-ds-11 text-foreground font-medium">
-                        {feeTier} → {cancellationFeePercent}% fee · Strike recorded
+                        {cancellationFee > 0 ? `$${formatPrice(cancellationFee)} for your Helpr's time` : "Nothing for your Helpr's time"} · Strike recorded
                       </span>
                     </div>
                   )}
@@ -467,26 +456,13 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
 
               {hasHelper && cancellationFee > 0 && (
                 <div className="rounded-ds-sm bg-muted/50 border border-border p-3 space-y-1.5 ml-7">
-                  <p className="text-ds-10 font-semibold text-muted-foreground uppercase tracking-wide mb-1">Your fee breakdown</p>
                   <div className="flex justify-between text-ds-11">
                     <span className="text-muted-foreground">
-                      {crewQuote
-                        ? `Cancellation fee (${cancellationFeePercent}% of each hired Helpr's share, ${crewQuote.counted} of ${crew?.needed ?? crewQuote.counted})`
-                        : `Cancellation fee (${cancellationFeePercent}% of $${formatPrice(jobBudget)})`}
+                      {crewQuote ? "For your hired Helprs' time" : `For ${helperName || "your Helpr"}'s time`}
                     </span>
                     <span className="font-semibold text-foreground">${formatPrice(cancellationFee)}</span>
                   </div>
-                  {/* No fee line when the Helpr pays none (poster-fee model). */}
-                  {!noFee && (
-                    <div className="flex justify-between text-ds-11">
-                      <span className="text-muted-foreground">{crewQuote ? `Platform fee per Helpr (${feeLabel})` : `Platform fee (${feeLabel})`}</span>
-                      <span className="text-muted-foreground">−${formatPrice(platformCut)}</span>
-                    </div>
-                  )}
-                  <div className="border-t border-border pt-1.5 flex justify-between text-ds-11">
-                    <span className="text-muted-foreground">{crewQuote ? "Each hired Helpr receives" : `${helperName || "Helpr"} receives`}</span>
-                    <span className="font-semibold tabular-nums text-[hsl(var(--sienna-ink))]">at least ${formatPrice(helperPayout)}</span>
-                  </div>
+                  <p className="text-ds-11 text-muted-foreground">Most of the rest of your payment comes back to your card within the hour.</p>
                 </div>
               )}
 
@@ -524,7 +500,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
 
           {/* Fee summary callout: only when a non-zero fee applies (hasHelper + late). */}
           {hasHelper && cancellationFee > 0 && (
-            <CancelFeeCallout fee={cancellationFee} percent={cancellationFeePercent} budget={jobBudget} crew={!!crewQuote} feeTier={feeTier} />
+            <CancelFeeCallout fee={cancellationFee} crew={!!crewQuote} feeTier={feeTier} />
           )}
 
           {/* Boards 66/172 slice 2: "Back to you" is only ever the SERVER's number (see CancelBackToYou). */}

@@ -217,18 +217,18 @@ export function deriveMoneyEvents(
   // gift may have paid some or all of it, and a dispute may have refunded part
   // without a refund on the row. Then the receipt would overstate; none is shown.
   if (!job.stripe_payment_intent_id || job.disputed_at || ctx.giftOrUnknown) return out;
-  const lines: { label: string; cents: number }[] = [{ label: "Job", cents: cents(job.budget) }];
+  // Owner 2026-10-25: members never see a fee line, only what they paid. A
+  // card-cost or service fee an older job charged the poster is part of what
+  // the job cost them, so it is in the Job line; a tip's card cost is in the
+  // Tip line (what the tipper paid). The total is unchanged. The one fee shown
+  // is the one-time account setup fee.
+  const lines: { label: string; cents: number }[] = [{ label: "Job", cents: cents(job.budget) + Math.max(0, cents(job.customer_fee_amount)) }];
   if (cents(job.urgent_fee) > 0) lines.push({ label: "Urgent bonus", cents: cents(job.urgent_fee) });
-  if (cents(job.customer_fee_amount) > 0) {
-    const serviceFee = job.poster_fee_flat_cents != null || Number(job.platform_fee_percent ?? 0) > 0;
-    lines.push({ label: serviceFee ? "Service fee" : "Card processing", cents: cents(job.customer_fee_amount) });
-  }
   if (cents(job.sales_tax_amount) > 0) lines.push({ label: "Tax", cents: cents(job.sales_tax_amount) });
   if (cents(job.onboarding_fee_amount) > 0) lines.push({ label: "Account setup fee", cents: cents(job.onboarding_fee_amount) });
   for (const t of tips.filter((x) => x.tipper_id === viewerId)) {
     const q = tipChargeBreakdown(cents(t.amount));
-    lines.push({ label: "Tip", cents: q.tipCents });
-    if (q.feeCents > 0) lines.push({ label: "Tip card processing", cents: q.feeCents });
+    lines.push({ label: "Tip", cents: q.chargeCents });
   }
   const totalCents = lines.reduce((sum, l) => sum + l.cents, 0);
   const lastTip = tips.reduce((m, t) => (t.created_at > m ? t.created_at : m), "");

@@ -177,10 +177,11 @@ type Kind = "poster-emailed" | "helper" | "admin" | "ops";
 const CANCEL_NOTICES: Array<{ file: string; title: string; kind: Kind }> = [
   { file: "auto-expire-jobs/index.ts", title: "Job auto-cancelled", kind: "poster-emailed" },
   { file: "create-payment/index.ts", title: "Job cancelled", kind: "helper" },
-  // The cancellation fee paid to the Helpr (told to the Helpr); its failed transfer (told to an admin).
-  { file: "_shared/crewBlockFees.ts", title: "Cancellation fee received", kind: "helper" },
-  { file: "void-cancelled-payments/index.ts", title: "Cancellation fee received", kind: "helper" },
-  { file: "void-cancelled-payments/index.ts", title: "Cancellation fee received", kind: "helper" },
+  // The pay for a cancelled job's time sent to the Helpr (told to the Helpr; owner
+  // 2026-10-25: no fee name in its title); its failed transfer (told to an admin).
+  { file: "_shared/crewBlockFees.ts", title: "Payment for a cancelled job", kind: "helper" },
+  { file: "void-cancelled-payments/index.ts", title: "Payment for a cancelled job", kind: "helper" },
+  { file: "void-cancelled-payments/index.ts", title: "Payment for a cancelled job", kind: "helper" },
   { file: "void-cancelled-payments/index.ts", title: "Cancellation fee transfer failed", kind: "admin" },
   { file: "void-cancelled-payments/index.ts", title: "Cancellation fee transfer failed", kind: "admin" },
 ];

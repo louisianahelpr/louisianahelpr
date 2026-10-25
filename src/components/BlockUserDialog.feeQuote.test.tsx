@@ -78,14 +78,15 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ helper_confirmed_at: null }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/no\s+cancellation fee applies/);
-    expect(text).not.toMatch(/in cancellation fees will be/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
+    expect(text).not.toMatch(/is for your Helpr.s time,/);
+    expect(text).not.toMatch(/fee/i);
   });
 
   it("control: quotes the late fee once the Helpr accepted", async () => {
     rows.push(job({ helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
-    expect(await liText(/will be cancelled/)).toMatch(/about \$50 in cancellation fees will be/);
+    expect(await liText(/will be cancelled/)).toMatch(/about \$50 is for your Helpr.s time,/);
   });
 
   it("leaves out work the Helpr already finished, as block_user_and_settle does", async () => {
@@ -95,7 +96,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ id: "job-open", helper_confirmed_at: null }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/no\s+cancellation fee applies/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
     expect(text).not.toMatch(/\$50/);
   });
 
@@ -105,7 +106,7 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
     rows.push(job({ date_needed: jobLocalDateISO(1, NOW), start_time: "12:00:00", helper_confirmed_at: "2026-09-20T12:00:00Z" }));
     open();
     const text = await liText(/will be cancelled/);
-    expect(text).toMatch(/no\s+cancellation fee applies/);
+    expect(text).toMatch(/nothing\s+is kept for your Helpr.s time/);
     expect(text).not.toMatch(/\$25\b/);
   });
 });

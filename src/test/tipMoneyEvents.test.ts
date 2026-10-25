@@ -9,7 +9,7 @@
  * @mutate src/lib/jobSystemEvents.ts |   if (!job \|\| job.customer_id !== viewerId) return out; |   if (!job) return out;
  * @mutate src/lib/jobSystemEvents.ts |   if (!job.stripe_payment_intent_id \|\| job.disputed_at \|\| ctx.giftOrUnknown) return out; |   if (!job.stripe_payment_intent_id) return out;
  * @mutate src/lib/jobSystemEvents.ts |   if (job.status !== "completed" \|\| !["released", "payout_pending"].includes(job.payment_status ?? "")) return out; |   if (job.status !== "completed") return out;
- * @mutate src/lib/jobSystemEvents.ts |     if (q.feeCents > 0) lines.push({ label: "Tip card processing", cents: q.feeCents }); |     void q;
+ * @mutate src/lib/jobSystemEvents.ts |     lines.push({ label: "Tip", cents: q.chargeCents }); |     lines.push({ label: "Tip", cents: q.tipCents });
  */
 import { describe, it, expect } from "vitest";
 import { deriveMoneyEvents, type JobCharge, type PaidTip } from "@/lib/jobSystemEvents";
@@ -30,9 +30,11 @@ describe("board 181: tip pills and the payer's receipt", () => {
     expect(ev.find((e) => e.kind === "tipped")?.label).toBe("You tipped $13.50");
     const r = ev.find((e) => e.kind === "receipt")!.receipt!;
     const fee = tipChargeBreakdown(1350).feeCents;
+    // Owner 2026-10-25: no fee line. The card cost the job charged is inside
+    // "Job" and the tip's card cost inside "Tip": the total is unchanged.
+    expect(fee).toBeGreaterThan(0);
     expect(r.lines).toEqual([
-      { label: "Job", cents: 9000 }, { label: "Card processing", cents: 360 }, { label: "Tax", cents: 1013 },
-      { label: "Tip", cents: 1350 }, ...(fee > 0 ? [{ label: "Tip card processing", cents: fee }] : []),
+      { label: "Job", cents: 9000 + 360 }, { label: "Tax", cents: 1013 }, { label: "Tip", cents: 1350 + fee },
     ]);
     expect(r.totalCents).toBe(9000 + 360 + 1013 + 1350 + fee);
   });
@@ -48,12 +50,13 @@ describe("board 181: tip pills and the payer's receipt", () => {
     }
   });
 
-  it("a poster-fee job's fee line is the service fee, not card processing", () => {
-    const r = deriveMoneyEvents(job({ poster_fee_flat_cents: 70 }), [], POSTER, "Andre", JOB, CARD).find((e) => e.kind === "receipt")!.receipt!;
-    expect(r.lines.map((l) => l.label)).toContain("Service fee");
-    expect(r.lines.map((l) => l.label)).not.toContain("Card processing");
-    const legacy = deriveMoneyEvents(job({ platform_fee_percent: 12 }), [], POSTER, "Andre", JOB, CARD).find((e) => e.kind === "receipt")!.receipt!;
-    expect(legacy.lines.map((l) => l.label)).toContain("Service fee");
+  it("no receipt line names a fee, on any fee model; the one fee shown is the setup fee (owner 2026-10-25)", () => {
+    for (const over of [{ poster_fee_flat_cents: 70 }, { platform_fee_percent: 12 }, {}, { onboarding_fee_amount: 2 }]) {
+      const r = deriveMoneyEvents(job(over), [tip], POSTER, "Andre", JOB, CARD).find((e) => e.kind === "receipt")!.receipt!;
+      const labels = r.lines.map((l) => l.label);
+      expect(labels.filter((l) => /fee|processing/i.test(l) && l !== "Account setup fee")).toEqual([]);
+      expect(r.totalCents).toBe(r.lines.reduce((t, l) => t + l.cents, 0));
+    }
   });
 
   it("no receipt when the charge may not be the price: a gift, a dispute, no card charge, or an unknown gift read", () => {

@@ -2087,11 +2087,13 @@ serve(async (req) => {
         taxKeptCents: exactAgreed ? 0 : Math.round(posterBase.taxKeptCents * posterShare),
         // The Helpr is named only when the decision gave them a share.
         // Q1674: a first job also keeps its one-time $2 setup fee; named last.
+        // Owner 2026-10-25: no fee names; the Helpr's share and the one-time setup fee only.
         keptReason: setupFeeKeptReason(exactAgreed
-          ? "the rest of what you paid: the Helpr's pay you agreed to and the fees"
+          ? "the rest of what you paid, the Helpr's pay you agreed to"
           : movedHelperCents > 0
-          ? (agreement ? "the Helpr's share you agreed to and the card processing fee" : "the Helpr's share under the dispute decision and the card processing fee")
-          : "the card processing fee, which can't be returned", setupFeeKeptCents(job)),
+          ? (agreement ? "the Helpr's share you agreed to" : "the Helpr's share under the dispute decision")
+          : null, setupFeeKeptCents(job)),
+        keptUnnamed: true,
         recipientId: job.customer_id,
         jobId: job.id,
         extra: restoredGiftCents > 0

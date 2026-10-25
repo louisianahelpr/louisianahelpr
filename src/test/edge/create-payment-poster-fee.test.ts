@@ -106,7 +106,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
       const { res, args, key, modelStamp, sessionStamp } = await escrow();
       expect(res.status).toBe(200);
       expect(lineNamed(args, "Service fee")).toBeUndefined();
-      expect(modelStamp).toMatchObject({ helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_percent: 0, customer_fee_amount: 0 });
+      expect(modelStamp).toMatchObject({ helper_fee_flat_cents: 70, helper_fee_percent: 10, platform_fee_percent: 0, customer_fee_amount: 0 });
       expect(sessionStamp).toMatchObject({ customer_fee_amount: 0, helper_fee_flat_cents: 70 });
       // A job with no poster stamp never names the column (deploy order: this
       // works before 20261017230824 is live; review of slice 3a #6).
@@ -377,7 +377,7 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     seed({ switchOn: false, extra: { poster_fee_flat_cents: 70, helper_fee_flat_cents: 0, helper_fee_percent: 0, platform_fee_percent: 5, customer_fee_amount: 5.7 } });
     const { res, modelStamp, sessionStamp } = await escrow();
     expect(res.status).toBe(200);
-    expect(modelStamp).toMatchObject({ poster_fee_flat_cents: null, helper_fee_flat_cents: 70, helper_fee_percent: 5, platform_fee_percent: 0, customer_fee_amount: 0 });
+    expect(modelStamp).toMatchObject({ poster_fee_flat_cents: null, helper_fee_flat_cents: 70, helper_fee_percent: 10, platform_fee_percent: 0, customer_fee_amount: 0 });
     expect(sessionStamp).toMatchObject({ poster_fee_flat_cents: null, helper_fee_flat_cents: 70, customer_fee_amount: 0 });
   });
 

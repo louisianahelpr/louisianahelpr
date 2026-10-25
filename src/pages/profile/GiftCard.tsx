@@ -678,8 +678,8 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 >
                   ${MIN_GIFT}–${MAX_GIFT} per gift card.{" "}
                   {giftTotalCents == null
-                    ? "A card-processing fee is added at checkout."
-                    : `You'll be charged $${formatPrice(giftTotalCents / 100)} — $${formatPrice(giftAmountCents! / 100)} for them, $${formatPrice(giftFeeCents! / 100)} card processing.`}
+                    ? "Your total is shown before you pay."
+                    : `You'll be charged $${formatPrice(giftTotalCents / 100)} in total.`}
                 </p>
               </div>
 

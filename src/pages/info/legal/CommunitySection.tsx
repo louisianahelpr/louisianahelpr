@@ -35,8 +35,6 @@ import {
 import {
   MIN_JOB_BUDGET_DOLLARS,
   MAX_JOB_BUDGET_DOLLARS,
-  LATE_CANCEL_PERCENT,
-  VERY_LATE_CANCEL_PERCENT,
   FORM_1099K_TRANSACTION_THRESHOLD,
   form1099kGrossLabel,
   formatDollarsWhole,
@@ -47,7 +45,7 @@ export const CommunityContent = () => (
   <div className="space-y-3">
     <TldrCard
       items={[
-        `Cancel free 24+ hours ahead. Inside 24h, fees apply (${LATE_CANCEL_PERCENT}% / ${VERY_LATE_CANCEL_PERCENT}%). A no-show is a final warning, then a 7-day restriction an admin reviews.`,
+        `Cancel free 24+ hours ahead. Inside 24h, part of the job goes to the Helpr for their time, and you see the amount before you confirm. A no-show is a final warning, then a 7-day restriction an admin reviews.`,
         `Nothing is paid until the person who posted approves the work. If they haven't answered ${APPROVAL_WINDOW_HOURS} hours after it's marked done, Helpr support steps in.`,
         "If something's wrong, request a revision first → file a dispute → admin decides. Each step has a 72-hour window.",
         // WAS "Three strikes = ban." — false, and the single most consequential
@@ -132,24 +130,24 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={CheckCircle}
         title="24+ hours before job — free cancellation"
-        body={<p>No fee charged. The Helpr can fill the slot.</p>}
+        body={<p>Nothing is charged. The Helpr can fill the slot.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}
-        title={`Less than 24 hours before — ${LATE_CANCEL_PERCENT}% fee`}
-        body={<p><strong className="text-foreground">{LATE_CANCEL_PERCENT}% cancellation fee</strong> applied. The Helpr has already committed their time.</p>}
+        title="Less than 24 hours before — part goes to the Helpr"
+        body={<p><strong className="text-foreground">Part of the job goes to the Helpr</strong> for the time they set aside, and the rest comes back to you. The cancel screen shows the exact amount before you confirm.</p>}
       />
       <PolicyRowItem
         icon={XCircle}
-        title={`Less than 2 hours before — ${VERY_LATE_CANCEL_PERCENT}% fee`}
-        body={<p><strong className="text-foreground">{VERY_LATE_CANCEL_PERCENT}% cancellation fee</strong> applied. This is considered a very late cancellation.</p>}
+        title="Less than 2 hours before — a larger part goes to the Helpr"
+        body={<p><strong className="text-foreground">A larger part of the job goes to the Helpr</strong>, and the rest comes back to you. This is considered a very late cancellation.</p>}
         warning
       />
       <PolicyRowItem
         icon={Ban}
         title="No-show — final warning, then admin review"
         body={
-          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The person who posted the job gets their money back, less the card processing fee. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
+          <p>If a Helpr accepts a job and fails to show without prior cancellation, {NO_SHOW_LADDER_SENTENCE}. The person who posted the job gets most of their money back. <strong className="text-foreground">Even a late cancellation is better than a no-show.</strong></p>
         }
         warning
       />
@@ -258,7 +256,7 @@ export const CommunityContent = () => (
       <PolicyRowItem
         icon={Shield}
         title="Step 3 — Admin resolution (final)"
-        body={<p>An admin reviews evidence from both parties and makes a final, binding decision: full release, partial refund, or a refund of everything paid except the card processing fee.</p>}
+        body={<p>An admin reviews evidence from both parties and makes a final, binding decision: full release, partial refund, or a refund of most of what was paid.</p>}
       />
       <PolicyRowItem
         icon={AlertTriangle}
@@ -296,7 +294,7 @@ export const CommunityContent = () => (
             {CANCELLATION_LADDER_RUNGS.map((rung) => (
               <li key={rung}>{rung}</li>
             ))}
-            <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (timing-based fees still apply).</li>
+            <li>Cancelling a job <em>before</em> a Helpr is assigned does <strong>not</strong> count toward strikes (the timing rules above still apply).</li>
           </ul>
         }
       />
@@ -389,7 +387,7 @@ export const CommunityContent = () => (
           <>
             <p><strong className="text-foreground">1099-K (2025 and later):</strong> Federal threshold is {form1099kGrossLabel()} AND {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions — restored by the One Big Beautiful Bill, which repealed the planned $2,500 and $600 step-downs. Louisiana follows federal.</p>
             <p><strong className="text-foreground">1099-NEC (2026):</strong> Threshold raised from $600 to $2,000.</p>
-            <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects and remits sales tax as the marketplace facilitator. Louisiana taxes only the services it enumerates in LA R.S. 47:301(14), so tax applies to the job's labor line in taxable categories only — never to Helpr's fees, and not to most categories (cleaning, yard work, moving, errands, pet care, delivery are not enumerated taxable services).</p>
+            <p><strong className="text-foreground">Marketplace facilitator:</strong> Above $100,000 LA gross revenue, Helpr collects and remits sales tax as the marketplace facilitator. Louisiana taxes only the services it enumerates in LA R.S. 47:301(14), so tax applies to the job's labor line in taxable categories only, and not to most categories (cleaning, yard work, moving, errands, pet care, delivery are not enumerated taxable services).</p>
             <p><strong className="text-foreground">LDR e-filing mandate:</strong> All LA withholding and sales tax returns filed electronically as of Jan 1, 2026.</p>
             <p><strong className="text-foreground">Worker classification:</strong> Helprs qualify as independent contractors under the Economic Reality Test.</p>
           </>

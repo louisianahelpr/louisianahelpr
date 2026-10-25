@@ -416,8 +416,10 @@ describe("the quoter's send-a-quote form", () => {
     // Board 43: − / + move the price by $5; the take-home at that price is the apply sheet's own figure.
     fireEvent.click(screen.getByRole("button", { name: "$5 more" }));
     expect(screen.getByLabelText("Your price in whole dollars")).toHaveValue("120");
-    // $120 - (5% of $120 + $0.70 = $6.70) = $113.30, floored to the dollar the transfer pays.
-    expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$113 after the Helpr fee \(5% \+ \$0\.70\) if this quote is booked/);
+    // $120 - (10% of $120 + $0.70 = $12.70) = $107.30, floored to the dollar the transfer pays.
+    // Owner 2026-10-25: the take-home only, no fee name or rate.
+    expect(document.querySelector("[data-quote-take-home]")?.textContent).toMatch(/You take home \$107 if this quote is booked/);
+    expect(document.querySelector("[data-quote-take-home]")?.textContent).not.toMatch(/fee|%/i);
     fireEvent.change(screen.getByLabelText("What's included"), { target: { value: "Mow, edge and blow" } });
     expect(screen.getByRole("button", { name: "Send quote · $120" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("When you can do it"), { target: { value: "Friday after 3" } });

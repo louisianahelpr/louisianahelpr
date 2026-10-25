@@ -163,15 +163,14 @@ export function BlockUserDialog({
                       estimatedFee > 0 ? (
                         <>
                           This counts as a late cancellation: about{" "}
-                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> in cancellation fees will be
-                          charged and paid to your Helpr, the rest of your escrow is
-                          refunded, and a cancellation strike is recorded on your account.
+                          <span className="tabular-nums" style={{ color: "hsl(var(--sienna-ink))" }}>${formatPriceExact(estimatedFee)}</span> is for your Helpr&rsquo;s time,
+                          most of the rest of your payment comes back to you, and a
+                          cancellation strike is recorded on your account.
                         </>
                       ) : (
                         <>
-                          You&rsquo;re far enough ahead of the job date that no
-                          cancellation fee applies — your escrow is refunded, less the card
-                          processing fee — but
+                          You&rsquo;re far enough ahead of the job date that nothing
+                          is kept for your Helpr&rsquo;s time — most of your payment comes back to you — but
                           a cancellation strike is still recorded on your account.
                         </>
                       )

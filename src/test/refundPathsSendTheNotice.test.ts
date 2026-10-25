@@ -227,13 +227,15 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     expect(v.match(/key: `release:\$\{pi\.id\}`, kind: "release"/g)?.length).toBe(2);
   });
 
-  it("the notice itself names the amount, the card, the reference, 5-10 business days and what was kept, and is emailed", () => {
+  it("the notice itself names the amount, the card, the reference, 5-10 business days and what else happened (never a fee, owner 2026-10-25), and is emailed", () => {
     const src = blankComments(readFileSync(join(FN, "_shared/refundNotice.ts"), "utf8"));
     expect(src).toMatch(/\/functions\/v1\/send-notification-email/);
     expect(src).toMatch(/from\("refund_notices"\)\.insert/);
     expect(src).toMatch(/5-10 business days/);
     expect(src).toMatch(/refund reference \$\{ref\}/);
     expect(src).toMatch(/describePaymentMethod\(input\.method\)/);
-    expect(src).toMatch(/We kept \$\{kept\}/);
+    expect(src).toMatch(/We refunded \$\{amount\}\$\{what\} to \$\{to\}/);
+    expect(src).toMatch(/This refund doesn't include \$\{why\}\./);
+    expect(src).not.toMatch(/We kept \$\{kept\}/);
   });
 });

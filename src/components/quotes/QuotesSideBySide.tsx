@@ -53,7 +53,7 @@ export function QuotesSideBySide({ quotes }: { quotes: RequestQuote[] }) {
         </table>
       </div>
       <p className="text-ds-12 text-muted-foreground">
-        Each amount is the job price. Your total with the card fee and any tax is shown before you pay. To accept,
+        Each amount is the job price. Your total, with any tax, is shown before you pay. To accept,
         use {live.map(first).join(", ")}&apos;s card below.
       </p>
     </section>

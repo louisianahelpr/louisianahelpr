@@ -134,13 +134,13 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
 
         {owed.data && owed.data.length > 0 && (
           <div data-receipts-fees-owed="" className={`${card} px-4 py-3`}>
-            <p className={label} style={quiet}>Fees owed</p>
+            <p className={label} style={quiet}>Amounts owed</p>
             <ul className="mt-1.5 space-y-1.5">
               {owed.data.map((d) => (
                 <li key={d.id} className="flex items-center justify-between gap-3">
                   <span className="min-w-0">
                     <span className="block text-ds-14 font-semibold" style={ink}>
-                      {d.kind === "fault" ? "Card fee from a job" : "Card fee from a refunded sale"}
+                      {d.kind === "fault" ? "Amount owed from a job you were ruled at fault on" : "Amount owed from a refunded sale"}
                     </span>
                     <span className="block text-ds-12 mt-0.5" style={quiet}>Taken from your next payout</span>
                   </span>

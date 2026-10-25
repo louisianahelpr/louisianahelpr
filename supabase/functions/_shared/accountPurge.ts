@@ -475,7 +475,7 @@ async function findShopOrderInFlight(admin: PurgeCapableClient, userId: string):
  * business (20261004220059), so "a tip" is all it says.
  */
 export const MONEY_OWED_BLOCKS_DELETION_MESSAGE =
-  "Money is still on its way to you: a cancellation fee, a tip, or a payout held by a bank dispute. You can delete your account once it has been paid or settled.";
+  "Money is still on its way to you: a payment for a cancelled job, a tip, or a payout held by a bank dispute. You can delete your account once it has been paid or settled.";
 
 /** The statuses in which each ledger still owes the member money (Q2273). */
 export const CANCELLATION_FEE_OWED_STATUSES = ["pending", "failed"];

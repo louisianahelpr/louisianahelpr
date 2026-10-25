@@ -22,7 +22,7 @@
  | IF true THEN
 
  * @mutate supabase/migrations/20261012233226_platform_series_end_refunds_in_full.sql | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon, authenticated; | REVOKE ALL ON public.series_platform_ends FROM PUBLIC, anon;
- * @mutate supabase/migrations/20261014084428_platform_series_end_keeps_card_fee.sql | Any visit you already paid for that nobody is booked on is refunded, less the card processing fee. Questions | Any visit you already paid for that nobody is booked on is refunded in full. Questions
+ * @mutate supabase/migrations/20261025203540_notices_never_name_the_helpr_fee.sql | $q$Most of what you paid for any visit nobody is booked on comes back to your card.$q$ | $q$Any visit you already paid for that nobody is booked on is refunded in full.$q$
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -66,11 +66,13 @@ describe("the platform can end a recurring series (Q417 c, d)", () => {
     const sql = blankSqlComments(defs.get("end_recurring_series_by_platform")!.stmt);
     const helprBlock = sql.slice(sql.indexOf("'Recurring series ended',"), sql.indexOf("FROM ( SELECT h.helper_id") > 0 ? sql.indexOf("FROM ( SELECT h.helper_id") : sql.indexOf("FROM (\n      SELECT h.helper_id"));
     expect(helprBlock).not.toMatch(/disputed/);
-    // The poster is told a paid, unbooked visit is refunded LESS the card
-    // processing fee, whoever ended it (owner, 2026-10-14: "we should never
-    // absorb any fee"; this replaced Q1735's "in full", 20261014084428).
-    expect(p).toMatch(/WHEN 'chargeback' THEN format\([^)]*refunded, less the card processing fee\./);
-    expect(p).toMatch(/ELSE format\('Louisiana Helpr ended your recurring series[^)]*is refunded, less the card processing fee\./);
+    // The poster is told MOST of a paid, unbooked visit comes back, whoever
+    // ended it (owner, 2026-10-14: "we should never absorb any fee"; this
+    // replaced Q1735's "in full", 20261014084428), and never names the fee
+    // (owner 2026-10-25, 20261025203540).
+    expect(p).toMatch(/WHEN 'chargeback' THEN format\([^)]*Most of what you paid for any visit nobody is booked on comes back to your card\./);
+    expect(p).toMatch(/ELSE format\('Louisiana Helpr ended your recurring series[^)]*Most of what you paid for any visit nobody is booked on comes back to your card\./);
+    expect(p).not.toMatch(/card processing fee/);
     expect(p).not.toMatch(/refunded in full/);
     // ...and the admin-end record is still written (it no longer changes a refund).
     expect(p).toContain("IF p_kind = 'admin' THEN INSERT INTO public.series_platform_ends (parent_job_id, end_kind, reason, admin_id) VALUES (v_job.id, p_kind, btrim(p_reason), p_admin) ON CONFLICT (parent_job_id) DO NOTHING; END IF;");

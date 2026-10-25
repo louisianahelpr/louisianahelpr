@@ -42,11 +42,9 @@ export const URGENT_FEE_PRESETS = [5, 10, 15, 20] as const;
 /** One-time platform onboarding fee charged on a poster's first job. */
 export const ONBOARDING_FEE_CENTS = 200;
 
-/** Cancellation fee applied when a poster cancels < 24h before start. */
-export const LATE_CANCEL_PERCENT = 25;
-
-/** Cancellation fee applied when a poster cancels < 2h before start. */
-export const VERY_LATE_CANCEL_PERCENT = 50;
+// The late-cancel ladder (25% under 24h, 50% under 2h) lives with the server
+// rule (cancellationFee.ts); members never see its percentages (owner
+// 2026-10-25), so no copy constant is kept here.
 
 /**
  * Format a whole-dollar amount for display without decimals, e.g.

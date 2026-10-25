@@ -90,7 +90,7 @@ describe("CancellationDialog — a gift paid toward the job", () => {
   it("a $100 gift on a $100 job with a $20 urgent fee: a card paid the rest, so the card copy names both", async () => {
     giftRead = { data: [{ status: "redeemed", amount: 100, payment_status: "paid" }], error: null };
     const t = await cancelAndReadToast({ jobUrgentFee: 20 });
-    expect(t).toMatch(/^Job cancelled. Your card payment returns to your card, less .*, and your gift goes back to your gift balance within the hour\.$/);
+    expect(t).toBe("Job cancelled. Most of your card payment comes back to your card within the hour, and your gift goes back to your gift balance.");
     expect(t).not.toMatch(/No card was charged/);
   });
 
@@ -98,7 +98,7 @@ describe("CancellationDialog — a gift paid toward the job", () => {
     giftRead = { data: [{ status: "redeemed", amount: 100, payment_status: "paid" }], error: null };
     const posterFee = { poster_fee_flat_cents: 70, customer_fee_amount: 5.7 };
     const t = await cancelAndReadToast({ posterFee } as Partial<typeof props>);
-    expect(t).toMatch(/^Job cancelled. Your card payment returns to your card, less .*, and your gift goes back to your gift balance within the hour\.$/);
+    expect(t).toBe("Job cancelled. Most of your card payment comes back to your card within the hour, and your gift goes back to your gift balance.");
     expect(t).not.toMatch(/No card was charged/);
     toastSuccess.mockClear();
     // A gift worth the job AND its fee paid it all.
@@ -115,7 +115,7 @@ describe("CancellationDialog — a gift paid toward the job", () => {
   it("the cost not passed: a spent gift claims neither 'no card' nor a card split", async () => {
     giftRead = { data: [{ status: "redeemed", amount: 100, payment_status: "paid" }], error: null };
     const t = await cancelAndReadToast({ jobUrgentFee: undefined });
-    expect(t).toMatch(/^Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card/);
+    expect(t).toMatch(/^Job cancelled. Your gift goes back to your gift balance within the hour, and most of any card payment comes back to your card/);
   });
 
   it("a failed gift read is neutral, never the card copy", async () => {
@@ -127,7 +127,7 @@ describe("CancellationDialog — a gift paid toward the job", () => {
   it("control: no gift keeps the card copy", async () => {
     giftRead = { data: [], error: null };
     const t = await cancelAndReadToast();
-    expect(t).toMatch(/returns to your card/);
+    expect(t).toMatch(/comes back to your card/);
     expect(t).not.toMatch(/gift/);
   });
 });

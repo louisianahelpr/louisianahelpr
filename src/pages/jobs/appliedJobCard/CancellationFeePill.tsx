@@ -43,12 +43,13 @@ export function CancellationFeePill({
   // The card used to say "$X to you after the platform fee, pending" — two
   // phrasings of one number, read minutes apart, is how a user decides the
   // app is guessing.
+  // Owner 2026-10-25: members never see a fee name, only the amount they get.
   const statusCopy: Record<string, string> = {
-    pending: `You'll receive approximately ${netAmt} as a cancellation fee — processing`,
-    charged: `You received ${netAmt} as a cancellation fee`,
-    waived:  `Cancellation fee waived`,
+    pending: `You'll receive about ${netAmt} for the cancelled job — on its way`,
+    charged: `You received ${netAmt} for the cancelled job`,
+    waived:  `No payment for the cancelled job`,
   };
-  const label = statusCopy[status] ?? `You'll receive approximately ${netAmt} as a cancellation fee`;
+  const label = statusCopy[status] ?? `You'll receive about ${netAmt} for the cancelled job`;
   const isCharged = status === "charged";
   return (
     /* NO PILL. Owner, 2026-09-12: "no pills" — asked specifically about the fee

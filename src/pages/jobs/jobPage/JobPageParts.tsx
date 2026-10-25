@@ -8,7 +8,6 @@ import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { computeNet } from "@/components/dashboard/JobPrice";
 import { helperShareCount } from "@/lib/helperEarnings";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
-import { flatFeePercentOf, helprPaysNoFee, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard";
@@ -69,33 +68,24 @@ export function HelprMoney({ job }: { job: JobPageRow }) {
   const { profile } = useCurrentUser();
   // Split only on a group job (helperShareCount; helpersNeededSplitIsGroupGated).
   const helpers = helperShareCount(job);
-  const flat = isFlatFeeJob(job);
-  const keepsAll = helprPaysNoFee(job);
-  // A fee-stamped job pays by its stamp (5% + 70c); an older unstamped job is
+  // A fee-stamped job pays by its stamp; an older unstamped job is
   // charged the viewer's own tier rate at payout, the same rate the feed's
   // "You earn" figure uses (useDashboardData: tierFeePercent of the profile).
   const tierPct = tierFeePercent(profile?.subscription_tier, profile?.subscription_expires_at);
   const net = computeNet(job.budget, tierPct, job.urgent_fee ?? 0, helpers, job.status === "disputed" ? 0 : firstPayoutFee, job).netEarnings;
-  const pct = flatFeePercentOf(job);
-  const flatCents = Number(job.helper_fee_flat_cents ?? 0);
-  // A job posted before the flat fee (no helper_fee_flat_cents stamp) is still paid out at the tier rate by
-  // release-payout / process-scheduled-payouts (getHelperFeePercent), so the page says so and why (owner
-  // check 2026-10-21: 1 real open job on prod was still legacy-priced).
-  const feeLine = !flat
-    ? `Helpr's fee (${tierPct}%) comes out of your payout. This job was posted before the flat fee, so the older fee applies.`
-    : keepsAll
-      ? "You keep the whole price."
-      : `Helpr's fee (${pct}% + ${flatCents}¢) comes out of your payout.`;
+  // Owner 2026-10-25: members never see the Helpr fee, its rate or its maths,
+  // only the take-home (and the one-time setup fee on the payout it comes out of).
+  const lines = [
+    helpers > 1 ? `Your share of a job for ${helpers} Helprs.` : null,
+    firstPayoutFee > 0 && job.status !== "disputed" ? `After the one-time $${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.` : null,
+  ].filter(Boolean);
   return (
     <div data-helpr-money="" className={`${CARD} lg:border-t lg:!border-border lg:pt-4`}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-ds-15 font-semibold">You take home</p>
         <p className={`text-ds-28 font-bold tabular-nums leading-none ${MONEY}`}>${formatPriceFloor(net)}</p>
       </div>
-      <p className="mt-1.5 text-ds-13 text-muted-foreground">
-        {[`$${formatPrice(job.budget)} job${helpers > 1 ? ` for ${helpers} Helprs` : ""}`, feeLine].join(" · ")}
-        {firstPayoutFee > 0 && job.status !== "disputed" ? ` After the one-time $${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.` : ""}
-      </p>
+      {lines.length > 0 && <p className="mt-1.5 text-ds-13 text-muted-foreground">{lines.join(" ")}</p>}
     </div>
   );
 }

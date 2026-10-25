@@ -631,7 +631,6 @@ serve(async (req) => {
       const flatCardFeeKeptCents = isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
         ? Math.min(unfilledCents, Math.floor((crewStripeFeeCents * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
         : 0;
-      const cardFeeKeptCents = feeProRataCents - feeReturnCents + flatCardFeeKeptCents;
       const taxReturnCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
       const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents;
       /**
@@ -710,16 +709,12 @@ serve(async (req) => {
           cardCents > 0 ? `$${formatExactDollars(cardCents / 100)} is being refunded to your card` : null,
           giftRestoredCents > 0 ? `$${formatExactDollars(giftRestoredCents / 100)} is back on your gift card balance` : null,
         ].filter(Boolean).join(" and ");
-        const feeTaxClause = feeReturnCents > 0 && taxReturnCents > 0
-          ? ", including that share of the service fee and tax"
-          : feeReturnCents > 0 ? ", including that share of the service fee"
-          : taxReturnCents > 0 ? ", including that share of the tax" : "";
-        // Owner, 2026-10-14: the card processing fee is never refunded; say so
-        // whenever this refund kept some of it.
-        const cardFeeClause = cardFeeKeptCents > 0 ? " The card processing fee can't be returned, so it isn't part of this refund." : "";
+        // Owner 2026-10-25: members never see a fee named; the notice says
+        // what comes back (the share of tax is not a fee and is still named).
+        const feeTaxClause = taxReturnCents > 0 ? ", including that share of the tax" : "";
         const why = decision
-          ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.${cardFeeClause}`
-          : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.${cardFeeClause}`;
+          ? `Following the dispute decision on "${job.title}", ${parts}${feeTaxClause}.`
+          : `"${job.title}" was finished by fewer Helprs than you paid for, so for the unfilled spots ${parts}${feeTaxClause}.`;
         if (refundId && cardCents > 0) {
           // Q1714: a card refund gets THE refund notice (in the app and by
           // email), claimed on the refund's id, so the charge.refunded
@@ -2069,7 +2064,7 @@ serve(async (req) => {
 
         const feeParts = [
           owesOnboardingFee ? `one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted` : "",
-          helprFaultFeeCents > 0 ? `$${formatExactDollars(helprFaultFeeCents / 100)} card fee from a job you were ruled at fault on deducted` : "",
+          helprFaultFeeCents > 0 ? `$${formatExactDollars(helprFaultFeeCents / 100)} owed from a job you were ruled at fault on deducted` : "",
         ].filter(Boolean);
         const feeNote = feeParts.length > 0 ? ` (${feeParts.join("; ")})` : "";
         await insertNotifications(supabaseAdmin, {

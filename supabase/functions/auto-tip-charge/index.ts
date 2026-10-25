@@ -737,8 +737,8 @@ serve(async (req) => {
             off_session: true,
             confirm: true,
             description:
-              `Auto-tip — job ${jobId}: $${(tipQuote.tipCents / 100).toFixed(2)} tip to your Helpr + ` +
-              `$${(tipQuote.feeCents / 100).toFixed(2)} card processing`,
+              // Owner 2026-10-25: no card-fee line to the tipper (Stripe shows this on the receipt).
+              `Auto-tip — job ${jobId}: your Helpr receives the whole $${(tipQuote.tipCents / 100).toFixed(2)} tip`,
             // The asymmetry this closes: a FAILED auto-tip already gets a
             // notification (giveUp, above) — a successful one, the card
             // actually being charged off-session with no confirmation step
@@ -826,7 +826,7 @@ serve(async (req) => {
             user_id: c.customer_id,
             type: "payment",
             title: "Your auto-tip was sent",
-            message: `We sent your Helpr a $${(tipQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your card was charged $${(tipQuote.chargeCents / 100).toFixed(2)}, including $${(tipQuote.feeCents / 100).toFixed(2)} card processing. No action needed.`,
+            message: `We sent your Helpr a $${(tipQuote.tipCents / 100).toFixed(2)} tip for this job — they receive all of it. Your card was charged $${(tipQuote.chargeCents / 100).toFixed(2)} in total. No action needed.`,
             link: `/posts?job=${c.job_id}`,
           });
           if (successNotifyErr) {

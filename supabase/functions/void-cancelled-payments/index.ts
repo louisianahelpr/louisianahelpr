@@ -129,7 +129,7 @@ serve(async (req) => {
        */
       withholdCents = 0,
       /** Q1806: what the kept cents paid, named in the poster's "gift is back" notice. */
-      withholdReason = "the cancellation fee for the crew spots you closed",
+      withholdReason = "the crew members whose spots you closed close to the start",
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
       let keptForBlockFees = 0;
@@ -318,7 +318,7 @@ serve(async (req) => {
       job: { id: string; customer_id?: string | null },
       // deno-lint-ignore no-explicit-any
       pi: any,
-      n: { key: string; kind: "refund" | "release"; amountCents: number; keptCents: number; keptReason: string | null },
+      n: { key: string; kind: "refund" | "release"; amountCents: number; keptCents: number; keptReason: string | null; keptUnnamed?: boolean },
     ) => {
       const charge = pi?.latest_charge && typeof pi.latest_charge === "object" ? pi.latest_charge : null;
       const result = await sendRefundNotice(supabaseAdmin, {
@@ -328,6 +328,7 @@ serve(async (req) => {
         amountCents: n.amountCents,
         keptCents: n.keptCents,
         keptReason: n.keptReason,
+        keptUnnamed: n.keptUnnamed,
         recipientId: job.customer_id ?? null,
         jobId: job.id,
         method: paymentMethodFromCharge(charge),
@@ -868,8 +869,9 @@ serve(async (req) => {
         await insertNotifications(supabaseAdmin, {
           user_id: helperId,
           job_id: job.id,
-          title: "Cancellation fee received",
-          message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
+          // Owner 2026-10-25: the amount they get, never a fee name or rate.
+          title: "Payment for a cancelled job",
+          message: `You received $${formatPayoutDollars(helperPayout)} for "${job.title}", which was cancelled.`,
           type: "payment",
           link: "/profile?tab=earnings",
         });
@@ -1340,8 +1342,8 @@ serve(async (req) => {
           await insertNotifications(supabaseAdmin, {
             user_id: share.helper_id,
             job_id: job.id,
-            title: "Cancellation fee received",
-            message: `You received a $${formatPayoutDollars(memberPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
+            title: "Payment for a cancelled job",
+            message: `You received $${formatPayoutDollars(memberPayout)} for "${job.title}", which was cancelled.`,
             type: "payment",
             link: "/profile?tab=earnings",
           });
@@ -2337,8 +2339,8 @@ serve(async (req) => {
       /** Q1806: what the gift's kept cents paid, for the poster's "gift is back" notice. */
       const giftKeptReason = (feeOwed: boolean, blockOwed: boolean) =>
         [
-          feeOwed ? `the cancellation fee for your ${crewShares ? "crew" : "Helpr"}` : null,
-          blockOwed ? "the cancellation fee for the crew spots you closed" : null,
+          feeOwed ? `your ${crewShares ? "crew" : "Helpr"} for their time` : null,
+          blockOwed ? "the crew members whose spots you closed close to the start" : null,
         ].filter((x): x is string => !!x).join(" and ") || undefined;
 
       /**
@@ -2506,8 +2508,8 @@ serve(async (req) => {
         }
         const giftBlockCents = crewBlockFeeCents(blockFeeRows);
         const giftKeptFor = [
-          giftFeeCents > 0 ? `the cancellation fee for your ${crewShares ? "crew" : "Helpr"}` : null,
-          giftBlockCents > 0 ? "the cancellation fee for the crew spots you closed" : null,
+          giftFeeCents > 0 ? `your ${crewShares ? "crew" : "Helpr"} for their time` : null,
+          giftBlockCents > 0 ? "the crew members whose spots you closed close to the start" : null,
         ].filter((x): x is string => !!x).join(" and ") || undefined;
         const updated = await settleCancelledJob(
           job,
@@ -2589,10 +2591,10 @@ serve(async (req) => {
             }
             // Q1714: the rest of the hold goes back; the poster is told what and
             // why once the job is settled below.
-            const both = cancellationFee > 0 && blockCents > 0;
+            // Owner 2026-10-25: no fee names; what went to the Helpr for their time.
             const keptParts = [
-              cancellationFee > 0 ? `${both ? `${refundDollars(Math.round(cancellationFee * 100))} ` : "the "}cancellation fee for your Helpr` : null,
-              blockCents > 0 ? `${both ? `${refundDollars(blockCents)} ` : "the fees "}for the crew spots you closed close to the start` : null,
+              cancellationFee > 0 ? `${refundDollars(Math.round(cancellationFee * 100))} for your Helpr's time` : null,
+              blockCents > 0 ? `${refundDollars(blockCents)} for the crew spots you closed close to the start` : null,
             ].filter((x): x is string => !!x);
             const holdFeeOnLedger = await payCancellationFee(cancellationFee, captured);
             await payBlockFees(captured);
@@ -2618,6 +2620,7 @@ serve(async (req) => {
               key: `release:${pi.id}`, kind: "release",
               amountCents: holdSplit.backCents, keptCents: captureCents,
               keptReason: keptParts.join(" and ") || null,
+              keptUnnamed: true,
             });
             results.push({ job_id: job.id, title: job.title, status: settledFee ? "fee_captured" : "fee_captured_not_settled", cancellation_fee: cancellationFee });
           } else {
@@ -2830,24 +2833,22 @@ serve(async (req) => {
               // 0) paid its card cost as customer_fee_amount: that is the card
               // processing fee, not a service fee (cardCostFeeCents; lh-money-escrow
               // review 2026-10-25 #2).
-              const serviceKeptCents = fullSeriesRefund || cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKeptCents);
-              const processingKeptCents = Math.max(0, nonRefundableCents - setupKeptCents - serviceKeptCents);
+              // Owner 2026-10-25: members never see a card or service fee
+              // named; the notice names only what went to the Helpr for their
+              // time, closed crew spots and the one-time setup fee.
               const feeCents = Math.round(cancellationFee * 100);
               const parts = [
-                feeCents > 0 ? `${refundDollars(feeCents)} cancellation fee paid to your Helpr` : null,
+                feeCents > 0 ? `${refundDollars(feeCents)} for your Helpr's time` : null,
                 blockFeeCents > 0 ? `${refundDollars(blockFeeCents)} for the crew spots you closed close to the start` : null,
-                serviceKeptCents > 0 ? `${refundDollars(serviceKeptCents)} service fee, which isn't refunded when a job is cancelled` : null,
-                processingKeptCents > 0 ? `${refundDollars(processingKeptCents)} card processing fee, which can't be returned` : null,
-                // Q2082 (a), owner 2026-10-18: the tax on what is kept is kept too.
-                voidSplit.taxKeptCents > 0 ? `${refundDollars(voidSplit.taxKeptCents)} sales tax on what we kept, which isn't refunded` : null,
-                setupKeptCents > 0 ? `${refundDollars(setupKeptCents)} one-time account setup fee, which is paid once and never refunded` : null,
+                setupKeptCents > 0 ? `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once and never refunded` : null,
               ].filter((x): x is string => !!x);
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
               cancellationRefundNotice = {
                 key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,
                 // An earlier refund on this charge (Q1675) went back too: not kept.
                 keptCents: Math.max(0, capturedCents - chargeRefundedCents - refundedCents),
-                keptReason: parts.length === 1 ? parts[0].replace(/^\$[\d,.]+ /, "the ") : parts.join(", ") || null,
+                keptReason: (parts.length <= 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`) ?? null,
+                keptUnnamed: true,
               };
             }
             // Ledger row (F-MONEY-04). Best-effort: the refund is already out,

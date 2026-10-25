@@ -31,7 +31,7 @@
  *
  * @mutate supabase/functions/_shared/salesTax.ts | export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005"; | export const TAXABLE_LABOR_TAX_CODE = "txcd_20030000";
  * @mutate supabase/functions/create-bgc-payment/index.ts | ...(customerId ? { customer_update: { address: "auto" as const } } : {}), | ...({}),
- * @mutate supabase/functions/create-payment/index.ts | description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE }, | description: "Added so your Helpr receives the full tip." },
+ * @mutate supabase/functions/create-payment/index.ts | tip.`, tax_code: NONTAXABLE_TAX_CODE }, | tip.` },
  * @mutate supabase/functions/calculate-tax/index.ts | tax_code: TAXABLE_LABOR_TAX_CODE, | tax_code: "txcd_20030000",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts |           tax_behavior: "exclusive",\n | \n
  * @mutate supabase/functions/_shared/salesTax.ts |   return isLaborTaxable(category) ? TAXABLE_LABOR_TAX_CODE : NONTAXABLE_TAX_CODE; |   return NONTAXABLE_TAX_CODE;

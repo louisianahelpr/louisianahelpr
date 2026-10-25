@@ -573,8 +573,9 @@ describe("charge-recurring-visits edge function", () => {
       .map((w) => w.payload as { user_id: string; message: string })
       .find((p) => p.user_id === POSTER_ID);
     expect(notice?.message).toContain("We refunded $96.80");
-    // Q1714: THE refund notice: amount, reference, and the card fee kept.
-    expect(notice?.message).toContain("We kept $3.20: the card processor's fee and any sales tax on it, which can't be returned.");
+    // Q1714: THE refund notice: amount and reference. Owner 2026-10-25: the
+    // card fee kept is never named, and the poster is not sent to support for it.
+    expect(notice?.message).not.toMatch(/card processor|card processing|card fee|service fee|Contact support|We kept/i);
     expect(notice?.message).toContain("the date changed hands");
   });
 
@@ -2784,7 +2785,10 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("We kept $3.20: the card processor's fee");
+    // Owner 2026-10-25: the payer is told the exact amount back, and no fee is named.
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"));
+    expect(told).toContain("We refunded $96.80");
+    expect(told).not.toMatch(/card processor|card processing|card fee|service fee|Contact support|We kept/i);
     expect(b.errors).toBe(0);
   });
 
@@ -2861,7 +2865,10 @@ describe("charge-recurring-visits edge function", () => {
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create.mock.calls[0][0]).toEqual({ payment_intent: "pi_orphan", amount: 9680, metadata: { fee_withheld: "true" } });
     expect(visitPaymentWrites("update").map((w) => (w.payload as Record<string, unknown>).status)).toEqual(["refunded"]);
-    expect(JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"))).toContain("We kept $3.20: the card processor's fee");
+    // Owner 2026-10-25: the payer is told the exact amount back, and no fee is named.
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications"));
+    expect(told).toContain("We refunded $96.80");
+    expect(told).not.toMatch(/card processor|card processing|card fee|service fee|Contact support|We kept/i);
     expect(b.errors).toBe(0);
   });
 
@@ -3172,7 +3179,7 @@ describe("charge-recurring-visits edge function", () => {
 
   // Q809 (3): a payment no bigger than the card fee returns nothing: the
   // payer is never told "refunded" for $0.
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |             ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded, less the card fee" : "Your visit payment couldn't be refunded") |             ? "Your visit payment was refunded, less the card fee"
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |             ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded" : "Your visit payment couldn't be refunded") |             ? "Your visit payment was refunded"
   it("Q809 (3): a fee-withheld visit whose fee eats the whole payment is not announced as refunded", async () => {
     const fn = await loadConfigured();
     seedHappyPath();

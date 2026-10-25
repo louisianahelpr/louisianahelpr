@@ -21,7 +21,7 @@
 // `src/lib/helprFlatFee.parity.test.ts` fails the build if the two diverge.
 
 /** The percentage of each Helpr's pay the platform keeps on a flat-model job. */
-export const HELPR_FLAT_FEE_PERCENT = 5;
+export const HELPR_FLAT_FEE_PERCENT = 10;
 
 /** The fixed part of the flat fee, in cents, per Helpr payout. */
 export const HELPR_FLAT_FEE_CENTS = 70;

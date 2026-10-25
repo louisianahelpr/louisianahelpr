@@ -95,7 +95,7 @@ export function RefundAnswerDialog({
       hapticSuccess();
       toast.success(
         status === "agreed"
-          ? `Agreed. ${first} gets the refund and the rest comes to you after your fee.`
+          ? `Agreed. ${first} gets the refund and you take home your pay on the rest.`
           : status === "finish_offered"
           ? `Sent. ${first} can accept or decline the new time.`
           : "Sent. A real person at Helpr will decide.",

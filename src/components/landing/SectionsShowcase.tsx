@@ -179,7 +179,7 @@ export function SectionsShowcase() {
 }
 
 const MONEY_STEPS: { icon: LucideIcon; title: string; body: string; done?: boolean }[] = [
-  { icon: CreditCard, title: "Paid through Helpr", body: "The full price, fee included, is shown before anyone pays." },
+  { icon: CreditCard, title: "Paid through Helpr", body: "The full price is shown before anyone pays." },
   { icon: Lock, title: "Held safely", body: "Helpr holds the money. Nobody is paid out until the work is done." },
   { icon: Camera, title: "Before and after photos", body: "The person hiring can ask for photo proof, so everyone can see it's done right." },
   {

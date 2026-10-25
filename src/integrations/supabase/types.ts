@@ -4548,6 +4548,7 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
       job_match_email_state: {
         Row: {
           last_emailed_day: string | null

@@ -2,7 +2,8 @@
 // @mutate src/lib/jobPaymentCardState.ts |   failed: "failed",\n  chargeback | failed: "unfunded",\n  chargeback
 // @mutate src/components/job-card/jobStatusLine.ts | if (problem) return problem;\n  if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) { | if (completedAndRefunded(job)) return "done_refunded";\n  switch (job.status) {
 // @mutate src/pages/posts/PostedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
-// @mutate src/pages/jobs/AppliedJobCard.tsx | <PaymentProblemNotice job={job} /> | {null}
+// @mutate src/pages/jobs/appliedJobCard/HelperMoneyNotices.tsx | {problem && <PaymentProblemNotice job={job} />} | {null}
+// @mutate src/pages/jobs/AppliedJobCard.tsx | <HelperMoneyNotices job={job} | <div data-x={job}
 // @mutate src/components/job-card/activityFilters.ts | if (cardPaymentProblem(j)) return "needs_you"; | if (false) return "needs_you";
 // @mutate src/components/job-card/activityFilters.ts | if (app.status !== "rejected" && cardPaymentProblem(app.job)) return "needs_you"; | if (false) return "needs_you";
 import { describe, expect, it } from "vitest";
@@ -60,8 +61,12 @@ import { readdirSync } from "./helpers/trackedFiles";
 const WEBHOOK = join(process.cwd(), "supabase", "functions", "stripe-webhook");
 const CARDS = {
   poster: join(process.cwd(), "src", "pages", "posts", "PostedJobCard.tsx"),
-  helper: join(process.cwd(), "src", "pages", "jobs", "AppliedJobCard.tsx"),
+  // The Helpr's card mounts it through its money band (owner 2026-10-25: the
+  // band also carries "Finish payout setup to get paid"); the card itself
+  // must still mount that band (checked below).
+  helper: join(process.cwd(), "src", "pages", "jobs", "appliedJobCard", "HelperMoneyNotices.tsx"),
 };
+const HELPER_CARD = join(process.cwd(), "src", "pages", "jobs", "AppliedJobCard.tsx");
 
 /** Writes built in a variable before the `.from()` call, with the table they go to. */
 const DETACHED: { file: string; value: string; table: string }[] = [
@@ -246,6 +251,7 @@ describe("C. both parties' cards show the money problem, in the same words", () 
       expect(src, `${side} card no longer renders PaymentProblemNotice`).toMatch(/<PaymentProblemNotice job=\{job\} \/>/);
       expect(src, `${side} card no longer gates the notice on cardPaymentProblem`).toMatch(/cardPaymentProblem\(job\)/);
     }
+    expect(blankComments(readFileSync(HELPER_CARD, "utf8")), "the Helpr's card no longer mounts its money band").toMatch(/<HelperMoneyNotices job=\{job\}/);
   });
 });
 

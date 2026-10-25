@@ -91,6 +91,20 @@ describe("release-payout honours the payout hold", () => {
     return fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
   }
 
+  // Owner 2026-10-25: payout setup comes after the hire, so "no account yet" is
+  // a normal wait. Coded, so auto-release-payment holds it (CONNECT_HELD_CODES)
+  // instead of counting a failed attempt (lh-money-escrow review #1).
+  // @mutate supabase/functions/release-payout/index.ts |       { error: "Helpr has not completed Stripe Connect onboarding", code: CONNECT_MISSING_CODE }, |       { error: "Helpr has not completed Stripe Connect onboarding" },
+  it("a Helpr with no payout account yet: 409 connect_account_missing, no Stripe call, no claim", async () => {
+    seedPayable(scenario);
+    scenario.reads.profiles = { rows: [{ stripe_account_id: null, full_name: "H", onboarding_fee_paid: true }] };
+    const res = await call();
+    expect(res.status).toBe(409);
+    expect((await json(res)).code).toBe("connect_account_missing");
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(ledgerInserts()).toHaveLength(0);
+  });
+
   it("refuses a held Helpr with code payout_held, before any Stripe call or claim", async () => {
     seedPayable(scenario);
     scenario.reads.payout_holds = { rows: [HELD] };
@@ -420,7 +434,7 @@ describe("auto-release-payment honours the payout hold", () => {
   // Helpr's account is payable (or refuses the platform). Held, told to ops by
   // release-payout once a day: no failed attempt, so no give-up page per job.
   // @mutate supabase/functions/auto-release-payment/index.ts |           } else if (typeof json.code === "string" && CONNECT_HELD_CODES.has(json.code)) { |           } else if (false) {
-  for (const code of ["connect_account_rejected", "connect_account_not_payable", "stripe_platform_rejected"]) {
+  for (const code of ["connect_account_rejected", "connect_account_not_payable", "stripe_platform_rejected", "connect_account_missing"]) {
     it(`release-payout answering ${code} is a held payout, not a failed attempt`, async () => {
       seed(scenario);
       scenario.reads.payout_holds = { rows: [] };

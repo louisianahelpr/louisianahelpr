@@ -28,8 +28,7 @@ import { CrewMemberSection } from "./appliedJobCard/CrewMemberSection";
 import { OfferStepRail } from "./appliedJobCard/OfferStepRail";
 import { HelperCollapsedStrip, helperCardLine } from "./appliedJobCard/HelperCollapsedStrip";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
-import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
-import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
+import { HelperMoneyNotices } from "./appliedJobCard/HelperMoneyNotices";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
@@ -648,10 +647,9 @@ function AppliedJobCardInner({
           {/* Q360: the money problem jobs.status cannot show — same notice,
               same words as the poster's card. Not for an applicant who was
               passed over: it is no longer their job. */}
-          {isExpanded && app.status !== "rejected" && cardPaymentProblem(job) && (
-            <div className="px-4 pt-3 pb-3 border-t border-border/30">
-              <PaymentProblemNotice job={job} />
-            </div>
+          {/* Owner 2026-10-25: and "Finish payout setup to get paid" on a hired job whose pay waits (payout_after_hire). */}
+          {isExpanded && app.status !== "rejected" && (
+            <HelperMoneyNotices job={job} hired={app.status === "accepted"} amountLabel={`$${formatPriceFloor(payout)}`} />
           )}
           {/* Confirmed: show tracking + message */}
           {/* A date/time change, then a refund request: above the step, never below its row (Q1567). */}

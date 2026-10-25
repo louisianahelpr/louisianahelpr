@@ -4,6 +4,16 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { installProdNetworkGuard } from "./prodNetworkGuard";
 
+// Payout setup only after a hire (owner 2026-10-25): every component that
+// reads usePayoutSetupPaused() now also asks the server whether the member was
+// hired (a React Query read of payout_setup_hire_allowed_for_me). Tests not
+// ABOUT that rule read "hired" here, as they read the edge mock's
+// payout_setup_hire_allowed: true, so they keep testing what they were written
+// for. The rule itself is tested with the real hook
+// (src/hooks/usePayoutSetupHireAllowed.test.tsx unmocks it) and on the server
+// (src/test/edge/stripeConnectNeedsHire.test.ts, payoutAfterHire.pglite.mjs).
+vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => true }));
+
 // Unmount every render after every test, in every file. RTL only registers its
 // own auto-cleanup when a test file imports it statically; a file that loads it
 // with `await import(...)` left its renders mounted, and a React update fired

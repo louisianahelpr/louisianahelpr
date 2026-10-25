@@ -575,6 +575,39 @@ export type Database = {
         }
         Relationships: []
       }
+      connect_account_retirements: {
+        Row: {
+          created_at: string
+          delete_error: string | null
+          delete_outcome: string
+          id: string
+          reason: string
+          replacement_account_id: string
+          stripe_account_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delete_error?: string | null
+          delete_outcome: string
+          id?: string
+          reason: string
+          replacement_account_id: string
+          stripe_account_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delete_error?: string | null
+          delete_outcome?: string
+          id?: string
+          reason?: string
+          replacement_account_id?: string
+          stripe_account_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       crew_block_fees: {
         Row: {
           created_at: string
@@ -6937,6 +6970,33 @@ export type Database = {
           stripe_ref?: string | null
           voided_at?: string | null
           voided_reason?: string | null
+        }
+        Relationships: []
+      }
+      payout_setup_reminders: {
+        Row: {
+          claimed_at: string
+          helper_id: string
+          job_id: string | null
+          reminder_key: string
+          sent_at: string | null
+          stage: string
+        }
+        Insert: {
+          claimed_at?: string
+          helper_id: string
+          job_id?: string | null
+          reminder_key: string
+          sent_at?: string | null
+          stage: string
+        }
+        Update: {
+          claimed_at?: string
+          helper_id?: string
+          job_id?: string | null
+          reminder_key?: string
+          sent_at?: string | null
+          stage?: string
         }
         Relationships: []
       }
@@ -14763,6 +14823,7 @@ export type Database = {
         Args: { p_ids: string[]; p_kind: string }
         Returns: string[]
       }
+      payout_setup_hire_allowed_for_me: { Args: never; Returns: boolean }
       poster_cancel_job: {
         Args: { p_expected_fee_cents?: number; p_job_id: string; p_reason?: string }
         Returns: Json

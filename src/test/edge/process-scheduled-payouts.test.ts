@@ -362,6 +362,26 @@ describe("process-scheduled-payouts edge function", () => {
       expect(last.onboarding_fee_charged_at).toBeNull();
     });
 
+    // Lead 2026-10-25: this cron runs hourly, and the "Payout account required"
+    // notice went out on every run while the job waited (the dedupe trigger
+    // looks back 10 minutes). Now once a day per job.
+    it("tells a payee with no payout account once a day per job, not every hourly run", async () => {
+      const notices = () => scenario.writes.filter((w) => w.table === "notifications" && (w.payload as { title?: string } | Array<{ title?: string }>) &&
+        JSON.stringify(w.payload).includes("Payout account required"));
+      seedPayableJob(scenario, { profile: { stripe_account_id: null } });
+      scenario.reads.notifications = { rows: [], count: 0 };
+      let fn = await load();
+      await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      expect(notices(), "first run tells them").toHaveLength(1);
+
+      scenario.writes.length = 0;
+      scenario.reads.notifications = { rows: [{ id: "n1" }], count: 1 };
+      fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      expect((((await json(res)).results) as Array<Record<string, unknown>>)[0].status).toBe("no_connect_account");
+      expect(notices(), "told already today: no second notice").toHaveLength(0);
+    });
+
     it("does NOT claim the fee before the no-Connect-account skip (no orphaned claim)", async () => {
       seedPayableJob(scenario, { profile: { stripe_account_id: null } });
       const fn = await load();

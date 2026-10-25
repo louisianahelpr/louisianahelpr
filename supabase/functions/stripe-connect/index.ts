@@ -10,6 +10,9 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 import { PAYOUT_SETUP_ACTIONS, payoutSetupPausedFor, payoutSetupPausedResponse } from "../_shared/payoutSetupPause.ts";
+import { payoutSetupHireAllowed, payoutSetupNeedsHireResponse } from "../_shared/payoutSetupHire.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -51,6 +54,15 @@ class TestSeatConnectRefused extends Error {
 const APP_REVIEW_ACCOUNT_IDS: ReadonlySet<string> = new Set(["f2098932-5563-47c3-9589-1d22cca72003"]);
 const TEST_SEAT_REFUSED_MESSAGE =
   "Test accounts can't set up a new payout account. Use the sanctioned test fixture account instead.";
+
+/** Stripe's answer to deleting an account that is already gone (the stale link reset exists to clear). */
+function isAlreadyGoneError(e: unknown): boolean {
+  const err = e as { statusCode?: number; code?: string; message?: string };
+  return err?.statusCode === 404 ||
+    err?.code === "resource_missing" ||
+    err?.code === "account_invalid" ||
+    (err?.message ?? "").includes("No such account");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -281,8 +293,27 @@ serve(async (req) => {
       return payoutSetupPausedResponse(corsHeaders);
     }
 
+    // Payout setup only after a hire (owner decision 2026-10-25: Stripe
+    // rejected 45 of our 46 connected accounts, most of them opened at sign-up
+    // by people nobody hired). Every member, no switch; the App Store review
+    // account is exempt (it must reach Stripe's onboarding). Fails closed.
+    // Guard: src/test/payoutSetupNeedsHire.test.ts.
+    if (
+      PAYOUT_SETUP_ACTIONS.has(action) &&
+      !APP_REVIEW_ACCOUNT_IDS.has(user.id) &&
+      !(await payoutSetupHireAllowed(supabaseAdmin, user.id))
+    ) {
+      return payoutSetupNeedsHireResponse(corsHeaders);
+    }
+
     // Helper: get or create Connect account
-    const getOrCreateAccount = async () => {
+    // `replacing`: the id of a REJECTED account to swap for a fresh one (owner
+    // 2026-10-25: a hired Helpr whose account Stripe rejected gets a new one,
+    // not a dead-end link). The new account is created FIRST and linked only
+    // in place of that exact id, so a failed create changes nothing.
+    // `beforeLink` runs after the create and before the link write; if it
+    // throws, nothing is linked (the replacement records the old id first).
+    const getOrCreateAccount = async (opts: { replacing?: string; beforeLink?: (newAccountId: string) => Promise<void> } = {}) => {
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
@@ -300,8 +331,9 @@ serve(async (req) => {
       }
 
       let accountId = profile?.stripe_account_id;
+      const replacing = opts.replacing ?? null;
 
-      if (!accountId) {
+      if (!accountId || (replacing !== null && accountId === replacing)) {
         if (callerIsTestSeat) throw new TestSeatConnectRefused(user.id, "accounts.create");
         const nameParts = (profile?.full_name || "").trim().split(/\s+/);
         const firstName = nameParts[0] || undefined;
@@ -361,7 +393,9 @@ serve(async (req) => {
         // account and the next attempt's key names that dead id, which a
         // replay can never return again. Bounded: three dead replays in a row
         // is not something retrying will fix.
-        let idempotencyKey = `stripe-connect-create-${user.id}`;
+        let idempotencyKey = replacing
+          ? `stripe-connect-create-${user.id}-replacing-${replacing}`
+          : `stripe-connect-create-${user.id}`;
         let account: { id: string } | null = null;
         for (let attempt = 0; attempt < 3 && !account; attempt++) {
           const created = await stripe.accounts.create(createParams, { idempotencyKey });
@@ -386,18 +420,27 @@ serve(async (req) => {
           throw new Error("Could not create your payout account — please try again later");
         }
         accountId = account.id;
+        if (opts.beforeLink) await opts.beforeLink(account.id);
 
         // Compare-and-set (Q868): link the new id only while the profile still
         // has none. A concurrent onboard or reset may have linked an account
         // since the read above, and an unscoped write would silently overwrite
         // that fresh link. `.select("id")` reads the rows back so a zero-row
         // write is seen rather than reported as linked.
-        const { data: linkedRows, error: profileUpdateErr } = await supabaseAdmin
+        // Replacing: the cached gate columns describe the rejected account, so
+        // they go with it (Q861's rule), and the write is scoped to that id.
+        const linkWrite = supabaseAdmin
           .from("profiles")
-          .update({ stripe_account_id: accountId })
-          .eq("user_id", user.id)
-          .is("stripe_account_id", null)
-          .select("id");
+          .update(
+            replacing
+              ? { stripe_account_id: accountId, stripe_payouts_enabled: false, stripe_charges_enabled: false, stripe_identity_verified: false }
+              : { stripe_account_id: accountId },
+          )
+          .eq("user_id", user.id);
+        const { data: linkedRows, error: profileUpdateErr } = await (replacing
+          ? linkWrite.eq("stripe_account_id", replacing)
+          : linkWrite.is("stripe_account_id", null)
+        ).select("id");
         if (profileUpdateErr) {
           console.error(`[stripe-connect] Failed to save stripe_account_id for user ${user.id}:`, profileUpdateErr);
           throw new Error("Could not link your payout account — please try again");
@@ -432,6 +475,127 @@ serve(async (req) => {
     };
 
     /**
+     * Owner 2026-10-25 (switch payout_after_hire): a hired Helpr whose payout
+     * account Stripe REJECTED (requirements.disabled_reason rejected.*, or a
+     * read that answers "the account has been rejected") is given a fresh
+     * account instead of an Account Link that can only fail. Order: create the
+     * fresh account, RECORD the old id in connect_account_retirements
+     * ('pending'), link the fresh one only in place of the old id
+     * (getOrCreateAccount replacing), then delete the old one at Stripe if
+     * Stripe allows it and settle the record. The record comes before the swap
+     * (lh-money-escrow #4), so the old id is never lost if the function dies
+     * mid-way; if it cannot be written nothing is linked. A refused delete
+     * (Stripe keeps an account with activity on it, which is how Yusef's reset
+     * failed on 2026-10-23) does not stop the replacement: the record stays and
+     * ops are told, so any balance on it stays findable. Any other read error
+     * throws to the outer catch and nothing changes.
+     */
+    const freshIfRejected = async (accountId: string): Promise<string> => {
+      if (!(await featureEnabledForUser(supabaseAdmin, "payout_after_hire", user))) return accountId;
+      let rejected = false;
+      try {
+        rejected = isRejectedAccount(await stripe.accounts.retrieve(accountId) as { requirements?: { disabled_reason?: string | null } | null });
+      } catch (readErr) {
+        if (!isRejectedAccountError(readErr)) throw readErr;
+        rejected = true;
+      }
+      if (!rejected) return accountId;
+
+      let retirementId: string | null = null;
+      const { accountId: fresh } = await getOrCreateAccount({
+        replacing: accountId,
+        beforeLink: async (newAccountId) => {
+          const { data: recRows, error: recErr } = await supabaseAdmin
+            .from("connect_account_retirements")
+            .insert({
+              user_id: user.id,
+              stripe_account_id: accountId,
+              replacement_account_id: newAccountId,
+              reason: "rejected",
+              delete_outcome: "pending",
+            })
+            .select("id");
+          if (recErr || (recRows?.length ?? 0) === 0) {
+            console.error(
+              `[stripe-connect] could not record rejected ${accountId} before replacing it for ${user.id}; nothing linked:`,
+              recErr?.message ?? "insert returned zero rows",
+            );
+            throw new Error("Could not set up your new payout account — please try again");
+          }
+          retirementId = (recRows?.[0] as { id: string }).id;
+        },
+      });
+      if (!fresh || fresh === accountId) return fresh ?? accountId;
+
+      let outcome: "deleted" | "already_gone" | "delete_refused" = "deleted";
+      let deleteError: string | null = null;
+      try {
+        await stripe.accounts.del(accountId);
+      } catch (delErr) {
+        if (isAlreadyGoneError(delErr)) {
+          outcome = "already_gone";
+        } else {
+          outcome = "delete_refused";
+          deleteError = (delErr instanceof Error ? delErr.message : String(delErr)).slice(0, 500);
+        }
+      }
+      // Settle the record written before the swap (it already holds the old
+      // id). A failed settle leaves it 'pending', which is still findable.
+      const { data: setRows, error: setErr } = retirementId
+        ? await supabaseAdmin
+          .from("connect_account_retirements")
+          .update({ delete_outcome: outcome, delete_error: deleteError, replacement_account_id: fresh })
+          .eq("id", retirementId)
+          .select("id")
+        : { data: [], error: { message: "no retirement record id" } };
+      const recorded = !setErr && (setRows?.length ?? 0) > 0;
+      if (!recorded) {
+        console.error(
+          `[stripe-connect] replaced rejected ${accountId} with ${fresh} for ${user.id}; the retirement record stays 'pending':`,
+          setErr?.message ?? "update matched zero rows",
+        );
+      }
+      if (outcome === "delete_refused" || !recorded) {
+        await postSlackOpsAlert({
+          kind: "money_at_risk",
+          severity: "warning",
+          title: outcome === "delete_refused"
+            ? "A rejected payout account was replaced; Stripe kept the old one"
+            : "A rejected payout account was replaced; its record is still pending",
+          message:
+            `Stripe rejected ${accountId}, so a hired Helpr was given a fresh payout account (${fresh}). ` +
+            (outcome === "delete_refused"
+              ? "Stripe refused to delete the old account, which usually means money or activity is still on it. "
+              : "") +
+            (recorded
+              ? "The old id is in connect_account_retirements. Check its balance in the Stripe dashboard."
+              : "The old id is in connect_account_retirements, still marked 'pending' (the delete's answer could not be saved)."),
+          fields: { user_id: user.id, old_account_id: accountId, new_account_id: fresh, delete_outcome: outcome, delete_error: deleteError },
+          oncePerDayKey: `connect-replaced-${accountId}`,
+        });
+      }
+      // The same security notice reset sends: a payout destination changed.
+      const { data: noteRows, error: noteErr } = await supabaseAdmin
+        .from("notifications")
+        .insert({
+          user_id: user.id,
+          title: "Payout account replaced",
+          message:
+            "Stripe closed your old payout account, so we opened a new one for you to finish. If this wasn't you, contact support immediately.",
+          type: "financial_alerts",
+          link: "/profile?tab=payment",
+        })
+        .select("id");
+      if (noteErr || (noteRows?.length ?? 0) === 0) {
+        console.error(
+          `[stripe-connect] FAILED to send 'payout account replaced' notice to ${user.id}:`,
+          noteErr?.message ?? "insert returned zero rows",
+        );
+      }
+      return fresh;
+    };
+
+    /**
      * Which requirement set every Account Link collects: ALWAYS `eventually_due`
      * with future requirements. The identity verdict (_shared/stripeIdentity.ts)
      * is only TRUE when nothing identity-shaped is outstanding in ANY bucket, so
@@ -447,7 +611,7 @@ serve(async (req) => {
     // ─── ONBOARD: Create account + return Account Link URL ───
     if (action === "onboard") {
       const { return_url, collect } = body;
-      const { accountId } = await getOrCreateAccount();
+      const accountId = await freshIfRejected((await getOrCreateAccount()).accountId);
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
@@ -657,6 +821,9 @@ serve(async (req) => {
       if (account.type !== "express" && (await payoutSetupPausedFor(supabaseAdmin, user))) {
         return payoutSetupPausedResponse(corsHeaders);
       }
+      if (account.type !== "express" && !APP_REVIEW_ACCOUNT_IDS.has(user.id) && !(await payoutSetupHireAllowed(supabaseAdmin, user.id))) {
+        return payoutSetupNeedsHireResponse(corsHeaders);
+      }
 
       // Sync email to Stripe account before redirecting
       await stripe.accounts.update(profile.stripe_account_id, {
@@ -702,6 +869,26 @@ serve(async (req) => {
       // orphan the existing Express account with a brand new one.
       if (profileReadErr) throw new Error("Could not load your profile — please try again");
 
+      // A REJECTED account (payout_after_hire on) is replaced rather than
+      // deleted first: Stripe may refuse that delete, and reset would then stop
+      // at a dead end (owner 2026-10-25, Yusef 2026-10-23).
+      if (profile?.stripe_account_id) {
+        const fresh = await freshIfRejected(profile.stripe_account_id);
+        if (fresh !== profile.stripe_account_id) {
+          const freshLink = await stripe.accountLinks.create({
+            account: fresh,
+            refresh_url: safeReturnUrl(return_url),
+            return_url: safeReturnUrl(return_url),
+            type: "account_onboarding",
+            collection_options: collectionOptions(),
+          });
+          return new Response(JSON.stringify({ success: true, url: freshLink.url, account_id: fresh }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200,
+          });
+        }
+      }
+
       if (profile?.stripe_account_id) {
         try {
           await stripe.accounts.del(profile.stripe_account_id);
@@ -721,12 +908,7 @@ serve(async (req) => {
           // else aborts BEFORE the link is nulled, so the profile keeps
           // pointing at the account that holds the money.
           const err = e as { statusCode?: number; code?: string; message?: string };
-          const alreadyGone =
-            err.statusCode === 404 ||
-            err.code === "resource_missing" ||
-            err.code === "account_invalid" ||
-            (err.message ?? "").includes("No such account");
-          if (!alreadyGone) {
+          if (!isAlreadyGoneError(err)) {
             console.error(
               `[stripe-connect] reset ABORTED for ${user.id}: could not delete Connect account ${profile.stripe_account_id} — link left intact so any balance stays reachable:`,
               err.message,
@@ -840,9 +1022,10 @@ serve(async (req) => {
 
       if (profileReadErr) throw new Error("Could not load your profile — please try again");
       if (!profile?.stripe_account_id) throw new Error("No account connected");
+      const linkAccountId = await freshIfRejected(profile.stripe_account_id);
 
       const accountLink = await stripe.accountLinks.create({
-        account: profile.stripe_account_id,
+        account: linkAccountId,
         refresh_url: safeReturnUrl(return_url),
         return_url: safeReturnUrl(return_url),
         type: "account_onboarding",

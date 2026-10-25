@@ -38,13 +38,20 @@ export type AcceptMissing = "payout_setup" | "stripe_id";
  * check, then Stripe Identity ({@link hasIdBadge}: the server's
  * identity_is_verified is idv_status = 'verified' only since 20261021081258).
  */
-export function acceptMissingFromProfile(profile: {
-  is_seed?: boolean | null;
-  stripe_account_id?: string | null;
-  stripe_payouts_enabled?: boolean | null;
-  idv_status?: string | null;
-}): AcceptMissing[] {
+export function acceptMissingFromProfile(
+  profile: {
+    is_seed?: boolean | null;
+    stripe_account_id?: string | null;
+    stripe_payouts_enabled?: boolean | null;
+    idv_status?: string | null;
+  },
+  opts: { payoutAfterHire?: boolean } = {},
+): AcceptMissing[] {
   if (profile.is_seed === true && profile.stripe_account_id == null) return [];
+  // Owner 2026-10-25 (switch payout_after_hire, read by the caller): payout
+  // setup and the ID check come AFTER the hire, so the accept waits on nothing
+  // (helper_accept_missing, 20261025162003).
+  if (opts.payoutAfterHire === true) return [];
   const missing: AcceptMissing[] = [];
   if (profile.stripe_account_id == null || profile.stripe_payouts_enabled !== true) missing.push("payout_setup");
   // The ID step only while the `identity_check` switch is on (owner 2026-10-23;

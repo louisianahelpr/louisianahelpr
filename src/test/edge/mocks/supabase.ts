@@ -313,6 +313,12 @@ function freshScenario(): SupabaseScenario {
         const key = (a as { p_key?: string } | undefined)?.p_key;
         return key === "payout_setup" || key === "identity_check" ? true : undefined;
       },
+      // Payout setup only after a hire (owner 2026-10-25): stripe-connect asks
+      // payout_setup_hire_allowed before every setup action. It reads TRUE
+      // here so scenarios not ABOUT the hire rule keep testing what they test;
+      // src/test/edge/stripeConnectNeedsHire.test.ts sets it false to prove
+      // the refusal.
+      payout_setup_hire_allowed: true,
     },
     rpcErrors: {},
     rpcCalls: [],

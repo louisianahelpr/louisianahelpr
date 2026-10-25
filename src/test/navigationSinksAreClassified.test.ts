@@ -145,6 +145,8 @@ const CLASSIFIED: Record<string, string> = {
   "lib/openExternalUrl.ts::url": "the helper itself; every caller is classified below",
   // --- openExternalUrl callers: edge-function-returned Stripe URLs ---
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
+  // Owner 2026-10-25: "Finish payout setup" (the hired prompt and the job card) opens stripe-connect's onboard link.
+  "hooks/useStartPayoutSetup.ts::data.url": STRIPE_EDGE_URL,
   "components/declutter/DeliveryRaisePanel.tsx::res.url": STRIPE_EDGE_URL, // Q1929: declutter-checkout raise_pay's Stripe page
   "components/identity/IdentityCheckSheet.tsx::data.url": STRIPE_EDGE_URL,
   "components/CompletionPrompts.tsx::data.url": STRIPE_EDGE_URL,

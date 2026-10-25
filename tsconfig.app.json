@@ -147,6 +147,8 @@
     "supabase/functions/_shared/refundReason.ts",
     // src/test/livePayoutGateClassifiesRejections.test.ts (lead 2026-10-23).
     "supabase/functions/_shared/livePayoutGate.ts",
+    // src/test/payoutAfterHire.test.ts reads the reminder words (owner 2026-10-25).
+    "supabase/functions/_shared/payoutSetupReminder.ts",
     "supabase/functions/_shared/stripeMode.ts",
     "supabase/functions/_shared/instantPayoutFee.ts",
     "supabase/functions/_shared/stripeFees.ts",

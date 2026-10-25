@@ -8,6 +8,9 @@ import { HelperDoneWhatNextHost } from "@/components/whatNext/HelperDoneWhatNext
 const AwardGateDialog = lazy(() =>
   import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
+const HiredPayoutSetupDialog = lazy(() =>
+  import("@/components/payouts/HiredPayoutSetupDialog").then((m) => ({ default: m.HiredPayoutSetupDialog })),
+);
 
 /**
  * The pop-ups an offer's send or accept can open on Activity: the award gate
@@ -36,6 +39,12 @@ export function ActivityOfferDialogs({
       )}
       {/* Q997: "the payment is held" after an offer is sent or an accept completes. */}
       <PaymentHeldDialog side={actions.paymentHeldSide} who={actions.paymentHeldWho} onClose={() => actions.setPaymentHeldSide(null)} />
+      {/* Owner 2026-10-25 (payout_after_hire): "You're hired. Set up payouts to get paid." */}
+      {actions.hiredPayout?.open && (
+        <Suspense fallback={null}>
+          <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) actions.hiredPayout?.close(); }} />
+        </Suspense>
+      )}
       {/* Board 81: the Helpr's "What next" after marking a job done (opened by JobTracking). */}
       <HelperDoneWhatNextHost />
     </>

@@ -1,5 +1,6 @@
 import { CheckoutStep } from "@/components/postjob/CheckoutStep";
 import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
+import { FORM_PAGE_OF } from "@/components/postjob/postJobScreens";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface CheckoutStepViewProps {
@@ -27,6 +28,16 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           (create-payment, automatic capture; design-b handoff), so this
           screen says pay, never "nothing is charged now". */}
       <PostJobStepHeader
+        // From Review, a passed form step is tappable too (owner 2026-10-25): the form keeps what was typed.
+        canPick={(s) => FORM_PAGE_OF[s] !== undefined && s !== "kind"}
+        onPick={(s) => {
+          if (s === "groups") form.setCategoryGroup(null);
+          const p = FORM_PAGE_OF[s];
+          if (!p) return;
+          form.setFormPage(p);
+          form.setStep("form");
+          requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
+        }}
         screen="review"
         question="Look good?"
         helper={

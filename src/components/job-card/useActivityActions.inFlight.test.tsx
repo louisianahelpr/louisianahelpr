@@ -135,7 +135,7 @@ describe("useActivityActions money handlers — same-frame double tap", () => {
 
   // Q997 (owner, 2026-10-07): once the Helpr's accept completes, a pop-up says
   // the payment is held by Louisiana Helpr until the job is done.
-  // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |   setPaymentHeldSide("helpr");\n\n  hapticSuccess(); | \n  hapticSuccess();
+  // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     setPaymentHeldSide("helpr");\n  }\n\n  hapticSuccess(); |   }\n\n  hapticSuccess();
   it("Q997: a completed accept opens the 'payment is held' pop-up for the Helpr", async () => {
     const { result } = setup();
     expect(result.current.paymentHeldSide).toBeNull();

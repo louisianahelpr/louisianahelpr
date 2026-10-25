@@ -1,6 +1,6 @@
 /**
  * The face of a "mine" job card (boards 14 and 21, spec §3 "Mine card"):
- * a 56px photo thumb, the title, date · time, ONE status line, the money on
+ * a 44px photo thumb, the title, date · time, ONE status line, the money on
  * the right in rust, and ONE button. Tapping the face opens the job page
  * (/jobs/:id); the button does the card's real next step.
  *
@@ -84,7 +84,9 @@ export function MineJobFace({
   const navigate = useNavigate();
   const onOpen = () => navigate(`/jobs/${encodeURIComponent(jobId)}`);
   return (
-    <div data-mine-face="" className="flex flex-col p-4 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-3">
+    <div data-mine-face="" className="flex flex-col px-3.5 py-3 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2">
+      {/* Tight like Browse's card (owner 2026-10-25, "polish these cards, kind of a lot of spacing"): 14px sides, 12px
+          top and bottom, a 44px thumb, 8px between the face, its tracker and its button. Guard: src/test/jobsSearchIsAnIcon.test.tsx. */}
       {/* From 768px the one button sits to the right of the face, not across a 1500px card. */}
       <div className="order-1 min-w-0 md:order-none md:flex-1">
         <div className="flex items-start gap-1">
@@ -95,7 +97,7 @@ export function MineJobFace({
           className="flex min-w-0 flex-1 items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
-            className="h-14 w-14 shrink-0 overflow-hidden rounded-xl"
+            className="h-11 w-11 shrink-0 overflow-hidden rounded-xl"
             data-mine-face-thumb=""
           >
             {photo ? (
@@ -111,7 +113,7 @@ export function MineJobFace({
                 seed={category}
                 warm
                 className="h-full w-full"
-                iconClassName="h-6 w-6"
+                iconClassName="h-5 w-5"
               />
             )}
           </span>
@@ -153,13 +155,13 @@ export function MineJobFace({
           </button>
         )}
         </div>
-        {/* Under the title column (56px thumb + 12px gap), outside the link: the
+        {/* Under the title column (44px thumb + 12px gap), outside the link: the
           address row holds its own press-to-map control. A tap here opens the
           job like the face does (pointer only; the link above is the keyboard
           path). The address sits above the status line (enRouteAddressVisible). */}
         {(extra || status) && (
           <div
-            className="space-y-1 pl-[68px] pt-1"
+            className="space-y-1 pl-[56px] pt-1"
             data-mine-face-under=""
             onClick={onOpen}
           >
@@ -171,7 +173,7 @@ export function MineJobFace({
       {action?.also ? (
         // A waiting card (owner, 2026-10-23, card critique item 13): its one button is "Message <name>", and the
         // card's controls are a small text link beside it, not a second full-width pill.
-        <div className="order-3 mt-3 flex items-center gap-3 md:order-none md:mt-0 md:shrink-0">
+        <div className="order-3 mt-2 flex items-center gap-3 md:order-none md:mt-0 md:shrink-0">
           <Button
             type="button"
             variant="outline"
@@ -204,7 +206,7 @@ export function MineJobFace({
           disabled={action.disabled}
           data-mine-face-action={action.tone}
           size="sm"
-          className="order-3 mt-3 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
+          className="order-3 mt-2 w-full rounded-full font-semibold md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none"
           onClick={(e) => {
             e.stopPropagation();
             action.onClick();
@@ -216,7 +218,7 @@ export function MineJobFace({
       {/* The tracker under the face, above the button on phone (order); from 768px a full-width row of its own under face + button, so the
           eight full step names fit beside the rail. */}
       {progress && progress.stage !== null && (
-        <div className="order-2 pt-3 md:order-none md:basis-full md:pt-0" data-mine-face-progress="" onClick={onOpen}>
+        <div className="order-2 pt-2 md:order-none md:basis-full md:pt-0" data-mine-face-progress="" onClick={onOpen}>
           <JobProgress progress={progress} barOnly />
         </div>
       )}

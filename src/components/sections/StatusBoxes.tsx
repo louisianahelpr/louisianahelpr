@@ -53,12 +53,15 @@ export function StatusBoxes<K extends string>({
   value,
   onToggle,
   allCount,
+  end,
 }: {
   boxes: readonly StatusBoxDef<K>[];
   value: K | null;
   onToggle: (k: K) => void;
   /** How many rows "All" shows. Only a caller whose list is exactly that many rows passes it; without it All has no number (the groups need not add up to the list). */
   allCount?: number;
+  /** A control pinned at the row's end, outside the sideways scroll (Jobs: the search icon, owner 2026-10-25). */
+  end?: ReactNode;
 }) {
   const active = boxes.find((b) => b.key === value);
   const chip = (key: string, label: string, count: number, on: boolean, onClick: () => void) => (
@@ -77,13 +80,17 @@ export function StatusBoxes<K extends string>({
   );
   return (
     <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
       <div
-        className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        // With a control at the end the row fades out before it, so a chip half under the icon reads as "more" (390).
+        className={`-mx-1 flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${end ? "[mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]" : ""}`}
         role="group"
         aria-label="Filter by status"
       >
         {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })}
         {boxes.map((b) => chip(b.key, b.label, b.count, b.key === value, () => onToggle(b.key)))}
+      </div>
+      {end}
       </div>
       {active && active.count === 0 && (
         <p className="text-ds-13 text-muted-foreground px-1" aria-live="polite">

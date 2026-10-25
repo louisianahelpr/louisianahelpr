@@ -37,7 +37,7 @@ export function ActivityBucketGroups<T>({
   const toggle = (b: ActivityBucket) => setExpanded((p) => ({ ...p, [b]: !p[b] }));
 
   return (
-    <div className="flex flex-col gap-5" data-testid="activity-bucket-groups">
+    <div className="flex flex-col gap-4" data-testid="activity-bucket-groups">
       {OPEN_GROUPS.map((b) => {
         const list = groups[b];
         if (list.length === 0) return null;
@@ -74,7 +74,7 @@ export function ActivityBucketGroups<T>({
               type="button"
               aria-expanded={open}
               onClick={() => toggle(b)}
-              className="btn-press liquid-glass w-full flex items-center gap-3 px-4 py-3 text-left"
+              className="btn-press liquid-glass w-full flex items-center gap-3 px-3.5 py-2.5 text-left"
             >
               <span className="flex-1 min-w-0 text-ds-15 font-semibold">{labels[b]}</span>
               <span className="text-ds-13 text-muted-foreground">{list.length}</span>

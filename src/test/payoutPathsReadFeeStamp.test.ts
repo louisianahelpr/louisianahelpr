@@ -213,6 +213,9 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
       "src/components/admin/useAdminUserSummaries.ts",
       "src/components/browseMap/fetchJobForPin.ts",
       "src/components/jobDone/JobDoneSummary.tsx",
+      // The home Live now take-home (lead-prices-1, 2026-10-25): names the pay
+      // inputs and the stamp, priced with computeNet like the /browse card.
+      "src/components/landing/LiveJobsSection.tsx",
       "src/components/profile/EarningsForecastCard.tsx",
       "src/hooks/useDashboardData.ts",
       "src/lib/guestJobsQuery.ts",

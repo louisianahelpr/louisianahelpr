@@ -193,7 +193,7 @@ function render(paths, unweighted) {
     "     Source of truth: the <Route> table in src/App.tsx (public, non-redirect,",
     "     non-parameterised routes, minus the documented NOINDEX list in that script).",
     "     Hand edits are reverted by the next run and flagged by",
-    "     `node scripts/generate-sitemap.mjs --check` in CI. -->",
+    "     the generator's check mode in CI (an XML comment may not contain two hyphens in a row). -->",
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
   ];
   for (const p of paths) {

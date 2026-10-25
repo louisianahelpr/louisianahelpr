@@ -1,6 +1,6 @@
 -- Q2399 (owner 2026-10-25): hold the poster's card when a job is posted and
 -- charge it only when someone is hired. Behind the switch card_hold_at_post
--- (created 'testers'; the lead flips it, never a migration).
+-- (created 'off': the lead turns it on for testers after landing, never a migration).
 --
 -- THE MODEL. A job whose card is only authorized (or saved for a hold placed
 -- closer to the date) is payment_status 'held', never 'escrow'. 'escrow' keeps
@@ -289,8 +289,10 @@ REVOKE ALL ON FUNCTION public.get_my_job_card_hold(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_my_job_card_hold(uuid) TO authenticated, service_role;
 
 -- ─── 7. The switch ──────────────────────────────────────────────────────────
+-- Created OFF (lead, 2026-10-25): the shared e2e accounts are testers, so the
+-- lead turns it on for testers once this has landed and a journey has run.
 INSERT INTO public.feature_switches (key, audience, description)
-VALUES ('card_hold_at_post', 'testers', 'Q2399: a posted job holds the poster''s card (card and Link) and charges it only when a Helpr is hired; nobody hired cancels the hold.')
+VALUES ('card_hold_at_post', 'off', 'Q2399: a posted job holds the poster''s card (card and Link) and charges it only when a Helpr is hired; nobody hired cancels the hold.')
 ON CONFLICT (key) DO NOTHING;
 
 -- ─── 8. card-hold-sweep every 10 minutes ────────────────────────────────────

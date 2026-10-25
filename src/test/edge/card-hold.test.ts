@@ -37,10 +37,11 @@
  * @mutate supabase/functions/create-payment/index.ts |       if (block != null) return json({ state: "not_ready" }); |       if (false) return json({ state: "not_ready" });
  * @mutate supabase/functions/create-payment/index.ts |       const cardHold = !payInFour && await featureEnabledForUser(supabaseAdmin, CARD_HOLD_SWITCH, user) && !(await quoteBooked()); |       const cardHold = !payInFour && await featureEnabledForUser(supabaseAdmin, CARD_HOLD_SWITCH, user);
  * @mutate supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts |   if (pi.status !== "requires_capture") return false; |   if (false) return false;
+ * @mutate supabase/functions/create-payment/index.ts |       if (job.payment_status === "held") { |       if (false) {
  * @mutate supabase/functions/card-hold-sweep/index.ts |         if (!job \|\| ["cancelled", "completed"].includes(String(job.status))) { |         if (false) {
  */
 import { describe, it, expect, beforeEach } from "vitest";
-import { loadEdgeFunction, type EdgeHarness } from "./harness";
+import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -293,6 +294,23 @@ describe("card hold at posting (Q2399)", () => {
       const told = notices().find((x) => x.user_id === POSTER.id);
       expect(told?.title).toBe(CARD_HOLD_COPY.releasedTitle);
       expect(told?.message).toBe(CARD_HOLD_COPY.released("Mow the yard"));
+    });
+  });
+
+  describe("ADMIN: a held card is not refundable", () => {
+    it("admin_refund_general on a held job is refused (409, cardHold), nothing claimed, no Stripe call", async () => {
+      scenario.authUser = { id: "admin-1", email: "admin@test.com" };
+      scenario.rpc.has_role = true;
+      scenario.reads.user_roles = { rows: [{ user_id: "admin-1" }] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", helper_id: null })] };
+      const fn = await loadEdgeFunction("create-payment");
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: JOB, reason: "goodwill" } }));
+      const payload = JSON.parse(await res.text());
+      expect(res.status).toBe(409);
+      expect(payload.cardHold).toBe(true);
+      expect(updates("jobs")).toHaveLength(0);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
     });
   });
 

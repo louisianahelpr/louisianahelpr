@@ -474,7 +474,8 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       await payCheckoutUrlInChromium(body.url!);
       await expect
         .poll(async () => (await read()).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
-        .toBe("escrow");
+        // Q2399: card_hold_at_post holds the card ('held'): posted, listed, charged at the hire.
+        .toMatch(/^(escrow|held)$/);
     });
 
     async function chipAt(tz: string, at: Date, want: RegExp, name: string) {

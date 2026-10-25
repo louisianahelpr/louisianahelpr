@@ -4379,6 +4379,17 @@ serve(async (req) => {
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new PublicError("Job not found");
 
+      // ── A card only HELD is not a refund (Q2399) ──────────────────────────
+      // Nothing was charged: a refund of an uncaptured PaymentIntent is
+      // refused by Stripe, and the 'cancelling' claim below would strand the
+      // job. Cancelling the job releases the hold (card-hold-sweep), at no fee.
+      if (job.payment_status === "held") {
+        return new Response(JSON.stringify({
+          error: "This job's card is only on hold, so nothing was charged and there is nothing to refund. Cancel the job to release the hold. No money was moved.",
+          cardHold: true,
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
       // ── A disputed job is NOT a general refund ──────────────────────────
       // This action deliberately accepts any job state (goodwill refunds on
       // completed, released jobs are legitimate) and its flip below matches on

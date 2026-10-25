@@ -66,7 +66,8 @@ function seed(opts: { budget?: number; category?: string; switchOn?: Switch; ext
   if (opts.switchOn === "error") {
     scenario.rpcErrors = { feature_enabled_for_user: { message: "switch read boom" } };
   } else {
-    scenario.rpc.feature_enabled_for_user = opts.switchOn === true;
+    // Scoped to this file's switch: card_hold_at_post (Q2399) answers off here.
+    scenario.rpc.feature_enabled_for_user = (a?: unknown) => opts.switchOn === true && (a as { p_key?: string } | undefined)?.p_key === "jobs_poster_fee";
   }
   stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_pf", url: "https://checkout.stripe.test/cs_pf" });
 }

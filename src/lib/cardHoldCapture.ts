@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorBody } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 
 /** True when the database refused a hire because the poster's card is only held. */
 export function isPaymentNotCaptured(error: unknown): boolean {
@@ -44,6 +45,7 @@ export async function captureHeldCard(jobId: string): Promise<HoldCapture> {
     if (state === "not_ready") return { kind: "not_ready" };
     return { kind: "not_held" };
   } catch (err) {
+    report(err, { tags: { source: "cardHoldCapture.captureHeldCard" } });
     return { kind: "error", message: err instanceof Error && err.message ? err.message : "Couldn't reach payments. Nothing was charged — try again." };
   }
 }

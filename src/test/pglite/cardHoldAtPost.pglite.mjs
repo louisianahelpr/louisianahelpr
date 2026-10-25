@@ -29,7 +29,7 @@
  *   H12 [fix] crew: the poster's seat offer on a held job passes; a ready member's Confirm is payment_not_captured
  *   H13 [fix] crew: no role can confirm a seat on a held job (crew_seat_held_is_never_confirmed)
  *   H14 [fix] the Helpr fan-out fires on unpaid -> held, and NOT again on held -> escrow
- *   H15 [fix] switch card_hold_at_post exists as 'testers'; get_my_job_card_hold refuses an ordinary account (feature_disabled) and answers a tester poster
+ *   H15 [fix] switch card_hold_at_post is created 'off' (refused to everyone, a tester included); once an admin sets 'testers', get_my_job_card_hold refuses an ordinary account (feature_disabled) and answers only a tester's own job
  *   H16 [fix] job_card_holds: no client privilege; an 'authorized' row without a PaymentIntent is refused
  */
 import { readdirSync, readFileSync } from "node:fs";
@@ -315,14 +315,17 @@ check("H13 [fix] crew: no role can confirm a seat on a held job", /payment_not_c
 
 // ─── H15: the switch and the poster's read ─────────────────────────────────
 const sw = await owner(`SELECT audience FROM public.feature_switches WHERE key = 'card_hold_at_post'`);
-const ordinary = await as("authenticated", POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.held}')`);
 if (!SKIP) await owner(`INSERT INTO public.job_card_holds (job_id, stripe_mode, payment_intent_id, state, amount_cents) VALUES ('${J.mine}', 'test', 'pi_test_hold', 'authorized', 4200) ON CONFLICT DO NOTHING`);
+const testerWhileOff = await as("authenticated", TESTER_POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.mine}')`);
+// The lead's flip after landing (Admin -> Settings; audited by the registry's trigger).
+await owner(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'card_hold_at_post'`);
+const ordinary = await as("authenticated", POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.held}')`);
 const tester = await as("authenticated", TESTER_POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.mine}')`);
 const testerOther = await as("authenticated", TESTER_POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.held}')`);
-check("H15 [fix] switch card_hold_at_post is 'testers'; get_my_job_card_hold refuses an ordinary account and answers only a tester's own job",
-  sw?.[0]?.audience === "testers" && /feature_disabled/.test(err(ordinary)) && Array.isArray(tester) && tester[0]?.amount_cents === 4200
+check("H15 [fix] switch card_hold_at_post is created 'off'; once 'testers', get_my_job_card_hold refuses an ordinary account and answers only a tester's own job",
+  sw?.[0]?.audience === "off" && /feature_disabled/.test(err(testerWhileOff)) && /feature_disabled/.test(err(ordinary)) && Array.isArray(tester) && tester[0]?.amount_cents === 4200
     && Array.isArray(testerOther) && testerOther.length === 0,
-  `switch ${sw?.[0]?.audience ?? "missing"}; ordinary: ${err(ordinary) || "answered"}; tester: ${err(tester) || JSON.stringify(tester?.[0])}; other job rows ${Array.isArray(testerOther) ? testerOther.length : err(testerOther)}`);
+  `switch ${sw?.[0]?.audience ?? "missing"}; tester while off: ${err(testerWhileOff) || "answered"}; ordinary: ${err(ordinary) || "answered"}; tester: ${err(tester) || JSON.stringify(tester?.[0])}; other job rows ${Array.isArray(testerOther) ? testerOther.length : err(testerOther)}`);
 
 // ─── H16: the holds table ──────────────────────────────────────────────────
 const priv = await owner(`SELECT has_table_privilege('authenticated', 'public.job_card_holds', 'SELECT') AS a, has_table_privilege('anon', 'public.job_card_holds', 'SELECT') AS b`);

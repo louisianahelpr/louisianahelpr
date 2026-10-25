@@ -16,6 +16,7 @@ import {
 } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { fund, retireFundedJob, type Row } from "../prod-audit/fundedOpenJob";
+import { captureHeldCard } from "../cardHold";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
 import { slotAhead } from "./postJobForm";
 import { withChromium } from "./stripeInChromium";
@@ -149,13 +150,29 @@ test.describe.serial("admin and safety journeys", () => {
       // but before the full refund leaves open/escrow; return that money.
       journey.cleanup("return a still-held escrow", async () => {
         const j = await readJob(request, poster, jobId);
-        if (j.status === "open" && j.payment_status === "escrow" && !j.helper_id) {
+        if (j.status === "open" && (j.payment_status === "escrow" || j.payment_status === "held") && !j.helper_id) {
           test.info().annotations.push({ type: "cleanup", description: await retireFundedJob(request, poster, jobId) });
         }
       });
       await fundJob(request, browser, poster, jobId, log);
-      expect((await readJob(request, poster, jobId)).payment_status).toBe("escrow");
+      expect((await readJob(request, poster, jobId)).payment_status).toMatch(/^(escrow|held)$/);
     });
+
+    // Q2399: with card_hold_at_post the card is only HELD, so an open job has
+    // nothing captured to refund. The hold's own answer is asserted instead
+    // (create-payment refuses the refund, cardHold: true; the cleanup above
+    // releases the hold through cancel_escrow), and the refund steps below
+    // need a captured charge, which only a hire makes.
+    if ((await readJob(request, poster, jobId)).payment_status === "held") {
+      const held = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
+        headers: rest(admin), data: { action: "admin_refund_general", jobId, reason: `E2E held ${RUN}` },
+      });
+      expect(held.status(), `admin_refund_general on a held card answered ${held.status()} ${await held.text()}`).toBe(409);
+      expect(((await held.json()) as { cardHold?: boolean }).cardHold, "the refusal does not say the card is only held").toBe(true);
+      expect((await readJob(request, poster, jobId)).payment_status, "a refused refund moved the held job").toBe("held");
+      test.info().annotations.push({ type: "outcome", description: `${jobId}: card held, admin refund refused (nothing charged); released by cleanup` });
+      return;
+    }
 
     const ctx = await newUserContext(browser, admin, { desktop: true });
     const page = journey.track("admin", await ctx.newPage());
@@ -418,7 +435,7 @@ test.describe.serial("admin and safety journeys", () => {
     journey.cleanup("unwind the job and its notifications", async () => {
       if (!jobId) return;
       const job = await readJob(request, poster, jobId);
-      if (job.payment_status === "escrow" && !job.helper_id && job.status === "open") {
+      if ((job.payment_status === "escrow" || job.payment_status === "held") && !job.helper_id && job.status === "open") {
         const r = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, { headers: rest(poster), data: { action: "cancel_escrow", jobId } });
         if (!r.ok()) throw new Error(`cancel_escrow ${jobId}: ${r.status()} ${await r.text()}`);
       } else if (job.payment_status === "escrow" && helpr && job.helper_id === helpr.userId) {
@@ -469,6 +486,8 @@ test.describe.serial("admin and safety journeys", () => {
       // The app's Accept (Q1180): accept_job_offer completes a ready Helpr's
       // accept at once (a seed throwaway is ready by helper_accept_missing's
       // carve-out) and tells the poster, by name, in the same transaction.
+      // Q2399: the accept on a held card is the hire: the card is charged first, as the app's Accept does.
+      await captureHeldCard(request, h, jobId);
       const acceptedOffer = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, { headers: rest(h), data: { p_job_id: jobId } });
       expect(acceptedOffer.ok(), `accept_job_offer: ${acceptedOffer.status()} ${await acceptedOffer.text()}`).toBe(true);
       expect(await acceptedOffer.json(), "the Helpr's accept did not complete").toEqual({ state: "accepted" });

@@ -12,6 +12,7 @@ import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, str
 import { PAYOUT_SETUP_ACTIONS, payoutSetupPausedFor, payoutSetupPausedResponse } from "../_shared/payoutSetupPause.ts";
 import { payoutSetupHireAllowed, payoutSetupNeedsHireResponse } from "../_shared/payoutSetupHire.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
@@ -536,7 +537,7 @@ serve(async (req) => {
           outcome = "already_gone";
         } else {
           outcome = "delete_refused";
-          deleteError = (delErr instanceof Error ? delErr.message : String(delErr)).slice(0, 500);
+          deleteError = caughtMessage(delErr).slice(0, 500);
         }
       }
       // Settle the record written before the swap (it already holds the old

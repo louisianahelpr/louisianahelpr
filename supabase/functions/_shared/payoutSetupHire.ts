@@ -21,6 +21,7 @@
  * or a direct call. Guards: src/test/payoutSetupNeedsHire.test.ts (static) and
  * src/test/edge/stripeConnectNeedsHire.test.ts (the real function).
  */
+import { caughtMessage } from "./caughtMessage.ts";
 
 /** The machine code of the refusal (403). */
 const PAYOUT_SETUP_NEEDS_HIRE_CODE = "payout_setup_needs_hire";
@@ -48,7 +49,7 @@ export async function payoutSetupHireAllowed(client: HireCheckClient, userId: st
     }
     return data === true;
   } catch (err) {
-    console.error(`[payoutSetupHire] payout_setup_hire_allowed threw for ${userId}: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(`[payoutSetupHire] payout_setup_hire_allowed threw for ${userId}: ${caughtMessage(err)}`);
     return false;
   }
 }

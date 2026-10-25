@@ -177,6 +177,7 @@ export const NOT_MATCHED = {
   "instant_payouts.stripe_payout_id": "a payout ON a connected account; listing it needs a Stripe-Account header per helper — manual step in the runbook",
   "payout_failures.stripe_payout_id": "a FAILED bank payout ON a member's connected account (board 143, 20261021030052): a notice record, no platform money moves; Stripe returns the money to that account's balance. Listing it needs a Stripe-Account header per member, same manual runbook step as instant_payouts.stripe_payout_id",
   "payout_failures.stripe_account_id": "the connected account the failed payout was on, not a money movement",
+  "connect_account_retirements.stripe_account_id": "a connected account stripe-connect replaced after Stripe rejected it (owner 2026-10-25), not a money movement",
   "payout_failures.stripe_event_id": "the webhook event id (evt_), a dedupe key for redelivery, not a money movement",
   "profiles.stripe_account_id": "account linkage, not a money movement",
   "profiles.stripe_customer_id": "customer linkage, not a money movement",

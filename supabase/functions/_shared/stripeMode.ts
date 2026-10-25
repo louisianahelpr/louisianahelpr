@@ -40,6 +40,7 @@
  * never constructs a Stripe client itself (each function does, with the key
  * this module returns), so the harness's Stripe double sees the chosen key.
  */
+import { caughtMessage } from "./caughtMessage.ts";
 
 export type StripeMode = "live" | "test";
 
@@ -261,7 +262,7 @@ export async function refuseLiveOnlyForTestOrSeed(
     return null;
   } catch (e) {
     if (e instanceof StripeModeRefused) return e;
-    return new StripeModeRefused("lookup_failed", `test-account read failed: ${e instanceof Error ? e.message : String(e)}`);
+    return new StripeModeRefused("lookup_failed", `test-account read failed: ${caughtMessage(e)}`);
   }
 }
 

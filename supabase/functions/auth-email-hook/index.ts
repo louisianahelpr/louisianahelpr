@@ -14,6 +14,7 @@ import { postSlackOpsAlert } from '../_shared/slack-alerts.ts'
 import { kickEmailQueue } from '../_shared/kick-email-queue.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
+import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
 
@@ -247,7 +248,7 @@ async function handleWebhook(req: Request, startedAt: number): Promise<Response>
     },
     onLateError: async (error) => {
       console.error('auth-email-hook: late delivery threw after answering Auth', error)
-      await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))
+      await alertAuthEmail('handler error', 'warning', caughtMessage(error))
     },
     waitUntil: rt?.waitUntil?.bind(rt),
     onNoWaitUntil: async () => {

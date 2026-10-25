@@ -59,15 +59,12 @@ const Signup = () => {
   // to its normal landing.
   const pendingJobId = searchParams.get("job");
   const pendingRedirect = searchParams.get("redirect");
-  //
   // NOTE ON ORDER: this effect is declared BEFORE the already-authenticated
   // bounce below on purpose. Both fire on the mount commit, in declaration
   // order, and the bounce reads the value this one writes.
   useEffect(() => {
     if (pendingJobId) rememberJobIntent(pendingJobId);
-    rememberSignupRedirect(pendingRedirect);
-    // An Apple/Google sign-up leaves this page for the provider: keep the friend's code for the Referrals card.
-    rememberReferralFromUrl(window.location.search);
+    rememberSignupRedirect(pendingRedirect); rememberReferralFromUrl(window.location.search); // ?ref= survives an Apple/Google sign-up
   }, [pendingJobId, pendingRedirect]);
   // An already-authenticated visitor is bounced into the app (after isReady, never on the null snapshot).
   useEffect(() => {

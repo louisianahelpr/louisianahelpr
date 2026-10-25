@@ -7,7 +7,8 @@
  *   NEW_MIGRATION=skip node src/test/pglite/claimReferralCode.pglite.mjs # RED: main
  *
  * record_referral_signup is prod's body (read live 2026-10-25). Proven: every
- * answer word, the 7-day window, once per account, anon refused, replay-safe.
+ * answer word, the 7-day window, once per account, anon refused, a banned
+ * account refused (Q281 ban gate), replay-safe.
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -22,6 +23,7 @@ const check = (name, ok, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"} 
 const A = "11111111-1111-4111-8111-111111111111"; // the friend (owns FRIEND1)
 const NEWBIE = "22222222-2222-4222-8222-222222222222";
 const OLD = "33333333-3333-4333-8333-333333333333";
+const BANNED = "44444444-4444-4444-8444-444444444444";
 const db = new PGlite();
 await db.exec(`
 CREATE ROLE anon; CREATE ROLE authenticated;
@@ -32,6 +34,9 @@ CREATE TABLE public.referral_codes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(
 CREATE TABLE public.referrals (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), referrer_id uuid, referred_id uuid UNIQUE, referral_code_id uuid);
 GRANT USAGE ON SCHEMA public, auth TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated;
+CREATE TABLE public.banned_ids (id uuid PRIMARY KEY);
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql SECURITY DEFINER AS $$ SELECT EXISTS (SELECT 1 FROM public.banned_ids WHERE id = auth.uid()) $$;
+GRANT EXECUTE ON FUNCTION public.is_caller_banned() TO authenticated;
 CREATE OR REPLACE FUNCTION public.record_referral_signup(p_referral_code text, p_new_user_id uuid) RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $function$
 DECLARE v_code_record RECORD; v_inserted integer;
 BEGIN
@@ -43,7 +48,8 @@ BEGIN
   INSERT INTO public.referrals (referrer_id, referred_id, referral_code_id) VALUES (v_code_record.user_id, p_new_user_id, v_code_record.id) ON CONFLICT (referred_id) DO NOTHING;
   GET DIAGNOSTICS v_inserted = ROW_COUNT; RETURN v_inserted > 0;
 END; $function$;
-INSERT INTO auth.users VALUES ('${A}', now() - interval '30 days'), ('${NEWBIE}', now() - interval '2 days'), ('${OLD}', now() - interval '8 days');
+INSERT INTO auth.users VALUES ('${A}', now() - interval '30 days'), ('${NEWBIE}', now() - interval '2 days'), ('${OLD}', now() - interval '8 days'), ('${BANNED}', now() - interval '1 day');
+INSERT INTO public.banned_ids VALUES ('${BANNED}');
 INSERT INTO public.referral_codes (user_id, code) VALUES ('${A}', 'FRIEND1'), ('${NEWBIE}', 'NEWB1');
 `);
 if (MODE !== "skip") { for (let i = 0; i < 3; i++) await db.exec(NEW); check("migration applies 3x (replay-safe)", true); }
@@ -60,6 +66,7 @@ check("anon cannot call it", String(await claim("anon", NEWBIE, "FRIEND1")).star
 check("blank -> invalid", (await claim("authenticated", NEWBIE, "  ")) === "invalid");
 check("null -> invalid", (await claim("authenticated", NEWBIE, null)) === "invalid");
 check("no user -> invalid", (await claim("authenticated", null, "FRIEND1")) === "invalid");
+check("a banned account is refused (account_restricted)", String(await claim("authenticated", BANNED, "FRIEND1")).includes("account_restricted"));
 check("unknown code -> no_such_code", (await claim("authenticated", NEWBIE, "NOPE")) === "no_such_code");
 check("own code -> own_code", (await claim("authenticated", NEWBIE, "newb1")) === "own_code");
 check("8 days in -> too_late", (await claim("authenticated", OLD, "FRIEND1")) === "too_late");

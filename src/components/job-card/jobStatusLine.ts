@@ -286,6 +286,7 @@ export type PosterWait =
   | "done_tip_open"
   | "done_review_open"
   | "done_both_open"
+  | "done_marked"
   | "cancelled";
 
 /**
@@ -400,6 +401,9 @@ export const POSTER_WAIT: Record<PosterWait, WaitCopy> = {
   done_tip_open: { detail: "Reviewed — tip still open", tone: "them" },
   done_review_open: { detail: "Tip left — review still open", tone: "them" },
   done_both_open: { detail: "Review and tip still open", tone: "them" },
+  /* A cancelled job filed under Done (owner 2026-10-25, jobs.poster_marked_done_at):
+     "just have them in my done section", and no "done outside the app" wording. */
+  done_marked: { detail: "Done" },
   /* The reason, when the job has one, follows as the line's `suffix`. */
   cancelled: { detail: "Cancelled" },
 };
@@ -490,7 +494,8 @@ export function derivePosterWait(
   if (completedAndRefunded(job)) return "done_refunded";
   switch (job.status) {
     case "cancelled":
-      return disputeSettling(job) ? "dispute_settling" : "cancelled";
+      if (disputeSettling(job)) return "dispute_settling";
+      return job.poster_marked_done_at ? "done_marked" : "cancelled";
     case "completed":
       if (disputeSettling(job)) return "dispute_settling";
       /* Which finish it is depends on the loose ends, not on the row. */

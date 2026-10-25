@@ -188,9 +188,10 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // would 42501 the whole read. The poster gets their own offerees from
     // get_job_offer_targets below and they are merged back onto the rows.
     // Q1461: plus the poster's own materials note, which their card shows.
+    // poster_marked_done_at (owner 2026-10-25) files a cancelled job under Done.
     // It is newer than the deploy that may serve this build, so it is read
     // through readJobsAheadOfDb (dropped and asked again on 42703).
-    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount`, (columns) => supabase
+    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at`, (columns) => supabase
       .from("jobs")
       .select(columns)
       .eq("customer_id", userId)

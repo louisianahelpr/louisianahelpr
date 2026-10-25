@@ -96,6 +96,7 @@ export const POSTER_STEP: Record<PosterWait, Entry> = {
   done_tip_open: at(8),
   done_review_open: at(8),
   done_both_open: at(8),
+  done_marked: at(8),
   cancelled: CANCELLED,
 };
 

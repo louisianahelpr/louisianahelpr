@@ -347,6 +347,8 @@ const POSTER_FIXTURES: Record<
     job: job({ status: "completed", helper_id: HELPER, payment_status: "released" }),
     completion: { tipped: false, reviewed: false },
   },
+  /* Owner 2026-10-25: a cancelled, refunded job marked into the poster's Done list. */
+  done_marked: { job: job({ status: "cancelled", payment_status: "refunded", poster_marked_done_at: "2026-10-25T21:00:00Z" }) },
   cancelled: { job: job({ status: "cancelled" }) },
 };
 

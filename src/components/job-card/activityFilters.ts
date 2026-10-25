@@ -137,6 +137,12 @@ export const APPLIED_STATUS_FILTERS: StatusFilter[] = BUCKET_FILTERS;
  * Terminal states are checked BEFORE this in both bucketers: a job that
  * completed or was cancelled has nothing left to chase, whatever its date.
  */
+/** A cancelled job filed under the poster's Done list (owner 2026-10-25;
+ *  jobs.poster_marked_done_at, display only). */
+export function jobMarkedDone(j: { status?: string | null; poster_marked_done_at?: string | null }): boolean {
+  return j.status === "cancelled" && !!j.poster_marked_done_at;
+}
+
 export function jobIsOverdue(j: { status?: string | null; date_needed?: string | null }): boolean {
   if (j.status === "completed" || j.status === "cancelled") return false;
   return isPastDue(j.date_needed);
@@ -265,7 +271,9 @@ export function postedActivityBucket(
   // would file the alarm card under Done or Waiting, where nobody looks. The
   // same predicate the card's status line and notice use.
   if (cardPaymentProblem(j)) return "needs_you";
-  if (j.status === "cancelled") return "cancelled";
+  // A cancelled job the poster's support filed under Done (owner 2026-10-25,
+  // jobs.poster_marked_done_at): it sits in Done; status and money unchanged.
+  if (j.status === "cancelled") return jobMarkedDone(j) ? "done" : "cancelled";
   if (j.status === "completed") return "done";
   // Work submitted and not yet approved, a revision I asked for, or an open
   // dispute — all three are a decision sitting with me.
@@ -403,10 +411,10 @@ export function appliedActivityBucket(app: AppliedApp): ActivityBucket {
 export type Bucket = "active" | "completed" | "cancelled";
 
 /** Classify a posted job into Active / Completed / Cancelled. */
-export function bucketPostedJob(job: { status: string }): Bucket {
+export function bucketPostedJob(job: { status: string; poster_marked_done_at?: string | null }): Bucket {
   switch (job.status) {
     case "completed": return "completed";
-    case "cancelled":
+    case "cancelled": return jobMarkedDone(job) ? "completed" : "cancelled";
     case "disputed":  return "cancelled";
     default:          return "active"; // open / accepted / in_progress / revision_requested / direct_offer holders
   }

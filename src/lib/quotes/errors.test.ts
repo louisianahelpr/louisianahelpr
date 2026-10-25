@@ -44,6 +44,7 @@ const NOT_FROM_QUOTE_INSERT: Record<string, { columns: string[]; reason: string 
   enforce_series_visit_within_end: { columns: ["parent_job_id", "helper_id"], reason: "returns at once for a job with no parent_job_id" },
   enforce_series_ban_marker_server_owned: { columns: ["series_ban_cancelled_at", "cancellation_reason"], reason: "raises only for the ban path's marker or reserved cancellation reason" },
   enforce_onboarding_fee_server_owned: { columns: ["onboarding_fee_amount"], reason: "raises only when the client writes the setup fee" },
+  enforce_poster_marked_done_server_owned: { columns: ["poster_marked_done_at"], reason: "an INSERT has it cleared, never refused; raises only on an UPDATE that writes it" },
   enforce_job_completion_server_owned: { columns: ["status", "helper_completed_at"], reason: "raises only when the client writes completion" },
   refuse_under_18_member: { columns: ["helper_id"], reason: "under_18 has words; helper_unavailable is raised only for a helper_id being set" },
   // No column: the raise sits behind TG_OP, not a column the insert could leave empty (checked below).

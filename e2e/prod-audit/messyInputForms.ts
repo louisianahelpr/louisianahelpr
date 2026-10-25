@@ -456,6 +456,15 @@ export const FORMS: FormSpec[] = [
     // The pills are `role="radio"`, so `pressIfPresent` cannot see them.
     name: "auto-tip", url: "/profile?tab=auto_tip", as: "poster",
     prepare: async (page) => {
+      // NEVER REALLY FLIP IT. The switch saves the moment it flips, and this is the SHARED poster account on
+      // prod with live Stripe: this prepare ran before the sweep's write firewall and left poster-e2e tipping
+      // 15% on every job (found 2026-10-25). The flip's PATCH is answered here, in the browser, so the amount
+      // fields render and nothing reaches the database. Guard: src/test/e2eNeverSavesMoneySwitches.test.ts.
+      await page.route(/\/rest\/v1\/profiles\b/, (route) =>
+        route.request().method() === "PATCH"
+          ? route.fulfill({ json: [{ user_id: "e2e-stub" }] })
+          : route.continue(),
+      );
       const sw = page.getByRole("switch", { name: /tip automatically/i }).first();
       if ((await sw.getAttribute("aria-checked").catch(() => null)) !== "true") await sw.click().catch(() => {});
       await page.getByRole("radio", { name: /^other$/i }).first().click().catch(() => {});

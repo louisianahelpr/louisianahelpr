@@ -128,7 +128,7 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
     expect(screen.queryByText(/account setup fee is kept/)).toBeNull();
     // The card's job carries the fee into the dialog.
     expect(code("src/components/job-card/ActivityDialogs.tsx")).toMatch(/setupFeeKept=\{\(props\.cancelDialogJob as \{ onboarding_fee_amount\?: number \| null \}\)\.onboarding_fee_amount \?\? null\}/);
-    expect(code("src/hooks/useActivityData.ts")).toContain("materials_note, onboarding_fee_amount`");
+    expect(code("src/hooks/useActivityData.ts")).toContain("materials_note, onboarding_fee_amount, poster_marked_done_at`");
   });
 
   it("the admin dispute preview keeps the fee out of the poster's share, like the executor", () => {
@@ -164,7 +164,7 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 // @mutate src/lib/posterSpend.ts |   if (!(refundedCents > 0)) return ` · includes ${amount} one-time setup fee`; |   if (!(refundedCents > 0)) return "";
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""} |
 // @mutate src/lib/disputeSplitPreview.ts |   const posterGross = Math.round(Math.max(0, capturedCents - keptSetupFeeCents) * posterShare) / 100; |   const posterGross = Math.round(capturedCents * posterShare) / 100;
-// @mutate src/hooks/useActivityData.ts | materials_note, onboarding_fee_amount` | materials_note`
+// @mutate src/hooks/useActivityData.ts | materials_note, onboarding_fee_amount, poster_marked_done_at` | materials_note, poster_marked_done_at`
 // @mutate supabase/functions/money-reconciliation/index.ts |             + setupFeeKeptCents(job as { onboarding_fee_amount?: number \| string \| null }); |             + 0;
 // @mutate src/lib/posterSpend.ts |   const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : job.dispute_status ? stripeCents : Math.max(cents(job.customer_fee_amount ?? 0), stripeCents); |   const otherKeptCents = 0;
 // @mutate src/lib/posterSpend.ts |   const otherKeptCents = adminRefunded ? cardCostFeeCents(job) : |   const otherKeptCents = adminRefunded ? 0 :

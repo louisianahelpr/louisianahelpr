@@ -85,7 +85,7 @@ export function fileToBase64(file: File): Promise<string> {
  * means the verification email never arrives — the single biggest silent
  * killer of activations — so we offer a one-tap correction.
  */
-export const POPULAR_EMAIL_DOMAINS = [
+const POPULAR_EMAIL_DOMAINS = [
   "gmail.com",
   "yahoo.com",
   "hotmail.com",

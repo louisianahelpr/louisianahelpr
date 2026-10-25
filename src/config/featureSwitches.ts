@@ -113,6 +113,14 @@ export const FEATURE_SWITCH_KEYS = [
   // (paypal_entry_requires_switch). Phase 2 adds the first screen and moves it
   // out of SERVER_ONLY.
   "paypal_payments",
+  // Payout setup after the hire (owner decision 2026-10-25, item 9). Created
+  // 'testers' by 20261025162003. On = the accept goes through at once
+  // (helper_accept_missing lists nothing), the Helpr's pay is held until
+  // their payout account is ready, the app prompts "You're hired. Set up
+  // payouts to get paid." and the job shows "Finish payout setup to get paid",
+  // and payout-setup-reminders reminds them. Who may open a payout account at
+  // all (only someone hired) does NOT depend on this switch.
+  "payout_after_hire",
 ] as const;
 
 /**

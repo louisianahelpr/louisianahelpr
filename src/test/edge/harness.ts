@@ -212,6 +212,21 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/payoutSetupPause.ts";`,
   );
 
+  // Payout setup reminders (owner 2026-10-25): `_shared/payoutSetupReminder.ts`
+  // has ZERO imports (the words), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutSetupReminder\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutSetupReminder.ts";`,
+  );
+
+  // Payout setup only after a hire (owner 2026-10-25): `_shared/payoutSetupHire.ts`
+  // has ZERO imports, so the REAL fail-closed refusal serves; the decision is
+  // the `payout_setup_hire_allowed` rpc the scenario answers.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutSetupHire\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/payoutSetupHire.ts";`,
+  );
+
   // Drop-off geocoder (Declutter slice 5): `_shared/geocodeDropoff.ts` has ZERO
   // imports and calls the global `fetch` at call time, so the REAL module serves
   // and each test stubs fetch (Nominatim is never reached).

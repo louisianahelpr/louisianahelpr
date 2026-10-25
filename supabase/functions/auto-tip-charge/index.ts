@@ -33,6 +33,7 @@ import { TIP_MIN_CENTS, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
 import { storedStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
@@ -576,6 +577,16 @@ serve(async (req) => {
         // Charging the poster and holding it on the platform would be taking
         // money for a transfer that can't happen.
         if (!helperProfile?.stripe_account_id) {
+          // Owner 2026-10-25 (payout_after_hire): a hired Helpr sets up payouts
+          // AFTER the hire, so "no account yet" is the normal state for a while.
+          // Nothing is charged; the claim is released and a later tick retries
+          // (within auto_tip_candidates' window) instead of dropping the tip
+          // (lh-money-escrow review #3). Off for them: as before.
+          if (await featureEnabledForUser(supabase, "payout_after_hire", { id: c.helper_id as string })) {
+            log("helper has no payout account yet (payout_after_hire) — deleting claim for retry", { jobId });
+            await releaseClaimForRetry("helper payout account not set up yet");
+            continue;
+          }
           await giveUp("helper_not_connected", false);
           results.failed++;
           continue;

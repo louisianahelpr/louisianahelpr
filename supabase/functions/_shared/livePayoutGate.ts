@@ -44,7 +44,13 @@ import { isTestObjectUnderLiveKey, isUnusableConnectAccountError } from "../_sha
 export const CONNECT_REJECTED_CODE = "connect_account_rejected";
 export const CONNECT_NOT_PAYABLE_CODE = "connect_account_not_payable";
 export const STRIPE_PLATFORM_REJECTED_CODE = "stripe_platform_rejected";
-export const CONNECT_HELD_CODES: ReadonlySet<string> = new Set([CONNECT_REJECTED_CODE, CONNECT_NOT_PAYABLE_CODE, STRIPE_PLATFORM_REJECTED_CODE]);
+/**
+ * The Helpr has no payout account yet (owner 2026-10-25: payout setup moved to
+ * after the hire, so this is a normal wait, not a failed attempt; lh-money-escrow
+ * review #1). release-payout answers it before any Stripe call.
+ */
+export const CONNECT_MISSING_CODE = "connect_account_missing";
+export const CONNECT_HELD_CODES: ReadonlySet<string> = new Set([CONNECT_REJECTED_CODE, CONNECT_NOT_PAYABLE_CODE, STRIPE_PLATFORM_REJECTED_CODE, CONNECT_MISSING_CODE]);
 
 /** The fields of a Stripe Account this module reads (Stripe.Account satisfies it). */
 export interface ConnectAccountFacts {

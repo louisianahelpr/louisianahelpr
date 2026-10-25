@@ -32,6 +32,7 @@
  * to agree; every test here uses a whole-dollar tip.
  */
 // @mutate supabase/functions/auto-tip-charge/index.ts | if (!released \|\| released.length === 0) { | if (false) {
+// @mutate supabase/functions/auto-tip-charge/index.ts | if (await featureEnabledForUser(supabase, "payout_after_hire", { id: c.helper_id as string })) { | if (false) {
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
@@ -206,6 +207,21 @@ describe("auto-tip-charge edge function", () => {
       expect(scenario.writes.some((w) => w.table === "tips" && w.op === "delete")).toBe(false);
       // `helper_not_connected` is the helper's account state — never surfaced
       // to the poster, who can do nothing about it.
+      expect(scenario.writes.some((w) => w.table === "notifications")).toBe(false);
+    });
+
+    // Owner 2026-10-25 (payout_after_hire): payout setup comes after the hire,
+    // so a Helpr with no account yet is a normal wait. The tip is NOT given up:
+    // the claim is released for a later tick, nothing is charged, nobody is told
+    // (lh-money-escrow review #3).
+    it("payout_after_hire on for the Helpr: releases the claim for a retry instead of giving up", async () => {
+      scenario.rpc.feature_enabled_for_user = (a?: unknown) =>
+        (a as { p_key?: string; p_user_id?: string } | undefined)?.p_key === "payout_after_hire" &&
+        (a as { p_user_id?: string }).p_user_id === "helper-1";
+      const res = await runGiveUp();
+      expect(res.status).toBe(200);
+      expect(tipUpdate(), "no give-up write").toBeUndefined();
+      expect(scenario.writes.some((w) => w.table === "tips" && w.op === "delete")).toBe(true);
       expect(scenario.writes.some((w) => w.table === "notifications")).toBe(false);
     });
 

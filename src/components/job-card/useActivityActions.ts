@@ -15,6 +15,7 @@ import { createOfferHandlers } from "./activityActions/useOfferHandlers";
 import { createLifecycleHandlers } from "./activityActions/useLifecycleHandlers";
 import { useCardExpansion } from "./useCardExpansion";
 import type { PaymentHeldSide, PaymentHeldWho } from "./PaymentHeldDialog";
+import { useHiredPayoutPrompt } from "@/components/payouts/useHiredPayoutPrompt";
 
 export type { UseActivityActionsArgs } from "./activityActions/types";
 
@@ -117,6 +118,8 @@ export function useActivityActions({
   const [paymentHeldSide, setPaymentHeldSide] = useState<PaymentHeldSide | null>(null);
   // Board 78: who was offered the job and when, for the poster's what-next sheet.
   const [paymentHeldWho, setPaymentHeldWho] = useState<PaymentHeldWho | null>(null);
+  // Owner 2026-10-25 (payout_after_hire): "You're hired. Set up payouts to get paid." after an accept.
+  const hiredPayout = useHiredPayoutPrompt();
 
   // Optimistic cache helpers shared by every money-path handler.
   const { optimisticallyPatchJob, rollbackActivity } = useOptimisticJobCache(user);
@@ -149,6 +152,7 @@ export function useActivityActions({
     setPaymentHeldWho,
     setRespondingHelperAppId,
     respondingInFlight,
+    promptPayoutAfterHire: hiredPayout.offer,
   });
 
   const {
@@ -212,6 +216,7 @@ export function useActivityActions({
     // The award/accept pop-up closes as one: its reason, its app, the missing steps.
     closeAwardGate: () => { setAwardBlockReason(null); setPendingAcceptApp(null); setAcceptPendingMissing(null); },
     paymentHeldSide, setPaymentHeldSide,
+    hiredPayout,
     // Board 60: a Helpr's accept names only the job; the poster's name and date come from the Working list.
     paymentHeldWho: paymentHeldWho?.jobId
       ? (() => { const a = appliedApps.find((x) => x.job_id === paymentHeldWho.jobId); return { ...paymentHeldWho, name: a?.posterName ?? null, dateNeeded: a?.job?.date_needed ?? null }; })()

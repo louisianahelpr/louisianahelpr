@@ -1,4 +1,6 @@
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
+import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
+import { useFeature } from "@/hooks/useFeature";
 import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -82,6 +84,10 @@ export function IdentityCheckHost() {
   // acceptMissingFromProfile...) and draws nothing while it is off.
   const { on: idOn, settled: idSettled } = useIdentityCheckStatus();
   useEffect(() => setIdentityCheckOn(idOn), [idOn]);
+  // Payout setup after the hire (owner 2026-10-25): published the same way, for
+  // the accept-gate mirror and the job card's "Finish payout setup" line.
+  const payoutAfterHire = useFeature("payout_after_hire");
+  useEffect(() => setPayoutAfterHireOn(payoutAfterHire), [payoutAfterHire]);
   const { open, reason } = useIdentityCheckSheet();
   const { user, profile, refresh } = useCurrentUser();
   const [params, setParams] = useSearchParams();

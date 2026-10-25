@@ -93,6 +93,10 @@ const NOT_AN_ENTRY_POINT: Readonly<Record<string, string>> = {
   // members while setup is still paused, these words need the paused state (reported to the lead).
   "src/lib/declutter/errors.ts": "Declutter's refusal words (the `declutter` switch is testers-only)",
   "src/lib/shops/errors.ts": "Shops' refusal words (the `shops` switch is testers-only; Shops is on hold)",
+  // Owner 2026-10-25: the "You're hired" prompt's words; HiredPayoutSetupDialog and PayoutSetupJobNotice show them and both call usePayoutSetupPaused().
+  "src/lib/payoutAfterHire.ts": "the hire prompt's own words; the two components that show them read usePayoutSetupPaused() (and are entry points themselves)",
+  // Owner 2026-10-25: the words a member nobody has hired reads in place of setup.
+  "src/lib/payoutSetupPaused.ts": "the notices' own words (\"You'll set up payouts when you're hired\"): they replace setup, they send nobody to it",
 };
 
 const M1 = /functions\.invoke\(\s*["']stripe-connect["'][\s\S]{0,400}?["'](?:onboard|update_onboarding|reset)["']|["'](?:onboard|update_onboarding)["'][\s\S]{0,300}?functions\.invoke\(\s*["']stripe-connect["']/;

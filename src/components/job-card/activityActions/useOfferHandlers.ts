@@ -62,6 +62,12 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
    * read null.
    */
   respondingInFlight: MutableRefObject<Set<string>>;
+  /**
+   * Owner 2026-10-25 (switch payout_after_hire): opens "You're hired. Set up
+   * payouts to get paid." after a completed accept and answers true, in place
+   * of the payment-held notice; false when it does not apply.
+   */
+  promptPayoutAfterHire?: (userId: string) => Promise<boolean>;
 }
 
 export function createOfferHandlers(deps: OfferHandlersDeps) {
@@ -420,9 +426,12 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     hapticSuccess();
     if (accept) {
       fireSuccessMoment({ label: "Job accepted" });
-      // Q997: the Helpr is told the payment is held (a direct offer, accepted).
-      setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
-      window.setTimeout(() => setPaymentHeldSide("helpr"), SUCCESS_MOMENT_LIFETIME_MS + 250);
+      // Q997: the Helpr is told the payment is held (a direct offer, accepted),
+      // unless the payout-setup prompt opens instead (its words say it).
+      if (!(user && (await deps.promptPayoutAfterHire?.(user.id)))) {
+        setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
+        window.setTimeout(() => setPaymentHeldSide("helpr"), SUCCESS_MOMENT_LIFETIME_MS + 250);
+      }
       await refresh();
       setStatusFilter("accepted");
     } else {
@@ -438,8 +447,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (!user) return;
   // Q997 (owner, 2026-10-07): the Helpr is told the payment is held. (Q1680,
   // owner 2026-10-21: our W-9 form is removed, so nothing else opens here.)
-  setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
-  setPaymentHeldSide("helpr");
+  // Owner 2026-10-25: the payout-setup prompt opens instead when it applies.
+  if (!(await deps.promptPayoutAfterHire?.(user.id))) {
+    setPaymentHeldWho({ name: null, dateNeeded: null, jobId: app.job_id });
+    setPaymentHeldSide("helpr");
+  }
 
   hapticSuccess();
   // Funnel: helper accepted an offer — closes the "applied → hired" gap

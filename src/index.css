@@ -4533,17 +4533,18 @@ html.senior-mode *::after {
   letter-spacing: -0.02em !important;
 }
 
-/* MOMENTS (owner, 2026-10-20, HELPR-DESIGN-SPEC.md §1.2 with the lead's
-   override): Bodoni Moda 600, upright, ONLY for greetings, step-flow
-   questions ("What are we doing?"), empty-state titles and celebrations
-   ("Job done"). Never item, job or listing titles, buttons, labels or prices.
-   Guard: src/test/centerCreateNav.test.tsx. The class is repeated to outrank
-   T1's `.font-display:not(...)` (0,2,0) when both sit on one title (SheetHero). */
+/* MOMENTS (greetings, step-flow questions, empty-state titles, "Job done")
+   were Bodoni from 2026-10-20. Owner 2026-10-25: "Good afternoon, Lexi" and
+   the "Jobs" title "should be consistent fonts... everything consistent
+   globally". So a moment title is now the SAME face as every page title:
+   Montserrat 650, upright, -0.02em (.text-page-title, T1). The landing H1 is
+   the one Bodoni headline left. Guard: src/test/centerCreateNav.test.tsx. The
+   class is repeated to outrank T1's `.font-display:not(...)` (0,2,0). */
 .font-moment.font-moment.font-moment {
-  font-family: "Bodoni Moda", "Bodoni Moda Fallback", "Bodoni Moda Fallback Liberation", Georgia, serif !important;
+  font-family: Montserrat, "Montserrat Fallback", system-ui, -apple-system, sans-serif !important;
   font-style: normal !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.01em !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.02em !important;
 }
 
 /* Explore's switcher is phone-only (ExploreSwitcher returns null on the desktop website), so its bone is too. */

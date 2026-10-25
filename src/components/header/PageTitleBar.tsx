@@ -53,7 +53,7 @@ export interface PageTitleBarProps {
    * False where the page sits in PageScaffold's title card, which pads itself.
    */
   desktopGap?: boolean;
-  /** A MOMENT title (Bodoni, spec v2: Home's greeting in the same slot as every title). */
+  /** A MOMENT title (Home's greeting; same face as every title since 2026-10-25). */
   moment?: boolean;
 }
 

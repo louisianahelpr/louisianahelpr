@@ -84,6 +84,8 @@ describe("payout setup after the hire", () => {
     expect(claim).toMatch(/ON CONFLICT DO NOTHING/);
   });
 
+  /** A copy line that names a setup time ("in 2 minutes", "about five minutes"). */
+  const PROMISES_A_TIME = /\b(?:about|in|within)\s+(?:\d+|two|five)\s+minutes?\b/i;
   it("(c1) one set of words: the reminder's 'hired' notice is the prompt, and no copy promises a time", () => {
     expect(payoutSetupReminderCopy("hired", null)).toEqual({ title: appCopy.HIRED_PAYOUT_TITLE, message: appCopy.HIRED_PAYOUT_BODY });
     const strings: string[] = Object.values(appCopy as Record<string, unknown>).filter((v): v is string => typeof v === "string");
@@ -93,7 +95,7 @@ describe("payout setup after the hire", () => {
       ...(["hired", "day1", "day3", "day7", "money"] as const).flatMap((s) => Object.values(payoutSetupReminderCopy(s, "Mow"))),
     ];
     expect(all.length).toBeGreaterThan(10);
-    for (const s of all) expect(s, s).not.toMatch(/\b(?:about|in|within)\s+(?:\d+|two|five)\s+minutes?\b/i);
+    for (const s of all) expect(s, s).not.toMatch(PROMISES_A_TIME);
     expect(all.filter((s) => /a few minutes/.test(s)).length).toBeGreaterThan(2);
   });
 

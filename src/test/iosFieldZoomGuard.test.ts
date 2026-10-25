@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
  * (`text-ds-14`): a bare `textarea` (weight 0,0,1) lost, so the apply message
  * box zoomed the app on the owner's iPhone (2026-10-25, "everything scrolls").
  */
+// @mutate src/index.css |     textarea:not([data-zoom-guard-off]),\n    select:not([data-zoom-guard-off]) { |     textarea,\n    select:not([data-zoom-guard-off]) {
 const css = readFileSync(resolve(__dirname, "../index.css"), "utf8");
 
 function guardSelectors(): string[] {
@@ -28,6 +29,8 @@ describe("iOS field zoom guard", () => {
   });
 
   it("every selector outweighs a one-class text-size utility", () => {
-    for (const sel of guardSelectors()) expect(classWeight(sel), sel).toBeGreaterThanOrEqual(1);
+    const sels = guardSelectors();
+    expect(sels.length).toBeGreaterThanOrEqual(3);
+    for (const sel of sels) expect(classWeight(sel), sel).toBeGreaterThanOrEqual(1);
   });
 });

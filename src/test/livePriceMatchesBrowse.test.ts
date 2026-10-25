@@ -11,7 +11,9 @@ import { liveJobPrice } from "@/components/landing/LiveJobsSection";
 
 describe("home Live now shows the /browse take-home", () => {
   it("a flat-fee job reads its floored take-home, the /browse figure", () => {
-    for (const [budget, want] of [[30, "$27"], [150, "$141"], [60, "$56"]] as const) {
+    const CASES = [[30, "$27"], [150, "$141"], [60, "$56"]] as const;
+    expect(CASES.length).toBeGreaterThan(2);
+    for (const [budget, want] of CASES) {
       const job = { budget, helper_fee_flat_cents: 70 };
       const net = computeNet(budget, 0, 0, 1, 0, job).netEarnings;
       expect(liveJobPrice({ budget, pricing_mode: null, take_home: net })).toBe(want);

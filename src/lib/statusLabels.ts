@@ -118,6 +118,8 @@ export function payoutStatusLabel(status: string | null | undefined): string {
 export const PAYMENT_STATUSES = [
   "unpaid", "escrow", "payout_pending", "released", "refunded",
   "cancelled", "abandoned", "failed", "chargeback", "cancelling",
+  // Q2399 (20261025202148): the poster's card is held, charged at the hire.
+  "held",
 ] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
@@ -132,6 +134,7 @@ const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   failed: "Failed",
   chargeback: "Chargeback",
   cancelling: "Cancelling",
+  held: "Card on hold",
 };
 
 export function paymentStatusLabel(status: string | null | undefined): string {

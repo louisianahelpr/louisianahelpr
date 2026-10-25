@@ -113,6 +113,7 @@ export const FEATURE_SWITCH_KEYS = [
   // (paypal_entry_requires_switch). Phase 2 adds the first screen and moves it
   // out of SERVER_ONLY.
   "paypal_payments",
+  "card_hold_at_post",
 ] as const;
 
 /**

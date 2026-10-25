@@ -225,9 +225,13 @@ CREATE TRIGGER trg_notify_saved_searches_funded_update
 --   authorized   a PaymentIntent in requires_capture (capture_before = its
 --                charge's payment_method_details.card.capture_before)
 --   scheduled    the card is saved; the sweep places the hold at place_at
---   needs_action the hold needs the poster on-session ($300+, Q210b, or 3D
---                Secure asked for): they were notified to confirm it
---   failed       placing or capturing failed: the poster was notified to pay again
+--   needs_action the hold needs the poster on-session ($300+, Q210b; a taxed
+--                category, whose tax only Checkout computes; or 3D Secure
+--                asked for): the job is payment_status 'failed' (not listed,
+--                nobody can be hired) and the poster was told to confirm it
+--   failed       placing or capturing failed: the job is payment_status
+--                'failed' and the poster was told to pay again (create-payment
+--                escrow re-mints a checkout, as for any failed payment)
 --   captured     charged at the hire; the job moved to escrow
 --   released     cancelled: nobody was hired (the poster was told they were not charged)
 -- ON DELETE CASCADE: a deleted job's authorization is dropped by Stripe at its
@@ -240,6 +244,13 @@ CREATE TABLE IF NOT EXISTS public.job_card_holds (
   payment_intent_id   text,
   state               text NOT NULL CHECK (state IN ('authorized', 'scheduled', 'needs_action', 'failed', 'captured', 'released')),
   amount_cents        integer NOT NULL CHECK (amount_cents > 0),
+  -- the one-time setup fee inside amount_cents; settled at the capture, and
+  -- left out of it when another job collected the fee first (no refund)
+  onboarding_fee_cents integer NOT NULL DEFAULT 0 CHECK (onboarding_fee_cents >= 0 AND onboarding_fee_cents < amount_cents),
+  -- create-payment's PaymentIntent metadata, reused on a hold placed later
+  intent_metadata     jsonb NOT NULL DEFAULT '{}'::jsonb,
+  -- the last state the poster was told about, so each notice goes out once
+  notified_state      text,
   capture_before      timestamptz,
   place_at            timestamptz,
   failure_code        text,
@@ -282,7 +293,41 @@ INSERT INTO public.feature_switches (key, audience, description)
 VALUES ('card_hold_at_post', 'testers', 'Q2399: a posted job holds the poster''s card (card and Link) and charges it only when a Helpr is hired; nobody hired cancels the hold.')
 ON CONFLICT (key) DO NOTHING;
 
--- ─── 8. Objects re-created from their NEWEST definition ─────────────────────
+-- ─── 8. card-hold-sweep every 10 minutes ────────────────────────────────────
+-- Releases holds on jobs closed unhired, completes pending accepts, places
+-- scheduled holds and renews expiring ones (supabase/functions/card-hold-sweep).
+-- Same shape as recheck-pending-accepts (20261007033422): tagged, timed out,
+-- with its gap expectation. Replay-safe: cron.schedule upserts by name.
+DO $do$
+BEGIN
+  IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
+    INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
+    VALUES ('card-hold-sweep', interval '30 minutes',
+            'Q2399: every 10 minutes, releases card holds on jobs closed unhired, completes pending accepts on held jobs, places scheduled holds and renews expiring ones.',
+            'exempt',
+            'No hold to move is the healthy state, so a run that changes nothing is not a silent failure. A run that could not read or write answers 500 through cronResult.')
+    ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,
+      work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
+    PERFORM cron.schedule('card-hold-sweep', '3-59/10 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'card-hold-sweep')
+  FROM (
+      SELECT net.http_post(timeout_milliseconds := 90000,
+        url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)
+               || '/functions/v1/card-hold-sweep',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key' LIMIT 1)
+        ),
+        body := '{}'::jsonb
+      )
+) AS q(request_id);$c$);
+  END IF;
+END
+$do$;
+
+-- ─── 9. Objects re-created from their NEWEST definition ─────────────────────
 -- LISTING: open_jobs_browse, newest definition 20261015034054_open_jobs_browse_fee_stamp.sql verbatim except the Q2399 lines.
 CREATE OR REPLACE VIEW public.open_jobs_browse
 WITH (security_invoker = false)

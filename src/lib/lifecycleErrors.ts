@@ -227,6 +227,8 @@ export const RPC_ERROR_COPY = {
     not_on_this_crew: "You're not on this job's crew any more.",
     job_not_confirmable: "This job isn't live any more, so your spot can't be accepted. Pull to refresh.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
+    // Q2399: the poster's card is only held; capture_hold charges it first (cardHoldCapture.ts).
+    payment_not_captured: "This job is waiting on the poster's payment. We've let them know.",
   },
   rpc_group_member_on_the_way: {
     not_authenticated: "Sign in again to update your status.",
@@ -275,6 +277,8 @@ export const RPC_ERROR_COPY = {
     credential_tier_required: "You don't have the credentials this job requires. Add your license or insurance in your profile to accept it.",
     // Q1401: the listing closes at the job's start (job_offer_cutoff), not its day.
     job_date_has_passed: "This job has already started, so the offer can't be accepted.",
+    // Q2399: the poster's card is only held; capture_hold charges it first (cardHoldCapture.ts).
+    payment_not_captured: "This job is waiting on the poster's payment. We've let them know.",
     job_expired: "This posting has expired.",
     job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",
@@ -289,6 +293,8 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted right now, so you can't accept jobs.",
     helper_unknown: "We couldn't read your account right now. Try again in a moment.",
     job_not_funded: "This job's payment isn't secured right now, so the offer can't be accepted yet.",
+    // Q2399: the poster's card is only held; capture_hold charges it first (cardHoldCapture.ts).
+    payment_not_captured: "This job is waiting on the poster's payment. We've let them know.",
   },
   // useOfferHandlers — declining an accepted offer.
   decline_job_offer: {

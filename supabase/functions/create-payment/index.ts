@@ -30,6 +30,17 @@ import {
   serviceFeeCentsFor,
 } from "../_shared/jobCheckout.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import {
+  CARD_HOLD_CHECKOUT_API_VERSION,
+  CARD_HOLD_COPY,
+  CARD_HOLD_SWITCH,
+  captureCardHold,
+  holdCheckoutPaymentMethodOptions,
+  holdPlanFor,
+  notifyHelprWaiting,
+  readHold,
+  releaseCardHold,
+} from "../_shared/cardHold.ts";
 
 /**
  * Q1415 (b): what a release answers while an open ban settlement review holds
@@ -100,6 +111,9 @@ const ACTION_MONEY_KIND: Record<string, MoneyKind> = {
   admin_refund_general: "refund",
   // Q2170: reads the fault refund on the job's own charge (moves no money), so the charge's mode.
   admin_bill_helpr_fault: "refund",
+  // Q2399: the hire captures a hold already placed, where it sits (the stored
+  // checkout's mode), and pays a Helpr later, so every payee shares that mode.
+  capture_hold: "payout",
 };
 const STRIPE_MODE_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -1305,6 +1319,86 @@ serve(async (req) => {
       if (saveCardForFuture === true && !payInFour) {
         paymentIntentExtras.setup_future_usage = "off_session";
       }
+
+      // ─── Card hold at posting (Q2399, owner 2026-10-25, switch card_hold_at_post) ───
+      // The poster's card is HELD, not charged, and is captured only when a
+      // Helpr is hired (create-payment capture_hold); nobody hired, the hold
+      // is cancelled (card-hold-sweep). Card and Link only: a bank payment
+      // cannot be held, so it is charged as before; Pay in 4 keeps its own
+      // checkout (Afterpay charges an instalment at authorization); a job
+      // booked from a quote is hired the moment it is paid
+      // (quote_job_funded_hires_quoter), so it is charged at once. A switch
+      // read error is OFF (featureEnabledForUser fails closed); an unreadable
+      // quote link is treated as a quote job (charged as today).
+      const quoteBooked = async (): Promise<boolean> => {
+        const { data: links, error: linkErr } = await supabaseAdmin
+          .from("job_quote_requests").select("id").eq("job_id", jobId).limit(1);
+        if (linkErr) {
+          console.error(`[create-payment] quote link read failed for job ${jobId}; no card hold: ${linkErr.message}`);
+          return true;
+        }
+        return (links ?? []).length > 0;
+      };
+      const cardHold = !payInFour && await featureEnabledForUser(supabaseAdmin, CARD_HOLD_SWITCH, user) && !(await quoteBooked());
+      const holdPlan = cardHold ? holdPlanFor(job.date_needed, job.start_time) : null;
+      const lineItemsCents = lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0);
+      const successUrl = buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative);
+      const cancelUrl = cancelQuoteRequestId === null
+        ? buildRedirectUrl(`/post-job`, isNative)
+        : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative);
+      const escrowModelStamp = {
+        platform_fee_percent: customerFeePercent,
+        platform_fee_amount: helperFeeAmount,
+        customer_fee_amount: customerFeeAmount,
+        helper_fee_percent: helperFeePercent,
+        helper_fee_flat_cents: isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS,
+        // Every model column is restated with the session (review #7): a
+        // concurrent request's model stamp cannot leave this session's job
+        // on the other model. Named on a flat job only when it holds a
+        // poster stamp to clear (deploy order, as the model stamp above).
+        ...(isPosterFee
+          ? { poster_fee_flat_cents: POSTER_JOB_FEE_CENTS }
+          : job.poster_fee_flat_cents != null ? { poster_fee_flat_cents: null } : {}),
+      };
+
+      if (holdPlan?.kind === "schedule") {
+        // A job more than 6 days out: the card is SAVED now and held 4 days
+        // before the start (card-hold-sweep), inside every brand's off-session
+        // hold window. The amount is the line items: a taxed category's hold
+        // is confirmed by the poster on a Checkout page (its tax is computed
+        // there), so a saved card never carries an untaxed charge.
+        const setupSession = await stripe.checkout.sessions.create({
+          customer: await payerWalletCustomer(),
+          mode: "setup",
+          currency: "usd",
+          payment_method_types: ["card", "link"],
+          billing_address_collection: "required",
+          setup_intent_data: { metadata: { job_id: jobId, customer_id: user.id, card_hold: "1" } },
+          custom_text: { submit: { message: CARD_HOLD_COPY.scheduled(lineItemsCents) } },
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          expires_at: checkoutExpiresAt,
+          metadata: {
+            job_id: jobId, customer_id: user.id, card_hold: "1", card_hold_plan: "schedule",
+            hold_amount_cents: String(lineItemsCents), hold_place_at: holdPlan.placeAt.toISOString(),
+            onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents),
+            card_hold_intent: JSON.stringify(paymentIntentExtras.metadata),
+            wallet_save: saveCardForFuture === true ? "1" : "",
+          },
+        }, {
+          idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}-hs${checkoutKeySuffix}`,
+        });
+        const setupStamp = await stampSession(setupSession.id, escrowModelStamp);
+        if (!setupStamp.ok) {
+          console.error(`[create-payment] card-hold setup session ${setupSession.id} created for job ${jobId} but jobs.update failed:`, setupStamp.reason);
+          throw new PublicError("Could not record the payment session — please try again");
+        }
+        return new Response(JSON.stringify({ url: setupSession.url, cardHold: "scheduled" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
+      }
+      if (holdPlan) paymentIntentExtras.metadata.card_hold = "1";
+
       const session = await stripe.checkout.sessions.create({
         customer: await payerWalletCustomer(),
         customer_update: { address: 'auto' },
@@ -1322,20 +1416,19 @@ serve(async (req) => {
         // can pass $300 once Checkout adds the real tax; a ceiling only errs
         // toward asking for 3DS)
         // (tax is only known once Checkout has the address; it can only add).
-        payment_method_options: threeDSecureOptions(
+        payment_method_options: ((threeDS) => holdPlan ? holdCheckoutPaymentMethodOptions(threeDS) : threeDS)(threeDSecureOptions(
           // No card options on a Pay-in-4 session (no card can be used there).
-          payInFour ? 0 : lineItems.reduce((sum: number, li: any) => sum + Number(li?.price_data?.unit_amount ?? 0) * Number(li?.quantity ?? 1), 0)
+          payInFour ? 0 : lineItemsCents
             // A taxable job's service fee is taxed too (tax memo).
             + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0)
             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category),
-        ),
+        )),
         payment_intent_data: paymentIntentExtras,
-        success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
-        cancel_url: cancelQuoteRequestId === null
-          ? buildRedirectUrl(`/post-job`, isNative)
-          : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative),
+        success_url: successUrl,
+        cancel_url: cancelUrl,
         expires_at: checkoutExpiresAt,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents),
+          ...(holdPlan ? { card_hold: "1" } : {}),
           // wallet_save "1": stripe-webhook makes the saved card the wallet's
           // default card (Q2139) only on a session marked so ("" = unset).
           wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" },
@@ -1346,8 +1439,10 @@ serve(async (req) => {
         // The fee model and Pay-in-4 choice are part of the price (owner
         // 2026-10-18): a session opened on one model is never replayed for
         // a request on the other.
-        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`,
-      });
+        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`,
+        // Q2399: per-method capture on Checkout needs this API version (one call only).
+        ...(holdPlan ? { apiVersion: CARD_HOLD_CHECKOUT_API_VERSION } : {}),
+      } as Stripe.RequestOptions);
 
       // Store both fee structures on the job. Fail the request if this write
       // fails: without stripe_session_id the double-payment guard is blind and
@@ -1357,31 +1452,77 @@ serve(async (req) => {
       // (error === null) would otherwise look identical to success here,
       // leaving stripe_session_id unset — the double-payment guard goes blind
       // and the frozen fee percents are lost.
-      const escrowStamp = await stampSession(session.id, {
-        platform_fee_percent: customerFeePercent,
-        platform_fee_amount: helperFeeAmount,
-        customer_fee_amount: customerFeeAmount,
-        helper_fee_percent: helperFeePercent,
-        helper_fee_flat_cents: isPosterFee ? 0 : HELPR_FLAT_FEE_CENTS,
-        // Every model column is restated with the session (review #7): a
-        // concurrent request's model stamp cannot leave this session's job
-        // on the other model. Named on a flat job only when it holds a
-        // poster stamp to clear (deploy order, as the model stamp above).
-        ...(isPosterFee
-          ? { poster_fee_flat_cents: POSTER_JOB_FEE_CENTS }
-          : job.poster_fee_flat_cents != null ? { poster_fee_flat_cents: null } : {}),
-      });
+      const escrowStamp = await stampSession(session.id, escrowModelStamp);
       if (!escrowStamp.ok) {
         console.error(`[create-payment] escrow session ${session.id} created for job ${jobId} but jobs.update failed:`, escrowStamp.reason);
         throw new PublicError("Could not record the payment session — please try again");
       }
 
-      return new Response(JSON.stringify({ url: session.url }), {
+      return new Response(JSON.stringify({ url: session.url, ...(holdPlan ? { cardHold: "hold" } : {}) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
       });
     }
 
     // (repay_escrow action removed — immediate capture eliminates expiry risk)
+
+    // ─── CAPTURE_HOLD: the hire charges the poster's held card (Q2399) ───
+    //
+    // Called by the Helpr's app right before the accept that completes a hire
+    // (accept_job_offer, respond_to_direct_offer, rpc_group_member_confirm),
+    // which answer payment_not_captured on a held job. The caller must be the
+    // Helpr that live offer names. Only a READY Helpr's hire captures (payout
+    // setup and ID done, helper_accept_block_reason): an unready one's accept
+    // is recorded pending as today, and card-hold-sweep captures and completes
+    // it once they are ready, so no money is taken for a hire that may never
+    // complete. Not behind the switch: it acts only on a job ALREADY held (the
+    // poster's switch decided that at posting), and turning the switch off must
+    // never strand a card hold with nobody able to hire.
+    if (action === "capture_hold") {
+      const { jobId } = body;
+      if (typeof jobId !== "string" || !STRIPE_MODE_UUID_RE.test(jobId)) throw new PublicError("Missing jobId");
+      const json = (payload: Record<string, unknown>, status = 200) =>
+        new Response(JSON.stringify(payload), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
+      const { data: job, error: jobErr } = await supabaseAdmin
+        .from("jobs")
+        .select("id, title, status, payment_status, helper_id, helper_confirmed_at, offered_to_helper_id, direct_offer_status, is_group_job, response_deadline")
+        .eq("id", jobId)
+        .maybeSingle();
+      if (jobErr) {
+        console.error(`[create-payment] capture_hold job read failed for ${jobId}: ${jobErr.message}`);
+        return json({ error: "Couldn't check this job. Nothing was charged — try again." }, 503);
+      }
+      if (!job) throw new PublicError("Job not found");
+      let seatOpen = false;
+      if (job.is_group_job) {
+        const { data: seat, error: seatErr } = await supabaseAdmin
+          .from("group_job_helpers").select("id, helper_confirmed_at").eq("job_id", jobId).eq("helper_id", user.id).maybeSingle();
+        if (seatErr) {
+          console.error(`[create-payment] capture_hold crew seat read failed for ${jobId}: ${seatErr.message}`);
+          return json({ error: "Couldn't check this job. Nothing was charged — try again." }, 503);
+        }
+        seatOpen = !!seat && seat.helper_confirmed_at == null;
+      }
+      const offerOpen = job.status === "accepted" && job.helper_id === user.id && job.helper_confirmed_at == null &&
+        (job.response_deadline == null || Date.parse(job.response_deadline) > Date.now());
+      const directOpen = job.status === "open" && job.offered_to_helper_id === user.id && job.direct_offer_status === "pending";
+      if (!offerOpen && !directOpen && !seatOpen) throw new PublicError("Not authorized");
+      if (job.payment_status !== "held" && job.payment_status !== "failed") return json({ state: "not_held" });
+      const { data: block, error: blockErr } = await supabaseAdmin.rpc("helper_accept_block_reason", { p_user_id: user.id });
+      if (blockErr) {
+        console.error(`[create-payment] capture_hold readiness read failed for ${user.id}: ${blockErr.message}`);
+        return json({ error: "Couldn't check your account. Nothing was charged — try again." }, 503);
+      }
+      if (block != null) return json({ state: "not_ready" });
+      const result = await captureCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId);
+      if (result.ok) return json({ state: "captured" });
+      if (result.reason === "not_held") return json({ state: "not_held" });
+      if (result.reason === "retry") {
+        console.warn(`[create-payment] capture_hold for job ${jobId} will retry: ${result.detail}`);
+        return json({ error: "Couldn't reach the payment processor. Nothing was charged — try again in a moment." }, 503);
+      }
+      await notifyHelprWaiting(supabaseAdmin, user.id, job);
+      return json({ code: "payment_pending", error: CARD_HOLD_COPY.helprWaiting(job.title ?? "This job") }, 409);
+    }
 
     // ─── RELEASE: Both parties confirm → capture + transfer ───
     if (action === "release") {
@@ -2504,6 +2645,37 @@ serve(async (req) => {
             : "This job has a Helpr or has already started, so it has to be cancelled with Cancel job — that applies the cancellation rules and refunds you. No money was moved.",
           ...(disputed ? { disputed: true } : { useCancelJob: true }),
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
+      // ── A card only HELD (Q2399): nothing was charged, so nothing is
+      // refunded. The job is closed and the hold cancelled (no refund, no fee);
+      // the poster is told their card was not charged. Same allowlist as the
+      // refund below (open, nobody hired, no dispute: checked above), pinned
+      // to the payment state read so a capture landing between wins.
+      if (job.payment_status === "held" || (job.payment_status === "failed" && await readHold(supabaseAdmin, jobId))) {
+        const { data: closed, error: closeErr } = await supabaseAdmin
+          .from("jobs")
+          .update({ status: "cancelled", cancelled_at: new Date().toISOString(), cancelled_by: user.id })
+          .eq("id", jobId)
+          .eq("status", "open")
+          .is("helper_id", null)
+          .eq("payment_status", job.payment_status)
+          .select("id");
+        if (closeErr || !closed || closed.length === 0) {
+          console.error(`[create-payment] cancel_escrow on held job ${jobId} did not close it: ${closeErr?.message ?? "matched 0 rows"}`);
+          return new Response(JSON.stringify({ error: "This job changed while it was being cancelled. Nothing was charged — refresh and try again." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
+          });
+        }
+        const released = await releaseCardHold({ db: supabaseAdmin, stripe, mode: stripeMode }, jobId);
+        if (released === "captured") {
+          return new Response(JSON.stringify({ error: "This job's payment needs a look from our team. Support has the details." }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
+          });
+        }
+        return new Response(JSON.stringify({ success: true, released: true, message: CARD_HOLD_COPY.releasedTitle }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
+        });
       }
 
       // Atomic state claim: only an escrow-held job may be refunded.

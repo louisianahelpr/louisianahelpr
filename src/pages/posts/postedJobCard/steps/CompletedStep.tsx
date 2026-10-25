@@ -167,8 +167,9 @@ export function CompletedStep({
               />
             )
           : null,
-        /* Hire again — direct offer to the same helper: PostJob with offerTo +
-           rebook, so the form is prefilled AND the offer skips the queue. */
+        /* Hire again — direct offer to the same helper for ANY job: a blank
+           PostJob with offerTo only (owner 2026-10-25: not prefilled from this
+           job). Post again below is the prefilled copy. */
         job.helper_id ? (
           <JobActionChip
             key="again"
@@ -176,7 +177,7 @@ export function CompletedStep({
             label="Hire again"
             ariaLabel={`Hire again — hire ${helperName} for a new job`}
             tone="primary"
-            onClick={ageGate("post", () => navigate(`/post-job?rebook=${job.id}&offerTo=${job.helper_id}`))}
+            onClick={ageGate("post", () => navigate(`/post-job?offerTo=${job.helper_id}`))}
             ageGated={ageGatedProps("post")}
           />
         ) : (

@@ -69,39 +69,20 @@ function makeProps(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** The itemised receipt is behind a disclosure now — open it. */
-function expandMath() {
-  fireEvent.click(screen.getByRole("button", { expanded: false, name: /budget/i }));
-}
-
 describe("ApplyConfirmDialog", () => {
   it("renders nothing when open is false", () => {
     render(<ApplyConfirmDialog {...makeProps({ open: false })} />);
     expect(screen.queryByText("Apply at $100")).not.toBeInTheDocument();
   });
 
-  it("leads with the take-home number, not the subtraction", () => {
-    // budget 100, 10% fee, solo job -> $90 take-home. The FIGURE is the
-    // headline; the receipt that justifies it is collapsed. This inverted a
-    // block that opened with three rows of accounting and put the only number
-    // the helpr decides on last.
+  it("leads with the take-home number and names no fee (owner 2026-10-25)", () => {
+    // budget 100, 10% fee, solo job -> $90 take-home. The take-home is all the
+    // sheet shows: no fee name, rate or subtraction.
     render(<ApplyConfirmDialog {...makeProps()} />);
     expect(screen.getByText(/Fix the fence/)).toBeInTheDocument();
     expect(screen.getByText("You take home")).toBeInTheDocument();
     expect(screen.getByText("$90")).toBeInTheDocument();
-    // Collapsed by default: no itemised rows on arrival.
-    expect(screen.queryByText("Take-home")).not.toBeInTheDocument();
-    // …but the inputs are still named in words, so nothing is concealed.
-    expect(screen.getByText(/\$100 budget − Helpr fee \(10%\)/)).toBeInTheDocument();
-  });
-
-  it("shows the itemised receipt on tap", () => {
-    render(<ApplyConfirmDialog {...makeProps()} />);
-    expandMath();
-    expect(screen.getByText("Budget")).toBeInTheDocument();
-    expect(screen.getByText("− 10% platform fee")).toBeInTheDocument();
-    expect(screen.getByText("Take-home")).toBeInTheDocument();
-    expect(screen.getByText("Budget").parentElement?.textContent).toContain("$100");
+    expect(document.body.textContent ?? "").not.toMatch(/platform fee|helpr fee|10%|budget −/i);
   });
 
   it("divides the budget across helpers for a group job", () => {
@@ -114,25 +95,17 @@ describe("ApplyConfirmDialog", () => {
       />,
     );
     expect(screen.getByText("$45")).toBeInTheDocument();
-    expandMath();
-    expect(screen.getByText("$50")).toBeInTheDocument();
   });
 
   it("adds the whole urgent bonus into take-home (Q362)", () => {
-    // budget 100, 10% fee, +$15 urgent paid in FULL (Q362: the poster pays
-    // its card fee on top) -> 100 - 10 + 15 = $105; the HEADLINE take-home
-    // floors to whole dollars (matching JobPrice).
+    // budget 100, 10% fee, +$15 urgent paid in FULL (Q362) -> 100 - 10 + 15
+    // = $105; the HEADLINE take-home floors to whole dollars (matching JobPrice).
     render(
       <ApplyConfirmDialog
         {...makeProps({ confirmApplyJob: makeJob({ urgent_fee: 15 }) })}
       />,
     );
     expect(screen.getByText("$105")).toBeInTheDocument();
-    // Named in the collapsed summary line too, so the bonus is never a
-    // surprise that only shows up if you go looking for the receipt.
-    expect(screen.getByText(/\+ urgent bonus$/)).toBeInTheDocument();
-    expandMath();
-    expect(screen.getByText("+$15")).toBeInTheDocument();
   });
 
   it("shows a generic prompt when no job is resolved", () => {
@@ -414,7 +387,7 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
   });
 
   // Board 58 (lead): the sheet takes the initial focus, not the fee breakdown's disclosure.
-  it("board 58: opens with focus on the sheet, not on the fee disclosure", async () => {
+  it("board 58: opens with focus on the sheet", async () => {
     render(<ApplyConfirmDialog {...makeProps()} />);
     await new Promise((r) => setTimeout(r, 50));
     expect(document.activeElement?.getAttribute("role")).toBe("dialog");

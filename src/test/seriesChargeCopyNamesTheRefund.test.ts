@@ -4,16 +4,17 @@
  *
  * A date nobody picked is never charged. But a VACATED visit (its Helpr gave it
  * up, or a ban handed it back) was charged when it was booked, and if nobody
- * takes it the poster gets it back LESS the card processing fee. So every
- * series surface that says a date "isn't charged" must, in the same sentence
- * or the next, say a paid one is refunded (less the processing fee).
+ * takes it the poster gets most of it back. So every series surface that says
+ * a date "isn't charged" must, in the same sentence or the next, say a paid
+ * one comes back (owner 2026-10-25: "most of it comes back to your card",
+ * never a fee name).
  *
  * Inventory: the series UI files and the SQL functions that write series
  * notifications (their newest definitions), comments blanked, strings kept.
  *
- * @mutate src/components/series/SeriesDatesPanel.tsx | Different Helprs can take different dates. A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid. | Different Helprs can take different dates. A date nobody takes is not charged.
- * @mutate src/components/postjob/RecurringSchedulePicker.tsx | A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid." | A date nobody takes isn't charged."
- * @mutate supabase/migrations/20260927012806_recurring_split_days.sql | A date nobody takes isn''t charged, or is refunded less the card processing fee if you already paid for it. | A date nobody takes is not charged.
+ * @mutate src/components/series/SeriesDatesPanel.tsx | Different Helprs can take different dates. A date nobody takes isn't charged, or most of it comes back to your card if it was already paid. | Different Helprs can take different dates. A date nobody takes is not charged.
+ * @mutate src/components/postjob/RecurringSchedulePicker.tsx | A date nobody takes isn't charged, or most of it comes back to your card if it was already paid." | A date nobody takes isn't charged."
+ * @mutate supabase/migrations/20261025203540_notices_never_name_the_helpr_fee.sql |            $q$or most of it comes back to your card if you already paid for it.$q$, '') | $q$.$q$, '')
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -42,7 +43,7 @@ function unqualified(text: string): string[] {
     const rest = text.slice(m.index!, m.index! + 180);
     const end = rest.search(/"|',/);
     const after = end >= 0 ? rest.slice(0, end) : rest;
-    if (!/refunded/i.test(after)) out.push(text.slice(Math.max(0, m.index! - 60), m.index! + 40).replace(/\s+/g, " "));
+    if (!/refunded|comes back to your card/i.test(after)) out.push(text.slice(Math.max(0, m.index! - 60), m.index! + 40).replace(/\s+/g, " "));
   }
   return out;
 }

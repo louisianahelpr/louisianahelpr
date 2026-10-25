@@ -552,10 +552,13 @@ describe("void-cancelled-payments — a poster-fee job keeps the card cost only 
     // The ledger names what was kept: the card processing fee, not a service fee.
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
     expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("cancellation refund (minus $150.00 cancellation fee paid to the Helpr and $9.46 card processing fee)");
-    // The poster's notice says the same: a card processing fee, never a service fee.
+    // The poster's notice (owner 2026-10-25): the exact refund and the $150 for
+    // the Helpr's time; no fee is named (the ledger above is staff text).
     const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications" || w.table === "refund_notices").map((w) => w.payload));
-    expect(told).toMatch(/card processing fee/);
-    expect(told).not.toMatch(/service fee/);
+    // (The mocked refund answers $150; the notice states what Stripe returned.)
+    expect(told).toContain('We refunded $150 for \\"Mow the lawn\\"');
+    expect(told).toContain("This refund doesn't include $150 for your Helpr's time.");
+    expect(told).not.toMatch(/service fee|card processing|cancellation fee|card fee|Contact support/i);
   });
 });
 

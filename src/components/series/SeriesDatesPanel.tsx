@@ -188,8 +188,8 @@ export function SeriesDatesPanel({
         <div className="px-3 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>
           <p className="text-ds-11 text-muted-foreground leading-snug">
             {splitOk
-              ? "Different Helprs can take different dates. A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid."
-              : "One Helpr for every visit. A date nobody takes isn't charged, or is refunded less the card processing fee if it was already paid."}
+              ? "Different Helprs can take different dates. A date nobody takes isn't charged, or most of it comes back to your card if it was already paid."
+              : "One Helpr for every visit. A date nobody takes isn't charged, or most of it comes back to your card if it was already paid."}
           </p>
 
           {!isPoster && mine.length > 0 && (

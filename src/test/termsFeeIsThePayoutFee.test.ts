@@ -1,40 +1,37 @@
 /**
- * THE TERMS QUOTE THE FEE THE PAYOUT CHARGES (owner 2026-10-20). Terms said the
- * Helpr's platform fee was "8–12%, set by their own plan" (the retired tier
- * ladder) while every job since 2026-10-15 pays a flat 5% + 70c. The Terms,
- * the Help Center and the payout math now share ONE phrase, HELPR_FLAT_FEE_PHRASE
- * (src/lib/helprFlatFee.ts), and this guard derives the phrase from the fee
- * FUNCTION itself (helprFlatFeeCents), so the words and the money fail together
- * if either changes alone.
+ * THE TERMS STATE THE HELPR FEE IN ONE GENERAL SENTENCE (owner 2026-10-25).
  *
- * @mutate src/lib/helprFlatFee.ts | export const HELPR_FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`; | export const HELPR_FLAT_FEE_PHRASE = "8–12%";
- * @mutate src/pages/info/legal/TermsSection.tsx | the Helpr fee above. | the Helpr's plan-based fee.
- * @mutate src/pages/info/legal/TermsSection.tsx | The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay | The Helpr's fee (12% of their pay
- * @mutate src/pages/info/legal/TermsSection.tsx | <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each | <p><strong className="text-foreground">Helpr fee:</strong> {TIER_PERKS.free.platformFeePercent}% of each
+ * History: on 2026-10-20 the Terms quoted the retired tier ladder ("8–12%")
+ * while every job paid a flat fee, so this guard tied the Terms' number to the
+ * fee function. On 2026-10-25 the owner ruled that members never see a fee
+ * number, name or maths anywhere, and that the Terms keep ONE general
+ * sentence: Louisiana Helpr keeps a service fee from each Helpr payout. So the
+ * Terms carry that sentence and no rate: no fee phrase, no tier ladder, no
+ * percent next to the fee. The fee itself (10% + 70c on new jobs) is held by
+ * helprFlatFee.parity.test.ts; the member-wide class by membersSeeNoFeeWords.
+ *
+ * @mutate src/pages/info/legal/TermsSection.tsx | Louisiana Helpr keeps a service fee from each Helpr payout; | Louisiana Helpr keeps 10% + $0.70 of each Helpr payout;
+ * @mutate src/pages/info/legal/TermsSection.tsx | the one-time account setup fee and the service fee above. | the one-time account setup fee and the Helpr's plan-based fee.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { HELPR_FLAT_FEE_PHRASE, helprFlatFeeCents } from "@/lib/helprFlatFee";
+import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatFeeCents } from "@/lib/helprFlatFee";
 
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
 
-describe("the Terms quote the fee the payout charges", () => {
-  it("the shared phrase is what helprFlatFeeCents actually charges", () => {
-    const on100 = helprFlatFeeCents(10_000);
-    const on200 = helprFlatFeeCents(20_000);
-    const pct = (on200 - on100) / 100; // percent of each extra $100
-    const fixed = on100 - pct * 100; // cents on top
-    expect(pct).toBeGreaterThan(0);
-    expect(HELPR_FLAT_FEE_PHRASE).toBe(`${pct}% + $${(fixed / 100).toFixed(2)}`);
+describe("the Terms state the Helpr fee in one general sentence", () => {
+  it("the fee new jobs pay is 10% + 70c (the number the Terms no longer quote)", () => {
+    expect(HELPR_FLAT_FEE_PERCENT).toBe(10);
+    expect(HELPR_FLAT_FEE_CENTS).toBe(70);
+    expect(helprFlatFeeCents(10_000)).toBe(1070);
   });
 
-  it("Terms and the Help Center read the phrase; no tier ladder is quoted", () => {
+  it("Terms carry the general sentence and no rate", () => {
     const terms = read("pages/info/legal/TermsSection.tsx");
-    expect(terms).toContain("The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay");
-    expect(terms).toContain('<p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each');
-    expect(terms).not.toMatch(/platformFeePercent|\bFEE_FLOOR\b|plan-based/);
-    expect(read("pages/info/helpCenter/helpCenterContent.ts")).toContain("const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE;");
+    expect(terms).toContain("Louisiana Helpr keeps a service fee from each Helpr payout; a Helpr always sees what they will take home before they apply.");
+    expect(terms).not.toMatch(/HELPR_FLAT_FEE|platformFeePercent|\bFEE_FLOOR\b|plan-based/);
+    expect(terms).not.toMatch(/\d+%\s*\+\s*\$0\.70 of/);
   });
 });

@@ -72,7 +72,7 @@ export function PayRangeSlider({
           }}
         />
       </div>
-      <p className="text-ds-11 text-muted-foreground leading-snug">The job's price as posted, before the Helpr's fee</p>
+      <p className="text-ds-11 text-muted-foreground leading-snug">The job's price as posted</p>
     </div>
   );
 }

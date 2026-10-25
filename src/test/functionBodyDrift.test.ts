@@ -155,7 +155,10 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   const rewritten = [...effective.entries()].filter(([, d]) => d.rewrites.length > 0);
 
   it("inventories the rewritten functions (a parser that finds none must not pass)", () => {
-    // EXACT (2026-10-17): 4. 20261018024631 re-created
+    // EXACT (2026-10-25): 17. 20261025203540 (fee-free notice copy, owner
+    // 2026-10-25) rewrites 11 functions in place and 20261025214015 (the SQL
+    // fee default is 10) rewrites 2, on top of the 4 below.
+    // (2026-10-17: 4.) 20261018024631 re-created
     // notify_helper_on_direct_offer with the rewritten copy ('Someone') in it.
     // (2026-10-03: 5 of 20260925143327's 11.) 20261003214350 (Q1185)
     // re-created respond_to_direct_offer and expire_pending_direct_offers with
@@ -166,7 +169,7 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // re-created sweep_no_show_alerts, both with the new copy written in; the
     // older link rewrites (20260831232514, 20260901021929) were all superseded
     // by later CREATEs.
-    expect(rewritten.length).toBe(4);
+    expect(rewritten.length).toBe(17);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "check_referral_bonus",
@@ -198,10 +201,13 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     expect(e.body).not.toContain("Tell the poster why you can''t finish.");
   });
 
-  it("helper_cancel_booking is expected at its newest CREATE, which carries the new copy itself", () => {
+  it("helper_cancel_booking is expected to carry both its newest CREATE's copy and 20261025203540's rewrite", () => {
     const e = expected.get("helper_cancel_booking(uuid)")!;
     expect(e.state).toBe("defined");
-    expect(e.version).toBe("20261006015121"); // Q1378 restated it (the rest of a crew carry on; Q706 before it)
+    // Q1378 restated it at 20261006015121; the fee-free copy rewrites it in place.
+    expect(e.version).toBe("20261025203540");
+    expect(e.body).toContain("If nobody takes it, most of what you paid comes back to your card.");
+    expect(e.body).not.toContain("refunded less the card processing fee");
     expect(e.body).toContain("Message the person who posted it or open a dispute.");
     expect(e.body).not.toContain("Message the poster or open a dispute.");
   });

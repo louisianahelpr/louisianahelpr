@@ -926,7 +926,7 @@ serve(async (req) => {
         if (!modelRows || modelRows.length === 0) {
           // Refused whatever the re-read says; it only picks the sentence.
           const { data: moved } = await supabaseAdmin
-            .from("jobs").select("status, payment_status, budget, urgent_fee, is_urgent, helper_fee_flat_cents, poster_fee_flat_cents").eq("id", jobId).maybeSingle();
+            .from("jobs").select("status, payment_status, budget, urgent_fee, is_urgent, helper_fee_flat_cents, helper_fee_percent, poster_fee_flat_cents").eq("id", jobId).maybeSingle();
           console.warn(`[create-payment] fee-model stamp matched 0 rows for job ${jobId} (read status=${job.status}, payment_status=${job.payment_status ?? "null"}; now status=${moved?.status ?? "?"}, payment_status=${moved?.payment_status ?? "?"}); refusing escrow`);
           if (moved && !RE_MINTABLE_PAYMENT_STATUSES.has(moved.payment_status ?? "unpaid")) {
             throw new PublicError("This job's payment has already been processed. Open the job to see its payment status.");
@@ -2033,8 +2033,9 @@ serve(async (req) => {
       }
 
       // The Helpr receives 100% of the tip. Stripe's card-processing cost is
-      // added ON TOP as its own line item the poster sees on the Checkout page
-      // (and was quoted in the tip dialog from the same tipChargeBreakdown).
+      // added ON TOP, inside the ONE tip line the tipper sees on the Checkout
+      // page (owner 2026-10-25: the total only, no card-fee line; the tip
+      // dialog quotes the same total from tipChargeBreakdown).
       // On this destination charge Stripe transfers `charge - application fee`
       // to the Helpr, so application_fee_amount = feeCents leaves the Helpr's
       // transfer at exactly tipCents, and the platform keeps only what covers
@@ -2048,17 +2049,12 @@ serve(async (req) => {
             price_data: {
               currency: "usd",
               tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: `Tip — ${job.title}`, description: "100% of your tip goes to your Helpr.", tax_code: NONTAXABLE_TAX_CODE },
-              unit_amount: tipQuote.tipCents,
-            },
-            quantity: 1,
-          },
-          {
-            price_data: {
-              currency: "usd",
-              tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: "Card processing", description: "Added so your Helpr receives the full tip.", tax_code: NONTAXABLE_TAX_CODE },
-              unit_amount: tipQuote.feeCents,
+              // Owner 2026-10-25: the tipper sees only the total they pay, no
+              // card-fee line. ONE line for the whole charge; the application
+              // fee below still keeps exactly feeCents, so the Helpr's
+              // transfer stays tipCents (money unchanged).
+              product_data: { name: `Tip — ${job.title}`, description: `Your Helpr receives your whole $${(tipQuote.tipCents / 100).toFixed(2)} tip.`, tax_code: NONTAXABLE_TAX_CODE },
+              unit_amount: tipQuote.chargeCents,
             },
             quantity: 1,
           },
@@ -2226,22 +2222,14 @@ serve(async (req) => {
             currency: "usd",
             tax_behavior: TAX_BEHAVIOR,
             product_data: { name: `Visit — ${parent.title} on ${row.visit_date}`, tax_code: NONTAXABLE_TAX_CODE },
-            unit_amount: row.budget_cents,
+            // Owner 2026-10-25: no fee line to members. A series sold before
+            // the flat model still carries its card-cost fee; it is part of
+            // what the visit costs, so it is in this line (the total is unchanged).
+            unit_amount: row.budget_cents + Math.max(0, row.fee_cents),
           },
           quantity: 1,
         },
       ];
-      if (row.fee_cents > 0) {
-        lineItems.push({
-          price_data: {
-            currency: "usd",
-            tax_behavior: TAX_BEHAVIOR,
-            product_data: { name: "Service fee", tax_code: NONTAXABLE_TAX_CODE },
-            unit_amount: row.fee_cents,
-          },
-          quantity: 1,
-        });
-      }
       if (row.tax_cents > 0) {
         lineItems.push({
           price_data: {
@@ -2565,7 +2553,7 @@ serve(async (req) => {
         const json = (b: Record<string, unknown>, status: number) =>
           new Response(JSON.stringify(b), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status });
         if (unreadable) {
-          return json({ error: "Couldn't check whether a crew member is owed a fee on this job. No money was moved; try again." }, 503);
+          return json({ error: "Couldn't check whether a crew member is owed money from this job. No money was moved; try again." }, 503);
         }
         const strandedClaim = job.payment_status === "cancelling";
         if (strandedClaim) {
@@ -2583,7 +2571,7 @@ serve(async (req) => {
           }, 409);
         }
         return json({
-          error: `A crew member you blocked on this job is owed a $${(blocked.cents / 100).toFixed(2)} fee from its payment, so this job has to be cancelled with Cancel job: that keeps the fee and refunds you the rest, less the card fee. No money was moved.`,
+          error: `A crew member you blocked on this job is owed $${(blocked.cents / 100).toFixed(2)} from its payment for their time, so this job has to be cancelled with Cancel job: that pays them and sends most of the rest back to you. No money was moved.`,
           useCancelJob: true,
           crewBlockFeeCents: blocked.cents,
         }, 409);
@@ -2993,22 +2981,10 @@ serve(async (req) => {
                 // Q1674: what a first job keeps besides the fees is its one-time
                 // $2 setup fee; the notice names it after the fee reason.
                 taxKeptCents: cancelSplit.taxKeptCents,
-                keptReason: keptCents > 0
-                  ? setupFeeKeptReason(
-                    keptCents - setupFeeCents - cancelSplit.taxKeptCents <= 0
-                      ? null
-                      // A flat-model job's customer_fee_amount is its card cost
-                      // (cardCostFeeCents), never a service fee.
-                      : cardCostFeeCents(job) > 0
-                      ? "the card processing fee, which can't be returned"
-                      : keptCents - setupFeeCents - cancelSplit.taxKeptCents === serviceFeeCents
-                      ? "the service fee, which isn't refunded when a job is cancelled"
-                      : serviceFeeCents > 0
-                      ? "the service fee and card processing fee, which aren't refunded when a job is cancelled"
-                      : "the card processing fee, which can't be returned",
-                    setupFeeCents,
-                  )
-                  : null,
+                // Owner 2026-10-25: the notice names no card or service fee;
+                // only the one-time setup fee (refundNotice keptSentence).
+                keptReason: keptCents > 0 ? setupFeeKeptReason(null, setupFeeCents) : null,
+                keptUnnamed: true,
                 recipientId: job.customer_id ?? null,
                 jobId,
                 method: paymentMethodFromCharge(typeof pi.latest_charge === "object" ? pi.latest_charge : null),
@@ -4009,7 +3985,9 @@ serve(async (req) => {
         jobId,
         outcome: "poster",
         decidedBy: user.id,
-        decisionText: "Resolved by admin Quick Refund: the escrow was refunded to the person who posted this job, less the non-refundable Stripe processing fee.",
+        decisionText: disputeHelprFault && !disputeHelprFaultGone
+          ? "Resolved by an admin Quick Refund: the Helpr was at fault, so all of the payment for the job went back to the person who posted it."
+          : "Resolved by an admin Quick Refund: most of the payment went back to the person who posted this job.",
         refundCents: disputeRefundCents + disputeGift.spendableCents,
         refundId: disputeRefundId,
       });
@@ -4047,11 +4025,12 @@ serve(async (req) => {
           taxKeptCents: disputeTaxKeptCents,
           // Q1674: a first job also keeps its one-time $2 setup fee; the notice says so.
           keptReason: disputeKeptCents > 0
-            ? setupFeeKeptReason(disputeKeptCents > disputeSetupKeptCents ? "the card processing fee, which can't be returned" : null, disputeSetupKeptCents)
+            ? setupFeeKeptReason(null, disputeSetupKeptCents)
             : null,
+          keptUnnamed: true,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
-          extra: `The dispute on "${job.title}" was resolved in your favor.${disputeHelprFault ? (disputeHelprFaultGone ? " The Helpr was at fault. Their account no longer exists, so the card processing fee could not be charged to them and is kept from this refund." : " The Helpr was at fault, so the card processing fee comes back to you too.") : ""}${disputeGift.posterSentence}`,
+          extra: `The dispute on "${job.title}" was resolved in your favor.${disputeHelprFault ? (disputeHelprFaultGone ? " The Helpr was at fault." : " The Helpr was at fault, so all of your payment for the job comes back to you.") : ""}${disputeGift.posterSentence}`,
         });
       } else {
         await insertNotifications(supabaseAdmin, {
@@ -4910,15 +4889,16 @@ serve(async (req) => {
           // setup fee; the notice names it after the card fee, which every
           // full refund keeps (owner, 2026-10-14).
           keptReason: !isPartial && generalRefundForNotice.keptCents > 0
-            ? setupFeeKeptReason(generalRefundForNotice.keptCents > generalKeptSetupCents ? "the card processing fee, which can't be returned" : null, generalKeptSetupCents)
+            ? setupFeeKeptReason(null, generalKeptSetupCents)
             : null,
+          keptUnnamed: true,
           recipientId: job.customer_id ?? null,
           jobId: job.id,
           extra: [
             helprFault
               ? (helprFaultGone
-                ? "The Helpr was at fault. Their account no longer exists, so the card processing fee could not be charged to them and is kept from this refund."
-                : "The Helpr was at fault, so the card processing fee comes back to you too.")
+                ? "The Helpr was at fault."
+                : "The Helpr was at fault, so all of your payment for the job comes back to you.")
               : "",
             reason ? `Reason: ${reason}.` : "",
             generalGift.posterSentence.trim(),
@@ -4935,11 +4915,11 @@ serve(async (req) => {
           // Worded from what actually stayed on the charge (keptFromMoney), so
           // it never claims a fee was kept that an earlier refund returned.
           message: `"${job.title}" has been cancelled.${reason ? ` Reason: ${reason}` : ""} ${
-            generalKeptSetupCents > 0 || generalKeptFeeCents > 0
-              ? `The earlier refunds already returned everything except ${[
-                generalKeptFeeCents > 0 ? "the card processing fee, which can't be returned" : null,
-                generalKeptSetupCents > 0 ? `the one-time $${(generalKeptSetupCents / 100).toFixed(2)} account setup fee, which is paid once and never refunded` : null,
-              ].filter(Boolean).join(", and ")}.`
+            // Owner 2026-10-25: no card-fee name; only the one-time setup fee.
+            generalKeptSetupCents > 0
+              ? `The earlier refunds already sent back what comes back to you; the one-time $${(generalKeptSetupCents / 100).toFixed(2)} account setup fee is paid once and never refunded.`
+              : generalKeptFeeCents > 0
+              ? "The earlier refunds already sent back what comes back to you."
               : "The earlier refunds already returned the whole charge."
           }`,
           type: "payment",

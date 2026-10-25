@@ -340,8 +340,10 @@ async function tellVisitRefund(supabase: any, v: {
     paymentIntentId: v.paymentIntentId,
     amountCents: v.refund.cents,
     keptCents: v.keptCents,
-    // Q2082 (a), owner 2026-10-18: the sales tax on the kept fee is kept too.
-    keptReason: v.keptCents > 0 ? "the card processor's fee and any sales tax on it, which can't be returned" : null,
+    // Owner 2026-10-25: the notice states what came back and never names the
+    // card processor's fee (refundNotice keptSentence).
+    keptReason: null,
+    metadata: v.keptCents > 0 ? { fee_withheld: "true" } : null,
     recipientId: v.recipientId,
     jobId: v.parentJobId,
     jobByPayment: false,
@@ -1143,16 +1145,16 @@ serve(async (req) => {
           // Q809 (3): a payment no bigger than the card fee returns nothing;
           // never tell the payer "refunded" for $0.
           title: kept
-            ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded, less the card fee" : "Your visit payment couldn't be refunded")
+            ? ((refundParams.amount ?? 0) > 0 ? "Your visit payment was refunded" : "Your visit payment couldn't be refunded")
             : "Your visit payment was refunded",
           message: kept
             ? ((refundParams.amount ?? 0) > 0
-              ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. We refunded $${
+              ? `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. $${
                 ((refundParams.amount ?? 0) / 100).toFixed(2)
-              }; the card processor's fee and any sales tax on it, $${((Number(row.amount_cents) - (refundParams.amount ?? 0)) / 100).toFixed(2)}, can't be returned.`
-              : `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. The whole $${
+              } is on its way back to your card.`
+              : `The visit on ${row.visit_date} wasn't booked because the series ended or the date changed hands after it was paid. Nothing from the $${
                 (Number(row.amount_cents) / 100).toFixed(2)
-              } went to the card processor's fee and any sales tax on it, which can't be returned, so there was nothing left to refund.`)
+              } payment could come back to your card. Questions: admin@louisianahelpr.com.`)
             : `The visit on ${row.visit_date} couldn't be booked, so we refunded what you paid for it.`,
           type: "job_updates",
           link,
@@ -2510,16 +2512,14 @@ serve(async (req) => {
             const { data: n, error: nErr } = await supabase.from("notifications").insert({
               user_id: parent.customer_id,
               job_id: parent.id,
-              title: refundedCents > 0 ? "Your visit charge was refunded, less the card fee" : "Your visit charge couldn't be refunded",
+              title: refundedCents > 0 ? "Your visit charge was refunded" : "Your visit charge couldn't be refunded",
               message: refundedCents > 0
                 ? `The visit on ${visitDate} wasn't booked because ${
                   seriesEndedMidRun ? "the series ended" : "the date changed hands"
-                } after it was charged. We refunded $${(refundedCents / 100).toFixed(2)}; the card processor's fee and any sales tax on it, $${
-                  (withheldCents / 100).toFixed(2)
-                }, can't be returned.`
+                } after it was charged. $${(refundedCents / 100).toFixed(2)} is on its way back to your card.`
                 : `The visit on ${visitDate} wasn't booked because ${
                   seriesEndedMidRun ? "the series ended" : "the date changed hands"
-                } after it was charged. The whole $${(withheldCents / 100).toFixed(2)} went to the card processor's fee and any sales tax on it, which can't be returned, so there was nothing left to refund.`,
+                } after it was charged. Nothing from the $${(withheldCents / 100).toFixed(2)} charge could come back to your card. Questions: admin@louisianahelpr.com.`,
               type: "job_updates",
               link,
             }).select("id");

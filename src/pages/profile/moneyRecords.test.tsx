@@ -149,7 +149,7 @@ describe("receipts, fees owed, tax forms (board 177)", () => {
     expect(text()).toContain("Declutter purchase");
     expect(text()).toContain("$25.27");
     expect(filters).toContainEqual(["declutter_orders", "eq:buyer_id", "user-1"]);
-    await screen.findByText("Fees owed");
+    await screen.findByText("Amounts owed");
     expect(text()).toContain("Taken from your next payout");
     expect(text()).toContain("$3.10");
     expect(text()).toContain("Available in January if you qualify");

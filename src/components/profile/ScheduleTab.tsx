@@ -165,7 +165,7 @@ const ScheduleCard = ({
     : formatPriceFloor(helperTakeHomeDollars(job, viewerFeePercent, isSettledForDisplay(job) ? 0 : firstPayoutFee));
   // Q1272 (2): says why the figure is lower while the one-time setup fee is still owed.
   const feeTakenHere = !isPosted && !isSettledForDisplay(job) && job.status !== "disputed" && firstPayoutFee > 0;
-  const amountTitle = isPosted ? "Your budget for this job" : `Your take-home after the platform fee${feeTakenHere ? ` and the one-time $${formatPrice(firstPayoutFee)} setup fee from your first payout` : ""}`;
+  const amountTitle = isPosted ? "Your budget for this job" : `Your take-home${feeTakenHere ? ` after the one-time $${formatPrice(firstPayoutFee)} setup fee from your first payout` : ""}`;
 
   return (
     <JobCardShell

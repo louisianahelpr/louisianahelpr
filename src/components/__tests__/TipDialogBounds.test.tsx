@@ -39,15 +39,18 @@ describe("TipDialog custom amount bounds (ME-017 #2)", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("shows what the poster pays before sending: tip, card processing, total, Helpr receives", () => {
+  it("shows only the total the poster pays before sending, and that the Helpr gets the whole tip (owner 2026-10-25)", () => {
     render(<TipDialog jobId="job-1" open onClose={() => {}} />);
     // With no job price the presets are whole dollars; picking one quotes it.
     fireEvent.click(screen.getByRole("button", { name: "$5" }));
-    expect(screen.getByLabelText("Tip cost breakdown").textContent).toBe("Tip$5.00Card processing$0.46You pay$5.46Your Helpr receives$5.00");
+    expect(screen.getByLabelText("Tip cost breakdown").textContent).toBe("You pay$5.46");
+    expect(document.body.textContent).toContain("Your Helpr receives the whole $5.00 tip.");
+    expect(document.body.textContent).not.toMatch(/card processing|card fee|processing/i);
     openOther();
     fireEvent.change(screen.getByLabelText("Tip amount in dollars"), { target: { value: "10" } });
     const breakdown = screen.getByLabelText("Tip cost breakdown");
-    expect(breakdown.textContent).toBe("Tip$10.00Card processing$0.61You pay$10.61Your Helpr receives$10.00");
+    expect(breakdown.textContent).toBe("You pay$10.61");
+    expect(document.body.textContent).toContain("Your Helpr receives the whole $10.00 tip.");
     expect(invoke).not.toHaveBeenCalled();
   });
 

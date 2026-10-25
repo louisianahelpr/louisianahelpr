@@ -31,7 +31,6 @@
 import { caughtMessage } from "./caughtMessage.ts";
 import { fetchFunction } from "./functionFetch.ts";
 import { setupFeeKeptCents } from "./posterFees.ts";
-import { posterCancelKeptFeeCents } from "./refundAmount.ts";
 import { crewBlockFeeCents, readCrewBlockFees } from "./crewBlockFeeRead.ts";
 import { stripeModeForParties } from "./stripeMode.ts";
 
@@ -60,6 +59,13 @@ export interface RefundNoticeInput {
   keptCents?: number | null;
   /** Why it was kept, when the caller knows better than the job row does. */
   keptReason?: string | null;
+  /**
+   * Owner 2026-10-25: the caller has named (in keptReason) every kept part a
+   * member may be told about; whatever else was kept is the card processor's
+   * cost, which is never named. No reason then means no sentence, never the
+   * "Contact support" fallback.
+   */
+  keptUnnamed?: boolean;
   /**
    * The sales tax kept with the kept parts (refundToPayerCents taxKeptCents;
    * owner 2026-10-18, Q2082 (a)): when > 0 a caller's keptReason is followed
@@ -264,64 +270,50 @@ const cents = (dollars: number | string | null | undefined): number => {
   return Number.isFinite(n) ? Math.round(n * 100) : 0;
 };
 
+/** "a", "a and b", "a, b and c". */
+function listWords(parts: string[]): string {
+  return parts.length <= 1 ? (parts[0] ?? "") : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+}
+
 /**
- * Why the payment kept what it kept, in words the poster can check against
- * their receipt. The caller's reason wins; then the refund's own metadata;
- * then what the job says happened to it.
+ * What else happened to the payment, in words a member may read.
+ *
+ * Owner 2026-10-25: members never see a fee name, number or fee maths. The
+ * notice states the exact amount coming back (the title and first sentence);
+ * this sentence only names the parts of the rest a member may be told about:
+ * what went to the Helpr for their time, crew spots closed close to the start,
+ * the dispute decision's share, and the one-time account setup fee (the one
+ * fee a member may see). The card processor's cost and a legacy service fee
+ * are never named; nothing here states a "kept" total that includes them.
+ * The caller's reason wins (callers pass only those parts, or null); then the
+ * refund's own metadata; then what the job says happened to it.
  */
-function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "metadata" | "taxKeptCents">, job: JobRow | null): string {
+function keptSentence(keptCents: number, input: Pick<RefundNoticeInput, "keptReason" | "keptUnnamed" | "metadata" | "taxKeptCents">, job: JobRow | null): string {
   if (!(keptCents > 0)) return "";
-  const kept = refundDollars(keptCents);
   const why = input.keptReason ?? input.metadata?.kept_reason ?? null;
-  // Q2082 (a), owner 2026-10-18: the sales tax on what is kept is kept too.
-  const taxKept = Math.min(keptCents, Math.max(0, Math.round(Number(input.taxKeptCents ?? 0))));
-  // The tax is INSIDE the kept total, never on top of it (review of 461a6b724 #6).
-  if (why) return ` We kept ${kept}: ${why}${taxKept > 0 ? `; ${refundDollars(taxKept)} of that is the sales tax on what we kept, which isn't refunded` : ""}.`;
+  if (why) return ` This refund doesn't include ${why}.`;
+  if (input.keptUnnamed) return "";
   const md = input.metadata ?? {};
   if (md.dispute_id || md.source === "admin_refund_dispute") {
-    return ` We kept ${kept}: the part of the payment the dispute decision gave the Helpr.`;
+    return " This refund doesn't include the part of the payment the dispute decision gave the Helpr.";
   }
-  // Q2082 (a), owner 2026-10-18: the sales tax on a kept fee is kept too, and
-  // the notice says so (a visit's tax lives on the visit, not this job row).
-  if (md.fee_withheld === "true") return ` We kept ${kept}: the card processor's fee and any sales tax on it, which can't be returned.`;
+  // The card processor's cost (and any tax on it): never named to a member.
+  if (md.fee_withheld === "true") return "";
   if (job?.status === "cancelled") {
     const feeCents = Math.min(keptCents, Math.max(0, cents(job.cancellation_fee)));
     // Q1674: a first job's one-time $2 setup fee is kept on every refund; it
-    // is named on its own, never counted as a service or card fee (the
-    // fallback when charge.refunded arrives before the path's own notice).
-    // Q2082 (f): a cancelled crew also keeps the block fees it paid the
-    // members it closed close to the start (void-cancelled-payments withholds
-    // them): named on their own, never counted as a card or service fee.
+    // is named on its own (the fallback when charge.refunded arrives before
+    // the path's own notice). Q2082 (f): a cancelled crew also keeps the block
+    // fees it paid the members it closed close to the start.
     const blockCents = Math.min(keptCents - feeCents, Math.max(0, job.blockFeeCents ?? 0));
     const setupCents = Math.min(keptCents - feeCents - blockCents, setupFeeKeptCents(job));
-    const restCents = keptCents - feeCents - blockCents - setupCents;
-    // The service fee a cancel keeps: 0 on a poster-fee job, whose cancel
-    // keeps only the card processing fee (Q2082 slice 4).
-    const serviceCents = posterCancelKeptFeeCents(job);
-    // Q2082 (a), owner 2026-10-18: on a taxed charge the tax on everything
-    // kept is kept too (refundToPayerCents taxKeptCents); it sits in the rest.
-    const taxed = cents(job.sales_tax_amount) > 0;
-    const andTax = taxed ? " and the sales tax on what we kept" : "";
     const parts: string[] = [];
-    if (feeCents > 0) parts.push(`${refundDollars(feeCents)} cancellation fee paid to your Helpr`);
+    if (feeCents > 0) parts.push(`${refundDollars(feeCents)} for your Helpr's time`);
     if (blockCents > 0) parts.push(`${refundDollars(blockCents)} for the crew spots you closed close to the start`);
-    if (restCents > 0) {
-      parts.push(serviceCents === 0
-        ? `${refundDollars(restCents)} card processing fee${andTax}, which can't be returned`
-        : restCents === serviceCents
-        ? `${refundDollars(restCents)} service fee, which isn't refunded when a job is cancelled`
-        : `${refundDollars(restCents)} in service and card processing fees${andTax}, which aren't refunded when a job is cancelled`);
-    }
-    if (setupCents > 0) parts.push(`${refundDollars(setupCents)} one-time account setup fee, which is paid once and never refunded`);
-    if (parts.length === 1 && restCents > 0 && serviceCents === 0 && feeCents === 0 && blockCents === 0 && setupCents === 0) {
-      return ` We kept ${kept}: the card processing fee${andTax}, which can't be returned.`;
-    }
-    if (parts.length === 1 && restCents === serviceCents && feeCents === 0 && blockCents === 0 && setupCents === 0) {
-      return ` We kept ${kept}: the service fee, which isn't refunded when a job is cancelled.`;
-    }
-    return ` We kept ${kept}: ${parts.join(" and ")}.`;
+    if (setupCents > 0) parts.push(`the one-time ${refundDollars(setupCents)} account setup fee, which is paid once and never refunded`);
+    return parts.length > 0 ? ` This refund doesn't include ${listWords(parts)}.` : "";
   }
-  return ` The other ${kept} of your payment was not part of this refund. Contact support if you expected it back.`;
+  return ` The other ${refundDollars(keptCents)} of your payment was not part of this refund. Contact support if you expected it back.`;
 }
 
 /** Title and body. Exported so the guard and the tests read the words the poster reads. */

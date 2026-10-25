@@ -158,7 +158,7 @@ export function RefundRequestDialog({
           <p className="font-sans text-ds-12 leading-relaxed text-muted-foreground">
             {first} can agree, offer to come back and finish, or say no and let Helpr decide.
             {scope === "all"
-              ? ` If ${first} agrees, what you paid goes back to how you paid, less the card processing fee.`
+              ? ` If ${first} agrees, most of what you paid goes back to how you paid. Your receipt shows the exact amount.`
               : rushBackCents > 0
                 ? ` If ${first} agrees, the amount you ask for goes back to how you paid, with the same share of the rush fee (${refundDollars(rushBackCents)}): ${refundDollars(amountCents + rushBackCents)} in all.`
                 : ` If ${first} agrees, exactly the amount you ask for goes back to how you paid.`}

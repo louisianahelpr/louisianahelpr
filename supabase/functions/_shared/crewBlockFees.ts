@@ -217,8 +217,9 @@ export async function payCrewBlockFees(
       await insertNotifications(admin, {
         user_id: row.helper_id,
         job_id: job.id,
-        title: "Cancellation fee received",
-        message: `You received a $${formatPayoutDollars(payoutCents / 100)} cancellation fee for "${job.title ?? "a job"}" (${feeRead.percent}% commission deducted).`,
+        // Owner 2026-10-25: the amount they get, never a fee name or rate.
+        title: "Payment for a cancelled job",
+        message: `You received $${formatPayoutDollars(payoutCents / 100)} for "${job.title ?? "a job"}", which was cancelled.`,
         type: "payment",
         link: "/profile?tab=earnings",
       });

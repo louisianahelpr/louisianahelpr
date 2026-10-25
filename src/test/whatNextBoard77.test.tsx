@@ -62,11 +62,11 @@ describe("board 77: what next after applying", () => {
   });
 
   it("prints the job price and the job page's take-home as one labelled pair, in rust (#62)", () => {
-    // A flat-model job: 5% + 70c off $85 = $80.05, floored to whole dollars like the receipt.
-    const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, category: "x", description: "", date_needed: "2037-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
+    // A flat-model job stamped 10% + 70c (new jobs, owner 2026-10-25): $85 - $9.20 = $75.80, floored like the receipt.
+    const job = { id: "j1", title: "Fence repair", budget: 85, helper_fee_flat_cents: 70, helper_fee_percent: 10, category: "x", description: "", date_needed: "2037-10-31", location: "", customer_id: "p", status: "open", created_at: "" };
     render(<ApplicationSentDialog sent={{ ...sent, job: job as never }} platformFee={10} onClose={() => {}} onView={() => {}} />);
     const steps = within(screen.getByTestId("what-next-sheet")).getAllByRole("listitem");
-    expect(steps[3].textContent).toContain("Job price $85 · You take home $80");
+    expect(steps[3].textContent).toContain("Job price $85 · You take home $75");
     const money = steps[3].querySelector("span.tabular-nums");
     expect(money?.className).toContain("--accent-ink");
   });

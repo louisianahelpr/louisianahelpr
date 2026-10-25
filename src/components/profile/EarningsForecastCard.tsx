@@ -241,7 +241,7 @@ export function EarningsForecastCard({ helperId, enabled, feeFallbackPercent }: 
                   How this is calculated
                 </p>
                 <p className="text-muted-foreground">
-                  We sum your net take (after the platform fee) on every job
+                  We sum what you take home on every job
                   you're accepted on or working through this week, plus
                   anything you've already completed since Monday. It assumes
                   every scheduled job actually completes — cancellations or

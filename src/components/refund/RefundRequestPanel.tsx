@@ -107,7 +107,7 @@ function RefundRequestPanelOpen({
       <>
         {request.refund_scope === "all" ? (
           <>
-            {other} agreed to refund all of it. What you paid is on its way back to how you paid, less the card processing fee.
+            {other} agreed to refund all of it. Most of what you paid is on its way back to how you paid.
             Your receipt shows the exact amount.
           </>
         ) : (
@@ -123,7 +123,7 @@ function RefundRequestPanelOpen({
       ) : (
         <>
           You agreed to give back <Money cents={partTotal} />
-          {rushBack > 0 ? <> (<Money cents={request.amount_cents} /> of the price and <Money cents={rushBack} /> of the rush fee)</> : null}. The rest comes to you after your fee.
+          {rushBack > 0 ? <> (<Money cents={request.amount_cents} /> of the price and <Money cents={rushBack} /> of the rush fee)</> : null}. You take home your pay on the rest.
         </>
       )
     );

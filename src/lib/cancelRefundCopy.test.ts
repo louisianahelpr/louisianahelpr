@@ -3,8 +3,10 @@
 // job's late-fee refund also keeps the service fee paid at checkout
 // (void-cancelled-payments customerFeeCents), so "the rest returns to your
 // card" was false for it; a flat job keeps only Stripe's card fee.
-// @mutate src/lib/cancelRefundCopy.ts | "the rest, less the service fee you paid at checkout, returns to your card." | "the rest returns to your card."
-// @mutate src/lib/cancelRefundCopy.ts | "the rest, less the card-processing fee Stripe keeps, returns to your card." | "the rest returns to your card."
+// Owner 2026-10-25: no fee name, number or maths; the toast says what is for
+// the Helpr's time and that most of the rest comes back.
+// @mutate src/lib/cancelRefundCopy.ts | ${fee} is for your Helpr's time; most of the rest of your payment comes back to your card within the hour. | The ${fee} cancellation fee applies — the rest, less the card-processing fee Stripe keeps, returns to your card.
+// @mutate src/lib/cancelRefundCopy.ts |   return `Job cancelled. Most of your payment comes back to your card within the hour.${keptFeeSentence}`; |   return `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}`;
 // @mutate src/lib/cancelRefundCopy.ts |   if (!wasFunded) { |   if (false) {
 // @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
 // Q?gift-cancel-copy (lh-money-escrow review of 7166349cd, #7, and the Q1806
@@ -51,22 +53,22 @@ describe("cancelRefundToast", () => {
     }
   });
 
-  it("a late fee on a flat job: the rest comes back less Stripe's card fee", () => {
-    const t = cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel: true, keptFeeSentence: "" });
-    expect(t).toBe("Job cancelled. The $25 cancellation fee applies — the rest, less the card-processing fee Stripe keeps, returns to your card.");
+  const FEE_WORDS = /cancellation fee|card-processing|card processing|service fee|card fee|Stripe/i;
+
+  it("a late cancel: the amount for the Helpr's time, and most of the rest comes back (no fee named, either model)", () => {
+    for (const flatModel of [true, false]) {
+      const t = cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: kept });
+      expect(t).toBe(`Job cancelled. $25 is for your Helpr's time; most of the rest of your payment comes back to your card within the hour.${kept}`);
+      expect(t.replace(kept, "")).not.toMatch(FEE_WORDS);
+    }
   });
 
-  it("a late fee on a legacy job: the rest comes back less the service fee paid at checkout", () => {
-    const t = cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel: false, keptFeeSentence: kept });
-    expect(t).toBe(`Job cancelled. The $25 cancellation fee applies — the rest, less the service fee you paid at checkout, returns to your card.${kept}`);
-    expect(t).not.toMatch(/— the rest returns to your card/);
-  });
-
-  it("no fee: flat refunds the payment less the card fee; legacy keeps the service fee", () => {
-    expect(cancelRefundToast({ wasFunded: true, appliedFee: 0, flatModel: true, keptFeeSentence: "" }))
-      .toBe("Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.");
-    expect(cancelRefundToast({ wasFunded: true, appliedFee: 0, flatModel: false, keptFeeSentence: "" }))
-      .toBe("Job cancelled — your job budget returns to your card; the service fee isn't refundable.");
+  it("no late fee: most of the payment comes back (never 'less the card-processing fee')", () => {
+    for (const flatModel of [true, false]) {
+      const t = cancelRefundToast({ wasFunded: true, appliedFee: 0, flatModel, keptFeeSentence: "" });
+      expect(t).toBe("Job cancelled. Most of your payment comes back to your card within the hour.");
+      expect(t).not.toMatch(FEE_WORDS);
+    }
   });
 
   const neutral = "Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.";
@@ -77,24 +79,23 @@ describe("cancelRefundToast", () => {
         .toBe("Job cancelled. Your gift goes back to your gift balance within the hour. No card was charged.");
       // Q1806 (on main): the late fee is paid from the gift, the rest restored.
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_only" }))
-        .toBe("Job cancelled. The $25 cancellation fee is paid from your gift; the rest goes back to your gift balance within the hour. No card was charged.");
+        .toBe("Job cancelled. $25 of your gift is for your Helpr's time; the rest goes back to your gift balance within the hour. No card was charged.");
     }
   });
 
   it("a gift and a card: the card returns less its kept fee (and any late fee), the gift goes back to the gift balance", () => {
     for (const flatModel of [true, false]) {
-      const keeps = flatModel ? "the card-processing fee Stripe keeps" : "the service fee you paid at checkout";
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 0, flatModel, keptFeeSentence: "", gift: "gift_and_card" }))
-        .toBe(`Job cancelled. Your card payment returns to your card, less ${keeps}, and your gift goes back to your gift balance within the hour.`);
+        .toBe("Job cancelled. Most of your card payment comes back to your card within the hour, and your gift goes back to your gift balance.");
       // A $60 card share covers the $25 fee and twice Stripe's 2.9% + 30c on it (2 x 204c).
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: kept, gift: "gift_and_card", cardShareCents: 6000 }))
-        .toBe(`Job cancelled. The $25 cancellation fee comes out of your card payment; the rest of it returns to your card, less ${keeps}, and your gift goes back to your gift balance within the hour.${kept}`);
+        .toBe(`Job cancelled. $25 of your card payment is for your Helpr's time; most of the rest comes back to your card within the hour, and your gift goes back to your gift balance.${kept}`);
       // Re-review #1: an $80 gift on a $100 job with a $50 fee: the $20 card
       // share cannot hold it (Q1806's open half), so nothing is promised.
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 50, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 2000 })).toBe(neutral);
       // At the edge: 2500 + 2 x stripe(2700) = 2716 >= 2700 is neutral; 2500 + 2 x stripe(2800) = 2722 < 2800 fits.
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 2700 })).toBe(neutral);
-      expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 2800 })).toMatch(/comes out of your card payment/);
+      expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 2800 })).toMatch(/of your card payment is for your Helpr's time/);
       // The kept $2 setup fee counts (2800 fits alone, not with 200c more kept), and a crew's block fees are not known: neutral.
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 2800, keptSetupCents: 200 })).toBe(neutral);
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "gift_and_card", cardShareCents: 6000, crew: true })).toBe(neutral);
@@ -103,7 +104,7 @@ describe("cancelRefundToast", () => {
       const unsure = cancelRefundToast({ wasFunded: true, appliedFee: 25, flatModel, keptFeeSentence: "", gift: "redeemed" });
       expect(unsure).toBe(neutral);
       expect(cancelRefundToast({ wasFunded: true, appliedFee: 0, flatModel, keptFeeSentence: "", gift: "redeemed" }))
-        .toBe(`Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card, less ${keeps}.`);
+        .toBe("Job cancelled. Your gift goes back to your gift balance within the hour, and most of any card payment comes back to your card.");
     }
   });
 

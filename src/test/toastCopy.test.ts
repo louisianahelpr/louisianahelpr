@@ -60,7 +60,7 @@
  * @mutate scripts/toast-inventory.mjs | if (i === node.templateSpans.length - 1 && s.literal.text === "" && phrases.length) endings = phrases.map((l) => l.text); | if (false) endings = phrases.map((l) => l.text);
  * @mutate scripts/toast-inventory.mjs | return [...fallback, ...own]; | return fallback;
  * @mutate src/lib/mutationResult.ts | Sign in to that account instead. | Log in to that account instead.
- * @mutate src/lib/cancelRefundCopy.ts | Job cancelled — your payment returns to your card | Job cancelled! Your payment returns to your card
+ * @mutate src/lib/cancelRefundCopy.ts | Job cancelled. Most of your payment comes back | Job cancelled! Most of your payment comes back
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

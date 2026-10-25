@@ -42,9 +42,9 @@ export function MembershipFeeNote() {
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
       >
         <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
-          Posting has no platform fee.
+          Posting a job costs only the job price.
         </span>{" "}
-        Your tier sets the cut on what you earn. Posting a job costs only a service fee that covers card processing.
+        Every job shows what you take home before you apply.
       </p>
     </>
   );

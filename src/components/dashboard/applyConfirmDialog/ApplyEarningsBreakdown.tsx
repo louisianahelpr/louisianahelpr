@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { ShieldCheck, ChevronDown } from "lucide-react";
+import { ShieldCheck } from "lucide-react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { useApplyTakeHome } from "./applyTakeHome";
 // formatPriceExact: this component IS the arithmetic — budget, fee, urgent
@@ -33,24 +32,9 @@ export function ApplyEarningsBreakdown({
   confirmApplyJob: EnrichedJob;
   platformFee: number;
 }) {
-  const [showMath, setShowMath] = useState(false);
-  // The maths lives in useApplyTakeHome so the "What next" sheet after applying (board 77)
-  // prints the SAME take-home this receipt does, never a second copy of the rules.
-  const { helpers, perHelper, netUrgent, commission, noFee, feeLabel, firstPayoutFee, takeHome, droppedCents, hasUrgent } =
-    useApplyTakeHome(confirmApplyJob, platformFee);
-
-  // The plain-words summary. Same facts as the receipt, one line, no columns.
-  const summary = [
-    `$${formatPrice(confirmApplyJob.budget)} budget`,
-    helpers > 1 ? `÷ ${helpers} Helprs` : null,
-    // Board 58 (lead): the fee is ONE subtraction, its rule in brackets ("− Helpr fee (5% + $0.70)"),
-    // so "5% + $0.70" never reads as minus 5% plus 70¢.
-    noFee ? "no fee" : `− Helpr fee (${feeLabel})`,
-    hasUrgent ? "+ urgent bonus" : null,
-    firstPayoutFee > 0 ? "− one-time setup fee" : null,
-  ]
-    .filter(Boolean)
-    .join(" ");
+  // Owner 2026-10-25: members never see the Helpr fee or its maths, only what they take home.
+  // The one fee a member may see is the one-time $2 setup fee, on the job whose payout it comes out of.
+  const { firstPayoutFee, takeHome } = useApplyTakeHome(confirmApplyJob, platformFee);
 
   return (
     // Board 58: a money note, so the money tint and rust (spec §1.1, §3 "Status bubbles and money notes").
@@ -68,67 +52,10 @@ export function ApplyEarningsBreakdown({
         ${formatPriceFloor(takeHome)}
       </p>
 
-      <button
-        type="button"
-        onClick={() => setShowMath((v) => !v)}
-        aria-expanded={showMath}
-        className="mt-1.5 flex items-center gap-1 text-left min-h-[32px] active:opacity-70 transition-opacity"
-        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
-      >
-        <span className="font-sans text-ds-11 leading-snug">{summary}</span>
-        <ChevronDown
-          className="w-3.5 h-3.5 shrink-0 transition-transform"
-          style={{ transform: showMath ? "rotate(180deg)" : undefined }}
-          aria-hidden
-        />
-      </button>
-
-      {showMath && (
-        <div
-          className="space-y-1 text-ds-12 mt-2 pt-2.5"
-          style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
-        >
-          <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            <span className="font-sans">Budget{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-            <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>${formatPrice(perHelper)}</span>
-          </div>
-          {!noFee && (
-            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              <span className="font-sans">− {feeLabel} platform fee</span>
-              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(commission)}</span>
-            </div>
-          )}
-          {hasUrgent && (
-            <div className="flex justify-between">
-              <span className="font-sans" style={{ color: "hsl(var(--burnt-sienna))" }}>+ urgent bonus{helpers > 1 ? ` ÷ ${helpers}` : ""}</span>
-              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>+${formatPrice(netUrgent)}</span>
-            </div>
-          )}
-          {firstPayoutFee > 0 && (
-            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              <span className="font-sans">− One-time setup fee (first payout only)</span>
-              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(firstPayoutFee)}</span>
-            </div>
-          )}
-          {droppedCents > 0 && (
-            <div className="flex justify-between" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-              <span className="font-sans">− Rounded down to the dollar</span>
-              <span className="font-sans tabular-nums" style={{ color: "hsl(var(--ink-deep))" }}>−${formatPrice(droppedCents)}</span>
-            </div>
-          )}
-          <div
-            className="flex justify-between pt-1.5 mt-1.5 items-baseline"
-            style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
-          >
-            <span className="font-sans font-semibold text-ds-12" style={{ color: "hsl(var(--ink-deep))" }}>Take-home</span>
-            <span
-              className="font-sans font-bold tabular-nums text-ds-14"
-              style={{ color: "hsl(var(--burnt-sienna))" }}
-            >
-              ${formatPriceFloor(takeHome)}
-            </span>
-          </div>
-        </div>
+      {firstPayoutFee > 0 && (
+        <p className="mt-1.5 font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }} data-testid="apply-setup-fee-line">
+          After the one-time ${formatPrice(firstPayoutFee)} setup fee, taken from your first payout.
+        </p>
       )}
 
       {/* Escrow reassurance at the conversion moment — a helper deciding

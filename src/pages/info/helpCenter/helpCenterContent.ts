@@ -1,6 +1,4 @@
 import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
-import { HELPR_FLAT_FEE_PHRASE, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
@@ -13,7 +11,6 @@ import {
 // Cancellation percentages and the standard payout window are binding money
 // figures with one owner each. Same rule as legal/CommunitySection: derive,
 // never retype.
-import { LATE_CANCEL_PERCENT, VERY_LATE_CANCEL_PERCENT } from "@/lib/moneyLimits";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 // Which categories actually render the "Who can apply?" credential control.
 // Derived from the form's own set, in the picker's canonical order, so adding a
@@ -59,12 +56,10 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // only; the Helpr pays 5% + 70c; a plan never changes it. (The tier ladder
 // that used to be quoted here, FEE_FLOOR, applies only to jobs paid for
 // before the change; the Terms read the same phrase since 2026-10-20.)
-const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE;
 // What a Helpr is really sent on a $100 job: every transfer is floored to the
 // whole dollar (roundPayoutDownCents, Q236), and the app's take-home figures
 // floor the same way (floorPayoutDollars). lh-money-escrow review of
 // 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
-const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100);
 
 // Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
 // members (feature_switches 'memberships' = testers, measured on prod
@@ -175,7 +170,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // `void-cancelled-payments/index.ts:258`. A poster cancelling an
         // accepted job two days out was told they owed a fee they do not owe,
         // which is the version of this error that costs the platform a job.
-        a: `Yes. It's always free before you accept anyone. After you accept a Helpr the fee depends on how close the job is — still free 24 or more hours out, ${LATE_CANCEL_PERCENT}% inside 24 hours, and ${VERY_LATE_CANCEL_PERCENT}% inside 2 hours, because by then the Helpr has held the slot for you.`,
+        a: `Yes. It's always free before you accept anyone. After you accept a Helpr it is still free 24 or more hours out. Closer to the start, part of the job goes to the Helpr, because by then they have held the slot for you; the cancel screen shows the exact amount before you confirm.`,
       },
     ],
   },
@@ -245,7 +240,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // unrounded, and the refund sentence left out the kept setup fee and
         // crew block fees (refundToPayerCents). The setup fee stays unnumbered:
         // it is a live DB setting (see "When do I get paid?").
-        a: `Posting a job has no service fee: you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, Helpr keeps ${FLAT_FEE_PHRASE} of your pay, the same on every plan, and that also covers card processing. Job payouts are rounded down to the whole dollar (tips are paid in full), so on a $100 job you receive $${FLAT_TAKE_HOME_ON_100}. A job paid for before the fee changed on October 15, 2026 keeps the fee it was paid under. If a paid job is cancelled, you get back what you paid (tax included) less the card-processing fee Stripe keeps, any cancellation fees owed to your Helprs (including for crew spots you closed close to the start), and, on your first paid job, the one-time setup fee. If the mistake was ours, you get everything back.`,
+        a: `When you post a job, you pay the job price (including any urgent bonus you add), plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. Your first paid job also carries a small one-time account setup fee, unless you already paid it on a job you did. When you do a job, every job shows exactly what you will take home before you apply. Job payouts are rounded down to the whole dollar (tips are paid in full). If a paid job is cancelled, the cancel screen shows exactly what you will get back before you confirm. If the mistake was ours, you get everything back.`,
       },
       {
         q: "What if there's a dispute?",
@@ -380,7 +375,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // Q1842: WAS "It lowers the commission Helpr deducts … from 12% down
         // to as low as 8%". Since F3 a plan never changes a job's fee.
         // Memberships are off for members (F4/F4a): say so first, in plain words.
-        a: `${MEMBERSHIPS_PAUSED} When they come back, a plan adds visibility perks like priority placement and a featured badge. It does not change the fee on your jobs: every new job has the same ${FLAT_FEE_PHRASE} fee, whatever your plan.`,
+        a: `${MEMBERSHIPS_PAUSED} When they come back, a plan adds visibility perks like priority placement and a featured badge. It does not change what you take home.`,
       },
       {
         q: "How am I billed for a membership?",

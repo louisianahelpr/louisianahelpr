@@ -128,7 +128,6 @@
     "press  src/pages/posts/postedJobs/applicantsPanel/ApplicantHireRow.tsx:50 <button>  active:opacity-60",
     "press  src/components/dashboard/CompactJobCard.tsx:67 <button>  active:opacity-75",
     "press  src/components/dashboard/applyConfirmDialog/ApplyBody.tsx:297 <button>  active:opacity-70",
-    "press  src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx:86 <button>  active:opacity-70",
     "press  src/components/profile/HelperTierBadge.tsx:130 <button>  active:opacity-70",
     "press  src/components/profile/ProfileSectionError.tsx:38 <button>  active:opacity-70",
     "press  src/components/profile/ReviewsTab.tsx:196 <button>  active:opacity-70",

@@ -451,11 +451,11 @@ function PostedJobCardInner({
                   {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
                     const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
                     const statusCopy: Record<string, string> = {
-                      pending: `Fee ${feeAmt} · pending`,
-                      charged: `Fee ${feeAmt} · charged`,
-                      waived:  `Fee ${feeAmt} · waived`,
+                      pending: `${feeAmt} for your Helpr's time · pending`,
+                      charged: `${feeAmt} for your Helpr's time · charged`,
+                      waived:  `Nothing to your Helpr · waived`,
                     };
-                    const label = statusCopy[job.cancellation_fee_status] ?? `Fee ${feeAmt}`;
+                    const label = statusCopy[job.cancellation_fee_status] ?? `${feeAmt} for your Helpr's time`;
                     const isCharged = job.cancellation_fee_status === "charged";
                     return (
                       <p

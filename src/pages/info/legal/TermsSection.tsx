@@ -5,7 +5,6 @@ import {
   DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera, Sofa, Truck, Star, Ban, MessageSquareText,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
-import { HELPR_FLAT_FEE_PHRASE } from "@/lib/helprFlatFee";
 import { jobFeeModelFor, serviceFeeCentsFor } from "@/lib/jobCheckout";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import {
@@ -66,7 +65,7 @@ export const TermsContent = () => {
       items={[
         "You must be 18+. Every account verifies its email address before it can post or take jobs.",
         "Helpr is a marketplace — we don't perform jobs ourselves and aren't liable for the work delivered.",
-        `${POSTER_PAYS_SENTENCE} The Helpr's fee (${HELPR_FLAT_FEE_PHRASE} of their pay, the same on every plan, and it covers card processing) is deducted from their payout.`,
+        `${POSTER_PAYS_SENTENCE} Louisiana Helpr keeps a service fee from each Helpr payout; a Helpr always sees what they will take home before they apply.`,
         "Cancellations, disputes, and behavior rules live in the Community Rules tab — they're part of this agreement.",
         "Helprs are independent contractors, not employees.",
         "You use Helpr at your own risk. We're the marketplace, not a party to any job — we're not liable for loss, theft, property damage, or injury, and you agree to indemnify us.",
@@ -145,19 +144,19 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Posting a job:</strong> {POSTER_PAYS_SENTENCE}</p>
-            <p><strong className="text-foreground">Helpr fee:</strong> {HELPR_FLAT_FEE_PHRASE} of each Helpr's pay, deducted from the payout, the same on every plan; it covers card processing. A job paid for before October 15, 2026 keeps the fee it was paid under. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
+            <p><strong className="text-foreground">Service fee:</strong> Louisiana Helpr keeps a service fee from each Helpr's pay, deducted from the payout; it covers card processing. Every job shows the Helpr the amount they will take home before they apply, and a job keeps the fee in force when it was paid for. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.</p>
             {/* Owner 2026-10-21: keep the one-time setup fee and disclose it here, in the
                 fee list. Quoted from platform_settings via feeLabel (the number
                 release-payout takes), never a literal (termsStripe1099AndSetupFee). */}
             <p><strong className="text-foreground">One-time account setup fee:</strong> {feeLabel ? `${feeLabel}, ` : ""}once per account. A Helpr pays it out of their first payout; if you post a job before your first payout, it is added at that checkout instead. It is never charged twice.</p>
-            <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the Helpr fee above.</p>
-            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the Helpr fee above taken from each Helpr's share of the job price, bonus included.</p>
+            <p><strong className="text-foreground">Total platform take:</strong> the one-time account setup fee and the service fee above.</p>
+            <p><strong className="text-foreground">Urgent job fee:</strong> {formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.</p>
             {/* Job Boost and Tipping moved here verbatim from the Profile → Legal
                 tab's "Platform Fees" row, which was a paraphrase of this section.
                 They were the only two fee statements that lived ONLY there, so
                 they were promoted into the canonical Terms rather than dropped. */}
             <p><strong className="text-foreground">Job boost:</strong> Optional paid boost to increase visibility of your listing.</p>
-            <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr — no platform fee on tips. The card-processing fee on a tip is paid by the person tipping, added on top of the tip and shown before they pay; it is never taken from the Helpr's tip.</p>
+            <p><strong className="text-foreground">Tipping:</strong> 100% of tips go to the Helpr. The person tipping sees the total they pay before they pay; nothing is taken from the Helpr's tip.</p>
           </>
         }
       />
@@ -210,7 +209,7 @@ export const TermsContent = () => {
         body={
           <>
             <p>There are no paid memberships right now. Joining Helpr is free.</p>
-            <p>No plan changes the fee on a job: every job carries the same {HELPR_FLAT_FEE_PHRASE} Helpr fee.</p>
+            <p>No plan changes the fee on a job: every Helpr pays the same service fee.</p>
           </>
         }
       />
@@ -354,7 +353,7 @@ export const TermsContent = () => {
             <p><strong className="text-foreground">No Helpr in 48 hours:</strong> the whole delivery fee comes back to you and the order becomes a pickup at the seller&apos;s door.</p>
             <p><strong className="text-foreground">Raising the pay:</strong> while you wait, you may raise the delivery pay, at least $5 at a time in whole dollars, at most $150 in total for one delivery, and not in the last hour of the 48 hours. You pay the raise plus its card fee, and the Helpr gets the whole raise. A refunded raise comes back with its card fee unless you cancel for your own reason; if the seller&apos;s fault cancels a raised delivery, the seller pays the raise&apos;s card fee.</p>
             <p><strong className="text-foreground">Who can deliver:</strong> a Helpr who is 18 or older, has set up payouts, is not banned, has fewer than 3 Declutter strikes and is not the buyer or seller. Large items need a truck; extra-large items a truck and a second person.</p>
-            <p><strong className="text-foreground">The Helpr&apos;s pay:</strong> the delivery fee minus the same Helpr fee as jobs ({HELPR_FLAT_FEE_PHRASE}), plus any raise in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.</p>
+            <p><strong className="text-foreground">The Helpr&apos;s pay:</strong> the delivery fee minus the same service fee as jobs, plus any raise in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.</p>
             <p>A Helpr who backs out less than 2 hours before the pickup, or doesn&apos;t pick up within 2 hours of the pickup time, gets a strike on the jobs strike ladder. If the item is damaged on the way, you get everything back, the seller is still paid, and the Helpr isn&apos;t paid. If the Helpr already picked up the item and the sale is refunded for the seller&apos;s fault, the Helpr is paid for the trip and the delivery fee is not refunded.</p>
           </>
         }

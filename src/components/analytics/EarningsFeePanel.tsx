@@ -15,7 +15,6 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { AnalyticsPanel, StatTile } from "@/components/analytics/AnalyticsPanel";
 import { NotEnoughYet } from "@/components/analytics/NotEnoughYet";
 import {
-  FREE_TIER_FEE_PERCENT,
   earningsByMonth,
   earningsTotals,
   money,
@@ -44,52 +43,22 @@ export function EarningsFeePanel({ jobs, feeFallbackPercent, windowLabel }: Earn
 
   if (!totals) {
     return (
-      <AnalyticsPanel title="Earnings & fees" caption={`Completed jobs · last ${windowLabel}`}>
+      <AnalyticsPanel title="Earnings" caption={`Completed jobs · last ${windowLabel}`}>
         <NotEnoughYet what="your earnings" have={0} need={1} unit="completed jobs" />
       </AnalyticsPanel>
     );
   }
 
-  // Only claim a saving when there is one. A Free helper's saving is $0, and
-  // "$0.00 saved" printed under a paid-plan heading is a worse answer than no
-  // line at all.
-  const showSaving = totals.savedVsFree > 0.005;
-
+  // Owner 2026-10-25: members never see the Helpr fee, its rate or a
+  // plan saving on it; this panel shows what they took home, nothing else.
   return (
     <AnalyticsPanel
-      title="Earnings & fees"
+      title="Earnings"
       caption={`${totals.jobs} completed ${totals.jobs === 1 ? "job" : "jobs"} · last ${windowLabel}`}
     >
-      <div className="grid grid-cols-2 gap-2">
-        <StatTile label="You kept" value={money(totals.takeHome)} tone="positive" />
-        <StatTile
-          label="Platform fees"
-          value={money(totals.fees)}
-          hint={
-            totals.effectiveFeePercent !== null
-              ? `${totals.effectiveFeePercent}% of ${money(totals.gross)}`
-              : undefined
-          }
-        />
+      <div className="grid grid-cols-1 gap-2">
+        <StatTile label="You took home" value={money(totals.takeHome)} tone="positive" />
       </div>
-
-      {showSaving && (
-        <div
-          className="rounded-ds-md px-3 py-2.5 text-ds-12 leading-snug"
-          style={{
-            background: "hsl(var(--bark) / 0.06)",
-            border: "0.5px solid hsl(var(--bark) / 0.18)",
-            color: "hsl(var(--olivewood))",
-          }}
-        >
-          Your plan&rsquo;s lower commission saved you{" "}
-          <span className="font-semibold tabular-nums" style={{ color: "hsl(var(--bark))" }}>
-            {money(totals.savedVsFree)}
-          </span>{" "}
-          on these jobs. The same work on the Free plan&rsquo;s {FREE_TIER_FEE_PERCENT}% would have
-          cost {money(totals.feesAtFreeRate)} in fees.
-        </div>
-      )}
 
       {months.length >= 2 ? (
         <div className="h-[200px] w-full">

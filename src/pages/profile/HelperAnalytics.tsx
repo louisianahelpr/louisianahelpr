@@ -119,7 +119,7 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         variant="inline"
         icon={BarChart3}
         title="Advanced analytics is off for now"
-        body="Your earnings, fees and payouts are all on the Earnings tab."
+        body="Your earnings and payouts are all on the Earnings tab."
         action={
           <button
             type="button"

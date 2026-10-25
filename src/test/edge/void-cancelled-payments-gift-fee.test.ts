@@ -169,13 +169,14 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
     expect(settles[0].payload).toEqual({ payment_status: "cancelled", cancellation_fee_status: "charged", cancellation_fee: 150 });
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           giftFeeCents > 0 ? `the cancellation fee for your ${crewShares ? "crew" : "Helpr"}` : null, |           null,
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           giftFeeCents > 0 ? `your ${crewShares ? "crew" : "Helpr"} for their time` : null, |           null,
   it("the poster's gift notice says the gift paid the Helpr's cancellation fee", async () => {
     seedSingle();
     const h = await load();
     await h.fetch(cronReq());
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
-    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid the cancellation fee for your Helpr\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid your Helpr for their time\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).not.toMatch(/cancellation fee|card fee|card processing/i);
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (funding.cents === 0 && !funding.restored) { |           if (false) {
@@ -373,7 +374,8 @@ describe("void-cancelled-payments: a fully gift-funded CREW's fee shares are pai
     expect(restoredCents()).toBeGreaterThan(APPLIED - FEE - 5);
     expect(jobSettles().map((w) => w.payload)).toEqual([{ payment_status: "cancelled", cancellation_fee_status: "charged", cancellation_fee: 150 }]);
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
-    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid the cancellation fee for your crew\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$150 of it paid your crew for their time\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).not.toMatch(/cancellation fee|card fee|card processing/i);
   });
 
   it("the crew's fee AND a block fee are both kept from the gift, and the notice names both", async () => {
@@ -385,7 +387,7 @@ describe("void-cancelled-payments: a fully gift-funded CREW's fee shares are pai
     expect(restoredCents()).toBeLessThanOrEqual(APPLIED - FEE - 2500);
     expect(restoredCents()).toBeGreaterThan(APPLIED - FEE - 2500 - 5);
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
-    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$175 of it paid the cancellation fee for your crew and the cancellation fee for the crew spots you closed\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$175 of it paid your crew for their time and the crew members whose spots you closed close to the start\./);
   });
 });
 

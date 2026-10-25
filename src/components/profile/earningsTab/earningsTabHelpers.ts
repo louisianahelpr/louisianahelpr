@@ -42,7 +42,7 @@ export const buildPayoutsCsv = (
   csvLines.push("");
   csvLines.push(`Total Net Payouts,${total.toFixed(2)}`);
   csvLines.push(`Tax Year,${year}`);
-  csvLines.push("Note,Net amounts paid to your bank. Excludes platform fees & sales tax (Helpr's responsibility).");
+  csvLines.push("Note,Net amounts paid to your bank (what you took home). Sales tax is the Helpr's responsibility.");
 
   return { rows, csv: csvLines.join("\n") };
 };

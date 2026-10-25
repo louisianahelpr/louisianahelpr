@@ -658,7 +658,8 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
     expect(fee).toHaveLength(1);
     expect((fee[0][0] as Record<string, unknown>).source_transaction).toBeUndefined();
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
-    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$25 of it paid the cancellation fee for the crew spots you closed\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$25 of it paid the crew members whose spots you closed close to the start\./);
+    expect(String((note?.payload as Record<string, unknown>)?.message)).not.toMatch(/cancellation fee|card fee|card processing/i);
   });
 
   it("a member whose account is gone is voided first, so the whole gift comes back", async () => {

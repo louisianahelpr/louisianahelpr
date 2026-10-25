@@ -116,7 +116,7 @@ async function nameTransfers(admin: Admin, userId: string, ids: string[]): Promi
     out.set(r.stripe_transfer_id, [{ kind: "job", label: titleOr(r.jobs?.title, "A job"), amount_cents: 0, href: `/jobs/${r.job_id}` }]);
   }
   for (const r of cancels as { stripe_transfer_id: string; job_id: string; jobs: { title?: string } | null }[]) {
-    out.set(r.stripe_transfer_id, [{ kind: "cancellation_fee", label: `Cancellation fee: ${titleOr(r.jobs?.title, "a job")}`, amount_cents: 0, href: `/jobs/${r.job_id}` }]);
+    out.set(r.stripe_transfer_id, [{ kind: "cancellation_fee", label: `Cancelled job: ${titleOr(r.jobs?.title, "a job")}`, amount_cents: 0, href: `/jobs/${r.job_id}` }]);
   }
 
   // A sale's transfer is its items less any fee it paid back (declutter_consume_fee_debt):

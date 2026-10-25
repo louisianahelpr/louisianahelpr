@@ -146,7 +146,9 @@ describe("void-cancelled-payments: an unfilled or ban-ended series visit is refu
     const notes = scenario.writes
       .filter((w) => w.table === "notifications")
       .map((w) => String((w.payload as Record<string, unknown>)?.message ?? ""));
-    expect(notes.some((m) => m.includes("one-time account setup fee, which is paid once and never refunded")), notes.join(" | ")).toBe(true);
+    expect(notes.some((m) => m.includes("the one-time $2 account setup fee, which is paid once and never refunded")), notes.join(" | ")).toBe(true);
+    // Owner 2026-10-25: no other fee is named.
+    expect(notes.some((m) => /card processing|service fee|card fee|Contact support/i.test(m)), notes.join(" | ")).toBe(false);
     expect(notes.some((m) => /\$2\.00 card processing fee/.test(m)), notes.join(" | ")).toBe(false);
   });
 

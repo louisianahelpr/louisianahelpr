@@ -68,7 +68,7 @@ export async function crewBlockFeeRefusal(
   if (!job.is_group_job) return null;
   const read = await readCrewBlockFees(admin, job.id);
   if (!read.ok) {
-    return { status: 503, cents: 0, error: `Couldn't check whether a blocked crew member is owed a fee on this job (${read.error}). No money was moved; try again.` };
+    return { status: 503, cents: 0, error: `Couldn't check whether a blocked crew member is owed money from this job (${read.error}). No money was moved; try again.` };
   }
   const cents = crewBlockFeeCents(read.rows);
   if (cents <= 0) return null;

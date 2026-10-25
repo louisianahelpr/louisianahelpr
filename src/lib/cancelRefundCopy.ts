@@ -147,7 +147,7 @@ export function cancelRefundToast(args: {
   /** A crew job: its block fees are kept too and are not known here. */
   crew?: boolean;
 }): string {
-  const { wasFunded, appliedFee, flatModel, keptFeeSentence } = args;
+  const { wasFunded, appliedFee, keptFeeSentence } = args;
   const gift = args.gift ?? "none";
   const neutral = `Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.${keptFeeSentence}`;
   // A reserved gift is never spent before its card leg completes, so it comes
@@ -165,18 +165,21 @@ export function cancelRefundToast(args: {
   }
   if (gift === "unknown") return neutral;
   const fee = `$${formatPriceExact(appliedFee)}`;
+  // Owner 2026-10-25: members never see a fee name or fee maths. The toast says
+  // what goes to the Helpr for their time and what comes back; the exact refund
+  // is in the refund notice that follows (refundNotice.ts), so before it is
+  // known the toast says "most of your payment".
   if (gift === "gift_only") {
     // No card was charged (redeem_gift_card funds a fully covered job with no
     // Stripe checkout). Q1806: a late fee is paid from the gift and only the
     // rest is restored.
     return appliedFee > 0
-      ? `Job cancelled. The ${fee} cancellation fee is paid from your gift; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}`
+      ? `Job cancelled. ${fee} of your gift is for your Helpr's time; the rest goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}`
       : `Job cancelled. Your gift goes back to your gift balance within the hour. No card was charged.${keptFeeSentence}`;
   }
-  const cardKeeps = flatModel ? "the card-processing fee Stripe keeps" : "the service fee you paid at checkout";
   if (gift === "gift_and_card") {
     if (appliedFee <= 0) {
-      return `Job cancelled. Your card payment returns to your card, less ${cardKeeps}, and your gift goes back to your gift balance within the hour.${keptFeeSentence}`;
+      return `Job cancelled. Most of your card payment comes back to your card within the hour, and your gift goes back to your gift balance.${keptFeeSentence}`;
     }
     // void-cancelled-payments takes a late fee from the card payment and
     // restores the whole gift. That is only what happens when the card paid
@@ -191,7 +194,7 @@ export function cancelRefundToast(args: {
     const feeFitsInCard = cardShare != null && args.crew !== true
       && Math.round(appliedFee * 100) + Math.max(0, args.keptSetupCents ?? 0) + 2 * stripeProcessingCostCents(cardShare) < cardShare;
     return feeFitsInCard
-      ? `Job cancelled. The ${fee} cancellation fee comes out of your card payment; the rest of it returns to your card, less ${cardKeeps}, and your gift goes back to your gift balance within the hour.${keptFeeSentence}`
+      ? `Job cancelled. ${fee} of your card payment is for your Helpr's time; most of the rest comes back to your card within the hour, and your gift goes back to your gift balance.${keptFeeSentence}`
       : neutral;
   }
   if (gift === "redeemed") {
@@ -199,15 +202,10 @@ export function cancelRefundToast(args: {
     // source cannot be named: neutral (re-review #1).
     return appliedFee > 0
       ? neutral
-      : `Job cancelled — your gift goes back to your gift balance within the hour, and any card payment returns to your card, less ${cardKeeps}.${keptFeeSentence}`;
+      : `Job cancelled. Your gift goes back to your gift balance within the hour, and most of any card payment comes back to your card.${keptFeeSentence}`;
   }
   if (appliedFee > 0) {
-    const rest = flatModel
-      ? "the rest, less the card-processing fee Stripe keeps, returns to your card."
-      : "the rest, less the service fee you paid at checkout, returns to your card.";
-    return `Job cancelled. The ${fee} cancellation fee applies — ${rest}${keptFeeSentence}`;
+    return `Job cancelled. ${fee} is for your Helpr's time; most of the rest of your payment comes back to your card within the hour.${keptFeeSentence}`;
   }
-  return flatModel
-    ? `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}`
-    : `Job cancelled — your job budget returns to your card; the service fee isn't refundable.${keptFeeSentence}`;
+  return `Job cancelled. Most of your payment comes back to your card within the hour.${keptFeeSentence}`;
 }

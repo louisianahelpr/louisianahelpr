@@ -556,8 +556,8 @@ export function CheckoutStep({
                       <>
                         Your ${formatPriceExact(giftAppliedAmount)} gift covers
                         most of this job. You'll pay the $
-                        {formatPriceExact(totalCharge)} difference — no service
-                        fee and no sales tax on a gifted job.
+                        {formatPriceExact(totalCharge)} difference, with no sales
+                        tax on a gifted job.
                       </>
                     )}
                   </p>

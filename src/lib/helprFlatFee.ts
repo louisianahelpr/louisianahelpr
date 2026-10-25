@@ -22,13 +22,13 @@
 // fails the build if the two diverge.
 
 /** The percentage of each Helpr's pay the platform keeps on a flat-model job. */
-export const HELPR_FLAT_FEE_PERCENT = 5;
+export const HELPR_FLAT_FEE_PERCENT = 10;
 
 /** The fixed part of the flat fee, in cents, per Helpr payout. */
 export const HELPR_FLAT_FEE_CENTS = 70;
 
-/** The fee as words ("5% + $0.70"), for every page that quotes it (Terms, Help Center). Read, never retyped. */
-export const HELPR_FLAT_FEE_PHRASE = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
+// No fee phrase: members never see the fee's rate (owner 2026-10-25,
+// src/test/membersSeeNoFeeWords.test.ts). Admin screens read the two numbers.
 
 /** A job row's fee-model stamp, as create-payment writes it. */
 export interface FlatFeeStamp {

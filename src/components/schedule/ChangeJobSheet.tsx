@@ -81,7 +81,7 @@ export function ChangeJobSheet({
             <span aria-hidden className={`mt-1 h-4 w-4 shrink-0 rounded-full border-2 ${choice === "cancel" ? "border-primary bg-primary" : "border-border"}`} />
             <span className="min-w-0">
               <span className="block text-ds-15 font-semibold">Cancel the job</span>
-              <span className="block text-ds-13 text-muted-foreground">Any cancellation fee comes from the cancellation rule and is shown before you confirm.</span>
+              <span className="block text-ds-13 text-muted-foreground">Anything that goes to your Helpr for their time is shown before you confirm.</span>
             </span>
           </button>
         </div>

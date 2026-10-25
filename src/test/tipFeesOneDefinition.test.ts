@@ -119,8 +119,9 @@ describe("every edge tip charge takes its money fields from one tipChargeBreakdo
         if (c.kind === "paymentIntent") {
           expect(c.call).toMatch(new RegExp(`\\bamount:\\s*${v}\\.chargeCents\\s*,`));
         } else {
+          // Owner 2026-10-25: ONE line, the total the tipper pays (no card-fee line).
           const units = [...c.call.matchAll(/unit_amount:\s*([^,\n}]+)/g)].map((m) => m[1].trim()).sort();
-          expect(units).toEqual([`${v}.feeCents`, `${v}.tipCents`]);
+          expect(units).toEqual([`${v}.chargeCents`]);
         }
       });
     });

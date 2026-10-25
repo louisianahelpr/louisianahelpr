@@ -454,13 +454,15 @@ describe("void-cancelled-payments — Q1675: a charge already partly refunded", 
       { payment_intent: "pi_decided", amount: 9800 },
       { idempotencyKey: "cancel-refund-job-decided" },
     );
-    // The notice keeps only the $10 fee: the $2 already went back, it was not kept.
-    // @mutate supabase/functions/void-cancelled-payments/index.ts |                 keptCents: Math.max(0, capturedCents - chargeRefundedCents - refundedCents), |                 keptCents: Math.max(0, capturedCents - refundedCents),
+    // The notice states the $98 that came back (the $2 already went back, it is
+    // not announced again). Owner 2026-10-25: the kept fee is never named.
+    // @mutate supabase/functions/void-cancelled-payments/index.ts |                 key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,\n                // An earlier refund on this charge (Q1675) went back too: not kept. |                 key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents + chargeRefundedCents,\n                // An earlier refund on this charge (Q1675) went back too: not kept.
     const notice = scenario.writes
       .filter((w) => w.table === "notifications" && w.op === "insert")
       .map((w) => String((w.payload as Record<string, unknown>).message ?? ""))
-      .find((m) => m.includes("We kept"));
-    expect(notice).toMatch(/We kept \$10(\.00)?\b/);
+      .find((m) => m.includes("We refunded"));
+    expect(notice).toMatch(/We refunded \$98(\.00)?\b/);
+    expect(notice).not.toMatch(/card processing|service fee|cancellation fee|card fee|processor|Contact support|We kept/i);
   });
 
   // lh-money-escrow review of Q1675 #1: earlier refunds that returned MORE

@@ -9,21 +9,21 @@
 // (The Terms keep the old wording until the owner approves new legal text:
 // Q1842's Terms half, ~/.lh-shots/sections-1017/OWNER-MORNING-lead.md item 17.)
 //
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | Posting a job has no service fee: you pay the job price | Posting a job costs nothing extra: you pay the job budget plus a service fee that only covers card processing
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | When you post a job, you pay the job price | Posting a job costs nothing extra: you pay the job budget plus a service fee that only covers card processing
 //
 // lh-money-escrow review of 7166349cd: the fees answer said "nothing on
 // top" (create-payment adds Louisiana sales tax on taxable labor and the
 // one-time setup fee on a first funded job), quoted the UNROUNDED $94.30
 // (every transfer is floored to the dollar, Q236: $94), and its refund
 // sentence left out the kept setup fee.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_TAKE_HOME_ON_100 = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100); | const FLAT_TAKE_HOME_ON_100 = (helprFlatTakeHomeCents(10_000) / 100).toFixed(2);
+// Owner 2026-10-25: members never see the fee's rate, name or maths, so the
+// fees answer names no Helpr fee, no $100 example and no refund arithmetic.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | When you do a job, every job shows exactly what you will take home before you apply. | When you do a job, Helpr keeps 10% + $0.70 of your pay.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | plus Louisiana sales tax on the labor for taxable job types such as handyman, assembly and the trades. | and nothing on top.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | , and, on your first paid job, the one-time setup fee. If the mistake | . If the mistake
 // Delta review (#A): "any sales tax you paid comes back" overstated it: on a
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | you get back what you paid (tax included) less | you get back what you paid less
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | the cancel screen shows exactly what you will get back before you confirm. | you get back what you paid less the card-processing fee Stripe keeps.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start | It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | const FLAT_FEE_PHRASE = HELPR_FLAT_FEE_PHRASE; | const FLAT_FEE_PHRASE = "5%";
 //
 // Memberships are off for members (roadmap F4/F4a; feature_switches
 // 'memberships' = testers on prod, measured 2026-10-17), so every answer that
@@ -34,8 +34,6 @@
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now."; | export const MEMBERSHIPS_PAUSED = "";
 import { describe, expect, it } from "vitest";
 import { FAQ_SECTIONS, MEMBERSHIPS_PAUSED } from "./helpCenterContent";
-import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, helprFlatTakeHomeCents } from "@/lib/helprFlatFee";
-import { floorPayoutDollars } from "@/lib/helperEarnings";
 
 const answers = FAQ_SECTIONS.flatMap((s) => s.items.map((i) => ({ topic: s.topic, q: i.q, a: i.a })));
 
@@ -60,33 +58,25 @@ describe("Help Center describes today's job fee (Q1842)", () => {
     expect(hits).toEqual([]);
   });
 
-  it("the fees answer states the flat fee, the floored $100 example, tax, the setup fee and the refund", () => {
+  it("the fees answer states what a poster pays and names no Helpr fee, rate or refund maths (owner 2026-10-25)", () => {
     const fees = answers.find((x) => x.q === "What fees does Helpr charge?");
     expect(fees).toBeTruthy();
-    const phrase = `${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`;
-    expect(fees!.a).toContain(phrase);
-    // What the transfer really pays: floored to the whole dollar (Q236).
-    const takeHome = floorPayoutDollars(helprFlatTakeHomeCents(10_000) / 100);
-    expect(takeHome).toBe(94);
-    expect(fees!.a).toMatch(/tips are paid in full/);
-    expect(fees!.a).toContain(`on a $100 job you receive $${takeHome}.`);
-    expect(fees!.a).toMatch(/rounded down to the whole dollar/);
-    expect(fees!.a).not.toMatch(/\$94\.30|nothing on top|costs nothing extra/);
     // What a poster pays besides the job price.
     expect(fees!.a).toMatch(/plus Louisiana sales tax on the labor for taxable job types/);
     expect(fees!.a).toMatch(/first paid job also carries a small one-time account setup fee/);
-    // What a cancel refund keeps (tax included in what was paid).
-    expect(fees!.a).toMatch(/you get back what you paid \(tax included\) less the card-processing fee Stripe keeps, any cancellation fees owed to your Helprs \(including for crew spots you closed close to the start\), and, on your first paid job, the one-time setup fee\./);
-    // Tax is not promised back whole: tax stays paid on what is kept.
-    expect(fees!.a).not.toMatch(/tax you paid comes back/);
-    // Jobs paid for under the old model keep it (they still exist).
-    expect(fees!.a).toMatch(/before the fee changed on October 15, 2026 keeps the fee it was paid under/);
+    expect(fees!.a).not.toMatch(/nothing on top|costs nothing extra/);
+    // The Helpr side: the take-home, never the fee.
+    expect(fees!.a).toMatch(/every job shows exactly what you will take home before you apply/);
+    expect(fees!.a).toMatch(/rounded down to the whole dollar \(tips are paid in full\)/);
+    expect(fees!.a).not.toMatch(/\d+%|\$0\.70|on a \$100 job|service fee|card-processing|cancellation fee/);
+    // A cancel: the screen shows what comes back, no fee list.
+    expect(fees!.a).toMatch(/the cancel screen shows exactly what you will get back before you confirm/);
   });
 
-  it("the membership answer says a plan does not change the job fee", () => {
+  it("the membership answer says a plan does not change what you take home, with no fee rate", () => {
     const m = answers.find((x) => x.q === "What does a membership do?");
-    expect(m?.a).toContain(`${HELPR_FLAT_FEE_PERCENT}% + $${(HELPR_FLAT_FEE_CENTS / 100).toFixed(2)}`);
-    expect(m?.a).toMatch(/does not change the fee/);
+    expect(m?.a).toMatch(/does not change what you take home/);
+    expect(m?.a).not.toMatch(/\d+%|service fee/);
   });
 
   // Lead 2026-10-25 (item 14): the Terms say "There are no paid memberships

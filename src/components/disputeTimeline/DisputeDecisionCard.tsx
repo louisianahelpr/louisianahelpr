@@ -105,12 +105,9 @@ export function DisputeDecisionCard({
               )
             ) : side === "helpr" ? (
               dispute?.execution_helper_cents != null && (
-                <>
-                  <p className="font-sans font-bold text-ds-22 mt-1 tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}>
-                    You take home {formatUsd(dispute.execution_helper_cents)}
-                  </p>
-                  <p className="font-sans text-ds-12 mt-0.5 text-muted-foreground">After Helpr fees</p>
-                </>
+                <p className="font-sans font-bold text-ds-22 mt-1 tabular-nums" style={{ color: "hsl(var(--accent-ink))" }}>
+                  You take home {formatUsd(dispute.execution_helper_cents)}
+                </p>
               )
             ) : (
               <>

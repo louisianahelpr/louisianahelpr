@@ -287,6 +287,10 @@ describe("Q139: a restated notification producer keeps the links the database wr
       "20260925143327_notification_copy_names_the_person.sql",
       // Drift repair: re-runs 20260925143327's two helper_cancel_booking rewrites.
       "20260926193844_helper_cancel_booking_copy_reapply.sql",
+      // Copy, not links: members never see a fee name (owner 2026-10-25).
+      "20261025203540_notices_never_name_the_helpr_fee.sql",
+      // Not links: the SQL fee default follows the 10% rule.
+      "20261025214015_helpr_fee_sql_default_is_ten.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

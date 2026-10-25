@@ -15,7 +15,7 @@
 //       job through public.helpr_flat_fee_cents, and the row they read the
 //       stamp from (v_job) selects it;
 //   (C) helpr_flat_fee_cents is the TS rule (_shared/helprFlatFee.ts) with
-//       the same 5 / 70 defaults, EXECUTE for service_role only;
+//       the same 10 / 70 defaults (20261025214015), EXECUTE for service_role only;
 //   (D) get_helper_analytics carries the stamp in both its jobs list and its
 //       not-entitled preview.
 // Executed proof (red before, green after, 3x replay, TS parity at every

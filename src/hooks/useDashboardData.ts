@@ -17,7 +17,7 @@ import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
-import { raceVisibleDeadline } from "@/lib/visibleDeadline";
+import { raceVisibleDeadline, raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
 // initial paint stays cheap as the marketplace grows; later pages are fetched
@@ -73,6 +73,7 @@ export function splitFeedPage<T>(
 // connection leaves the dashboard spinning indefinitely; on timeout we reject
 // so React Query surfaces the existing ErrorState (with its manual retry).
 const JOBS_QUERY_TIMEOUT_MS = 12_000;
+const JOBS_TIMEOUT_MESSAGE = "Loading jobs timed out";
 
 // Visible time only: a phone put away mid-load is not a stall
 // (src/lib/visibleDeadline.ts).
@@ -227,7 +228,7 @@ export function useDashboardData() {
   } = useInfiniteQuery({
     queryKey: queryKeys.dashboard.jobs(user?.id),
     initialPageParam: 0,
-    queryFn: async ({ pageParam }): Promise<JobsPage> => {
+    queryFn: async ({ pageParam, signal }): Promise<JobsPage> => {
       const offset = pageParam as number;
       // The ctx fetch (fee / availability / applied set / blocks) is only
       // needed to FILTER the rows below — never to ISSUE the jobs request. So
@@ -348,7 +349,10 @@ export function useDashboardData() {
             // select asked for them.
                       "id, title, description, category, budget, date_needed, customer_id, status, created_at, updated_at, is_urgent, urgent_fee, is_flexible_schedule, is_recurring, is_group_job, helpers_needed, estimated_hours, materials_note, photos, boosted_at, boost_expires_at, expires_at, start_time, recurrence_interval, recurrence_end_date, parent_job_id, payment_status, location, latitude, longitude, pricing_mode, applicant_count, credential_tier, parish, helper_fee_flat_cents";
 
-        rawJobsRes = unwrap(await withTimeout(readJobsAheadOfDb(browseColumns, (columns) => supabase
+        // Cancellable (raceVisibleDeadlineAbortable): a read that misses its
+        // deadline is aborted, so the one fresh retry below does not queue
+        // behind it (JAVASCRIPT-44: the stalled read never reached the server).
+        rawJobsRes = unwrap(await raceVisibleDeadlineAbortable((abort) => readJobsAheadOfDb(browseColumns, (columns) => supabase
           .from("open_jobs_browse")
           .select(columns)
           .neq("payment_status", "abandoned")
@@ -357,7 +361,8 @@ export function useDashboardData() {
           .lte("created_at", earlyAccessCutoff)
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
-          .range(offset, offset + PAGE_SIZE)), JOBS_QUERY_TIMEOUT_MS, "Loading jobs timed out")) as unknown as BrowseJobRow[];
+          .range(offset, offset + PAGE_SIZE)
+          .abortSignal(abort)), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) as unknown as BrowseJobRow[];
       } catch (viewErr) {
         report(viewErr, {
           // "error" — a thrown open_jobs_browse query bricks the entire
@@ -523,14 +528,19 @@ export function useDashboardData() {
     // updating state instead of collapsing to skeletons mid-scroll. Only the
     // very first ever load shows the loader. See queryClient.ts / queryPersister.ts.
     placeholderData: keepPreviousData,
-    // Fail fast on a timeout — the ErrorState already offers a manual retry,
-    // so don't make the user wait through 2 silent auto-retries (~36s). Other
+    // A timeout gets ONE fresh try, not two silent ones (~36 s) and not none:
+    // the stalled read is aborted at its deadline (raceVisibleDeadlineAbortable)
+    // and, measured on JAVASCRIPT-44's newest events, every sibling read the
+    // same phone sent in that second was answered, so a new request is the
+    // recovery the "Try again" button used to be the only way to reach. Other
     // transient errors keep their two retries; a refused read (4xx) gets none,
     // as everywhere (shouldRetryQuery, Q1164: this was `failureCount < 2` and
-    // sent a refused feed read three times).
+    // sent a refused feed read three times). After that the ErrorState shows,
+    // and refetchOnWindowFocus / refetchOnReconnect (queryClient.ts) run it
+    // again when the person comes back to the app or the network returns.
     retry: (failureCount, error) =>
-      error instanceof Error && error.message === "Loading jobs timed out"
-        ? false
+      error instanceof Error && error.message === JOBS_TIMEOUT_MESSAGE
+        ? shouldRetryQuery(failureCount, error, 1)
         : shouldRetryQuery(failureCount, error, 2),
     // SWR — same 2-minute fresh window as ctx above. Pages loaded on the last
     // visit stay fresh long enough that the user lands on a populated feed

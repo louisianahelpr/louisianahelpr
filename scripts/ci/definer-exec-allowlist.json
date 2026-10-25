@@ -25,6 +25,7 @@
     "accept_job_offer(uuid)": "client",
     "admin_sms_status()": "client",
     "get_my_sms_consent()": "client",
+    "payout_setup_hire_allowed_for_me()": "client",
     "set_sms_consent(boolean, text)": "client",
     "ack_backout_notice(uuid)": "client",
     "admin_ban_settlement_reviews()": "client",

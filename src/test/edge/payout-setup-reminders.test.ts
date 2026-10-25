@@ -82,6 +82,7 @@ describe("payout-setup-reminders", () => {
     expect(emails()).toHaveLength(1);
     expect(JSON.parse(String((emails()[0][1] as { body: string }).body))).toMatchObject({ user_id: HELPR, title: HIRED_PAYOUT_TITLE });
     expect(ledger("update")).toHaveLength(1);
+    expect((ledger("update")[0].payload as { sent_at?: unknown }).sent_at, "sent_at is stamped with the send time").toEqual(expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/));
     expect(ledger("update")[0].filters).toEqual(
       expect.arrayContaining([expect.objectContaining({ column: "helper_id", value: HELPR }), expect.objectContaining({ column: "reminder_key", value: "hired" })]),
     );

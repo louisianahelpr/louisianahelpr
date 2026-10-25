@@ -115,6 +115,12 @@ CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
+-- payout_setup_hire_allowed (20261025162003) reads these money rows by helper_id.
+CREATE TABLE public.job_accept_pending (job_id uuid PRIMARY KEY, helper_id uuid NOT NULL);
+CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
+CREATE TABLE public.cancellation_fee_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
+CREATE TABLE public.crew_cancellation_fee_shares (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
+CREATE TABLE public.crew_block_fees (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
 CREATE TABLE public.job_detail_change_requests (id uuid PRIMARY KEY, job_id uuid, requested_by uuid, changed_fields text[], expires_at timestamptz);
 CREATE TABLE public.job_detail_change_answers (request_id uuid, helper_id uuid, answer text DEFAULT 'pending');
 -- is_system: can_send_message_to_in_job counts only the caller's own messages (Q1169, 20261004001242).
@@ -226,7 +232,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Homes public link (20261019062540) and listing photo storage checks (20261019071203).
   "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable",
   // Homes rent tracker read policies (20261019073106).
-  "rentals_tenancy_party"];
+  "rentals_tenancy_party",
+  // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
+  "payout_setup_hire_allowed"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

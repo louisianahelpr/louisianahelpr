@@ -220,7 +220,7 @@ function rewriteExternalImports(src: string): string {
   );
 
   // Payout setup only after a hire (owner 2026-10-25): `_shared/payoutSetupHire.ts`
-  // has ZERO imports, so the REAL fail-closed refusal serves; the decision is
+  // imports only caughtMessage, so the REAL fail-closed refusal serves; the decision is
   // the `payout_setup_hire_allowed` rpc the scenario answers.
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/payoutSetupHire\.ts["'];?/g,

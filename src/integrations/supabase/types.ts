@@ -6979,24 +6979,24 @@ export type Database = {
           helper_id: string
           job_id: string | null
           reminder_key: string
+          reminder_stage: string
           sent_at: string | null
-          stage: string
         }
         Insert: {
           claimed_at?: string
           helper_id: string
           job_id?: string | null
           reminder_key: string
+          reminder_stage: string
           sent_at?: string | null
-          stage: string
         }
         Update: {
           claimed_at?: string
           helper_id?: string
           job_id?: string | null
           reminder_key?: string
+          reminder_stage?: string
           sent_at?: string | null
-          stage?: string
         }
         Relationships: []
       }
@@ -13459,6 +13459,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      claim_payout_setup_reminders: {
+        Args: { p_limit?: number }
+        Returns: {
+          helper_id: string
+          job_id: string
+          job_title: string
+          reminder_key: string
+          stage: string
+        }[]
+      }
       cleanup_observability_tables: { Args: never; Returns: Json }
       cleanup_stripe_webhook_events: { Args: never; Returns: number }
       clear_available_now: { Args: never; Returns: undefined }
@@ -14823,7 +14833,15 @@ export type Database = {
         Args: { p_ids: string[]; p_kind: string }
         Returns: string[]
       }
+      payout_setup_hire_allowed: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       payout_setup_hire_allowed_for_me: { Args: never; Returns: boolean }
+      payout_waits_on_identity: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       poster_cancel_job: {
         Args: { p_expected_fee_cents?: number; p_job_id: string; p_reason?: string }
         Returns: Json

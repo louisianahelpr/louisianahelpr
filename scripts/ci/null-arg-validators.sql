@@ -55,6 +55,9 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
+  ('payout_setup_hire_allowed',     'allow',    'may this member open a payout account: chosen for a job that holds money, or owed money (owner 2026-10-25, 20261025162003)'),
+  ('payout_setup_hire_allowed_for_me','noarg',  'reads auth.uid() only: payout_setup_hire_allowed for the caller (20261025162003)'),
+  ('payout_waits_on_identity',      'deny',     'TRUE = hold this Helpr''s payout claim until the ID check is done (payout_after_hire + identity_check, 20261025162003); a NULL member is never held, and its only caller (refuse_payout_claim_while_held) asks only for a non-NULL helper_id'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),
   ('identity_is_verified',          'allow',    'the ID gate verdict: Stripe Identity only (20261021081258)'),
@@ -209,6 +212,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_tenancy_party',         '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000303''::uuid'], ARRAY[1]),
   ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
+  -- B is the Helpr on J (open, escrow: funded), so the non-NULL call is TRUE.
+  ('payout_setup_hire_allowed',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
   -- identity: Stripe Identity decides (arg 1); arg 2 (the NOT NULL Connect column) only says a row was read.

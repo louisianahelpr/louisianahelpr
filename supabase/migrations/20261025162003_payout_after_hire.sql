@@ -248,7 +248,7 @@ REVOKE ALL ON FUNCTION public.refuse_payout_claim_while_held() FROM PUBLIC, anon
 CREATE TABLE IF NOT EXISTS public.payout_setup_reminders (
   helper_id    uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
   reminder_key text NOT NULL,
-  stage        text NOT NULL CHECK (stage IN ('hired', 'day1', 'day3', 'day7', 'money')),
+  reminder_stage text NOT NULL CHECK (reminder_stage IN ('hired', 'day1', 'day3', 'day7', 'money')),
   job_id       uuid REFERENCES public.jobs (id) ON DELETE SET NULL,
   claimed_at   timestamptz NOT NULL DEFAULT now(),
   sent_at      timestamptz,
@@ -264,7 +264,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.payout_setup_reminders TO s
 -- and returns only the rows this call inserted (two overlapping runs can never
 -- send the same one). Due only while: payout_after_hire AND payout_setup are on
 -- for the Helpr, they are not payout-ready, and they hold a live hire (a job,
--- or crew seat, whose payment is held: escrow or payout_pending). A fixture
+-- or crew seat, not cancelled, whose payment is held: escrow or payout_pending). A fixture
 -- test account (accept-ready without an account) is never reminded.
 CREATE OR REPLACE FUNCTION public.claim_payout_setup_reminders(p_limit integer DEFAULT 100)
 RETURNS TABLE (helper_id uuid, reminder_key text, stage text, job_id uuid, job_title text)
@@ -278,12 +278,14 @@ BEGIN
     SELECT j.helper_id AS uid, j.id AS jid, j.title AS jtitle, j.payment_status::text AS pay
       FROM public.jobs j
      WHERE j.helper_id IS NOT NULL
+       AND j.status::text <> 'cancelled'
        AND j.payment_status::text IN ('escrow', 'payout_pending')
     UNION ALL
     SELECT g.helper_id, j.id, j.title, j.payment_status::text
       FROM public.group_job_helpers g
       JOIN public.jobs j ON j.id = g.job_id
-     WHERE j.payment_status::text IN ('escrow', 'payout_pending')
+     WHERE j.status::text <> 'cancelled'
+       AND j.payment_status::text IN ('escrow', 'payout_pending')
   ),
   helprs AS (
     SELECT DISTINCT h.uid
@@ -306,10 +308,10 @@ BEGIN
                                 WHERE r.helper_id = x.uid AND r.reminder_key = 'money:' || h.jid::text)
              ORDER BY h.jid LIMIT 1) AS money_key,
            (SELECT r.claimed_at FROM public.payout_setup_reminders r
-             WHERE r.helper_id = x.uid AND r.stage = 'hired') AS hired_at,
-           (SELECT max(CASE r.stage WHEN 'day1' THEN 1 WHEN 'day3' THEN 2 WHEN 'day7' THEN 3 ELSE 0 END)
+             WHERE r.helper_id = x.uid AND r.reminder_stage = 'hired') AS hired_at,
+           (SELECT max(CASE r.reminder_stage WHEN 'day1' THEN 1 WHEN 'day3' THEN 2 WHEN 'day7' THEN 3 ELSE 0 END)
               FROM public.payout_setup_reminders r
-             WHERE r.helper_id = x.uid AND r.stage IN ('day1', 'day3', 'day7')) AS last_step
+             WHERE r.helper_id = x.uid AND r.reminder_stage IN ('day1', 'day3', 'day7')) AS last_step
       FROM helprs x
   ),
   pick AS (
@@ -334,13 +336,13 @@ BEGIN
      LIMIT GREATEST(COALESCE(p_limit, 100), 0)
   ),
   ins AS (
-    INSERT INTO public.payout_setup_reminders (helper_id, reminder_key, stage, job_id)
+    INSERT INTO public.payout_setup_reminders (helper_id, reminder_key, reminder_stage, job_id)
     SELECT c.uid, c.rkey, c.rstage, c.rjob FROM chosen c
     ON CONFLICT DO NOTHING
     RETURNING public.payout_setup_reminders.helper_id, public.payout_setup_reminders.reminder_key,
-              public.payout_setup_reminders.stage, public.payout_setup_reminders.job_id
+              public.payout_setup_reminders.reminder_stage, public.payout_setup_reminders.job_id
   )
-  SELECT i.helper_id, i.reminder_key, i.stage, i.job_id, j.title
+  SELECT i.helper_id, i.reminder_key, i.reminder_stage, i.job_id, j.title
     FROM ins i
     LEFT JOIN public.jobs j ON j.id = i.job_id;
 END;
@@ -371,13 +373,23 @@ REVOKE ALL ON TABLE public.connect_account_retirements FROM PUBLIC, anon, authen
 REVOKE DELETE, TRUNCATE ON TABLE public.connect_account_retirements FROM service_role;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.connect_account_retirements TO service_role;
 
+-- Q807: the unconfirmed-email write gate on every new public table (both
+-- tables above; it attaches to every table that lacks it).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- ── schedule + liveness ──────────────────────────────────────────────────
 DO $do$
 BEGIN
   IF to_regclass('public.cron_work_expectations') IS NOT NULL THEN
     INSERT INTO public.cron_work_expectations (jobname, expected_max_gap, note, work_visibility, work_exempt_reason)
     VALUES ('payout-setup-reminders', interval '2 hours',
-            'Owner 2026-10-25: every 15 minutes reminds hired Helprs who have not finished payout setup (right after the hire, day 1, day 3, day 7, and once per job whose payout waits; at most one a day). Behind payout_after_hire and payout_setup.',
+            'Owner 2026-10-25: every 15 minutes reminds hired Helprs who have not finished payout setup (right after the hire, day 1, day 3, day 7, and once per job whose payout waits, at most one a day). Behind payout_after_hire and payout_setup.',
             'exempt',
             'No Helpr due, or either switch off, is the healthy state, so a run that sends nothing is not a silent failure. A run that could not claim (PGRST202 included) or could not record what it sent answers 500 through cronResult.')
     ON CONFLICT (jobname) DO UPDATE SET expected_max_gap = EXCLUDED.expected_max_gap, note = EXCLUDED.note,

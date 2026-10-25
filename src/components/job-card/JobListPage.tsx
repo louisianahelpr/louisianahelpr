@@ -442,10 +442,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
               className="shrink-0 -ml-px -mt-px pb-1"
               style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
             >
-              {/* The Jobs tabs never move (owner 2026-10-25, "tabs move"): Browse puts
-                  this header at the panel's corner with no inset, so here it sits at
-                  the same corner, no padding, -1px over the panel's own border.
-                  Guard: src/test/jobsTabsStayPut.test.ts. */}
               {headerEl}
             </div>
           )}

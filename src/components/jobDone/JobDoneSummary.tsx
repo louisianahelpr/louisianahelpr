@@ -185,7 +185,6 @@ export function JobDoneSummary({
           </span>
           <div className="flex-1 min-w-[60%]">
             <p className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>Hire {firstName} again?</p>
-            <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>Same job, same price, you pick the day.</p>
           </div>
           <Link
             to={`/post-job?rebook=${jobId}&offerTo=${job.helper_id}`}

@@ -57,6 +57,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   admin_section_funnel: "hides",
   check_push_token_health: "alerts",
   claim_come_back_emails: "hides",
+  // confirm-your-email reminders (20261025190000): a seed account gets no reminder email
+  claim_confirm_reminders: "hides",
   // payout setup after the hire (20261025162003): an enrolled seed Helpr with no payout account gets no reminder
   claim_payout_setup_reminders: "hides",
   complete_pending_accepts_on_setup: "alerts",

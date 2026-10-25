@@ -53,7 +53,6 @@ export function MineJobFace({
   when,
   status,
   money,
-  moneyCaption,
   action,
   extra,
   progress,
@@ -69,8 +68,6 @@ export function MineJobFace({
   status: ReactNode;
   /** Pre-formatted, with its "$". Null hides it (spec §1.5). */
   money: string | null;
-  /** Under the amount, e.g. "you take home" on the Helpr's card. */
-  moneyCaption?: string | null;
   /** Null when the card is open: its own step row carries the action then. */
   action: MineFaceAction | null;
   /** Under the face, above the button, OUTSIDE the link (it may hold controls):
@@ -133,13 +130,7 @@ export function MineJobFace({
                   <span className="block text-ds-17 font-bold leading-snug tabular-nums text-[hsl(var(--accent-ink))]">
                     {money}
                   </span>
-                  {moneyCaption && (
-                    // Short and small (owner, 2026-10-23, card critique item 12): "you take home" beside the price
-                    // squeezed the title onto two lines.
-                    <span className="block whitespace-nowrap text-ds-10 leading-tight text-muted-foreground">
-                      {moneyCaption}
-                    </span>
-                  )}
+                  {/* No caption under the price (owner 2026-10-25: take-home everywhere, no label word). */}
                 </span>
               )}
             </span>

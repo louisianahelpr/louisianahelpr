@@ -11,7 +11,7 @@
  *  9  the approve clock reads forwards
  *  10 filed where the line says (Waiting), and the Helpr's waiting group says "Waiting"
  *  11 the collapsed Helpr card's address on one line
- *  12 "take-home", short, under the price
+ *  12 no caption word under the price (was "take-home"; owner 2026-10-25)
  *  13 a waiting card: "Message <name>" + a small "Manage job" link
  *  14 desktop: the price beside the title
  *  15 a dispute says "Dispute open · Payment on hold" and opens the dispute
@@ -165,10 +165,10 @@ describe("job card polish (owner 2026-10-23)", () => {
     expect(container.textContent).toMatch(/3:00 PM/);
   });
 
-  it("12: 'take-home', short, under the price; 14: desktop price beside the title", () => {
-    expect(code("src/pages/jobs/AppliedJobCard.tsx")).toContain('moneyCaption="take-home"');
+  it("12: no caption word under the price (owner 2026-10-25); 14: desktop price beside the title", () => {
+    expect(code("src/pages/jobs/AppliedJobCard.tsx")).not.toMatch(/moneyCaption|take-home"/);
     const face = code("src/components/job-card/MineJobFace.tsx");
-    expect(face).toContain('className="block whitespace-nowrap text-ds-10 leading-tight text-muted-foreground"');
+    expect(face).not.toMatch(/moneyCaption/);
     expect(face).toContain('className="flex items-start justify-between gap-3 md:justify-start md:gap-4"');
   });
 

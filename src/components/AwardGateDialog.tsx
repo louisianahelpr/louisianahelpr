@@ -23,7 +23,6 @@ import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockR
 import { userFacingError } from "@/lib/userFacingError";
 import { openIdentityCheck } from "@/lib/identityCheck";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /**
  * What a Helpr sees when their accept needs Stripe setup first.
@@ -57,18 +56,18 @@ export function AwardGateDialog({
   const payoutMissing = pendingMissing ? pendingMissing.includes("payout_setup") : reason === "helper_payout_setup_incomplete";
   const idMissing = pendingMissing ? pendingMissing.includes("stripe_id") : reason === "helper_identity_unverified";
   // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
-  // account. With the payout step missing, the dialog shows the paused notice
-  // and never calls stripe-connect; the ID check (its own sheet) still works.
+  // account. With the payout step missing, the dialog says what happens next (no
+  // 'paused' notice, owner 2026-10-25) and never calls stripe-connect; the ID check (its own sheet) still works.
   const setupPaused = usePayoutSetupPaused();
   const payoutPaused = setupPaused && payoutMissing;
   // While paused the "set up payouts, about two minutes" copy would contradict
   // the notice: say what happens to the accept instead (lh-silent-failure #1-2).
-  const title = payoutPaused && !pendingMissing ? "Payout setup is paused" : copy.title;
+  const title = payoutPaused && !pendingMissing ? "Not booked yet" : copy.title;
   const body = !payoutPaused
     ? copy.body
     : pendingMissing
-      ? `You're not booked yet. Your accept is saved and goes through once payout setup is back${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
-      : "This job can be booked for you once payout setup is back.";
+      ? `You're not booked yet. Your accept is saved and goes through once you can add a payout account${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
+      : "This job can be booked for you once you can add a payout account.";
   // Stripe Identity (photo ID + selfie) is its own sheet, not part of payout
   // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
   const openIdCheck = () => {
@@ -121,12 +120,11 @@ export function AwardGateDialog({
 
         <DialogBody>
           <p>{body}</p>
-          {payoutPaused && <PayoutSetupPausedNotice compact className="mt-3" />}
         </DialogBody>
 
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
-          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Paused" : undefined} />
+          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Later" : undefined} />
           {idOn && (
             <RequirementRow
               label={ID_VERIFIED_LABEL}

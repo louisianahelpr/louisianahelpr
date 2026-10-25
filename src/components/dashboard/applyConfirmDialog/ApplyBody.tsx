@@ -7,7 +7,6 @@ import { WifiOff, BookmarkCheck, AlertTriangle } from "lucide-react";
 import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { helperApplyBlockNotice } from "@/lib/awardGate";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { toast } from "sonner";
 import { errorToast } from "@/lib/toast";
 import { hapticMedium, hapticError } from "@/lib/haptics";
@@ -442,7 +441,6 @@ export function ApplyBody({
           says why; the silence reads as posters passing them over.
           Suppressed while offline so the two advisories never stack — the
           offline one is about THIS tap and takes precedence. */}
-      {payoutSetupPausedHere && online && <PayoutSetupPausedNotice compact className="text-ds-11" />}
       {applyBlockNotice && online && (
         <div
           className="flex items-start gap-2.5 rounded-ds-md border px-3 py-2.5"

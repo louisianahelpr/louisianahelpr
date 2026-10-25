@@ -18,7 +18,6 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -288,7 +287,6 @@ export default function MoveFlow() {
       <p className="text-sm text-muted-foreground">
         Photograph each room. The photo tool lists what it sees, you set the prices, and everything goes up together as one moving sale on your profile.
       </p>
-      {payoutBlock && setupPaused && <PayoutSetupPausedNotice />}
       {payoutBlock && !setupPaused && (
         <DeclutterNotice tone="warn" title="Set up payouts before you list.">
           You can save your items now and list them once payouts are set up.{" "}

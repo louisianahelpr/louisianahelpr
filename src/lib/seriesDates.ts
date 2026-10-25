@@ -6,7 +6,6 @@ import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { todayYmd } from "@/lib/jobDate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
-import { PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
 
 /**
  * Who holds each visit date of a recurring series (20260927012806,
@@ -172,7 +171,7 @@ export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">, s
   // Payout setup paused (owner ruling 2026-10-23; the caller reads
   // usePayoutSetupPaused): no "set up payouts" ask, the paused notice instead.
   if (payout && setupPaused) {
-    return `A date is booked only once payout setup is back${id ? " and your ID is verified" : ""}. ${PAYOUT_SETUP_PAUSED_COPY}`;
+    return `A date is booked only once you can add a payout account${id ? " and your ID is verified" : ""}. We'll let you know.`;
   }
   const what = id && payout ? "Verify your ID and set up payouts" : id ? "Verify your ID" : "Set up payouts";
   return `${what} to finish accepting. A date is booked only once that's done; one that comes up first goes back to the series. You only do it once.`;

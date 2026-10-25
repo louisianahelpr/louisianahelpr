@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -270,9 +269,8 @@ function HelprPayNote({ transfers, held, viewerId, posterFirstName }: {
       {needsPayoutSetup && setupPaused && (
         <>
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-            Your pay is kept for you and is sent once payout setup is back.
+            Your pay is kept for you. We'll let you know when you can add where to send it.
           </p>
-          <PayoutSetupPausedNotice compact className="text-left" />
         </>
       )}
       {needsPayoutSetup && !setupPaused && (

@@ -1,53 +1,34 @@
 /**
  * Q1177: PaymentTab is the Money tab's PAYOUT ACCOUNT block (the connect card
  * at the top until payouts are set up, the bank account at the floor of the
- * Earned half after). Kept: "Next expected", same figure for the same data.
- * Removed: "Last payout · $X on date" (the payouts list states every payout)
- * and the Spent card, which is now the Spent half (SpentSection.test.tsx).
- *
- * The "same figures" test was run unchanged against PaymentTab on
- * origin/main before the redesign and passed there too.
+ * Earned half after). Removed: "Last payout · $X on date" (the payouts list
+ * states every payout), the Spent card (now SpentSection.test.tsx), and
+ * "Next expected" (owner 2026-10-25: a last-payout + 7 days guess that showed
+ * a date already past). It reads nothing itself, so no Supabase call.
  */
-// @mutate src/components/PaymentTab.tsx | const nextExpected = new Date(paidAt.getTime() + 7 * 86400 * 1000); | const nextExpected = new Date(paidAt.getTime() + 6 * 86400 * 1000);
-// @mutate src/components/PaymentTab.tsx |   const settled = !!user?.id && formSettled && !lastPayoutLoading; |   const settled = !!user?.id && formSettled;
-import { describe, it, expect, vi, beforeEach } from "vitest";
+// @mutate src/components/PaymentTab.tsx |       <section className="space-y-2 has-[>div:empty]:hidden"> |       <section className="space-y-2">
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect } from "react";
 
-// Payout setup OPEN here (owner pause of 2026-10-23 is the `payout_setup` switch):
-// this file tests the setup flow itself; the paused state is
-// src/components/payouts/payoutSetupPaused.test.tsx.
-vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => false }));
+// Payout setup OPEN here (the owner's switch-off of 2026-10-23 is the
+// `payout_setup` switch); the switched-off state renders no card (below).
+let paused = false;
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({ usePayoutSetupPaused: () => paused }));
 vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: null, loading: false }),
 }));
+let formRendersNothing = false;
 vi.mock("@/components/PayoutSetupForm", () => ({
   PayoutSetupForm: ({ onSettled }: { onSettled?: () => void }) => {
     useEffect(() => { onSettled?.(); }, [onSettled]);
-    return <p>payout setup form</p>;
+    return formRendersNothing ? null : <p>payout setup form</p>;
   },
 }));
-
-let lastPaid: { amount_cents: number; paid_at: string | null; created_at: string; status: string } | null;
-let resolveLastPaid: (() => void) | null = null;
-
-/** A PostgREST builder stand-in: every filter returns itself; the payout read
- *  ends in maybeSingle(). `hold` keeps it pending until released. */
-let hold = false;
-function builder() {
-  const b: Record<string, unknown> = {};
-  for (const m of ["select", "eq", "order", "limit"]) b[m] = () => b;
-  b.maybeSingle = () =>
-    hold
-      ? new Promise((r) => { resolveLastPaid = () => r({ data: lastPaid, error: null }); })
-      : Promise.resolve({ data: lastPaid, error: null });
-  return b;
-}
-vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: () => builder() },
-}));
+const from = vi.fn();
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { from } }));
 
 import { PaymentTab } from "./PaymentTab";
 
@@ -63,44 +44,31 @@ function renderTab(onSettled?: () => void) {
 }
 
 describe("PaymentTab, the Money tab's payout account (Q1177)", () => {
-  beforeEach(() => {
-    hold = false;
-    lastPaid = { amount_cents: 12_000, paid_at: "2026-10-01T15:00:00Z", created_at: "2026-10-01T15:00:00Z", status: "paid" };
-  });
-
-  it("same figures: next expected payout is the last paid one plus seven days", async () => {
+  it("states no 'Next expected', no 'Last payout', no Spent card and no range control", async () => {
+    paused = false;
+    formRendersNothing = false;
     renderTab();
-    const line = await screen.findByText(/Next expected:/);
-    expect(line.textContent).toMatch(/Next expected: ~Oct 8 · Stripe rolls weekly/);
-  });
-
-  it("states no 'Last payout' line, no Spent card and no range control", async () => {
-    renderTab();
-    await screen.findByText(/Next expected:/);
+    await screen.findByText("payout setup form");
+    expect(screen.queryByText(/Next expected/)).toBeNull();
     expect(screen.queryByText(/Last payout/)).toBeNull();
     expect(screen.queryByText("Spent")).toBeNull();
     expect(screen.queryByText(/Total spent/)).toBeNull();
     expect(screen.queryByRole("radiogroup")).toBeNull();
+    expect(from).not.toHaveBeenCalled();
   });
 
-  it("no paid payout on record: no Next expected card", async () => {
-    lastPaid = null;
+  it("reports settled once the setup form has", async () => {
     const onSettled = vi.fn();
     renderTab(onSettled);
-    await screen.findByText("payout setup form");
-    // Wait for the last-payout read to ANSWER first, so "no card" is the loaded state.
     await waitFor(() => expect(onSettled).toHaveBeenCalled());
-    expect(screen.queryByText(/Next expected/)).toBeNull();
   });
 
-  it("reports settled only once its last-payout read has answered", async () => {
-    hold = true;
-    const onSettled = vi.fn();
-    renderTab(onSettled);
-    await screen.findByText("payout setup form");
-    await new Promise((r) => setTimeout(r, 20));
-    expect(onSettled).not.toHaveBeenCalled();
-    resolveLastPaid?.();
-    await waitFor(() => expect(onSettled).toHaveBeenCalled());
+  it("the card's section is marked to hide when the form renders nothing", () => {
+    paused = true;
+    formRendersNothing = true;
+    const { container } = renderTab();
+    const card = container.querySelector(".liquid-glass");
+    expect(card?.childElementCount).toBe(0);
+    expect(card?.parentElement?.className).toMatch(/has-\[>div:empty\]:hidden/);
   });
 });

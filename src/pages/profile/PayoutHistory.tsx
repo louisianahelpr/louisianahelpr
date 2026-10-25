@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -198,7 +197,7 @@ export default function PayoutHistory({ onBack }: { onBack?: () => void }) {
           retryDisabled={refreshing}
         />
       ) : !stripeData?.connected && setupPaused ? (
-        <PayoutSetupPausedNotice compact />
+        <p className="text-ds-13 px-1" style={quiet}>No payouts yet.</p>
       ) : !stripeData?.connected ? (
         <p className="text-ds-13 px-1" style={quiet}>Set up payouts on the Money page and your bank payouts will show here.</p>
       ) : payouts.length === 0 ? (

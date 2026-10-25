@@ -29,7 +29,6 @@ import {
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /** Board 87, "Where should we send your money?": what adding a bank involves, said before the tap. */
 const PAYOUT_START_POINTS = [
@@ -337,6 +336,10 @@ export function PayoutSetupForm({ onSettled }: {
     );
   }
 
+  // Setup switched off and no account yet: nothing to show (owner 2026-10-25,
+  // no "paused" notice); PaymentTab hides the empty card.
+  if (setupPaused && !status?.connected) return null;
+
   return (
     <div className="space-y-4">
       {/* Refresh chip — small, always-available so the user can re-poll
@@ -353,9 +356,6 @@ export function PayoutSetupForm({ onSettled }: {
           <RefreshCw className={`w-3 h-3 ${statusQuery.isFetching ? "animate-spin" : ""}`} />
           {statusQuery.isFetching ? "Refreshing…" : "Refresh status"}
         </button>
-      )}
-      {setupPaused && !isFullyOnboarded && !checking && (
-        <PayoutSetupPausedNotice />
       )}
 
       {!setupPaused && !status?.connected && (

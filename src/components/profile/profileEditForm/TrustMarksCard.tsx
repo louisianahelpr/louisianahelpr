@@ -4,7 +4,6 @@ import { Check } from "lucide-react";
 import { identityView, openIdentityCheck } from "@/lib/identityCheck";
 import type { Profile } from "./types";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
 /**
  * Board 41, TRUST MARKS: the three things that make neighbors trust a profile,
@@ -41,7 +40,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
     profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
       : bankPaused
-        ? { key: "bank", label: "Payout bank", done: false, state: "Paused" }
+        ? { key: "bank", label: "Payout bank", done: false, state: "Later" }
         : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
   ];
   const rows = allRows.filter((r) => r.key !== "id" || idOn || r.done);
@@ -67,7 +66,6 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
           </li>
         ))}
       </ul>
-      {bankPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
     </div>
   );
 }

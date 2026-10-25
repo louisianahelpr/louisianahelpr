@@ -15,9 +15,9 @@ const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { w
  *  - no date on any row: the rule, never a made-up date.
  */
 function comingCaption(c: NonNullable<HomeMoney["coming"]>, setupPaused: boolean): string {
-  // Payout setup paused (owner 2026-10-23): no "add your account" ask; the tile
-  // opens You › Money, where PayoutSetupPausedNotice says the whole of it.
-  if (!c.hasPayoutAccount && setupPaused) return "Payout setup is paused for now";
+  // Payout setup switched off (owner 2026-10-23); no "add your account" ask and
+  // no "paused" notice (owner 2026-10-25: "its not paused"). The pay is kept.
+  if (!c.hasPayoutAccount && setupPaused) return "Kept for you";
   if (!c.hasPayoutAccount) return "Add your payout account to get it";
   if (c.overdue) return "Approved, not sent yet";
   if (c.at) return `${c.severalDates ? "First reaches" : "Reaches"} your wallet ${walletDay(c.at)}`;
@@ -74,7 +74,7 @@ export function HomeMoneyTiles({
           cents={money.coming.cents}
           caption={comingCaption(money.coming, setupPaused)}
           // No payout account: open the screen that sets one up (the cron's own notification links there),
-          // or, while setup is paused, You › Money (its payout card shows the paused notice).
+          // or, while setup is paused, You › Money (the pay is kept there).
           onClick={() => (onOpen ? onOpen("coming") : navigate(money.coming!.hasPayoutAccount || setupPaused ? "/profile?tab=earnings" : "/profile?tab=payment"))}
         />
       )}

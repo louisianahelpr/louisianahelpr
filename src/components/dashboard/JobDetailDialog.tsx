@@ -573,9 +573,8 @@ const JobDetailDialog = ({
           </div>
           )}
         </div>
-        {/* #62 (audit 2026-10-21): a signed-in Helpr sees BOTH numbers, named,
-            from the job page's own take-home (useHelprTakeHome) — not a bare
-            "$103" that read as the price beside "posted at $120" later. */}
+        {/* #62 (audit 2026-10-21): the job page's own take-home (useHelprTakeHome).
+            Only the take-home, never the job price beside it (owner 2026-10-25). */}
         {viewerUserId && viewerUserId !== job.customer_id && (
           <p className="text-ds-14 text-foreground">
             <JobPriceTakeHome job={job} />

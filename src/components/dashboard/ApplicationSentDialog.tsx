@@ -53,7 +53,7 @@ export function ApplicationSentDialog({
         {
           key: "do",
           label: sent?.dateNeeded ? `Do the job, ${formatJobDate(sent.dateNeeded)}` : "Do the job",
-          detail: job ? <><JobPriceTakeHome job={job} />, paid once it's confirmed done</> : "Then you're paid once it's confirmed done",
+          detail: job ? <JobPriceTakeHome job={job} after=", paid once it's confirmed done" fallback="Then you're paid once it's confirmed done" /> : "Then you're paid once it's confirmed done",
           state: "later",
         },
       ]}

@@ -54,7 +54,15 @@ async function main() {
   }
   const res = evaluateFreshness(readError ? [] : rows);
   console.log(res.report);
-  if (env.GITHUB_STEP_SUMMARY) appendFileSync(env.GITHUB_STEP_SUMMARY, res.report + "\n");
+  // The step summary gets counts and fixed text only, never the report itself:
+  // the report is built from the Management API's response, and writing
+  // network data to a file is CodeQL js/http-to-file-access (alert #496).
+  // The full report is in the job log (console.log above).
+  if (env.GITHUB_STEP_SUMMARY) {
+    const flagged = Number(res.alerts.length) || 0;
+    const unreadable = Number(res.unreadable.length) || 0;
+    appendFileSync(env.GITHUB_STEP_SUMMARY, `### Analytics freshness\n\n${flagged} key event(s) flagged, ${unreadable} unreadable. The full report is in this job's log.\n`);
+  }
 
   if (!noLedger) {
     for (const r of res.alerts) {

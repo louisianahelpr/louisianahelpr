@@ -22,7 +22,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
   const navigate = useNavigate();
   const view = identityView(profile?.idv_status);
   // Owner ruling 2026-10-23: payout setup is paused; an unfinished payout bank
-  // reads "Paused" (nothing to tap) and the paused notice sits under the list.
+  // reads "Later" (nothing to tap; no "paused" notice, owner 2026-10-25).
   const setupPaused = usePayoutSetupPaused();
   // Not while the profile is still loading (null is not "not set up").
   const bankPaused = setupPaused && !!profile && !profile.stripe_payouts_enabled;
@@ -41,7 +41,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
     profile?.stripe_payouts_enabled
       ? { key: "bank", label: "Payout bank", done: true, state: "Done" }
       : bankPaused
-        ? { key: "bank", label: "Payout bank", done: false, state: "Paused" }
+        ? { key: "bank", label: "Payout bank", done: false, state: "Later" }
         : { key: "bank", label: "Payout bank", done: false, state: "Set up", onClick: () => navigate("/profile?tab=earnings") },
   ];
   const rows = allRows.filter((r) => r.key !== "id" || idOn || r.done);

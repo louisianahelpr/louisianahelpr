@@ -82,11 +82,11 @@ describe("You're hired: set up payouts", () => {
     expect(openExternal).toHaveBeenCalledWith("https://connect.stripe.test/onboard");
   });
 
-  it("while setup is not offered: the pay is held, the paused notice, no setup button, nothing started", async () => {
+  it("while setup is not offered: the pay is held, no paused notice, no setup button, nothing started", async () => {
     paused = true;
     render(<HiredPayoutSetupDialog open onOpenChange={() => {}} />);
     expect(screen.getByText(HIRED_PAYOUT_PAUSED_TITLE)).toBeTruthy();
-    expect(screen.getByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull(); // no "paused" notice (owner 2026-10-25)
     expect(screen.queryByRole("button", { name: new RegExp(FINISH_PAYOUT_SETUP_LABEL, "i") })).toBeNull();
     expect(invokeMock).not.toHaveBeenCalled();
   });
@@ -135,10 +135,10 @@ describe("the job card: Finish payout setup to get paid", () => {
     expect(container.textContent).toBe("");
   });
 
-  it("setup not offered: the held line and the paused notice, no button", () => {
+  it("setup not offered: the held line, no paused notice, no button", () => {
     paused = true;
     render(<PayoutSetupJobNotice amountLabel="$40" />);
-    expect(screen.getByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull(); // no "paused" notice (owner 2026-10-25)
     expect(screen.queryByRole("button", { name: new RegExp(FINISH_PAYOUT_SETUP_LABEL, "i") })).toBeNull();
   });
 

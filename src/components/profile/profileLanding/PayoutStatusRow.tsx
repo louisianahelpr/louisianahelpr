@@ -1,6 +1,5 @@
-import { AlertTriangle, ChevronRight as ChevronRightIcon, PauseCircle, RefreshCw } from "lucide-react";
+import { AlertTriangle, ChevronRight as ChevronRightIcon, RefreshCw } from "lucide-react";
 import type { PayoutPrompt } from "@/hooks/useStripeConnectStatus";
-import { PAYOUT_SETUP_PAUSED_COPY } from "@/lib/payoutSetupPaused";
 
 interface PayoutStatusRowProps {
   prompt: PayoutPrompt;
@@ -10,9 +9,8 @@ interface PayoutStatusRowProps {
   onRetry: () => void;
   /**
    * Payout setup is paused (owner ruling 2026-10-23; the caller reads
-   * usePayoutSetupPaused). The setup state then shows the paused notice's words
-   * with no "Set up" action, and every state reserves that taller copy's
-   * height, so nothing shifts when the answer arrives.
+   * usePayoutSetupPaused). The setup state then renders nothing (owner
+   * 2026-10-25: no "paused" notice).
    */
   setupPaused?: boolean;
 }
@@ -30,7 +28,7 @@ interface PayoutStatusRowProps {
 const BOX =
   "w-full flex items-center gap-2.5 rounded-ds-md border px-3 py-2.5 text-left";
 
-type Shown = "setup" | "error" | "paused";
+type Shown = "setup" | "error";
 
 /**
  * EVERY STATE IS THE SAME HEIGHT (reds, 2026-10-17). The box above was shared,
@@ -48,7 +46,7 @@ type Shown = "setup" | "error" | "paused";
  * the reserve and the skeleton (which renders this row's reserve). Change a
  * copy and every state follows by construction.
  */
-function StackedCopy({ shown, setupPaused = false }: { shown: Shown | null; setupPaused?: boolean }) {
+function StackedCopy({ shown }: { shown: Shown | null }) {
   const cell = (s: Shown) => `[grid-area:1/1] ${shown === s ? "" : "invisible"}`.trim();
   return (
     <>
@@ -64,13 +62,6 @@ function StackedCopy({ shown, setupPaused = false }: { shown: Shown | null; setu
         <span className={cell("error")} data-payout-copy="error">
           <span className="font-semibold">We couldn't check your payout account.</span> Check it before you count on getting paid.
         </span>
-        {/* Only while setup is paused: the paused notice's words, one more
-            stacked cell, so every state (the reserve too) takes its height. */}
-        {setupPaused && (
-          <span className={cell("paused")} data-payout-copy="paused">
-            {PAYOUT_SETUP_PAUSED_COPY}
-          </span>
-        )}
       </p>
       <span
         className="shrink-0 grid items-center text-ds-11 font-semibold psr-action"
@@ -103,23 +94,9 @@ function StackedCopy({ shown, setupPaused = false }: { shown: Shown | null; setu
 export function PayoutStatusRow({ prompt, onSetUp, onRetry, setupPaused = false }: PayoutStatusRowProps) {
   if (prompt.kind === "none") return null;
 
-  // Setup is paused: say so, with nothing to tap (no Stripe call, no toast).
-  if (prompt.kind === "setup" && setupPaused) {
-    return (
-      <div
-        role="status"
-        data-payout-setup-paused=""
-        className={BOX}
-        style={{
-          borderColor: "hsl(var(--burnt-sienna) / 0.3)",
-          background: "hsl(var(--burnt-sienna) / 0.06)",
-        }}
-      >
-        <PauseCircle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden />
-        <StackedCopy shown="paused" setupPaused />
-      </div>
-    );
-  }
+  // Setup switched off: nothing to tap and no "paused" notice (owner
+  // 2026-10-25: "its not paused"); the row is simply not shown.
+  if (prompt.kind === "setup" && setupPaused) return null;
 
   if (prompt.kind === "error") {
     return (
@@ -133,7 +110,7 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry, setupPaused = false 
         }}
       >
         <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        <StackedCopy shown="error" setupPaused={setupPaused} />
+        <StackedCopy shown="error" />
       </button>
     );
   }
@@ -169,7 +146,7 @@ export function PayoutStatusRow({ prompt, onSetUp, onRetry, setupPaused = false 
       }
     >
       <AlertTriangle className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-      <StackedCopy shown={reserving ? null : "setup"} setupPaused={setupPaused} />
+      <StackedCopy shown={reserving ? null : "setup"} />
     </button>
   );
 }

@@ -1,18 +1,19 @@
 /**
- * Payout setup paused (owner ruling 2026-10-23): the controls that START a
- * Stripe payout setup show the calm notice instead, and never call
- * stripe-connect. No error toast. The class guard that every entry point reads
+ * Payout setup switched off (owner ruling 2026-10-23): the controls that START
+ * a Stripe payout setup are not shown and nothing calls stripe-connect. No
+ * error toast, and no "paused" notice either (owner 2026-10-25: "remove that
+ * red box. its not paused"); the not-hired-yet note (B9) still shows. The class guard that every entry point reads
  * the switch is src/test/payoutSetupPausedEntryPoints.test.ts; the server
  * refusal is src/test/edge/stripeConnectPayoutSetupPaused.test.ts.
  *
  * The switch is driven through a mocked usePayoutSetupPaused handle; each
- * "paused" case has an "open" twin that shows the setup control, so a notice
- * that always shows (or never does) fails.
+ * "paused" case has an "open" twin that shows the setup control, so hiding it
+ * always (or never) fails.
  *
- * @mutate src/components/PayoutSetupForm.tsx |       {setupPaused && !isFullyOnboarded && !checking && ( |       {false && (
+ * @mutate src/components/PayoutSetupForm.tsx |   if (setupBlock === "paused" && !status?.connected) return null; |   if (false) return null;
  * @mutate src/components/PayoutSetupForm.tsx |       {!setupPaused && !isFullyOnboarded && !checking && ( |       {!isFullyOnboarded && !checking && (
  * @mutate src/components/AwardGateDialog.tsx |   const payoutPaused = setupPaused && payoutMissing; |   const payoutPaused = false;
- * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx |   if (prompt.kind === "setup" && setupPaused) { |   if (false) {
+ * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx |   if (prompt.kind === "setup" && setupPaused) return null; |   if (false) return null;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, fireEvent } from "@testing-library/react";
@@ -88,22 +89,24 @@ beforeEach(() => {
 });
 
 describe("PayoutSetupForm while payout setup is paused", () => {
-  it("not connected: the notice, and no Set up control", async () => {
+  it("not connected: nothing at all (no notice, no Set up control)", async () => {
     statusFixture = NOT_CONNECTED;
-    wrap(<PayoutSetupForm />);
+    const { container } = wrap(<PayoutSetupForm />);
     await drain();
-    expect(await screen.findByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
+    await vi.waitFor(() => expect(container.innerHTML).toBe(""));
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
     expect(screen.queryByRole("button", { name: /set up payouts/i })).toBeNull();
     expect(screen.queryByText(/where should we send your money/i)).toBeNull();
     expect(stripeConnectWrites()).toEqual([]);
     expect(toastError).not.toHaveBeenCalled();
   });
 
-  it("half set up: the notice, no 'Complete Stripe verification', no reset", async () => {
+  it("half set up: no notice, no 'Complete Stripe verification', no reset", async () => {
     statusFixture = INCOMPLETE;
     wrap(<PayoutSetupForm />);
     await drain();
-    expect(await screen.findByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
+    expect(await screen.findByText(/refresh status/i)).toBeTruthy();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
     expect(screen.queryByRole("button", { name: /complete stripe verification/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /reset/i })).toBeNull();
     expect(stripeConnectWrites()).toEqual([]);
@@ -128,9 +131,11 @@ describe("PayoutSetupForm while payout setup is paused", () => {
 });
 
 describe("AwardGateDialog (the accept gate) while payout setup is paused", () => {
-  it("payout missing: the notice, an OK, and no call to stripe-connect", async () => {
+  it("payout missing: 'Not booked yet', an OK, no notice and no call to stripe-connect", async () => {
     wrap(<AwardGateDialog open onOpenChange={() => {}} reason="helper_payout_setup_incomplete" />);
-    expect(await screen.findByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
+    expect(await screen.findByText("Not booked yet")).toBeTruthy();
+    expect(screen.queryByText(PAYOUT_SETUP_PAUSED_COPY)).toBeNull();
+    expect(document.body.textContent).not.toMatch(/paused/i);
     expect(screen.queryByRole("button", { name: /^set up payouts$/i })).toBeNull();
     // No copy that still asks for setup (lh-silent-failure #2).
     expect(document.body.textContent).not.toMatch(/two minutes|set up payouts/i);
@@ -142,8 +147,8 @@ describe("AwardGateDialog (the accept gate) while payout setup is paused", () =>
 
   it("payout and ID missing: the one button opens the ID check, never Stripe Connect", async () => {
     wrap(<AwardGateDialog open onOpenChange={() => {}} reason="helper_payout_setup_incomplete" pendingMissing={["payout_setup", "stripe_id"]} />);
-    expect(await screen.findByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
-    expect(screen.getByText(/your accept is saved/i)).toBeTruthy();
+    expect(await screen.findByText(/your accept is saved/i)).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/paused/i);
     expect(document.body.textContent).not.toMatch(/two minutes|set up payouts/i);
     fireEvent.click(screen.getByRole("button", { name: /verify my id/i }));
     await drain();
@@ -163,11 +168,10 @@ describe("AwardGateDialog (the accept gate) while payout setup is paused", () =>
 });
 
 describe("PayoutStatusRow (Profile and shop) while payout setup is paused", () => {
-  it("the setup state shows the notice's words with nothing to tap", () => {
+  it("the setup state renders nothing: no notice, nothing to tap", () => {
     const onSetUp = vi.fn();
-    render(<PayoutStatusRow prompt={{ kind: "setup" }} onSetUp={onSetUp} onRetry={() => {}} setupPaused />);
-    expect(screen.getByRole("status").textContent).toContain(PAYOUT_SETUP_PAUSED_COPY);
-    expect(screen.queryByRole("button")).toBeNull();
+    const { container } = render(<PayoutStatusRow prompt={{ kind: "setup" }} onSetUp={onSetUp} onRetry={() => {}} setupPaused />);
+    expect(container.innerHTML).toBe("");
   });
 
   it("control: open, the setup state is the Set up button", () => {

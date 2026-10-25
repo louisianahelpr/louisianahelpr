@@ -63,12 +63,12 @@ export function AwardGateDialog({
   const payoutPaused = setupPaused && payoutMissing;
   // While paused the "set up payouts, about two minutes" copy would contradict
   // the notice: say what happens to the accept instead (lh-silent-failure #1-2).
-  const title = payoutPaused && !pendingMissing ? "Payout setup is paused" : copy.title;
+  const title = payoutPaused && !pendingMissing ? "Not booked yet" : copy.title;
   const body = !payoutPaused
     ? copy.body
     : pendingMissing
-      ? `You're not booked yet. Your accept is saved and goes through once payout setup is back${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
-      : "This job can be booked for you once payout setup is back.";
+      ? `You're not booked yet. Your accept is saved and goes through once you can add a payout account${idMissing ? " and your ID is verified with Stripe" : ""}. Then we let the person who posted the job know.`
+      : "This job can be booked for you once you can add a payout account.";
   // Stripe Identity (photo ID + selfie) is its own sheet, not part of payout
   // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
   const openIdCheck = () => {
@@ -126,7 +126,7 @@ export function AwardGateDialog({
 
         {/* Both requirements, each called out as done or still needed. */}
         <div className="space-y-2 py-1">
-          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Paused" : undefined} />
+          <RequirementRow label="Payout account connected" met={!payoutMissing} unmetLabel={payoutPaused ? "Later" : undefined} />
           {idOn && (
             <RequirementRow
               label={ID_VERIFIED_LABEL}

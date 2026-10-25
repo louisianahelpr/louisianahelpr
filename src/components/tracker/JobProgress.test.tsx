@@ -5,7 +5,7 @@
 // @mutate src/components/tracker/JobProgress.tsx |   them: "bg-[hsl(var(--amber-solid))]", |   them: "bg-primary",
 // @mutate src/components/tracker/JobProgress.tsx |   problem: "bg-[hsl(var(--burnt-sienna))]", |   problem: "bg-primary",
 // @mutate src/components/tracker/JobProgress.tsx |   if (tone === "cancelled") { |   if (false) {
-// @mutate src/components/tracker/JobProgress.tsx |   done: "bg-[hsl(var(--success-ink))]", |   done: "bg-primary",
+// @mutate src/components/tracker/JobProgress.tsx |   done: "bg-[hsl(var(--bark))]", |   done: "bg-[hsl(var(--success-ink))]",
 // @mutate src/components/tracker/JobProgress.tsx |               {s === "you" && <Hand className="h-3 w-3 shrink-0" />} |
 // @mutate src/components/tracker/JobProgress.tsx |     `Job progress, step ${stage + 1} of ${n}: ${(JOB_PROGRESS_STEPS as readonly string[])[stage]}, | `Job progress, step ${stage + 1} of ${n}:
 import { describe, it, expect } from "vitest";
@@ -20,7 +20,7 @@ describe("JobProgress: the 8-step bar", () => {
   it("done green, current amber with a hand when it waits on you, later grey outline", () => {
     const { container } = render(<JobProgress progress={{ stage: 3, waitingOnYou: true, tone: "progress", word: "Confirmed", next: "Tap I'm still on to confirm", held: false }} />);
     expect(states(container)).toEqual(["done", "done", "done", "you", "todo", "todo", "todo", "todo"]);
-    expect(bar(container, 0).className).toContain("bg-[hsl(var(--success-ink))]");
+    expect(bar(container, 0).className).toContain("bg-[hsl(var(--bark))]");
     expect(bar(container, 3).className).toContain("bg-[hsl(var(--amber-solid))]");
     expect(bar(container, 4).className).toContain("border");
     // An icon on the current step, none on later ones (besides the step's own icon, src/test/trackerKeepsTheOldSteps).

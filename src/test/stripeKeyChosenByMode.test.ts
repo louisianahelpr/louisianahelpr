@@ -270,7 +270,8 @@ describe("every Stripe client is built with a key chosen by mode, or is listed a
   });
 
   it("no function calls the Stripe API around the SDK except the read-only config check", () => {
-    const raw = [...sources].filter(([, s]) => /api\.stripe\.com/.test(s)).map(([f]) => f);
+    // A substring scan of source text, not URL validation (CodeQL js/regex/missing-regexp-anchor, PR #3621).
+    const raw = [...sources].filter(([, s]) => s.includes("api.stripe.com")).map(([f]) => f);
     expect(raw).toEqual(["stripe-webhook-config-check/shape.ts"]);
   });
 

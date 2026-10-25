@@ -15,6 +15,7 @@ import { kickEmailQueue } from '../_shared/kick-email-queue.ts'
 import { serve } from "../_shared/buildStamp.ts";
 import { publicErrorMessage } from "../_shared/publicError.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
+import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
 
 // ED-002: every failure branch here blocks a signup confirmation, password
 // reset or magic link. One user sees an error; a SYSTEMIC failure (secret
@@ -149,7 +150,7 @@ async function handlePreview(req: Request): Promise<Response> {
 // Main webhook handler — verifies Supabase's standard-webhooks signature,
 // renders the template, enqueues to pgmq.q_auth_emails for process-email-queue
 // to send via Resend.
-async function handleWebhook(req: Request): Promise<Response> {
+async function handleWebhook(req: Request, startedAt: number): Promise<Response> {
   const hookSecret = Deno.env.get('SEND_EMAIL_HOOK_SECRET')
   if (!hookSecret) {
     console.error('SEND_EMAIL_HOOK_SECRET not configured — set it in Supabase function secrets')
@@ -221,6 +222,49 @@ async function handleWebhook(req: Request): Promise<Response> {
     })
   }
 
+  // Render + enqueue. Auth gives the hook 5 s and on a timeout rolls the WHOLE
+  // sign-up back (no account, no email). Measured on prod 2026-10-22: warm
+  // runs take 1.3-1.6 s (auth_logs run_hook duration), but the two runs on a
+  // freshly booted worker (13:30:59Z, 22:13:25Z) took ~7 s and ~6 s: Auth
+  // answered "Failed to reach hook within maximum time of 5 seconds", both
+  // sign-ups were rolled back (no auth.users row for either id), the email
+  // was still queued afterwards for an account that did not exist, and one of
+  // the two people never signed up again. So Auth gets an answer by
+  // HOOK_ANSWER_BY_MS whatever happens: the real result when the work is done
+  // by then (always, warm), otherwise 200 while the work finishes in the
+  // background (EdgeRuntime.waitUntil). A late failure still alerts (the
+  // enqueue-failed and handler-error alerts below) and the person can tap
+  // Resend on the Check your email screen; a timed-out hook loses the account.
+  // Accepted trade-off: an enqueue that FAILS slowly (past the budget) now
+  // reaches Auth as 200, so the member sees Check your email and nothing
+  // arrives; ops still gets the critical enqueue-failed alert.
+  const delivery = deliver(user, emailData, emailType, EmailTemplate)
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime
+  const answered = await answerOrFinishInBackground(delivery, answerBudgetMs(startedAt), {
+    // deliver() already alerted (enqueue failed) before returning a non-2xx.
+    onLateResult: (res) => {
+      if (!res.ok) console.warn('auth-email-hook: late delivery failed after answering Auth', { emailType, status: res.status })
+    },
+    onLateError: async (error) => {
+      console.error('auth-email-hook: late delivery threw after answering Auth', error)
+      await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))
+    },
+    waitUntil: rt?.waitUntil?.bind(rt),
+    onNoWaitUntil: async () => {
+      console.error('auth-email-hook: no EdgeRuntime.waitUntil; an email still rendering at the answer deadline may be cut off')
+      await alertAuthEmail('no waitUntil', 'warning', 'The edge runtime offers no EdgeRuntime.waitUntil, so a slow auth email may be cut off after Auth is answered; the member would see Check your email and get nothing.')
+    },
+  })
+  if (answered) return answered
+  console.warn('auth-email-hook: still rendering/enqueueing at the answer deadline; answered Auth, finishing in the background', { emailType, budgetMs: HOOK_ANSWER_BY_MS })
+  return new Response(
+    JSON.stringify({ success: true, queued: 'pending' }),
+    { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
+}
+
+// deno-lint-ignore no-explicit-any
+async function deliver(user: any, emailData: any, emailType: string, EmailTemplate: React.ComponentType<any>): Promise<Response> {
   // Build the verification URL Supabase expects users to follow. Per docs,
   // the format is: <site_url>/auth/v1/verify?token=<token_hash>&type=<type>&redirect_to=<redirect_to>
   // We build it on our domain so links are branded.
@@ -239,9 +283,12 @@ async function handleWebhook(req: Request): Promise<Response> {
     newEmail: user.new_email || emailData.new_email,
   }
 
-  // Render React Email template to HTML + plain text
-  const html = await renderAsync(React.createElement(EmailTemplate, templateProps))
-  const text = await renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true })
+  // Render React Email template to HTML + plain text (together: the first
+  // render on a fresh worker is the slow part)
+  const [html, text] = await Promise.all([
+    renderAsync(React.createElement(EmailTemplate, templateProps)),
+    renderAsync(React.createElement(EmailTemplate, templateProps), { plainText: true }),
+  ])
 
   // Enqueue for async send via process-email-queue → Resend
   const supabase = createClient(
@@ -313,6 +360,8 @@ async function handleWebhook(req: Request): Promise<Response> {
 }
 
 serve(async (req) => {
+  // The answer budget counts from here (see HOOK_ANSWER_BY_MS).
+  const startedAt = Date.now()
   const url = new URL(req.url)
 
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
@@ -322,7 +371,7 @@ serve(async (req) => {
 
   // Main webhook handler
   try {
-    return await handleWebhook(req)
+    return await handleWebhook(req, startedAt)
   } catch (error) {
     console.error('Webhook handler error:', error)
     await alertAuthEmail('handler error', 'warning', error instanceof Error ? error.message : String(error))

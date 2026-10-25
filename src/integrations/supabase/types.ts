@@ -575,6 +575,30 @@ export type Database = {
         }
         Relationships: []
       }
+      confirm_reminder_sends: {
+        Row: {
+          claimed_at: string
+          message_id: string | null
+          queued_at: string | null
+          reminder_step: number
+          user_id: string
+        }
+        Insert: {
+          claimed_at?: string
+          message_id?: string | null
+          queued_at?: string | null
+          reminder_step: number
+          user_id: string
+        }
+        Update: {
+          claimed_at?: string
+          message_id?: string | null
+          queued_at?: string | null
+          reminder_step?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       crew_block_fees: {
         Row: {
           created_at: string
@@ -12442,6 +12466,14 @@ export type Database = {
       check_seed_boundary_failures: { Args: never; Returns: Json }
       check_stale_dispute_settlement_claims: { Args: never; Returns: Json }
       check_user_reports_reach_ledger: { Args: never; Returns: number }
+      claim_confirm_reminders: {
+        Args: { p_limit: number; p_step: number }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
       declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
@@ -15683,6 +15715,10 @@ export type Database = {
           new_count: number
           search_id: string
         }[]
+      }
+      scanner_safe_confirm_link_for: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       search_profiles_by_name: {
         Args: { query: string }

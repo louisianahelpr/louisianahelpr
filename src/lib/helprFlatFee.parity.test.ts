@@ -7,22 +7,24 @@ import { roundPayoutDownCents } from "../../supabase/functions/_shared/money";
 import * as clientEarnings from "./helperEarnings";
 import * as edgeEarnings from "../../supabase/functions/_shared/helperEarnings";
 
-// Roadmap F3 (owner, 2026-10-14/15): the Helpr pays a flat 5% + $0.70 out of
+// Roadmap F3 (owner, 2026-10-14/15; 10% from 2026-10-25 on new jobs): the Helpr pays a flat 5% + $0.70 out of
 // their pay; the poster pays exactly the job price; the card cost comes out of
 // the 5% + 70c. These are the owner's own worked numbers.
 // @mutate supabase/functions/_shared/helprFlatFee.ts | export const HELPR_FLAT_FEE_CENTS = 70; | export const HELPR_FLAT_FEE_CENTS = 60;
 // @mutate src/lib/helprFlatFee.ts | return Math.min(share, Math.round((share * pct) / 100) + flat); | return Math.min(share, Math.round((share * pct) / 100));
 
 describe("Helpr flat fee (F3): edge and client agree, and match the owner's numbers", () => {
-  it("$100 job: the Helpr receives $94.30 (owner's example)", () => {
-    for (const m of [client, edge]) expect(m.helprFlatFeeCents(10_000)).toBe(570);
-    expect(client.helprFlatTakeHomeCents(10_000)).toBe(9_430);
-    expect(10_000 - edge.helprFlatFeeCents(10_000)).toBe(9_430);
+  it("$100 job on the 10% + 70c model (owner 2026-10-25): the Helpr receives $89.30", () => {
+    for (const m of [client, edge]) expect(m.helprFlatFeeCents(10_000)).toBe(1_070);
+    expect(client.helprFlatTakeHomeCents(10_000)).toBe(8_930);
+    expect(10_000 - edge.helprFlatFeeCents(10_000)).toBe(8_930);
+    // A job stamped at 5% + 70c (funded before 10-25) keeps $94.30.
+    expect(client.helprFlatTakeHomeCents(10_000, { helper_fee_flat_cents: 70, helper_fee_percent: 5 })).toBe(9_430);
   });
 
-  it("$20 job: the Helpr receives $18.30", () => {
-    expect(client.helprFlatTakeHomeCents(2_000)).toBe(1_830);
-    expect(2_000 - edge.helprFlatFeeCents(2_000)).toBe(1_830);
+  it("$20 job: the Helpr receives $17.30", () => {
+    expect(client.helprFlatTakeHomeCents(2_000)).toBe(1_730);
+    expect(2_000 - edge.helprFlatFeeCents(2_000)).toBe(1_730);
   });
 
   it("the platform never absorbs the card cost: 5% + 70c covers Stripe's cost on the job price at every price from $1 to $5,000", () => {
@@ -49,7 +51,7 @@ describe("Helpr flat fee (F3): edge and client agree, and match the owner's numb
       // Stamped 4% + 50c (a future change) keeps 4% + 50c on this job.
       expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: 50, helper_fee_percent: 4 })).toBe(450);
       // A legacy job's 12% is NOT the flat percent.
-      expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: null, helper_fee_percent: 12 })).toBe(570);
+      expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: null, helper_fee_percent: 12 })).toBe(1_070);
       // Never more than the share.
       expect(m.helprFlatFeeCents(50)).toBe(50);
     }
@@ -60,7 +62,7 @@ describe("Helpr flat fee (F3): edge and client agree, and match the owner's numb
   it("flatFeePercentOf: the stamped percent on a flat job, null on a legacy job", () => {
     for (const m of [client, edge]) {
       expect(m.flatFeePercentOf({ helper_fee_flat_cents: 70, helper_fee_percent: 5 })).toBe(5);
-      expect(m.flatFeePercentOf({ helper_fee_flat_cents: 70, helper_fee_percent: null })).toBe(5);
+      expect(m.flatFeePercentOf({ helper_fee_flat_cents: 70, helper_fee_percent: null })).toBe(10);
       expect(m.flatFeePercentOf({ helper_fee_flat_cents: 50, helper_fee_percent: 4 })).toBe(4);
       expect(m.flatFeePercentOf({ helper_fee_flat_cents: null, helper_fee_percent: 12 })).toBeNull();
       expect(m.flatFeePercentOf(undefined)).toBeNull();

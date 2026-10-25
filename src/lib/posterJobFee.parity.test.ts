@@ -106,9 +106,9 @@ describe("jobs poster fee (owner 2026-10-18)", () => {
           checked++;
         }
       }
-      // An F3 job read without its percent still pays the flat 5% + 70c.
+      // An F3 job read without its percent still pays the flat fee (10% + 70c from 2026-10-25).
       expect(m.helprPaysNoFee({ helper_fee_flat_cents: 70 })).toBe(false);
-      expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: 70 })).toBe(570);
+      expect(m.helprFlatFeeCents(10_000, { helper_fee_flat_cents: 70 })).toBe(1_070);
       expect(m.helprPaysNoFee({ helper_fee_flat_cents: null, helper_fee_percent: 12 })).toBe(false);
     }
     expect(checked).toBeGreaterThan(30);

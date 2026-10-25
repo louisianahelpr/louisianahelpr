@@ -197,8 +197,8 @@ describe("useFeature asks once per cold load (nightly-red #2601)", () => {
     const a = renderHook(() => useFeature("declutter"), { wrapper });
     await waitFor(() => expect(a.result.current).toBe(true));
     const cache = client.getQueryCache();
-    expect(cache.find({ queryKey: featureSwitchBatchKey("u1"), exact: true })?.meta).toEqual({ persist: false });
-    expect(cache.find({ queryKey: featureSwitchSingleKey("declutter", "u1"), exact: true })?.meta).toEqual({ persist: false });
+    expect(cache.find({ queryKey: featureSwitchBatchKey("u1"), exact: true })?.meta).toMatchObject({ persist: false });
+    expect(cache.find({ queryKey: featureSwitchSingleKey("declutter", "u1"), exact: true })?.meta).toMatchObject({ persist: false });
   });
 });
 

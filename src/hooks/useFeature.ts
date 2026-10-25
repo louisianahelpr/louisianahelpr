@@ -12,8 +12,13 @@ const STALE_MS = 5 * 60_000;
  * Switch answers are user-scoped and decide what a member may see, so they are
  * never written to the persisted cache: a restored answer from another session
  * (or from before an admin flipped the switch) must not show a hidden feature.
+ *
+ * reportsItself: true — the hook already handles every failure gracefully
+ * (on = false, settled = true), so a 42501 "permission denied" from an expired
+ * session is not actionable Sentry noise. The global QueryCache error handler
+ * skips this query; auth errors resolve on the next auth refresh.
  */
-const SWITCH_QUERY_META = { persist: false } as const;
+const SWITCH_QUERY_META = { persist: false, reportsItself: true } as const;
 
 /**
  * Every registered switch for the caller in ONE request

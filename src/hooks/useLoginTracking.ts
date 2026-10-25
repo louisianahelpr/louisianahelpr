@@ -46,10 +46,14 @@ export const useLoginTracking = () => {
 
         window.setTimeout(async () => {
           try {
-            await supabase.from("login_history").insert({
+            // A returned error is a failed write too (CLAUDE.md: never drop
+            // the Supabase error); it was discarded, so a broken login history
+            // was invisible.
+            const { error } = await supabase.from("login_history").insert({
               user_id: session.user.id,
               user_agent: navigator.userAgent,
             });
+            if (error) report(error, { severity: "warning", tags: { source: "useLoginTracking" } });
           } catch (e) {
             report(e, { severity: "warning", tags: { source: "useLoginTracking" } });
           }

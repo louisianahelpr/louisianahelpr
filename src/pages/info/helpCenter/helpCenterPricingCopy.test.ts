@@ -30,7 +30,7 @@
 // describes a plan or a paid perk must say so in plain words.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule. | is a Basic, Pro or Elite membership feature and charges a small percentage fee.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between | a: `${TIER_PERKS.plus.name} sits between
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `Yes — cancel at any time from Profile → Membership → Manage. ${MEMBERSHIPS_PAUSED} While they're off, no plan's paid perks are on.`, | a: "Yes — downgrade at any time. Your paid perks stay active through the end of your billing period, then you revert to Free.",
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. | a: `No one has a paid membership right now, so there is nothing to cancel.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now."; | export const MEMBERSHIPS_PAUSED = "";
 import { describe, expect, it } from "vitest";
 import { FAQ_SECTIONS, MEMBERSHIPS_PAUSED } from "./helpCenterContent";

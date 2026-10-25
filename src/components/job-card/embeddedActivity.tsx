@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
+import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 
@@ -46,6 +47,8 @@ export function EmbeddedActivityHeader({
         onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
         // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
         allCount={counts.all}
+        // Search is an ICON at the row's end, like Browse's (owner 2026-10-25: "i prefer the search not expanded").
+        end={<ExploreSearchEntry variant="icon" />}
       />
     </div>
   );

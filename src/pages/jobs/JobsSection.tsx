@@ -19,7 +19,6 @@ import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
-import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -88,10 +87,10 @@ const JobsSection = () => {
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
       <AppTopBar title={section.label} add={section.add} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
-      {/* ONE search per screen (owner 2026-10-21): Browse has "Search jobs" with
-          its filters, so Explore's "Search all sections" shows only on Posted
-          and Working. Guard: src/test/browseCategoryGroups.test.tsx. */}
-      {tab !== "browse" && <ExploreSearchEntry />}
+      {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
+          the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry Explore's
+          "Search all sections" as an ICON at the end of their status chip row (EmbeddedActivityHeader).
+          Guard: src/test/jobsSearchIsAnIcon.test.tsx. */}
     </div>
   );
 

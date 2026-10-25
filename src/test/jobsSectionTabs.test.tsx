@@ -15,8 +15,7 @@
  * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
- * @mutate src/pages/jobs/JobsSection.tsx |       {tab !== "browse" && <ExploreSearchEntry />} |       <ExploreSearchEntry />
- * @mutate src/pages/jobs/JobsSection.tsx |       {tab !== "browse" && <ExploreSearchEntry />} |       {tab === "browse" && <ExploreSearchEntry />}
+ * @mutate src/components/job-card/embeddedActivity.tsx |         end={<ExploreSearchEntry variant="icon" />} |         end={<ExploreSearchEntry />}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -51,7 +50,7 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus
 import JobsSection from "@/pages/jobs/JobsSection";
 import { useDetailJob } from "@/pages/home/useDetailJob";
 import type { EnrichedJob } from "@/components/dashboard/types";
-import { nextBoxFilter, BOX_BUCKETS } from "@/components/job-card/embeddedActivity";
+import { nextBoxFilter, BOX_BUCKETS, EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 
 function Where() {
@@ -73,15 +72,19 @@ const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("
 afterEach(cleanup);
 
 describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
-  it("Browse has no 'Search all sections' (its own 'Search jobs' row is the search); Posted and Working, which have none, keep it", () => {
-    open("/jobs");
-    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
-    cleanup();
-    for (const tab of ["posted", "working"]) {
-      open(`/jobs?tab=${tab}`);
-      expect(screen.getByTestId("explore-search-entry").textContent).toBe("Search all sections");
+  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry it as an icon in their status chip row (owner 2026-10-25, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
+    let n = 0;
+    for (const url of ["/jobs", "/jobs?tab=posted", "/jobs?tab=working"]) {
+      open(url);
+      expect(screen.queryByTestId("explore-search-entry"), url).toBeNull();
+      n++;
       cleanup();
     }
+    expect(n).toBe(3);
+    render(<MemoryRouter><EmbeddedActivityHeader header={null} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} /></MemoryRouter>);
+    const icon = screen.getByTestId("explore-search-entry");
+    expect(icon.getAttribute("aria-label")).toBe("Search all sections");
+    expect((icon.textContent ?? "").trim()).toBe("");
   });
 });
 

@@ -29,7 +29,7 @@ interface PlatformAccountProblems {
  */
 export function platformAccountProblems(account: Stripe.Account): PlatformAccountProblems {
   const problems: string[] = [];
-  if (account.charges_enabled === false) problems.push("charges are OFF (customers cannot pay)");
+  if (account.charges_enabled === false) problems.push("charges are OFF (nobody can pay by card)");
   if (account.payouts_enabled === false) problems.push("payouts to our bank are OFF");
   const req = account.requirements;
   if (req?.disabled_reason) problems.push(`Stripe disabled the account: ${req.disabled_reason}`);

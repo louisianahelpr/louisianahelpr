@@ -13,13 +13,6 @@ export async function handleAccountUpdated(
   event: Stripe.Event,
   { stripe, supabase, logStep }: WebhookContext,
 ): Promise<void> {
-  // Our OWN account's event carries no `event.account` (a connected account's
-  // does). It pages the owner instead of looking for a Helpr profile
-  // (platformAccountUpdated.ts, owner 2026-10-25).
-  if (!event.account) {
-    await handlePlatformAccountUpdated(event, logStep);
-    return;
-  }
   const accountId = (event.data.object as Stripe.Account).id;
 
   // Find the helper with this Stripe account.
@@ -43,6 +36,15 @@ export async function handleAccountUpdated(
     throw new Error(`Helpr lookup failed for account ${accountId}: ${helperProfileError.message}`);
   }
   if (!helperProfile) {
+    // Our OWN account's event carries no `event.account` (a connected
+    // account's does) and no profile links its id: page the owner
+    // (platformAccountUpdated.ts, owner 2026-10-25). Decided AFTER the profile
+    // lookup, never on event.account alone: a Helpr's event that arrives
+    // without event.account must still reach the Helpr path below.
+    if (!event.account) {
+      await handlePlatformAccountUpdated(event, logStep);
+      return;
+    }
     logStep("Skipped account.updated: no profile links this account", { accountId });
     return;
   }

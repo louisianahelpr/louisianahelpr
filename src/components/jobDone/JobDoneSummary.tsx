@@ -171,10 +171,10 @@ export function JobDoneSummary({
       )}
 
       {side === "poster" && !job.is_group_job && job.helper_id && (
-        // Board 185: hire the same Helpr again. The existing rebook path
-        // (CompletedStep's "Hire again" chip): PostJob prefilled from this
-        // job (title, details, place, price) and sent to this Helpr first as
-        // a direct offer; the poster picks the day there.
+        // Board 185: hire the same Helpr again, for any job. A blank post
+        // sent to this Helpr first as a direct offer (the saved-Helpr card's
+        // path); owner 2026-10-25: not prefilled from this job, since the
+        // next job may be something else.
         <div className="rounded-ds-lg p-4 flex flex-wrap items-center gap-x-3 gap-y-3" style={{ background: "hsl(var(--card))", boxShadow: "0 4px 18px rgba(32,30,26,0.06)" }}>
           <span
             aria-hidden="true"
@@ -187,7 +187,7 @@ export function JobDoneSummary({
             <p className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>Hire {firstName} again?</p>
           </div>
           <Link
-            to={`/post-job?rebook=${jobId}&offerTo=${job.helper_id}`}
+            to={`/post-job?offerTo=${job.helper_id}`}
             {...gatedProps("post")}
             onClick={(e) => {
               if (!underAge) return;

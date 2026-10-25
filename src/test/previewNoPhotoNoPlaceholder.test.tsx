@@ -1,5 +1,5 @@
 /**
- * Owner bug, 2026-10-21: Post a job's "What Helprs will see" preview drew a big
+ * Owner bug, 2026-10-21: Post a job's "How your post will look" preview drew a big
  * grey placeholder (category icon) when the poster added NO photo, though no
  * surface a Helpr sees draws one. No photo means no photo area, on the preview
  * and on Browse (JobCardHeroBand), the quick view and the job page. The eyebrow
@@ -35,7 +35,7 @@ describe("no photo, no placeholder", () => {
 
   it("the eyebrow is sentence case on screen (no uppercase transform)", () => {
     render(<PostJobPreviewCard title="" category="" budget={0} />);
-    const h = screen.getByText("What Helprs will see");
+    const h = screen.getByText("How your post will look");
     expect(h.className).not.toMatch(/\buppercase\b/);
   });
 

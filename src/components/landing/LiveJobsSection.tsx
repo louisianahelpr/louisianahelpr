@@ -17,7 +17,8 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
  * says there are none right now.
  */
 const LIVE_JOBS_LIMIT = 4;
-const LIVE_JOBS_SELECT = "id, title, budget, date_needed, parish, category, pricing_mode";
+const LIVE_JOBS_SELECT =
+  "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents";
 
 type LiveJob = {
   id: string;
@@ -27,17 +28,31 @@ type LiveJob = {
   parish: string | null;
   category: string | null;
   pricing_mode: string | null;
+  urgent_fee?: number | string | null;
+  helpers_needed?: number | null;
+  is_group_job?: boolean | null;
+  helper_fee_flat_cents?: number | string | null;
+  /** The Helpr's take-home in dollars (computeNet, the /browse card's math), filled after load. */
+  take_home?: number | null;
 };
 
 type State = { kind: "loading" } | { kind: "failed" } | { kind: "ok"; jobs: LiveJob[] };
 
-/** "$75"; a quotes job has no set price. */
-export function liveJobPrice(j: Pick<LiveJob, "budget" | "pricing_mode">): string {
+/**
+ * "$71" — the Helpr's take-home, floored to whole dollars like the /browse card
+ * (owner 2026-10-25, option A: the same job reads the same number on home and
+ * browse; no caption, owner 2026-10-25: no fee talk on the card); a quotes
+ * job has no set price. Without a computed take-home (an older percent-fee job,
+ * which needs the viewer's tier) the poster's set price shows.
+ */
+export function liveJobPrice(j: Pick<LiveJob, "budget" | "pricing_mode" | "take_home">): string {
   if (j.pricing_mode === "quotes") return "Get quotes";
   const n = Number(j.budget);
   if (j.budget === null || !Number.isFinite(n) || n <= 0) return "Name a price";
+  if (typeof j.take_home === "number" && Number.isFinite(j.take_home)) return `$${Math.max(0, Math.floor(j.take_home))}`;
   return `$${Number.isInteger(n) ? n : n.toFixed(2)}`;
 }
+
 
 /** "Sat, Oct 24", read as a calendar date (no timezone shift). */
 export function liveJobDate(d: string | null): string | null {
@@ -64,7 +79,20 @@ export function LiveJobsSection() {
           .order("created_at", { ascending: false })
           .limit(LIVE_JOBS_LIMIT);
         if (error) throw error;
-        if (!cancelled) setState({ kind: "ok", jobs: (data ?? []) as LiveJob[] });
+        // The take-home with the /browse card's own math, loaded here (not at
+        // module scope) so the landing's first paint stays as small as before.
+        const { computeNet } = await import("@/components/dashboard/JobPrice");
+        const jobs = ((data ?? []) as LiveJob[]).map((j) => {
+          const budget = Number(j.budget);
+          // A flat-stamped job (5% + 70c, every job since 10-21) prices without a
+          // viewer tier; an older percent job has no tier for a guest, so it keeps
+          // the set price.
+          if (!Number.isFinite(budget) || budget <= 0 || j.helper_fee_flat_cents == null) return j;
+          const helpers = j.is_group_job && j.helpers_needed ? j.helpers_needed : 1;
+          const net = computeNet(budget, 0, Number(j.urgent_fee ?? 0), helpers, 0, j).netEarnings;
+          return { ...j, take_home: Number.isFinite(net) ? net : null };
+        });
+        if (!cancelled) setState({ kind: "ok", jobs });
       } catch {
         // Not silent: the section says the newest jobs did not load and keeps
         // the link to the full board (data-testid="landing-live-jobs-failed").

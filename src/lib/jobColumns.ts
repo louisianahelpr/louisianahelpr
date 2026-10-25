@@ -60,6 +60,7 @@ export const JOB_READABLE_COLUMN_LIST = [
   "estimated_hours",
   "expires_at",
   "expiring_notif_sent",
+  "expiring_final_notif_sent",
   "flag_reasons",
   "has_active_dispute",
   "helper_arrival_verified_at",

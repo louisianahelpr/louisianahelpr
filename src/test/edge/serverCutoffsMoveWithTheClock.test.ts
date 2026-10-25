@@ -93,11 +93,13 @@ describe("auto-expire-jobs step 2: 'today' is the Louisiana date at every instan
 
 describe("expiring-jobs-push: the warning window slides with the clock (Q993)", () => {
   for (const iso of ["2026-10-05T13:14:00Z", "2026-10-05T23:14:00Z", "2026-11-01T07:14:00Z", "2026-03-08T08:14:00Z"]) {
-    it(`at ${iso} it asks for jobs expiring in (now, now + 24h]`, async () => {
+    it(`at ${iso} it asks for jobs expiring in (now, now + 24h], and for the final reminder (now, now + 6h]`, async () => {
       await runAt("expiring-jobs-push", iso);
       const now = new Date(iso);
-      expect(filterValues("jobs", "gt", "expires_at")).toEqual([now.toISOString()]);
-      expect(filterValues("jobs", "lte", "expires_at")).toEqual([new Date(now.getTime() + 24 * 3_600_000).toISOString()]);
+      const h = (n: number) => new Date(now.getTime() + n * 3_600_000).toISOString();
+      // Two reads since the hire nudge (owner 2026-10-25): the day-out reminder, then the final one.
+      expect(filterValues("jobs", "gt", "expires_at")).toEqual([now.toISOString(), now.toISOString()]);
+      expect(filterValues("jobs", "lte", "expires_at")).toEqual([h(24), h(6)]);
     });
   }
 });

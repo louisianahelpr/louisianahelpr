@@ -10,3 +10,13 @@ ALTER TABLE public.jobs
 
 COMMENT ON COLUMN public.jobs.expiring_final_notif_sent IS
   'Set by expiring-jobs-push once the final "pick someone today" reminder (last 6 hours, applicants waiting) has gone to the poster. NULL = not sent.';
+
+-- Column-level SELECT for authenticated (20260915045110): a new jobs column is
+-- unreadable until the grants are re-synced.
+DO $g$
+BEGIN
+  IF to_regprocedure('public.sync_jobs_select_grants()') IS NOT NULL THEN
+    PERFORM public.sync_jobs_select_grants();
+  END IF;
+END
+$g$;

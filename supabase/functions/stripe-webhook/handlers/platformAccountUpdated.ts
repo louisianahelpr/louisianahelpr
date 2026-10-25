@@ -18,12 +18,15 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 /** Capabilities the app runs on: card checkout and transfers to Helprs. */
 const NEEDED_CAPABILITIES = ["card_payments", "transfers"] as const;
 
-export interface PlatformAccountProblems {
+interface PlatformAccountProblems {
   problems: string[];
   healthy: boolean;
 }
 
-/** Everything about the platform account that needs the owner, in plain words. */
+/**
+ * Everything about the platform account that needs the owner, in plain words.
+ * @public src/test/edge/platformAccountUpdated.test.ts loads it by a non-literal path.
+ */
 export function platformAccountProblems(account: Stripe.Account): PlatformAccountProblems {
   const problems: string[] = [];
   if (account.charges_enabled === false) problems.push("charges are OFF (customers cannot pay)");

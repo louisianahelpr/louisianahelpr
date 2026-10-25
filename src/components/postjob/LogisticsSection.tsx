@@ -276,18 +276,12 @@ export function LogisticsSection({
         )}
       </div>
 
-      {/* Date and Start Time sit side by side once THIS GRID is 560px wide
-          (owner, 2026-10-05: side by side on a wide screen); stacked below
-          that, where each needs the full width. Keyed to the column, not the
-          screen (lead, 2026-10-25): at 1180 the desktop rail, step list and
-          preview card leave the form about 370px, and a screen breakpoint put
-          a 155px calendar beside a 155px time card ("SUMOTUWETHFRSA").
-          index.css .pj-when-grid; guard postJobFitsItsColumn.test.ts. */}
+      {/* Date and Start Time sit side by side from md up (owner, 2026-10-05);
+          stacked on a phone, where each needs the full width. */}
       {/* The calendar is always open (owner, 2026-10-08), and the two columns
           are one height: Start Time's card stretches to the calendar's with
           the wheel centred in it. */}
-      <div className="pj-cq">
-      <div className="pj-when-grid grid gap-5">
+      <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
       <div className="flex flex-col gap-3 min-w-0">
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
@@ -334,7 +328,6 @@ export function LogisticsSection({
         <FieldError id="start-time-error">
           {scheduleInPast ? SCHEDULE_TOO_SOON_COPY : undefined}
         </FieldError>
-      </div>
       </div>
       </div>
 

@@ -454,3 +454,93 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
     expect(jobUpdates()).toHaveLength(0);
   });
 });
+
+// pi_3UPmYCKp2H4b7tEC07QmgrHJ (job 7440a72d): the job was cancelled after its
+// bank debit failed, but the PaymentIntent stayed requires_payment_method
+// (Stripe GET, 2026-10-25). The ACH-failure path now cancels it at Stripe,
+// only when its checkout is COMPLETE (a card declined in an OPEN checkout can
+// still be paid with another card).
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });\n    await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false); |     logStep("Hired job's bank payment failed — job cancelled", { jobId: job.id, piId, liveStatus, helpersTold: told.length });
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   logStep("Funded job's payment failed — taken out of escrow", { jobId: job.id, piId, from: job.payment_status, liveStatus });\n  await cancelDeadBankPayment(stripe, piId, String(job.id), logStep, job.is_seed ?? false); |   logStep("Funded job's payment failed — taken out of escrow", { jobId: job.id, piId, from: job.payment_status, liveStatus });
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (!session \|\| session.status !== "complete") { |     if (!session) {
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (status !== "requires_payment_method") { |     if (false) {
+describe("payment_intent.payment_failed: the dead bank payment is cancelled at Stripe", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+  const cancelled = () => stripeMock.paymentIntents.cancel.mock.calls;
+  const sessionIs = (status: string | null) =>
+    stripeMock.checkout.sessions.list.mockResolvedValue({ data: status ? [{ id: "cs_live_done", status }] : [] });
+
+  it("7440a72d's shape (hired, cancelled by the RPC): the requires_payment_method PI is cancelled, once, keyed to the PI", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob();
+    cancelAnswers("cancelled", { helpers_told: [] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method", amount_received: 0 });
+    sessionIs("complete");
+    stripeMock.paymentIntents.cancel.mockResolvedValue({ id: PI, status: "canceled" });
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(cancelled()).toEqual([[PI, { cancellation_reason: "abandoned" }, { idempotencyKey: `cancel-failed-bank-payment-${PI}` }]]);
+  });
+
+  it("nobody hired (un-funded by the handler): cancelled too", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob({ helper_id: null });
+    cancelAnswers("not_hired");
+    scenario.writeSelectRows.jobs = [{ id: "job-ach" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    sessionIs("complete");
+    stripeMock.paymentIntents.cancel.mockResolvedValue({ id: PI, status: "canceled" });
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(cancelled()).toHaveLength(1);
+  });
+
+  it("never cancels a PaymentIntent whose checkout is still open, or that has no checkout", async () => {
+    for (const status of ["open", null]) {
+      resetStripeMock();
+      resetSupabaseMock();
+      resetSharedMocks();
+      const fn = await loadConfigured();
+      failedEvent();
+      fundedJob();
+      cancelAnswers("cancelled", { helpers_told: [] });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+      sessionIs(status);
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status, String(status)).toBe(200);
+      expect(cancelled(), String(status)).toHaveLength(0);
+    }
+  });
+
+  it("an already-cancelled PaymentIntent is left alone", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob();
+    cancelAnswers("cancelled", { helpers_told: [] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "canceled" });
+    sessionIs("complete");
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(cancelled()).toHaveLength(0);
+  });
+
+  it("a Stripe error on the cancel never fails the event (the job is settled): ops is paged to cancel it by hand", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob();
+    cancelAnswers("cancelled", { helpers_told: [] });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    sessionIs("complete");
+    stripeMock.paymentIntents.cancel.mockRejectedValue(new Error("Stripe is down"));
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(slackAlerts.some((a) => (a as { title?: string }).title === "A failed bank payment could not be cancelled at Stripe")).toBe(true);
+  });
+});

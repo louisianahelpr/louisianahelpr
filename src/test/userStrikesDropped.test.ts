@@ -18,7 +18,7 @@
  *      except the files in HISTORICAL (exact, two-way).
  *
  * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql | DROP TABLE IF EXISTS public.user_strikes; | SELECT 1;
- * @mutate supabase/migrations/20261015000241_drop_unused_user_strikes.sql |     'public.str_processed_events:job_id', 'public.jobs:parent_job_id' |     'public.user_strikes:job_id', 'public.str_processed_events:job_id', 'public.jobs:parent_job_id'
+ * @mutate supabase/migrations/20261025161801_gift_purchase_expiry_settles.sql |     'public.str_processed_events:job_id', 'public.jobs:parent_job_id' |     'public.user_strikes:job_id', 'public.str_processed_events:job_id', 'public.jobs:parent_job_id'
  * @mutate src/test/helpers/dataExportInventory.ts |   user_violations: { by: ["user_id"] }, |   user_strikes: { by: ["user_id"] },\n  user_violations: { by: ["user_id"] },
  */
 import { describe, it, expect } from "vitest";

@@ -5,25 +5,6 @@
  * orchestration and anything that needs hook closures stays in
  * usePostJobForm.ts and its sub-hooks.
  */
-import { composeJobAddress } from "@/lib/geocode";
-
-/**
- * THE one way the post form turns its address fields into the `location`
- * string ("street, city, ST zip"): the draft autosave, the job row, the quote
- * request and the map preview all call it. Empty parts are left out, so an
- * address with no street yet is "Delcambre, LA", never ", Delcambre, LA "
- * (lead, 2026-10-25: the owner's saved draft held exactly that). The ZIP is
- * normalised to its first five digits ("LA 7050170501" was once on every card).
- * parseLocationIntoFields reads every shape this writes back into the fields.
- */
-export function composeLocationString(f: { streetAddress: string; city: string; addrState: string; zipCode: string }): string {
-  return composeJobAddress({
-    streetAddress: f.streetAddress,
-    city: f.city,
-    state: f.addrState,
-    zipCode: f.zipCode.replace(/\D/g, "").slice(0, 5),
-  });
-}
 
 /**
  * Parses a stored `location` string ("street, city, ST zip") back into the
@@ -74,11 +55,6 @@ export function parseLocationIntoFields(location: string | null | undefined): Pa
   if (locParts.length === 2) {
     const stateZip = locParts[1].trim().split(/\s+/);
     if (/^[A-Za-z]{2}$/.test(stateZip[0] ?? "")) {
-      // "12 Main St, LA 70501" (a draft with a street but no city yet, from
-      // composeLocationString): a leading house number is a street, not a city.
-      if (/^\d/.test(locParts[0].trim())) {
-        return { streetAddress: locParts[0].trim(), city: "", addrState: stateZip[0].toUpperCase(), zipCode: stateZip.slice(1).join(" ") || "" };
-      }
       return {
         streetAddress: "",
         city: locParts[0].trim(),

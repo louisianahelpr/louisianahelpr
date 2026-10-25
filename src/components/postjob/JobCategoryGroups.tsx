@@ -82,7 +82,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
       </span>
       <span className="min-w-0 flex-1 leading-tight break-normal hyphens-none">
         <span className="block text-ds-15 font-semibold">{label}</span>
-        {opts.sub && <span className="pj-tile-sub mt-1 text-ds-13 font-normal text-muted-foreground">{opts.sub}</span>}
+        {opts.sub && <span className="mt-1 hidden text-ds-13 font-normal text-muted-foreground lg:block">{opts.sub}</span>}
       </span>
     </button>
   );
@@ -92,8 +92,8 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
   const open = group ? JOB_CATEGORY_GROUPS.find((g) => g.id === group) : null;
   if (open) {
     return (
-      <div id="category-picker" className="pj-cq">
-        <section aria-label={`In ${open.label}`} className="pj-tiles grid gap-2.5">
+      <div id="category-picker">
+        <section aria-label={`In ${open.label}`} className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
           {open.items.map(categoryTile)}
         </section>
       </div>
@@ -101,7 +101,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
   }
 
   return (
-    <div id="category-picker" className="pj-cq space-y-5">
+    <div id="category-picker" className="space-y-5">
       <label className="flex min-h-[52px] items-center gap-3 rounded-full border border-border bg-card px-4 focus-within:ring-2 focus-within:ring-ring">
         <Search className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
         <span className="sr-only">Search categories</span>
@@ -118,7 +118,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         <section aria-label="Matching categories" className="space-y-2.5">
           <h2 className="font-sans text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">Matches</h2>
           {matches.length > 0 ? (
-            <div className="pj-tiles grid gap-2.5">{matches.map(categoryTile)}</div>
+            <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">{matches.map(categoryTile)}</div>
           ) : (
             <p className="font-sans text-ds-14 text-muted-foreground">
               No category matches "{query.trim()}". Pick a group below, or Something else.
@@ -127,7 +127,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         </section>
       ) : null}
 
-      <section aria-label="Category groups" className="pj-tiles grid gap-2.5">
+      <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
         {JOB_CATEGORY_GROUPS.map((g) => {
           const holdsPick = g.items.some((it) => it.value === category);
           return tile(

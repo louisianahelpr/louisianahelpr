@@ -94,37 +94,32 @@ export const CREDENTIAL_TIERS = [
 // Category-specific title placeholders — once the poster picks a
 // category the example title matches what they're actually posting,
 // which both speeds entry and models a good, specific title.
-// At most TITLE_PLACEHOLDER_MAX characters (lead, 2026-10-25): the field cut
-// "e.g. Deep clean a 2-bedroom apartme…" at 390 and 1180, and several examples
-// were longer than a title may be (TITLE_MAX). Measured to fit the field at
-// 320 and up; guard postJobFitsItsColumn.test.ts.
-export const TITLE_PLACEHOLDER_MAX = 28;
 export const titlePlaceholders: Record<string, string> = {
-  cleaning: "e.g. Deep clean 2 bedrooms",
-  yard_work: "e.g. Mow and edge my yard",
-  moving: "e.g. Move a couch upstairs",
-  errands: "e.g. Pick up my groceries",
-  handyman: "e.g. Mount a TV on the wall",
-  painting: "e.g. Paint a 12×12 bedroom",
-  delivery: "e.g. Deliver a dresser",
-  pet_care: "e.g. Walk my dog this week",
-  assembly: "e.g. Assemble a wardrobe",
-  storm_prep: "e.g. Board up my windows",
-  events: "e.g. Set up a backyard party",
-  electrical: "e.g. Replace two outlets",
-  plumbing: "e.g. Fix a leaky faucet",
-  hvac: "e.g. AC not cooling upstairs",
-  roofing: "e.g. Replace a few shingles",
-  welding: "e.g. Weld a trailer hitch",
-  carpentry: "e.g. Build closet shelves",
-  auto_repair: "e.g. Fix my mower engine",
-  appliance_repair: "e.g. Dryer won't heat",
-  flooring: "e.g. Tile a small bathroom",
-  concrete_masonry: "e.g. Pour a concrete pad",
-  fencing: "e.g. Repair a wood fence",
-  pressure_washing: "e.g. Power wash a patio",
-  declutter_help: "e.g. List my items for sale",
-  other: "e.g. Help with a quick job",
+  cleaning: "e.g. Deep clean a 2-bedroom apartment",
+  yard_work: "e.g. Mow & edge the front and back yard",
+  moving: "e.g. Help me move a couch up two flights",
+  errands: "e.g. Grocery run and a pharmacy pickup",
+  handyman: "e.g. Mount a TV and hide the cables",
+  painting: "e.g. Paint a 12×12 bedroom, one coat",
+  delivery: "e.g. Pick up a dresser and drop it off",
+  pet_care: "e.g. Walk my dog twice a day this week",
+  assembly: "e.g. Assemble a flat-pack wardrobe",
+  storm_prep: "e.g. Board up windows before the storm",
+  events: "e.g. Set up and break down a backyard party",
+  electrical: "e.g. Replace two kitchen outlets",
+  plumbing: "e.g. Fix a leaky kitchen faucet",
+  hvac: "e.g. AC unit not cooling upstairs",
+  roofing: "e.g. Replace shingles after a storm",
+  welding: "e.g. Weld a broken trailer hitch",
+  carpentry: "e.g. Build shelves in a closet",
+  auto_repair: "e.g. Tune up my lawn mower engine",
+  appliance_repair: "e.g. Dryer runs but won't heat",
+  flooring: "e.g. Lay tile in a small bathroom",
+  concrete_masonry: "e.g. Pour a small concrete pad",
+  fencing: "e.g. Repair a wood privacy fence",
+  pressure_washing: "e.g. Pressure wash the driveway",
+  declutter_help: "e.g. Photograph and list my items",
+  other: "e.g. Help me with a quick job",
 };
 
 // `descriptionHints` was removed 2026-08-10. It rendered a fixed

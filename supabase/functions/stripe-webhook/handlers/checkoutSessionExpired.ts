@@ -97,8 +97,10 @@ export async function handleCheckoutSessionExpired(
   //
   // Stripe tells us which, and this is the event that tells us. A session that
   // expires was never paid, so case 1 is closed out here by stamping the row
-  // status='expired' (payment_status stays 'pending' — nothing was ever charged,
-  // so 'refunded' would be a lie). Case 2 is then, by elimination, the ONLY way a
+  // status='expired' AND payment_status='abandoned' (migration
+  // 20261025161801): nothing was ever charged, so 'refunded' would be a lie,
+  // and leaving 'pending' read as money in flight forever (20 such rows on
+  // prod, 2026-10-25). Case 2 is then, by elimination, the ONLY way a
   // gift row can still read pending+unexpired well past a Checkout Session's ~24h
   // lifetime — which is the money-in-no-credit signature, cleanly queryable:
   //
@@ -110,15 +112,23 @@ export async function handleCheckoutSessionExpired(
   // only Stripe knows whether that charge captured, so a human (or the
   // money-reconciliation sweep) must resolve it against the PaymentIntent.
   if ((meta?.kind as string | undefined) === "gift_card_purchase") {
-    const { data: expired, error: expireErr } = await supabase
+    const expireGift = (payload: Record<string, string>) => supabase
       .from("gift_cards")
-      .update({ status: "expired" })
+      .update(payload)
       .eq("stripe_session_id", session.id)
       // Never touch a gift that actually got paid. If a completion raced ahead
       // of this expiry, payment_status is already 'paid' and this matches zero
       // rows, which is the correct outcome.
       .eq("payment_status", "pending")
       .select("id");
+    let { data: expired, error: expireErr } = await expireGift({ status: "expired", payment_status: "abandoned" });
+    if (expireErr?.code === "23514") {
+      // This function deployed before migration 20261025161801 (the CHECK does
+      // not allow 'abandoned' yet): settle it the old way rather than lose the
+      // expiry; the repair script brings it to 'abandoned' later.
+      logStep("gift_cards does not allow payment_status 'abandoned' yet — marking the gift expired only", { sessionId: session.id });
+      ({ data: expired, error: expireErr } = await expireGift({ status: "expired" }));
+    }
 
     if (expireErr) {
       // Throw so the outer handler rolls back the idempotency row and returns

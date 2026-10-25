@@ -123,8 +123,10 @@ describe("gift checkout pre-registers its Stripe session", () => {
     ).toBe(true);
 
     expect(
-      /\.update\(\s*\{[^}]*status:\s*["']expired["'][^}]*\}\s*\)[\s\S]{0,400}?\.eq\(\s*["']payment_status["']\s*,\s*["']pending["']\s*\)/.test(src),
-      `${EXPIRED} must expire only a still-pending pre-registration — never a gift that actually got paid.`,
+      /\.update\(\s*payload\s*\)[\s\S]{0,400}?\.eq\(\s*["']payment_status["']\s*,\s*["']pending["']\s*\)/.test(src) &&
+        /expireGift\(\s*\{\s*status:\s*["']expired["']\s*,\s*payment_status:\s*["']abandoned["']\s*\}\s*\)/.test(src),
+      `${EXPIRED} must settle only a still-pending pre-registration (status expired, payment_status abandoned) — never a gift that actually got paid. ` +
+        "Its behaviour is pinned in src/test/edge/stripe-webhook.test.ts (an expired gift-card PURCHASE checkout).",
     ).toBe(true);
   });
 });

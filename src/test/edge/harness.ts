@@ -604,6 +604,21 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeAccountUsable.ts";`,
   );
 
+  // Definite-refusal classifier: `_shared/stripeRefusal.ts` has no imports, so
+  // the generated file points at the REAL module. Whether a refused refund
+  // hands its claim back (job 2c8480ae) is behaviour under test, never mocked.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeRefusal\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeRefusal.ts";`,
+  );
+
+  // Refund ledger reason: `_shared/refundReason.ts` has no imports; the real
+  // module names what a cancel refund kept (jobs 375000de / 1251173a).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/refundReason\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/refundReason.ts";`,
+  );
+
   // Flat one-time product prices: `_shared/productPrices.ts` is a plain
   // constant module (no Deno/remote imports), so the generated file points at
   // the REAL module. These ARE the amounts Stripe charges for a boost and a

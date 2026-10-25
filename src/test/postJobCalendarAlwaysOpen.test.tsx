@@ -19,8 +19,7 @@ describe("Post a job's date calendar is always open", () => {
     const field = src.slice(src.indexOf("<DatePickerField"), src.indexOf("/>", src.indexOf("<DatePickerField")));
     expect(field).toMatch(/\binline\b/);
     expect(field).toMatch(/labelledBy="date-label"/);
-    // One height side by side: .pj-when-grid stretches its two columns (index.css; postJobFitsItsColumn.test.ts).
-    expect(src).toMatch(/className="pj-when-grid grid gap-5"/);
+    expect(src).toMatch(/md:items-stretch/);
   });
 
   it("the inline calendar renders without a tap and picks a local YYYY-MM-DD", async () => {

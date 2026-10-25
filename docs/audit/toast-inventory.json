@@ -6645,7 +6645,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 189,
+      "line": 188,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6659,7 +6659,7 @@
     },
     {
       "file": "src/components/quotes/PostJobQuoteChoice.tsx",
-      "line": 192,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

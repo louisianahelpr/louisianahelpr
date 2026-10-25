@@ -11,7 +11,8 @@ import { crewCancellationFee, returnsToPoster } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
+import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -1373,7 +1374,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -2820,7 +2821,11 @@ serve(async (req) => {
               // Q1674: nonRefundableCents also holds a first job's kept $2 setup
               // fee; it is named on its own, never as "card processing fee".
               const setupKeptCents = Math.min(setupFeeKeptCents(job), nonRefundableCents);
-              const serviceKeptCents = fullSeriesRefund ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKeptCents);
+              // A job priced after the no-service-fee change (platform_fee_percent
+              // 0) paid its card cost as customer_fee_amount: that is the card
+              // processing fee, not a service fee (cardCostFeeCents; lh-money-escrow
+              // review 2026-10-25 #2).
+              const serviceKeptCents = fullSeriesRefund || cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKeptCents);
               const processingKeptCents = Math.max(0, nonRefundableCents - setupKeptCents - serviceKeptCents);
               const feeCents = Math.round(cancellationFee * 100);
               const parts = [
@@ -2853,9 +2858,24 @@ serve(async (req) => {
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
                 ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
-                // A poster-fee job keeps the card processing cost, not a
-                // service fee (Q2082 slice 4 review #7 / BEFORE THE FLIP (e)).
-                : `cancellation refund (minus cancellation + ${isPosterFeeJob(job) ? "card processing" : "service"} fee${setupFeeKeptCents(job) > 0 ? " and the kept $2 setup fee" : ""})`,
+                // What was REALLY kept, in dollars (jobs 375000de / 1251173a,
+                // 2026-10-24: an expired job with nobody hired was labelled
+                // "minus cancellation + service fee" while only the card fee
+                // and the tax on it were kept). The same split the poster's
+                // notice above names. A poster-fee job keeps the card
+                // processing cost, never a service fee (Q2082 slice 4 #7).
+                : (() => {
+                  const setupKept = Math.min(setupFeeKeptCents(job), nonRefundableCents);
+                  const serviceKept = fullSeriesRefund || isPosterFeeJob(job) || cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKept);
+                  return refundReasonWithKeptParts("cancellation refund", {
+                    cancellationFeeCents: Math.round(cancellationFee * 100),
+                    blockFeeCents,
+                    serviceFeeCents: serviceKept,
+                    processingFeeCents: Math.max(0, nonRefundableCents - setupKept - serviceKept),
+                    taxCents: voidSplit.taxKeptCents,
+                    setupFeeCents: setupKept,
+                  });
+                })(),
               source: "void_cancelled_payments",
               initiated_by_user_id: null,
             }, { onConflict: "stripe_refund_id", ignoreDuplicates: true });

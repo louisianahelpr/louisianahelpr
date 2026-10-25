@@ -495,7 +495,7 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
 // select lists), so a select that drops it goes red too.
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           const serviceFeeCents = posterCancelKeptFeeCents(job); |           const serviceFeeCents = Math.round(Number(job.customer_fee_amount ?? 0) * 100);
 // @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_flat_cents, poster_fee_flat_cents, is_group_job | helper_fee_flat_cents, is_group_job
-// @mutate supabase/functions/void-cancelled-payments/index.ts | ${isPosterFeeJob(job) ? "card processing" : "service"} fee | service fee
+// @mutate supabase/functions/void-cancelled-payments/index.ts | const serviceKept = fullSeriesRefund \|\| isPosterFeeJob(job) \|\| cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKept); | const serviceKept = fullSeriesRefund ? 0 : nonRefundableCents - setupKept;
 describe("void-cancelled-payments — a poster-fee job keeps the card cost only (Q2082 slice 4)", () => {
   beforeEach(() => {
     resetEnv();
@@ -522,6 +522,82 @@ describe("void-cancelled-payments — a poster-fee job keeps the card cost only 
     expect(refundParams.amount).toBe(15_624);
     // The ledger names what was kept: the card processing fee, not a service fee.
     const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
-    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("cancellation refund (minus cancellation + card processing fee)");
+    expect((ledger?.payload as { reason?: string } | undefined)?.reason).toBe("cancellation refund (minus $150.00 cancellation fee paid to the Helpr and $9.46 card processing fee)");
+    // The poster's notice says the same: a card processing fee, never a service fee.
+    const told = JSON.stringify(scenario.writes.filter((w) => w.table === "notifications" || w.table === "refund_notices").map((w) => w.payload));
+    expect(told).toMatch(/card processing fee/);
+    expect(told).not.toMatch(/service fee/);
+  });
+});
+
+// Jobs 375000de and 1251173a (2026-10-24): listings that expired with nobody
+// hired. Only Stripe's card fee (and, on the taxed charge, the sales tax on it:
+// owner rule Q2082 (a)) was kept, but the ledger said "minus cancellation +
+// service fee". The amounts are the measured ones (Stripe GET, live).
+// @mutate supabase/functions/void-cancelled-payments/index.ts |                   return refundReasonWithKeptParts("cancellation refund", {\n                    cancellationFeeCents: Math.round(cancellationFee * 100), |                   return refundReasonWithKeptParts("cancellation refund", {\n                    cancellationFeeCents: 1,
+// @mutate supabase/functions/void-cancelled-payments/index.ts |                     taxCents: voidSplit.taxKeptCents, |                     taxCents: 0,
+describe("void-cancelled-payments — an expired job's refund names only what was kept", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+
+  const expiredFlatJob = (budget: number) => ({
+    ...cancelledJob(), budget, customer_fee_amount: 0, cancellation_fee: 0, helper_id: null, helper_confirmed_at: null,
+    helper_fee_percent: 5, helper_fee_flat_cents: 70, platform_fee_percent: 0,
+    cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned",
+  });
+  const run = async (job: Record<string, unknown>, pi: Record<string, unknown>, refundCents: number) => {
+    seed();
+    scenario.reads.jobs!.selectOverrides!.unshift({ includes: "cancelled_at", result: { rows: [job] } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(pi);
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_x", amount: refundCents });
+    const h = await load();
+    await h.fetch(cronReq());
+    const ledger = scenario.writes.find((w) => w.table === "payment_refunds");
+    return { refund: stripeMock.refunds.create.mock.calls[0]?.[0] as { amount?: number } | undefined, reason: (ledger?.payload as { reason?: string } | undefined)?.reason };
+  };
+
+  it("1251173a: $139.06 with $14.06 tax keeps the $4.33 card fee and the $0.49 tax on it, and says exactly that", async () => {
+    const r = await run(expiredFlatJob(125), {
+      id: "pi_1", status: "succeeded", amount: 13_906, amount_received: 13_906,
+      amount_details: { tax: { total_tax_amount: 1_406 } },
+      latest_charge: { id: "ch_1", amount_refunded: 0, balance_transaction: { fee: 433 } },
+    }, 13_424);
+    expect(r.refund?.amount).toBe(13_424);
+    expect(r.reason).toBe("cancellation refund (minus $4.33 card processing fee and $0.49 sales tax on what was kept)");
+  });
+
+  it("375000de: $75.00 untaxed keeps the $2.48 card fee only, and names no cancellation or service fee", async () => {
+    const r = await run(expiredFlatJob(75), {
+      id: "pi_1", status: "succeeded", amount: 7_500, amount_received: 7_500,
+      latest_charge: { id: "ch_1", amount_refunded: 0, balance_transaction: { fee: 248 } },
+    }, 7_252);
+    expect(r.refund?.amount).toBe(7_252);
+    expect(r.reason).toBe("cancellation refund (minus $2.48 card processing fee)");
+    expect(r.reason).not.toMatch(/cancellation fee|service fee/);
+  });
+
+  // lh-money-escrow review 2026-10-25 #2: a job priced after the no-service-fee
+  // change (platform_fee_percent 0) paid its card cost as customer_fee_amount
+  // (51 such paid jobs on prod, 10-09..10-14). Keeping it is the card fee.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const serviceKept = fullSeriesRefund \|\| isPosterFeeJob(job) \|\| cardCostFeeCents(job) > 0 ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKept); | const serviceKept = fullSeriesRefund \|\| isPosterFeeJob(job) ? 0 : Math.min(serviceFeeCents, nonRefundableCents - setupKept);
+  it("a flat-model job whose poster paid its card cost at checkout ($1.06 of $26.06): kept as the card processing fee, never a service fee", async () => {
+    const r = await run({ ...expiredFlatJob(25), customer_fee_amount: 1.06, platform_fee_percent: 0 }, {
+      id: "pi_1", status: "succeeded", amount: 2_606, amount_received: 2_606,
+      latest_charge: { id: "ch_1", amount_refunded: 0, balance_transaction: { fee: 106 } },
+    }, 2_500);
+    expect(r.refund?.amount).toBe(2_500);
+    expect(r.reason).toBe("cancellation refund (minus $1.06 card processing fee)");
+  });
+
+  it("a legacy job (platform_fee_percent 12) still names its kept service fee", async () => {
+    const r = await run({ ...expiredFlatJob(60), customer_fee_amount: 7.2, platform_fee_percent: 12, helper_fee_percent: 12, helper_fee_flat_cents: null }, {
+      id: "pi_1", status: "succeeded", amount: 6_720, amount_received: 6_720,
+      latest_charge: { id: "ch_1", amount_refunded: 0, balance_transaction: { fee: 225 } },
+    }, 6_000);
+    expect(r.reason).toBe("cancellation refund (minus $7.20 service fee)");
   });
 });

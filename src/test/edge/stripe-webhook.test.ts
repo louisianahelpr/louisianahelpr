@@ -1763,6 +1763,50 @@ describe("stripe-webhook edge function", () => {
       expect(JSON.stringify(jobWrite?.filters)).toMatch(/payment_status\.eq\.failed/);
     });
 
+    // The unpaid half of the dead-bank-payment class (7440a72d was the funded
+    // half): a COMPLETED checkout whose bank debit failed leaves its
+    // PaymentIntent requires_payment_method forever; it is cancelled at Stripe.
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (clearSessionId) await cancelDeadBankPayment(stripe, pi.id, String(failedJob.id), logStep, failedJob.is_seed ?? false); |     void clearSessionId;
+    it("an unpaid job's completed bank checkout that failed: the dead PaymentIntent is cancelled at Stripe", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_ach_unpaid",
+        type: "payment_intent.payment_failed",
+        data: { object: { id: "pi_ach_unpaid", receipt_email: "poster@test.com", metadata: { job_id: "job-1" } } },
+      });
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({
+        status: "complete",
+        payment_intent: { id: "pi_ach_unpaid", status: "requires_payment_method" },
+      });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_ach_unpaid", status: "requires_payment_method" });
+      stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ id: "cs_ach_unpaid", status: "complete" }] });
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_ach_unpaid", status: "canceled" });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_ach_unpaid" }],
+      };
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.cancel.mock.calls).toEqual([
+        ["pi_ach_unpaid", { cancellation_reason: "abandoned" }, { idempotencyKey: "cancel-failed-bank-payment-pi_ach_unpaid" }],
+      ]);
+    });
+
+    it("a card declined inside a still-OPEN checkout is never cancelled (the poster can try another card)", async () => {
+      const fn = await loadConfigured();
+      stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+        id: "evt_fail_card_open",
+        type: "payment_intent.payment_failed",
+        data: { object: { id: "pi_card_open", receipt_email: "poster@test.com", metadata: { job_id: "job-1" } } },
+      });
+      stripeMock.checkout.sessions.retrieve.mockResolvedValue({ status: "open", payment_intent: { id: "pi_card_open", status: "requires_payment_method" } });
+      scenario.reads.jobs = {
+        rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", payment_status: "unpaid", stripe_session_id: "cs_card_open" }],
+      };
+      const res = await fn.fetch(webhookRequest(fn, "{}"));
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    });
+
     // B2: late re-delivery of a card-decline event after ACH checkout completed —
     // the session's PaymentIntent is now "pi_ach" (processing), not "pi_card".
     // The event must be acked with no write so the live ACH job is not falsely failed.
@@ -1910,6 +1954,46 @@ describe("stripe-webhook edge function", () => {
       ];
       await fn.fetch(webhookRequest(fn, "{}"));
       expect(scenario.writes.find((w) => w.table === "notifications")).toBeUndefined();
+    });
+
+    // 20 gift_cards rows read payment_status 'pending' after their live
+    // gift-purchase checkouts expired (prod, 2026-10-25): the expiry stamped
+    // status 'expired' only. It now settles the payment too ('abandoned').
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | await expireGift({ status: "expired", payment_status: "abandoned" }); | await expireGift({ status: "expired" });
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts |     if (expireErr?.code === "23514") { |     if (false) {
+    describe("an expired gift-card PURCHASE checkout", () => {
+      const expiredGiftPurchase = () =>
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_gift_expired",
+          type: "checkout.session.expired",
+          data: { object: { id: "cs_live_gift_1", metadata: { kind: "gift_card_purchase" } } },
+        });
+      const giftWrites = () => scenario.writes.filter((w) => w.table === "gift_cards" && w.op === "update");
+
+      it("settles the pre-registered gift: status 'expired' AND payment_status 'abandoned', only while still pending, pinned to its session", async () => {
+        const fn = await loadConfigured();
+        expiredGiftPurchase();
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const writes = giftWrites();
+        expect(writes).toHaveLength(1);
+        expect(writes[0].payload).toEqual({ status: "expired", payment_status: "abandoned" });
+        expect(writes[0].filters).toContainEqual(expect.objectContaining({ column: "stripe_session_id", value: "cs_live_gift_1" }));
+        expect(writes[0].filters).toContainEqual(expect.objectContaining({ column: "payment_status", value: "pending" }));
+      });
+
+      it("before migration 20261025161801 deploys (CHECK refuses 'abandoned'): still marks the gift expired, never 500s", async () => {
+        const fn = await loadConfigured();
+        expiredGiftPurchase();
+        scenario.writeOverrides = [{
+          table: "gift_cards", op: "update",
+          when: (payload) => payload.payment_status === "abandoned",
+          error: { message: 'new row for relation "gift_cards" violates check constraint "gift_cards_payment_status_check"', code: "23514" },
+        }];
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        expect(giftWrites().map((w) => w.payload)).toEqual([{ status: "expired", payment_status: "abandoned" }, { status: "expired" }]);
+      });
     });
 
     // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (pi.metadata?.type === "tip") return; | 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { composeJobAddress } from "@/lib/geocode";
 import { MapPinOff } from "lucide-react";
 
 function resolveToken(varName: string, fallback: string): string {
@@ -73,7 +74,7 @@ export function AppleMapPreview({ street, city, state, zipCode }: AppleMapPrevie
 
   // Hold off until we have at least a street + city or a zip — geocoding
   // half-typed strings just thrashes MapKit and leaves us empty maps.
-  const composed = `${street}, ${city}, ${state} ${zipCode}`.trim();
+  const composed = composeJobAddress({ streetAddress: street, city, state, zipCode });
   const enoughAddress = street.trim().length > 3 && (city.trim().length > 0 || zipCode.trim().length === 5);
 
   useEffect(() => {

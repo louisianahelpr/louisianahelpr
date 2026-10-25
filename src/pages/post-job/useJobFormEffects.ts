@@ -13,7 +13,7 @@ import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRow } from "@/lib/j
 import { fetchJobAccessNote } from "@/hooks/useJobAccessNote";
 import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { checkDrift } from "@/lib/checkDrift";
-import { parseLocationIntoFields } from "./postJobFormHelpers";
+import { composeLocationString, parseLocationIntoFields } from "./postJobFormHelpers";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 
 /**
@@ -516,7 +516,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
 
   // Auto-save draft on field changes (debounced)
   const autoSave = useCallback(() => {
-    const location = `${streetAddress.trim()}, ${city.trim()}, ${addrState.trim()} ${zipCode.replace(/\D/g, "").slice(0, 5)}`;
+    const location = composeLocationString({ streetAddress, city, addrState, zipCode });
     if (title || description || streetAddress || budget) {
       saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId });
     }

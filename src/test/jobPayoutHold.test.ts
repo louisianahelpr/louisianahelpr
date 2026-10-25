@@ -15,7 +15,7 @@
  * wip/stranded-1013-money-holds @ 47247f33d (lane B, 2026-10-12), Q1491 half
  * only (its Q1490 half reached main another way, 709b04e9e).
  *
- * @mutate supabase/migrations/20261015022636_job_payout_hold.sql |     IF EXISTS (SELECT 1 FROM public.job_payout_holds jh WHERE jh.job_id = NEW.job_id) THEN | IF false THEN
+ * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |     IF EXISTS (SELECT 1 FROM public.job_payout_holds jh WHERE jh.job_id = NEW.job_id) THEN | IF false THEN
  * @mutate supabase/migrations/20261015022636_job_payout_hold.sql | ALTER TABLE public.job_payout_holds ENABLE ROW LEVEL SECURITY; | SELECT 1;
  * @mutate supabase/functions/execute-dispute-split/index.ts |     const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id); |     const jobHold = { kind: "clear" as const };
  * @mutate supabase/functions/create-payment/index.ts |   const jobHold = await checkJobPayoutHold(supabaseAdmin, jobId); |   const jobHold = { kind: "clear" as const };

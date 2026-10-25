@@ -252,6 +252,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
     uncovered: "GAP — an instant payout moves the shared helper's available Connect balance out; not driven, and whether a nightly may drain that test balance is an owner decision",
   },
   "edge:payment-confirm-reminder": { uncovered: SCHEDULED_EDGE },
+  "edge:payout-setup-reminders": { uncovered: "reminds a hired Helpr with no payout account (owner 2026-10-25); it sends only while payout_after_hire AND payout_setup are on, and payout_setup is off on prod (Stripe closed the platform account), so no journey can reach it. Proven in src/test/edge/payout-setup-reminders.test.ts and src/test/pglite/payoutAfterHire.pglite.mjs." },
   "edge:process-scheduled-payouts": { uncovered: SCHEDULED_EDGE },
   "edge:release-payout": {
     uncovered: GAP("the release in settleForward / 02-marketplace J5 (its notification rows are not asserted)"),

@@ -49,6 +49,7 @@ import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDia
 import { PayoutSetupJobNotice } from "@/components/payouts/PayoutSetupJobNotice";
 import { HelperMoneyNotices } from "@/pages/jobs/appliedJobCard/HelperMoneyNotices";
 import { useHiredPayoutPrompt } from "@/components/payouts/useHiredPayoutPrompt";
+import { useStartPayoutSetup } from "@/hooks/useStartPayoutSetup";
 import {
   FINISH_PAYOUT_SETUP_LABEL,
   HIRED_PAYOUT_BODY,
@@ -88,6 +89,26 @@ describe("You're hired: set up payouts", () => {
     expect(screen.getByText(PAYOUT_SETUP_PAUSED_COPY)).toBeTruthy();
     expect(screen.queryByRole("button", { name: new RegExp(FINISH_PAYOUT_SETUP_LABEL, "i") })).toBeNull();
     expect(invokeMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("useStartPayoutSetup: the one call that opens Stripe", () => {
+  it("while setup is not offered it starts nothing, even when called directly", async () => {
+    paused = true;
+    const { result } = renderHook(() => useStartPayoutSetup("test"));
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(invokeMock).not.toHaveBeenCalled();
+    expect(openExternal).not.toHaveBeenCalled();
+  });
+  it("while setup is offered it asks stripe-connect for the onboard link and opens it", async () => {
+    const { result } = renderHook(() => useStartPayoutSetup("test"));
+    await act(async () => {
+      await result.current.start();
+    });
+    expect(onboardCalls()).toHaveLength(1);
+    expect(openExternal).toHaveBeenCalledWith("https://connect.stripe.test/onboard");
   });
 });
 

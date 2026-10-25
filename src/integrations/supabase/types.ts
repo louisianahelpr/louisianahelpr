@@ -626,7 +626,9 @@ export type Database = {
           replacement_account_id?: string
           stripe_account_id?: string
           user_id?: string | null
-
+        }
+        Relationships: []
+      }
       confirm_reminder_sends: {
         Row: {
           claimed_at: string

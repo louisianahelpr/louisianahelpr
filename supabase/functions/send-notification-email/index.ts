@@ -161,7 +161,8 @@ serve(async (req) => {
     const supabaseKey = (Deno.env.get('SECRET_KEY') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'))!
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    const { notification_id, user_id, title, message, type, link, job_id } = await req.json()
+    const body = await req.json()
+    const { notification_id, user_id, title, message, type, link, job_id } = body
 
     if (!user_id || !title || !message) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), {
@@ -453,6 +454,26 @@ serve(async (req) => {
         JSON.stringify({ skipped: true, reason: 'test_recipient' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       )
+    }
+
+    // Job-match emails: at most one a day (owner 2026-10-25; prod 10-21 sent
+    // up to 4 to one Helpr). The first match of the Louisiana day emails at
+    // once; later ones are counted by job_match_email_should_wait and go out
+    // together the next morning (send_job_match_roundups, cron
+    // job-match-roundups), which posts with roundup: true. The in-app notice
+    // and push are unchanged. A failed check sends (fails open: a match email
+    // is wanted, a duplicate is only noise).
+    if (category === 'job_matches' && (body as { roundup?: unknown })?.roundup !== true) {
+      const { data: wait, error: waitError } = await supabase.rpc('job_match_email_should_wait', { p_user_id: user_id })
+      if (waitError) {
+        console.error('job_match_email_should_wait failed; sending', waitError.message)
+      } else if (wait === true) {
+        await logSkip('suppressed', 'daily_roundup')
+        return new Response(
+          JSON.stringify({ skipped: true, reason: 'daily_roundup' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        )
+      }
     }
 
     // `promotion` is the one COMMERCIAL entry in TYPE_MAP. Every other

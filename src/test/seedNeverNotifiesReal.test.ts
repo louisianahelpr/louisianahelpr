@@ -389,12 +389,19 @@ describe("Q137: a seed subject never notifies a real person", () => {
       "notify_on_application",
       "quote_notify_to",
       "rentals_notify",
+      "send_application_roundups",
       "send_backout_email",
+      "send_job_match_roundups",
     ]);
     // Q1575: the back-out email rides beside the RPCs' own notifications row,
     // so it applies the row's seed boundary itself instead of writing a second row.
     // Q2275: the Declutter saved-search sender writes its row through declutter_notify (the seller as the seed actor).
-    for (const fn of emailers.filter((f) => f !== "send_backout_email")) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify\(/i.test(liveDef(fn)!.body), fn).toBe(true);
+    // Roundups (2026-10-25, owner: applicant emails first-then-roundup, job matches one a day): they
+    // only COUNT emails that notify_on_application / the match senders held back, each of which already
+    // wrote its own notifications row through its seed boundary; the roundup adds no new subject.
+    const ROUNDUPS = ["send_application_roundups", "send_job_match_roundups"];
+    for (const fn of ROUNDUPS) expect(liveDef(fn)!.body, fn).toMatch(/FROM public\.(application|job_match)_email_state s/);
+    for (const fn of emailers.filter((f) => f !== "send_backout_email" && !ROUNDUPS.includes(f))) expect(/INSERT\s+INTO\s+(?:public\.)?notifications\b|public\.declutter_notify\(/i.test(liveDef(fn)!.body), fn).toBe(true);
     expect(liveDef("send_backout_email")!.body).toMatch(/IF public\.notification_crosses_seed_boundary\(p_user, p_job, p_link\) THEN\s+RETURN;/);
   });
 

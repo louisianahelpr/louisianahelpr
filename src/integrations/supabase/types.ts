@@ -107,6 +107,27 @@ export type Database = {
         }
         Relationships: []
       }
+      application_email_state: {
+        Row: {
+          last_emailed_at: string | null
+          updated_at: string
+          user_id: string
+          waiting: number
+        }
+        Insert: {
+          last_emailed_at?: string | null
+          updated_at?: string
+          user_id: string
+          waiting?: number
+        }
+        Update: {
+          last_emailed_at?: string | null
+          updated_at?: string
+          user_id?: string
+          waiting?: number
+        }
+        Relationships: []
+      }
       application_rate_log: {
         Row: {
           applicant_id: string
@@ -4527,6 +4548,26 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      job_match_email_state: {
+        Row: {
+          last_emailed_day: string | null
+          updated_at: string
+          user_id: string
+          waiting: number
+        }
+        Insert: {
+          last_emailed_day?: string | null
+          updated_at?: string
+          user_id: string
+          waiting?: number
+        }
+        Update: {
+          last_emailed_day?: string | null
+          updated_at?: string
+          user_id?: string
+          waiting?: number
+        }
+        Relationships: []
       }
       job_match_queue: {
         Row: {
@@ -12392,6 +12433,10 @@ export type Database = {
         }[]
       }
       application_cap: { Args: { p_kind: string }; Returns: number }
+      application_email_should_wait: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       apply_cancellation_violation_consequence: {
         Args: { p_job_id: string }
         Returns: Json
@@ -13431,6 +13476,10 @@ export type Database = {
       homes_sale_wording_flags: {
         Args: { p_text: string }
         Returns: string[]
+      }
+      job_match_email_should_wait: {
+        Args: { p_user_id: string }
+        Returns: boolean
       }
       job_offer_cutoff: {
         Args: { p_date_needed: string; p_start_time: string }
@@ -15840,6 +15889,10 @@ export type Database = {
         Args: { p_job_id: string; p_reviewee_id: string; p_reviewer_id: string }
         Returns: boolean
       }
+      send_application_roundups: {
+        Args: { p_limit?: number }
+        Returns: number
+      }
       send_backout_email: {
         Args: {
           p_job: string
@@ -15849,6 +15902,10 @@ export type Database = {
           p_user: string
         }
         Returns: undefined
+      }
+      send_job_match_roundups: {
+        Args: { p_limit?: number }
+        Returns: number
       }
       send_ops_daily_digest: { Args: never; Returns: Json }
       send_team_reply: {

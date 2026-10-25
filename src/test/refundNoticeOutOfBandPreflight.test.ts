@@ -23,7 +23,7 @@
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) return { status: "failed", error: refused }; |       void refused;
  * @mutate supabase/functions/_shared/refundNotice.ts |     if (preflight.status === 400 && /Missing required fields/.test(text)) return null; |     if (preflight.status === 400 \|\| preflight.status === 401) return null;
  * @mutate supabase/functions/_shared/refundNotice.ts |       if (refused) {\n        out.problems.push(refused);\n        return out;\n      } |       if (refused) {\n        out.problems.push(refused);\n      }
- * @mutate supabase/functions/send-notification-email/index.ts |     const { notification_id, user_id, title, message, type, link, job_id } = await req.json() |     await supabase.rpc('log_notification', {}); const { notification_id, user_id, title, message, type, link, job_id } = await req.json()
+ * @mutate supabase/functions/send-notification-email/index.ts |     const body = await req.json() |     await supabase.rpc('log_notification', {}); const body = await req.json()
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

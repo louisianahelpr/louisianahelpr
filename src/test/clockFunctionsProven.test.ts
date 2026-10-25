@@ -70,6 +70,8 @@ const PROVEN: Record<string, string> = {
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
 // @two-way src/test/clockFunctionsProven.test.ts:NOT_PROVEN names a function that is gone, not cron-run, reads no clock, or is proven
 const NOT_PROVEN: Record<string, string> = {
+  send_application_roundups: "lead 2026-10-25: its 3-hour window is proven in emailRoundups.pglite.mjs by rewriting the stored timestamps (last_emailed_at), not by moving the clock",
+  send_job_match_roundups: "lead 2026-10-25: its Louisiana-day window is proven in emailRoundups.pglite.mjs by rewriting the stored day (last_emailed_day), not by moving the clock",
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
   check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",

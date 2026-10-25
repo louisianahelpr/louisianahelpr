@@ -16,7 +16,7 @@
  * producer is listed below with why. Comments never count. Both lists are exact and two-way.
  * Behaviour (the trigger, a block, the backfill, 3x replay): src/test/pglite/applicationNoticeNamesTheApplicant.pglite.mjs.
  *
- * @mutate supabase/migrations/20261021174935_application_notice_names_the_applicant.sql | v_message := COALESCE(v_applicant, 'Someone') \|\| ' applied to "' \|\| job_title \|\| '"'; | v_message := 'Someone applied to "' \|\| job_title \|\| '"';
+ * @mutate supabase/migrations/20261025182522_application_email_roundup.sql | v_message := COALESCE(v_applicant, 'Someone') \|\| ' applied to "' \|\| job_title \|\| '"'; | v_message := 'Someone applied to "' \|\| job_title \|\| '"';
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | message: `${tipperName} tipped you for a completed job. Thanks for the great work!`, | message: `Someone tipped you for a completed job. Thanks for the great work!`,
  * @mutate supabase/functions/_shared/heldTipRepay.ts | message: `${tipperName} tipped you for a completed job. Thanks for the great work!`, | message: `Someone tipped you for a completed job. Thanks for the great work!`,
  */

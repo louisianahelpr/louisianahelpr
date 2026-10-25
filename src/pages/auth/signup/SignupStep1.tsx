@@ -19,7 +19,7 @@ import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import {
-  suggestEmailCorrection,
+  pendingEmailTypo,
   PASSWORD_RULES,
   PASSWORD_MIN_LENGTH,
   unmetPasswordRules,
@@ -109,7 +109,12 @@ export function SignupStep1({
   // the parent (and the Supabase project) actually enforce — so it waved
   // through passwords it then had to reject with a toast. See PASSWORD_RULES.
   const passwordValid = unmetPasswordRules(password).length === 0;
-  const emailSuggestion = emailValid ? suggestEmailCorrection(email) : null;
+  // The address the member said is right as typed ("Keep it"), so the typo
+  // check stops asking about exactly that address.
+  const [keptEmail, setKeptEmail] = useState<string | null>(null);
+  const emailSuggestion = emailValid ? pendingEmailTypo(email, keptEmail) : null;
+  const suggestedDomain = emailSuggestion ? emailSuggestion.slice(emailSuggestion.lastIndexOf("@") + 1) : "";
+  const typedDomain = email.slice(email.lastIndexOf("@") + 1).trim();
   // Shared by the field border and the message below it, so a field can never
   // show one without the other.
   const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
@@ -118,6 +123,12 @@ export function SignupStep1({
   const handleContinue = () => {
     setAttempted(true);
     if (!emailValid) {
+      emailRef.current?.focus();
+      return;
+    }
+    // A likely typo (gmai.com, icloud.con) stops Continue until it is
+    // answered: the confirmation email to a mistyped domain never arrives.
+    if (emailSuggestion) {
       emailRef.current?.focus();
       return;
     }
@@ -190,7 +201,8 @@ export function SignupStep1({
           <div className="relative">
             <Input ref={emailRef} id="email" type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} enterKeyHint="next" value={email} onChange={(e) => setEmail(e.target.value)} onKeyDown={onEmailKeyDown} required autoComplete="email" aria-invalid={emailError} aria-describedby={emailError ? "signup-email-error" : undefined}
               className={`${inputCls} ${emailValid ? "pr-10" : ""} ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
-            {emailValid && (
+            {/* No green check over a likely typo: it read as "this is right". */}
+            {emailValid && !emailSuggestion && (
               <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
             )}
           </div>
@@ -207,14 +219,24 @@ export function SignupStep1({
             </p>
           )}
           {emailSuggestion && (
-            <button
-              type="button"
-              onClick={() => setEmail(emailSuggestion)}
-              className="block text-left text-ds-11 font-sans"
-              style={{ color: "hsl(var(--bark))" }}
+            <div
+              role={attempted ? "alert" : "status"}
+              data-testid="signup-email-typo"
+              className="rounded-ds-md px-3 py-2.5 space-y-2 text-ds-13 font-sans"
+              style={{ background: "hsl(var(--bark) / 0.08)", color: "hsl(var(--ink-deep))" }}
             >
-              Did you mean <span className="font-semibold underline">{emailSuggestion}</span>?
-            </button>
+              <p>
+                Did you mean <span className="font-semibold break-all">{emailSuggestion}</span>?
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" size="sm" variant="outline" className="rounded-full font-semibold" onClick={() => setEmail(emailSuggestion)}>
+                  Use {suggestedDomain}
+                </Button>
+                <Button type="button" size="sm" variant="outline" className="rounded-full" onClick={() => setKeptEmail(email)}>
+                  Keep {typedDomain}
+                </Button>
+              </div>
+            </div>
           )}
         </div>
         <div className="space-y-2">

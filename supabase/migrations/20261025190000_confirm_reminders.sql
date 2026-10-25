@@ -19,7 +19,8 @@
 --      window (step 1: 1-23 hours old; step 2: 24 hours to 7 days old, and
 --      step 1 queued at least 12 hours ago, or never sent at all); and the
 --      hidden switch confirm_reminders on for the account. service_role only.
---   3. The switch confirm_reminders, created 'testers'.
+--   3. The switch confirm_reminders, created 'testers' (turned on for everyone
+--      by 20261025235208, owner 2026-10-25: "done always for everyone").
 --   4. cron job confirm-reminders, hourly at :17.
 --
 -- Replay-safe: IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT, cron.schedule

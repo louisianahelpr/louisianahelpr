@@ -45,7 +45,8 @@ export interface FinishInBackground<T> {
 /**
  * answerWithin, and when the deadline wins, keep `work` alive (waitUntil) with
  * its late result and late error handled. Returns the result, or null when the
- * caller must be answered now.
+ * caller must be answered now. `work` must never RESOLVE to null itself (that
+ * would read as a timeout); the auth hook's deliver() always returns a Response.
  */
 export async function answerOrFinishInBackground<T>(
   work: Promise<T>,
@@ -59,6 +60,9 @@ export async function answerOrFinishInBackground<T>(
     (error: unknown) => late.onLateError(error),
   );
   if (late.waitUntil) late.waitUntil(finishing);
-  else await late.onNoWaitUntil();
+  // Not awaited: the caller is past its deadline, and a slow alert must not
+  // push its answer later still.
+  // (onNoWaitUntil logs and alerts itself; a failing alert has nowhere left to go.)
+  else void Promise.resolve(late.onNoWaitUntil()).catch(() => undefined);
   return null;
 }

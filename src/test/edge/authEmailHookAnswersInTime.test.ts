@@ -24,7 +24,7 @@
 // @mutate supabase/functions/_shared/answerWithin.ts | export const HOOK_ANSWER_BY_MS = 2_500; | export const HOOK_ANSWER_BY_MS = 4_500;
 // @mutate supabase/functions/_shared/answerWithin.ts |     timer = setTimeout(() => resolve(null), ms); |     void ms;
 // @mutate supabase/functions/_shared/answerWithin.ts |     (error: unknown) => late.onLateError(error), |     () => undefined,
-// @mutate supabase/functions/_shared/answerWithin.ts |   else await late.onNoWaitUntil(); |   else void 0;
+// @mutate supabase/functions/_shared/answerWithin.ts |   else void Promise.resolve(late.onNoWaitUntil()).catch(() => undefined); |   else void 0;
 import { readFileSync } from "node:fs";
 import { describe, expect, it, vi, afterEach } from "vitest";
 import {

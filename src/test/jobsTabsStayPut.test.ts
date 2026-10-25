@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
  * 390). The desktop header wrapper, and the skeleton that stands in for it,
  * carry no left/top inset, only -1px over the panel's border.
  */
+// @mutate src/components/job-card/JobListPage.tsx |               className="shrink-0 -ml-px -mt-px pb-1" |               className="shrink-0 px-5 py-1 pb-1"
 const read = (p: string) => readFileSync(resolve(__dirname, "..", p), "utf8");
 
 function desktopHeaderWrapperClass(src: string): string {
@@ -23,6 +24,7 @@ describe("Jobs tabs stay put between Browse, Posted and Working", () => {
   for (const file of ["components/job-card/JobListPage.tsx", "components/JobsSectionSkeleton.tsx"]) {
     it(`${file}: the desktop header has no left or top inset`, () => {
       const cls = desktopHeaderWrapperClass(read(file)).split(/\s+/);
+      expect(cls.length).toBeGreaterThan(2);
       expect(cls.filter((c) => /^(p|px|pl|py|pt)-/.test(c)), cls.join(" ")).toEqual([]);
       expect(cls).toContain("-ml-px");
       expect(cls).toContain("-mt-px");

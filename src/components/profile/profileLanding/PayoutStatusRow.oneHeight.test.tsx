@@ -14,7 +14,7 @@
  * and the skeleton draws this row's own reserve instead of a fixed bone. The
  * pixel proof (375 and 1440, all three states) is in the commit message.
  *
- * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | <StackedCopy shown="error" setupPaused={setupPaused} /> | <p className="flex-1 min-w-0 text-ds-11">We couldn't check your payout account. Check it before you count on getting paid.</p>
+ * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | <StackedCopy shown="error" /> | <p className="flex-1 min-w-0 text-ds-11">We couldn't check your payout account. Check it before you count on getting paid.</p>
  * @mutate src/components/profile/profileLanding/PayoutStatusRow.tsx | const cell = (s: Shown) => `[grid-area:1/1] ${shown === s ? "" : "invisible"}`.trim(); | const cell = (s: Shown) => (shown === s ? "" : "hidden");
  * @mutate src/components/profile/ProfilePageSkeleton.tsx | <PayoutStatusRow prompt={RESERVE} onSetUp={noop} onRetry={noop} setupPaused={setupPaused} /> | <Skeleton className="h-[52px] rounded-ds-md" />
  */

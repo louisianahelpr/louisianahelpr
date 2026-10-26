@@ -20,7 +20,7 @@ import ReferralSection from "./ReferralSection";
  * invoke never went out.
  */
 const requireBiometricMock = vi.fn<(reason: string, options?: unknown) => Promise<boolean>>();
-// The "Got a friend's code?" card has its own test (EnterReferralCodeCard.test.tsx).
+// The "Referral code" card has its own test (EnterReferralCodeCard.test.tsx).
 vi.mock("@/components/referral/EnterReferralCodeCard", () => ({ EnterReferralCodeCard: () => null }));
 vi.mock("@/lib/biometricGate", () => ({
   requireBiometric: (...args: unknown[]) =>

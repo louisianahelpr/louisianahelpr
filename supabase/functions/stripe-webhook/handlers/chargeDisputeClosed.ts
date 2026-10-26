@@ -410,7 +410,7 @@ export async function handleChargeDisputeClosed(
               : repaid.failed.length > 0
               ? "The payout taken back when it was filed could not be paid back to the Helpr. Pay it by hand from the Admin panel."
               : repaid.held.length + repaid.holdErrors.length > 0
-              ? "The payout taken back when it was filed is paid back to the Helpr automatically once their payout hold is released. Do NOT pay it by hand (it would be paid twice)."
+              ? "The payout taken back when it was filed is paid back to the Helpr automatically once their payout hold is released (or Stripe says their payout account can be paid). Do NOT pay it by hand (it would be paid twice)."
               : repaid.balanceShort.length > 0
               ? "The platform balance was too low to pay back the payout taken when it was filed. Top up the platform balance; it is paid back to the Helpr automatically. Do NOT pay it by hand (it would be paid twice)."
               : nothingTaken
@@ -655,7 +655,7 @@ export async function handleChargeDisputeClosed(
     message:
       outcome === "won"
         ? repaid && repaid.rows > 0
-          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.held.length + repaid.holdErrors.length > 0 ? "not paid back yet: it waits on a payout hold and is re-paid automatically (see the separate alert)" : repaid.balanceShort.length > 0 ? "not paid back yet: the platform balance was too low; top it up and it is re-paid automatically (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
+          ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. The Helpr's clawed-back payout was ${repaid.failed.length > 0 ? "NOT fully paid back (see the separate alert)" : repaid.held.length + repaid.holdErrors.length > 0 ? "not paid back yet: it waits on a payout hold (or a payout account Stripe won't pay) and is re-paid automatically (see the separate alert)" : repaid.balanceShort.length > 0 ? "not paid back yet: the platform balance was too low; top it up and it is re-paid automatically (see the separate alert)" : repaid.neverTaken === repaid.rows ? "never reversed, so nothing was owed back" : "paid back automatically"}.`
           : wonRestoredTo
           ? `Stripe ruled in our favor on a $${(closedDispute.amount / 100).toFixed(2)} chargeback. Funds restored. The job's decided split had not run; its payment state is back to ${wonRestoredTo} so an admin can Retry settlement. Do not release a full payout over it.`
           : wonNeedsHuman

@@ -98,7 +98,7 @@ function seedAgreed() {
   scenario.writeSelectRows.jobs = [{ id: JOB }];
   scenario.rpc.refund_agreement_for_dispute = PROOF;
   stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount_received: 4400, latest_charge: "ch_1" });
-  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true, capabilities: { transfers: "active" } });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_1", transfer_group: `job_${JOB}` });
   stripeMock.refunds.create.mockImplementation(async (p: any) => ({ id: "re_1", amount: p.amount, currency: "usd" }));
 }

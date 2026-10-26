@@ -45,6 +45,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 // exactly as it does for every function that imports it.
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
 // Q1223: lives in _shared (it was stripe-webhook/handlers/_chargebackClawback.ts)
 // so process-scheduled-payouts can re-run a won chargeback's re-payment once a
@@ -828,6 +829,51 @@ export async function repayClawback(
       }
       continue;
     }
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no re-payment unless
+    // Stripe says the account is payable (_shared/livePayoutHold.ts). Treated
+    // like the payout hold above: the debt is marked owed (held_repay_owed_at),
+    // so process-scheduled-payouts' re-drive re-runs this once it clears.
+    // Adopt BEFORE the gate (money review of the live gate, M1): a resumed row
+    // whose re-payment already went out (a lost response) is a settled debt, so
+    // it is claimed and recorded whatever the account reads now; only a NEW
+    // transfer waits for a payable account. An unreadable list falls to the
+    // gate; the claim path below lists again inside its own try.
+    let adoptable: Stripe.Transfer | null = null;
+    if (row.status !== "reversed") {
+      try {
+        adoptable = await existingRepay(stripe, row, dispute.id);
+      } catch (listErr) {
+        // Not fatal here: the gate decides, and the claimed path re-reads the list in its try.
+        logStep("WARNING: re-payment lookup before the live gate failed", { disputeId: dispute.id, transferId: row.original_transfer_id, error: String((listErr as Error)?.message ?? listErr).slice(0, 200) });
+      }
+    }
+    const live = adoptable ? { held: false as const } : await holdUnlessPayable({
+      stripe,
+      supabaseAdmin: supabase,
+      helperId: row.helper_id,
+      accountId: row.stripe_account_id,
+      fn: "chargeback-clawback",
+      what: "a won dispute's re-payment",
+      then: "It is re-paid automatically once Stripe says the account is payable; do NOT pay it by hand.",
+      fields: { job_id: row.job_id, original_transfer_id: row.original_transfer_id, amount_cents: row.reversed_cents },
+    });
+    if (live.held) {
+      const owedNow = new Date().toISOString();
+      const { error: liveMarkErr } = await supabase
+        .from("chargeback_clawbacks")
+        .update({ held_repay_owed_at: owedNow, failure_reason: HELD_REPAY_MARKER, updated_at: owedNow })
+        .eq("id", row.id)
+        .in("status", ["reversed", "repay_failed", "repaying"])
+        .is("held_repay_owed_at", null)
+        .select("id");
+      if (liveMarkErr) throw new Error(`chargeback_clawbacks hold marker failed for ${row.id}: ${liveMarkErr.message}`);
+      if (live.defect) {
+        out.holdErrors.push({ transferId: row.original_transfer_id, error: live.defect });
+      } else {
+        out.held.push(row.original_transfer_id);
+      }
+      continue;
+    }
     // The claim is a compare-and-set on the status AND the updated_at this
     // read saw (second review of Q1223): with a status list alone, a webhook
     // redelivery and the re-drive could both take one row.
@@ -855,7 +901,7 @@ export async function repayClawback(
     try {
       // A resumed row may already have been paid back (a lost response, or a
       // key past Stripe's ~24h window). Adopt that transfer; never pay twice.
-      const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id);
+      const prior = row.status === "reversed" ? null : (adoptable ?? await existingRepay(stripe, row, dispute.id));
       const transfer = prior ?? await stripe.transfers.create(
         {
           amount: row.reversed_cents,
@@ -1020,8 +1066,8 @@ export async function repayClawback(
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "critical",
-      title: "Card dispute WON — the Helpr's payout hold could not be read",
-      message: `Dispute ${dispute.id} was won, but the payout hold of ${out.holdErrors.length} Helpr(s) could not be read, so they were not paid back yet. Each is marked owed and is re-paid automatically by process-scheduled-payouts once the hold reads clear; do NOT pay it by hand (it would be paid twice). Check the payout_holds read.`,
+      title: "Card dispute WON — the Helpr's payout hold (or payout account) could not be read",
+      message: `Dispute ${dispute.id} was won, but the payout hold, or the Stripe payout account, of ${out.holdErrors.length} Helpr(s) could not be read, so they were not paid back yet. Each is marked owed and is re-paid automatically by process-scheduled-payouts once both read clear; do NOT pay it by hand (it would be paid twice). Each row says which read failed ("payout hold check failed" = the payout_holds read; "live payout gate" = Stripe).`,
       fields: {
         "Dispute ID": dispute.id,
         "Job ID": job.id,
@@ -1034,8 +1080,8 @@ export async function repayClawback(
     await postSlackOpsAlert({
       kind: "payout_failed",
       severity: "warning",
-      title: "Card dispute WON — Helpr re-pay waits on a payout hold",
-      message: `Dispute ${dispute.id} was won. ${out.held.length} clawed-back amount(s) belong to a Helpr on a payout hold; they are re-paid automatically by process-scheduled-payouts once the hold is released. Do NOT pay it by hand (it would be paid twice).`,
+      title: "Card dispute WON — Helpr re-pay waits on a payout hold or a payout account Stripe won't pay",
+      message: `Dispute ${dispute.id} was won. ${out.held.length} clawed-back amount(s) belong to a Helpr on a payout hold, or whose payout account Stripe does not say is payable (see the "Payout held" alert); they are re-paid automatically by process-scheduled-payouts once that clears. Do NOT pay it by hand (it would be paid twice).`,
       fields: { "Dispute ID": dispute.id, "Job ID": job.id, "Transfers": out.held.join(", ").slice(0, 900) },
       oncePerDayKey: `clawback-repay-held:${dispute.id}`,
     });

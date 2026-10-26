@@ -40,6 +40,7 @@ const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
  */
 const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warning_needs_response", "warning_under_review", "won"]);
 import { checkPayoutHold } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, isPartyRefusal, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
@@ -604,7 +605,7 @@ serve(async (req) => {
     };
 
     const payHelperCancellationFee = async (
-      job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
+      job: { id: string; title: string; helper_id: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null; is_seed?: boolean | null },
       cancellationFee: number,
       /**
        * Q1806: null for a fully gift-funded job (no card was charged). The fee
@@ -828,6 +829,28 @@ serve(async (req) => {
         return true;
       }
 
+      // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer
+      // unless Stripe says the Helpr's account is payable
+      // (_shared/livePayoutHold.ts). The same exit as a payout hold above.
+      const feeLive = await holdUnlessPayable({
+        stripe,
+        supabaseAdmin,
+        helperId,
+        accountId: helperProfile.stripe_account_id,
+        fn: "void-cancelled-payments",
+        what: "a cancellation fee",
+        then: "The hourly run retries it.",
+        seed: job.is_seed === true,
+        fields: { job_id: job.id, fee_row: `${feeRow.id}`, amount: helperPayout },
+      });
+      if (feeLive.held) {
+        // The row stays 'pending' (Part E retries it) and says why, so the
+        // reconciler's "read failure_reason" has an answer (review #7).
+        await markFeeRow(job.id, feeRow, { failure_reason: `payee_not_payable: ${feeLive.kind}` }, `held (payee_not_payable: ${feeLive.kind})`);
+        if (feeLive.defect) defects.record(`cancellation fee ${job.id}: ${feeLive.defect}`);
+        return true;
+      }
+
       // ── 7. Transfer, keyed to the row; then mark it. ──
       try {
         const transferParams: Record<string, unknown> = {
@@ -1013,6 +1036,8 @@ serve(async (req) => {
         crew_share_retry?: boolean;
         /** The poster, told when a share goes back (Part D). */
         customer_id?: string | null;
+        /** A test job: the live-gate page routes as seed (holdUnlessPayable). */
+        is_seed?: boolean | null;
       },
       shares: CrewShare[],
       /** Q1806: null for a fully gift-funded crew (paid from the platform balance the gift paid into). */
@@ -1317,6 +1342,24 @@ serve(async (req) => {
           });
           continue;
         }
+        // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer
+        // unless Stripe says the member's account is payable. The same exit as
+        // a payout hold above: not paid this run, retried.
+        const shareLive = await holdUnlessPayable({
+          stripe,
+          supabaseAdmin,
+          helperId: share.helper_id,
+          accountId: memberProfile.stripe_account_id,
+          fn: "void-cancelled-payments",
+          what: "a crew cancellation-fee share",
+          then: "The run retries it while the share stays unpaid.",
+          seed: job.is_seed === true,
+          fields: { job_id: job.id, share_id: share.id, amount: memberPayout },
+        });
+        if (shareLive.held) {
+          if (shareLive.defect) defects.record(`crew fee share ${share.id}: ${shareLive.defect}`);
+          continue;
+        }
 
         try {
           const transferParams: Record<string, unknown> = {
@@ -1376,7 +1419,7 @@ serve(async (req) => {
     // ── Part A: Cancelled jobs still in escrow ──
     const { data: cancelledJobs, error } = await supabaseAdmin
       .from("jobs")
-      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
+      .select("id, title, stripe_session_id, stripe_payment_intent_id, budget, customer_fee_amount, platform_fee_percent, onboarding_fee_amount, cancellation_fee, date_needed, start_time, cancelled_at, is_seed, helper_id, helper_confirmed_at, customer_id, helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days")
       .eq("status", "cancelled")
       .eq("payment_status", "escrow");
 
@@ -1750,7 +1793,7 @@ serve(async (req) => {
       if (crewRetryShares.size > 0) {
         const { data: settledJobs, error: settledErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id, customer_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id, customer_id, is_seed")
           .in("id", [...crewRetryShares.keys()])
           // Only a job whose fee Part A captured: one still in escrow is Part A's own.
           // Q1806: 'cancelled' is a fully gift-funded crew whose fee Part A kept
@@ -1793,7 +1836,7 @@ serve(async (req) => {
       if (feeRetryRows.size > 0) {
         const { data: feeJobs, error: feeJobsErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, cancellation_fee_status, stripe_payment_intent_id, is_seed")
           .in("id", [...feeRetryRows.keys()])
           // Only a job Part A already settled: one still in escrow is Part A's own.
           // Q1806: 'cancelled' is a fully gift-funded job whose fee Part A kept

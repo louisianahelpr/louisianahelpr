@@ -6,6 +6,7 @@ import { loadAdminIds } from "../_shared/adminIds.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { seedBoundaryDropsRow } from "../_shared/seedBoundary.ts";
 import { loadJobPayoutHolds, loadPayoutHolds, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { CONNECT_HOLD_SPLIT_ERROR } from "../_shared/livePayoutGate.ts";
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { REFUND_AGREEMENT_HELD_ERROR, loadStillHeldAgreements } from "../_shared/refundRequestHold.ts";
 import { serve } from "../_shared/buildStamp.ts";
@@ -1005,6 +1006,26 @@ serve(async (req) => {
                 }
                 stuck = stuck.filter((row) => !stillHeld.disputes.has(row.id as string));
               }
+            }
+
+            // ── Live payout gate holds (money review of the live gate, M2) ──
+            // execute-dispute-split holds a split BEFORE any leg moves when
+            // Stripe does not say the Helpr's account is payable (rejected,
+            // not payable, unusable, or Stripe refusing our platform) and
+            // records CONNECT_HOLD_SPLIT_ERROR. Nothing moved, so it is not
+            // "half-moved": set aside (body only). The dispute stays failed in
+            // the admin queue, and a retry re-runs the gate (ops hear once a
+            // day). An unexplained "could not verify" is not this and pages.
+            {
+              const connectHeldIds = new Set(
+                stuck
+                  .filter((row) => row.execution_status === "failed" && typeof row.execution_error === "string" && (row.execution_error as string).startsWith(CONNECT_HOLD_SPLIT_ERROR))
+                  .map((row) => row.id as string),
+              );
+              for (const row of stuck) {
+                if (connectHeldIds.has(row.id as string)) heldStuckSplits.push({ id: row.id as string, job_id: row.job_id as string });
+              }
+              stuck = stuck.filter((row) => !connectHeldIds.has(row.id as string));
             }
 
             // ── Job payout holds (Q1491) ───────────────────────────────────

@@ -20,7 +20,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { testModeUnderLiveKey, captureTestModeSkips } from "../helpers/testModeUnderLiveKey";
@@ -138,7 +138,7 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 
@@ -413,7 +413,7 @@ describe("void-cancelled-payments — a fee owed across Stripe modes goes back t
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 
@@ -529,7 +529,7 @@ describe("void-cancelled-payments — a poster-fee job keeps the card cost only 
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 

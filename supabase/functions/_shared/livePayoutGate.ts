@@ -33,7 +33,7 @@
 // No remote import on purpose: src/test/livePayoutGateClassifiesRejections.test.ts
 // imports this module, so the app project compiles it (tsconfig.app.json lists
 // it). The Stripe shapes it reads are declared structurally below.
-import { isTestObjectUnderLiveKey, isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts";
+import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 
 /**
  * release-payout's 409 codes for a payout it refused before any transfer
@@ -41,6 +41,14 @@ import { isTestObjectUnderLiveKey, isUnusableConnectAccountError } from "../_sha
  * reads them as a HELD payout (like PAYOUT_HELD_CODE), not a failed attempt:
  * ops are told once a day per Helpr here, so no give-up page per job.
  */
+/**
+ * The execution_error execute-dispute-split records when the live gate holds a
+ * split BEFORE any leg moves (money review of the live gate, M2):
+ * auto-resolve-disputes sets such a split aside (body only) instead of paging
+ * "money may be half-moved", as it does for a payout hold. A read that failed
+ * for an unknown reason ("could not verify") is not this, and still pages.
+ */
+export const CONNECT_HOLD_SPLIT_ERROR = "nothing moved: Stripe does not say the Helpr's payout account is payable";
 export const CONNECT_REJECTED_CODE = "connect_account_rejected";
 export const CONNECT_NOT_PAYABLE_CODE = "connect_account_not_payable";
 export const STRIPE_PLATFORM_REJECTED_CODE = "stripe_platform_rejected";
@@ -122,9 +130,15 @@ export async function readLivePayoutGate(stripe: ConnectAccountReader, accountId
     const message = errMessage(e);
     if (isPlatformRejectedError(e)) return { ok: false, kind: "platform_rejected", reason: message };
     if (isRejectedAccountError(e)) return { ok: false, kind: "rejected", reason: message };
-    // A test-mode OBJECT id under the live key is a stored-id mismatch, not a fact
-    // about a live account: it is not "unusable" here, only unverifiable.
-    if (!isTestObjectUnderLiveKey(e) && isUnusableConnectAccountError(e)) return { ok: false, kind: "unusable", reason: message };
+    // Gone, or a sandbox account id under the live key: no retry ever reads it,
+    // so it is "unusable" (set up again), never "cannot verify" ("retry"), as
+    // execute-dispute-split and release-payout answered before (Q1251).
+    if (isUnusableConnectAccountError(e)) {
+      // A sandbox id under the live key keeps its own breadcrumb (lh-silent-failure
+      // review of the live gate, LOW): the stored-id mismatch is named, not only "held".
+      if (isTestObjectUnderLiveKey(e)) logTestObjectUnderLiveKey("livePayoutGate", { account_id: accountId, reason: message });
+      return { ok: false, kind: "unusable", reason: message };
+    }
     return { ok: false, kind: "cannot_verify", reason: message };
   }
   if (!account || typeof account !== "object") return { ok: false, kind: "cannot_verify", reason: "Stripe returned no account" };

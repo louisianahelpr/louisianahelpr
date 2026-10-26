@@ -21,7 +21,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import {
   scenario,
   resetSupabaseMock,
@@ -85,7 +85,7 @@ function seedAuth(s: SupabaseScenario, user: typeof POSTER) {
 describe("create-payment edge function", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });
@@ -779,7 +779,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts | { customer_fee_amount: redeemFeeCents / 100 }); | { customer_fee_amount: redeemFeeCents / 100 + 0.45 });
       it("F3b: an urgent gift shortfall charges the shortfall only, no card-fee line", async () => {
         for (const [urgent, diff] of [[30, 4000], [250, 4000]] as const) {
-          resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+          resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSupabaseMock(); resetSharedMocks();
           seedGiftShortfall();
           scenario.reads.jobs = {
             rows: [{ id: "job-1", customer_id: POSTER.id, budget: 100, category: "cleaning", title: "Clean my house", payment_status: "unpaid", is_urgent: true, urgent_fee: urgent }],
@@ -1049,7 +1049,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), urgentFeeCents, escrowHelprCount); |       const escrowFlatFeeCents = jobFlatFeeTotalCents(Math.round(job.budget * 100), 0, escrowHelprCount);
       it("F3b: an urgent post charges budget + bonus only, and stores no card fee", async () => {
         for (const [budget, urgent] of [[100, 15], [20, 250]] as const) {
-          resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+          resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSupabaseMock(); resetSharedMocks();
           seedUrgentJob({ budget, is_urgent: true, urgent_fee: urgent });
           await run();
           const args = stripeMock.checkout.sessions.create.mock.calls.slice(-1)[0][0];
@@ -1087,7 +1087,7 @@ describe("create-payment edge function", () => {
         expect(modelStamp?.platform_fee_amount).toBe(13.59);
         expect(sessionStamp?.platform_fee_amount).toBe(13.59);
         // A single Helpr on the same price still pays one 10% + 70c: $12.20.
-        resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+        resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSupabaseMock(); resetSharedMocks();
         seedUrgentJob({ budget: 100, is_urgent: true, urgent_fee: 15, status: "open" });
         await run();
         const single = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" && "customer_fee_amount" in (w.payload as object)).slice(-1)[0]?.payload as Record<string, unknown>;
@@ -2156,6 +2156,27 @@ describe("create-payment edge function", () => {
         scenario.writes.some((w) => w.table === "tips" && w.op === "insert"),
       ).toBe(true);
     });
+
+    // Lead 2026-10-23: a tip is a destination charge; Stripe refuses it when
+    // the Helpr's account cannot receive money. Loud, not silent: the poster
+    // gets a plain sentence (not the generic 500) and ops an alert (error_logs);
+    // no tips row is written. Stripe-refused, handled.
+    // @mutate supabase/functions/create-payment/index.ts |         if (refused) throw new PublicError(refused); |         if (false) throw new PublicError(refused);
+    it("a tip to a Helpr whose account Stripe refuses: a plain sentence, an ops alert, no tips row (Stripe-refused, handled)", async () => {
+      seedAuth(scenario, POSTER);
+      scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: POSTER.id, helper_id: HELPER.id, status: "completed", title: "Mow lawn" }] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      stripeMock.checkout.sessions.create.mockRejectedValue(Object.assign(
+        new Error("Your destination account needs to have at least one of the following capabilities enabled: transfers, crypto_transfers, legacy_payments"),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      ));
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "tip", jobId: "job-1", amount: 15 } }));
+      expect(res.status).not.toBe(200);
+      expect((await json(res)).error).toBe("Your Helpr's payout account can't receive tips right now, so your tip wasn't sent. Nothing was charged.");
+      expect(scenario.writes.some((w) => w.table === "tips" && w.op === "insert")).toBe(false);
+      expect((slackAlerts as Array<{ oncePerDayKey?: string }>).some((a) => a.oncePerDayKey === `destination-charge-refused-${HELPER.id}`)).toBe(true);
+    });
   });
 
   // A crew has no lead (Q407): the poster tips a named MEMBER of the roster.
@@ -2374,7 +2395,7 @@ describe("create-payment edge function", () => {
       ];
       for (const c of cases) {
         resetSupabaseMock();
-        resetStripeMock();
+        resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
           rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: c.fee }],
@@ -3243,6 +3264,49 @@ describe("create-payment edge function", () => {
       expect((jobUpdate?.payload as Record<string, unknown>).payment_status).toBe(
         "released",
       );
+    });
+
+    // Lead 2026-10-23: no dispute release to an account Stripe rejected.
+    // @mutate supabase/functions/create-payment/index.ts |   if (live.held) { |   if (false) {
+    it("admin_release_dispute to a Helpr whose account Stripe rejected moves nothing and says why", async () => {
+      seedAuth(scenario, ADMIN);
+      scenario.rpc.has_role = true;
+      scenario.reads.jobs = {
+        rows: [
+          {
+            id: "job-1",
+            customer_id: POSTER.id,
+            helper_id: HELPER.id,
+            status: "disputed",
+            budget: 100,
+            urgent_fee: 0,
+            platform_fee_amount: 10,
+            title: "Disputed job",
+            stripe_payment_intent_id: "pi_d",
+          },
+        ],
+      };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.reads.user_roles = { rows: [] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d", status: "succeeded", latest_charge: "ch_d" });
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_d" });
+      const fn = await load();
+      const res = await fn.fetch(
+        fn.request({
+          headers: AUTH,
+          body: { action: "admin_release_dispute", jobId: "job-1" },
+        }),
+      );
+      expect((await json(res)).error).toMatch(/can't receive money right now, so no money was moved/i);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const released = scenario.writes.find(
+        (w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "released",
+      );
+      expect(released).toBeUndefined();
     });
 
     it("admin_refund_dispute refunds the poster minus the non-refundable Stripe fee and marks the job refunded", async () => {
@@ -5652,7 +5716,7 @@ describe("create-payment edge function", () => {
         expect(stuck()).toHaveLength(0);
         expect(slackAlerts.filter((a) => /claim/i.test(String((a as { title?: string }).title)))).toHaveLength(0);
 
-        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
         seedFull();
         putBackMisses();
         scenario.reads.jobs.selectOverrides = [{ includes: "status, payment_status", result: { rows: [{ status: "disputed", payment_status: "cancelling" }] } }];
@@ -5672,7 +5736,7 @@ describe("create-payment edge function", () => {
         const putBack = () => scenario.writes.some((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "payout_pending");
         expect(putBack()).toBe(true);
 
-        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
         seedFull();
         stripeMock.refunds.create.mockRejectedValueOnce(Object.assign(new Error("socket hang up"), { type: "StripeConnectionError" }));
         res = await call();
@@ -5712,7 +5776,7 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(200);
         expect(scenario.writes.find((w) => w.table === "job_refund_claims")?.payload).toMatchObject({ job_id: "job-1", claimed_by: "admin_refund_general" });
 
-        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
         seedFull("cancelling");
         scenario.reads.job_refund_claims = { rows: [{ claimed_by: "admin_refund_general", claimed_at: new Date(Date.now() - 3600_000).toISOString() }] };
         res = await call();
@@ -5733,7 +5797,7 @@ describe("create-payment edge function", () => {
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
         expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "payout_pending")).toBe(true);
 
-        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
         seedFull();
         scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
         res = await call();
@@ -6028,7 +6092,7 @@ describe("create-payment: recurring_visit (Q210b)", () => {
 
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
     vi.useFakeTimers({ toFake: ["Date"] });
@@ -6171,7 +6235,7 @@ describe("create-payment: recurring_visit (Q210b)", () => {
 describe("create-payment: the admin refunds give the gift card back (Q454)", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
     seedAuth(scenario, ADMIN);

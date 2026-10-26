@@ -23,7 +23,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
@@ -103,7 +103,7 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
   beforeEach(() => {
     resetEnv();
     resetSupabaseMock();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSharedMocks();
   });
 

@@ -1,17 +1,17 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 940,
+    "calls": 941,
     "files": 243,
     "rendering": 808,
-    "suppressedByPolicy": 132,
+    "suppressedByPolicy": 133,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 65,
       "toast.error": 674,
-      "toast.info": 2,
+      "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 136,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 435,
       "template": 100,
-      "dynamic": 454,
+      "dynamic": 455,
       "jsx": 0
     }
   },
@@ -5247,11 +5247,38 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 307,
+      "line": 299,
       "kind": "toast.info",
       "title": {
         "form": "template",
         "text": "That job is no longer in ${tab === \"posted\" ? \"Posted\" : \"Working\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/JobListPage.tsx",
+      "line": 301,
+      "kind": "toast.info",
+      "title": {
+        "form": "dynamic",
+        "text": "notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId))",
+        "from": "src/components/job-card/useManageDeepLink.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "job && jobIsUnfundedDraft(job) ? \"That job isn't paid yet, so it isn't on Posted. Open it to finish paying.\" : \"That job is no longer in Posted.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "That job isn't paid yet, so it isn't on Posted. Open it to finish paying."
+              },
+              {
+                "form": "literal",
+                "text": "That job is no longer in Posted."
+              }
+            ]
+          }
+        ]
       },
       "renders": false
     },

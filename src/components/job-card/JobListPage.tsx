@@ -13,7 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
-import { useManageDeepLink } from "./useManageDeepLink";
+import { notOnPostedCopy, onPostedList, useManageDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
 import { useToastClearance } from "@/hooks/useToastClearance";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
@@ -74,23 +74,14 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     defaultTab === "applied" ? (searchParams.get("highlight") ?? null) : null,
   );
 
-  // The POSTER-side twin of `highlightAppId`.
-  //
-  // Both tabs get the same `?job=` link out of notificationDestination(), and
-  // only the applied branch below did anything visual with it: it resolved the
-  // bucket AND set `highlightAppId`, so the card scrolled into view and
-  // pulsed. The posted branch resolved the bucket and stopped — so "3 people
-  // applied to your job" dropped the poster on a list where the named job sat
-  // 4th of 5, unmarked and usually below the fold, and the reader had to
-  // re-find by title the job the notification had just named.
-  //
-  // Keyed by JOB id, not application id: on the posted tab the deep link's
-  // subject IS the job, and PostedJobCard is rendered one-per-job. Seeded from
-  // `?highlight=` too, so a posted-side link may name its target either way.
+  // The POSTER-side twin of `highlightAppId`, keyed by JOB id (PostedJobCard is one-per-job): a `?job=` or
+  // `?highlight=` link scrolls to and pulses the named card instead of leaving the poster to re-find it by title.
   const [highlightJobId, setHighlightJobId] = useState<string | null>(() =>
     defaultTab === "posted" ? (searchParams.get("highlight") ?? null) : null,
   );
   const manageJobId = defaultTab === "posted" && searchParams.get("manage") === "1" ? searchParams.get("highlight") : null;
+  // `&applicants=1` (the job page's "Review N applicants"): open that job's applicants, not just its card.
+  const applicantsJobId = defaultTab === "posted" && searchParams.get("applicants") === "1" ? searchParams.get("highlight") : null;
 
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //
@@ -161,6 +152,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     const next = new URLSearchParams(searchParams);
     next.delete("highlight");
     next.delete("manage");
+    next.delete("applicants");
     setSearchParams(next, { replace: true });
     // Run once on mount — both ids are stable here (useState initial values;
     // the posted branch's later setHighlightJobId cannot fire before this).
@@ -305,6 +297,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     // it chooses exactly as it does for a plain open.
     if (deepLinkJobId && !onList) {
       toast.info(`That job is no longer in ${tab === "posted" ? "Posted" : "Working"}.`);
+    } else if (tab === "posted" && highlightJobId && !onList) {
+      toast.info(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
     }
 
     const next = new URLSearchParams(searchParams);
@@ -338,6 +332,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   });
 
   useManageDeepLink(manageJobId, postedJobs, actions);
+  useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList);
   const toastClearance = useToastClearance();
 
   // Status-filter definitions + memoized list/count derivations.

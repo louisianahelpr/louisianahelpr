@@ -8,7 +8,7 @@
  * never overlap; each tip is its column + 4px). This guard pins the two facts that proof depends on, so the next
  * edit to the row cannot quietly undo them: the half-gap classes match the grid's gap, and the skip stays gone.
  *
- * @mutate src/components/tracker/JobProgress.tsx | block w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | block w-full min-h-[44px]
+ * @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
  * @mutate src/components/tracker/JobProgress.tsx | className="job-steps-grid grid gap-1" | className="job-steps-grid grid gap-2"
  */
 import { describe, it, expect } from "vitest";

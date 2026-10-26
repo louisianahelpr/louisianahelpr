@@ -11,7 +11,7 @@ import type { BrowserContext, Page } from "@playwright/test";
 import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
 
 // Q2369: the tracker's step tip reaches into half the grid gap on each side (44px at 375, no overlap).
-// @mutate src/components/tracker/JobProgress.tsx | block w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | block w-full min-h-[44px]
+// @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
 
 /**
  * Messages: the bottom nav must never disappear over the INBOX, and the

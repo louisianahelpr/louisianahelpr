@@ -29,6 +29,8 @@
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { boundedFetch } from "../_shared/boundedFetch.ts";
+import { memberDisplayName } from "../_shared/memberDisplayName.ts";
 import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -78,6 +80,8 @@ serve(async (req) => {
     const db = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       (Deno.env.get("SECRET_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) ?? "",
+      // A hung read must not eat the cron's run (Q592): reads are bounded and retried, writes are not.
+      { global: { fetch: boundedFetch() } },
     );
     const stripes = createStripeModeResolver(db, (key) => new Stripe(key, { apiVersion: "2025-08-27.basil" }));
     const defects = defectTracker();
@@ -426,8 +430,9 @@ async function completePendingCrewConfirms(deps: Deps, job: HoldJob, defects: De
     if (seatErr) throw new Error(`job ${job.id}: captured, but crew seat ${r.slot_id} was not confirmed: ${seatErr.message}`);
     if ((confirmed ?? []).length > 0) {
       const { data: prof, error: profErr } = await db.from("profiles").select("full_name").eq("user_id", r.helper_id).maybeSingle();
-      if (profErr) defects.record(`job ${job.id}: member name not read for the confirm notice (${profErr.message}); "Someone" used`);
-      const name = (prof as { full_name?: string | null } | null)?.full_name?.trim().split(/\s+/)[0] || "Someone";
+      if (profErr) defects.record(`job ${job.id}: member name not read for the confirm notice (${profErr.message}); the fallback name was used`);
+      // "First L." (the member-name rule, Q2292), as complete_pending_crew_confirms_on_setup writes it in SQL.
+      const name = memberDisplayName((prof as { full_name?: string | null } | null)?.full_name, "Someone");
       const title = job.title ?? "the job";
       const landed = await insertNotifications(db, [
         { user_id: r.helper_id, job_id: job.id, title: "You're all set", type: "job_updates", link: `/jobs?job=${job.id}`,

@@ -128,6 +128,7 @@
     "get_jobs_for_my_applications()": "client",
     "get_messaging_closes_at(uuid[])": "client",
     "get_muted_threads(jsonb)": "client",
+    "get_my_job_card_hold(uuid)": "reviewed 2026-10-25 (Q2399): card hold at post (20261026001019) client RPC behind the card_hold_at_post switch (require_feature first); returns only the caller's OWN job's hold (jobs.customer_id = auth.uid()): state, amount, place_at, capture_before; no other member's data.",
     "get_my_job_quotes()": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
     "get_my_pending_direct_offers()": "client",
     "get_my_quote_requests()": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",

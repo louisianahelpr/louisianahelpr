@@ -74,7 +74,7 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     expect(a).toMatch(/AND NOT EXISTS \(SELECT 1 FROM public\.crew_block_fees b WHERE b\.job_id = v_job_id AND b\.slot_no = s\);/);
     const view = newestBrowseView();
     // Q1401 (20261012185633_listing_closes_at_start.sql) restates the view with the listing's start filter; the spot counts ride along.
-    expect([THIS, "20261012185633_listing_closes_at_start.sql", "20261015034054_open_jobs_browse_fee_stamp.sql", "20261025235701_browse_carries_helper_fee_percent.sql"]).toContain(view.file);
+    expect([THIS, "20261012185633_listing_closes_at_start.sql", "20261015034054_open_jobs_browse_fee_stamp.sql", "20261025235701_browse_carries_helper_fee_percent.sql", "20261026001019_card_hold_at_post.sql"]).toContain(view.file);
     // Both inline copies of the spot count (the column and the WHERE).
     expect(view.sql.match(/- \(SELECT count\(\*\)::integer AS count FROM crew_block_fees b WHERE b\.job_id = jobs\.id\)\)/g) ?? []).toHaveLength(2);
     expect(view.sql).toMatch(/WITH \(security_invoker = false\)/);

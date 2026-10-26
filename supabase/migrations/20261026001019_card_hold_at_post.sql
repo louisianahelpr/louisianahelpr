@@ -286,6 +286,17 @@ ALTER TABLE public.job_card_holds ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.job_card_holds FROM PUBLIC, anon, authenticated;
 GRANT ALL ON public.job_card_holds TO service_role;
 
+-- Q807: the unconfirmed-email write gate on every new public table (it
+-- attaches to every table that lacks it; members have no privilege here
+-- anyway, so it only states the rule).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
+
 -- A job whose card is still held (or about to be) is never deleted: its
 -- authorization would be stranded with nothing left to release it
 -- (lh-money-escrow review #11). Cancel the job first; the release follows.
@@ -357,7 +368,7 @@ BEGIN
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('card-hold-sweep', '3-59/10 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'card-hold-sweep')
+    PERFORM cron.schedule('card-hold-sweep', '7-59/10 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'card-hold-sweep')
   FROM (
       SELECT net.http_post(timeout_milliseconds := 90000,
         url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)
@@ -2080,3 +2091,72 @@ $function$;
 -- open_jobs_browse's grants, as its newest migration (20261015034054) states them.
 REVOKE ALL ON public.open_jobs_browse FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON public.open_jobs_browse TO anon, authenticated;
+
+-- ─── 10. A banned account's held job settles as no money ───────────────────
+-- ban_settlement_action, newest definition
+-- 20260927012808_permanent_ban_ends_recurring_series.sql verbatim except the
+-- Q2399 lines: every jobs_payment_status_check value must sit in one money
+-- bucket (src/test/banSettlesOneOffJobs.test.ts), and 'held' is new above.
+CREATE OR REPLACE FUNCTION public.ban_settlement_action(
+  p_seat text,              -- 'poster' | 'helpr'
+  p_status text,            -- jobs.status
+  p_payment_status text,    -- jobs.payment_status (NULL = never paid)
+  p_work_started boolean,
+  p_is_crew boolean,
+  p_is_series boolean
+)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+SET search_path TO ''
+AS $fn$
+  SELECT CASE
+    -- Money review 2026-09-27 HIGH-1: only what end_series_for_banned_account
+    -- owns is the series lane: a visit (or the series) not yet started, and a
+    -- cancelled one (refunded by the series_ban_cancelled_at marker). A
+    -- banned Helpr's finished visit still in escrow, a disputed visit and a
+    -- started one take the one-off matrix below, like any job.
+    WHEN p_is_series
+         AND ((p_status IN ('open', 'accepted') AND NOT COALESCE(p_work_started, false))
+              OR p_status = 'cancelled')
+      THEN 'series_lane'
+    WHEN p_seat IS NULL OR p_seat NOT IN ('poster', 'helpr') THEN 'unhandled'
+    -- The money buckets. Every jobs_payment_status_check value is in exactly
+    -- one of NO_MONEY / HELD / MOVING; any other value is 'unhandled'.
+    -- Q2399: 'held' (the card is only authorized) is NO_MONEY: nothing was
+    -- collected and a held job is never hired (jobs_held_is_never_hired), so
+    -- a banned poster's held job is cancelled with no fee (cancel_no_money)
+    -- and card-hold-sweep releases the authorization on the closed job.
+    WHEN NOT (COALESCE(p_payment_status, 'unpaid') IN ('unpaid', 'abandoned', 'failed', 'cancelled', 'held') -- NO_MONEY
+              OR p_payment_status IN ('escrow')                                                              -- HELD
+              OR p_payment_status IN ('cancelling', 'payout_pending', 'released', 'refunded',
+                                      'chargeback'))                                                         -- MOVING
+      THEN 'unhandled'
+    WHEN p_status = 'disputed' THEN 'escalate_dispute'
+    WHEN p_status = 'completed' THEN
+      CASE WHEN p_seat = 'helpr' AND p_payment_status IN ('escrow', 'payout_pending')
+           THEN 'admin_review' ELSE 'none_finished' END
+    WHEN p_status = 'cancelled' THEN
+      CASE WHEN p_seat = 'helpr' AND p_payment_status = 'escrow'
+           THEN 'admin_review' ELSE 'none_settling' END
+    WHEN p_status IN ('open', 'pending_approval', 'accepted', 'in_progress', 'revision_requested') THEN
+      CASE
+        WHEN COALESCE(p_is_crew, false) THEN 'admin_review'
+        WHEN p_payment_status IN ('cancelling', 'payout_pending', 'released', 'refunded',
+                                  'chargeback') THEN 'admin_review'
+        WHEN p_payment_status = 'escrow' AND COALESCE(p_work_started, false)
+             AND p_status IN ('accepted', 'in_progress', 'revision_requested') THEN 'hold_dispute'
+        WHEN p_seat = 'poster' THEN
+          CASE WHEN p_payment_status = 'escrow' THEN 'cancel_priced' ELSE 'cancel_no_money' END
+        -- helpr: enforce_job_status_transition has no edge from
+        -- pending_approval or revision_requested to open, and neither holds a
+        -- Helpr with no work and no money in practice, so a person looks.
+        WHEN p_status IN ('pending_approval', 'revision_requested') THEN 'admin_review'
+        ELSE 'reopen'
+      END
+    ELSE 'unhandled'
+  END
+$fn$;
+
+REVOKE ALL ON FUNCTION public.ban_settlement_action(text, text, text, boolean, boolean, boolean) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.ban_settlement_action(text, text, text, boolean, boolean, boolean) TO service_role;

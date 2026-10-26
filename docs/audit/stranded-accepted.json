@@ -4774,8 +4774,8 @@
     {
       "id": "remote:origin/wip/builder2h-jobs-141-exact",
       "sha": "88a6d0ea6a1e3d3b9f23246e48e6efa36421194c",
-      "reason": "NOT on main: board 141 refund requests (refund_requests migration, RPCs, come back and finish). Pending: handoff-141 / docs/OPEN.md Q2272 (board 141 refund requests), with the owner's amount rule still open; most of it is also carried by ready/builder2h-jobs-141.",
-      "checked": "2026-10-21 (stranded-triage-1021: content-checked against origin/main db1d8b8973 with scripts/lib/strandedContent.mjs unlandedContent; commits matched to main by subject with Q numbers ignored; every leftover line looked up in main's own history of the same file since the merge base (git log -p) and in main's copy of the file)"
+      "reason": "Landed on main as e99ca74056 (2026-10-21, \"feat(jobs,money): refund requests between a job's poster and its Helpr, settled automatically on agreement (board 141, Jobs side)\"), which its message says is squashed from this branch's 16a53b7e72 + 50c7f4acf4 + the status note, rebuilt on main. Both NOT DONE items of the status note are done there: the owner's rush ruling (a part refund returns the rush fee in the same share as the price: _shared/refundRush.ts agreedRushRefundCents, SQL refund_request_rush_back_cents) and the lh-money-escrow re-review (approve with nits). The branch's 20261021133345_export_my_data_refund_requests.sql was deliberately dropped (landed after 20261021141852 it would have put drop_stop_cents back in the export) for 20261021184925. Its leftover lines are the pre-ruling rush rule (the Helpr keeps the whole rush fee, superseded by the owner), Q2300 references renumbered Q2326, and code main has since reworded. Still open on main: Q2272 (Declutter side, paused by the owner), Q2298 and Q2326 [~] (tick on their done-when tests).",
+      "checked": "2026-10-26 (branch-finisher: every added line of every file the branch changes looked up in origin/main 3376e60ea0's copy; the leftovers read one by one; e99ca74056's message matched to the branch's commits)"
     },
     {
       "id": "remote:origin/wip/builder2h-jobs-20",

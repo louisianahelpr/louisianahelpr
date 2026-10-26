@@ -178,6 +178,7 @@ function seedExecutable(
     id: "acct_helper",
     payouts_enabled: true,
     charges_enabled: true,
+    capabilities: { transfers: "active" },
   });
   stripeMock.transfers.create.mockResolvedValue({
     id: "tr_1",
@@ -754,6 +755,41 @@ describe("execute-dispute-split edge function", () => {
       // The claim is walked back to a re-claimable 'failed' with the reason.
       const last = writesTo("disputes").pop();
       expect(last).toMatchObject({ execution_status: "failed" });
+    });
+
+    // Lead 2026-10-23: the split read payouts/charges only, so a REJECTED
+    // account whose flags still read true was paid.
+    // @mutate supabase/functions/execute-dispute-split/index.ts |     if (live.held) { |     if (false) {
+    // @mutate supabase/functions/execute-dispute-split/index.ts |         `${CONNECT_HOLD_SPLIT_ERROR} (${live.kind === "platform_rejected" |         `(${live.kind === "platform_rejected"
+    it("refuses an account Stripe rejected even when its flags read enabled: 409 connect_account_rejected, nothing moved", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        id: "acct_helper",
+        payouts_enabled: true,
+        charges_enabled: true,
+        capabilities: { transfers: "active" },
+        requirements: { disabled_reason: "rejected.fraud" },
+      });
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await res.json()).code).toBe("connect_account_rejected");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      // The marker auto-resolve-disputes sets aside (nothing moved, not "half-moved").
+      expect(writesTo("disputes").pop()).toMatchObject({ execution_status: "failed", execution_error: expect.stringMatching(/^nothing moved: Stripe does not say the Helpr's payout account is payable/) });
+    });
+
+    it("Stripe refusing OUR platform: 409 stripe_platform_rejected, nothing moved", async () => {
+      seedExecutable(scenario);
+      stripeMock.accounts.retrieve.mockRejectedValue(Object.assign(
+        new Error("You cannot create new accounts because your account has been rejected."),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      ));
+      const fn = await load();
+      const res = await invoke(fn);
+      expect(res.status).toBe(409);
+      expect((await res.json()).code).toBe("stripe_platform_rejected");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
   });
 

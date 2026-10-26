@@ -71,7 +71,7 @@ function seed(budget: number, urgentFee: number, feeOwed: boolean) {
   if (feeOwed) scenario.writeSelectRows.profiles = [{ user_id: "helper-1" }];
   scenario.reads.platform_settings = { rows: [{ helper_fee_percent: 12, onboarding_fee_cents: SETUP_FEE_CENTS }] };
   scenario.reads.payout_transfers = { rows: [] };
-  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true, capabilities: { transfers: "active" } });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_1", transfer_group: "job_job-1" });
 }
 

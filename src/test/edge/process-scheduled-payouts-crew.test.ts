@@ -729,6 +729,22 @@ describe("process-scheduled-payouts — a crew block fee is paid from the escrow
     expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "released")).toBe(true);
   });
 
+  // Lead 2026-10-23: a block fee waits, like a payout hold, when Stripe says
+  // the member's account is not payable.
+  // @mutate supabase/functions/_shared/crewBlockFees.ts |     if (live.held) { |     if (false) {
+  it("a block fee to an account Stripe rejected is not sent (the row stays owed)", async () => {
+    seedBlocked();
+    // Only the blocked member (m3) has the rejected account; everyone else is payable.
+    const profiles = scenario.reads.profiles as { eqOverrides?: unknown[] };
+    profiles.eqOverrides = [{ column: "user_id", value: "m3", result: { rows: [{ stripe_account_id: "acct_blocked", onboarding_fee_paid: true, subscription_tier: "pro", subscription_expires_at: null }] } }];
+    stripeMock.accounts.retrieve.mockImplementation(async (id: string) => id === "acct_blocked"
+      ? { ...PAYABLE_CONNECT_ACCOUNT, id, requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" } }
+      : { ...PAYABLE_CONNECT_ACCOUNT, id });
+    await run();
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(scenario.writes.some((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "paid")).toBe(false);
+  });
+
   // Q1491 (lh-money-escrow review of the rebuild, #2): a JOB payout hold (an
   // underfunded gift-card job) pays nobody, block fees included; a fee with
   // no charge to link would go out of the platform balance.

@@ -621,9 +621,13 @@ serve(async (req) => {
     );
     return jsonResponse({ error: "could not verify Helpr Connect account — retry" }, 502);
   }
-  if (!account.payouts_enabled || !account.charges_enabled || isRejectedAccount(account)) {
+  // The transfers capability too (lh-silent-failure review of the live gate,
+  // M2): the same three facts the shared gate requires (_shared/livePayoutGate.ts
+  // livePayable), so an account Stripe will not send a transfer to is refused
+  // here with nothing moved, not at transfers.create.
+  if (!account.payouts_enabled || !account.charges_enabled || account.capabilities?.transfers !== "active" || isRejectedAccount(account)) {
     await holdNotPayable(
-      `payouts_enabled=${account.payouts_enabled === true}, charges_enabled=${account.charges_enabled === true}${account.requirements?.disabled_reason ? `, ${account.requirements.disabled_reason}` : ""}`,
+      `payouts_enabled=${account.payouts_enabled === true}, charges_enabled=${account.charges_enabled === true}, transfers=${account.capabilities?.transfers ?? "none"}${account.requirements?.disabled_reason ? `, ${account.requirements.disabled_reason}` : ""}`,
     );
     return jsonResponse(
       {

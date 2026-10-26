@@ -99,6 +99,7 @@ function seedDecidedDisputeJob(s: SupabaseScenario) {
     id: "acct_helper",
     payouts_enabled: true,
     charges_enabled: true,
+    capabilities: { transfers: "active" },
   });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_1", transfer_group: "job_job-1" });
 }

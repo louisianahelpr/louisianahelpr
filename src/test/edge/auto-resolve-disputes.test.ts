@@ -760,6 +760,46 @@ describe("auto-resolve-disputes", () => {
       });
     });
 
+    // Money review of the live gate (M2): execute-dispute-split holds a split
+    // before any leg moves when Stripe does not say the Helpr's account is
+    // payable and records CONNECT_HOLD_SPLIT_ERROR. Nothing moved, so it is
+    // set aside (body only), never paged "half-moved"; an unexplained
+    // "could not verify" still pages.
+    // @mutate supabase/functions/auto-resolve-disputes/index.ts |               stuck = stuck.filter((row) => !connectHeldIds.has(row.id as string)); |               void connectHeldIds;
+    describe("a split the live payout gate held before any leg moved", () => {
+      const gateHeldSplit = {
+        id: DISPUTE_ID,
+        job_id: "job-7",
+        execution_status: "failed",
+        execution_started_at: "2026-08-30T10:00:00Z",
+        execution_error: "nothing moved: Stripe does not say the Helpr's payout account is payable (helper Connect account was rejected by Stripe)",
+      };
+      const withHelper = () =>
+        scenario.reads.jobs!.selectOverrides!.push({
+          includes: "is_seed",
+          result: { rows: [{ id: "job-7", is_seed: false, helper_id: "helper-7" }] },
+        });
+
+      it("is set aside: no defect, no admin page, answers 200", async () => {
+        seedStuck(scenario, [gateHeldSplit]);
+        withHelper();
+        const res = await (await load()).fetch(cronReq());
+        const body = await json(res);
+        expect(res.status).toBe(200);
+        expect(body.stuck_splits).toEqual([]);
+        expect(body.held_stuck_splits).toEqual([{ id: DISPUTE_ID, job_id: "job-7" }]);
+        expect(writesTo("notifications", "insert")).toHaveLength(0);
+      });
+
+      it("a split that could not verify the account still pages", async () => {
+        seedStuck(scenario, [{ ...gateHeldSplit, execution_error: "could not verify the Helpr's Connect account" }]);
+        withHelper();
+        const res = await (await load()).fetch(cronReq());
+        expect(res.status).toBe(500);
+        expect((await json(res)).stuck_splits).toHaveLength(1);
+      });
+    });
+
     // Q1491 (lh-money-escrow review of the rebuild, #1): a JOB payout hold
     // (job_payout_holds, an underfunded gift-card job) stops the split before
     // any leg moves, recorded as PAYOUT_JOB_HOLD_SPLIT_ERROR. Same rule as the

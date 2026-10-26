@@ -108,6 +108,7 @@ function seedPayableJob(s: SupabaseScenario, overrides: Record<string, unknown> 
     id: "acct_helper",
     payouts_enabled: true,
     charges_enabled: true,
+    capabilities: { transfers: "active" },
   });
   stripeMock.transfers.create.mockResolvedValue({
     id: "tr_1",

@@ -5,6 +5,8 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { formatExactDollars } from "../_shared/money.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { CONNECT_NOT_PAYABLE_CODE } from "../_shared/livePayoutGate.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -129,6 +131,38 @@ serve(async (req) => {
       );
     }
 
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected
+    // accounts): no cash-out unless Stripe says this member's account is
+    // payable (_shared/livePayoutHold.ts). Asked BEFORE the claim, like the
+    // payout hold above, so a refusal leaves nothing to roll back.
+    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
+    // else on the live key; decided from the caller's own row, never the body.
+    const liveStripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabase, [userId])), {
+      apiVersion: "2025-08-27.basil",
+    });
+    const live = await holdUnlessPayable({
+      stripe: liveStripe,
+      supabaseAdmin: supabase,
+      helperId: userId,
+      accountId: profile.stripe_account_id,
+      fn: "cash-out-credits",
+      what: "a referral credit cash-out",
+      then: "Nothing was claimed; the member can try again later.",
+    });
+    if (live.held) {
+      return new Response(
+        JSON.stringify({
+          // A rejected or unusable account never clears on its own: say what
+          // to do (both reviews of the live gate, LOW). Otherwise try later.
+          error: live.kind === "rejected" || live.kind === "unusable"
+            ? "Your payout account needs attention. Open Payment settings to set it up again. Your credits are safe."
+            : "Stripe can't confirm your payout account can receive money right now. Your credits are safe; try again later.",
+          code: CONNECT_NOT_PAYABLE_CODE,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 },
+      );
+    }
+
     // Race-safe atomic claim: flip redeemed=true FIRST and return only the
     // rows this call actually claimed. A concurrent double-tap/retry that
     // reads the same unredeemed rows will claim zero here (the .eq filter no
@@ -213,12 +247,9 @@ serve(async (req) => {
       );
     }
 
-    // Create Stripe transfer to connected account
-    // Stripe mode (owner 2026-10-12): a test account runs on the TEST key, everyone
-    // else on the live key; decided from the caller's own row, never the body.
-    const stripe = new Stripe(stripeSecretKeyFor(await stripeModeForParties(supabase, [userId])), {
-      apiVersion: "2025-08-27.basil",
-    });
+    // Create Stripe transfer to connected account, on the client the live gate
+    // above read the account with.
+    const stripe = liveStripe;
 
     // HM-1: bind the Stripe idempotency key to a STABLE per-attempt id, never to
     // the claimed credit set. Deriving it from the set (the old behaviour, kept

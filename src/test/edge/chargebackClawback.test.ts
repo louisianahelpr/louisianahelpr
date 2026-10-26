@@ -37,7 +37,7 @@
  * @mutate supabase/functions/_shared/chargebackClawback.ts | const found = await existingReversal(stripe, t.id, dispute.id); | const found = null;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           .update({ chargeback_evidence_due_by: | .update({ chargeback_evidence_due_by_x:
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeCreated.ts |           link: `/admin?view=jobs&job=${chargebackJob.id}`, |           link: "/admin",
- * @mutate supabase/functions/_shared/chargebackClawback.ts | const prior = row.status === "reversed" ? null : await existingRepay(stripe, row, dispute.id); | const prior = null;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | const prior = row.status === "reversed" ? null : (adoptable ?? await existingRepay(stripe, row, dispute.id)); | const prior = null;
  * @mutate supabase/functions/_shared/chargebackClawback.ts |     await markJob();\n    try { |     try {
  * @mutate supabase/functions/_shared/chargebackClawback.ts |           status: "paid",\n          initiated_by: "system", |           status: "pending",\n          initiated_by: "system",
  * @mutate supabase/functions/_shared/chargebackClawback.ts |         out.neverTaken++; |         void 0;
@@ -47,7 +47,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { slackAlerts, resetSharedMocks } from "./mocks/shared";
 
@@ -93,7 +93,7 @@ const notices = () =>
 describe("card-dispute clawback (Q202)", () => {
   beforeEach(() => {
     resetEnv();
-    resetStripeMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
     resetSupabaseMock();
     resetSharedMocks();
   });
@@ -291,6 +291,45 @@ describe("card-dispute clawback (Q202)", () => {
   });
 
   describe("charge.dispute.closed", () => {
+    // Lead 2026-10-23: a won dispute's re-payment waits, like a payout hold,
+    // when Stripe says the account is not payable: marked owed for the re-drive.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     if (live.held) { |     if (false) {
+    it("WON to an account Stripe rejected: nothing re-paid, the debt marked owed for the re-drive", async () => {
+      const fn = await load();
+      event("evt_w_rej", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row()] };
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => typeof payload(w).held_repay_owed_at === "string")).toBe(true);
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => payload(w).status === "repaid")).toBe(false);
+    });
+
+    // Review r1 #1: a member who deleted their account (helper_id null) whose
+    // account Stripe rejected: no cache write keyed on a non-UUID, no
+    // "payout hold could not be read" critical page; held like the rest.
+    // @mutate supabase/functions/_shared/livePayoutHold.ts |   if (holdClosesCache(gate) && i.helperId) { |   if (holdClosesCache(gate)) {
+    it("WON for a deleted member's rejected account: held, no profiles write, no hold-read page", async () => {
+      const fn = await load();
+      event("evt_w_rej_del", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ helper_id: null })] };
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(scenario.writes.some((w) => w.table === "profiles" && w.op === "update")).toBe(false);
+      expect((slackAlerts as Array<{ title?: string }>).some((a) => /could not be read/.test(String(a.title)))).toBe(false);
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => typeof payload(w).held_repay_owed_at === "string")).toBe(true);
+    });
+
     it("WON pays each reversed amount back once, returns the job to 'released', tells the payee", async () => {
       const fn = await load();
       event("evt_w1", "charge.dispute.closed", dispute("won"));
@@ -528,7 +567,7 @@ describe("card-dispute clawback (Q202)", () => {
       await post(fn);
       expect(lagPages()).toHaveLength(0);
 
-      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSupabaseMock(); resetSharedMocks();
       fn = await load();
       setup({ status: "repaying", held_repay_owed_at: "2026-10-01T00:00:00.000Z" });
       await post(fn);
@@ -750,6 +789,30 @@ describe("card-dispute clawback (Q202)", () => {
       expect(payload(done!).repay_transfer_id).toBe("tr_repay_old");
     });
 
+    // Money review of the live gate (M1): a re-payment that already went out
+    // is adopted and recorded even while Stripe says the account is not
+    // payable; only a NEW transfer waits. Red when the gate runs first.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |     const live = adoptable ? { held: false as const } : await holdUnlessPayable({ |     const live = await holdUnlessPayable({
+    it("a RESUMED re-payment that already reached Stripe is adopted while the account is not payable", async () => {
+      const fn = await load();
+      event("evt_w_res_rej", "charge.dispute.closed", dispute("won"));
+      scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };
+      scenario.reads.chargeback_clawbacks = { rows: [row({ status: "repaying" })] };
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        ...PAYABLE_CONNECT_ACCOUNT,
+        requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+      });
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_repay_old", amount: 9000, metadata: { source: "chargeback-repay", dispute_id: "dp_1", original_transfer_id: "tr_1" } }],
+      });
+      await post(fn);
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const done = writesTo("chargeback_clawbacks", "update").find((w) => payload(w).status === "repaid");
+      expect(payload(done!).repay_transfer_id).toBe("tr_repay_old");
+      expect(writesTo("chargeback_clawbacks", "update").some((w) => typeof payload(w).held_repay_owed_at === "string")).toBe(false);
+      expect(writesTo("payout_transfers", "insert").map(payload).some((r) => r.stripe_transfer_id === "tr_repay_old")).toBe(true);
+    });
+
     it("funds_withdrawn after an escalated inquiry claws back and pages; after an ordinary chargeback it is quiet", async () => {
       let fn = await load();
       event("evt_fw1", "charge.dispute.funds_withdrawn", dispute("needs_response"));
@@ -761,7 +824,7 @@ describe("card-dispute clawback (Q202)", () => {
       expect(stripeMock.transfers.createReversal).toHaveBeenCalledTimes(1);
       expect(alerts().some((a) => /escalated to a chargeback/.test(a.title))).toBe(true);
 
-      resetStripeMock(); resetSupabaseMock(); resetSharedMocks();
+      resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSupabaseMock(); resetSharedMocks();
       fn = await load();
       event("evt_fw2", "charge.dispute.funds_withdrawn", dispute("needs_response"));
       scenario.reads.jobs = { rows: [releasedJob({ payment_status: "chargeback", dispute_status: "stripe_chargeback" })] };

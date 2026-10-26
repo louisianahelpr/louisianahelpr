@@ -22,7 +22,7 @@
  * @mutate supabase/functions/auto-release-payment/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/auto-resolve-disputes/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/charge-recurring-visits/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
- * @mutate supabase/functions/execute-dispute-split/index.ts | import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts"; const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
+ * @mutate supabase/functions/execute-dispute-split/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/money-reconciliation/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
  * @mutate supabase/functions/release-payout/index.ts | import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts"; | import { isUnusableConnectAccountError } from "../_shared/stripeAccountUsable.ts"; const isTestObjectUnderLiveKey = (_e: unknown) => false; const logTestObjectUnderLiveKey = (..._a: unknown[]) => {};
@@ -189,7 +189,9 @@ const READ_ONLY_QUOTE =
  */
 const CONNECT_CLASSIFIED = [
   "_shared/connectReadiness.ts::stripe.accounts.retrieve(accountId)",
-  "execute-dispute-split/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
+  // execute-dispute-split's read moved into _shared/livePayoutGate.ts (lead
+  // 2026-10-23), which classifies it (CLASSIFIED: a sandbox id under the live
+  // key is logged, then answered "unusable", as execute-dispute-split did).
   "instant-payout/index.ts::stripe.balance.retrieve({ stripeAccount: profile.stripe_account_id })",
   "release-payout/index.ts::stripe.accounts.retrieve(helper.stripe_account_id)",
   "stripe-connect/index.ts::stripe.accounts.retrieve(accountId)",

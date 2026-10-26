@@ -38,7 +38,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
-import { resetSharedMocks } from "./mocks/shared";
+import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 
 const CRON_SECRET = "cron-secret";
 
@@ -309,6 +309,34 @@ describe("auto-tip-charge edge function", () => {
           (w.payload as { payment_status?: string }).payment_status === "paid",
       );
     }
+
+    // Lead 2026-10-23: a tip is a destination charge; Stripe refuses it when
+    // the Helpr's account cannot receive money. Loud, not silent: the poster is
+    // told what happened (not "no saved card") and ops get an alert (error_logs).
+    // @mutate supabase/functions/_shared/livePayoutHold.ts |   if (!platformRefused && !DESTINATION_NOT_PAYABLE.test(message)) return null; |   return null;
+    // @mutate supabase/functions/auto-tip-charge/index.ts |         if (refused) { |         if (false) {
+    it("a destination Stripe refuses: nothing charged, the poster told why, ops alerted (Stripe-refused, handled)", async () => {
+      const refusal = Object.assign(
+        new Error("Your destination account needs to have at least one of the following capabilities enabled: transfers, crypto_transfers, legacy_payments"),
+        { type: "StripeInvalidRequestError", statusCode: 400 },
+      );
+      const fn = await loadConfigured();
+      scenario.rpc.auto_tip_candidates = [
+        { job_id: "job-1", customer_id: "poster-1", helper_id: "helper-1", budget: 100, tip_amount: 10, tip_state: "chargeable" },
+      ];
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      scenario.adminUsers = { "poster-1": { email: "poster@test.com" } };
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_1" }] };
+      stripeMock.customers.retrieve.mockResolvedValue({ id: "cus_1", invoice_settings: { default_payment_method: { id: "pm_1", type: "card", customer: "cus_1" } } });
+      stripeMock.paymentMethods.list.mockResolvedValue({ data: [{ id: "pm_1" }] });
+      stripeMock.paymentIntents.create.mockRejectedValue(refusal);
+      await fn.fetch(cronRequest(fn));
+      const fail = scenario.writes.find((w) => w.table === "tips" && w.op === "update" && (w.payload as { payment_status?: string }).payment_status === "failed");
+      expect(String((fail?.payload as { failure_reason?: string })?.failure_reason)).toMatch(/^payee_not_payable: /);
+      const notice = scenario.writes.find((w) => w.table === "notifications" && w.op === "insert");
+      expect(String((notice?.payload as { message?: string })?.message)).toContain("payout account can't receive tips right now");
+      expect((slackAlerts as Array<{ oncePerDayKey?: string }>).some((a) => a.oncePerDayKey === "destination-charge-refused-helper-1")).toBe(true);
+    });
 
     it("charges off-session and records the intent id on the tips row", async () => {
       const res = await runSuccessfulCharge();

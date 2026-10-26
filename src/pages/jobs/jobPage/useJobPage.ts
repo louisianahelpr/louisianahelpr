@@ -15,6 +15,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { queryKeys } from "@/lib/queryKeys";
 
 export interface JobPageRow {
@@ -53,9 +54,9 @@ export interface JobPageRow {
 }
 
 const BASE_COLUMNS =
-  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents";
+  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent";
 const PARTY_COLUMNS =
-  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_id, helper_fee_percent, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, has_active_dispute";
+  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, has_active_dispute";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -74,7 +75,8 @@ async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boole
   );
   if (own) return { job: toRow(own), party: true };
   const browse = unwrap<Record<string, unknown> | null>(
-    await supabase.from("open_jobs_browse").select(`${BASE_COLUMNS}, expires_at`).eq("id", id).maybeSingle(),
+    // readJobsAheadOfDb: BASE_COLUMNS names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
+    await readJobsAheadOfDb(`${BASE_COLUMNS}, expires_at`, (columns) => supabase.from("open_jobs_browse").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>(), { browseView: true }),
   );
   if (browse && !(typeof browse.expires_at === "string" && new Date(browse.expires_at) <= new Date())) {
     return { job: toRow(browse), party: false };

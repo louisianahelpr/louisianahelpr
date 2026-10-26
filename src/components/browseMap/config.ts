@@ -73,6 +73,8 @@ export interface MapJob {
    * tier. Optional for the same deploy-order reason as the fields above.
    */
   helper_fee_flat_cents?: number | null;
+  /** Q2400: the percent stamped with it (get_open_jobs_for_map, 20261025235701). */
+  helper_fee_percent?: number | null;
 }
 
 // The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding

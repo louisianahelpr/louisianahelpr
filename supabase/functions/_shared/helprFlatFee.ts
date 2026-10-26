@@ -56,9 +56,10 @@ export function isFlatFeeJob(job: FlatFeeStamp | null | undefined): boolean {
  * model (owner 2026-10-18: the poster pays 5% + 70c, the Helpr keeps 100%),
  * which stamps the Helpr side 0/0. Decided by the poster stamp when the row
  * carries it, and by a 0c flat stamp when the read did not select the percent:
- * several selects and the browse RPCs carry helper_fee_flat_cents without
- * helper_fee_percent, and the 5% default below would otherwise charge a
- * poster-fee Helpr 5% (lh-money-escrow review of the jobs-fee plan, #1). Only
+ * a read may carry helper_fee_flat_cents without helper_fee_percent (every
+ * browse read carries both since Q2400, src/test/browseCarriesFeePercent.test.ts),
+ * and the default percent below would otherwise charge a poster-fee Helpr
+ * (lh-money-escrow review of the jobs-fee plan, #1). Only
  * a poster-fee job carries a 0c flat stamp (CHECK jobs_poster_fee_model_consistent).
  * Inline, not imported from posterJobFee.ts: this module has zero imports.
  */

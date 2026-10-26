@@ -67,6 +67,7 @@ interface NearJob {
   distance_band: string | null;
   pricing_mode: string | null;
   helper_fee_flat_cents: number | null;
+  helper_fee_percent: number | null;
 }
 
 /**
@@ -155,7 +156,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
                     effectiveFee={TIER_PERKS.free.platformFeePercent}
                     urgentFee={j.urgent_fee ?? 0}
                     helpersNeeded={crewSize(j)}
-                    feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
+                    feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }}
                   />
                 )}
               </button>

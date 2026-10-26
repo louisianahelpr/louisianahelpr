@@ -25,9 +25,9 @@
  * blanked with the shared helper.
  */
 // Registered mutations - each turns this guard RED on its own:
-// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
-// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |     round(latitude, 2) AS latitude, |     latitude,
-// @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |     helper_fee_flat_cents\n   FROM jobs |     helper_fee_flat_cents,\n    is_seed\n   FROM jobs
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |     helper_fee_percent\n   FROM jobs |     helper_fee_percent,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
@@ -112,6 +112,10 @@ const PINNED_COLUMNS = [
   // 20261015034054: the flat-fee stamp a new job carries, so the card shows the
   // Helpr's take-home. A cents amount fixed at posting; nothing personal.
   "helper_fee_flat_cents",
+  // 20261025235701 (Q2400): the percent half of the same stamp (5 on jobs posted
+  // under the 5% promise, else 10), so the card's take-home matches checkout.
+  // A number fixed at posting; nothing personal.
+  "helper_fee_percent",
 ];
 
 /** Live jobs SELECT policies, replayed from the ledger. */

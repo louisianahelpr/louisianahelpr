@@ -160,6 +160,11 @@
     "public.provider_payouts.provider_payouts_payee_user_id_idx",
     "public.support_replies.support_replies_admin_id_idx",
     "public.payout_setup_reminders.payout_setup_reminders_job_id_idx",
-    "public.connect_account_retirements.connect_account_retirements_user_id_idx"
+    "public.connect_account_retirements.connect_account_retirements_user_id_idx",
+    "public.declutter_refund_requests.declutter_refund_requests_due_idx",
+    "public.declutter_refund_requests.declutter_refund_requests_offer_due_idx",
+    "public.declutter_refund_requests.declutter_refund_requests_problem_idx",
+    "public.declutter_refund_requests.declutter_refund_requests_refund_idx",
+    "public.declutter_refund_requests.declutter_refund_requests_return_due_idx"
   ]
 }

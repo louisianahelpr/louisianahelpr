@@ -137,6 +137,11 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025190000; auth-email-hook decides it per account. No
   // screen: SERVER_ONLY below.
   "scanner_safe_confirm_links",
+  // Board 141, refund requests, Declutter side (Q2272): within 24 hours of getting an item the buyer asks the
+  // seller for a refund; the seller refunds it all, offers part, or says no (Louisiana Helpr decides). Created
+  // 'testers' by 20261026155251; every declutter_*refund* RPC refuses without it (require_feature). The seller's
+  // payout waits 24 hours after every handover whatever the switch says (the published Declutter terms).
+  "declutter_refund_requests",
 ] as const;
 
 /**

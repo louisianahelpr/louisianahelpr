@@ -12,6 +12,9 @@
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<ExploreSearchEntry variant="icon" />} | end={null}
  * @mutate src/components/sections/ExploreSearchEntry.tsx |   if (variant === "icon") { |   if (variant !== "icon") {
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
+ * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
+ * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
+ * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11"
  * @mutate src/components/job-card/MineJobFace.tsx | className="flex flex-col px-3.5 py-3 md:flex-row | className="flex flex-col p-4 md:flex-row
  * @mutate src/components/job-card/MineJobFace.tsx | className="h-11 w-11 shrink-0 overflow-hidden rounded-xl" | className="h-14 w-14 shrink-0 overflow-hidden rounded-xl"
  * @mutate src/components/job-card/ActivityBucketGroups.tsx | <div className="flex flex-col gap-4" data-testid="activity-bucket-groups"> | <div className="flex flex-col gap-5" data-testid="activity-bucket-groups">
@@ -97,6 +100,21 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
       expect(chips.contains(link)).toBe(false);
       expect(chips.parentElement?.contains(link)).toBe(true);
       expect(expandedSearchFields(container)).toEqual([]);
+    });
+
+    it(`${tab}: no chip looks clipped by the icon: the row fades over at least one icon width, and its end padding lets the last chip clear the fade`, () => {
+      const { container } = wrap(
+        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} />,
+      );
+      const icon = screen.getByTestId("explore-search-entry");
+      const iconPx = Math.max(...icon.className.split(/\s+/).map((c) => /^w-(\d+(?:\.\d+)?)$/.exec(c)).filter(Boolean).map((m) => px(m![1])));
+      expect(iconPx).toBe(40);
+      const cls = within(container).getByRole("group", { name: "Filter by status" }).className.split(/\s+/);
+      const fade = cls.map((c) => /^\[mask-image:linear-gradient\(to_right,#000_calc\(100%-(\d+)px\),transparent\)\]$/.exec(c)).find(Boolean);
+      expect(fade, "a right-edge fade on the scrolling chip row").toBeTruthy();
+      const fadePx = Number(fade![1]);
+      expect(fadePx, "the fade is at least one icon wide").toBeGreaterThanOrEqual(iconPx);
+      expect(padOf(cls.filter((c) => !/^p[xl]-/.test(c)), "x"), "end padding >= the fade, so the last chip scrolls clear of it").toBeGreaterThanOrEqual(fadePx);
     });
   }
 });

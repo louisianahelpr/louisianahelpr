@@ -36,7 +36,10 @@ export function installLargeTitles(doc: Document = document): () => void {
     const t = e.target;
     if (!(t instanceof HTMLElement)) return;
     // A sideways scroller (chip rows) has no vertical travel; it must not reset the page's state.
-    if (t.scrollHeight <= t.clientHeight + 1) return;
+    // Only a SIDEWAYS one is skipped: a page scroller whose new screen is too short to scroll
+    // (Post a job's "What kind of home job?", owner iPhone 2026-10-26) still reports its return to
+    // the top here, and skipping it left the compact bar on over the back button with nothing to scroll.
+    if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return;
     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24);
     if (t.matches("[data-app-page-scroll]")) {
       const h1 = t.querySelector("h1.text-page-title");

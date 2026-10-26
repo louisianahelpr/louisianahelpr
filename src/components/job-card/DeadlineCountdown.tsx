@@ -19,6 +19,16 @@ interface DeadlineCountdownProps {
   compact?: boolean;
 }
 
+/** A card's countdown: two units at most ("2d 19h", "5h 12m", "12m"). */
+export function compactCountdown(totalMinutes: number): string {
+  const m = Math.max(0, Math.floor(totalMinutes));
+  const days = Math.floor(m / 1440);
+  const hours = Math.floor((m % 1440) / 60);
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${m % 60}m`;
+  return `${m % 60}m`;
+}
+
 const DeadlineCountdown = ({
   deadline,
   expiredText,
@@ -49,6 +59,9 @@ const DeadlineCountdown = ({
     : hours > 0
     ? `${hours}h ${minutes}m`
     : `${minutes}m`;
+  // On a card's status strip, two units at most ("2d 19h", "5h 12m", "12m"), so the line never wraps at 375
+  // (owner 2026-10-25: no two-line status text on cards).
+  const compactTimeStr = compactCountdown(totalMinutes);
 
   const isUrgent = totalMinutes < 720; // < 12 hours
 
@@ -89,8 +102,8 @@ const DeadlineCountdown = ({
         {isExpired ? (
           <span>{expiredText}</span>
         ) : (
-          <span>
-            <span className="tabular-nums">{timeStr}</span> {consequenceText}
+          <span className="whitespace-nowrap">
+            <span className="tabular-nums">{compactTimeStr}</span> {consequenceText}
           </span>
         )}
       </span>

@@ -121,7 +121,8 @@ export interface StatusDeadline {
   /** Which column (or derived clock) it reads: the guard's inventory key. */
   source: DeadlineSource;
   at: string;
-  /** Reads after a duration: "1d 2h 5m left to answer". */
+  /** Reads after a duration: "1d 2h left to answer". On a card it is ONE line at 375 (owner 2026-10-25), so
+   *  it stays within CARD_COUNTDOWN_MAX_CHARS with the longest card duration ("99d 23h"). */
   consequenceText: string;
   /** Shown instead once the clock has run out. */
   expiredText: string;
@@ -131,6 +132,9 @@ export interface StatusDeadline {
  * Every clock the tracker counts down. The `jobs` columns are spelled as their
  * column names; `auto_complete` is `helper_completed_at + APPROVAL_WINDOW_HOURS`.
  */
+/** The longest one-line countdown a card prints ("99d 23h " + the clause, or the expired text): one line at 375. */
+export const CARD_COUNTDOWN_MAX_CHARS = 30;
+
 export type DeadlineSource =
   | "direct_offer_expires_at"
   | "response_deadline"
@@ -207,8 +211,8 @@ function disputeDeadline(job: Job): StatusDeadline | null {
   return columnDeadline(
     "dispute_deadline",
     job.dispute_deadline,
-    "until payment auto-releases",
-    "Deadline passed — payment auto-releasing",
+    "until payout",
+    "Paying out now",
   );
 }
 
@@ -616,7 +620,7 @@ export function cancelledSuffix(job: Job): string | null {
 export function posterDeadline(id: PosterWait, job: Job, instantRelease = false): StatusDeadline | null {
   switch (id) {
     case "offer_out":
-      return offerDeadline(job, "left for them to answer");
+      return offerDeadline(job, "left for their answer");
     // Past the day and still unconfirmed: the Helpr's confirm window is still
     // running (ScheduledStep shows it expanded), so the collapsed line shows it too.
     case "unconfirmed":
@@ -632,7 +636,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
         "revision_acceptance_deadline",
         job.revision_acceptance_deadline,
         "to accept the fix",
-        "Window passed — Helpr support is stepping in",
+        "Helpr support is stepping in",
       );
     case "dispute":
       return disputeDeadline(job);
@@ -642,7 +646,7 @@ export function posterDeadline(id: PosterWait, job: Job, instantRelease = false)
         ? {
             source: "auto_complete",
             at,
-            consequenceText: "to review — then Helpr support steps in",
+            consequenceText: "left to review",
             expiredText: "Helpr support is stepping in",
           }
         : null;
@@ -945,7 +949,7 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
         "revision_acceptance_deadline",
         job.revision_acceptance_deadline,
         "for them to review",
-        "No response — Helpr support is stepping in",
+        "Helpr support is stepping in",
       );
     case "dispute":
       return disputeDeadline(job);

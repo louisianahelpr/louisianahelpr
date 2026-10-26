@@ -137,6 +137,10 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025190000; auth-email-hook decides it per account. No
   // screen: SERVER_ONLY below.
   "scanner_safe_confirm_links",
+  // Card hold at posting (owner 2026-10-25, Q2399): the poster's card is held
+  // when the job is posted and charged only at the hire. Created 'testers' by
+  // 20261026152524; turned on for everyone by 20261026152525 (owner: "they
+  // should be done always for everyone").
   "card_hold_at_post",
 ] as const;
 

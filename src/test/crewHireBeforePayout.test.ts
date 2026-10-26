@@ -26,7 +26,7 @@ const fn = (name: string) => {
 };
 // The migration that created crew_confirm_pending (20261007011530), found by the
 // table's own CREATE, never pinned by name (the roster gate it also restated
-// was re-created later, by 20261026001019, Q2399).
+// was re-created later, by 20261026152524, Q2399).
 const MIG = (() => {
   const dir = join(REPO, "supabase", "migrations");
   const f = readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()

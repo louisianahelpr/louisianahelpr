@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261026001019_card_hold_at_post.sql (Q2399, owner
+ * PGlite proof for 20261026152524_card_hold_at_post.sql (Q2399, owner
  * 2026-10-25: hold the poster's card at posting, charge it only at the hire).
  *
  *   node src/test/pglite/cardHoldAtPost.pglite.mjs                       # GREEN, migration applied 3x
@@ -40,7 +40,7 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const THIS = "20261026001019_card_hold_at_post.sql";
+const THIS = "20261026152524_card_hold_at_post.sql";
 const SKIP = process.env.NEW_MIGRATION === "skip";
 const REGISTRY = readFileSync(`${DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 

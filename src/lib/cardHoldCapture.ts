@@ -6,7 +6,7 @@
  * does the WHOLE hire server-side (runs that same RPC as this Helpr, charges
  * the held card, runs it again) and answers the RPC's own result, so no card
  * is charged for a hire that does not happen. The database refuses a hire on a
- * held card whatever the app does (migration 20261026001019), so this is the
+ * held card whatever the app does (migration 20261026152524), so this is the
  * way through, never the guard.
  */
 import { supabase } from "@/integrations/supabase/client";

@@ -157,7 +157,7 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",
   },
-  // Q2399 card hold at post (20261026001019). A held job is never hired (CHECK jobs_held_is_never_hired), so it can
+  // Q2399 card hold at post (20261026152524). A held job is never hired (CHECK jobs_held_is_never_hired), so it can
   // carry no dispute; every move below runs before the money is escrow, or on a hold that is not the job's money.
   "supabase/functions/_shared/cardHold.ts": {
     kind: "not-job-escrow",

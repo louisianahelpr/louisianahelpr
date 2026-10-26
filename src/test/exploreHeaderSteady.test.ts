@@ -89,9 +89,12 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     }
     const jobs = code("src/pages/jobs/JobsSection.tsx");
     const head = jobs.slice(jobs.indexOf('className="explore-header'), jobs.indexOf("</div>", jobs.indexOf('className="explore-header')));
-    const order = ['<AppTopBar title={section.label} add={section.add} explore section="jobs"', "<SectionTabs ", '{tab !== "browse" && <ExploreSearchEntry />}'].map((s) => head.indexOf(s));
+    const order = ['<AppTopBar title={section.label} add={section.add} explore section="jobs"', "<SectionTabs "].map((s) => head.indexOf(s));
     expect(order[0]).toBeGreaterThan(0);
     expect(order).toEqual([...order].sort((a, b) => a - b));
+    // Jobs' search is an icon in the status chip row now, never a field in the header (owner 2026-10-25;
+    // src/test/jobsSearchIsAnIcon.test.tsx).
+    expect(head).not.toContain("<ExploreSearchEntry");
   });
 
   it("3. on a phone the chips row is the top bar: no visible title, the section's name is the sr-only h1", () => {

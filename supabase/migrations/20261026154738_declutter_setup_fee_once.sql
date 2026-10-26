@@ -42,7 +42,7 @@
 -- declutter_orders_fee_rule_frozen (20261020024605). Only the lines marked
 -- Q2352 change.
 --
--- Re-cut 2026-10-26 from 20261023123549 (built 2026-10-23, never on main) to
+-- Re-cut 2026-10-26 from 20261026154738 (built 2026-10-23, never on main) to
 -- sit after main's newest migration; no migration between then and this one
 -- redefines any of the four restated functions (grep of 20261023*..20261026*).
 --

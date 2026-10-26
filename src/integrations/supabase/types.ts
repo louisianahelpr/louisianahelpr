@@ -2149,6 +2149,7 @@ export type Database = {
           id: string
           is_seed: boolean
           items_cents: number
+          refunded_cents: number
           last_error: string | null
           next_attempt_at: string
           order_id: string
@@ -2172,6 +2173,7 @@ export type Database = {
           is_seed?: boolean
           items_cents: number
           last_error?: string | null
+          refunded_cents?: number
           next_attempt_at?: string
           order_id: string
           review_held_at?: string | null
@@ -2193,6 +2195,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           items_cents?: number
+          refunded_cents?: number
           last_error?: string | null
           next_attempt_at?: string
           order_id?: string
@@ -2344,6 +2347,94 @@ export type Database = {
             columns: ["item_id"]
             isOneToOne: false
             referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_refund_requests: {
+        Row: {
+          answer_by: string
+          created_at: string
+          declined_at: string | null
+          return_agreed_at: string | null
+          return_by: string | null
+          returned_at: string | null
+          id: string
+          is_seed: boolean
+          note: string
+          offer_answer_by: string | null
+          offer_cents: number | null
+          offered_at: string | null
+          order_id: string
+          problem_id: string | null
+          reason: string
+          refund_id: string | null
+          settled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          answer_by: string
+          created_at?: string
+          declined_at?: string | null
+          return_agreed_at?: string | null
+          return_by?: string | null
+          returned_at?: string | null
+          id?: string
+          is_seed?: boolean
+          note: string
+          offer_answer_by?: string | null
+          offer_cents?: number | null
+          offered_at?: string | null
+          order_id: string
+          problem_id?: string | null
+          reason: string
+          refund_id?: string | null
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          answer_by?: string
+          created_at?: string
+          declined_at?: string | null
+          return_agreed_at?: string | null
+          return_by?: string | null
+          returned_at?: string | null
+          id?: string
+          is_seed?: boolean
+          note?: string
+          offer_answer_by?: string | null
+          offer_cents?: number | null
+          offered_at?: string | null
+          order_id?: string
+          problem_id?: string | null
+          reason?: string
+          refund_id?: string | null
+          settled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_refund_requests_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_refund_requests_problem_id_fkey"
+            columns: ["problem_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_problems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_refund_requests_refund_id_fkey"
+            columns: ["refund_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_refunds"
             referencedColumns: ["id"]
           },
         ]
@@ -12713,6 +12804,14 @@ export type Database = {
         Args: { p_approve: boolean; p_item_id: string; p_note: string }
         Returns: string
       }
+      declutter_answer_refund: {
+        Args: { p_answer: string; p_offer_cents: number; p_request_id: string }
+        Returns: Json
+      }
+      declutter_answer_refund_offer: {
+        Args: { p_accept: boolean; p_request_id: string }
+        Returns: Json
+      }
       declutter_apply_seller_fault: {
         Args: { p_include_committed?: boolean; p_refund_id: string }
         Returns: number
@@ -12728,6 +12827,10 @@ export type Database = {
       declutter_ask_question: {
         Args: { p_item_id: string; p_question: string }
         Returns: string
+      }
+      declutter_ask_refund: {
+        Args: { p_note: string; p_order_id: string; p_reason: string }
+        Returns: Json
       }
       declutter_assert_can_scan_room: { Args: never; Returns: undefined }
       declutter_assert_member: { Args: { p_selling: boolean }; Returns: string }
@@ -12869,6 +12972,7 @@ export type Database = {
       declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
       declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
+      declutter_full_refund_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_give_strike: {
         Args: {
           p_item: string
@@ -13102,6 +13206,7 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_payout_unsent: { Args: { p_order_id: string }; Returns: boolean }
       declutter_payouts_due: {
         Args: { p_limit: number }
         Returns: {
@@ -13143,9 +13248,14 @@ export type Database = {
           sales: number
         }[]
       }
+      declutter_problem_window_open: { Args: { p_order_id: string }; Returns: boolean }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }
       declutter_raise_card_fee_kept_reasons: { Args: never; Returns: string[] }
       declutter_raise_seller_fault_reasons: { Args: never; Returns: string[] }
+      declutter_rebook_payout: {
+        Args: { p_order_id: string; p_refunded_cents: number }
+        Returns: number
+      }
       declutter_record_ai_check: {
         Args: {
           p_flag_reason: string
@@ -13178,6 +13288,10 @@ export type Database = {
         Returns: string
       }
       declutter_refresh_seller_hidden: { Args: { p_seller: string }; Returns: undefined }
+      declutter_refund_after_handover: {
+        Args: { p_order_id: string; p_part_cents: number; p_reason: string }
+        Returns: Json
+      }
       declutter_refund_answer: { Args: { p_refund_id: string }; Returns: Json }
       declutter_refund_executed: {
         Args: {
@@ -13201,6 +13315,13 @@ export type Database = {
         }
         Returns: Json
       }
+      declutter_refund_request_sweep: { Args: never; Returns: Json }
+      declutter_refund_request_to_admin: {
+        Args: { p_request_id: string; p_why: string }
+        Returns: string
+      }
+      declutter_refund_request_view: { Args: { p_order_id: string }; Returns: Json }
+      declutter_refund_requests_seed: { Args: never; Returns: unknown }
       declutter_refund_reversed: {
         Args: { p_refund_id: string; p_stripe_refund_id: string; p_why: string }
         Returns: string
@@ -13245,6 +13366,8 @@ export type Database = {
       }
       declutter_review_tags_for: { Args: { p_side: string }; Returns: string[] }
       declutter_road_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
+      declutter_sale_decided: { Args: { p_order_id: string }; Returns: boolean }
+      declutter_sale_final: { Args: { p_order_id: string }; Returns: boolean }
       declutter_save_card: {
         Args: {
           p_brand: string
@@ -13455,6 +13578,8 @@ export type Database = {
         Returns: number
       }
       declutter_withdraw_item: { Args: { p_item_id: string }; Returns: string[] }
+      declutter_withdraw_refund: { Args: { p_request_id: string }; Returns: Json }
+      declutter_refund_item_returned: { Args: { p_request_id: string }; Returns: Json }
       end_recurring_series_by_platform: {
         Args: {
           p_admin?: string

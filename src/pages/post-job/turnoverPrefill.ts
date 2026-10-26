@@ -2,6 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { formatJobDate, parseLocalDate } from "@/lib/dateUtils";
 import { TITLE_MAX } from "@/components/postjob/detailsSection/detailsSectionConstants";
+import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
 
 /**
  * Q768 (owner, 2026-09-27: "Import as drafts"). str-ical-sync records each
@@ -42,7 +43,8 @@ interface TurnoverRow {
 }
 
 /** The browse surfaces' funded set: a job Helprs can see. */
-const FUNDED = new Set(["escrow", "payout_pending", "released"]);
+// Q2399: a held card is listed too.
+const FUNDED = new Set<string>(LISTED_PAYMENT_STATUSES);
 
 /** public.jobs CHECKs (Q782): title <= 32 and description <= 1000 code points. */
 const fit = (s: string, n: number) => Array.from(s).slice(0, n).join("").trim();

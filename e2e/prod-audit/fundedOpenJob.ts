@@ -35,6 +35,7 @@ import { ANON, SUPABASE_URL, stripeModeFromCheckoutUrl, type Session } from "../
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { openCardFields, waitForStripePaymentMethods } from "../stripeCheckoutCard";
 import { answerStripeReturn } from "../stripeReturn";
+import { captureHeldCard } from "../cardHold";
 import {
   ACCEPTED_FIXTURE_TITLE,
   planAcceptedJob,
@@ -271,6 +272,8 @@ export async function fund(api: APIRequestContext, browser: Browser, poster: Ses
   for (let t = 0; t < 45; t++) {
     const now = await readRow(api, poster, row.id);
     if (now.payment_status === "escrow" && now.stripe_payment_intent_id) return now;
+    // Q2399: card_hold_at_post holds the card instead (a job far out only saves it, no PaymentIntent yet).
+    if (now.payment_status === "held") return now;
     await new Promise((r) => setTimeout(r, 2_000));
   }
   const last = await readRow(api, poster, row.id);
@@ -425,7 +428,12 @@ async function helperConfirmsOffer(
     `read helper_confirmed_at on ${id} before accepting`,
   );
   if (!before[0]?.helper_confirmed_at) {
-    const answer = await rpc<{ state?: string; missing?: string[] } | null>(api, helper, "accept_job_offer", { p_job_id: id });
+    // Q2399: the accept on a held card is the hire, so the card is charged first, as the app's Accept does.
+    const viaHold = await captureHeldCard(api, helper, id);
+    log.push(`capture_hold on ${id}: ${viaHold}`);
+    const answer = viaHold === "accepted"
+      ? { state: "accepted" }
+      : await rpc<{ state?: string; missing?: string[] } | null>(api, helper, "accept_job_offer", { p_job_id: id });
     if (answer?.state !== "accepted") {
       throw new Error(`${fixture} fixture: accept_job_offer on ${id} answered ${JSON.stringify(answer)}, not "accepted" (helper-e2e's setup is no longer complete?)`);
     }

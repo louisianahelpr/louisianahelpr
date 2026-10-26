@@ -137,6 +137,7 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025190000; auth-email-hook decides it per account. No
   // screen: SERVER_ONLY below.
   "scanner_safe_confirm_links",
+  "card_hold_at_post",
 ] as const;
 
 /**

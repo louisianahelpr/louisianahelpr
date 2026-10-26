@@ -22,11 +22,17 @@ interface CheckoutStepViewProps {
  * bug even when the surprise is pleasant.
  */
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
+  // Q2399 (owner 2026-10-25): with card_hold_at_post (read once in
+  // usePostJobForm) the card is HELD when the job posts and charged only at
+  // the hire (create-payment). A bank payment cannot be held, so it is still
+  // charged when the job posts.
+  const cardHoldOn = form.cardHoldOn === true;
   return (
     <div key="checkout-step" className="space-y-section">
       {/* Screen 7 of 7 (board 46). The card is charged when the job posts
           (create-payment, automatic capture; design-b handoff), so this
-          screen says pay, never "nothing is charged now". */}
+          screen says pay, never "nothing is charged now". Under
+          card_hold_at_post (Q2399) the card is held instead, and it says so. */}
       <PostJobStepHeader
         screen="review"
         question="Look good?"
@@ -43,7 +49,9 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         helper={
           // A post a gift card covers in full charges $0: no "pay" line then.
           form.totalCharge > 0
-            ? "Check your job. You're charged when you post, and the money is held until the job is done."
+            ? cardHoldOn
+              ? "Check your job. Your card is held when you post, and you're only charged when you hire someone. A bank payment is charged when you post."
+              : "Check your job. You're charged when you post, and the money is held until the job is done."
             : "Check your job, then post it."
         }
       />

@@ -137,7 +137,9 @@ export interface PurgeOutcome {
  */
 const LIVE_STATUS_FILTER =
   "status.in.(accepted,in_progress,revision_requested,disputed)," +
-  "payment_status.in.(escrow,payout_pending)";
+  // Q2399: a card HELD for an open, listed job is live work too: a hire would
+  // charge the deleted poster's card (lh-silent-failure review #13).
+  "payment_status.in.(escrow,payout_pending,held)";
 
 export interface ActiveWorkResult {
   /** False means we could not determine it — the caller must fail closed. */

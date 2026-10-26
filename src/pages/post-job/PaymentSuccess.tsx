@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 // moves — so it must follow the config the cron actually enforces. Imported
 // straight from the Deno _shared module, the same pattern the parity tests use.
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy";
+import { fetchMyCardHold } from "@/lib/cardHoldRead";
 import { Button } from "@/components/ui/button";
 import {
   Share2,
@@ -138,6 +140,11 @@ const PaymentSuccess = () => {
   // from "already released" — both are `isHeld`, but they are not the same
   // claim, and the escrow copy below is false for the second one.
   const [alreadyReleased, setAlreadyReleased] = useState(false);
+  // Q2399: the poster's card is only HELD (payment_status 'held'): nothing is
+  // charged until they hire. The amount is the hold's own (get_my_job_card_hold,
+  // behind card_hold_at_post); null when it cannot be read, and then the
+  // sentence names no amount.
+  const [cardHold, setCardHold] = useState<{ scheduled: boolean; amountCents: number | null } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState>(
     resolvedJobId ? "checking" : "unknown",
   );
@@ -328,6 +335,17 @@ const PaymentSuccess = () => {
         // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
 
         const status = data.payment_status;
+        if (status === "held") {
+          const { hold: myHold, error: holdErr } = await fetchMyCardHold(resolvedJobId);
+          if (cancelled) return;
+          if (holdErr) report(holdErr, { tags: { source: "PaymentSuccess.cardHold" } });
+          setCardHold({ scheduled: myHold?.state === "scheduled", amountCents: myHold && Number.isFinite(myHold.amount_cents) ? myHold.amount_cents : null });
+          const offerTargets = await fetchJobOfferTargets([resolvedJobId]);
+          if (cancelled) return;
+          setDirectOffer(offerTargets.has(resolvedJobId));
+          setConfirmState("held");
+          return;
+        }
         if (status && HELD_STATUSES.has(status)) {
           if (status === "released") setAlreadyReleased(true);
           // Once, only when held, and awaited before the held state: a direct offer never flashes
@@ -439,7 +457,13 @@ const PaymentSuccess = () => {
                 and a $136.60 escrow read "$137" (claiming 40c that is not
                 there). This is a receipt, which is exactly what
                 `formatPriceExact` is for. */}
-            {isHeld ? (
+            {isHeld && cardHold ? (
+              cardHold.amountCents != null
+                ? (cardHold.scheduled ? CARD_HOLD_COPY.scheduled(cardHold.amountCents) : CARD_HOLD_COPY.held(cardHold.amountCents))
+                // The hold could not be read (or has no row yet): never claim a hold that may not exist,
+                // nor a hold on a far-out job whose card is only saved (Q2399 round 2, silent #10).
+                : "Your job is posted. You're only charged when you hire someone."
+            ) : isHeld ? (
               alreadyReleased ? (
                 escrowAmount != null ? (
                   <>

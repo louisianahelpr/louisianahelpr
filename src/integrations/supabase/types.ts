@@ -13458,6 +13458,15 @@ export type Database = {
         Args: { p_anchor: string; p_job_id: string; p_reason: string }
         Returns: boolean
       }
+      get_my_job_card_hold: {
+        Args: { p_job_id: string }
+        Returns: {
+          amount_cents: number
+          capture_before: string | null
+          place_at: string | null
+          state: string
+        }[]
+      }
       get_my_job_quotes: {
         Args: never
         Returns: {
@@ -14663,6 +14672,10 @@ export type Database = {
       }
       job_messaging_closes_at: { Args: { _job_id: string }; Returns: string }
       job_payment_is_funded: {
+        Args: { p_payment_status: string }
+        Returns: boolean
+      }
+      job_payment_is_listed: {
         Args: { p_payment_status: string }
         Returns: boolean
       }

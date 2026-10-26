@@ -26,6 +26,7 @@
  *    on it through its own guarded path (it refuses when the prior session is
  *    live or paid, which is exactly when a second payment would be wrong).
  */
+import { isListedPayment } from "../listedPayment";
 
 /** Title prefix every fixture row carries. NOT any sweeper marker (E2E-PRODAUDIT, PRESS DO NOT ACCEPT, E2E DO NOT ACCEPT): those delete or cancel on sight. */
 export const FUNDED_FIXTURE_TITLE = "Prod audit funded fixture";
@@ -274,7 +275,8 @@ export function planDisputedJob(
   if (hired) return { kind: "resume", row: hired, next: "dispute" };
   // A row helper-e2e's closed application makes dead is skipped: create instead.
   const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id));
-  if (open && open.payment_status === "escrow") {
+  // Q2399: a held card is posted and payable too (charged at the hire).
+  if (open && isListedPayment(open.payment_status)) {
     return { kind: "resume", row: open, next: nextAfterFunding(opts.applications, open.id) };
   }
   if (open && REPAYABLE.has(open.payment_status ?? "unpaid")) return { kind: "resume", row: open, next: "fund" };
@@ -357,10 +359,11 @@ export function planAcceptedJob(
   const extra = preLive.length ? { preLive } : {};
   const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id));
   const accepted = mine.find(
-    (r) => r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS,
+    // Q2399: an offer out on a held card is charged by the confirm every run (helperConfirmsOffer).
+    (r) => r.status === "accepted" && r.helper_id === opts.helperId && (r.payment_status === "escrow" || r.payment_status === "held") && runway(r) >= MIN_RUNWAY_DAYS,
   );
   if (accepted) return { kind: "reuse", row: accepted, retire, ...extra };
-  const funded = open.find((r) => r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS);
+  const funded = open.find((r) => isListedPayment(r.payment_status) && runway(r) >= MIN_RUNWAY_DAYS);
   if (funded) return { kind: "resume", row: funded, next: nextAfterFunding(opts.applications, funded.id), retire, ...extra };
   if (mode === "live") return { kind: "skip", why: LIVE_PAY_SKIP, retire, ...extra };
   const unpaid = open.find((r) => REPAYABLE.has(r.payment_status ?? "unpaid") && runway(r) >= MIN_RUNWAY_DAYS);

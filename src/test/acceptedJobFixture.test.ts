@@ -19,7 +19,7 @@
  *      a skip on the next nightly.
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (accepted) return { kind: "reuse", row: accepted, retire, ...extra }; | if (accepted && false) return { kind: "reuse", row: accepted, retire, ...extra };
- * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow" && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && r.payment_status === "escrow",
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | r.status === "accepted" && r.helper_id === opts.helperId && (r.payment_status === "escrow" \|\| r.payment_status === "held") && runway(r) >= MIN_RUNWAY_DAYS, | r.status === "accepted" && r.helper_id === opts.helperId && (r.payment_status === "escrow" \|\| r.payment_status === "held"),
  * @mutate .github/workflows/a11y-webkit-prod.yml | needs: [preflight, wait-accounts, fixtures, wait-accounts-sweep] | needs: [preflight, wait-accounts, wait-accounts-sweep]
  * @mutate .github/workflows/a11y-webkit-prod.yml | run: npx playwright test --project=job-status-fixtures | run: echo skipped
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = openAll.filter((r) => !isDeadFor(opts.applications, r.id)); | const open = openAll;

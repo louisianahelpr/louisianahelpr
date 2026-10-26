@@ -51,7 +51,7 @@ function standing(handover: Pickup, side: "buyer" | "seller", at: number): strin
     if (at === 0) return side === "buyer" ? "Paid · book a pickup time with the seller." : "Paid · the buyer books a pickup time.";
     if (at === 1) return "Booked · see the pickup time below.";
   }
-  return at === 2 ? "Picked up." : "Handed over. The sale is final.";
+  return at === 2 ? "Picked up." : "Handed over.";
 }
 
 export function PickupStatus({

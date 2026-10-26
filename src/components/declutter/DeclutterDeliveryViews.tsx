@@ -179,7 +179,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
       {side === "buyer" && <DeliveryRaisePanel orderId={orderId} />}
       {canConfirm && (
         <button type="button" className={primary} disabled={gotIt.isPending}
-          onClick={() => { if (window.confirm("Do you have the item? Tapping \"I got it\" pays the seller and the Helpr and makes the sale final.")) gotIt.mutate(); }}>
+          onClick={() => { if (window.confirm("Do you have the item? Tapping \"I got it\" pays the Helpr. You can still ask the seller for a refund within 24 hours.")) gotIt.mutate(); }}>
           I got it
         </button>
       )}

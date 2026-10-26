@@ -15,7 +15,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { unwrap } from "@/lib/supabaseResult";
+import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
@@ -57,7 +57,12 @@ export async function fetchPayoutMethods(): Promise<PayoutMethod[]> {
   try {
     const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
     if (res.error) {
-      report(res.error, { tags: { source: "PayoutSetupForm.methods" } });
+      // Extract the body message so Sentry shows the actual edge-fn reason
+      // ("Your previous payout account is no longer valid", "Could not load
+      // your profile — please try again", etc.) rather than the generic SDK
+      // "Edge Function returned a non-2xx status code" (Sentry JAVASCRIPT-1Q).
+      const detail = await functionErrorMessage(res.error);
+      report(res.error, { tags: { source: "PayoutSetupForm.methods" }, context: { edge_fn_detail: detail } });
       return [];
     }
     return (res.data?.methods as PayoutMethod[] | undefined) || [];

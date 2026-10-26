@@ -141,6 +141,8 @@ describe("the constraint reader really read the constraints", () => {
     expect((jobs.get("jobs_payment_status_check") as { values: string[] }).values).toEqual([
       "unpaid", "escrow", "payout_pending", "released", "refunded",
       "cancelled", "abandoned", "failed", "chargeback", "cancelling",
+      // Q2399 (20261026001019): the poster's card held, charged at the hire.
+      "held",
     ]);
     expect((jobs.get("jobs_pricing_mode_check") as { values: string[] }).values).toEqual(["set_price"]);
     // 5000 until Q202 (2026-09-23); the one shared constant is jobBudgetLimits.ts.

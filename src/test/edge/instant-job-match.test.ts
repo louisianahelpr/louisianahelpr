@@ -148,7 +148,8 @@ describe("instant-job-match edge function (Q392)", () => {
     expect(read?.filters).toEqual(expect.arrayContaining([
       expect.objectContaining({ op: "eq", column: "id", value: JOB }),
       expect.objectContaining({ op: "eq", column: "status", value: "open" }),
-      expect.objectContaining({ op: "in", column: "payment_status", value: ["escrow", "payout_pending", "released"] }),
+      // Q2399: a held card is listed, so it is announced like a funded job.
+      expect.objectContaining({ op: "in", column: "payment_status", value: ["escrow", "payout_pending", "released", "held"] }),
       expect.objectContaining({ op: "not", column: "customer_id" }),
     ]));
   });

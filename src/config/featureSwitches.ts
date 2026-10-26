@@ -126,6 +126,7 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025170841; public.claim_checkout_nudge reads it per
   // poster. No screen: SERVER_ONLY below.
   "checkout_nudge",
+  "card_hold_at_post",
 ] as const;
 
 /**

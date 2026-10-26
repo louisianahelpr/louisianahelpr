@@ -2,6 +2,7 @@ import { safeStorage } from "@/lib/safeStorage";
 import type { Job } from "./types";
 import { isPastDue } from "@/lib/jobDate";
 import { MAX_JOB_BUDGET_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
+import { LISTED_PAYMENT_STATUSES } from "../../../../supabase/functions/_shared/listedPaymentStatus";
 
 const RESOLVED_FLAGS_KEY = "admin_resolved_job_flags";
 
@@ -59,7 +60,8 @@ export const GHOST_JOB_FLAG = "Open with no escrow behind it";
  * purpose: a new payment state added later defaults to "not funded", which is
  * the safe direction for a detector whose whole job is to notice absence.
  */
-const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+// Q2399: a held card (payment_status 'held') is a completed checkout, not a ghost.
+const FUNDED_PAYMENT_STATUSES = new Set<string>(LISTED_PAYMENT_STATUSES);
 
 /**
  * Grace period before an unfunded open job counts as a ghost.

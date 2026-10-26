@@ -176,7 +176,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
 
         {/* Board 57: the poster's open, paid job that nobody has applied to yet. */}
-        {isPoster && open && job.payment_status === "escrow" && !applicants.isLoading && !!applicants.data && total === 0 && (
+        {/* Paid or, with the card hold at posting (Q2399), a held card: both are live listings. */}
+        {isPoster && open && (job.payment_status === "escrow" || job.payment_status === "held") && !applicants.isLoading && !!applicants.data && total === 0 && (
           <NoApplicantsYet job={job} onManage={() => navigate(`/posts?highlight=${encodeURIComponent(job.id)}&manage=1`)} />
         )}
         {(job.description?.trim() || (!isPoster && job.customer_id)) && (

@@ -419,6 +419,8 @@ export function usePostJobForm() {
   // Jobs poster fee (owner 2026-10-18): ONE read of the switch for the
   // checkout screen (useJobDerived) and the quote it sends (useJobSubmit).
   const posterFeeOn = useFeature("jobs_poster_fee");
+  // Q2399: card_hold_at_post (the card is held at posting, charged at the hire): the review screen's copy.
+  const cardHoldOn = useFeature("card_hold_at_post");
   const { handleReview, handleSubmit } = useJobSubmit({
     posterFeeOn,
     saving,
@@ -556,6 +558,7 @@ export function usePostJobForm() {
   };
 
   return {
+    cardHoldOn,
     // step / nav
     step,
     setStep,

@@ -199,7 +199,15 @@ async function seriesCard(stripe: Stripe, paymentIntentId: string | null): Promi
     }
     return { kind: "unknown", message: e instanceof Error ? e.message : String(e) };
   }
-  if (pi.setup_future_usage !== "off_session") {
+  // Q2399 (lh-money-escrow review #4): a card-hold checkout saves the card per
+  // method (payment_method_options.card/link.setup_future_usage), and a hold
+  // placed later is made off-session on a card the poster saved for exactly
+  // that (card_hold_off_session), so each of those is a saved card too.
+  const pmo = (pi.payment_method_options ?? {}) as { card?: { setup_future_usage?: string }; link?: { setup_future_usage?: string } };
+  const savedOffSession = pi.setup_future_usage === "off_session" ||
+    pmo.card?.setup_future_usage === "off_session" || pmo.link?.setup_future_usage === "off_session" ||
+    (pi.metadata as Record<string, string> | null | undefined)?.card_hold_off_session === "1";
+  if (!savedOffSession) {
     return { kind: "none", reason: `checkout payment ${paymentIntentId} did not save the card` };
   }
   const customerId = typeof pi.customer === "string" ? pi.customer : pi.customer?.id;

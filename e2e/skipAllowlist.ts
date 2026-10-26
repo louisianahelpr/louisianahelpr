@@ -54,6 +54,24 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "the money-outcome legs are REST calls plus Stripe's hosted Checkout page, which 02-marketplace already drives in WebKit; a second engine would double every Stripe test charge and prod write for no new surface",
   },
   {
+    file: "e2e/journeys/05-card-hold.spec.ts",
+    match: "REST + Stripe's hosted page, Chromium only",
+    verdict: "justified",
+    why: "the card-hold legs are REST calls plus Stripe's hosted Checkout page, which 02-marketplace already drives in WebKit; a second engine would double every Stripe test hold and prod write for no new surface (the same rule as 04-money-outcomes)",
+  },
+  {
+    file: "e2e/journeys/04-admin-safety.spec.ts",
+    match: "Admin refund UI not driven on a held card",
+    verdict: "justified",
+    why: "with card_hold_at_post on for everyone (owner 2026-10-25) an OPEN job never holds captured money, so 'refund an open paid job' is no longer a state the product has; the leg's real assertion (admin_refund_general refuses a held card, cardHold: true, the job stays held) ran before this skip. A refund of captured money needs a hired job: that journey is Q2404 in docs/OPEN.md",
+  },
+  {
+    file: "e2e/journeys/04-money-outcomes.spec.ts",
+    match: "Quick Refund success not driven on a held card",
+    verdict: "justified",
+    why: "with card_hold_at_post on for everyone (owner 2026-10-25) an OPEN job never holds captured money, so Quick Refund on an open job has nothing to refund; the leg's real assertion (the refund is refused, cardHold: true, the job stays held) ran before this skip. A Quick Refund of captured money needs a hired job: Q2404 in docs/OPEN.md",
+  },
+  {
     file: "e2e/prod-audit/messy-input.spec.ts",
     match: "test.skip(...args)",
     verdict: "justified",

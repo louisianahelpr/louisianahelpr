@@ -16,10 +16,10 @@
  * may name match_digest again: the queue has no reader left, so a row written
  * there would be a match nobody is ever told about.
  *
- * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |         OR s.last_notified_at < now() - interval '1 hour'\n      )\n    GROUP BY |         OR true\n      )\n    GROUP BY
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  UPDATE public.saved_searches SET last_notified_at = now() WHERE id = ANY(p_search_ids);\n\n  -- ST-011: the matched
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  INSERT INTO public.match_digest_queue (user_id, job_id) VALUES (p_user_id, p_job_id) ON CONFLICT DO NOTHING;\n\n  -- ST-011: the matched
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |          AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour')\n       ORDER BY s.id | ORDER BY s.id
+ * @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |         OR s.last_notified_at < now() - interval '1 hour'\n      )\n    GROUP BY |         OR true\n      )\n    GROUP BY
+ * @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  UPDATE public.saved_searches SET last_notified_at = now() WHERE id = ANY(p_search_ids);\n\n  -- ST-011: the matched
+ * @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n\n  -- ST-011: the matched |   v_is_urgent := COALESCE(v_job.is_urgent, false);\n  INSERT INTO public.match_digest_queue (user_id, job_id) VALUES (p_user_id, p_job_id) ON CONFLICT DO NOTHING;\n\n  -- ST-011: the matched
+ * @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |          AND (s.last_notified_at IS NULL OR s.last_notified_at < now() - interval '1 hour')\n       ORDER BY s.id | ORDER BY s.id
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

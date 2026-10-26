@@ -112,8 +112,8 @@ const PINNED_COLUMNS = [
   // 20261015034054: the flat-fee stamp a new job carries, so the card shows the
   // Helpr's take-home. A cents amount fixed at posting; nothing personal.
   "helper_fee_flat_cents",
-  // 20261025235701 (Q2400): the percent half of the same stamp (5 on jobs posted
-  // under the 5% promise, else 10), so the card's take-home matches checkout.
+  // 20261025235701 (Q2400): the percent half of the same stamp (older jobs keep
+  // the 5% promise, new ones carry 10%), so the card's take-home matches checkout.
   // A number fixed at posting; nothing personal.
   "helper_fee_percent",
 ];

@@ -448,7 +448,7 @@ describe("Stripe mode for test accounts (owner 2026-10-12)", () => {
       scenario.reads.platform_settings = { rows: [{ helper_fee_percent: 10, onboarding_fee_cents: 200 }] };
       scenario.reads.payout_transfers = { rows: [] };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", amount: 11200, amount_received: 11200 });
-      stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true });
+      stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true, capabilities: { transfers: "active" } });
       stripeMock.transfers.create.mockResolvedValue({ id: "tr_1", transfer_group: `job_${JOB}` });
     }
     const cron = async () => {

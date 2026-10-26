@@ -125,6 +125,7 @@ function seedPayableJob(s: SupabaseScenario, overrides: Record<string, unknown> 
     id: "acct_helper",
     payouts_enabled: true,
     charges_enabled: true,
+    capabilities: { transfers: "active" },
   });
   stripeMock.transfers.create.mockResolvedValue({
     id: "tr_1",
@@ -515,7 +516,7 @@ describe("release-payout edge function", () => {
 
     // Lead 2026-10-23: Stripe rejected the platform and every connected account.
     // @mutate supabase/functions/release-payout/index.ts |     if (isRejectedAccountError(e)) { |     if (false) {
-    // @mutate supabase/functions/release-payout/index.ts |   if (!account.payouts_enabled \|\| !account.charges_enabled \|\| isRejectedAccount(account)) { |   if (!account.payouts_enabled \|\| !account.charges_enabled) {
+    // @mutate supabase/functions/release-payout/index.ts |   if (!account.payouts_enabled \|\| !account.charges_enabled \|\| account.capabilities?.transfers !== "active" \|\| isRejectedAccount(account)) { |   if (!account.payouts_enabled \|\| !account.charges_enabled \|\| account.capabilities?.transfers !== "active") {
     // @mutate supabase/functions/release-payout/index.ts |     const shut = await closeCachedConnectGate(supabaseAdmin, job.helper_id as string, helper.stripe_account_id as string); |     const shut = { error: null };
     const closingWrites = () => scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" &&
       (w.payload as Record<string, unknown>).stripe_payouts_enabled === false);
@@ -550,12 +551,31 @@ describe("release-payout edge function", () => {
       expect((slackAlerts as Array<{ oncePerDayKey?: string }>).map((a) => a.oncePerDayKey)).toContain("payout-held-platform-rejected");
     });
 
+    // lh-silent-failure review of the live gate (M2): the same three facts the
+    // shared gate requires, so transfers inactive is refused before any money moves.
+    // @mutate supabase/functions/release-payout/index.ts | account.capabilities?.transfers !== "active" \|\| isRejectedAccount(account)) { | isRejectedAccount(account)) {
+    it("payouts and charges enabled but the transfers capability inactive: 409 not payable, nothing moved", async () => {
+      seedPayableJob(scenario);
+      stripeMock.accounts.retrieve.mockResolvedValue({
+        id: "acct_helper",
+        payouts_enabled: true,
+        charges_enabled: true,
+        capabilities: { transfers: "inactive" },
+      });
+      const fn = await load();
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).code).toBe("connect_account_not_payable");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+
     it("an account whose flags read enabled but Stripe rejected it: 409, nothing moved, cached gate closed", async () => {
       seedPayableJob(scenario);
       stripeMock.accounts.retrieve.mockResolvedValue({
         id: "acct_helper",
         payouts_enabled: true,
         charges_enabled: true,
+        capabilities: { transfers: "active" },
         requirements: { disabled_reason: "rejected.other" },
       });
       const fn = await load();

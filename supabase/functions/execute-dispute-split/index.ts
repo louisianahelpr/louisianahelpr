@@ -53,7 +53,7 @@
 //     anywhere could recover it. Leg 3 below is that guard replaced with an
 //     answer.)
 
-import { isTestObjectUnderLiveKey, isUnusableConnectAccountError, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
+import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -73,6 +73,8 @@ import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { CONNECT_HOLD_SPLIT_ERROR, CONNECT_NOT_PAYABLE_CODE, CONNECT_REJECTED_CODE, STRIPE_PLATFORM_REJECTED_CODE } from "../_shared/livePayoutGate.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { jobMoneyMode, StripeModeRefused, stripeModeRefusedStatus, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
 
@@ -1540,33 +1542,55 @@ serve(async (req) => {
       );
     }
 
-    let account;
-    try {
-      account = await stripe.accounts.retrieve(helper.stripe_account_id);
-    } catch (e) {
-      // Q1251: an account the live key can never use (a sandbox account made
-      // under the test key, or one Stripe no longer has) is the same outcome
-      // as no payout account: 409, nothing moved, the dispute marked with what
-      // to fix. Only a genuine outage stays the 502 "retry".
-      if (isUnusableConnectAccountError(e)) {
-        console.warn(`[execute-dispute-split] Connect account ${helper.stripe_account_id} is unusable under this key:`, (e as { message?: string })?.message);
-        await markFailed(supabaseAdmin, disputeId, "helper Connect account cannot be used (must be set up again)", {}, job.id, settlementClaim);
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected
+    // accounts): the ONE live gate every sender runs (_shared/livePayoutHold.ts).
+    // Before it, this read payouts/charges only, so a REJECTED account whose
+    // flags still read true was paid. Every hold is 409, nothing moved, the
+    // dispute marked with what to fix (Q1251's unusable wording kept); ops
+    // hear once a day per Helpr.
+    const live = await holdUnlessPayable({
+      stripe,
+      supabaseAdmin,
+      helperId: job.helper_id,
+      accountId: helper.stripe_account_id,
+      fn: "execute-dispute-split",
+      what: "the dispute split's Helpr leg",
+      then: "Nothing moved; the dispute is marked failed and can be retried.",
+      fields: { job_id: job.id, dispute_id: disputeId },
+    });
+    if (live.held) {
+      if (live.kind === "unusable") {
+        await markFailed(supabaseAdmin, disputeId, `${CONNECT_HOLD_SPLIT_ERROR} (helper Connect account cannot be used; must be set up again)`, {}, job.id, settlementClaim);
         return json(
           { error: "the Helpr's payout account can't be used and must be set up again — nothing was moved", code: "connect_account_unusable" },
           409,
         );
       }
-      console.error(`[execute-dispute-split] accounts.retrieve failed for ${helper.stripe_account_id}:`, e);
-      await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account", {}, job.id, settlementClaim);
-      return json({ error: "could not verify the Helpr's payout account — retry" }, 502);
-    }
-    if (!account.payouts_enabled || !account.charges_enabled) {
-      await markFailed(supabaseAdmin, disputeId, "helper Connect account is not fully active", {}, job.id, settlementClaim);
+      if (live.kind === "cannot_verify") {
+        await markFailed(supabaseAdmin, disputeId, "could not verify the Helpr's Connect account", {}, job.id, settlementClaim);
+        return json({ error: "could not verify the Helpr's payout account — retry" }, 502);
+      }
+      const code = live.kind === "platform_rejected" ? STRIPE_PLATFORM_REJECTED_CODE
+        : live.kind === "rejected" ? CONNECT_REJECTED_CODE : CONNECT_NOT_PAYABLE_CODE;
+      await markFailed(
+        supabaseAdmin,
+        disputeId,
+        `${CONNECT_HOLD_SPLIT_ERROR} (${live.kind === "platform_rejected" ? "Stripe refused the platform's account"
+          : live.kind === "rejected" ? "helper Connect account was rejected by Stripe"
+          : "helper Connect account is not fully active"})`,
+        {},
+        job.id,
+        settlementClaim,
+      );
       return json(
         {
-          error: "the Helpr's payout account is not fully active — nothing was moved",
-          payouts_enabled: account.payouts_enabled,
-          charges_enabled: account.charges_enabled,
+          error: live.kind === "platform_rejected"
+            ? "Stripe could not confirm the Helpr's payout account right now — nothing was moved"
+            : live.kind === "rejected"
+              ? "Stripe rejected the Helpr's payout account — nothing was moved"
+              : "the Helpr's payout account is not fully active — nothing was moved",
+          code,
+          reason: live.reason,
         },
         409,
       );

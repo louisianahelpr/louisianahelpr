@@ -78,7 +78,7 @@ describe("release-payout honours the payout hold", () => {
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
       id: "pi_1", status: "succeeded", amount: capturedCents(budget), amount_received: capturedCents(budget),
     });
-    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true });
+    stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true, capabilities: { transfers: "active" } });
     stripeMock.transfers.create.mockResolvedValue({ id: "tr_1", transfer_group: "job_job-1" });
   }
 

@@ -31,7 +31,8 @@ import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRead.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
-import { closeCachedConnectGate, holdClosesCache, readLivePayoutGate, type LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import type { LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
 /** The notice a payee with no payout account gets while their payout waits (sent at most once a day per job). */
 const PAYOUT_ACCOUNT_REQUIRED_TITLE = "Payout account required";
@@ -1488,43 +1489,24 @@ serve(async (req) => {
       // After the already-transferred check on purpose: a transfer that went
       // out still heals its flip whatever the account reads now.
       {
-        const acct = helperProfile.stripe_account_id as string;
-        let gateRead = liveGates.get(acct);
-        if (!gateRead) {
-          gateRead = readLivePayoutGate(stripe, acct);
-          liveGates.set(acct, gateRead);
-        }
-        const gate = await gateRead;
-        if (!gate.ok) {
-          console.warn(`[process-scheduled-payouts] payout HELD for job ${job.id}, Helpr ${helperId}: Connect account ${acct} ${gate.kind} (${gate.reason}); no transfer attempted.`);
-          if (holdClosesCache(gate)) {
-            const shut = await closeCachedConnectGate(supabaseAdmin, helperId, acct);
-            if (shut.error) jobDefect(job.id, `cached gate close ${helperId}: ${shut.error}`);
-          }
-          // Stripe refusing OUR platform holds every payout alike: ONE alert a
-          // day for the platform, not one per Helpr, and no per-job defect (it
-          // would turn every run red for a condition ops already know).
-          const platformRefused = gate.kind === "platform_rejected";
-          await postSlackOpsAlert({
-            kind: "payout_wait",
-            severity: "warning",
-            oncePerDayKey: platformRefused ? "payout-held-platform-rejected" : `payout-held-not-payable-${helperId}`,
-            seed: seedJobIds.has(job.id),
-            title: platformRefused
-              ? "Payouts held: Stripe refuses the platform's account"
-              : "Payout held: Stripe does not say the Helpr's account is payable",
-            message: platformRefused
-              ? "Stripe answered that the platform's own account has been rejected, so no Helpr's account can be verified and every scheduled payout is held, not sent. They are tried again on every run."
-              : gate.kind === "cannot_verify"
-                ? "The Helpr's payout account could not be read from Stripe, so the payout was held, not sent. It is tried again on the next run."
-                : "Stripe says the Helpr's payout account cannot be paid out now, so the payout was held, not sent. It is tried again on the next run.",
-            fields: { job_id: job.id, helper_id: helperId, account_id: acct, gate: gate.kind, reason: gate.reason, amount: formatPayoutDollars(helperPayout) },
-          });
-          results.push({ job_id: job.id, status: "payee_not_payable", gate: gate.kind, reason: gate.reason });
+        const live = await holdUnlessPayable({
+          stripe,
+          supabaseAdmin,
+          helperId,
+          accountId: helperProfile.stripe_account_id as string,
+          fn: "process-scheduled-payouts",
+          what: "the scheduled payout",
+          then: "It is tried again on the next run.",
+          seed: seedJobIds.has(job.id),
+          fields: { job_id: job.id, amount: formatPayoutDollars(helperPayout) },
+          cache: liveGates,
+        });
+        if (live.held) {
+          results.push({ job_id: job.id, status: "payee_not_payable", gate: live.kind, reason: live.reason });
           // A read that failed for an unknown reason is worth a red run; a
           // known not-payable account or a refused platform is a held payout,
           // already told to ops.
-          if (gate.kind === "cannot_verify") jobDefect(job.id, `live payout gate ${job.id}/${helperId}: ${gate.reason}`);
+          if (live.defect) jobDefect(job.id, `${job.id}: ${live.defect}`);
           continue;
         }
       }

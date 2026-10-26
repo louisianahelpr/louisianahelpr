@@ -89,7 +89,7 @@ function seedAutoResolvedJob(s: SupabaseScenario, unstampedDispute: Record<strin
   };
   s.reads.platform_settings = { rows: [{ helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
   s.reads.payout_transfers = { rows: [] };
-  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true });
+  stripeMock.accounts.retrieve.mockResolvedValue({ id: "acct_helper", payouts_enabled: true, charges_enabled: true, capabilities: { transfers: "active" } });
   stripeMock.transfers.create.mockResolvedValue({ id: "tr_stamp_1", transfer_group: "job_job-1" });
 }
 

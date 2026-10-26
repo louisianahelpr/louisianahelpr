@@ -217,7 +217,8 @@ describe("a NULL argument never makes an allow check say yes (Q140)", () => {
     });
     it("job_is_funded: no row / NULL id is false", () => {
       const d = newestFunction("job_is_funded")!;
-      expect(d.body).toMatch(/^SELECT COALESCE\(\( SELECT public\.job_payment_is_funded\(j\.payment_status\) FROM public\.jobs j WHERE j\.id = p_job_id \), false\);$/);
+      // Q2399 (20261026001019): the applications gate reads LISTED (funded or the card held); still false on no row.
+      expect(d.body).toMatch(/^SELECT COALESCE\(\( SELECT public\.job_payment_is_listed\(j\.payment_status\) FROM public\.jobs j WHERE j\.id = p_job_id \), false\);$/);
     });
   });
 });

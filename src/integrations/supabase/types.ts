@@ -4125,6 +4125,97 @@ export type Database = {
           },
         ]
       }
+      job_card_holds: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          capture_amount_cents: number | null
+          capture_before: string | null
+          capturing_from: string | null
+          created_at: string
+          failure_code: string | null
+          failure_message: string | null
+          intent_metadata: Json
+          job_id: string
+          notified_state: string | null
+          onboarding_fee_cents: number
+          onboarding_fee_claimed_at: string | null
+          payment_intent_id: string | null
+          payment_method_id: string | null
+          place_at: string | null
+          state: string
+          stripe_customer_id: string | null
+          stripe_mode: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          capture_amount_cents?: number | null
+          capture_before?: string | null
+          capturing_from?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          intent_metadata?: Json
+          job_id: string
+          notified_state?: string | null
+          onboarding_fee_cents?: number
+          onboarding_fee_claimed_at?: string | null
+          payment_intent_id?: string | null
+          payment_method_id?: string | null
+          place_at?: string | null
+          state: string
+          stripe_customer_id?: string | null
+          stripe_mode: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          capture_amount_cents?: number | null
+          capture_before?: string | null
+          capturing_from?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          intent_metadata?: Json
+          job_id?: string
+          notified_state?: string | null
+          onboarding_fee_cents?: number
+          onboarding_fee_claimed_at?: string | null
+          payment_intent_id?: string | null
+          payment_method_id?: string | null
+          place_at?: string | null
+          state?: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_checkins: {
         Row: {
           created_at: string | null

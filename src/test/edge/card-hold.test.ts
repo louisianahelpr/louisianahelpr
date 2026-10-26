@@ -164,7 +164,8 @@ describe("card hold at posting (Q2399)", () => {
       expect(payload.cardHold).toBeUndefined();
       expect(args?.payment_method_options?.card?.capture_method).toBeUndefined();
       expect(args?.payment_method_options?.link).toBeUndefined();
-      expect(args?.metadata?.card_hold).toBeUndefined();
+      // "" is unset at Stripe (as wallet_save): the webhook settles it as today's checkout.
+      expect(args?.metadata?.card_hold).toBe("");
       expect(opts?.apiVersion).toBeUndefined();
     });
 

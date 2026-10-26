@@ -68,7 +68,13 @@ import { bodyOf, triggerInventory } from "./helpers/migrationTriggers";
 
 const REPO = resolve(__dirname, "..", "..");
 const MIG = join(REPO, "supabase/migrations");
-const FUNDED = /\bjob_payment_is_funded\s*\(/i;
+/**
+ * The money gate. Q2399 (card hold at post, 20261026001019): a job whose card is HELD counts as the money being in
+ * for a direct offer (job_payment_is_listed = funded or held): the offer, its notices and its clock run on a held
+ * card exactly as on a funded one, while the hire itself still needs the charge (complete_job_accept keeps
+ * job_payment_is_funded). Either predicate is a gate; neither "true" nor a missing one is.
+ */
+const FUNDED = /\bjob_payment_is_(?:funded|listed)\s*\(/i;
 /** OLD.payment_status in the never-paid set (money has never arrived). */
 const NEVER_PAID = /OLD\.payment_status\s+IS\s+NULL\s+OR\s+OLD\.payment_status\s+IN\s*\(\s*'unpaid'\s*,\s*'abandoned'\s*,\s*'failed'\s*\)/i;
 const PENDING = /direct_offer_status\s*=\s*'pending'/i;
@@ -153,7 +159,7 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     const body = bodyOf(defs.get("record_backout_notice")!.stmt);
     const cond = /ELSIF\s+OLD\.direct_offer_status\s*=\s*'pending'([\s\S]*?)\bTHEN\b/i.exec(body)?.[1] ?? "";
     expect(cond).toMatch(/NEW\.direct_offer_status\s+IN\s*\(\s*'declined'\s*,\s*'expired'\s*\)/i);
-    expect(cond).toMatch(/job_payment_is_funded\s*\(\s*NEW\.payment_status\s*\)/i);
+    expect(cond).toMatch(/job_payment_is_(?:funded|listed)\s*\(\s*NEW\.payment_status\s*\)/i);
   });
 
   it("the offer notice fires on the funding transition, not only at insert", () => {
@@ -161,7 +167,7 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     expect(trg?.fn).toBe("notify_helper_on_direct_offer");
     expect(trg?.events).toMatch(/\bUPDATE OF\b[^]*\bPAYMENT_STATUS\b/);
     const body = bodyOf(defs.get("notify_helper_on_direct_offer")!.stmt);
-    expect(body).toMatch(/job_payment_is_funded\s*\(\s*NEW\.payment_status\s*\)/i);
+    expect(body).toMatch(/job_payment_is_(?:funded|listed)\s*\(\s*NEW\.payment_status\s*\)/i);
     // First arrival only: the never-paid set, never "OLD not funded".
     expect(body).toMatch(NEVER_PAID);
     expect(body).not.toMatch(/NOT\s+public\.job_payment_is_funded\s*\(\s*OLD\.payment_status\s*\)/i);

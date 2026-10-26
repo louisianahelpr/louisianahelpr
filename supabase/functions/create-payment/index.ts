@@ -1439,7 +1439,8 @@ serve(async (req) => {
         cancel_url: cancelUrl,
         expires_at: checkoutExpiresAt,
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents),
-          ...(holdPlan ? { card_hold: "1" } : {}),
+          // card_hold "1": stripe-webhook settles this session as a card HOLD (Q2399); "" = unset, as wallet_save.
+          card_hold: holdPlan ? "1" : "",
           // wallet_save "1": stripe-webhook makes the saved card the wallet's
           // default card (Q2139) only on a session marked so ("" = unset).
           wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" },
@@ -2695,7 +2696,7 @@ serve(async (req) => {
         // win; round 2, money #1).
         const live = job.payment_status === "held" ? await readHold(supabaseAdmin, jobId) : failedHold;
         if (live?.state === "capturing") {
-          return new Response(JSON.stringify({ error: "Someone is accepting this job right now. Refresh in a minute to see where it stands." }), {
+          return new Response(JSON.stringify({ error: "A Helpr is accepting this job right now. Refresh in a minute to see where it stands." }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
           });
         }
@@ -2721,7 +2722,7 @@ serve(async (req) => {
           // capture claim in the way, Stripe unreadable). card-hold-sweep
           // releases it and tells the poster: never an error over a cancel
           // that happened (round 2, money #5).
-          console.error(`[create-payment] cancel_escrow: job ${jobId} cancelled, hold release left to card-hold-sweep: ${e instanceof Error ? e.message : String(e)}`);
+          console.error(`[create-payment] cancel_escrow: job ${jobId} cancelled, hold release left to card-hold-sweep: ${caughtMessage(e)}`);
           released = "later";
         }
         if (released === "captured") {

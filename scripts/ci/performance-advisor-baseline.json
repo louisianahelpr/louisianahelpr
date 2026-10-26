@@ -58,6 +58,7 @@
     "public.instant_payouts.idx_instant_payouts_helper",
     "public.instant_payouts.idx_instant_payouts_status",
     "public.job_approval_escalations.job_approval_escalations_open_idx",
+    "public.job_card_holds.job_card_holds_open_state_idx",
     "public.job_checkins.idx_job_checkins_job_id",
     "public.job_checkins.idx_job_checkins_user_id",
     "public.job_checkout_nudges.job_checkout_nudges_user_idx",

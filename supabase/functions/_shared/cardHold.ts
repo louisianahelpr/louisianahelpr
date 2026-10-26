@@ -584,6 +584,10 @@ async function refundCaptureForNobody(deps: HoldDeps, job: HoldJob, hold: HoldRo
       throw new Error(`job ${job.id}: its money left held/failed while a refund of ${piId} was being decided; nothing refunded`);
     }
   }
+  // own-mistake full refund (owner, 2026-10-14): the card was charged for a job
+  // that closed with nobody hired (a capture racing the close), which the hold
+  // model never allows (Q2399: charged only at a hire), so it goes back in
+  // full, card fee included; the card fee rule does not apply to our errors.
   await stripe.refunds.create(
     { payment_intent: piId, reason: "requested_by_customer", metadata: { job_id: job.id, card_hold: "1", why: "captured_for_a_closed_job" } },
     { idempotencyKey: `card-hold-nobody-refund-${piId}` },

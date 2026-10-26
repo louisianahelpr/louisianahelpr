@@ -189,6 +189,9 @@ const EDGE_READERS: Record<string, Kind> = {
   "arrival-confirm-reminder/index.ts": "hides",
   "auto-release-payment/index.ts": "alerts",
   "auto-resolve-disputes/index.ts": "alerts",
+  // Q2399 card hold: is_seed only tags the Slack page (seed: job.is_seed), which pages for seed jobs too.
+  "_shared/cardHold.ts": "alerts",
+  "card-hold-sweep/index.ts": "alerts",
   "create-payment/index.ts": "alerts",
   "engagement-automations/index.ts": "hides",
   "money-reconciliation/index.ts": "alerts",

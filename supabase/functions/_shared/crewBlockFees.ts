@@ -26,6 +26,7 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 // The read-only half (row shape, read, cents, the admin refund refusal) lives
 // in crewBlockFeeRead.ts, so a reader that never pays does not import this
 // shared-guarded payer (Q231, decidedDisputeEscrowOnlyMovedBySplit).
@@ -190,6 +191,24 @@ export async function payCrewBlockFees(
         message: "A crew member's block fee could not be sent. The job keeps its escrow and the next run retries; fix the cause or pay it by hand.",
         fields: { job_id: job.id, block_fee_id: row.id, helper_id: row.helper_id, amount: payoutCents / 100, reason: why.slice(0, 200), fn },
       });
+      continue;
+    }
+    // Lead 2026-10-23 (Stripe rejected the platform and its connected accounts): no transfer unless
+    // Stripe says the member's account is payable (_shared/livePayoutHold.ts).
+    // An outcome like the payout hold above: not paid, retried every run.
+    const live = await holdUnlessPayable({
+      stripe,
+      supabaseAdmin: admin,
+      helperId: row.helper_id,
+      accountId: prof.stripe_account_id,
+      fn,
+      what: "a crew block fee",
+      then: "The job keeps its escrow and the next run retries.",
+      fields: { job_id: job.id, block_fee_id: row.id, amount: payoutCents / 100 },
+    });
+    if (live.held) {
+      allPaid = false;
+      if (live.defect) problems.push(`crew block fee ${row.id}: ${live.defect}`);
       continue;
     }
     try {

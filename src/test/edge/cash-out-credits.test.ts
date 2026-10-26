@@ -27,7 +27,7 @@ import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { stripeMock, resetStripeMock } from "./mocks/stripe";
+import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
 
 const JWT = "Bearer caller.jwt.sig";
 const USER = { id: "helper-1", email: "helper@example.com" };
@@ -52,7 +52,7 @@ function stageClaim(claimed: Array<{ id: string; amount: number }>) {
 }
 
 beforeEach(async () => {
-  resetEnv(); resetSupabaseMock(); resetSharedMocks(); resetStripeMock();
+  resetEnv(); resetSupabaseMock(); resetSharedMocks(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
   setEnv({
     SUPABASE_URL: "https://project.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "service-key",
@@ -114,5 +114,26 @@ describe("ME-013 · a cash-out is reconcilable", () => {
     );
     expect(stamp?.payload).toMatchObject({ stripe_transfer_id: "tr_ok" });
     expect(typeof (stamp?.payload as { redeemed_at?: string }).redeemed_at).toBe("string");
+  });
+});
+
+// Lead 2026-10-23: no cash-out unless Stripe says the account is payable.
+// @mutate supabase/functions/cash-out-credits/index.ts |     if (live.held) { |     if (false) {
+describe("a cash-out to an account Stripe rejected moves nothing and gives the credits back", () => {
+  it("409 connect_account_not_payable, no transfer, and the credits are never claimed (asked before the claim)", async () => {
+    stageClaim([{ id: "cA", amount: 5 }]);
+    stripeMock.accounts.retrieve.mockResolvedValue({
+      ...PAYABLE_CONNECT_ACCOUNT,
+      payouts_enabled: false,
+      charges_enabled: false,
+      capabilities: { transfers: "inactive" },
+      requirements: { ...PAYABLE_CONNECT_ACCOUNT.requirements, disabled_reason: "rejected.other" },
+    });
+
+    const res = await post({ attemptId: ATTEMPT });
+    expect(res.status).toBe(409);
+    expect((await res.json()).code).toBe("connect_account_not_payable");
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "referral_credits"), "nothing claimed, nothing to roll back").toEqual([]);
   });
 });

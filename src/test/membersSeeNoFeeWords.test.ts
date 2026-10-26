@@ -247,6 +247,7 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "supabase/functions/void-cancelled-payments/index.ts::Cancellation fee transfer failed": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/void-cancelled-payments/index.ts::Declutter seller backed out: full refund, card fee billed to the seller${}": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/void-cancelled-payments/index.ts::Failed to transfer $${} cancellation fee to Helpr for job ${}. Error: ${}": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
+  "supabase/functions/void-cancelled-payments/index.ts::a cancellation fee": "staff text: holdUnlessPayable's `what`, read only by its console line and its ops alert (_shared/livePayoutHold.ts); no member reads it",
   "supabase/functions/void-cancelled-payments/index.ts::a crew member's share of the cancellation fee: their account was deleted, so it goes back to the person who posted it": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/void-cancelled-payments/index.ts::nothing left after commission": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
 };

@@ -356,8 +356,7 @@ function AppliedJobCardInner({
             extra={addressOnFace ? metaRow : null}
             // FLOORED, matching JobPrice (owner, 2026-08-19): a take-home never
             // reads above the payout. What this Helpr takes home (board 21).
-            // No caption word under it (owner 2026-10-25: prices are take-home
-            // everywhere, with no "take-home" label).
+            // No "take-home" caption under it (owner 2026-10-25).
             money={`$${formatPriceFloor(payout)}`}
             status={
               !isMinimalCard && !isExpanded ? (

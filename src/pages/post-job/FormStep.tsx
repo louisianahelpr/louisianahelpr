@@ -169,7 +169,7 @@ export function FormStep({ form }: FormStepProps) {
     // the three columns left the form about 215px at 1024 and 370px at 1180
     // (measured), so from lg to xl it is the step list and the form only.
     <div key="form-step" ref={rootRef} className="mx-auto w-full max-w-2xl lg:max-w-none lg:grid lg:grid-cols-[200px_minmax(0,640px)] xl:grid-cols-[200px_minmax(0,640px)_280px] lg:justify-center lg:items-start lg:gap-section">
-      <PostJobStepRail screen={screenOfFormPage(page, !!openGroup)} />
+      <PostJobStepRail screen={screenOfFormPage(page, !!openGroup)} canPick={canPickStep} onPick={pickStep} />
       <div className="min-w-0 space-y-section">
       {form.offerToHelperId && (
         <DirectOfferBanner
@@ -238,9 +238,9 @@ export function FormStep({ form }: FormStepProps) {
         {/* PAGE 1: WHAT, screens 2 and 3 of 7 (board 23) */}
         <div data-form-page="1" hidden={page !== 1} className="space-y-section">
           {openGroup ? (
-            <PostJobStepHeader canPick={canPickStep} onPick={pickStep} screen="kind" question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." />
+            <PostJobStepHeader screen="kind" question={groupQuestion(openGroup.id, openGroup.label)} helper="Tap one to keep going." canPick={canPickStep} onPick={pickStep} />
           ) : (
-            <PostJobStepHeader canPick={canPickStep} onPick={pickStep} screen="groups" question="What do you need done?" helper="Search, or pick a category." />
+            <PostJobStepHeader screen="groups" question="What do you need done?" helper="Search, or pick a category." canPick={canPickStep} onPick={pickStep} />
           )}
           <JobCategoryGroups
             category={form.category}
@@ -258,7 +258,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 2: DETAILS, screen 4 of 7 (board 44) */}
         <div data-form-page="2" hidden={page !== 2} className="space-y-section">
-          <PostJobStepHeader canPick={canPickStep} onPick={pickStep} screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." />
+          <PostJobStepHeader screen="details" question="Tell us about it" helper="A few words and a photo help Helprs say yes." canPick={canPickStep} onPick={pickStep} />
           <DetailsSection
             stepNumber={1}
             title={form.title}
@@ -287,7 +287,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 3: PRICE, screen 5 of 7 (board 3), or the quote window with "Get quotes" picked */}
         <div data-form-page="3" hidden={page !== 3} className="space-y-section">
-          <PostJobStepHeader canPick={canPickStep} onPick={pickStep} screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} />
+          <PostJobStepHeader screen="price" question="What will you pay?" helper={askingQuotes ? "Members near you send quotes. You pay only when you book one." : form.hasGift ? "Your gift card pays first. Anything left is charged when you post, and held until the job is done." : "You're charged when you post. The money is held until the job is done."} canPick={canPickStep} onPick={pickStep} />
           {quotesShape && quotes.settled && (
             <PriceModeChoice value={priceMode} onChange={setPriceMode} quotesComingSoon={!quotesOn} />
           )}
@@ -329,7 +329,7 @@ export function FormStep({ form }: FormStepProps) {
 
         {/* PAGE 4: WHEN AND WHERE, screen 6 of 7 (board 45) */}
         <div data-form-page="4" hidden={page !== 4} className="space-y-section">
-          <PostJobStepHeader canPick={canPickStep} onPick={pickStep} screen="where" question="When and where?" helper="Helprs see the area now and your street address after you hire." />
+          <PostJobStepHeader screen="where" question="When and where?" helper="Helprs see the area now and your street address after you hire." canPick={canPickStep} onPick={pickStep} />
           <LogisticsSection
             stepNumber={2}
             streetAddress={form.streetAddress}

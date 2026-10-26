@@ -28,6 +28,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           (create-payment, automatic capture; design-b handoff), so this
           screen says pay, never "nothing is charged now". */}
       <PostJobStepHeader
+        screen="review"
+        question="Look good?"
         // From Review, a passed form step is tappable too (owner 2026-10-25): the form keeps what was typed.
         canPick={(s) => FORM_PAGE_OF[s] !== undefined && s !== "kind"}
         onPick={(s) => {
@@ -38,8 +40,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           form.setStep("form");
           requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "smooth" }));
         }}
-        screen="review"
-        question="Look good?"
         helper={
           // A post a gift card covers in full charges $0: no "pay" line then.
           form.totalCharge > 0

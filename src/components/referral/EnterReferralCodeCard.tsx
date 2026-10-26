@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { report } from "@/lib/errorLogger";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { clearPendingReferral, readPendingReferral } from "@/lib/pendingReferral";
 
 /**
@@ -48,6 +49,8 @@ export function EnterReferralCodeCard() {
   const [code, setCode] = useState(readPendingReferral);
   const [busy, setBusy] = useState(false);
   const [answer, setAnswer] = useState<string | null>(null);
+  // A refusal the server words (account_restricted): its own copy, never "check your connection".
+  const [refusal, setRefusal] = useState<string | null>(null);
   const daysLeft = referralClaimDaysLeft(createdAt);
 
   useEffect(() => {
@@ -63,7 +66,16 @@ export function EnterReferralCodeCard() {
     setBusy(true);
     try {
       const { data, error } = await supabase.rpc("claim_my_referral_code", { p_code: code });
-      if (error) throw error;
+      if (error) {
+        const copy = rpcErrorMessage("claim_my_referral_code", error);
+        if (copy) {
+          setRefusal(copy);
+          setAnswer(null);
+          return;
+        }
+        throw error;
+      }
+      setRefusal(null);
       setAnswer(typeof data === "string" && data in ANSWERS ? data : "invalid");
     } catch (e) {
       report(e, { tags: { source: "EnterReferralCodeCard" } });
@@ -95,7 +107,7 @@ export function EnterReferralCodeCard() {
           {busy ? "Adding…" : "Add"}
         </Button>
       </div>
-      {answer && <p className="text-ds-12 text-muted-foreground" data-testid="referral-claim-answer">{ANSWERS[answer]}</p>}
+      {(refusal ?? answer) && <p className="text-ds-12 text-muted-foreground" data-testid="referral-claim-answer">{refusal ?? ANSWERS[answer!]}</p>}
     </div>
   );
 }

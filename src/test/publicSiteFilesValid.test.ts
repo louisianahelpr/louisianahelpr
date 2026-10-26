@@ -12,11 +12,13 @@
  * fail.
  */
 // @mutate scripts/generate-sitemap.mjs |     "     the generator's check mode in CI (an XML comment may not contain two hyphens in a row). -->", |     "     node scripts/generate-sitemap.mjs --check in CI. -->",
+// @mutate scripts/generate-sitemap.mjs |       "       Add an entry to WEIGHTS in scripts/generate-sitemap.mjs to tune these. -->", |       "       Add an entry to WEIGHTS (scripts/generate-sitemap.mjs --check) to tune these. -->",
 // @mutate vercel.json |       "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": true | "destination": "https://www.louisianahelpr.com/:path",\n      "permanent": false
 // @mutate vercel.json |       "source": "/contact", |       "source": "/contact-us",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { render } from "../../scripts/generate-sitemap.mjs";
 
 const ROOT = join(__dirname, "../..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -37,6 +39,16 @@ describe("public/sitemap.xml", () => {
     const comments = [...xml.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]);
     expect(comments.length).toBeGreaterThan(0);
     expect(comments.filter((c) => c.includes("--"))).toEqual([]);
+  });
+
+  // The committed file alone cannot catch a generator that writes `--` again (the next run would publish it):
+  // the lane-c-6 mutation of the generator survived when only public/sitemap.xml was read (lander 6, 2026-10-25).
+  it("the generator's own output parses and no comment it writes holds `--` (both comments: header and unweighted)", () => {
+    const xml = render(["/", "/about"], ["/about"]);
+    const comments = [...xml.matchAll(/<!--([\s\S]*?)-->/g)].map((m) => m[1]);
+    expect(comments.length).toBeGreaterThan(1);
+    expect(comments.filter((c) => c.includes("--"))).toEqual([]);
+    expect(xmlErrors(xml)).toBeNull();
   });
 
   it("the parse check can fail (fixture)", () => {

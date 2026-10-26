@@ -71,7 +71,7 @@ import {
   PUBLIC_PAGE_META,
   SITE_ORIGIN,
 } from "../lib/publicPageMeta.mjs";
-// @ts-expect-error — plain .mjs script, no type declarations
+// Typed by scripts/generate-sitemap.d.mts.
 import { NOINDEX as SITEMAP_NOINDEX } from "../../scripts/generate-sitemap.mjs";
 
 const ROOT = resolve(__dirname, "..", "..");

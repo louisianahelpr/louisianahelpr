@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 943,
-    "files": 244,
-    "rendering": 810,
-    "suppressedByPolicy": 133,
+    "calls": 953,
+    "files": 245,
+    "rendering": 815,
+    "suppressedByPolicy": 138,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 675,
+      "toast.error": 680,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 137,
+      "toast.success": 142,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 438,
-      "template": 100,
-      "dynamic": 455,
+      "literal": 440,
+      "template": 101,
+      "dynamic": 462,
       "jsx": 0
     }
   },
@@ -4191,7 +4191,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 264,
+      "line": 277,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4211,7 +4211,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 268,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4221,7 +4221,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 316,
+      "line": 329,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4231,7 +4231,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 320,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4241,17 +4241,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 325,
+      "line": 338,
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Picked up. You're being paid."
+        "text": "Picked up. You're paid in 24 hours, unless the buyer asks for a refund."
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 330,
+      "line": 343,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4261,7 +4261,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 390,
+      "line": 403,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4271,7 +4271,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 391,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4281,7 +4281,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 415,
+      "line": 428,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4301,7 +4301,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 416,
+      "line": 429,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4311,17 +4311,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 417,
+      "line": 430,
       "kind": "toast.success",
       "title": {
         "form": "literal",
-        "text": "Picked up. The seller is paid and the sale is final."
+        "text": "Picked up. If something is wrong, you can ask for a refund within 24 hours."
       },
       "renders": false
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 420,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4331,7 +4331,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 471,
+      "line": 484,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4341,7 +4341,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 472,
+      "line": 485,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4351,7 +4351,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 508,
+      "line": 521,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4361,7 +4361,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 513,
+      "line": 526,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4752,6 +4752,136 @@
     {
       "file": "src/components/declutter/DeclutterQuestions.tsx",
       "line": 155,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 93,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Sent. ${cap(who)} answers within 24 hours."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 94,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 98,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "r.result === \"refunded\" ? \"Done. Your refund is on its way.\" : \"Sent to Louisiana Helpr to decide.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Done. Your refund is on its way."
+          },
+          {
+            "form": "literal",
+            "text": "Sent to Louisiana Helpr to decide."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 99,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 103,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Refund request taken back."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 104,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 199,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "r.result === \"returning\" ? \"Agreed. Tap I got it back once you have the item.\" : r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Agreed. Tap I got it back once you have the item."
+          },
+          {
+            "form": "dynamic",
+            "text": "r.result === \"offered\" ? \"Offer sent.\" : \"Answer sent.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Offer sent."
+              },
+              {
+                "form": "literal",
+                "text": "Answer sent."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 202,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 206,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Refund sent. The buyer is told."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterRefundRequest.tsx",
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

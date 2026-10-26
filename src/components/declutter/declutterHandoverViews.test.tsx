@@ -135,7 +135,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     const { unmount } = show([line()]);
     fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
     const gotIt = await screen.findByRole("dialog");
-    expect(within(gotIt).getByText(/the sale is final and Dana is paid/)).toBeInTheDocument();
+    expect(within(gotIt).getByText(/you still have 24 hours to ask Dana for a refund/)).toBeInTheDocument();
     expect(state.calls).toEqual([]);
     fireEvent.click(within(gotIt).getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toContainEqual(["confirm", "o1"]));
@@ -144,7 +144,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.calls = [];
     state.bookings = [slot(10)];
     show([line({ my_side: "seller" })]);
-    expect(await screen.findByText(/You're paid when the buyer taps "I got it" or you tap "Picked up"/)).toBeInTheDocument();
+    expect(await screen.findByText(/You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or you tap "Picked up"/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
     expect(screen.queryByLabelText(/code/i)).toBeNull();
     expect(screen.getByText("Pickup at the door")).toBeInTheDocument();
@@ -240,7 +240,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
     show([line({ order_status: "handed_over" })]);
     expect(await screen.findByRole("list", { name: "Step 4 of 4: Done" })).toBeInTheDocument();
-    expect(screen.getByText("Handed over. The sale is final.")).toBeInTheDocument();
+    expect(screen.getByText("Handed over.")).toBeInTheDocument();
   });
 
   // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.

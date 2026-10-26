@@ -145,7 +145,7 @@ export function GotItSheet({
         <SheetHero title="Do you have it?" />
         {porch && <PorchPhotoThumb orderId={orderId} />}
         <div className="mt-3">
-          <Note>Once you tap I got it, the sale is final and {who} is paid. Something wrong? Tell us before you tap.</Note>
+          <Note>After you tap I got it, you still have 24 hours to ask {who} for a refund if something is wrong. Then the sale is final and {who} is paid.</Note>
         </div>
         <SheetFooter>
           <SheetSecondaryAction onClick={onProblem} disabled={pending}>Something's not right</SheetSecondaryAction>
@@ -174,7 +174,7 @@ export function PickedUpSheet({
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
-        <Note>Tapping Picked up makes the sale final and starts your payout.</Note>
+        <Note>Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that.</Note>
         <SheetFooter>
           <SheetSecondaryAction onClick={() => onOpenChange(false)} disabled={pending}>Not yet</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending}>Picked up</SheetPrimaryAction>

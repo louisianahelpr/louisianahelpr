@@ -28,86 +28,29 @@
 // Copy names no fee (owner 2026-10-25: members see no fee but the one-time $2
 // setup fee); the amounts are the whole hold.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
-import { jobLocalStartMs } from "../_shared/cancellationFee.ts";
-import { isLaborTaxable } from "../_shared/salesTax.ts";
-import { THREE_D_SECURE_MIN_CENTS } from "../_shared/threeDSecure.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import type { StripeMode } from "../_shared/stripeMode.ts";
 import { CARD_HOLD_COPY } from "../_shared/cardHoldCopy.ts";
+import { DAY_MS, HOUR_MS, offSessionAllowed } from "../_shared/cardHoldPlan.ts";
 
 export { CARD_HOLD_COPY };
+export {
+  CARD_HOLD_CHECKOUT_API_VERSION,
+  HOLD_AT_POST_WITHIN_MS,
+  PLACE_BEFORE_START_MS,
+  RENEW_WITHIN_MS,
+  holdCheckoutPaymentMethodOptions,
+  holdPlanFor,
+  offSessionAllowed,
+} from "../_shared/cardHoldPlan.ts";
+export type { HoldPlan } from "../_shared/cardHoldPlan.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
 export const CARD_HOLD_SWITCH = "card_hold_at_post";
-
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * HOUR_MS;
-/**
- * A job starting within 6 days is held at posting: a card authorization made
- * with the poster present lasts 7 days on every brand (Stripe, "Place a hold
- * on a payment method", validity table), so the hold outlives the listing.
- */
-export const HOLD_AT_POST_WITHIN_MS = 6 * DAY_MS;
-/**
- * A job further out saves the card and the hold is placed 4 days before the
- * start. The hold is then off-session, and Visa's off-session window is
- * 4 days 18 hours (same table), the shortest of the brands.
- */
-export const PLACE_BEFORE_START_MS = 4 * DAY_MS;
-/** An authorization this close to its capture_before is renewed (or the poster asked) by the sweep. */
-export const RENEW_WITHIN_MS = 12 * HOUR_MS;
-/**
- * Checkout takes payment_method_options[card|link].capture_method from this
- * API version (Stripe changelog 2025-09-30.clover, "capture method for
- * specific payment methods with the Checkout Sessions API"); the rest of the
- * code pins 2025-08-27.basil. Sent on the hold checkout's create call only.
- */
-export const CARD_HOLD_CHECKOUT_API_VERSION = "2025-09-30.clover";
-
-export type HoldPlan = { kind: "hold_now" } | { kind: "schedule"; placeAt: Date };
-
-/** Hold at posting, or save the card and hold it 4 days before the job's start (America/Chicago). */
-export function holdPlanFor(dateNeeded: string | null | undefined, startTime: string | null | undefined, nowMs: number = Date.now()): HoldPlan {
-  const start = dateNeeded ? jobLocalStartMs(dateNeeded, startTime ?? null) : NaN;
-  if (!Number.isFinite(start) || start - nowMs <= HOLD_AT_POST_WITHIN_MS) return { kind: "hold_now" };
-  return { kind: "schedule", placeAt: new Date(start - PLACE_BEFORE_START_MS) };
-}
-
-/**
- * Checkout's payment_method_options for a hold: card and Link are held; ACH
- * (us_bank_account) carries no capture_method because a bank debit cannot be
- * held (Stripe), so a poster paying by bank is charged at posting, as today.
- * The card is saved off-session too (lh-money-escrow review #6a): a hold that
- * nears its expiry is renewed on it, and a series charges later visits to it
- * (charge-recurring-visits seriesCard). `threeDS` is threeDSecureOptions(total)
- * (Q202: from $300 the hosted page runs 3D Secure).
- */
-export function holdCheckoutPaymentMethodOptions(
-  threeDS: { card?: Record<string, unknown> } | undefined,
-): { card: Record<string, unknown>; link: { capture_method: "manual"; setup_future_usage: "off_session" } } {
-  return {
-    card: { ...(threeDS?.card ?? {}), capture_method: "manual", setup_future_usage: "off_session" },
-    link: { capture_method: "manual", setup_future_usage: "off_session" },
-  };
-}
-
-/**
- * May the hold (or the charge at the hire) on a SAVED card go through without
- * the poster? Not from $300 (Q210(b): a large charge is on-session, with 3D
- * Secure), and not on a taxed category: its sales tax is computed only by
- * Checkout from the poster's address, and a later refund reads the tax off the
- * Checkout Session (refundAmount.checkoutChargeTaxCents), which an off-session
- * payment has none of. Either way the poster confirms on a Checkout page.
- */
-export function offSessionAllowed(amountCents: number, category: string | null | undefined): { ok: true } | { ok: false; why: "large" | "taxed" } {
-  if (!(amountCents < THREE_D_SECURE_MIN_CENTS)) return { ok: false, why: "large" };
-  if (isLaborTaxable(category ?? null)) return { ok: false, why: "taxed" };
-  return { ok: true };
-}
 
 export type HoldState = "authorized" | "scheduled" | "capturing" | "needs_action" | "failed" | "captured" | "released";
 
@@ -129,10 +72,13 @@ export type HoldRow = {
   place_at: string | null;
   attempts: number;
   notified_state: string | null;
+  /** 'nobody_refund_pending' marks a refund for nobody's hire that began (refundCaptureForNobody). */
+  failure_code: string | null;
+  failure_message?: string | null;
 };
 
 const HOLD_COLUMNS =
-  "job_id, stripe_mode, stripe_customer_id, payment_method_id, payment_intent_id, state, amount_cents, onboarding_fee_cents, onboarding_fee_claimed_at, capturing_from, capture_amount_cents, intent_metadata, capture_before, place_at, attempts, notified_state, updated_at";
+  "job_id, stripe_mode, stripe_customer_id, payment_method_id, payment_intent_id, state, amount_cents, onboarding_fee_cents, onboarding_fee_claimed_at, capturing_from, capture_amount_cents, intent_metadata, capture_before, place_at, attempts, notified_state, failure_code, updated_at";
 
 export async function readHold(db: Db, jobId: string): Promise<HoldRow | null> {
   const { data, error } = await db.from("job_card_holds").select(HOLD_COLUMNS).eq("job_id", jobId).maybeSingle();
@@ -443,6 +389,20 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
       failState = "needs_action";
       failCode = allowed.why === "large" ? "on_session_required" : "taxed_on_session";
       failMessage = allowed.why === "large" ? "a charge of $300 or more is confirmed on a Checkout page (Q210b)" : "a taxed category is charged on a Checkout page";
+    } else if (hold.state === "capturing" && hold.payment_intent_id) {
+      // A resumed claim whose charge Stripe already created (its id was saved
+      // on the row before the job write): read THAT charge, never create a
+      // second one (lh-silent-failure 2026-10-26 #2: an idempotency key lasts
+      // about 24 hours, the saved id does not expire).
+      let pi: Stripe.PaymentIntent;
+      try {
+        pi = await stripe.paymentIntents.retrieve(hold.payment_intent_id);
+      } catch (readErr) {
+        return notDefinite(`saved charge ${hold.payment_intent_id} unreadable: ${caughtMessage(readErr).slice(0, 150)}`, false);
+      }
+      if (pi.status === "succeeded") capturedPi = pi.id;
+      else if (pi.status === "processing") return notDefinite("the charge is processing", false);
+      else { failState = pi.status === "requires_action" ? "needs_action" : "failed"; failCode = `charge_${pi.status}`; failMessage = `the charge is ${pi.status}`; }
     } else {
       try {
         const pi = await stripe.paymentIntents.create({
@@ -455,6 +415,25 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
           metadata: { ...(hold.intent_metadata ?? {}), job_id: jobId, card_hold: "1", card_hold_off_session: "1",
             onboarding_fee_charged: feeIncluded ? "true" : "false" },
         }, { idempotencyKey: `card-hold-charge-${jobId}-a${hold.attempts}` });
+        if (pi.status === "succeeded" || pi.status === "processing") {
+          // Money moved (or is moving): its id goes on the claimed row BEFORE
+          // the job write, so a resume reads this charge instead of making
+          // another, and a row left 'capturing' is closed by the already-in-
+          // escrow check (lh-silent-failure 2026-10-26 #2/#3).
+          try {
+            await updateHold(db, jobId, { payment_intent_id: pi.id }, ["capturing"]);
+          } catch (saveErr) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "critical",
+              title: "Card charged at the hire but the charge was not recorded on its hold",
+              message: "An off-session charge went through (or is processing) and its id could not be saved on job_card_holds. card-hold-sweep retries under the same idempotency key for about 24 hours; check Stripe for this charge if it does not clear.",
+              fields: { job_id: jobId, payment_intent: pi.id, status: pi.status, db_error: caughtMessage(saveErr).slice(0, 200) },
+              seed: job.is_seed === true,
+            });
+            throw saveErr;
+          }
+        }
         if (pi.status === "succeeded") capturedPi = pi.id;
         else if (pi.status === "processing") return notDefinite("the charge is processing", false);
         else { failState = pi.status === "requires_action" ? "needs_action" : "failed"; failCode = `charge_${pi.status}`; failMessage = `the charge is ${pi.status}`; }
@@ -535,6 +514,21 @@ export const CLOSED_JOB_STATUSES = ["cancelled", "completed"];
  */
 async function settleClaimOnClosedJob(deps: HoldDeps, job: HoldJob, hold: HoldRow): Promise<CaptureResult> {
   const { db, stripe } = deps;
+  if (hold.capturing_from === "scheduled" && hold.payment_intent_id) {
+    // An off-session charge whose id was saved before the job write (silent #2).
+    const pi = await stripe.paymentIntents.retrieve(hold.payment_intent_id);
+    if (pi.status === "succeeded") {
+      await refundCaptureForNobody(deps, job, hold, pi.id);
+      return { ok: false, reason: "not_held" };
+    }
+    if (pi.status === "processing") {
+      throw new Error(`job ${job.id} is ${job.status} with an off-session charge ${pi.id} still processing: the next sweep reads it again`);
+    }
+    // The charge never went through: nothing to refund, the saved card is released as usual.
+    await unclaimSetupFee(db, job.id, job.customer_id, hold.onboarding_fee_claimed_at);
+    await updateHold(db, job.id, { state: "scheduled", payment_intent_id: null, capturing_from: null, capture_amount_cents: null, onboarding_fee_claimed_at: null }, ["capturing"]);
+    return { ok: false, reason: "not_held" };
+  }
   if (hold.capturing_from === "authorized" && hold.payment_intent_id) {
     const pi = await stripe.paymentIntents.retrieve(hold.payment_intent_id);
     if (pi.status === "succeeded") {

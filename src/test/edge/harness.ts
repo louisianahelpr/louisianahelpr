@@ -330,6 +330,13 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(cardHoldCopy|listedPaymentStatus)\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/$2.ts";`,
   );
+  // `_shared/cardHoldPlan.ts` imports only pure siblings (cancellationFee,
+  // salesTax, threeDSecure), so the REAL module serves; cardHold.ts both
+  // imports from it and re-exports it (`export {...} from`).
+  out = out.replace(
+    /(import|export)\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cardHoldPlan\.ts["'];?/g,
+    `$1 $2{$3} from "../../../supabase/functions/_shared/cardHoldPlan.ts";`,
+  );
 
   // Refund notice (Q1714): `_shared/refundNotice.ts` imports only zero-import
   // modules (caughtMessage, functionFetch; the email goes through the global

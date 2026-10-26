@@ -371,7 +371,12 @@ serve(async (req) => {
       // a CANCELLED job: no cancellation_fee written, and void-cancelled-payments
       // then refunded the poster in full while the helper still believed they
       // were booked.
-      const { data: cancelledRows, error: cancelError } = await supabase
+      // Q2399 (lh-money-escrow review 2026-10-26 #1): a held job is cancelled
+      // only while its card is STILL held. A direct offer or crew confirm keeps
+      // the job 'open' while the hire captures the card and moves it to
+      // escrow; without this filter the stale read cancelled a job whose card
+      // was just charged and told the poster "Your card was not charged".
+      let cancelQuery = supabase
         .from("jobs")
         .update({
           status: "cancelled",
@@ -379,8 +384,9 @@ serve(async (req) => {
           cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned",
         })
         .eq("id", job.id)
-        .eq("status", "open")
-        .select("id");
+        .eq("status", "open");
+      if (job.payment_status === "held") cancelQuery = cancelQuery.eq("payment_status", "held");
+      const { data: cancelledRows, error: cancelError } = await cancelQuery.select("id");
 
       if (cancelError) {
         console.error(`Failed to cancel expired job ${job.id}:`, cancelError);
@@ -419,7 +425,9 @@ serve(async (req) => {
         // The "not charged" sentence went out above: card-hold-sweep's release
         // (job_card_holds.notified_state) does not repeat it.
         // Zero rows is legitimate: a held job whose hold row is already gone.
-        const { error: toldErr } = await supabase.from("job_card_holds").update({ notified_state: "released" }).eq("job_id", job.id);
+        const { error: toldErr } = await supabase.from("job_card_holds").update({ notified_state: "released" }).eq("job_id", job.id)
+          // Never on a hold a capture claimed or took (review 2026-10-26 #1): its own notice must still go out.
+          .in("state", ["authorized", "scheduled", "needs_action", "failed"]);
         if (toldErr) defects.record(`job ${job.id}: hold notice state not recorded (${toldErr.message}); the poster may hear "not charged" twice`);
       }
       // Q1817: the in-app row fans out to push only; nothing turned it into an

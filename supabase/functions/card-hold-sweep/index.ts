@@ -62,10 +62,12 @@ const corsHeaders = {
 
 const OPEN_STATES = ["authorized", "scheduled", "capturing", "needs_action", "failed"];
 const HOLD_SELECT =
-  "job_id, stripe_mode, stripe_customer_id, payment_method_id, payment_intent_id, state, amount_cents, onboarding_fee_cents, onboarding_fee_claimed_at, capturing_from, capture_amount_cents, intent_metadata, capture_before, place_at, attempts, notified_state, updated_at";
+  "job_id, stripe_mode, stripe_customer_id, payment_method_id, payment_intent_id, state, amount_cents, onboarding_fee_cents, onboarding_fee_claimed_at, capturing_from, capture_amount_cents, intent_metadata, capture_before, place_at, attempts, notified_state, failure_code, updated_at";
 const PAGE = 200;
 /** Holds one run reaches before it says so (lh-silent-failure review #6). */
 const MAX_PAGES = 25;
+/** A capture this young is the moment between capture_hold and its accept, not "captured, nobody hired". */
+const CAPTURED_UNHIRED_GRACE_MS = 30 * 60 * 1000;
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -147,6 +149,43 @@ serve(async (req) => {
       else {
         const open = new Set(((rows ?? []) as Array<{ job_id: string; state: string }>).filter((r) => ["authorized", "scheduled", "capturing"].includes(r.state)).map((r) => r.job_id));
         for (const id of heldIds) if (!open.has(id)) defects.record(`job ${id} is 'held' with no open card hold: nothing will capture or release it`);
+      }
+    }
+
+    // A held card CAPTURED with nobody hired (lh-silent-failure 2026-10-26 #4):
+    // the completion after the capture kept failing, or the pending accept
+    // stopped being live. Read from the jobs side with no time cutoff, so it
+    // is reported every run until someone hires or refunds it, never only for
+    // the two days the retry loop above covers. A capture younger than
+    // CAPTURED_UNHIRED_GRACE_MS is the moment between capture_hold and its
+    // accept, not a defect.
+    const { data: unhired, error: unhiredErr } = await db.from("jobs")
+      .select("id, payment_status, helper_confirmed_at, is_group_job, status")
+      .eq("payment_status", "escrow").is("helper_confirmed_at", null).in("status", ["open", "accepted"]).limit(1000);
+    if (unhiredErr) defects.record(`funded unhired jobs not read: ${unhiredErr.message}`);
+    else {
+      if ((unhired ?? []).length === 1000) defects.record("1000 funded unhired jobs read (the cap): the captured-nobody-hired check skipped the rest");
+      const candidates = ((unhired ?? []) as Array<{ id: string; payment_status: string; helper_confirmed_at: string | null; is_group_job: boolean | null; status: string }>)
+        .filter((j) => j.payment_status === "escrow" && j.helper_confirmed_at == null && ["open", "accepted"].includes(j.status));
+      if (candidates.length > 0) {
+        const { data: capRows, error: capRowsErr } = await db.from("job_card_holds").select("job_id, state, updated_at")
+          .in("job_id", candidates.map((j) => j.id)).eq("state", "captured");
+        if (capRowsErr) defects.record(`captured holds of unhired jobs not read: ${capRowsErr.message}`);
+        else {
+          const capturedAt = new Map(((capRows ?? []) as Array<{ job_id: string; state: string; updated_at: string | null }>)
+            .filter((r) => r.state === "captured").map((r) => [r.job_id, Date.parse(r.updated_at ?? "")]));
+          for (const j of candidates) {
+            const at = capturedAt.get(j.id);
+            if (at === undefined || !(now - at > CAPTURED_UNHIRED_GRACE_MS)) continue;
+            if (j.is_group_job === true) {
+              const { count, error: seatsErr } = await db.from("group_job_helpers").select("id", { count: "exact", head: true })
+                .eq("job_id", j.id).not("helper_confirmed_at", "is", null);
+              if (seatsErr) { defects.record(`job ${j.id}: crew seats not read for the captured-hold check (${seatsErr.message})`); continue; }
+              if ((count ?? 0) > 0) continue;
+            }
+            defects.record(`job ${j.id}: the poster's held card was CAPTURED but nobody is hired; complete the hire or refund the poster in full`);
+          }
+        }
       }
     }
 

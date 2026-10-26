@@ -19,7 +19,7 @@ export { LISTED_PAYMENT_STATUSES, isListedPayment } from "./listedPayment";
  * "not_held" (nothing held: run the accept RPC as before); throws on anything
  * else, the body included, so a hire never runs on an uncharged hold unnoticed.
  */
-export async function captureHeldCard(api: APIRequestContext, helper: Session, jobId: string): Promise<string> {
+export async function captureHeldCard(api: APIRequestContext, helper: Pick<Session, "access_token">, jobId: string): Promise<string> {
   const r = await api.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
     headers: { apikey: ANON, Authorization: `Bearer ${helper.access_token}`, "Content-Type": "application/json" },
     data: { action: "capture_hold", jobId },

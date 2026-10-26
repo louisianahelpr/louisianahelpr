@@ -117,6 +117,10 @@
     "supabase/functions/_shared/helprFlatFee.ts",
     "supabase/functions/_shared/posterJobFee.ts",
     "supabase/functions/_shared/jobCheckout.ts",
+    // Card hold (Q2399): the pure halves the app and its tests import.
+    "supabase/functions/_shared/cardHoldPlan.ts",
+    "supabase/functions/_shared/cardHoldCopy.ts",
+    "supabase/functions/_shared/listedPaymentStatus.ts",
     "supabase/functions/_shared/payoutClaim.ts",
     // Q1221: the payout-hold Stripe schedule freeze, unit-tested with fakes by
     // src/test/payoutFreeze.test.ts.

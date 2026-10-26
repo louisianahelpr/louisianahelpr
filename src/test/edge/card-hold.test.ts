@@ -27,13 +27,18 @@
  * The live Stripe test-mode proof is the prod money journey after landing
  * (e2e/journeys/card-hold.journey.spec.ts, test accounts in test mode).
  *
+ * @mutate supabase/functions/_shared/cardHold.ts |             await updateHold(db, jobId, { payment_intent_id: pi.id }, ["capturing"]); |             void 0;
+ * @mutate supabase/functions/_shared/cardHold.ts |     } else if (hold.state === "capturing" && hold.payment_intent_id) { |     } else if (false) {
+ * @mutate supabase/functions/card-hold-sweep/index.ts |             defects.record(`job ${j.id}: the poster's held card was CAPTURED but nobody is hired; complete the hire or refund the poster in full`); |             void j;
+ * @mutate supabase/functions/card-hold-sweep/index.ts |             if (at === undefined \|\| !(now - at > CAPTURED_UNHIRED_GRACE_MS)) continue; |             if (at === undefined) continue;
+ * @mutate supabase/functions/_shared/cardHold.ts | attempts, notified_state, failure_code, updated_at"; | attempts, notified_state, updated_at";
  * @mutate supabase/functions/_shared/cardHold.ts |     card: { ...(threeDS?.card ?? {}), capture_method: "manual", setup_future_usage: "off_session" }, |     card: { ...(threeDS?.card ?? {}), setup_future_usage: "off_session" },
- * @mutate supabase/functions/_shared/cardHold.ts |   if (!Number.isFinite(start) \|\| start - nowMs <= HOLD_AT_POST_WITHIN_MS) return { kind: "hold_now" }; |   return { kind: "hold_now" };
+ * @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (!Number.isFinite(start) \|\| start - nowMs <= HOLD_AT_POST_WITHIN_MS) return { kind: "hold_now" }; |   return { kind: "hold_now" };
  * @mutate supabase/functions/_shared/cardHold.ts |   if (capturedPi) { |   if (false) {
  * @mutate supabase/functions/_shared/cardHold.ts |       else if (now.status === "requires_capture") return notDefinite(why, true); |       else if (false) return notDefinite(why, true);
  * @mutate supabase/functions/_shared/cardHold.ts |       amountCents = Number(hold.amount_cents) - (feeCents > 0 && !fee.claimed ? feeCents : 0); |       amountCents = Number(hold.amount_cents);
  * @mutate supabase/functions/_shared/cardHold.ts |     if (!claimed \|\| claimed.length === 0) return { ok: false, reason: "retry", detail: "another capture of this hold is in progress" }; |     if (false) return { ok: false, reason: "retry", detail: "another capture of this hold is in progress" };
- * @mutate supabase/functions/_shared/cardHold.ts |   if (!(amountCents < THREE_D_SECURE_MIN_CENTS)) return { ok: false, why: "large" }; |   if (false) return { ok: false, why: "large" };
+ * @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (!(amountCents < THREE_D_SECURE_MIN_CENTS)) return { ok: false, why: "large" }; |   if (false) return { ok: false, why: "large" };
  * @mutate supabase/functions/create-payment/index.ts |       if (!offerOpen && !directOpen && !seatOpen) throw new PublicError("Not authorized"); |       if (false) throw new PublicError("Not authorized");
  * @mutate supabase/functions/create-payment/index.ts |         if (!notCaptured(first.error)) return json({ state: "not_held" }); |         if (false) return json({ state: "not_held" });
  * @mutate supabase/functions/create-payment/index.ts |         if (!done.error) return json({ state: "accepted", result: done.data ?? null }); |         return json({ state: "accepted", result: done.data ?? null });
@@ -58,7 +63,7 @@ import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy";
-import { holdPlanFor, offSessionAllowed, PLACE_BEFORE_START_MS } from "../../../supabase/functions/_shared/cardHold";
+import { holdPlanFor, offSessionAllowed, PLACE_BEFORE_START_MS } from "../../../supabase/functions/_shared/cardHoldPlan";
 import { jobLocalStartMs } from "../../../supabase/functions/_shared/cancellationFee";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
@@ -253,7 +258,7 @@ describe("card hold at posting (Q2399)", () => {
       expect(res.status).toBe(503);
       expect(updates("jobs")).toHaveLength(0);
       expect(notices()).toHaveLength(0);
-      expect(updates("job_card_holds").at(-1)?.payload).toMatchObject({ state: "authorized" });
+      expect(updates("job_card_holds").slice(-1)[0]?.payload).toMatchObject({ state: "authorized" });
     });
 
     it("two captures at once: the one that finds no claimable hold charges nothing (lh-money-escrow review #1)", async () => {
@@ -325,6 +330,68 @@ describe("card hold at posting (Q2399)", () => {
       expect(params).toMatchObject({ amount: 4200, off_session: true, confirm: true, payment_method: "pm_1", customer: "cus_1" });
       expect(params.metadata).toMatchObject({ job_id: JOB, card_hold: "1", card_hold_off_session: "1" });
       expect(stripeMock.paymentIntents.create.mock.calls[0][1]).toMatchObject({ idempotencyKey: `card-hold-charge-${JOB}-a0` });
+    });
+  });
+
+  describe("off-session charge recorded before the job write (lh-silent-failure 2026-10-26 #2/#3)", () => {
+    function seedSaved(hold: Record<string, unknown>) {
+      scenario.authUser = HELPR;
+      scenario.reads.jobs = { rows: [heldJob()] };
+      scenario.reads.job_card_holds = { rows: [holdRow({ state: "scheduled", payment_intent_id: null, place_at: new Date(Date.now() + 86_400_000).toISOString(), ...hold })] };
+      scenario.reads.group_job_helpers = { rows: [] };
+      scenario.rpc.helper_accept_block_reason = null;
+      scenario.writeSelectRows = { jobs: [{ id: JOB }], job_card_holds: [{ job_id: JOB }], profiles: [] };
+      // The hire's own RPC refuses uncaptured first (every other gate passed), then completes.
+      let calls = 0;
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), get accept_job_offer() { return calls++ === 0 ? { message: "payment_not_captured", code: "42501" } : undefined; } } as never;
+      scenario.rpc.accept_job_offer = { state: "accepted" };
+    }
+    async function sweep() {
+      const fn = await loadEdgeFunction("card-hold-sweep");
+      const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: {} }));
+      return { res, payload: JSON.parse(await res.text()) as Record<string, any> };
+    }
+
+    it("the charge's id goes on the claimed hold row BEFORE the job moves to escrow", async () => {
+      seedSaved({});
+      stripeMock.paymentIntents.create.mockResolvedValue({ id: "pi_charge", status: "succeeded" });
+      const fn = await loadEdgeFunction("create-payment");
+      await fn.fetch(fn.request({ headers: AUTH, body: { action: "capture_hold", jobId: JOB } }));
+      const order = scenario.writes.filter((w) => w.op === "update").map((w) => `${w.table}:${JSON.stringify(w.payload)}`);
+      const saved = order.findIndex((x) => x.startsWith("job_card_holds:") && x.includes('"payment_intent_id":"pi_charge"'));
+      const moved = order.findIndex((x) => x.startsWith("jobs:") && x.includes('"payment_status":"escrow"'));
+      expect(saved).toBeGreaterThanOrEqual(0);
+      expect(moved).toBeGreaterThan(saved);
+    });
+
+    it("a resumed claim whose charge was saved reads THAT charge and never creates a second one", async () => {
+      seedSaved({ state: "capturing", capturing_from: "scheduled", capture_amount_cents: 4200, payment_intent_id: "pi_charge", updated_at: new Date(Date.now() - 10 * 60_000).toISOString() });
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_charge", status: "succeeded" });
+      await sweep();
+      expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_charge");
+      expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "escrow")?.payload).toMatchObject({ stripe_payment_intent_id: "pi_charge" });
+    });
+  });
+
+  describe("CAPTURED, NOBODY HIRED (lh-silent-failure 2026-10-26 #4)", () => {
+    async function sweep() {
+      const fn = await loadEdgeFunction("card-hold-sweep");
+      const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: {} }));
+      return { res, payload: JSON.parse(await res.text()) as Record<string, any> };
+    }
+    it("a hold captured over 30 minutes ago on a job nobody is hired on is a defect every run, with no time cutoff", async () => {
+      const old = new Date(Date.now() - 10 * 86_400_000).toISOString();
+      scenario.reads.job_card_holds = { rows: [holdRow({ state: "captured", updated_at: old })] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", payment_status: "escrow", helper_id: null, helper_confirmed_at: null, is_group_job: false })] };
+      const { payload } = await sweep();
+      expect(JSON.stringify(payload)).toContain("CAPTURED but nobody is hired");
+    });
+    it("a capture in the last 30 minutes (capture_hold about to run the accept) is not reported", async () => {
+      scenario.reads.job_card_holds = { rows: [holdRow({ state: "captured", updated_at: new Date().toISOString() })] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", payment_status: "escrow", helper_id: null, helper_confirmed_at: null, is_group_job: false })] };
+      const { payload } = await sweep();
+      expect(JSON.stringify(payload)).not.toContain("CAPTURED but nobody is hired");
     });
   });
 
@@ -518,6 +585,23 @@ describe("card hold at posting (Q2399)", () => {
       await sweep();
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(updates("job_card_holds").some((w) => (w.payload as Record<string, unknown>).state === "captured")).toBe(true);
+    });
+
+    it("a refund for nobody that began and then failed is retried by the next sweep (the marker is READ back, so the job's own 'cancelled' never closes it as a hire)", async () => {
+      // The first run marked the hold and the job ('cancelled'), then Stripe's
+      // refund threw. The marker lives in failure_code: a sweep that does not
+      // select it sees a 'cancelled' job and closes the row as captured,
+      // keeping the poster's money for a job nobody was hired on.
+      const marked = holdRow({ state: "capturing", capturing_from: "authorized", capture_amount_cents: 4200, updated_at: stale(), failure_code: "nobody_refund_pending" });
+      const { failure_code: _dropped, ...unmarked } = marked as Record<string, unknown>;
+      scenario.reads.job_card_holds = { rows: [unmarked], selectOverrides: [{ includes: "failure_code", result: { rows: [marked] } }] };
+      scenario.reads.jobs = { rows: [heldJob({ status: "cancelled", payment_status: "cancelled", helper_id: null, stripe_payment_intent_id: "pi_hold" })] };
+      scenario.writeSelectRows = { job_card_holds: [{ job_id: JOB }], jobs: [{ id: JOB }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_1", status: "succeeded" });
+      await sweep();
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_hold" }), expect.objectContaining({ idempotencyKey: "card-hold-nobody-refund-pi_hold" }));
+      expect(updates("job_card_holds").some((w) => (w.payload as Record<string, unknown>).state === "captured")).toBe(false);
     });
 
     it("round 3 #2: the refund for nobody gives the $2 setup-fee claim back (the fee is owed again)", async () => {

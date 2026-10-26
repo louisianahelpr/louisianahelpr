@@ -18,6 +18,8 @@
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (job.customer_id) { |       if (false) {
 // @mutate supabase/functions/auto-expire-jobs/index.ts |             if (sent?.success === false) { |             if (false) {
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       if (!noticeLanded) { |       if (false) {
+// @mutate supabase/functions/auto-expire-jobs/index.ts |       if (job.payment_status === "held") cancelQuery = cancelQuery.eq("payment_status", "held"); |
+// @mutate supabase/functions/auto-expire-jobs/index.ts |           .in("state", ["authorized", "scheduled", "needs_action", "failed"]); |           ;
 import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { readdirSync } from "../helpers/trackedFiles";
@@ -129,6 +131,18 @@ describe("auto-expire-jobs · Q1817: the auto-cancel notice is emailed to the po
     const body = await (await fn.fetch(cronRequest(fn))).text();
     expect(body).toContain("auto-cancel notice for job job-past was not written");
     expect(notificationEmails).toHaveLength(1);
+  });
+
+  it("Q2399: a HELD job is cancelled only while its card is still held, and the hold's notice state is set only on an uncaptured hold (lh-money-escrow 2026-10-26 #1)", async () => {
+    const fn = await load();
+    seedPastOpenJob(funded({ payment_status: "held" }));
+    scenario.reads.job_card_holds = { rows: [{ state: "authorized" }] };
+    await fn.fetch(cronRequest(fn));
+    const cancel = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).status === "cancelled");
+    expect(cancel?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "held" });
+    const told = scenario.writes.find((w) => w.table === "job_card_holds" && w.op === "update");
+    expect(told?.filters.find((f) => f.op === "in" && f.column === "state")?.value).not.toContain("capturing");
+    expect(told?.filters.find((f) => f.op === "in" && f.column === "state")?.value).toContain("authorized");
   });
 
   it("a funded job whose poster is gone sends no email", async () => {

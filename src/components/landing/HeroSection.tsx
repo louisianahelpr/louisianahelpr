@@ -33,7 +33,7 @@ const HeroSection = () => {
   };
 
   return (
-    <section className="relative px-5 sm:px-8 lg:px-12 pt-24 sm:pt-28 lg:pt-32 pb-12 sm:pb-14 lg:pb-16">
+    <section className="relative px-5 sm:px-8 lg:px-12 pt-32 sm:pt-28 lg:pt-32 pb-12 sm:pb-14 lg:pb-16">
       <div className="relative mx-auto w-full max-w-[760px]">
         <div data-testid="landing-hero-column" className="flex flex-col items-center text-center min-w-0">
           <h1

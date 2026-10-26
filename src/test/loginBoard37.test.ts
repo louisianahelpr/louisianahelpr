@@ -9,7 +9,7 @@
  * @mutate src/pages/auth/Login.tsx | <HelprMark to="/" size="lg" emblemOnly /> | <img src="/apple-touch-icon.png" alt="" className="w-16 h-16 rounded-full" />
  * @mutate src/pages/auth/Login.tsx | <AuthShell hideHeader hideBack centerColumn | <AuthShell hideHeader centerColumn
  * @mutate src/pages/auth/Login.tsx | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X } from "lucide-react"; | import { Loader2, Eye, EyeOff, Check, ShieldCheck, X, Mail } from "lucide-react";
- * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, Circle, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, Circle, X, Lock } from "lucide-react";
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react"; | import { ArrowBigUp, Eye, EyeOff, Check, X, Lock } from "lucide-react";
  * @mutate src/pages/auth/Signup.tsx | { hideBack: true } : { backOnClick: | { backTo: "/" } : { backOnClick:
  * @mutate src/components/auth/SocialAuthButtons.tsx | style={provider === "apple" ? { backgroundColor: "hsl(var(--foreground))", color: "hsl(var(--background))" } : undefined} | style={undefined}
  * @mutate src/pages/auth/Login.tsx |               <HelprMark to="/" size="lg" emblemOnly /> |               <HelprMark to="/home" size="lg" emblemOnly />

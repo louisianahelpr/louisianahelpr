@@ -22,7 +22,7 @@
  * @mutate src/pages/auth/Signup.tsx | captureLead(email); // ONE | // ONE
  * @mutate src/lib/signupLead.ts |     capturedLeadRef.current = email;\n | \n
  * @mutate src/lib/signupLead.ts |     const replaces = capturedLeadRef.current;\n | \n
- * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email you once if you don't finish signing up.\n | \n
+ * @mutate src/pages/auth/signup/SignupStep1.tsx |         We may email once if you don't finish.\n | \n
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .from('signup_leads') |     .from('signup_leads_x')
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.admin_list_signup_leads() FROM PUBLIC;
  * @mutate supabase/migrations/20261012030524_admin_list_signup_leads.sql |   IF NOT COALESCE(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN | IF false THEN
@@ -175,7 +175,7 @@ describe("signup leads: client and unsubscribe layers", () => {
   });
 
   it("step 1 tells the visitor before it happens", () => {
-    expect(step1).toContain("We may email you once if you don't finish signing up.");
+    expect(step1).toContain("We may email once if you don't finish.");
   });
 
   it("the one-click unsubscribe also stamps the lead, and a failed write is not reported as success", () => {

@@ -83,7 +83,7 @@ export const TermsContent = () => {
         title="Eligibility"
         body={
           <>
-            <p><strong className="text-foreground">18+ only.</strong> Age verification is mandatory at signup.</p>
+            <p><strong className="text-foreground">18+ only.</strong> By agreeing to these Terms when you sign up, you confirm you are 18 or older.</p>
             <p><strong className="text-foreground">Account responsibility:</strong> You are responsible for the security of your credentials and all activity under your account.</p>
             <p><strong className="text-foreground">Email verification:</strong> You must verify your email address to use your account. We may suspend or close an account that breaks these Terms or our Community Rules.</p>
           </>

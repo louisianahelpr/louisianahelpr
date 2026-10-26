@@ -1,7 +1,7 @@
 /**
  * Create account = board 55 (2026-10-20), the same card as Log in (board 37):
  * the ROUND H app icon, "Create your account" + "One account to hire, help,
- * buy and sell.", First name / Email / Password (labels above, NO placeholder
+ * buy and sell.", Email / Password (labels above, NO placeholder
  * text: the owner's 2026-08-22 label-only rule for the auth screens), the
  * olive pill, ONE consent line that records both the agreement and the 18+
  * attestation, the plain "or" rule (no rust), Continue with Apple / Google,
@@ -12,7 +12,6 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           <OrRule />\n |           <div className="uppercase tracking-[0.2em]" style={{ color: "hsl(var(--accent-ink))" }}>or</div>\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           Log in\n        </Link> |           Log In\n        </Link>
- * @mutate src/pages/auth/signup/SignupStep1.tsx | <Input id="signup-first-name" value | <Input id="signup-first-name" placeholder="First name" value
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
  * @mutate src/pages/auth/Signup.tsx |       title={step === 1 ? undefined : stepHeading.title} |       title={step === 1 ? "Create Account" : stepHeading.title}
  */
@@ -56,7 +55,8 @@ describe("Create account matches board 55", () => {
 
   it("label-only inputs (owner 2026-08-22): no placeholder text on any step-1 field", () => {
     expect(step1).not.toMatch(/\bplaceholder=/);
-    expect((step1.match(/<Label htmlFor=/g) ?? []).length).toBe(3);
+    // Email and Password (First name moved to step 2, owner 2026-10-25).
+    expect((step1.match(/<Label htmlFor=/g) ?? []).length).toBe(2);
   });
 
   it("the plain 'or' rule and an olive pill; nothing rust on the card (rust is money only)", () => {
@@ -74,14 +74,14 @@ describe("Create account matches board 55", () => {
           acceptedPolicies={false} setAcceptedPolicies={(v) => { set.policies = v; }}
           ageConfirmed={false} setAgeConfirmed={(v) => { set.age = v; }}
           marketingConsent={false} setMarketingConsent={() => {}} inputCls="" labelCls="" onContinue={() => {}}
-          firstName="" setFirstName={() => {}}
         />
       </MemoryRouter>,
     );
     expect(container.querySelector("#age-confirm")).toBeNull();
     fireEvent.click(container.querySelector("#policies")!);
     expect(set).toEqual({ policies: true, age: true });
-    expect(container.querySelector("#signup-first-name")).not.toBeNull();
+    // First and last name are asked together on step 2 (owner 2026-10-25), not here.
+    expect(container.querySelector("#signup-first-name")).toBeNull();
     expect(container.textContent).toContain("Already have an account? Log in");
   });
 });

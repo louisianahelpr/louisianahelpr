@@ -221,7 +221,7 @@ const JobDetailDialog = ({
           bare
           icon={
             <Bookmark
-              className={`w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
+              className={`w-4 h-4 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
               key={String(isSaved)}
               strokeWidth={2}
             />
@@ -233,7 +233,7 @@ const JobDetailDialog = ({
         onClick={() => { onReport(job.id); onClose(); }}
         bare
         icon={
-          <Flag className="w-4 h-4 transition-transform duration-300 group-hover:-rotate-12 group-active:rotate-0" />
+          <Flag className="w-4 h-4" />
         }
       />
     </>

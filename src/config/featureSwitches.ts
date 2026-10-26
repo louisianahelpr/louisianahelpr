@@ -137,6 +137,10 @@ export const FEATURE_SWITCH_KEYS = [
   // 'testers' by 20261025190000; auth-email-hook decides it per account. No
   // screen: SERVER_ONLY below.
   "scanner_safe_confirm_links",
+  // Board 120 (owner 2026-10-25): You › Settings' Pause my account. Created
+  // 'testers' by 20261026023246; account_pause_apply (via pause-own-account)
+  // and account_resume refuse without it.
+  "account_pause",
 ] as const;
 
 /**

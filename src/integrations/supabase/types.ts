@@ -12172,6 +12172,9 @@ export type Database = {
         }[]
       }
       accept_job_offer: { Args: { p_job_id: string }; Returns: Json }
+      account_is_paused: { Args: { p_user_id: string }; Returns: boolean }
+      account_pause_apply: { Args: { p_user_id: string }; Returns: number }
+      account_resume: { Args: never; Returns: number }
       ack_backout_notice: {
         Args: { p_id: string }
         Returns: undefined

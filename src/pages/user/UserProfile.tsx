@@ -347,8 +347,8 @@ const UserProfile = () => {
       <EmptyState
         variant="inline"
         icon={UserX}
-        title="Profile not found"
-        body="This profile may have been removed, or the link is no longer valid."
+        title={(data as { paused?: boolean } | undefined)?.paused ? "This member has paused their account" : "Profile not found"}
+        body={(data as { paused?: boolean } | undefined)?.paused ? "Their profile and listings are hidden for now." : "This profile may have been removed, or the link is no longer valid."}
         // The header's back arrow already goes back (audit #48: "Go back"
         // duplicated it); the way ON is Jobs, where they came looking for a Helpr.
         action={<BarkPillButton onClick={() => navigate("/jobs")}>Browse jobs</BarkPillButton>}

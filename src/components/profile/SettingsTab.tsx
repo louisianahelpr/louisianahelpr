@@ -21,6 +21,7 @@ import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identi
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
+import { PauseAccount } from "@/components/profile/settings/PauseAccount";
 
 /** Both sides of each section, the spec v2 §11 wording. */
 export const SECTION_BLURB: Record<SectionKey, string> = {
@@ -224,6 +225,8 @@ export function SettingsTab({
         <Row testId="download-data" label="Download my data" sub="A copy of what Helpr holds about you" onClick={() => navigate(dataRightsTarget(true))} />
         <ShareJobPhotosRow profile={profile} />
         <Row testId="warnings" label={TAB_TITLES.warnings} sub="Your account standing" onClick={() => onSelectTab("warnings")} />
+        {/* Board 120: Pause my account / Your account is paused (switch account_pause). */}
+        <PauseAccount>{(r) => <Row testId={r.testId} label={r.label} sub={r.sub} onClick={r.onClick} />}</PauseAccount>
         {onRequestDelete && <Row testId="delete-account" label="Delete account" sub="Permanent" danger onClick={onRequestDelete} />}
       </Group>
 

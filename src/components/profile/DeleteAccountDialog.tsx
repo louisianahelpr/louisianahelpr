@@ -4,6 +4,7 @@ import { Check, Loader2, X } from "lucide-react";
 import { useInRouterContext, useLocation } from "react-router-dom";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { hapticError } from "@/lib/haptics";
+import { DeleteMoneyLine, PauseInsteadLink } from "@/components/profile/settings/DeleteSheetExtras";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -57,9 +58,9 @@ const CONFIRM_PHRASE = "DELETE";
  * "Pending payouts will be forfeited ... Cash out from Earnings first", which
  * no code does: a pending payout blocks the delete instead, and the purge never
  * touches the member's payout account (it cancels only the membership
- * subscription). Board 120's "Coming to you $X · held $Y" banner and "Pause
- * instead" are left out: the first could only ever read $0 here (any held or
- * pending money refuses the delete), and pausing an account does not exist.
+ * subscription). Board 120's money line (DeleteMoneyLine) therefore says the
+ * delete waits until that money settles, never that it is lost; "Pause instead"
+ * (PauseInsteadLink, switch account_pause) opens Settings' pause confirm.
  *
  * Keep in sync with LIVE_STATUS_FILTER / findActiveWork. Guard:
  * src/test/deleteAccountCopyMatchesServer.test.ts.
@@ -285,7 +286,9 @@ export function DeleteAccountDialog({
         secondaryLabel="Cancel"
       >
         <WhatHappens />
+        <DeleteMoneyLine />
         <RetentionSummary extraKeptItems={extraKeptItems} />
+        <PauseInsteadLink onLeave={() => handleOpenChange(false)} />
       </BrandConfirmDialog>
     );
   }

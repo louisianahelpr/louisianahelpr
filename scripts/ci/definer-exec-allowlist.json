@@ -398,7 +398,9 @@
     "shops_admin_queue()": "reviewed 2026-10-19 (Q14): Shops M3/M4 (20261019071055): has_role(auth.uid(), 'admin') first, else admin_only; read only (problems, unsent refunds, pending / failed / held-for-review payouts with holds, active Shops strikes, the Louisiana facilitator YTD total).",
     "get_applicant_category_counts(uuid)": "client",
     "get_job_match_reach(uuid)": "client",
-    "get_price_guidance(text)": "client"
+    "get_price_guidance(text)": "client",
+    "account_is_paused(uuid)": "client",
+    "account_resume()": "client"
   },
   "unscoped": {
     "apply_to_job_with_time(uuid, text, date, time without time zone)": "reviewed 2026-10-23 (Q1284): Q2366 apply-with-a-time; reads the caller only through public.apply_to_job(p_job_id, p_message), which it calls first and which applies as auth.uid() with every apply check; it then UPDATEs only the application row that call just created and returned (v_app_id), so it returns nothing about any other person.",

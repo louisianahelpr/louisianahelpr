@@ -214,6 +214,15 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         return { profile: null as Profile | null };
       }
 
+      // Board 120: a member who paused their account is hidden from everyone else ("This member has
+      // paused their account"); their own view is unchanged. account_is_paused (20261026023246) is a
+      // one-flag read; a not-yet-deployed RPC or a failed read shows the profile as before.
+      const pausedOwner = (prof as { user_id?: string | null }).user_id ?? userId!;
+      if (currentUserId && currentUserId !== pausedOwner && currentUserId !== userId) {
+        const paused = await supabase.rpc("account_is_paused", { p_user_id: pausedOwner });
+        if (!paused.error && paused.data === true) return { profile: null as Profile | null, paused: true };
+      }
+
       // jobs select also pulls latitude/longitude so the "did N jobs
       // nearby" social-proof badge (#31) can filter against the viewer's
       // location without a second round trip. status_history_total /

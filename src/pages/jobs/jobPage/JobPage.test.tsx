@@ -14,6 +14,7 @@
  * - Tracker: four steps from jobs.status; none for a Helpr just browsing.
  * The data hook is stubbed (no Supabase mock): these check what each state renders.
  *
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |               ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1` |               ? `/posts?highlight=${encodeURIComponent(job.id)}`
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
@@ -202,7 +203,7 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByLabelText(/^Job progress, step 1 of 8: Posted,/)).toBeTruthy();
     expect(screen.getByText("Pick your Helpr")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
-    expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}`);
+    expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&applicants=1`);
   });
 
   it("an unpaid post says Helprs can't see it; an unverified money state prints nothing", () => {

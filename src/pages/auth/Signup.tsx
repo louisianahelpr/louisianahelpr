@@ -589,7 +589,6 @@ const Signup = () => {
             setMarketingConsent={setMarketingConsent}
             inputCls={inputCls}
             labelCls={labelCls}
-            firstName={firstName} setFirstName={setFirstName}
             subtitle={stepHeading.subtitle}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;

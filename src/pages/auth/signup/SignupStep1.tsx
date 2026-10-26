@@ -14,13 +14,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowBigUp, Eye, EyeOff, Check, Circle, X } from "lucide-react";
+import { ArrowBigUp, Eye, EyeOff, Check, X } from "lucide-react";
 import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { OrRule } from "@/components/auth/OrRule";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import {
   pendingEmailTypo,
-  PASSWORD_RULES,
   PASSWORD_MIN_LENGTH,
   unmetPasswordRules,
   passwordProblem,
@@ -46,23 +45,10 @@ export interface SignupStep1Props {
   labelCls: string;
   /** Called when the user clicks Continue — parent runs validation, then advances step. */
   onContinue: () => void | Promise<void>;
-  /** Board 55's First name, the same value step 2 asks for (prefilled there). */
-  firstName?: string;
-  setFirstName?: (v: string) => void;
   /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
   subtitle?: string;
 }
 
-// One password-rule chip of the live checklist. Module-level, not declared
-// inside the render body: a component declared inside another is a new type
-// every render, which remounts it each keystroke (see
-// src/test/noNestedComponentDefinitions.test.ts).
-const Req = ({ ok, label }: { ok: boolean; label: string }) => (
-  <span className={`inline-flex items-center gap-1 text-ds-11 ${ok ? "text-primary" : "text-muted-foreground"}`}>
-    {ok ? <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> : <Circle className="w-3 h-3" strokeWidth={2} aria-hidden />}
-    {label}
-  </span>
-);
 
 export function SignupStep1({
   email,
@@ -80,8 +66,6 @@ export function SignupStep1({
   inputCls,
   labelCls,
   onContinue,
-  firstName,
-  setFirstName,
   subtitle,
 }: SignupStep1Props) {
   // The Continue button stays visually active even before the policies box is
@@ -185,13 +169,8 @@ export function SignupStep1({
       </div>
 
       <section className="space-y-3.5">
-        {setFirstName && (
-          <div className="space-y-2">
-            {/* The same first name step 2 asks for (prefilled there). */}
-            <Label htmlFor="signup-first-name" className={labelCls}>First name</Label>
-            <Input id="signup-first-name" value={firstName ?? ""} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" className={inputCls} />
-          </div>
-        )}
+        {/* No First name here (owner 2026-10-25): first and last name are asked
+            together on step 2 ("About you"). */}
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
               email-verification (the click-the-link step after signup)
@@ -272,21 +251,9 @@ export function SignupStep1({
           )}
           {/* The one shared strength meter (also on Reset password). */}
           <PasswordStrengthMeter password={password} />
-          {(() => {
-            // Real-time checklist, rendered from PASSWORD_RULES rather than
-            // from a hand-copied subset. It listed three of the five rules,
-            // which meant "Lowercase" and "Symbol" — both enforced by the
-            // Supabase project — were never stated until they caused a
-            // rejection. Shown from the start (not just once the user types)
-            // so the rules set expectations before the first keystroke.
-            return (
-              <div className="flex flex-wrap gap-x-3 gap-y-1 px-0.5 mt-1">
-                {PASSWORD_RULES.map((rule) => (
-                  <Req key={rule.label} ok={rule.test(password)} label={rule.label} />
-                ))}
-              </div>
-            );
-          })()}
+          {/* No rules list under the password (owner 2026-10-25: "remove the stuff
+              under the password ... what's required"): passwordProblem() above names
+              exactly what a password still misses, after Continue. */}
         </div>
       </section>
 
@@ -316,9 +283,9 @@ export function SignupStep1({
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span id="policies-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
-          I'm 18 or older and agree to the{" "}
+          I agree to the{" "}
           <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Terms</a>,{" "}
-          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Rules</a> and{" "}
+          <a href="/rules" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Rules</a> &amp;{" "}
           <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="font-semibold underline text-primary">Privacy</a>.
         </span>
       </label>
@@ -337,7 +304,7 @@ export function SignupStep1({
           className="h-5 w-5 mt-[1px] shrink-0 [&_svg]:h-4 [&_svg]:w-4"
         />
         <span id="marketing-consent-label" className="text-ds-13 leading-snug font-sans text-muted-foreground">
-          Email me occasional Helpr news and offers.
+          Email me Helpr news and offers.
         </span>
       </label>
 
@@ -364,7 +331,7 @@ export function SignupStep1({
       {/* Continue saves the email for ONE reminder if sign-up is not finished
           (owner 2026-10-09; src/lib/signupLead.ts). Said before it happens. */}
       <p className="text-center text-ds-12 font-sans text-muted-foreground">
-        We may email you once if you don't finish signing up.
+        We may email once if you don't finish.
       </p>
 
       {SOCIAL_SIGN_IN_ENABLED && (

@@ -52,6 +52,10 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
+  ('declutter_problem_window_open', 'allow',    'may the buyer still report a problem on this handed-over sale (board 141, 20261026155251)'),
+  ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
+  ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
@@ -259,6 +263,11 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- Q1929: O is B's paid delivery order (the 'delivery' step); the task is built in place (jsonb_populate_record):
   -- open, an hour of window left, its source O (not held), so the non-NULL call with 0 minutes is TRUE.
   ('declutter_delivery_raise_open', NULL, ARRAY['(SELECT o FROM public.declutter_orders o WHERE o.id = ''00000000-0000-4000-8140-000000000501''::uuid)', 'jsonb_populate_record(NULL::public.helpr_tasks, jsonb_build_object(''id'', ''00000000-0000-4000-8140-000000000602'', ''status'', ''open'', ''open_until'', now() + interval ''1 hour'', ''source_kind'', ''declutter_delivery'', ''source_id'', ''00000000-0000-4000-8140-000000000501''))', '0'], ARRAY[1,2,3]),
+  -- Board 141: H is handed over now with an untouched payout, so a refund may still rebook it and the buyer may still
+  -- report; O is still 'paid' (not handed over), so its sale counts as final for the payout queue.
+  ('declutter_payout_unsent',       NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
+  ('declutter_problem_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
+  ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
   ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
   -- A and B are both real (not test) accounts.
   ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
@@ -298,14 +307,14 @@ BEGIN
   -- the application notifier's pg_net call dies on a NULL url.
   FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
                               'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows',
-                              'public.declutter_orders', 'public.shops', 'public.feature_switches'] LOOP
+                              'public.declutter_orders', 'public.declutter_payouts', 'public.shops', 'public.feature_switches'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'rentals', 'bucket', 'objects', 'shop']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'handed_over', 'rentals', 'bucket', 'objects', 'shop']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -368,6 +377,19 @@ BEGIN
                            '00000000-0000-4000-8140-00000000000a', 'paid', 'delivery', 1000, 120, 0, 1200, 2320, now(), 'pi_q140')$q$;
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    SELECT '00000000-0000-4000-8140-00000000000a', d, '09:00', '18:00' FROM generate_series(0, 6) d WHERE d <> 1$q$;
+        END IF;
+      WHEN 'handed_over' THEN
+        -- Board 141 (20261026155251): order H, B's pickup from seller A handed over just now, its seller payout
+        -- pending and never tried (to_regclass: before 20261015042253 there is no payout table).
+        IF to_regclass('public.declutter_payouts') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, premium_cents,
+                                                         tax_cents, delivery_cents, total_cents, paid_at, handed_over_at,
+                                                         closed_at, close_reason, stripe_payment_intent_id)
+                   VALUES ('00000000-0000-4000-8140-000000000502', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 'handed_over', 'pickup_home', 1000, 120, 0, 0, 1120,
+                           now(), now(), now(), 'handed_over', 'pi_q140_h')$q$;
+          EXECUTE $q$INSERT INTO public.declutter_payouts (order_id, seller_id, items_cents, debt_cents, amount_cents, status)
+                   VALUES ('00000000-0000-4000-8140-000000000502', '00000000-0000-4000-8140-00000000000a', 1000, 0, 1000, 'pending')$q$;
         END IF;
       WHEN 'rentals' THEN
         -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261017205605 there is no table).

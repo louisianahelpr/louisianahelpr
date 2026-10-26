@@ -32,7 +32,7 @@ export async function fetchGuestJobs(): Promise<EnrichedJob[]> {
       .neq("payment_status", "abandoned")
       .order("boosted_at", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false })
-      .limit(GUEST_JOBS_LIMIT)),
+      .limit(GUEST_JOBS_LIMIT), { browseView: true }),
   );
 
   const now = new Date();

@@ -179,9 +179,22 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // poster_marked_done_at: a cancelled job filed under the poster's Done list (owner 2026-10-25, 20261025211357).
 export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at"] as const;
 
-/** `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out. */
-function withoutJobColumnsAheadOfDb(select: string): string {
-  const ahead = JOB_COLUMNS_AHEAD_OF_DB as readonly string[];
+/**
+ * Columns the BROWSE VIEW (open_jobs_browse) gains in a newer migration though
+ * jobs already has them (so they are not JOB_COLUMNS_AHEAD_OF_DB): a browse
+ * read names them and goes through readJobsAheadOfDb, which drops them on
+ * 42703 until db-deploy lands. helper_fee_percent: Q2400, 20261025235701.
+ */
+export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent"] as const;
+
+/**
+ * `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out, and on a browse-view read
+ * (`browseView`) every BROWSE_VIEW_COLUMNS_AHEAD_OF_DB column too. Only there: a jobs-table read
+ * of helper_fee_percent must never lose it on a retry, or a 5% job is priced at 10% (lh-money-escrow
+ * review of Q2400, #1).
+ */
+function withoutJobColumnsAheadOfDb(select: string, browseView = false): string {
+  const ahead = [...JOB_COLUMNS_AHEAD_OF_DB, ...(browseView ? BROWSE_VIEW_COLUMNS_AHEAD_OF_DB : [])] as readonly string[];
   return select
     .split(",")
     .map((c) => c.trim())
@@ -199,11 +212,12 @@ function withoutJobColumnsAheadOfDb(select: string): string {
 export async function readJobsAheadOfDb<R extends { error: { code?: string | null } | null }>(
   select: string,
   run: (columns: string) => PromiseLike<R>,
+  opts: { browseView?: boolean } = {},
 ): Promise<R> {
   const first = await run(select);
   const code = String(first.error?.code ?? "");
   if (code === "42703" || code === "PGRST204") {
-    const behind = withoutJobColumnsAheadOfDb(select);
+    const behind = withoutJobColumnsAheadOfDb(select, opts.browseView === true);
     if (behind !== select) return run(behind);
   }
   return first;

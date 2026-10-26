@@ -41,8 +41,8 @@
 // @mutate src/components/admin/AdminExport.tsx | platform_fee_percent, helper_fee_percent, helper_fee_flat_cents, is_group_job | platform_fee_percent, helper_fee_percent, is_group_job
 // @mutate src/components/admin/useAdminUserSummaries.ts | budget, helper_fee_percent, helper_fee_flat_cents, platform_fee_amount | budget, helper_fee_percent, platform_fee_amount
 // @mutate src/components/job-card/ActivityDialogs.tsx |           feeStamp={props.cancelDialogJob} |           feeStamp={null}
-// @mutate src/components/browseMap/fetchJobForPin.ts | credential_tier, parish, helper_fee_flat_cents"; | credential_tier, parish";
-// @mutate src/pages/home/QuickApplyHandler.tsx | latitude, longitude, helper_fee_flat_cents"; | latitude, longitude";
+// @mutate src/components/browseMap/fetchJobForPin.ts | credential_tier, parish, helper_fee_flat_cents, helper_fee_percent"; | credential_tier, parish, helper_fee_percent";
+// @mutate src/pages/home/QuickApplyHandler.tsx | latitude, longitude, helper_fee_flat_cents, helper_fee_percent"; | latitude, longitude, helper_fee_percent";
 // @mutate supabase/functions/create-payment/index.ts | const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : 0; | const customerFeeAmount = isPosterFee ? posterFeeCents / 100 : urgentBonusCardFeeCents(urgentFeeCents) / 100;
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";

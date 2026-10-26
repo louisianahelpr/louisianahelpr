@@ -12,7 +12,7 @@
  * @mutate src/lib/visibleDeadline.ts |         arm(ms);\n        return;\n      }\n      const frozen |         return;\n      }\n      const frozen
  * @mutate src/lib/visibleDeadline.ts |       if (err instanceof Error && err.message === message) ctrl.abort(err); |       void err;
  * @mutate src/lib/visibleDeadline.ts |   else outer?.addEventListener("abort", onOuter, { once: true }); |   else void onOuter;
- * @mutate src/hooks/useDashboardData.ts |           .abortSignal(abort)), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) | ), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal))
+ * @mutate src/hooks/useDashboardData.ts |           .abortSignal(abort), { browseView: true }), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal)) | , { browseView: true }), JOBS_QUERY_TIMEOUT_MS, JOBS_TIMEOUT_MESSAGE, signal))
  * @mutate src/hooks/useDashboardData.ts |         ? shouldRetryQuery(failureCount, error, 1) |         ? false
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -220,7 +220,7 @@ describe("raceVisibleDeadlineAbortable", () => {
     const src = blankComments(readFileSync(resolvePath(__dirname, "../hooks/useDashboardData.ts"), "utf8"));
     const browse = src.slice(src.indexOf('.from("open_jobs_browse")') - 400, src.indexOf('.from("open_jobs_browse")') + 900);
     expect(browse).toMatch(/raceVisibleDeadlineAbortable\(\(abort\) =>/);
-    expect(browse).toMatch(/\.abortSignal\(abort\)\)/);
+    expect(browse).toMatch(/\.abortSignal\(abort\)(?:\)|, \{ browseView: true \}\))/);
     expect(src).toMatch(/error\.message === JOBS_TIMEOUT_MESSAGE\s*\?\s*shouldRetryQuery\(failureCount, error, 1\)/);
   });
 });

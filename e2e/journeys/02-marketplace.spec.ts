@@ -361,7 +361,8 @@ test.describe.serial("marketplace chain", () => {
       await payCheckoutSession(page);
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
-        .toBe("escrow");
+        // Q2399: with card_hold_at_post the card is HELD ('held'); the Helpr's Accept below charges it (escrow).
+        .toMatch(/^(escrow|held)$/);
       S.funded = true;
       await assertHealthy(page, "return from Stripe", { settleMs: 30_000 });
       await journey.milestone(page, "payment-return");

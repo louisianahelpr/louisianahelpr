@@ -25,7 +25,7 @@
  *      cancelled checkout now returns to the Post a job draft).
  *
  * @mutate supabase/functions/_shared/threeDSecure.ts | export const THREE_D_SECURE_MIN_CENTS = 30000; | export const THREE_D_SECURE_MIN_CENTS = 3000000;
- * @mutate supabase/functions/create-payment/index.ts | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options: threeDSecureOptions( | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options_unused: threeDSecureOptions(
+ * @mutate supabase/functions/create-payment/index.ts |         payment_method_options: holdPlan ? holdCheckoutPaymentMethodOptions(threeDSecureOptions(threeDSCents)) : threeDSecureOptions(threeDSCents), |         payment_method_options_unused: holdPlan ? holdCheckoutPaymentMethodOptions(threeDSecureOptions(threeDSCents)) : threeDSecureOptions(threeDSCents),
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
@@ -60,7 +60,6 @@ const EXEMPT: Record<string, { maxCents: number; why: string }> = {
     why: "membership prices, largest is the annual top tier",
   },
   "pay-onboarding-fee": { maxCents: ONBOARDING_FEE_CENTS, why: "one-time $2 onboarding fee" },
-  "declutter-card": { maxCents: 0, why: "Declutter SETUP page: saves a card, charges nothing (row 36)" },
 };
 
 /**
@@ -120,7 +119,14 @@ describe("3D Secure on large card charges (Q202)", () => {
     for (const { fn, src } of functionSources()) {
       for (const call of createCalls(src)) {
         total++;
-        if (/payment_method_options:\s*threeDSecureOptions\(/.test(call)) {
+        // A card HOLD (Q2399) wraps the same rule: holdCheckoutPaymentMethodOptions(threeDSecureOptions(...)).
+        if (/payment_method_options:\s*(?:\w+\s*\?\s*holdCheckoutPaymentMethodOptions\(threeDSecureOptions\(\w+\)\)\s*:\s*)?threeDSecureOptions\(/.test(call)) {
+          covered++;
+          continue;
+        }
+        // A SETUP page saves a card and charges nothing, so there is no charge to
+        // challenge (Declutter row 36; a card-hold job far out, Q2399).
+        if (/\bmode:\s*"setup"/.test(call)) {
           covered++;
           continue;
         }

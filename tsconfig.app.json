@@ -35,6 +35,7 @@
     "src",
     "e2e/liveSession.ts",
     "e2e/readRpc.ts",
+    "e2e/listedPayment.ts",
     "e2e/adminRpcClassification.ts",
     "e2e/browserLock.ts",
     "e2e/previewBuildCheck.ts",

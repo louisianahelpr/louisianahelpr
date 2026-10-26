@@ -1,4 +1,5 @@
 import { test, expect, type APIRequestContext, type Page, type Locator } from "./prodTest";
+import { captureHeldCard } from "./cardHold";
 import { appendFileSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { openCardFields, pressStripePay, waitForStripePaymentMethods } from "./stripeCheckoutCard";
@@ -837,7 +838,8 @@ test.describe("full money loop against production", () => {
           timeout: 60_000,
           message: "stripe-webhook never moved payment_status to escrow",
         })
-        .toBe("escrow");
+        // Q2399: card_hold_at_post holds the card ('held'); the Helpr's accept below charges it.
+        .toMatch(/^(escrow|held)$/);
     }
 
     /* CLEAR THE EARLY-ACCESS EMBARGO BEFORE APPLYING.
@@ -923,15 +925,18 @@ test.describe("full money loop against production", () => {
        20261007051854 nothing starts on an offer the Helpr has not accepted
        (on-my-way answered 403 accept_required), and the accept is written only
        by accept_job_offer, the app's Accept job button, which tells the poster. */
-    const accepted = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, {
-      headers: rest(helper),
-      data: { p_job_id: job.id },
-    });
-    expect(accepted.ok(), `accept_job_offer failed: ${accepted.status()} ${await accepted.text()}`).toBe(true);
-    expect(
-      ((await accepted.json()) as { state?: string } | null)?.state,
-      "accept_job_offer did not accept (helper-e2e's setup is no longer complete?)",
-    ).toBe("accepted");
+    // Q2399: on a held card the hire is done by capture_hold (charge, then the accept), as the app's Accept does.
+    if ((await captureHeldCard(request, helper, job.id)) !== "accepted") {
+      const accepted = await request.post(`${SUPABASE_URL}/rest/v1/rpc/accept_job_offer`, {
+        headers: rest(helper),
+        data: { p_job_id: job.id },
+      });
+      expect(accepted.ok(), `accept_job_offer failed: ${accepted.status()} ${await accepted.text()}`).toBe(true);
+      expect(
+        ((await accepted.json()) as { state?: string } | null)?.state,
+        "accept_job_offer did not accept (helper-e2e's setup is no longer complete?)",
+      ).toBe("accepted");
+    }
 
     /* --- 4b. ARRIVAL — the gate completion actually depends on --------------
        `enforce_helper_completion_gates` rejects a completion with 400

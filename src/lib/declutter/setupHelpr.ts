@@ -14,6 +14,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
 
 export type SetupKind = "assemble" | "mount" | "setup";
 
@@ -49,7 +50,8 @@ export interface SetupHelprInfo {
 }
 
 /** The browse surfaces' funded set: a job Helprs can see (same rule as turnoverPrefill). */
-const FUNDED = new Set(["escrow", "payout_pending", "released"]);
+// Q2399: a held card is listed too.
+const FUNDED = new Set<string>(LISTED_PAYMENT_STATUSES);
 
 /** A linked job counts as booked once it is paid for and not cancelled. */
 export function isBookedSetupJob(j: Pick<SetupJob, "status" | "payment_status">): boolean {

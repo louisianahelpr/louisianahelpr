@@ -13,7 +13,7 @@
  *
  * @mutate src/components/profile/DeleteAccountDialog.tsx | or money is still on its way to you. | or your pending payouts will be forfeited.
  * @mutate supabase/functions/_shared/accountPurge.ts |   const owed = await findMoneyOwedToMember(admin, userId); |   const owed = { ok: true, active: false } as ActiveWorkResult;
- * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending)"; |   "payment_status.in.(escrow)";
+ * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending,held)"; |   "payment_status.in.(escrow,held)";
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

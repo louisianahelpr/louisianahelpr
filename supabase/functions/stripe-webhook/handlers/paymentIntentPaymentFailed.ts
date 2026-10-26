@@ -485,6 +485,11 @@ export async function handlePaymentIntentPaymentFailed(
   // Tips and boosts are not the job's own payment — do not mark the job failed.
   if (pi.metadata?.type === "tip") return;
   if (pi.metadata?.kind === "job_boost") return;
+  // Q2399: a hold or charge card-hold-sweep / create-payment placed OFF-session
+  // on a saved card. Its caller read the answer synchronously and already
+  // moved the hold (failed / needs_action, the poster told); a second
+  // "payment failed" here would only repeat that.
+  if (pi.metadata?.card_hold_off_session === "1") return;
   const jobId = pi.metadata?.job_id;
   const giftCardId = typeof pi.metadata?.gift_card_id === "string" && pi.metadata.gift_card_id
     ? pi.metadata.gift_card_id

@@ -283,7 +283,8 @@ test("overflowing labels: no control's label runs past its own box at 320/375 (i
   test.setTimeout(60 * 60_000);
   // The held success screen needs a funded job of the poster's own: read (GET only) its newest.
   const funded = await selectAs<{ id: string }[]>(request, poster,
-    `jobs?select=id&customer_id=eq.${POSTER_ID}&payment_status=eq.escrow&order=created_at.desc&limit=1`);
+    // Q2399: a held card (card_hold_at_post) renders the held screen too.
+    `jobs?select=id&customer_id=eq.${POSTER_ID}&payment_status=in.(escrow,held)&order=created_at.desc&limit=1`);
   const extra = funded[0] ? [{ name: "payment-success-held", url: `/payment-success?job_id=${funded[0].id}`, auth: "poster" as const }] : [];
   console.log(`OVERFLOW held /payment-success: ${funded[0] ? `job ${funded[0].id}` : "no funded job of poster-e2e (not measured)"}`);
   const screens = [...SCREENS, ...extra];

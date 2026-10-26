@@ -535,5 +535,5 @@ describe("fixture-job visibility — one switch, every surface", () => {
 // the 2026-09-02 bug. Its latest definition is 20260904203654; strip the gate
 // there and the flag flips every other surface quiet while the public page
 // keeps advertising fixture jobs.
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
+// @mutate supabase/migrations/20261026001019_card_hold_at_post.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
 // @mutate src/config/showSeedJobs.parity.test.ts |     ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],\n | \n

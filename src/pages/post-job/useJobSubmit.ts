@@ -41,6 +41,7 @@ import { CONNECTION_TROUBLE_COPY, isNetworkFailure } from "@/lib/networkFailure"
 import { endSentence } from "@/lib/endSentence";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import { DRAFT_CHECKOUT_JOB_KEY } from "@/hooks/useDraftJob";
+import { LISTED_PAYMENT_STATUSES } from "../../../supabase/functions/_shared/listedPaymentStatus";
 
 // Declutter haul-away: loaded only for a haul-away post (off the critical path, Q178).
 const haulAwayLib = () => import("@/lib/declutter/haulAway");
@@ -133,7 +134,8 @@ async function cleanupOrphanJob(jobId: string): Promise<boolean> {
  * PaymentSuccess.tsx's HELD_STATUSES (lh-silent-failure review of bf3cd5730
  * #1: 'cancelled', 'refunded' and 'chargeback' are closed, never "paid").
  */
-const FUNDED_STATUSES = ["escrow", "payout_pending", "released"] as const;
+// Q2399: a held card counts (the post went through; never clean it up).
+const FUNDED_STATUSES = LISTED_PAYMENT_STATUSES;
 
 /**
  * Q?gift-paid-retry-photos: whether this attempt's own job holds money now.

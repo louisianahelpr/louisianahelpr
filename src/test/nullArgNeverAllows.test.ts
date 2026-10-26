@@ -2,7 +2,7 @@
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql | IF p_user_id IS NULL OR p_kind IS NULL OR p_path IS NULL THEN | IF p_user_id IS NULL OR p_path IS NULL THEN
 // @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql |   SELECT p_user_id IS NOT NULL\n     AND (SELECT count(*) < 3 |   SELECT true\n     AND (SELECT count(*) < 3
 // @mutate supabase/migrations/20261021081258_stripe_identity_before_first_accept_post_and_start.sql | p_idv_status IS NOT DISTINCT FROM 'verified' | p_idv_status = 'verified'
-// @mutate supabase/migrations/20260923123701_null_argument_never_allows.sql |   ), false);\n$fn$; |   ), NULL);\n$fn$;
+// @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |   ), false);\n$fn$; |   ), NULL);\n$fn$;
 // @mutate scripts/ci/null-arg-validators.sql |   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),\n |
 // @mutate scripts/ci/null-arg-validators.sql |   ('has_role',                      'allow', |   ('has_role',                      'deny',
 // @mutate scripts/ci/null-arg-validators.sql |   ('is_seed_email',                 'classify', 'labels an address as a seed account'),\n |

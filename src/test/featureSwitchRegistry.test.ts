@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
-// @mutate src/config/featureSwitches.ts |   "scanner_safe_confirm_links",\n] as const; |   "scanner_safe_confirm_links",\n  "orphan_switch",\n] as const;
+// @mutate src/config/featureSwitches.ts |   "card_hold_at_post",\n] as const; |   "card_hold_at_post",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 // @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
 // @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
@@ -90,6 +90,8 @@ export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
   "20261021135921_come_back_emails_on_for_everyone.sql": "come_back_emails",
   "20261025235208_confirm_reminders_on_for_everyone.sql": "confirm_reminders",
   "20261025235210_scanner_safe_confirm_links_on_for_everyone.sql": "scanner_safe_confirm_links",
+  // card_hold_at_post: owner 2026-10-25 (pop-up, through the lead): "are not features. they should be done always for everyone."
+  "20261026001416_card_hold_at_post_on_for_everyone.sql": "card_hold_at_post",
 };
 
 export function readRegistryFromMigrations(

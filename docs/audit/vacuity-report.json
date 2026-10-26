@@ -1,9 +1,13 @@
 {
-  "generated": "2026-10-26T00:00:20.795Z",
-  "guards": 2396,
+  "generated": "2026-10-26T00:50:12.262Z",
+  "guards": 2400,
   "registered": 2395,
   "unregistered": [
-    "src/components/job-card/posterMarkedDone.test.ts"
+    "src/components/EarningsExport.noFee.test.ts",
+    "src/components/job-card/posterMarkedDone.test.ts",
+    "src/components/postjob/PostJobStepHeader.pick.test.tsx",
+    "src/test/jobStepsEvenRow.test.ts",
+    "src/test/takeHomeOnlyNoJobPrice.test.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"

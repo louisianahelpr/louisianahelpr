@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import AppPage from "@/components/AppPage";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
+import { resetLargeTitles } from "@/lib/largeTitles";
 import { usePostJobForm } from "./usePostJobForm";
 import { RedirectingOverlay } from "./RedirectingOverlay";
 import { EntryChoice } from "./EntryChoice";
@@ -66,6 +67,9 @@ const PostJob = () => {
     document.querySelectorAll<HTMLElement>(".app-shell-scroll, [data-app-page-scroll]").forEach((el) => {
       el.scrollTop = 0;
     });
+    // A scroller already at 0 (a short screen clamps it there) fires no scroll event,
+    // so the compact title bar is turned off here, as a route change does (ScrollToTop).
+    resetLargeTitles();
   }, [form.step, form.formPage, form.categoryGroup, form.entryPanel]);
 
   // Per-step header copy. The entry landing is the new first step where the

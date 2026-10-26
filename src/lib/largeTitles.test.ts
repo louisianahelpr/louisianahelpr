@@ -5,15 +5,19 @@
  * Added for nightly-red #3415 (main: Vitest, "Coverage floor"): train11 added
  * largeTitles.ts with no test (src/lib/ 81.2% -> 80.18%, floor 81.17%).
  *
- * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1) return; |     void 0;
+ * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return; |     void 0;
+ * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return; |     if (t.scrollHeight <= t.clientHeight + 1) return;
+ * @mutate src/pages/post-job/PostJob.tsx |     resetLargeTitles();\n  }, [form.step |     void 0;\n  }, [form.step
  * @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24); |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 0);
  * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56); |       b.classList.toggle("on", t.scrollTop > 24);
  * @mutate src/lib/largeTitles.ts |     bar?.remove(); |     void bar;
  */
+import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { installLargeTitles } from "./largeTitles";
 
-function scroller(opts: { appPage?: boolean; title?: string; scrollHeight?: number; clientHeight?: number }) {
+function scroller(opts: { appPage?: boolean; title?: string; scrollHeight?: number; clientHeight?: number; scrollWidth?: number }) {
   const el = document.createElement("div");
   if (opts.appPage) el.setAttribute("data-app-page-scroll", "");
   if (opts.title) {
@@ -24,6 +28,8 @@ function scroller(opts: { appPage?: boolean; title?: string; scrollHeight?: numb
   }
   Object.defineProperty(el, "scrollHeight", { value: opts.scrollHeight ?? 2000, configurable: true });
   Object.defineProperty(el, "clientHeight", { value: opts.clientHeight ?? 800, configurable: true });
+  Object.defineProperty(el, "scrollWidth", { value: opts.scrollWidth ?? 390, configurable: true });
+  Object.defineProperty(el, "clientWidth", { value: 390, configurable: true });
   document.body.appendChild(el);
   return el;
 }
@@ -59,9 +65,31 @@ describe("installLargeTitles", () => {
     uninstall = installLargeTitles();
     const page = scroller({});
     scrollTo(page, 100);
-    const chips = scroller({ scrollHeight: 40, clientHeight: 40 });
+    const chips = scroller({ scrollHeight: 40, clientHeight: 40, scrollWidth: 900 });
     scrollTo(chips, 0);
     expect(html().contains("page-scrolled")).toBe(true);
+  });
+
+  it("a page screen too short to scroll still turns the bar off back at the top (owner iPhone 2026-10-26, Post a job)", () => {
+    // Screen 2 (the groups list) scrolled past 56px; screen 3 ("What kind of home job?") fits the
+    // phone, so its scroller has no vertical travel when it returns to 0. Skipping that event kept the
+    // bar on over the back button, with nothing left to scroll to uncover it.
+    uninstall = installLargeTitles();
+    const el = scroller({ appPage: true, title: "Post a job" });
+    scrollTo(el, 300);
+    expect(bar()?.classList.contains("on")).toBe(true);
+    Object.defineProperty(el, "scrollHeight", { value: 700, configurable: true });
+    scrollTo(el, 0);
+    expect(bar()?.classList.contains("on")).toBe(false);
+    expect(html().contains("page-scrolled")).toBe(false);
+  });
+
+  it("Post a job turns the bar off itself when a step change resets the scroll (no scroll event at 0)", () => {
+    const src = blankComments(readFileSync("src/pages/post-job/PostJob.tsx", "utf8"));
+    const effect = src.slice(src.indexOf("lastStep.current = key;"), src.indexOf("}, [form.step"));
+    expect(effect.length).toBeGreaterThan(0);
+    expect(effect).toContain("el.scrollTop = 0;");
+    expect(effect).toContain("resetLargeTitles();");
   });
 
   it("an AppPage screen shows its h1 in an aria-hidden compact bar past 56px", () => {

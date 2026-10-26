@@ -72,3 +72,7 @@ a44a65f3d744888ccfa9709f22975476e9c397a3:supabase/functions/mapkit-token/index.t
 7893ed17047c56bee48696f55e88394ea1b289c8:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:266
 47418e9b8246125e81d193df165eaf6d0f2d68ab:src/test/edge/process-scheduled-payouts-crew.test.ts:generic-api-key:195
 41a897846a9587bde21f3a4f8491d95cbf751b71:src/test/stripeWebhookConfigCheckShape.test.ts:stripe-access-token:23
+
+# src/test/scannerSafeConfirmLinks.test.ts: a made-up confirm-link token_hash ("abcDEF123_-xyz") in a parser test's expected value, not a secret (email-2-fix train #3644, 2026-10-25). The test now builds it from parts.
+8bc2f155624bdd25610e4d84e6c521f6e085da10:src/test/scannerSafeConfirmLinks.test.ts:generic-api-key:39
+8bc2f155624bdd25610e4d84e6c521f6e085da10:src/test/scannerSafeConfirmLinks.test.ts:generic-api-key:40

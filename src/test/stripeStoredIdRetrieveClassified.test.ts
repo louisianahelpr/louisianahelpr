@@ -215,7 +215,7 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
 /** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
-  // Q2399 card hold at post (20261026001019, 2026-10-25): a job's own card hold. Every hold was minted after the
+  // Q2399 card hold at post (20261026152524, 2026-10-25): a job's own card hold. Every hold was minted after the
   // 2026-09-27 live switch (the feature did not exist before), and each is read on the client of the mode it was
   // placed in: create-payment's job money mode, card-hold-sweep's hold row stripe_mode, or the webhook event's own.
   "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)": "the hold being captured or released, re-read after Stripe refused the capture / cancel, on the hold's own mode; minted after the live switch",

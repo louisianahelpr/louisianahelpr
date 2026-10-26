@@ -237,7 +237,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "rentals_tenancy_party",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
   "payout_setup_hire_allowed",
-  // Card hold at post (Q2399, 20261026001019): listed = funded or the card held; job_is_funded's SQL body calls it.
+  // Card hold at post (Q2399, 20261026152524): listed = funded or the card held; job_is_funded's SQL body calls it.
   "job_payment_is_listed"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:

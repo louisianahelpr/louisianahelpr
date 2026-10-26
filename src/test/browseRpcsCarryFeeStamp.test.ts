@@ -17,8 +17,8 @@
 //
 // (Q2400, 2026-10-25: the stamp's PERCENT, helper_fee_percent, now follows it as the last column;
 // src/test/browseCarriesFeePercent.test.ts owns that half.)
-// @mutate supabase/migrations/20261026001019_card_hold_at_post.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric) | pricing_mode text, distance_band text, helper_fee_percent numeric)
-// @mutate supabase/migrations/20261026001019_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
+// @mutate supabase/migrations/20261026152524_card_hold_at_post.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric) | pricing_mode text, distance_band text, helper_fee_percent numeric)
+// @mutate supabase/migrations/20261026152524_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
 // @mutate src/components/browseMap/mapJobToEnrichedJob.ts |     helper_fee_flat_cents: job.helper_fee_flat_cents ?? null, |     helper_fee_percent: null,
@@ -89,7 +89,7 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       const def = DEFS.get(name)!;
       // Q1848 restated get_ranked_open_jobs (memberships switch on the poster boost), same header.
       // Q2399 (card hold) restates both after Q2400, same header, adding only the 'held' listing.
-      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261026001019_card_hold_at_post.sql"]).toContain(def.file);
+      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261026152524_card_hold_at_post.sql"]).toContain(def.file);
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
       const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

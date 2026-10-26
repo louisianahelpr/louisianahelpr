@@ -4,7 +4,7 @@
 -- card_hold_at_post ON for everyone: a posted job holds the poster's card
 -- (card and Link) and charges it only when a Helpr is hired; nobody hired
 -- cancels the hold. The switch is created 'off' by
--- 20261026001019_card_hold_at_post.sql, which runs first.
+-- 20261026152524_card_hold_at_post.sql, which runs first.
 --
 -- Going live is otherwise an admin's flip in Admin -> Settings (20261012031120).
 -- This is an owner-approved exception, listed by file in

@@ -3,7 +3,7 @@
 //
 // cardHold — the poster's card HOLD on a job (Q2399, owner 2026-10-25: "hold the
 // poster's card when a job is posted; charge it only when someone is hired").
-// Behind the switch card_hold_at_post. Migration 20261026001019_card_hold_at_post
+// Behind the switch card_hold_at_post. Migration 20261026152524_card_hold_at_post
 // holds the model: a held job is payment_status 'held' (listed, never funded),
 // its hold is one public.job_card_holds row, and no hire can complete on it.
 //

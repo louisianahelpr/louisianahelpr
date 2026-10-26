@@ -91,7 +91,7 @@ export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
   "20261025235208_confirm_reminders_on_for_everyone.sql": "confirm_reminders",
   "20261025235210_scanner_safe_confirm_links_on_for_everyone.sql": "scanner_safe_confirm_links",
   // card_hold_at_post: owner 2026-10-25 (pop-up, through the lead): "are not features. they should be done always for everyone."
-  "20261026001416_card_hold_at_post_on_for_everyone.sql": "card_hold_at_post",
+  "20261026152525_card_hold_at_post_on_for_everyone.sql": "card_hold_at_post",
 };
 
 export function readRegistryFromMigrations(

@@ -73,14 +73,14 @@ describe("Q768: no server path creates a jobs row before payment", () => {
 
   it("the link RPC is the host's own, authenticated only, with a PGlite proof red without it", () => {
     // Every migration, not one pinned file: the function was re-created later
-    // (20261026001019, Q2399), the grant and the foreign key were not.
+    // (20261026152524, Q2399), the grant and the foreign key were not.
     const migDir = resolve(ROOT, "supabase/migrations");
     const sql = readdirSync(migDir).filter((f: string) => f.endsWith(".sql")).sort()
       .map((f: string) => readFileSync(resolve(migDir, f), "utf8")).join("\n");
     expect(sql).toContain("REVOKE ALL ON FUNCTION public.link_str_turnover_job(uuid, uuid) FROM PUBLIC, anon;");
     expect(sql).toMatch(/JOIN public\.str_calendar_connections c ON c\.id = e\.connection_id\s+WHERE e\.id = p_event_id AND c\.user_id = v_uid/);
     expect(sql, "an unpaid orphan job must stay deletable once a turnover points at it").toContain("REFERENCES public.jobs(id) ON DELETE SET NULL;");
-    // The body is read from the NEWEST definition (20261026001019 re-created it, Q2399).
+    // The body is read from the NEWEST definition (20261026152524 re-created it, Q2399).
     expect(newestFunction("link_str_turnover_job").body).toMatch(/j\.customer_id = v_uid AND j\.status = 'open'/);
     const proof = readFileSync(resolve(ROOT, "src/test/pglite/strTurnoverLink.pglite.mjs"), "utf8");
     for (const c of ["L1 the host links", "L2 a turnover linked to a FUNDED job", "L3 another account cannot", "L4 the host cannot link", "L5 anon cannot",

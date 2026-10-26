@@ -6,7 +6,7 @@
 // poster's card instead of charging it. This settles that checkout:
 //   * payment mode, PaymentIntent requires_capture (card or Link): the job is
 //     payment_status 'held' (listed, never funded: migration
-//     20261026001019), one job_card_holds row 'authorized' with the charge's
+//     20261026152524), one job_card_holds row 'authorized' with the charge's
 //     capture_before, the Helpr fan-out, and the poster hears "Your card is on
 //     hold for $X. You're only charged when you hire someone." The one-time
 //     setup fee is NOT settled here: it is collected at the capture.

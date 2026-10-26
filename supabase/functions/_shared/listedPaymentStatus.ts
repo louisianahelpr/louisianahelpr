@@ -1,7 +1,7 @@
 /**
  * Q2399: the payment states in which a job is LISTED (browse, alerts, apply):
  * funded (escrow, payout_pending, released) or its card held ('held'). The
- * SQL twin is public.job_payment_is_listed (20261026001019). A hire
+ * SQL twin is public.job_payment_is_listed (20261026152524). A hire
  * COMPLETING needs captured money, the funded three only.
  * src/test/fundedSetsAreClassified.test.ts holds every reader of these sets.
  */

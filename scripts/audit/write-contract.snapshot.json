@@ -13734,7 +13734,7 @@
    "policies": [
     {
      "cmd": "SELECT",
-     "name": "Admins can view group helpers",
+     "name": "Admins and job participants can view group helpers",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"
@@ -13754,14 +13754,6 @@
      "permissive": "PERMISSIVE",
      "roles": [
       "public"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "Job participants can view group helpers",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
      ]
     },
     {

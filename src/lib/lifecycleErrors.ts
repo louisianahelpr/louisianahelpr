@@ -361,6 +361,10 @@ export const RPC_ERROR_COPY = {
     account_restricted: "Your account is restricted, so you can't answer requests right now.",
     not_authenticated: "Please sign in again to answer this request.",
   },
+  // EnterReferralCodeCard — a friend's code within 7 days of joining (owner 2026-10-25).
+  claim_my_referral_code: {
+    account_restricted: "Your account is restricted right now, so you can't add a referral code.",
+  },
   // SeriesDatesPanel — picking visit dates on a series (Q407 5).
   claim_series_dates: {
     not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",

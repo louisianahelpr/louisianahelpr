@@ -18,7 +18,7 @@ export function ExploreSearchEntry({ variant = "field" }: { variant?: "field" | 
         data-testid="explore-search-entry"
         aria-label="Search all sections"
         title="Search all sections"
-        className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-ds-md btn-press text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+        className="h-10 w-10 shrink-0 inline-flex items-center justify-center rounded-ds-md btn-press text-muted-foreground ctl-tint hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
       >
         <Search className="w-5 h-5" aria-hidden />
       </Link>

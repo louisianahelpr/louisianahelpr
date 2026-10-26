@@ -36,7 +36,7 @@ import { blankComments } from "./helpers/blankNonCode";
  * moves with them.
  *
  * @mutate src/components/sections/StatusBoxes.tsx | shrink-0 whitespace-nowrap | min-w-0 truncate
- * @mutate src/components/sections/StatusBoxes.tsx | flex gap-2 overflow-x-auto px-1 | flex gap-2 overflow-hidden px-1
+ * @mutate src/components/sections/StatusBoxes.tsx | flex min-w-0 flex-1 gap-2 overflow-x-auto px-1 | flex min-w-0 flex-1 gap-2 overflow-hidden px-1
  * @mutate src/components/ui/chipClasses.ts | rounded-full px-4 font-sans font-semibold text-ds-13 | rounded-full px-4 font-sans font-semibold text-ds-40
  * @mutate src/lib/activityBuckets.ts |   scheduled: "Upcoming", |   scheduled: "Upcoming jobs that are booked and waiting for their day",
  * @mutate src/components/job-card/JobListPage.tsx | titleCard={isWebDesktop ? undefined : headerEl} | titleCard={isWebDesktop \|\| showEmptyState ? undefined : headerEl}
@@ -104,7 +104,7 @@ describe("the Jobs status chips fit a phone", () => {
   });
 
   it("the row scrolls sideways and a chip never shrinks or truncates", () => {
-    expect(BOXES).toMatch(/flex gap-2 overflow-x-auto/);
+    expect(BOXES).toMatch(/flex min-w-0 flex-1 gap-2 overflow-x-auto/);
     expect(BOXES).toMatch(/\$\{CHIP\} shrink-0 whitespace-nowrap/);
     expect(BOXES).not.toMatch(/\btruncate\b[^\n]*data-chip-label|data-chip-label[^\n]*\btruncate\b/);
     expect(CHIPS).not.toMatch(/\btruncate\b/);

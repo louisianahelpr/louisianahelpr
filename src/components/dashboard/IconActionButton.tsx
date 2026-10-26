@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { CHROME_ICON_LOOK } from "@/components/ui/chromeIcon";
 
 /**
  * IconActionButton — the shared glass icon button used in JobDetailDialog's
@@ -84,8 +85,9 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
     // utilities below — no onMouseEnter/onMouseLeave JS.
     const style = bare
       ? ({
-          color: pressed ? pressedColor : "hsl(var(--muted-foreground))",
-          transition: "color 0.2s ease",
+          // No resting colour inline: it beat `hover:text-foreground`, so the icon never darkened on hover (owner
+          // 2026-10-25). The ink comes from CHROME_ICON_LOOK; only a pressed (saved) icon keeps its accent.
+          ...(pressed ? { color: pressedColor } : {}),
           // Below the global `button { min-height/min-width: 44px }` floor —
           // inline styles are the only thing that beats it (a Tailwind size
           // utility loses to that plain-CSS rule).
@@ -114,7 +116,7 @@ export const IconActionButton = forwardRef<HTMLButtonElement, IconActionButtonPr
         onClick={onClick}
         className={
           bare
-            ? `group rounded-md ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0 btn-press hover:text-foreground hover:bg-transparent active:bg-transparent transition-colors`
+            ? `${CHROME_ICON_LOOK} ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0`
             : "group glass-press rounded-ds-md h-11 w-11 sm:h-12 sm:w-12 shrink-0 " +
               "transition-all duration-200 hover:scale-105 active:scale-95 " +
               // CSS-driven hover (desktop only): lift the glow + recolor the icon

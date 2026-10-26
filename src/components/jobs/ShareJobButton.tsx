@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { CHROME_ICON_LOOK } from "@/components/ui/chromeIcon";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { cn } from "@/lib/utils";
 import { hapticLight } from "@/lib/haptics";
@@ -262,12 +263,12 @@ export function ShareJobButton({
         onClick={handleShare}
         className={cn(
           bare
-            ? `group rounded-md ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0 btn-press motion-safe:transition-colors hover:text-foreground hover:bg-transparent active:bg-transparent`
+            ? `${CHROME_ICON_LOOK} ${compact ? "h-8 w-8" : "h-11 w-11"} shrink-0`
             : "group glass-press rounded-full h-11 w-11 sm:h-12 sm:w-12 shrink-0 motion-safe:transition-all motion-safe:duration-200 motion-safe:active:scale-95",
           className,
         )}
         style={bare ? {
-          color: "hsl(var(--muted-foreground))",
+          // The ink is CHROME_ICON_LOOK's (an inline colour beat `hover:text-foreground`, owner 2026-10-25).
           ...(compact ? { minHeight: "32px", minWidth: "32px" } : {}),
         } : {
           backgroundColor: "hsl(var(--card) / 0.32)",
@@ -283,7 +284,8 @@ export function ShareJobButton({
         {copied ? (
           <Check className="w-4 h-4" strokeWidth={2.5} />
         ) : (
-          <Share2 className="w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5" />
+          // A corner icon's glyph holds still on hover (CHROME_ICON_LOOK); the glass button keeps its small lift.
+          <Share2 className={bare ? "w-4 h-4" : "w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5"} />
         )}
         {liveRegion}
       </Button>

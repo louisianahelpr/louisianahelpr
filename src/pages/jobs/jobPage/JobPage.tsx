@@ -112,7 +112,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
         go: () =>
           navigate(
             open && pending > 0
-              ? `/posts?highlight=${encodeURIComponent(job.id)}`
+              // Review opens the applicants themselves (useReviewApplicantsDeepLink), not just the card.
+              ? `/posts?highlight=${encodeURIComponent(job.id)}&applicants=1`
               : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
           ),
       }

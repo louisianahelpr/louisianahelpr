@@ -208,7 +208,7 @@ describe("every reader of the funded set is classified for card holds (Q2399)", 
     expect(spelled.length).toBeGreaterThan(5);
     expect(spelled.filter((f) => !(f in TS_CLASSIFIED)), "new funded-set spellings: classify them").toEqual([]);
     expect(Object.keys(TS_CLASSIFIED).filter((f) => !spelled.includes(f)), "entries that no longer spell it").toEqual([]);
-    const listedUsers = files.filter((f) => /LISTED_PAYMENT_STATUSES|paymentIsListed/.test(blankComments(readFileSync(f, "utf8"))));
+    const listedUsers = files.filter((f) => /LISTED_PAYMENT_STATUSES/.test(blankComments(readFileSync(f, "utf8"))));
     for (const f of [
       "supabase/functions/expiring-jobs-push/index.ts",
       "supabase/functions/instant-job-match/index.ts", "supabase/functions/auto-expire-jobs/index.ts",

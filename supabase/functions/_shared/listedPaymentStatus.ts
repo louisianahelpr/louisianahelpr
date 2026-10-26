@@ -5,9 +5,5 @@
  * COMPLETING needs captured money, the funded three only.
  * src/test/fundedSetsAreClassified.test.ts holds every reader of these sets.
  */
-export const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"] as const;
+const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"] as const;
 export const LISTED_PAYMENT_STATUSES = [...FUNDED_PAYMENT_STATUSES, "held"] as const;
-
-export function paymentIsListed(status: string | null | undefined): boolean {
-  return (LISTED_PAYMENT_STATUSES as readonly string[]).includes(status ?? "");
-}

@@ -14,7 +14,7 @@ export const DAY_MS = 24 * HOUR_MS;
  * with the poster present lasts 7 days on every brand (Stripe, "Place a hold
  * on a payment method", validity table), so the hold outlives the listing.
  */
-export const HOLD_AT_POST_WITHIN_MS = 6 * DAY_MS;
+const HOLD_AT_POST_WITHIN_MS = 6 * DAY_MS;
 /**
  * A job further out saves the card and the hold is placed 4 days before the
  * start. The hold is then off-session, and Visa's off-session window is

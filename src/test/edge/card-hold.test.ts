@@ -32,7 +32,7 @@
  * @mutate supabase/functions/card-hold-sweep/index.ts |             defects.record(`job ${j.id}: the poster's held card was CAPTURED but nobody is hired; complete the hire or refund the poster in full`); |             void j;
  * @mutate supabase/functions/card-hold-sweep/index.ts |             if (at === undefined \|\| !(now - at > CAPTURED_UNHIRED_GRACE_MS)) continue; |             if (at === undefined) continue;
  * @mutate supabase/functions/_shared/cardHold.ts | attempts, notified_state, failure_code, updated_at"; | attempts, notified_state, updated_at";
- * @mutate supabase/functions/_shared/cardHold.ts |     card: { ...(threeDS?.card ?? {}), capture_method: "manual", setup_future_usage: "off_session" }, |     card: { ...(threeDS?.card ?? {}), setup_future_usage: "off_session" },
+ * @mutate supabase/functions/_shared/cardHoldPlan.ts |     card: { ...(threeDS?.card ?? {}), capture_method: "manual", setup_future_usage: "off_session" }, |     card: { ...(threeDS?.card ?? {}), setup_future_usage: "off_session" },
  * @mutate supabase/functions/_shared/cardHoldPlan.ts |   if (!Number.isFinite(start) \|\| start - nowMs <= HOLD_AT_POST_WITHIN_MS) return { kind: "hold_now" }; |   return { kind: "hold_now" };
  * @mutate supabase/functions/_shared/cardHold.ts |   if (capturedPi) { |   if (false) {
  * @mutate supabase/functions/_shared/cardHold.ts |       else if (now.status === "requires_capture") return notDefinite(why, true); |       else if (false) return notDefinite(why, true);
@@ -50,7 +50,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts |   if (prior && prior.payment_intent_id === pi.id && was?.stripe_payment_intent_id === pi.id && was?.payment_status === "held") { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts |       if ((mine ?? []).length > 0 && !existing) { |       if (false) {
  * @mutate supabase/functions/_shared/cardHold.ts |     if (stale && stale.state === "capturing" && opts.resume) return settleClaimOnClosedJob(deps, job, stale); |
- * @mutate supabase/functions/_shared/cardHold.ts |     if (pi.status === "succeeded") {\n      await refundCaptureForNobody(deps, job, hold, pi.id); |     if (false) {\n      await refundCaptureForNobody(deps, job, hold, pi.id);
+ * @mutate supabase/functions/_shared/cardHold.ts |   if (hold.capturing_from === "authorized" && hold.payment_intent_id) {\n    const pi = await stripe.paymentIntents.retrieve(hold.payment_intent_id);\n    if (pi.status === "succeeded") { |   if (hold.capturing_from === "authorized" && hold.payment_intent_id) {\n    const pi = await stripe.paymentIntents.retrieve(hold.payment_intent_id);\n    if (false) {
  * @mutate supabase/functions/create-payment/index.ts |         if (live?.state === "capturing") { |         if (false) {
  * @mutate supabase/functions/_shared/cardHold.ts |     if (!["held", "failed"].includes(String(job.payment_status))) {\n      await updateHold(db, job.id, { state: "captured", capturing_from: null }, ["capturing"]);\n      return;\n    } |
  * @mutate supabase/functions/_shared/cardHold.ts |   await unclaimSetupFee(db, job.id, job.customer_id, hold.onboarding_fee_claimed_at);\n  // The refund webhook tells the poster | // The refund webhook tells the poster

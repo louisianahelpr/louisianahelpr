@@ -38,14 +38,11 @@ import { DAY_MS, HOUR_MS, offSessionAllowed } from "../_shared/cardHoldPlan.ts";
 export { CARD_HOLD_COPY };
 export {
   CARD_HOLD_CHECKOUT_API_VERSION,
-  HOLD_AT_POST_WITHIN_MS,
-  PLACE_BEFORE_START_MS,
   RENEW_WITHIN_MS,
   holdCheckoutPaymentMethodOptions,
   holdPlanFor,
   offSessionAllowed,
 } from "../_shared/cardHoldPlan.ts";
-export type { HoldPlan } from "../_shared/cardHoldPlan.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -502,7 +499,7 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
 }
 
 /** A job that can never be hired again: its hold is released, never charged. */
-export const CLOSED_JOB_STATUSES = ["cancelled", "completed"];
+const CLOSED_JOB_STATUSES = ["cancelled", "completed"];
 
 /**
  * A capture claim left on a job that has closed (the capture died, or raced

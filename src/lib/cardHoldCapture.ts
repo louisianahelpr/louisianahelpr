@@ -14,12 +14,12 @@ import { functionErrorBody } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 
 /** True when the database refused a hire because the poster's card is only held. */
-export function isPaymentNotCaptured(error: unknown): boolean {
+function isPaymentNotCaptured(error: unknown): boolean {
   const e = error as { message?: unknown } | null;
   return /payment_not_captured/.test(String(e?.message ?? ""));
 }
 
-export type HoldCapture =
+type HoldCapture =
   /** The hire completed server-side; `result` is the hire RPC's own answer. */
   | { kind: "done"; result: unknown }
   /** Not on a card hold (any more), or the hire was refused for another reason: re-run the RPC for its own answer. */
@@ -33,7 +33,7 @@ const WAITING_FALLBACK = "This job is waiting on payment. We've let the person w
 const UNKNOWN = "Couldn't finish your accept. Pull to refresh to see where it stands.";
 
 /** The hire on a held card, done by create-payment capture_hold. Never throws. */
-export async function captureHeldCard(jobId: string): Promise<HoldCapture> {
+async function captureHeldCard(jobId: string): Promise<HoldCapture> {
   try {
     const { data, error } = await supabase.functions.invoke("create-payment", { body: { action: "capture_hold", jobId } });
     if (error) {

@@ -120,7 +120,7 @@ describe("every path that cancels or refunds a job gives its gift card back", ()
     expect(Object.keys(HELD_ONLY).filter((f) => !unrestored.includes(f)), "stale HELD_ONLY entry").toEqual([]);
     for (const f of Object.keys(HELD_ONLY)) {
       const code = blankComments(readSource(resolve(FUNCTIONS, f)) ?? "");
-      const writes = [...code.matchAll(/\.update\(\{ payment_status: "(?:cancelled|refunded)"[^]*?;/g)].map((m) => m[0]);
+      const writes = [...code.matchAll(/\.update\(\{ payment_status: ["](?:cancelled|refunded)["][^]*?;/g)].map((m) => m[0]);
       expect(writes.length, `${f}: its terminal writes`).toBeGreaterThan(1);
       for (const w of writes) expect(w, `${f}: a terminal write not limited to held/failed`).toMatch(/\.in\("payment_status", \["held", "failed"\]\)/);
     }

@@ -119,6 +119,13 @@ const ACKNOWLEDGED: Record<string, string> = {
 const constraints = extractConstraints();
 const schema = schemaTables();
 const distinctive = distinctiveColumns(schema);
+// Column names that live on one table but are ALSO the everyday key of
+// non-row objects, so they never identify a row on their own. `state`
+// (job_card_holds, Q2399 20261026152524) is Playwright's waitFor({ state:
+// "visible" }) and every RPC answer `{ state: "accepted" }`; a hold row is
+// still attributed by its own columns (capturing_from, notified_state, ...).
+const NOT_A_ROW_MARKER = ["state"];
+for (const k of NOT_A_ROW_MARKER) distinctive.delete(k);
 
 // ---------------------------------------------------------------------------
 // The grader must be capable of failing before its silence means anything.
@@ -193,6 +200,8 @@ describe("the constraint reader really read the constraints", () => {
     expect(distinctive.get("boost_auto_extended")).toBe("jobs");
     expect(distinctive.get("idv_status")).toBe("profiles");
     expect(distinctive.get("stake_status")).toBe("applications");
+    expect(distinctive.has("state")).toBe(false);
+    expect(distinctive.get("capturing_from")).toBe("job_card_holds");
   });
 
   it("actually rejects a row the database would reject", () => {
@@ -361,6 +370,8 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/edge/clearTestModeDisputeRecords.test.ts", keys: ["status", "body", "error"] },
     // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
+    // health-check's answer `{ checks: { stripe_mode } }`, not a job_card_holds row (Q2399 gave that table the only stripe_mode column).
+    { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

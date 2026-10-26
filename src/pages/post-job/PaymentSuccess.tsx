@@ -139,8 +139,7 @@ const PaymentSuccess = () => {
   // from "already released" — both are `isHeld`, but they are not the same
   // claim, and the escrow copy below is false for the second one.
   const [alreadyReleased, setAlreadyReleased] = useState(false);
-  // Q2399: the card is only HELD (payment_status 'held'); src/lib/cardHoldRead.ts words it.
-  const [cardHold, setCardHold] = useState<CardHoldLine | null>(null);
+  const [cardHold, setCardHold] = useState<CardHoldLine | null>(null); // Q2399: a card only held
   const [confirmState, setConfirmState] = useState<ConfirmState>(
     resolvedJobId ? "checking" : "unknown",
   );
@@ -331,22 +330,15 @@ const PaymentSuccess = () => {
         // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
 
         const status = data.payment_status;
-        if (status === "held") {
-          const line = await readCardHoldLine(resolvedJobId);
-          if (cancelled) return;
-          setCardHold(line);
-          const offerTargets = await fetchJobOfferTargets([resolvedJobId]);
-          if (cancelled) return;
-          setDirectOffer(offerTargets.has(resolvedJobId));
-          setConfirmState("held");
-          return;
-        }
-        if (status && HELD_STATUSES.has(status)) {
+        if (status && (HELD_STATUSES.has(status) || status === "held")) {
           if (status === "released") setAlreadyReleased(true);
+          // Q2399: a card only HELD (charged at the hire) gets the hold's own line (src/lib/cardHoldRead.ts).
+          const line = status === "held" ? await readCardHoldLine(resolvedJobId) : null;
           // Once, only when held, and awaited before the held state: a direct offer never flashes
           // "Your job is live" first (money review notes, 2026-10-21).
           const offerTargets = await fetchJobOfferTargets([resolvedJobId]);
           if (cancelled) return;
+          setCardHold(line);
           setDirectOffer(offerTargets.has(resolvedJobId));
           setConfirmState("held");
           return;

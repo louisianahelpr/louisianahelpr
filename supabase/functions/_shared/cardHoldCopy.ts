@@ -5,7 +5,7 @@
  * Names no fee (owner 2026-10-25: members see no fee but the one-time $2
  * setup fee); every amount is the whole hold.
  */
-export function holdDollars(cents: number): string {
+function holdDollars(cents: number): string {
   const n = Math.max(0, Math.round(Number(cents) || 0)) / 100;
   return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

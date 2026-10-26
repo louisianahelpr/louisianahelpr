@@ -9,9 +9,9 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { report } from "@/lib/errorLogger";
 import { CARD_HOLD_COPY } from "../../supabase/functions/_shared/cardHoldCopy";
 
-export type MyCardHold = { state: string; amount_cents: number } | null;
+type MyCardHold = { state: string; amount_cents: number } | null;
 
-export async function fetchMyCardHold(jobId: string): Promise<{ hold: MyCardHold; error: unknown; message?: string }> {
+async function fetchMyCardHold(jobId: string): Promise<{ hold: MyCardHold; error: unknown; message?: string }> {
   const { data, error } = await supabase.rpc("get_my_job_card_hold", { p_job_id: jobId });
   if (error) return { hold: null, error, message: rpcErrorMessage("get_my_job_card_hold", error) ?? undefined };
   const row = Array.isArray(data) ? (data[0] as { state?: string; amount_cents?: number } | undefined) : undefined;

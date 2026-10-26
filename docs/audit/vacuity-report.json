@@ -1,11 +1,12 @@
 {
-  "generated": "2026-10-26T01:44:48.246Z",
-  "guards": 2405,
-  "registered": 2399,
+  "generated": "2026-10-26T02:02:01.887Z",
+  "guards": 2408,
+  "registered": 2401,
   "unregistered": [
     "src/components/EarningsExport.noFee.test.ts",
     "src/components/job-card/posterMarkedDone.test.ts",
     "src/components/postjob/PostJobStepHeader.pick.test.tsx",
+    "src/components/referral/EnterReferralCodeCard.test.tsx",
     "src/pages/auth/signup/signupOneLine.test.tsx",
     "src/test/jobStepsEvenRow.test.ts",
     "src/test/takeHomeOnlyNoJobPrice.test.ts"

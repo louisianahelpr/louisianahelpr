@@ -55,6 +55,8 @@ const FEE_STAMP = "20261017094018_browse_rpcs_carry_fee_stamp.sql";
 const MEMBERSHIPS = "20261021062609_memberships_off_paid_perks.sql";
 // Q2400 restates both browse RPCs and the view (bodies verbatim + helper_fee_percent).
 const FEE_PERCENT = "20261025235701_browse_carries_helper_fee_percent.sql";
+// Q2399 restates the listing surfaces (browse view and RPCs, apply_to_job) with 'held' as listed; bodies verbatim otherwise.
+const CARD_HOLD = "20261026001019_card_hold_at_post.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
 
 /** Every place that decides whether a job takes applicants, and how it must read the rule. */
@@ -79,7 +81,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 
@@ -110,7 +112,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   it("open_jobs_browse lists the re-listed spot, counts it INLINE (the same rule), and stays a definer view", () => {
     const newestView = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8")))).pop();
-    expect([PRIVATE, RESTATED, SEED_SWITCH, "20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql", BLOCK_FEE, LISTING_START, "20261015034054_open_jobs_browse_fee_stamp.sql", FEE_PERCENT]).toContain(newestView);
+    expect([PRIVATE, RESTATED, SEED_SWITCH, "20261007062739_open_jobs_browse_seed_switch_plus_materials_note.sql", BLOCK_FEE, LISTING_START, "20261015034054_open_jobs_browse_fee_stamp.sql", FEE_PERCENT, CARD_HOLD]).toContain(newestView);
     const sql = readFileSync(resolve(MIGRATIONS, newestView as string), "utf8");
     const at = sql.indexOf("CREATE OR REPLACE VIEW public.open_jobs_browse");
     // The view statement only: up to its `$v$;` (a DO-wrapped restatement) or its own `;` (a plain one, which may

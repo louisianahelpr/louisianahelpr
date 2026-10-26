@@ -40,6 +40,10 @@ const RESTING: Record<string, string> = {
   unpaid: "a posted job before checkout; abandoned-checkout sweeps own it",
   pending: "tips and gift-card checkouts awaiting Stripe; the webhook settles them",
   escrow: "a funded open job; escrow on a terminal job is escrow_on_terminal_job",
+  // Q2399 (card hold at post): an open job whose card is authorized, resting until the hire captures it. Watched by
+  // card-hold-sweep every 10 min, not by money-reconciliation: a 'held' job with no open hold row is a recorded
+  // defect, a closed one's hold is released, an expiring one is renewed.
+  held: "an open job whose card is only authorized; card-hold-sweep watches it (held with no open hold = defect)",
   released: "settled; released_without_transfer grades it",
   paid: "settled tip / gift card",
   cancelled: "settled; the stripe_* checks grade it against Stripe",

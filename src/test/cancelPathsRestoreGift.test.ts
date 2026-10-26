@@ -62,6 +62,17 @@ const RESTORES = /\.rpc\(\s*["']restore_gift_card_for_job["']|restoreGiftForCanc
 // @two-way src/test/cancelPathsRestoreGift.test.ts:stale KNOWN_NO_RESTORE entry
 const KNOWN_NO_RESTORE: string[] = [];
 
+/**
+ * Files whose terminal writes can only ever land on a job whose card is HELD (Q2399, card hold at post), which
+ * never carries a gift: create-payment's gift branch returns (settled, or its own shortfall checkout) before the
+ * card-hold branch is reached, so a gift-funded job is never held. Each write here is a compare-and-set on
+ * payment_status held/failed, so it cannot reach a gift-funded job either. EXACT, and proven below.
+ */
+const HELD_ONLY: Record<string, string> = {
+  "_shared/cardHold.ts":
+    "refundCaptureForNobody and releaseCardHold mark a CLOSED job's money cancelled only from held/failed (a card hold, never a gift)",
+};
+
 type Segment = { id: string; code: string };
 
 /** Split one function's source into the paths that own its writes. */
@@ -101,7 +112,27 @@ describe("every path that cancels or refunds a job gives its gift card back", ()
   // @mutate supabase/functions/create-payment/index.ts | const disputeGift = await returnGiftAfterRefund(supabaseAdmin, job, "Quick Refund"); | const disputeGift = { restoredCents: 0, failed: false, posterSentence: "" };
   // @mutate supabase/functions/create-payment/index.ts | : await returnGiftAfterRefund(supabaseAdmin, job, "Admin refund"); | : { restoredCents: 0, failed: false, posterSentence: "" };
   // @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts | const giftBack = await restoreGiftForRefundedJob(supabase, String(refundedJob.id)); | const giftBack = { ok: true as const, outcome: null };
+  // @mutate supabase/functions/_shared/cardHold.ts |       .eq("id", job.id).in("payment_status", ["held", "failed"]).in("status", CLOSED_JOB_STATUSES).select("id"); |       .eq("id", job.id).in("status", CLOSED_JOB_STATUSES).select("id");
+  // @mutate supabase/functions/_shared/cardHold.ts |     .eq("id", jobId).in("payment_status", ["held", "failed"]).or(pinned) |     .eq("id", jobId).or(pinned)
   const { writers, unrestored } = inventory();
+
+  it("Q2399: a HELD_ONLY file writes its terminal state only from held/failed, and a gift-funded job is never held", () => {
+    expect(Object.keys(HELD_ONLY).filter((f) => !unrestored.includes(f)), "stale HELD_ONLY entry").toEqual([]);
+    for (const f of Object.keys(HELD_ONLY)) {
+      const code = blankComments(readSource(resolve(FUNCTIONS, f)) ?? "");
+      const writes = [...code.matchAll(/\.update\(\{ payment_status: "(?:cancelled|refunded)"[^]*?;/g)].map((m) => m[0]);
+      expect(writes.length, `${f}: its terminal writes`).toBeGreaterThan(1);
+      for (const w of writes) expect(w, `${f}: a terminal write not limited to held/failed`).toMatch(/\.in\("payment_status", \["held", "failed"\]\)/);
+    }
+    const pay = blankComments(readSource(resolve(FUNCTIONS, "create-payment/index.ts")) ?? "");
+    const gift = pay.indexOf('const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_gift_card"');
+    const hold = pay.indexOf("const cardHold = !payInFour");
+    expect(gift).toBeGreaterThan(-1);
+    expect(hold).toBeGreaterThan(gift);
+    const branch = pay.slice(gift, hold);
+    expect(branch, "a fully gift-funded job returns before the hold").toMatch(/if \(redeem\?\.outcome === "settled"\) \{\s+return new Response/);
+    expect(branch, "a part-gift job returns its own shortfall checkout before the hold").toMatch(/return new Response\(JSON\.stringify\(\{ url: diffSession\.url \}\)/);
+  });
 
   it("finds the terminal cancel/refund writers (the inventory is not empty)", () => {
     // cancel_escrow, both admin refunds, chargeRefunded, void-cancelled-payments: 5 on 2026-09-25.
@@ -112,7 +143,7 @@ describe("every path that cancels or refunds a job gives its gift card back", ()
 
   it("no path outside the exact known list drops the gift", () => {
     expect(
-      unrestored.filter((id) => !KNOWN_NO_RESTORE.includes(id)),
+      unrestored.filter((id) => !KNOWN_NO_RESTORE.includes(id) && !HELD_ONLY[id]),
       "these paths cancel or refund a job without restore_gift_card_for_job",
     ).toEqual([]);
   });

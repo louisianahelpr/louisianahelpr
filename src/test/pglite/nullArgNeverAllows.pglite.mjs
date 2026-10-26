@@ -88,7 +88,9 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   subscription_tier text, subscription_expires_at timestamptz, ban_status text, auto_suspended_until timestamptz,
   is_seed boolean DEFAULT false,
   -- is_identity_verified (20261019051407) reads the two identity verdict columns.
-  idv_status text, stripe_identity_verified boolean DEFAULT false);
+  idv_status text, stripe_identity_verified boolean DEFAULT false,
+  -- is_caller_banned reads it since 20261022002144 (under-13 birthday block); the twin crashed here from then on.
+  under_13_blocked_at timestamptz);
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL,
   UNIQUE (user_id, role));
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text NOT NULL,
@@ -234,7 +236,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Homes rent tracker read policies (20261019073106).
   "rentals_tenancy_party",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
-  "payout_setup_hire_allowed"];
+  "payout_setup_hire_allowed",
+  // Card hold at post (Q2399, 20261026001019): listed = funded or the card held; job_is_funded's SQL body calls it.
+  "job_payment_is_listed"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
@@ -245,7 +249,8 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Q1929: declutter_delivery_raise_open's SQL body calls it (validated at CREATE).
   "helpr_task_source_held"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
-const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
+const FIRST = ["job_payment_is_funded", "job_payment_is_listed"];
+const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];
 const loaded = [];
 // Skip mode loads the newest definition that exists BEFORE the fix. A function
 // first defined after it (is_off_job, 20260925230845, which today's

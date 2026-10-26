@@ -20,6 +20,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents } from "../../_shared/salesTax.ts";
 import { CARD_HOLD_COPY, LIVE_JOB_STATUSES, captureBeforeIso, notifyPosterOnce, readHold } from "../../_shared/cardHold.ts";
+import { caughtMessage } from "../../_shared/caughtMessage.ts";
 
 export function isCardHoldSession(session: Stripe.Checkout.Session): boolean {
   return (session.metadata as Record<string, string> | null)?.card_hold === "1";
@@ -252,10 +253,12 @@ export async function settleCardHoldCheckout(
   if (seatsErr) logStep("WARN: crew seats not read for the 'you can accept now' notice", { jobId, error: seatsErr.message });
   for (const r of (seats ?? []) as Array<{ helper_id: string | null }>) if (r.helper_id) waiting.add(r.helper_id);
   if (waiting.size > 0 && repaid) {
-    const landed = await insertNotifications(supabase, [...waiting].map((uid) => ({
+    // Each row carries its job_id, so a seed job's notice stays with seed accounts (seedNeverNotifiesReal).
+    const readyRows = [...waiting].map((uid) => ({
       user_id: uid, job_id: jobId, title: CARD_HOLD_COPY.helprReadyTitle,
       message: CARD_HOLD_COPY.helprReady(job.title ?? "the job"), type: "job_updates", link: `/jobs?job=${jobId}`,
-    })));
+    }));
+    const landed = await insertNotifications(supabase, readyRows);
     if (!landed) logStep("WARN: Helpr 'you can accept now' notice not written", { jobId, count: waiting.size });
   }
   await fanOut(supabase, jobId, logStep);
@@ -273,6 +276,6 @@ async function fanOut(supabase: any, jobId: string, logStep: WebhookContext["log
     });
     if (error) logStep("WARN: instant-job-match failed after a card hold", { jobId, error: error.message });
   } catch (e) {
-    logStep("WARN: instant-job-match threw after a card hold", { jobId, error: String(e) });
+    logStep("WARN: instant-job-match threw after a card hold", { jobId, error: caughtMessage(e) });
   }
 }

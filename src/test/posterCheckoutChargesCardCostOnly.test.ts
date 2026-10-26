@@ -57,11 +57,24 @@ const POSTER_JOB_SITES: Record<string, { sites: number; what: string; proof: { f
     // service fee: a gift-funded job carries none, only the urgent bonus card
     // fee), and recurring_visit (charges the fee_cents charge-recurring-visits
     // parked, priced there). The fourth site in this file is the TIP, below.
-    sites: 3,
-    what: "escrow checkout, gift-card shortfall checkout, on-session recurring visit",
+    // Q2399 (card hold at post): a fourth poster-job site, the SETUP-mode checkout of a job more than 6 days out.
+    // It charges nothing; it saves the card for a hold of exactly the escrow checkout's line items (no poster fee).
+    sites: 4,
+    what: "escrow checkout, gift-card shortfall checkout, on-session recurring visit, card-hold setup checkout (a job far out)",
     proof: [
       { file: "src/test/edge/create-payment.test.ts", title: "poster checkout charges the job price only, on every tier (F3, owner 2026-10-14/15)" },
       { file: "src/test/edge/create-payment.test.ts", title: "Q362: a non-urgent gift shortfall has no card fee line and stamps a zero fee (clearing any stale one)" },
+      { file: "src/test/edge/card-hold.test.ts", title: "switch ON, a job 20 days out: the card is saved (setup mode) for a hold 4 days before the start" },
+    ],
+  },
+  // Q2399: a job far out has its card SAVED at posting; these two PaymentIntents charge it later, for hold.amount_cents,
+  // which the webhook writes from create-payment's line items (hold_amount_cents), never a fee of their own.
+  "_shared/cardHold.ts": {
+    sites: 2,
+    what: "the saved card's one off-session charge at the hire, and the scheduled hold placed 4 days before the start",
+    proof: [
+      { file: "src/test/edge/card-hold.test.ts", title: "a saved card (no hold yet) under $300 is charged off-session at the hire" },
+      { file: "src/test/edge/card-hold.test.ts", title: "a due scheduled hold is placed off-session (manual capture) and recorded with its capture_before" },
     ],
   },
   "charge-recurring-visits/index.ts": {

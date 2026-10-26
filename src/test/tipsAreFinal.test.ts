@@ -56,7 +56,9 @@ describe("tips are final", () => {
     // order's own PaymentIntent, recorded by the webhook or the slice 4 SQL); it never reads tips.
     // 11 (2026-10-19): _shared/shopRefunds.ts refunds only a Shops order's own PaymentIntent from a
     // shop_refunds row (Shops M3, 20261019071055); a tip is never a Shops order.
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(11);
+    // 12 (2026-10-25, Q2399): _shared/cardHold.ts refundCaptureForNobody refunds only the job's own card-hold
+    // capture (the hold's PaymentIntent, or the off-session charge it just created); a tip is its own PaymentIntent.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(12);
   });
 
   it("no refund path reads the tips table", () => {

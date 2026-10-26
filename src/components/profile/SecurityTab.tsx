@@ -40,6 +40,9 @@ import { userFacingError } from "@/lib/userFacingError";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { useFeature } from "@/hooks/useFeature";
+import { ChangePasswordDialog } from "@/components/profile/security/ChangePasswordDialog";
+import { SignedInDevicesCard } from "@/components/profile/security/SignedInDevicesCard";
 
 /**
  * Short display labels for the "Lock again" segmented control, keyed by the
@@ -79,6 +82,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
   // unreliable inside the Capacitor iOS WebView (the same reason the
   // change-email dialog below replaced prompt()).
   const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const securityV2 = useFeature("account_security"); // Board 175: Change password + one-device sign-out.
+  const [changePwOpen, setChangePwOpen] = useState(false);
 
   // Supabase doesn't expose a per-session revoke without an admin
   // service-role bearer (the `auth.admin.signOut` API). The closest
@@ -349,7 +354,8 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       </div>
 
-      <PasswordResetCard email={email} />
+      <PasswordResetCard email={email} onChange={securityV2 ? () => setChangePwOpen(true) : undefined} />
+      {securityV2 && <ChangePasswordDialog open={changePwOpen} onOpenChange={setChangePwOpen} />}
 
       <TwoFactorCard />
 
@@ -457,6 +463,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
         </div>
       )}
 
+      {securityV2 ? <SignedInDevicesCard /> : (
       <div className="rounded-2xl liquid-glass p-card space-y-3">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -571,6 +578,7 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
           </Button>
         )}
       </div>
+      )}
 
       </>
       )}

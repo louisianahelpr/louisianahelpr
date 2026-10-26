@@ -14,7 +14,7 @@ import { TurnstileField } from "@/components/auth/TurnstileField";
  * address. Split out of SecurityTab when the reset call gained its Turnstile
  * token (Q1314).
  */
-export function PasswordResetCard({ email }: { email: string | null | undefined }) {
+export function PasswordResetCard({ email, onChange }: { email: string | null | undefined; onChange?: () => void }) {
   const [resettingPassword, setResettingPassword] = useState(false);
   const captcha = useCaptcha();
   return (
@@ -34,9 +34,15 @@ export function PasswordResetCard({ email }: { email: string | null | undefined 
               middle of it, and the prose landed below with a dead strip
               above AND below: three cards, three silhouettes. */}
           <p className="text-ds-11 font-sans mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            Reset via secure email link.
+            {onChange ? "Change it here, or reset by email link." : "Reset via secure email link."}
           </p>
         </div>
+        {/* Board 175 (switch account_security): change it in the app with the current password. */}
+        {onChange && (
+          <Button size="sm" className="shrink-0" aria-label="Change your password" onClick={onChange}>
+            Change
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"

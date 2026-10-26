@@ -14796,6 +14796,16 @@ export type Database = {
         }
         Returns: number
       }
+      my_auth_sessions: {
+        Args: never
+        Returns: {
+          is_current: boolean
+          last_active_at: string
+          session_id: string
+          signed_in_at: string
+          user_agent: string
+        }[]
+      }
       my_credential_tier: { Args: never; Returns: number }
       my_schedule_clashes: {
         Args: never
@@ -15801,6 +15811,7 @@ export type Database = {
         Args: { p_payment_intent_id: string; p_reason?: string }
         Returns: Json
       }
+      revoke_my_session: { Args: { p_session_id: string }; Returns: boolean }
       rpc_add_dispute_evidence: {
         Args: { _dispute_id: string; _evidence_urls: string[] }
         Returns: string[]
@@ -16733,6 +16744,7 @@ export type Database = {
         Args: { p_reason: string; p_reported_type: string }
         Returns: string
       }
+      verify_my_password: { Args: { p_password: string }; Returns: boolean }
       wipe_pre_verification_account: {
         Args: { p_user_id: string }
         Returns: string

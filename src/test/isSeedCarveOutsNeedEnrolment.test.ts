@@ -78,6 +78,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_price_hint: "hides",
   declutter_refund_cancels_setup_jobs: "alerts",
   declutter_refund_gave_up_check: "alerts",
+  // board 141d (20261026155251): a refund request follows its order's is_seed
+  declutter_refund_requests_seed: "tags",
   declutter_seller_moving_sale: "hides",
   declutter_set_watch: "hides",
   // Q2352 (20261026154738): an ENROLLED test account (is_seed AND test_accounts) lists without the setup fee

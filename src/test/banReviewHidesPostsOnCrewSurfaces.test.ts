@@ -9,8 +9,8 @@
  * The class: whichever migration defines each of these objects LAST must carry
  * BOTH rules. Inventory: every migration file, newest definition per object.
  *
- * @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
- * @mutate supabase/migrations/20261015034054_open_jobs_browse_fee_stamp.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
+ * @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |     -- Q1411: not while the poster is under an open ban settlement review.\n    AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = j.customer_id AND q.review_state = 'open')\n  ORDER BY j.boosted_at |     AND true\n  ORDER BY j.boosted_at
+ * @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |  AND (NOT (EXISTS ( SELECT 1 FROM ban_settlement_queue q WHERE q.user_id = jobs.customer_id AND q.review_state = 'open'::text))) |
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN |   IF false THEN
  */
 import { describe, expect, it } from "vitest";
@@ -28,7 +28,11 @@ function newest(name: string, kind: "FUNCTION" | "VIEW"): { file: string; body: 
     const sql = readFileSync(join(DIR, f), "utf8");
     const m = head.exec(sql);
     if (!m) continue;
-    const end = kind === "VIEW" ? sql.indexOf("$v$;", m.index) : sql.indexOf("$function$;", m.index);
+    // A view ends at its `$v$;` (a DO-block restatement) or at the semicolon closing its own `FROM jobs ... WHERE`,
+    // never at the end of the file: 20261025235701 restates the browse RPCs after the view, and their Q1411 clause
+    // would otherwise stand in for a view that lost its own (a surviving mutation, 2026-10-25).
+    const vEnd = sql.indexOf("$v$;", m.index);
+    const end = kind === "VIEW" ? (vEnd > 0 ? vEnd : sql.indexOf(";", sql.indexOf("FROM jobs", m.index))) : sql.indexOf("$function$;", m.index);
     return { file: f, body: sql.slice(m.index, end > 0 ? end : undefined) };
   }
   throw new Error(`no migration defines ${name}`);

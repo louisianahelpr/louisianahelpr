@@ -18,7 +18,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
  */
 const LIVE_JOBS_LIMIT = 4;
 const LIVE_JOBS_SELECT =
-  "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents";
+  "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents, helper_fee_percent";
 
 type LiveJob = {
   id: string;
@@ -32,6 +32,7 @@ type LiveJob = {
   helpers_needed?: number | null;
   is_group_job?: boolean | null;
   helper_fee_flat_cents?: number | string | null;
+  helper_fee_percent?: number | string | null;
   /** The Helpr's take-home in dollars (computeNet, the /browse card's math), filled after load. */
   take_home?: number | null;
 };
@@ -73,11 +74,13 @@ export function LiveJobsSection() {
     const load = async () => {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
-        const { data, error } = await supabase
+        // readJobsAheadOfDb: LIVE_JOBS_SELECT names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
+        const { readJobsAheadOfDb } = await import("@/lib/jobColumns");
+        const { data, error } = await readJobsAheadOfDb(LIVE_JOBS_SELECT, (columns) => supabase
           .from("open_jobs_browse")
-          .select(LIVE_JOBS_SELECT)
+          .select(columns)
           .order("created_at", { ascending: false })
-          .limit(LIVE_JOBS_LIMIT);
+          .limit(LIVE_JOBS_LIMIT), { browseView: true });
         if (error) throw error;
         // The take-home with the /browse card's own math, loaded here (not at
         // module scope) so the landing's first paint stays as small as before.

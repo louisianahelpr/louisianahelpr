@@ -15,10 +15,12 @@
 //     landing teaser get_public_open_jobs (budget only) is untouched.
 // Executed proof: src/test/pglite/browseRpcsFeeStamp.pglite.mjs.
 //
-// @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer) | pricing_mode text, distance_band text)
-// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql |     j.helper_fee_flat_cents\n  FROM public.jobs j |     NULL::integer AS helper_fee_flat_cents\n  FROM public.jobs j
-// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
-// @mutate supabase/migrations/20261017094018_browse_rpcs_carry_fee_stamp.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
+// (Q2400, 2026-10-25: the stamp's PERCENT, helper_fee_percent, now follows it as the last column;
+// src/test/browseCarriesFeePercent.test.ts owns that half.)
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric) | pricing_mode text, distance_band text, helper_fee_percent numeric)
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
+// @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
 // @mutate src/components/browseMap/mapJobToEnrichedJob.ts |     helper_fee_flat_cents: job.helper_fee_flat_cents ?? null, |     helper_fee_percent: null,
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -50,11 +52,12 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       expect(cols.length, `${name}: RETURNS TABLE parsed`).toBeGreaterThan(5);
       if (!PAY_INPUTS.every((c) => cols.includes(c))) continue;
       paying.push(name);
-      expect(cols[cols.length - 1], `${name}: the stamp is the LAST column (additive)`).toBe("helper_fee_flat_cents");
+      // The stamp, then its percent (Q2400), are the LAST two columns (additive).
+      expect(cols.slice(-2), `${name}: the stamp and its percent are the LAST columns (additive)`).toEqual(["helper_fee_flat_cents", "helper_fee_percent"]);
       const body = blankSqlComments(def!.stmt.slice(def!.stmt.indexOf("$function$")));
       // The outer SELECT projects the stamp as its last column, right before
       // its FROM (public.jobs on the map, the scored CTE on the ranked feed).
-      expect(body, `${name}: the outer SELECT projects it last`).toMatch(/\n\s*(?:j\.)?helper_fee_flat_cents\s*\n\s*FROM (public\.jobs j|scored)\b/);
+      expect(body, `${name}: the outer SELECT projects it (then its percent) last`).toMatch(/\n\s*(?:j\.)?helper_fee_flat_cents,\s*(?:j\.)?helper_fee_percent\s*\n\s*FROM (public\.jobs j|scored)\b/);
     }
     // Inventory floor: the ranked feed and the map both pay-carry.
     expect(paying.sort()).toEqual(["get_open_jobs_for_map", "get_ranked_open_jobs"]);
@@ -68,12 +71,14 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
   });
 
   it("(C) the change kept the live contract and left the landing teaser alone", () => {
-    const sql = readFileSync(path.join(MIG, "20261017094018_browse_rpcs_carry_fee_stamp.sql"), "utf8");
-    const code = blankSqlComments(sql);
+    const first = blankSqlComments(readFileSync(path.join(MIG, "20261017094018_browse_rpcs_carry_fee_stamp.sql"), "utf8"));
+    expect(first).not.toMatch(/get_public_open_jobs/);
+    // 20261017094018 did not redefine, alter or re-grant the view (the restated COMMENT
+    // text names it in prose); Q2400 (20261025235701) appends one column to it.
+    expect(first).not.toMatch(/\b(?:VIEW|ON)\s+(?:public\.)?open_jobs_browse\b/i);
+    // The NEWEST restatement (Q2400) carries the contract now.
+    const code = blankSqlComments(readFileSync(path.join(MIG, "20261025235701_browse_carries_helper_fee_percent.sql"), "utf8"));
     expect(code).not.toMatch(/get_public_open_jobs/);
-    // The view is not redefined, altered or re-granted (the restated COMMENT
-    // text names it in prose).
-    expect(code).not.toMatch(/\b(?:VIEW|ON)\s+(?:public\.)?open_jobs_browse\b/i);
     // The DROP removes the ranked feed's COMMENT (its security rationale,
     // 20260907052949); the migration restates it (lh-authz-rls review, 4b).
     expect(code).toMatch(/COMMENT ON FUNCTION public\.get_ranked_open_jobs\(integer, integer, boolean, numeric, numeric, numeric\) IS\s+'Public \/jobs feed, ranked\./);
@@ -83,7 +88,7 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
     ] as const) {
       const def = DEFS.get(name)!;
       // Q1848 restated get_ranked_open_jobs (memberships switch on the poster boost), same header.
-      expect(["20261017094018_browse_rpcs_carry_fee_stamp.sql", "20261021062609_memberships_off_paid_perks.sql"]).toContain(def.file);
+      expect(def.file).toBe("20261025235701_browse_carries_helper_fee_percent.sql");
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
       const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

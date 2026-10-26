@@ -9,7 +9,7 @@
  *
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | it reaches your Helpr account {STANDARD_PAYOUT_PHRASE} | it reaches your Helpr account 2 days after the job
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | const payoutsDone = profile?.stripe_payouts_enabled === true; | const payoutsDone = !!profile?.stripe_account_id;
- * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }} | feeStamp={null}
+ * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }} | feeStamp={null}
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       {alertsOff && ( |       {true && (
  */
 import { describe, it, expect } from "vitest";
@@ -30,7 +30,7 @@ describe("board 189: the first-job Home says only what is true", () => {
   });
 
   it("prices go through JobPrice with the job's own fee stamp", () => {
-    expect(src).toMatch(/<JobPrice[\s\S]*?feeStamp=\{\{ helper_fee_flat_cents: j\.helper_fee_flat_cents \}\}/);
+    expect(src).toMatch(/<JobPrice[\s\S]*?feeStamp=\{\{ helper_fee_flat_cents: j\.helper_fee_flat_cents, helper_fee_percent: j\.helper_fee_percent \}\}/);
   });
 
   it("steps read the real profile, and the alerts card waits for alerts to be off", () => {

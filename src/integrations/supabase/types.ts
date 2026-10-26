@@ -11975,6 +11975,7 @@ export type Database = {
           estimated_hours: number | null
           expires_at: string | null
           helper_fee_flat_cents: number | null
+          helper_fee_percent: number | null
           helpers_needed: number | null
           id: string | null
           is_flexible_schedule: boolean | null

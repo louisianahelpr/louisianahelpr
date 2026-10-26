@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-26T02:36:29.709Z",
-  "guards": 2409,
-  "registered": 2402,
+  "generated": "2026-10-26T16:01:27.306Z",
+  "guards": 2412,
+  "registered": 2405,
   "unregistered": [
     "src/components/EarningsExport.noFee.test.ts",
     "src/components/job-card/posterMarkedDone.test.ts",

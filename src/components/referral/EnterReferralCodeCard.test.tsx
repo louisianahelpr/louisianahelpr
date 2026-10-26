@@ -53,7 +53,7 @@ describe("EnterReferralCodeCard", () => {
     localStorage.setItem(PENDING_REF_KEY, "FUHNW3");
     rpc.mockResolvedValue({ data: "recorded", error: null });
     render(<EnterReferralCodeCard />);
-    const input = (await screen.findByLabelText(/got a friend's code/i)) as HTMLInputElement;
+    const input = (await screen.findByLabelText(/^referral code$/i)) as HTMLInputElement;
     expect(input.value).toBe("FUHNW3");
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     await screen.findByText(/you and your friend each get \$5/i);
@@ -65,7 +65,7 @@ describe("EnterReferralCodeCard", () => {
   it("says why a code was refused and keeps the field", async () => {
     rpc.mockResolvedValue({ data: "own_code", error: null });
     render(<EnterReferralCodeCard />);
-    fireEvent.change(await screen.findByLabelText(/got a friend's code/i), { target: { value: "mine1" } });
+    fireEvent.change(await screen.findByLabelText(/^referral code$/i), { target: { value: "mine1" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     await screen.findByText(/that's your own code/i);
     expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
@@ -74,7 +74,7 @@ describe("EnterReferralCodeCard", () => {
   it("a failed call is reported and says to try again", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom" } });
     render(<EnterReferralCodeCard />);
-    fireEvent.change(await screen.findByLabelText(/got a friend's code/i), { target: { value: "ABC" } });
+    fireEvent.change(await screen.findByLabelText(/^referral code$/i), { target: { value: "ABC" } });
     fireEvent.click(screen.getByRole("button", { name: "Add" }));
     await screen.findByText(/didn't go through/i);
     expect(report).toHaveBeenCalledTimes(1);

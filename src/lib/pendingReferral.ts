@@ -2,7 +2,7 @@
  * A friend's referral code carried across an Apple or Google sign-up (owner
  * 2026-10-25: "make sure there's a place to enter the referral code"). The
  * `?ref=` on the sign-up or log-in link is saved here before the provider
- * redirect, and the "Got a friend's code?" card (EnterReferralCodeCard)
+ * redirect, and the "Referral code" card (EnterReferralCodeCard)
  * starts filled with it. Storage only pre-fills a field: the server decides
  * everything (public.claim_my_referral_code).
  */

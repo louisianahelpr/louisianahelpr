@@ -8,7 +8,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { clearPendingReferral, readPendingReferral } from "@/lib/pendingReferral";
 
 /**
- * "Got a friend's code?" for 7 days after joining (owner 2026-10-25).
+ * "Referral code" card for 7 days after joining (owner 2026-10-25; titled just "Referral code").
  * The email sign-up form has an optional referral field, but an Apple or
  * Google sign-up never asked for one, and someone who forgot to type it had no
  * second chance (prod 2026-10-25: 283 codes, 3 referrals ever). The server
@@ -88,7 +88,7 @@ export function EnterReferralCodeCard() {
   return (
     <div className="rounded-[20px] liquid-glass p-card space-y-3" data-testid="enter-referral-code-card">
       <Label htmlFor="claimReferralCode" className="text-ds-15 font-semibold text-foreground">
-        Got a friend&apos;s code?
+        Referral code
       </Label>
       <p className="text-ds-13 text-muted-foreground">
         Add it in the next {daysLeft} {daysLeft === 1 ? "day" : "days"} and you both get $5 once you finish your first job.

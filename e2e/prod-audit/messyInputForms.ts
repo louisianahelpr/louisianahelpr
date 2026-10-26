@@ -814,6 +814,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Lead 2026-10-25 (scanner-safe confirm links): the expired-link panel's email box.
+  "src/pages/auth/signupPending/ConfirmLinkPanel.tsx": "shows only signed out, on a confirm link that has expired or was spent (/signup-pending with a dead token), and this sweep signs in; its one text box is an email address handed to the same resend SignupPending uses (supabase.auth.resend, which validates the address server-side and is rate-limited), trimmed and never stored by the app",
   // Builder 1j (2026-10-21, board 191): the admin funnel's filters.
   "src/components/admin/adminAnalytics/SectionFunnel.tsx": "no typed text: two fixed-option selects (7/30/90 days; a parish from the RPC's own list) and two section pills; it writes nothing (an admin-only read whose server refuses any other window)",
   // Builder 1h (2026-10-21, board 91, Q2275): saved searches.

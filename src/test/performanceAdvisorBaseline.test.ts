@@ -29,7 +29,7 @@
 // @mutate scripts/check-performance-advisor.mjs |     if (!(name in counts) && b > 0) out.under.push( |     if (false) out.under.push(
 // @mutate scripts/check-performance-advisor.mjs |     if (seen[c].size === 0 && known.size > 0) { |     if (false) {
 // @mutate scripts/check-performance-advisor.mjs |   if (!m) throw new Error(`an unused_index finding names no index | if (false) throw new Error(`an unused_index finding names no index
-// @mutate scripts/ci/performance-advisor-baseline.json |     "public.shop_strikes.shop_strikes_removed_by_idx" |     "public.shop_strikes.shop_strikes_order_idx"
+// @mutate scripts/ci/performance-advisor-baseline.json |     "public.connect_account_retirements.connect_account_retirements_user_id_idx" |     "public.shop_strikes.shop_strikes_order_idx"
 // @mutate scripts/ci/performance-advisor-baseline.json |     "public.tips.idx_tips_tipper_id", |     "public.tips.idx_tips_tipper_id", "public.applications.idx_applications_job",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

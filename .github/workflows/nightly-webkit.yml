@@ -59,10 +59,12 @@ jobs:
 
       - run: bash scripts/ci/playwright-install.sh webkit
 
-      - name: Run happy-path in WebKit
-        env:
-          PLAYWRIGHT_WEB_SERVER: "1"
-        run: npx playwright test --project=happy-path-webkit
+      - name: DIAGNOSTIC calendar tap in WebKit (branch only, never landed)
+        run: |
+          mkdir -p test-results
+          (npx vite --host 127.0.0.1 --port 4320 --strictPort > test-results/vite.log 2>&1 &)
+          for i in $(seq 1 60); do curl -s -o /dev/null 127.0.0.1:4320/scratch-harness/cal.html && break; sleep 1; done
+          node scratch-harness/webkit-tap.mjs
 
       - name: Upload report
         if: always()

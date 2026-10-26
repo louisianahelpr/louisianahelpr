@@ -60,6 +60,11 @@ jobs:
       - run: bash scripts/ci/playwright-install.sh webkit
 
       - name: DIAGNOSTIC calendar tap in WebKit (branch only, never landed)
+        env:
+          # The harness never calls the backend; the client module only needs a URL to construct.
+          VITE_SUPABASE_URL: "https://placeholder.supabase.co"
+          VITE_SUPABASE_PUBLISHABLE_KEY: "placeholder"
+          VITE_SUPABASE_PROJECT_ID: "placeholder"
         run: |
           mkdir -p test-results
           (npx vite --host 127.0.0.1 --port 4320 --strictPort > test-results/vite.log 2>&1 &)

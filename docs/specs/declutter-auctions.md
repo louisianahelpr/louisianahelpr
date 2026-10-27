@@ -723,7 +723,7 @@ module; the client is src/lib/helprTasks/api.ts and the screens reuse it unchang
 Exact addresses (row 27): the Helpr reads the pickup address once they take the delivery; the drop-off address at
 once if they have a finished delivery, else from 2 hours before the booked pickup, or once their first delivery is
 finished, or after the "Picked up" photo (owner decided 2026-10-27, issue #3684; helpr_task_dropoff_shows_at); the buyer never reads the seller's address through the task, the seller never
-reads the buyer's; open deliveries show area words and rough miles only (`helpr_task_view`). My route (helpr_my_route, 2026-10-27) follows the same rule: a drop-off not shown yet is placed in the order from its point rounded to 2 decimals and says when its address shows.
+reads the buyer's; open deliveries show area words and rough miles only (`helpr_task_view`). My route (helpr_my_route, 2026-10-27) follows the same rule: a drop-off not shown yet is placed in the order from its point rounded to 2 decimals and says when its address shows. "On your way" (helpr_route_suggestions, 2026-10-27) suggests a pickup time inside the seller's pickup times within 3 hours of the planned arrival, so an eligible Helpr can learn whether a seller can be picked up in that span (inherent to suggesting a time; the caller's position is not an input and the search is bounded: lh-authz-rls re-review of 20261027200024); candidates' drop-offs are scored at 1 decimal (~11 km), shown as whole miles and 5-minute steps.
 
 | # | Decision | Status | When |
 |---|----------|--------|------|

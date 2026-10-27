@@ -10,7 +10,6 @@
  * EXEMPT places below (not a badge), and the list is exact both ways.
  *
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | label: ID_VERIFIED_LABEL, | label: "ID verified by Stripe",
- * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantVerificationChip.tsx | {ID_VERIFIED_LABEL} | ID verified by Stripe
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -51,10 +50,13 @@ describe("ID verification has one form (Q987)", () => {
     expect(Object.keys(EXEMPT).filter((f) => !hits.includes(f))).toEqual([]);
   });
 
-  // The You tab's own header became board 18's slim card (2026-10-20): it says
-  // "Verified neighbor" with the seal (spec v2 §9.8), not this pill.
-  it("the applicant card draws the gold pill", () => {
-    const applicants = blankComments(readFileSync(join(ROOT, "src/pages/posts/postedJobs/applicantsPanel/ApplicantVerificationChip.tsx"), "utf8"));
-    expect(applicants).toMatch(/style=\{ID_VERIFIED_PILL_STYLE\}[\s\S]{0,120}<IdVerifiedShield[\s\S]{0,80}\{ID_VERIFIED_LABEL\}/);
+  // Owner 2026-10-27 ("remove the badges and the checks under it, it doesn't
+  // make any sense"): applicant cards show no ID or payout badge and no
+  // "New to Helpr · ID verified" proof line.
+  it("applicant cards draw no ID or payout badge and no proof line", () => {
+    for (const f of ["src/pages/posts/postedJobs/ApplicantsPanel.tsx", "src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx"]) {
+      const src = blankComments(readFileSync(join(ROOT, f), "utf8"));
+      expect(src, f).not.toMatch(/ApplicantVerificationChip|ApplicantProofLine|No payout account|Payouts set up|New to Helpr/);
+    }
   });
 });

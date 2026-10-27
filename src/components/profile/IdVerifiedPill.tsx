@@ -54,12 +54,6 @@ export const PAYOUTS_SET_UP_LABEL = "Payouts set up";
 export const PAYOUTS_SET_UP_DESCRIPTION =
   "This member set up payouts with Stripe, which checked their payment details.";
 
-export const PAYOUTS_SET_UP_PILL_STYLE: CSSProperties = {
-  background: "hsl(var(--sage) / 0.16)",
-  border: "0.5px solid hsl(var(--sage) / 0.4)",
-  color: "hsl(var(--success-ink))",
-};
-
 export const PayoutsSetUpIcon = ({ className }: { className?: string }) => (
   <Landmark className={className} strokeWidth={2.25} aria-hidden />
 );

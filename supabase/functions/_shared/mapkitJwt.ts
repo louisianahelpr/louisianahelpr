@@ -51,10 +51,10 @@ export interface MapkitKey {
 }
 
 /** The MapKit key from the function's secrets, or null when any part is unset. */
-export function mapkitKeyFromEnv(get: (name: string) => string | undefined): MapkitKey | null {
-  const privateKey = get("APPLE_MAPKIT_PRIVATE_KEY");
-  const keyId = get("APPLE_MAPKIT_KEY_ID");
-  const teamId = get("APPLE_MAPKIT_TEAM_ID");
+export function mapkitKeyFromEnv(readEnv: (name: string) => string | undefined): MapkitKey | null {
+  const privateKey = readEnv("APPLE_MAPKIT_PRIVATE_KEY");
+  const keyId = readEnv("APPLE_MAPKIT_KEY_ID");
+  const teamId = readEnv("APPLE_MAPKIT_TEAM_ID");
   if (!privateKey || !keyId || !teamId) return null;
   return { privateKey, keyId, teamId };
 }

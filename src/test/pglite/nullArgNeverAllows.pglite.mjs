@@ -250,7 +250,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
   "payout_setup_hire_allowed", "referral_member_has_completed_job",
   // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.
-  "job_payment_is_listed"];
+  "job_payment_is_listed",
+  // Declutter share card (Q2426) and safe meetup (Q2425), 2026-10-27.
+  "declutter_item_link_visible", "declutter_meetup_spot_near_lines"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

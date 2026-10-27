@@ -563,7 +563,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
       declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 9fb6ded3b0740512",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
-      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 4d24b4a83bd33864",
+      // Q1937 (20261027174633): capped at the order total across the order's linked jobs; still no refund amount.
+      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 831394b2e5b42e56",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
       shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",

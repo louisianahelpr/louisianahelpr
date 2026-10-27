@@ -35,7 +35,7 @@ switch `declutter_haul_away`, created for **testers** only (Declutter's own swit
    storage orphan sweep, since the photo DELETE policy needs the job row). A job left `failed` (declined card,
    `job_stuck`) is never tried. The card at the top offers only items that can go on a new job as they stand
    (eligible, or unpaid with the old job gone or cancelled), the same rule the server applies. Nothing on the
-   server writes `public.jobs`.
+   server writes `public.jobs`, except the daily sweep moving a declined card's haul-away job to `abandoned` (6b).
 5. **Post a Job**: a haul-away is never saved as a draft (a draft cannot carry its items, so a job posted
    again from it would be paid with no link); the link is made again before every retry of the payment
    hand-off; a lost link answer is asked once more; and when the booking fails after the job was created
@@ -47,9 +47,19 @@ switch `declutter_haul_away`, created for **testers** only (Declutter's own swit
    start payment"; and the cleanup of an unpaid job touches its photos only once the job is confirmed to be one
    its poster may delete (open, unpaid with no checkout, or abandoned). This is the shared Post a Job path, so
    it holds for every job, not only a haul-away (Q?gift-paid-retry-photos).
-6. Known residual (Q?declutter-haul-away-nudge): a never-paid job left `failed` (declined card) after its
-   checkout ran out cannot be deleted by its poster under today's jobs DELETE policy, so its items stay off
-   sale and My listings says so; the planned sweep moves such a job to `abandoned`.
+6. **The daily sweep (Q1962, migration 20261027165903, cron `declutter-haul-away` 15:21 UTC = 10:21 AM CDT).**
+   (a) A listing for sale 14 days with no sale in progress and no haul-away (the H1 rule My listings uses)
+   gets ONE "Haul-away is open" notice (bell through `declutter_notify`; push by the member's own switches),
+   one per seller per run, only where both switches are on for the seller; each listing is marked in
+   `declutter_haul_away_notices` before the notice, so it is never told twice. (b) A never-paid job left
+   `failed` (declined card) after its checkout ran out could not be deleted by its poster under the jobs
+   DELETE policy; the sweep moves such a haul-away job to `abandoned` (open, `failed`, no session, no
+   PaymentIntent, no gift card reserved or redeemed, quiet a day), the same step void-cancelled-payments
+   takes for an `unpaid` one. This is the one server write to `public.jobs` in the haul-away. (c) A link 7+
+   days old whose job holds nothing (`none`, or an `abandoned` open job quiet a day) is undone exactly as
+   "Put back on sale" undoes it, and the seller is told. An abandoned job may be paid again only through Post
+   a Job's retry, which links the items again first, so an item back on sale is never paid for as a
+   haul-away while it is on sale.
 7. Undo puts an item back on sale only if it still has the 3-12 photos a listing needs (taking it down
    meanwhile removed them; then it stays off sale).
 8. **A full refund puts the items back on sale (owner, 2026-10-17).** When a haul-away job that is over
@@ -118,8 +128,10 @@ No new money path: the job, escrow, fees, payout, cancellation and disputes are 
 - Fast guards: `src/test/declutterHaulAway.test.ts` (newest definitions), `src/lib/declutter/haulAway.test.ts`,
   `src/components/declutter/declutterHaulAway.test.tsx`, `src/pages/post-job/useHaulAwayPrefill.test.tsx`,
   `src/pages/post-job/haulAwayRelinkNoCleanup.test.tsx`.
+- Daily sweep (Q1962, measured 2026-10-27 on main 42eb6e27ea): `src/test/pglite/declutterHaulAwaySweep.pglite.mjs`
+  86/86, migration applied 3x, the functions it calls md5-checked against prod's bodies; RED 31/86 with
+  `NEW_MIGRATION=skip`; planted copies (no once-only mark, no PaymentIntent guard, unpaid jobs restored, no hold
+  check, no switch gate, no gift guard, no 7-day age, Part C without the PaymentIntent or gift guard) each RED. Fast guard: `src/test/declutterHaulAwaySweep.test.ts`.
 
 ## Not built in this slice
-- A bell/push to the seller on the day haul-away opens, and a sweep that puts items back on sale when a
-  haul-away was abandoned for days (Q?declutter-haul-away-nudge in docs/OPEN.md).
 - Row 73's "post it as a free giveaway" choice.

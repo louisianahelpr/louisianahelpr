@@ -37,7 +37,7 @@
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | REVOKE ALL ON TABLE public.declutter_haul_aways FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.declutter_haul_aways FROM PUBLIC, anon;\nGRANT SELECT ON TABLE public.declutter_haul_aways TO authenticated;
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -190,11 +190,18 @@ describe("Declutter haul-away (20261017070827)", () => {
     expect(why).toContain("a NULL p_job_id matches none");
   });
 
-  it("re-review 2026-10-17 #4: the put-back-on-sale sweep is ONE open item and a condition for the switch going to everyone", () => {
-    const open = readFileSync(join(process.cwd(), "docs/OPEN.md"), "utf8").split("\n").filter((l) => /^- \[ \] \*\*Q\S* [A-Z]+ Declutter haul-away/.test(l) && l.includes("put items back on sale"));
+  it("re-review 2026-10-17 #4: the put-back-on-sale sweep is ONE item and, until it is ticked, a condition for the switch going to everyone", () => {
+    // Built 2026-10-27 (20261027165903, src/test/declutterHaulAwaySweep.test.ts): the item is partly done
+    // ([~]) until its done-when markers read true on prod, then ticked and archived.
+    const archive = join(process.cwd(), "docs/archive");
+    const files = [join(process.cwd(), "docs/OPEN.md"), ...readdirSync(archive).filter((f) => /^OPEN-done-\d{4}-\d{2}\.md$/.test(f)).map((f) => join(archive, f))];
+    const open = files.flatMap((f) => readFileSync(f, "utf8").split("\n"))
+      .filter((l) => /^- \[[ ~x]\] \*\*Q\S* [A-Z]+ Declutter haul-away/.test(l) && l.includes("put items back on sale"));
     // (Other open haul-away items exist: the v2 review notes, Q?haul-undo-failed-count and friends.)
     expect(open).toHaveLength(1);
-    expect(open[0]).toContain("CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod");
+    if (!open[0].startsWith("- [x]")) {
+      expect(open[0]).toContain("CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod");
+    }
   });
 
   it("re-review 2026-10-17 #8 (/posts budget, Q178): nothing haul-away sits in the signed-in-shared chunk", () => {

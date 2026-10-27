@@ -143,6 +143,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/helperFees.ts";`,
   );
 
+  // Confirm links (admin-resend-verification, owner 2026-10-27): `_shared/confirmLink.ts`
+  // has ZERO imports, so point at the REAL module.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/confirmLink\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/confirmLink.ts";`,
+  );
+
   // "First L." (Q2292): `_shared/memberDisplayName.ts` has ZERO imports, so
   // point at the REAL module and the name rule stays under test.
   out = out.replace(
@@ -1018,7 +1025,7 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/categorySkillMatch.ts";`,
   );
 
-  // Same-day matching (Q2438): `_shared/sameDayMatch.ts` has ZERO imports, so
+  // Same-day matching (Q2438): `_shared/sameDayMatch.ts` imports only the pure louisianaDate.ts, so
   // the REAL module serves and instant-job-match's same-day boost is tested as is.
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/sameDayMatch\.ts["'];?/g,

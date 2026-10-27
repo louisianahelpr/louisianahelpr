@@ -2,7 +2,7 @@ import { Award } from "lucide-react";
 import { TOP_HELPR, isTopHelpr, type HelperTierStats } from "@/lib/helperTier";
 
 export const TOP_HELPR_LABEL = "Top Helpr";
-export const TOP_HELPR_DESCRIPTION = `Earned with ${TOP_HELPR.completedJobs}+ completed jobs, ${TOP_HELPR.reviewCount}+ reviews and a ${TOP_HELPR.avgRating}+ star rating as a Helpr.`;
+export const TOP_HELPR_DESCRIPTION = `Earned with ${TOP_HELPR.completedJobs}+ completed jobs, ${TOP_HELPR.reviewCount}+ reviews and a ${TOP_HELPR.avgRating}+ star rating on jobs they worked.`;
 
 /** The small "Top Helpr" chip on an applicant card (owner 2026-10-27); renders nothing unless earned. */
 export function TopHelprChip({ stats }: { stats?: Pick<HelperTierStats, "completedJobs" | "avgRating" | "reviewCount"> }) {

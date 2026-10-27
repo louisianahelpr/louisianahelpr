@@ -208,6 +208,7 @@ rpc_exempt(fn, why) AS (
   ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'),
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),
+  ('dismiss_sms_phone_prompt', 'SMS phone ask (20261027183058): stamps only the caller own notification_preferences row so the prompt stops; like opting out of notifications it must work for everyone, and it changes nothing another person sees'),
   ('rentals_end_tenancy', 'ending a tenancy (or revoking an unused invite) only removes access, like end_recurring_series: a banned tenant or landlord may still leave; it creates nothing and every other Rentals write is ban-gated'),
   ('rpc_withdraw_refund_request', 'board 141: the poster withdraws their own refund request (open or declined, before a dispute exists); it only closes the request, moves no money and posts no content, and asking is ban-gated (rpc_open_refund_request refuses a banned caller)'),
   ('rentals_withdraw_request', 'the tenant pulls back their own undecided maintenance request (status submitted -> withdrawn); it only reduces activity and posts nothing, and filing one is ban-gated'),

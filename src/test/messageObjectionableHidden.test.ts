@@ -23,10 +23,10 @@ describe("Q1799: objectionable messages are filtered and the Terms say zero tole
     expect(defs.get("objectionable_reason"), "objectionable_reason is defined").toBeTruthy();
   });
 
-  it("the Terms state zero tolerance, automatic hiding, report and block, and 24-hour review", () => {
+  it("the Terms state zero tolerance, automatic hiding, report and block, and review of every report (no turnaround is promised: nothing delivers one, consequenceCopyParity)", () => {
     const terms = readFileSync(join(ROOT, "src/pages/info/legal/TermsSection.tsx"), "utf8");
     expect(terms).toMatch(/Zero tolerance for objectionable content:/);
     expect(terms).toMatch(/report or block/);
-    expect(terms).toMatch(/within 24 hours/);
+    expect(terms).toMatch(/reviews every report and removes/);
   });
 });

@@ -41,8 +41,7 @@ export function SmsPhonePrompt({ moment }: { moment: SmsPromptMoment }) {
       const res = await supabase.rpc("sms_phone_prompt_due", { p_moment: moment });
       // Not deployed yet (the web build can reach prod before db-deploy): never prompt.
       if (res.error && isMissingRpcNamed(res.error, "sms_phone_prompt_due")) return false;
-      // Any other failure: no prompt (the query errors), in words the error log can read.
-      if (res.error) throw new Error(rpcErrorMessage("sms_phone_prompt_due", res.error) ?? res.error.message);
+      // Any other failure: no prompt (unwrap throws, the query errors).
       return unwrap(res) === true;
     },
   });

@@ -6,9 +6,11 @@
 // still in the future. "Nearby" is the same parish as the job, or, when both
 // sides have coordinates, within SAME_DAY_RADIUS_MILES as the crow flies.
 //
-// Pure (no Deno, no Supabase), so src/test/sameDayJobs.test.ts runs it as is.
+// Pure (no Deno, no Supabase; Louisiana's today comes from _shared/louisianaDate.ts), so src/test/sameDayJobs.test.ts runs it as is.
 // instant-job-match puts these Helprs at the head of its ranked list, which
 // matters because enqueue_instant_job_match sends at most 20 matches a job.
+
+import { louisianaToday } from "./louisianaDate.ts";
 
 /** How far an online Helpr may be from a same-day job, in straight-line miles. */
 const SAME_DAY_RADIUS_MILES = 25;
@@ -16,19 +18,9 @@ const SAME_DAY_RADIUS_MILES = 25;
 /** Score given to an online, nearby Helpr on a same-day job: above any skill/location score (max 6). */
 export const SAME_DAY_ONLINE_SCORE = 10;
 
-/** `YYYY-MM-DD` for `now` in Louisiana (jobs.date_needed is a Louisiana calendar day). */
-function louisianaYmd(now: Date): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "America/Chicago",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(now);
-}
-
 /** True when the job is for Louisiana's today. */
 export function isSameDayJob(dateNeeded: string | null | undefined, now: Date): boolean {
-  return typeof dateNeeded === "string" && dateNeeded.slice(0, 10) === louisianaYmd(now);
+  return typeof dateNeeded === "string" && dateNeeded.slice(0, 10) === louisianaToday(now);
 }
 
 /** True while the Helpr's "Available now" window is open. */

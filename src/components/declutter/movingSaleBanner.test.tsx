@@ -10,7 +10,7 @@
  * @mutate src/components/declutter/MovingSaleBanner.tsx |       const todo = ids.filter((id) => (watching.data?.has(id) ?? false) !== next); |       const todo = ids.slice(0, 1);
  * @mutate src/components/declutter/MovingSaleBanner.tsx |             if (code !== "item_not_found" && code !== "own_item" && code !== "item_not_available") throw err; |             throw err;
  * @mutate src/components/declutter/MovingSaleBanner.tsx |   const area = areas.size === 1 ? [...areas][0] : null; |   const area = [...areas][0] ?? null;
- * @mutate src/components/declutter/MovingSaleBanner.tsx | <p className="text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(it.current_price_cents)}</p> | <p className="text-ds-15 font-bold tabular-nums">{formatPrice(it.current_price_cents)}</p>
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | <p className="text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</p> | <p className="text-ds-15 font-bold tabular-nums">{itemPriceLabel(it.current_price_cents)}</p>
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

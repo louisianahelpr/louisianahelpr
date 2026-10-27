@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 963,
-    "files": 248,
-    "rendering": 821,
-    "suppressedByPolicy": 142,
+    "calls": 967,
+    "files": 249,
+    "rendering": 823,
+    "suppressedByPolicy": 144,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 686,
+      "toast.error": 688,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 146,
+      "toast.success": 148,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 440,
+      "literal": 442,
       "template": 101,
-      "dynamic": 472,
+      "dynamic": 474,
       "jsx": 0
     }
   },
@@ -4190,6 +4190,46 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
+      "line": 30,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "It's yours. Choose how you'll pick it up within 48 hours."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
+      "line": 34,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
+      "line": 76,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "It's set. Next: choose your pickup time."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterFreeClaim.tsx",
+      "line": 80,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
       "line": 299,
       "kind": "toast.success",
@@ -4441,7 +4481,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 108,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4937,7 +4977,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 202,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4947,7 +4987,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 230,
+      "line": 234,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4957,7 +4997,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 245,
+      "line": 249,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4977,7 +5017,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 248,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4987,7 +5027,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 264,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4997,7 +5037,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 277,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5007,7 +5047,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 290,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5017,7 +5057,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 307,
+      "line": 311,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5037,7 +5077,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 313,
+      "line": 317,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5047,7 +5087,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 322,
+      "line": 326,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5057,7 +5097,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 342,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5077,7 +5117,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5127,7 +5167,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 117,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5137,7 +5177,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 261,
+      "line": 262,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5147,7 +5187,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 264,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5157,7 +5197,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 352,
+      "line": 353,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5167,7 +5207,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 479,
+      "line": 480,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5177,7 +5217,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 488,
+      "line": 489,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5202,7 +5242,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 495,
+      "line": 496,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -37,7 +37,7 @@ import {
   withdrawItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DISTANCE_CHOICES, formatPrice, nearestFirst } from "@/lib/declutter/distance";
+import { DISTANCE_CHOICES, nearestFirst, itemPriceLabel } from "@/lib/declutter/distance";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
@@ -205,8 +205,8 @@ function BrowseView({ userId }: { userId: string }) {
         <EmptyState
           variant="bare"
           icon={Sofa}
-          title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
-          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
+          title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
+          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
         />
       ) : (
         <ul className={DECLUTTER_GRID}>
@@ -398,7 +398,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                   </p>
                 )}
               </div>
-              <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(item.current_price_cents)}</span>
+              <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
             </div>
             {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}

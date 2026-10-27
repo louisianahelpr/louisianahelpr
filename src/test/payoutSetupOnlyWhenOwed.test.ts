@@ -13,8 +13,9 @@
  * migration 3x; 8 FAIL on prod's bodies, a listing-only seller first). This
  * guard pins it on the NEWEST definitions and on the sell screens.
  *
- * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |                 WHERE o.seller_id = p_user_id AND o.status IN ('paid', 'handed_over')) |                 WHERE o.seller_id = p_user_id)
- * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |                 WHERE so.seller_id = p_user_id AND so.captured_at IS NOT NULL\n |                 WHERE so.seller_id = p_user_id\n
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                 WHERE o.seller_id = p_user_id AND o.status IN ('paid', 'handed_over')\n |                 WHERE o.seller_id = p_user_id\n
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                   AND o.paid_with <> 'free') |                   )
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                 WHERE so.seller_id = p_user_id AND so.captured_at IS NOT NULL\n |                 WHERE so.seller_id = p_user_id\n
  * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   -- Publish's own checks (authz review 7): a pickup time on file. (No payout | IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN RAISE EXCEPTION 'payout_setup_incomplete'; END IF;\n  -- (No payout
  * @mutate src/components/declutter/DeclutterSellView.tsx |         photoCount >= DECLUTTER_MIN_PHOTOS && ( |         photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && (
  * @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null; |
@@ -30,16 +31,18 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 
 describe("payout setup only when money is owed", () => {
   it("reads the newest definitions (floor)", () => {
-    for (const n of ["payout_setup_hire_allowed", "declutter_publish_item", "declutter_relist_listing",
+    for (const n of ["declutter_publish_item", "declutter_relist_listing",
       "shops_assert_owner_eligible", "shop_owner_sell_block_reason", "declutter_admin_review_item"]) {
       expect(newestFunction(n).file, n).toContain("20261027163240");
     }
+    // Restated once more by the Free section, which only adds "a free claim is never money owed".
+    expect(newestFunction("payout_setup_hire_allowed").file).toContain("20261027170717");
   });
 
   it("a seller qualifies only by money owed; no section switch grants it", () => {
     const allow = code("payout_setup_hire_allowed");
     expect(allow).not.toMatch(/feature_enabled_for_user\('(declutter|shops|rentals)'/);
-    expect(allow).toContain("FROM public.declutter_orders o WHERE o.seller_id = p_user_id AND o.status IN ('paid', 'handed_over'))");
+    expect(allow).toContain("FROM public.declutter_orders o WHERE o.seller_id = p_user_id AND o.status IN ('paid', 'handed_over') AND o.paid_with <> 'free')");
     expect(allow).toContain("so.seller_id = p_user_id AND so.captured_at IS NOT NULL AND so.status IN ('accepted', 'handed_over', 'partially_refunded'))");
     expect(allow).toContain("ht.helpr_id = p_user_id AND ht.status IN ('accepted', 'picked_up', 'delivered', 'confirmed'))");
     // Hires unchanged.

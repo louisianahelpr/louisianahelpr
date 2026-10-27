@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))) |         AND true)
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
-// @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
+// @mutate supabase/migrations/20261027170717_declutter_free_section.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
 //
 // Cowork design audit 2026-10-20, D1: the owner (an admin, not a test account)
 // saw test sellers' fixtures ("Fixture rocking chair [E2E-PRODAUDIT]",
@@ -114,7 +114,7 @@ describe("D1: marketplace listing reads hide test sellers' rows by the launch sw
       .map(([n]) => n);
     expect(buyerSide.length).toBeGreaterThan(2);
     expect(buyerSide).toEqual(expect.arrayContaining(["declutter_lock_buyable_item", "declutter_ask_question", "declutter_set_watch"]));
-    const who: Record<string, string> = { declutter_lock_buyable_item: "p_buyer", declutter_take_item: "p_buyer", declutter_ask_question: "v_uid", declutter_set_watch: "v_uid" };
+    const who: Record<string, string> = { declutter_lock_buyable_item: "p_buyer", declutter_take_item: "p_buyer", declutter_ask_question: "v_uid", declutter_set_watch: "v_uid", declutter_claim_free: "v_uid" };
     for (const n of [...buyerSide, "declutter_take_item"]) {
       const body = blankSqlComments(DEFS.get(n)?.stmt ?? "");
       expect(who[n], `${n} acts on someone else's item: list whom it acts for here`).toBeDefined();

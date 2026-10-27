@@ -2135,6 +2135,7 @@ export type Database = {
           is_seed: boolean
           items_cents: number
           paid_at: string | null
+          paid_with: string
           premium_cents: number
           setup_fee_cents: number
           setup_fee_refund_id: string | null
@@ -2162,6 +2163,7 @@ export type Database = {
           is_seed?: boolean
           items_cents: number
           paid_at?: string | null
+          paid_with?: string
           premium_cents: number
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
@@ -2189,6 +2191,7 @@ export type Database = {
           is_seed?: boolean
           items_cents?: number
           paid_at?: string | null
+          paid_with?: string
           premium_cents?: number
           setup_fee_cents?: number
           setup_fee_refund_id?: string | null
@@ -13040,6 +13043,8 @@ export type Database = {
         Args: { p_items_cents: number; p_shipping_cents: number }
         Returns: number
       }
+      declutter_checkout_free: { Args: { p_handover: string; p_seller_id: string }; Returns: string }
+      declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
         Returns: string
@@ -13057,6 +13062,7 @@ export type Database = {
         Returns: Json
       }
       declutter_close_wanted: { Args: { p_wanted_id: string }; Returns: string }
+      declutter_free_rules: { Args: never; Returns: Json }
       declutter_complete_handover: { Args: { p_by: string; p_order_id: string }; Returns: Json }
       declutter_confirm_handover: {
         Args: { p_code: string; p_method: string; p_order_id: string }

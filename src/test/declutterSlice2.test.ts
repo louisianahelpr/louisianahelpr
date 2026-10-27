@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | AFTER INSERT OR DELETE ON public.declutter_item_photos | AFTER INSERT ON public.declutter_item_photos
  * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF v_seller = v_uid THEN | IF false THEN
  * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
- * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     NEW.is_seed := true;\n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller | \n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller
  */

@@ -12,6 +12,13 @@
  * line here no migration raises.
  */
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
+  // The Free section (20261027170717).
+  free_item_claim_it: "This item is free. Tap Get it free.",
+  not_free: "This item isn't free any more. Check its price.",
+  free_claim_limit: "You have 3 free items waiting. Pick those up first.",
+  free_order: "These items are free. Choose a pickup and tap Get it free.",
+  not_free_order: "Some of these items have a price. Check out to pay for them.",
+  checkout_page_open: "A payment page for this seller is still open. Close it, then try again in a few minutes.",
   feature_disabled: "Declutter isn't open for your account yet.",
   not_authenticated: "Please sign in again to continue.",
   account_restricted: "Your account is restricted, so Declutter is not available right now.",

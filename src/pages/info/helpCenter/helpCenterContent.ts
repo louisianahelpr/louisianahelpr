@@ -140,6 +140,10 @@ export const FAQ_SECTIONS: FaqSection[] = [
         q: "Can I both post jobs and do them?",
         a: 'Yes — every account can do both. There\'s no separate "poster" or "Helpr" mode.',
       },
+      {
+        q: "Can I give things away on Declutter?",
+        a: 'Yes. When you list an item, tick "Give it away free". Someone nearby taps "Get it free", then picks it up from your porch or at your door. Nothing is charged to either of you, and each person can hold up to 3 free items at a time.',
+      },
     ],
   },
   {

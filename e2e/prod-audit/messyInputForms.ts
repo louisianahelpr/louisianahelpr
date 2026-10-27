@@ -823,6 +823,12 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Q2419 (the Free section, 20261027170717): the free cart's pickup choice.
+  "src/components/declutter/DeclutterFreeClaim.tsx": "its only field is a radio choice (porch pickup or the giver's door), no typed text; it shows only for a cart whose items are all free, and declutter_checkout_free refuses any other handover ('handover_unavailable') and porch where an item does not allow it (src/test/pglite/declutterFreeSection.pglite.mjs)",
+  // Q2333 (seller delivery, 20261027153244, switch declutter_seller_delivery at testers): no sweep fixture has a seller with delivery on.
+  "src/components/declutter/SellerDeliveryChoice.tsx": "shows only in a cart whose seller turned seller delivery on (switch declutter_seller_delivery, testers), which no sweep fixture seller has; its one text box is the drop-off address (maxLength 300, trimmed, 5+ characters before the button enables), sent only to the server's quote, which geocodes it and answers a fixed set of reasons (src/test/pglite/declutterSellerDelivery.pglite.mjs)",
+  "src/components/declutter/SellerDeliveryOrder.tsx": "shows only on an order the seller delivers (switch declutter_seller_delivery, testers), which no sweep fixture has; its one field is a photo file input, no typed text",
+  "src/components/declutter/SellerDeliverySettings.tsx": "shows only to a seller with the declutter_seller_delivery switch on (testers), which no sweep account has set up; its boxes are whole-dollar numbers (inputMode numeric) and a date, saved only through declutter_set_seller_delivery / declutter_set_delivery_schedule, which refuse anything outside the rules (src/test/pglite/declutterSellerDelivery.pglite.mjs)",
   // Owner 2026-10-25: a friend's referral code within 7 days of joining (Referrals tab).
   "src/components/referral/EnterReferralCodeCard.tsx": "shows only in an account's first 7 days, and the shared test accounts are older, so a sweep finds no field; its one text box is upper-cased and trimmed as typed, sent only through claim_my_referral_code, which upper-cases, trims and refuses anything over 32 characters ('invalid') and answers a fixed word set the card maps to copy (src/test/pglite/claimReferralCode.pglite.mjs)",
   // Lead 2026-10-25 (scanner-safe confirm links): the expired-link panel's email box.

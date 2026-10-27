@@ -26,7 +26,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady)} |         disabled={opening \|\| (sellerDelivering && !sdReady)}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";

@@ -40,7 +40,7 @@ import {
   type MyOffer,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { buyNowTotalCents, checkoutAmounts } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
@@ -49,6 +49,7 @@ import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } f
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
+import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -275,7 +276,7 @@ export function SalesWaiting() {
       <ul className="space-y-3">
         {waiting.map((l) => (
           <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-            <p className="font-semibold">{l.item_title} · {formatPrice(l.price_cents)}</p>
+            <p className="font-semibold">{l.item_title} · {itemPriceLabel(l.price_cents)}</p>
             <p className="text-sm text-muted-foreground">Waiting for the buyer to pay · {timeLeft(l.checkout_by)}</p>
             <button
               type="button"
@@ -555,6 +556,8 @@ export function CartView() {
         [...bySeller.entries()].map(([sellerId, lines], i) => {
           const amounts = checkoutAmounts(lines.map((l) => l.price_cents));
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
+          // The Free section (20261027170717): an all-free group never reaches a payment page.
+          const allFree = lines.every((l) => l.price_cents === 0);
           return (
             <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
@@ -568,12 +571,16 @@ export function CartView() {
                     ) : (
                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
                     )}
-                    <span className="shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(l.price_cents)}</span>
+                    <span className="shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(l.price_cents)}</span>
                   </li>
                 ))}
               </ul>
-              <p className="text-sm font-medium">Check out by {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up for sale.</p>
-              <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
+              <p className="text-sm font-medium">{allFree ? "Confirm by" : "Check out by"} {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up{allFree ? "" : " for sale"}.</p>
+              {allFree ? (
+                <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
+              ) : (
+                <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
+              )}
             </section>
           );
         })

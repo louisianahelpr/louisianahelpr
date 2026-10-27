@@ -18,7 +18,7 @@ import { shareNative } from "@/lib/nativeShare";
 import { getPublicOrigin } from "@/lib/authRedirects";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchWatching, photoPublicUrl, setWatch } from "@/lib/declutter/api";
-import { formatPrice } from "@/lib/declutter/distance";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchSellerMovingSale, louisianaToday, movingSaleWhen } from "@/lib/declutter/movingSale";
@@ -105,7 +105,7 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="px-1 pt-2 min-w-0">
-                <p className="text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(it.current_price_cents)}</p>
+                <p className="text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</p>
                 <p className="text-ds-13 font-semibold truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

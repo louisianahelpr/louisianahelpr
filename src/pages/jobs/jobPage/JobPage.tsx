@@ -31,6 +31,7 @@ import { jobCategoryGroupOf, JOB_CATEGORY_GROUPS, sentenceCaseLabel } from "@/li
 import { useJobPage, type JobPageRow } from "./useJobPage";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
 import { NoApplicantsYet } from "./NoApplicantsYet";
+import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSellerCard } from "@/lib/declutter/api";
@@ -166,6 +167,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           ) : (
             <HelprMoney job={job} />
           )}
+          {/* Helpr Guarantee (owner 2026-10-27): the poster's explainer and "Not done right"; the hired Helpr's answer. */}
+          <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
           {primary && (
             <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={primary.go}>

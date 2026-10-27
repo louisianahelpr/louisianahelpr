@@ -198,6 +198,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx` | textarea×1 |  |  | Private note |
 | `src/pages/posts/postedJobs/DeclineApplicantSheet.tsx` | textarea×1 |  |  | Decline reason · decline-note |
 
+## /jobs/:id
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/guarantee/HelprGuaranteePanel.tsx` | input×1, textarea×2 | file |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
+
 ## /legal, /terms, /privacy, /rules
 
 | File | Controls | input types | maxLength | hints |

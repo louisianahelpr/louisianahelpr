@@ -139,6 +139,18 @@ export const TermsContent = () => {
           </>
         }
       />
+      {/* Owner 2026-10-27, "Redo first, then refund" (migration 20261027200455). No fee numbers (owner rule). */}
+      <PolicyRowItem
+        icon={DollarSign}
+        title="Helpr Guarantee"
+        body={
+          <>
+            <p><strong className="text-foreground">Redo first:</strong> If a one-Helpr job wasn&apos;t done right, the person who posted it can say so in the app within 48 hours of the job being done, with a note and photos, while the Helpr&apos;s pay has not been sent. The Helpr has 48 hours to pick a day to fix it (within 3 days) or say they can&apos;t. The Helpr&apos;s pay for that job is held while the request is open.</p>
+            <p><strong className="text-foreground">Then settled:</strong> When the Helpr marks it fixed, the person who posted has 48 hours to confirm; no answer counts as fixed, and the Helpr is paid on the usual schedule. If the Helpr can&apos;t fix it, doesn&apos;t answer, doesn&apos;t fix it by the day after the day they picked, or the fix doesn&apos;t solve it, it becomes a dispute that Helpr decides.</p>
+            <p><strong className="text-foreground">Refunds:</strong> A refund under the Helpr Guarantee is of the job price only; fees are not refunded. The guarantee can be used once per job.</p>
+          </>
+        }
+      />
       <PolicyRowItem
         icon={DollarSign}
         title="Fee model"

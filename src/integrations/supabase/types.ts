@@ -4798,6 +4798,69 @@ export type Database = {
           },
         ]
       }
+      job_guarantee_claims: {
+        Row: {
+          closed_at: string | null
+          close_reason: string | null
+          created_at: string
+          dispute_id: string | null
+          fix_date: string | null
+          fixed_at: string | null
+          helper_id: string | null
+          helpr_answer_by: string
+          helpr_answered_at: string | null
+          id: string
+          job_id: string
+          note: string
+          photo_paths: string[]
+          poster_answer_by: string | null
+          poster_id: string | null
+          poster_reject_note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          close_reason?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          fix_date?: string | null
+          fixed_at?: string | null
+          helper_id?: string | null
+          helpr_answer_by: string
+          helpr_answered_at?: string | null
+          id?: string
+          job_id: string
+          note: string
+          photo_paths?: string[]
+          poster_answer_by?: string | null
+          poster_id?: string | null
+          poster_reject_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          close_reason?: string | null
+          created_at?: string
+          dispute_id?: string | null
+          fix_date?: string | null
+          fixed_at?: string | null
+          helper_id?: string | null
+          helpr_answer_by?: string
+          helpr_answered_at?: string | null
+          id?: string
+          job_id?: string
+          note?: string
+          photo_paths?: string[]
+          poster_answer_by?: string | null
+          poster_id?: string | null
+          poster_reject_note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       job_helpr_fault_fee_deductions: {
         Row: {
           created_at: string
@@ -16356,6 +16419,22 @@ export type Database = {
         Returns: Json
       }
       rpc_helper_mark_done: { Args: { _job_id: string }; Returns: Json }
+      rpc_guarantee_helpr_answer: {
+        Args: { _accept: boolean; _claim_id: string; _fix_date?: string }
+        Returns: string
+      }
+      rpc_guarantee_mark_fixed: {
+        Args: { _claim_id: string }
+        Returns: string
+      }
+      rpc_guarantee_open: {
+        Args: { _job_id: string; _note: string; _photo_paths?: string[] }
+        Returns: string
+      }
+      rpc_guarantee_poster_answer: {
+        Args: { _claim_id: string; _fixed: boolean; _note?: string }
+        Returns: string
+      }
       rpc_open_dispute: {
         Args: { _evidence_urls: string[]; _job_id: string; _reason: string }
         Returns: string

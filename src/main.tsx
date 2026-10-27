@@ -94,8 +94,9 @@ window.addEventListener("vite:preloadError", (event) => {
   // both the dependency preload and the real import() in one catch, so
   // preventDefault() makes that catch resolve the import with `undefined`.
   // React.lazy then reads `.default` off undefined and throws a plain
-  // TypeError — which is NOT the "Failed to fetch dynamically imported
-  // module" string isChunkLoadError() matches (lib/chunkReload.ts:15-32).
+  // TypeError — which, before 2026-10-27, was NOT a string isChunkLoadError()
+  // matched (it now is: a lazy left poisoned after its recovery was cancelled
+  // still surfaced as the generic card, /messages 2026-10-25 22:13Z).
   //
   // So whenever recovery declines — the bounded retry guard
   // (recoverFromChunkError) or being offline — three things

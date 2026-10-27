@@ -27,7 +27,24 @@ export const isChunkLoadError = (err: unknown): boolean => {
     /Cannot read propert(y|ies) of null \(reading 'use[A-Z]\w*'\)/i.test(msg) ||
     /null is not an object \(evaluating '[\w.]*dispatcher/i.test(msg) ||
     // Invalid hook call — same root cause (mismatched React instances).
-    /Invalid hook call/i.test(msg)
+    /Invalid hook call/i.test(msg) ||
+    // A lazy chunk whose import Vite resolved with `undefined`. main.tsx's
+    // vite:preloadError handler calls preventDefault() when it starts a
+    // recovery, and Vite's preload helper then resolves the failed import()
+    // with undefined; React.lazy caches that and reads `.default` off it on
+    // every later render. It is a dead chunk, fixed only by a reload. While the
+    // reload is in flight the boundaries already stay quiet; this covers the
+    // same poisoned lazy surfacing once the flag is down (a scheduled retry
+    // cancelled by navigating, or one that declined at fire time), which on
+    // 2026-10-25 22:13Z showed "Something went sideways" on /messages during
+    // the 3caabd851f deploy and left "Try Again" re-throwing the dead lazy.
+    // WebKit, V8 and Gecko wordings of the same read.
+    /undefined is not an object \(evaluating '[\w$.]*\.default'\)/i.test(msg) ||
+    /Cannot read propert(y|ies) of undefined \(reading 'default'\)/i.test(msg) ||
+    /can't access property "default", [\w$.]+ is undefined/i.test(msg) ||
+    /[\w$]+\._result is undefined/i.test(msg) ||
+    // React's development build checks `'default' in moduleObject` first.
+    /Cannot use 'in' operator to search for 'default' in undefined/i.test(msg)
   );
 };
 

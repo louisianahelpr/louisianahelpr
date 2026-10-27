@@ -105,8 +105,21 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
     expect(report).not.toHaveBeenCalled();
   });
 
-  it("control: the same error with NO reload in flight is a real failure — card and report", () => {
-    renderRoute();
+  it("control: a non-chunk render error with NO reload in flight is a real failure — card and report", () => {
+    // Since 2026-10-27 the prevented-preload TypeError itself is a chunk error
+    // (isChunkLoadError): with no reload in flight it STARTS one (see
+    // src/test/errorBoundariesQuietDuringChunkRecovery.test.tsx). An ordinary
+    // render bug is still the card and a report.
+    const RenderBug = (): never => {
+      throw new TypeError("undefined is not an object (evaluating 'job.title')");
+    };
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Routes>
+          <Route path="/browse" element={<RouteErrorBoundary><RenderBug /></RouteErrorBoundary>} />
+        </Routes>
+      </MemoryRouter>,
+    );
 
     expect(screen.getByText(/This page hit a problem/)).toBeTruthy();
     expect(report).toHaveBeenCalledTimes(1);
@@ -120,9 +133,11 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
     const onLine = vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     expect(recoverFromChunkError()).toBe(false);
     expect(isRecoveryReloadInFlight()).toBe(false);
-    onLine.mockRestore();
 
+    // Still offline when the boundary catches it: the prevented-preload TypeError
+    // is a chunk error (2026-10-27), and offline recovery declines again.
     renderRoute();
+    onLine.mockRestore();
     // Offline changes the wording, not the fact that this is a reported failure.
     expect(screen.getByText(/This page hit a problem|You're offline/)).toBeTruthy();
     expect(report).toHaveBeenCalledTimes(1);

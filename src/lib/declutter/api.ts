@@ -439,7 +439,7 @@ export async function setListingDrops(itemId: string, on: boolean): Promise<bool
  */
 export async function fetchAutoFree(itemId: string): Promise<boolean | "not_deployed"> {
   const r = await supabase.rpc("declutter_auto_free_state", { p_item_id: itemId });
-  if (r.error?.code === "PGRST202") return "not_deployed";
+  if (isMissingRpcNamed(r.error, "declutter_auto_free_state")) return "not_deployed";
   return rpcData(r, (e) => rpcErrorMessage("declutter_auto_free_state", e)) as boolean;
 }
 

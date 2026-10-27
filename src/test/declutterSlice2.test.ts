@@ -8,14 +8,14 @@
  * (66 PASS; NEW_MIGRATION=skip 52 FAIL; 19 planted defects each caught,
  * measured 2026-10-14).
  *
- * @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos p WHERE p.storage_path = objects.name)\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND (storage.foldername(name))[2] = 'declutter'\n | \n
- * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | REVOKE ALL ON FUNCTION public.declutter_area_label_problem(text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_area_label_problem(text, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | AFTER INSERT OR DELETE ON public.declutter_item_photos | AFTER INSERT ON public.declutter_item_photos
- * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |   IF v_seller = v_uid THEN | IF false THEN
- * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF v_seller = v_uid THEN | IF false THEN
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     NEW.is_seed := true;\n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller | \n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller
@@ -75,9 +75,11 @@ describe("Declutter slice 2: follow-ups behind the switch (20261014200728)", () 
 
   it("lh-authz-rls review fixes: no self-approval, approval re-checks the seller, edits void the AI check, stale verdicts refused", () => {
     const review = flat(body("declutter_admin_review_item"));
+    // No payout check (owner 2026-10-27, list first, set up at first sale).
+    expect(review).not.toContain("helper_award_block_reason");
     expect(review).toContain("IF v_seller = v_uid THEN RAISE EXCEPTION 'own_listing'");
     for (const gate of ["pr.ban_status IN ('banned', 'temp_banned', 'permanently_banned')", "OR public.declutter_active_strike_count(v_seller) >= 3",
-      "OR public.member_under_18(v_seller)", "OR public.helper_award_block_reason(v_seller) IS NOT NULL) THEN RAISE EXCEPTION 'seller_not_eligible'"]) {
+      "OR public.member_under_18(v_seller)) THEN RAISE EXCEPTION 'seller_not_eligible'"]) {
       expect(review).toContain(gate);
     }
     expect(flat(body("declutter_update_draft"))).toContain(

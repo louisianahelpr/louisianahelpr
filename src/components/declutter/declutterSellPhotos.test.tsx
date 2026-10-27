@@ -23,7 +23,8 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus:
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));
-vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => null }));
+// The payout prompt is its own component with its own test (declutterScreens); it asks Stripe.
+vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,

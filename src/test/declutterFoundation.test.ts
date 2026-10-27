@@ -30,14 +30,14 @@
 // @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |   IF NOT FOUND OR public.are_users_blocked(v_seller, v_uid)\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One |   IF NOT FOUND\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF p_selling IS NOT FALSE AND public.member_under_18(v_uid) THEN |   IF false THEN
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN |   IF public.declutter_active_strike_count(v_uid) >= 4 THEN
-// @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |   v_payout := public.helper_award_block_reason(v_uid); |   v_payout := NULL;
-// @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
-// @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |     WHEN v_approved < 3 THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   -- Row 23 (payout setup before the first listing) is dropped (owner |   PERFORM public.helper_award_block_reason(v_uid); -- Row 23 (owner
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |     WHEN v_approved < 3 THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | GRANT ALL ON TABLE public.declutter_item_private TO service_role; | GRANT ALL ON TABLE public.declutter_item_private TO service_role, authenticated;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   area_label text NOT NULL CHECK | floor_price_cents integer, area_label text NOT NULL CHECK
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | VALUES ('declutter', 'off', | VALUES ('declutter', 'testers',
-// @mutate supabase/migrations/20261020040503_declutter_one_photo_minimum.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -125,8 +125,9 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
     expect(strikes).toContain("s.removed_at IS NULL AND s.expires_at > now()");
     expect(flat(body("declutter_strike_expiry"))).toContain("NEW.expires_at := NEW.given_at + interval '1 year'");
     const pub = flat(body("declutter_publish_item"));
+    // Row 23 dropped (owner 2026-10-27, list first, set up at first sale).
+    expect(pub).not.toContain("helper_award_block_reason");
     for (const must of [
-      "v_payout := public.helper_award_block_reason(v_uid); IF v_payout IS NOT NULL THEN",
       "IF v_photos < 1 OR v_photos > 12 THEN", // owner 2026-10-20: one photo (was 3)
       "IF v_item.sale_mode <> 'offers' THEN",
       "FROM public.declutter_tax_attestations a WHERE a.item_id = p_item_id AND a.seller_id = v_uid",

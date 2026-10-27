@@ -47,7 +47,7 @@
  * @mutate src/components/AwardGateDialog.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
  * @mutate src/components/jobDone/JobDoneSummary.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
  * @mutate src/components/series/SeriesDatesPanel.tsx |   const setupPaused = usePayoutSetupPaused();\n | \n
- * @mutate src/components/shops/ShopPayoutRow.tsx |       setupPaused={setupPaused}\n | \n
+ * @mutate src/components/shops/ShopPayoutRow.tsx |   const setupBlock = usePayoutSetupBlock(); |   const setupBlock = null as "paused" \| "needs_hire" \| null;
  * @mutate supabase/functions/stripe-connect/index.ts |     if (PAYOUT_SETUP_ACTIONS.has(action) && (await payoutSetupPausedFor(supabaseAdmin, user))) { |     if (PAYOUT_SETUP_ACTIONS.size < 0) {
  * @mutate supabase/functions/stripe-connect/index.ts |       if (account.type !== "express" && (await payoutSetupPausedFor(supabaseAdmin, user))) { |       if (account.type === "none") {
  * @mutate supabase/functions/stripe-connect/index.ts |     if (action === "update_onboarding") { |     if (action === "refresh_onboarding") {
@@ -105,7 +105,7 @@ const M3 = /\bset ?up (?:your )?payouts?\b|\badd (?:a |your )?payout (?:account|
 // Evidence a file reads the switch: it calls the hook, or it TAKES the answer from a caller (a typed
 // `setupPaused?: boolean` prop or a `setupPaused = false` parameter). A bare `setupPaused` identifier
 // is not enough: deleting the hook call leaves the identifier behind (vacuity, 2026-10-23).
-const GATED = /\busePayoutSetupPaused\s*\(\s*\)|\bsetupPaused\??\s*:\s*boolean\b|\bsetupPaused\s*=\s*false\b/;
+const GATED = /\busePayoutSetupPaused\s*\(\s*\)|\busePayoutSetupBlock\s*\(\s*\)|\bsetupPaused\??\s*:\s*boolean\b|\bsetupPaused\s*=\s*false\b/;
 
 export function clientInventory(files: string[]): { entry: string[]; markers: Record<string, string[]>; code: Map<string, string> } {
   const entry: string[] = [];

@@ -20,8 +20,7 @@
  * blocks, never as dead buttons; the server refuses both anyway.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -31,7 +30,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   addPhoto,
@@ -116,10 +114,6 @@ export default function SellFlow() {
   const [params, setParams] = useSearchParams();
   const itemId = params.get("item");
   const { underAge } = useAgeGate();
-  const payoutBlock = useAwardBlockReason();
-  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
-  // account; the "Set up payouts" note gives way to the paused notice.
-  const setupPaused = usePayoutSetupPaused();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -389,14 +383,8 @@ export default function SellFlow() {
         <span className="text-ds-13 font-semibold text-muted-foreground">{step} of 5</span>
       </div>
 
-      {/* Said up front (step 1) and again where it blocks (step 5). */}
-      {payoutBlock && setupPaused && (step === 1 || step === 5) && <PayoutSetupPausedNotice />}
-      {payoutBlock && !setupPaused && (step === 1 || step === 5) && (
-        <DeclutterNotice tone="warn" title="Set up payouts before you list.">
-          We pay you through the same payout account Helprs use. You can write the listing now and list it once payouts are set up.{" "}
-          <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
-        </DeclutterNotice>
-      )}
+      {/* Payouts: only once money is owed (owner 2026-10-27, list first, set up at first sale). */}
+      {step === 1 && <SellerPayoutPrompt />}
 
       {step === 1 && (
         <section className="space-y-4" aria-labelledby="sell-step">
@@ -573,7 +561,7 @@ export default function SellFlow() {
           {step === 4 ? (saving ? "Saving…" : "Save and continue") : "Continue"}
         </Button>
       ) : (
-        photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && (
+        photoCount >= DECLUTTER_MIN_PHOTOS && (
           <Button type="button" className="w-full rounded-full" disabled={publishing} onClick={() => void onPublish()}>
             {publishing ? "Listing…" : "List it"}
           </Button>

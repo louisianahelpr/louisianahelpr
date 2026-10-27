@@ -35,9 +35,9 @@
  * @mutate supabase/functions/stripe-connect/index.ts |       !APP_REVIEW_ACCOUNT_IDS.has(user.id) &&\n      !(await payoutSetupHireAllowed | \n      !(await payoutSetupHireAllowed
  * @mutate supabase/functions/stripe-connect/index.ts |       if (account.type !== "express" && !APP_REVIEW_ACCOUNT_IDS.has(user.id) && !(await payoutSetupHireAllowed(supabaseAdmin, user.id))) { |       if (account.type === "none") {
  * @mutate supabase/functions/_shared/payoutSetupHire.ts |     return data === true; |     return Boolean(data);
- * @mutate supabase/functions/_shared/payoutSetupHire.ts | You'll set up payouts when you're hired for your first job. | Set up payouts after your first hire.
- * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |                 WHERE j.helper_id = p_user_id\n                  AND public.job_payment_is_funded(j.payment_status::text)) |                 WHERE j.helper_id = p_user_id\n                  AND true)
- * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |                 WHERE a.helper_id = p_user_id\n                  AND public.job_payment_is_funded(j.payment_status::text)) |                 WHERE a.helper_id = p_user_id)
+ * @mutate supabase/functions/_shared/payoutSetupHire.ts | You'll set up payouts once you're hired or make your first sale. | Set up payouts after your first hire.
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |                 WHERE j.helper_id = p_user_id\n                  AND public.job_payment_is_funded(j.payment_status::text)) |                 WHERE j.helper_id = p_user_id\n                  AND true)
+ * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |                 WHERE a.helper_id = p_user_id\n                  AND public.job_payment_is_funded(j.payment_status::text)) |                 WHERE a.helper_id = p_user_id)
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql | REVOKE ALL ON FUNCTION public.payout_setup_hire_allowed(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.payout_setup_hire_allowed(uuid) FROM PUBLIC, anon;
  * @mutate src/hooks/usePayoutSetupPaused.ts |   if (!hireAllowed) return "needs_hire"; |
  */

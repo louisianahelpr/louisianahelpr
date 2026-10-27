@@ -22,10 +22,10 @@
  * 2026-10-15).
  */
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n\n  IF p_name
-// @mutate supabase/migrations/20261018164444_shops_own_strike_count.sql |   IF public.member_under_18(v_uid) THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.'; |   IF false THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.';
-// @mutate supabase/migrations/20261018164444_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.shop_active_strike_count(v_uid) >= 4 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
-// @mutate supabase/migrations/20261018164444_shops_own_strike_count.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
-// @mutate supabase/migrations/20261018164444_shops_own_strike_count.sql |   IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN | IF false THEN
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF public.member_under_18(v_uid) THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.'; |   IF false THEN\n    RAISE EXCEPTION 'under_18' USING ERRCODE = '42501', HINT = 'You must be 18 or older to have a shop.';
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.shop_active_strike_count(v_uid) >= 4 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
+// @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   -- L3 (payout setup before opening) is dropped: owner 2026-10-27, the same |   PERFORM public.helper_award_block_reason(v_uid); -- L3 dropped: owner 2026-10-27, the same
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
@@ -95,8 +95,9 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       "IF public.member_under_18(v_uid) THEN RAISE EXCEPTION 'under_18'",
       // Per section (owner 2026-10-18): Shops' own strikes, never Declutter's.
       "IF public.shop_active_strike_count(v_uid) >= 3 THEN RAISE EXCEPTION 'shop_strikes_blocked'",
-      "IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN RAISE EXCEPTION 'payout_setup_incomplete'",
     ]) expect(gate).toContain(must);
+    // L3 dropped (owner 2026-10-27): opening a shop needs no payout account.
+    expect(gate).not.toContain("helper_award_block_reason");
     expect(flat(body("shops_close_my_shop"))).toContain(
       "IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN RAISE EXCEPTION 'shop_hidden'",
     );

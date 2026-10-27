@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 943,
+    "calls": 946,
     "files": 244,
-    "rendering": 810,
-    "suppressedByPolicy": 133,
+    "rendering": 812,
+    "suppressedByPolicy": 134,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 675,
-      "toast.info": 2,
+      "toast.error": 677,
+      "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 137,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 438,
+      "literal": 440,
       "template": 100,
-      "dynamic": 455,
+      "dynamic": 456,
       "jsx": 0
     }
   },
@@ -1685,7 +1685,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 207,
+      "line": 206,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -1705,7 +1705,7 @@
     },
     {
       "file": "src/components/admin/AdminBanReview.tsx",
-      "line": 213,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1715,7 +1715,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 132,
+      "line": 131,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1725,7 +1725,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 181,
+      "line": 180,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -1735,7 +1735,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 182,
+      "line": 181,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1745,7 +1745,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 183,
+      "line": 182,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1755,7 +1755,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 453,
+      "line": 452,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1765,7 +1765,7 @@
     },
     {
       "file": "src/components/admin/AdminCredentialQueue.tsx",
-      "line": 469,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1895,7 +1895,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 187,
+      "line": 186,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -1905,7 +1905,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 188,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1915,7 +1915,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 189,
+      "line": 188,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -1925,7 +1925,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 209,
+      "line": 208,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1935,7 +1935,7 @@
     },
     {
       "file": "src/components/admin/AdminExceptionQueue.tsx",
-      "line": 213,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2015,7 +2015,7 @@
     },
     {
       "file": "src/components/admin/AdminFraudDashboard.tsx",
-      "line": 153,
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2123,7 +2123,7 @@
     },
     {
       "file": "src/components/admin/AdminIDVReview.tsx",
-      "line": 177,
+      "line": 178,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -2153,7 +2153,7 @@
     },
     {
       "file": "src/components/admin/AdminIDVReview.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2163,7 +2163,7 @@
     },
     {
       "file": "src/components/admin/AdminIDVReview.tsx",
-      "line": 235,
+      "line": 236,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -2173,7 +2173,7 @@
     },
     {
       "file": "src/components/admin/AdminIDVReview.tsx",
-      "line": 236,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2183,7 +2183,7 @@
     },
     {
       "file": "src/components/admin/AdminIDVReview.tsx",
-      "line": 237,
+      "line": 238,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -2367,7 +2367,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 156,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2377,7 +2377,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 190,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2387,7 +2387,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 265,
+      "line": 267,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2647,7 +2647,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 153,
+      "line": 159,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -2657,7 +2657,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 157,
+      "line": 163,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2667,7 +2667,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 212,
+      "line": 218,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2677,7 +2677,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 215,
+      "line": 221,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2687,7 +2687,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 155,
+      "line": 154,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2697,7 +2697,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 167,
+      "line": 166,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -2707,7 +2707,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 171,
+      "line": 170,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2717,7 +2717,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 176,
+      "line": 175,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2727,7 +2727,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 355,
+      "line": 354,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2737,7 +2737,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 564,
+      "line": 563,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2807,7 +2807,7 @@
     },
     {
       "file": "src/components/admin/AdminUsers.tsx",
-      "line": 189,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2817,7 +2817,7 @@
     },
     {
       "file": "src/components/admin/AutoRestrictedRail.tsx",
-      "line": 114,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5247,11 +5247,38 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 307,
+      "line": 299,
       "kind": "toast.info",
       "title": {
         "form": "template",
         "text": "That job is no longer in ${tab === \"posted\" ? \"Posted\" : \"Working\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/job-card/JobListPage.tsx",
+      "line": 301,
+      "kind": "toast.info",
+      "title": {
+        "form": "dynamic",
+        "text": "notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId))",
+        "from": "src/components/job-card/useManageDeepLink.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "job && jobIsUnfundedDraft(job) ? \"That job isn't paid yet, so it isn't on Posted. Open it to pay for it.\" : \"That job is no longer in Posted.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "That job isn't paid yet, so it isn't on Posted. Open it to pay for it."
+              },
+              {
+                "form": "literal",
+                "text": "That job is no longer in Posted."
+              }
+            ]
+          }
+        ]
       },
       "renders": false
     },
@@ -9072,7 +9099,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 174,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9082,7 +9109,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 178,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9092,7 +9119,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 297,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9102,7 +9129,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 401,
+      "line": 379,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9112,7 +9139,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 457,
+      "line": 435,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9222,7 +9249,27 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 212,
+      "line": 200,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add your first name."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 201,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add your last name."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9232,7 +9279,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 232,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9242,7 +9289,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 233,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9252,7 +9299,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 234,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9262,7 +9309,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 246,
+      "line": 240,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9272,7 +9319,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 329,
+      "line": 323,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9282,7 +9329,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 337,
+      "line": 331,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9292,7 +9339,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 408,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9302,7 +9349,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 469,
+      "line": 463,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9362,7 +9409,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 705,
+      "line": 703,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

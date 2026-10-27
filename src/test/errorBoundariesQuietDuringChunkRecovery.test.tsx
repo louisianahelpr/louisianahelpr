@@ -20,12 +20,14 @@
 // @mutate src/components/SectionBoundary.tsx | if (this.state.recovering) return <ChunkRecoveringState compact />; | if (false) return <ChunkRecoveringState compact />;
 // @mutate src/components/SectionBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
 // @mutate src/components/ErrorBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error };
+// @mutate src/lib/chunkReload.ts | /undefined is not an object \(evaluating '[\w$.]*\.default'\)/i.test(msg) \|\| | /never-matches-webkit/i.test(msg) \|\|
+// @mutate src/lib/chunkReload.ts | /Cannot read propert(y\|ies) of undefined \(reading 'default'\)/i.test(msg) \|\| | /never-matches-v8/i.test(msg) \|\|
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { readFileSync } from "node:fs";
 import { relative, resolve } from "node:path";
-import type { ReactElement, ReactNode } from "react";
+import { lazy, Suspense, type ComponentType, type ReactElement, type ReactNode } from "react";
 
 import { walkSource } from "./helpers/walkSource";
 import { blankComments } from "./helpers/blankNonCode";
@@ -39,7 +41,13 @@ vi.mock("@/lib/errorLogger", () => ({
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SectionBoundary from "@/components/SectionBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
-import { __resetChunkReloadForTests, recoverFromChunkError } from "@/lib/chunkReload";
+import {
+  __resetChunkReloadForTests,
+  cancelPendingChunkRetry,
+  isChunkLoadError,
+  isRecoveryReloadInFlight,
+  recoverFromChunkError,
+} from "@/lib/chunkReload";
 
 const ChunkFail = (): never => {
   throw new TypeError("Failed to fetch dynamically imported module: https://x/assets/Page-abc123.js");
@@ -117,6 +125,36 @@ describe.each(BOUNDARIES)("$file during stale-chunk recovery", (b) => {
     expect(report).not.toHaveBeenCalled();
   });
 
+  // /messages 2026-10-25 22:13Z (error_logs 2328bb32, release 3caabd851f, mid
+  // deploy): a nav lazy in App.tsx's shell Suspense, poisoned by a prevented
+  // preload, surfaced with NO recovery in flight, so the top-level boundary
+  // showed "Something went sideways", reported it, and "Try Again" re-threw.
+  // A REAL React.lazy whose import resolved undefined, exactly as Vite 8's
+  // preload helper resolves it after preventDefault().
+  it("a lazy poisoned by a prevented preload, no recovery in flight: recovers like a chunk error", async () => {
+    const Poisoned = lazy(() => Promise.resolve(undefined as unknown as { default: ComponentType }));
+    render(b.wrap(<Suspense fallback={null}><Poisoned /></Suspense>));
+    expect((await screen.findByRole("status")).textContent).toMatch(/Loading/);
+    expect(screen.queryByText(b.card)).toBeNull();
+    expect(report).not.toHaveBeenCalled();
+    expect(isRecoveryReloadInFlight()).toBe(true); // the reload has started
+
+  });
+
+  it("the same poisoned lazy after a scheduled retry was cancelled (the visitor navigated): recovery restarts", async () => {
+    // Attempt 1 already reloaded this page; attempt 2 was scheduled, then dropped.
+    sessionStorage.setItem("helpr_chunk_reload_count", "1");
+    sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now() - 1_000));
+    expect(recoverFromChunkError()).toBe(true);
+    expect(cancelPendingChunkRetry()).toBe(true);
+    expect(isRecoveryReloadInFlight()).toBe(false);
+    const Poisoned = lazy(() => Promise.resolve(undefined as unknown as { default: ComponentType }));
+    render(b.wrap(<Suspense fallback={null}><Poisoned /></Suspense>));
+    expect((await screen.findByRole("status")).textContent).toMatch(/Loading/);
+    expect(screen.queryByText(b.card)).toBeNull();
+    expect(report).not.toHaveBeenCalled();
+  });
+
   it("control: offline, recovery declines — the honest card and a report", () => {
     vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
     render(b.wrap(<ChunkFail />));
@@ -136,5 +174,24 @@ describe("inventory: every error boundary class in src/ is driven above", () => 
       .sort();
     expect(found.length).toBeGreaterThanOrEqual(3);
     expect(found).toEqual(BOUNDARIES.map((b) => b.file).sort());
+  });
+});
+
+describe("a lazy poisoned by a prevented preload is a chunk failure, in every engine's wording", () => {
+  const WORDINGS = [
+    // The prod row itself (error_logs 2328bb32, iPhone Safari, /messages).
+    "undefined is not an object (evaluating 'e._result.default')",
+    "undefined is not an object (evaluating 'n._result.default')",
+    "Cannot read properties of undefined (reading 'default')",
+    'can\'t access property "default", e._result is undefined',
+    "e._result is undefined",
+  ];
+  it.each(WORDINGS)("%s", (m) => {
+    expect(isChunkLoadError(new TypeError(m))).toBe(true);
+  });
+  it("control: an ordinary render bug is not a chunk failure", () => {
+    expect(WORDINGS.length).toBeGreaterThan(4);
+    expect(isChunkLoadError(new TypeError("undefined is not an object (evaluating 'job.title')"))).toBe(false);
+    expect(isChunkLoadError(new TypeError("Cannot read properties of undefined (reading 'title')"))).toBe(false);
   });
 });

@@ -114,10 +114,15 @@ describe("DeclutterRefundPanel", () => {
   });
 
   // #3558 answer 2 (owner 2026-10-23): a full refund waits for the item; only the seller's "I got it back" sends it.
-  // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <button type="button" className={primary} disabled={back.isPending} onClick={() => back.mutate()}>I got it back</button> |
-  it("seller: a full refund agreed waits for the item; I got it back sends it", async () => {
+  // Money review 2026-10-27: the tap asks once before the irreversible refund.
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button> |
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx |           onPrimary={() => back.mutate(undefined, { onSettled: () => setConfirmBack(false) })} |           onPrimary={() => setConfirmBack(false)}
+  it("seller: a full refund agreed waits for the item; I got it back asks once, then sends it", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });
     fireEvent.click(await screen.findByRole("button", { name: "I got it back" }));
+    // Nothing is sent by the first tap: it only opens the confirm.
+    expect(state.returned).toEqual([]);
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, send the refund" }));
     await waitFor(() => expect(state.returned).toEqual([["r1"]]));
   });
 

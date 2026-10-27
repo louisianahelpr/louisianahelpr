@@ -48,6 +48,8 @@ await db.exec(`CREATE SCHEMA IF NOT EXISTS storage;
     file_size_limit bigint, allowed_mime_types text[]);`);
 const extra = [{ file: FEE_F1_FILE, times: 1 }, { file: SLICE4_FILE, times: 1 }, ...BEFORE.map((file) => ({ file, times: 1 }))];
 if (!skip) extra.push(process.env.MIGRATION_PATH ? { path: process.env.MIGRATION_PATH, times: 3 } : { file: NEW_FILE, times: 3 });
+// Money review 2026-10-27: no withdraw once the item is coming back (restates declutter_withdraw_refund).
+if (!skip && !process.env.SKIP_WITHDRAW_FIX) extra.push({ file: "20261027171453_declutter_withdraw_refund_not_once_returning.sql", times: 3 });
 const stmts = setupStatements({ times: 1, times3b: 1, extra });
 // Prod-shaped stubs the chain calls (prod has each: read 2026-10-23 from the migrations that define them).
 stmts.splice(1, 0, `
@@ -198,6 +200,8 @@ ok((await view(BUYER2, B.order_id))?.request?.return_by != null, "  the buyer's 
 ok(/sent as soon as the seller confirms/.test((await svc(`SELECT message FROM public.notifications WHERE user_id = '${BUYER2}' AND title = 'The seller agreed to a full refund' ORDER BY created_at DESC LIMIT 1`))[0]?.message ?? ""),
   "  the buyer is told to give it back and that the refund comes when the seller confirms");
 ok(refused(await me(BUYER2, `SELECT public.declutter_refund_item_returned('${rB.id}')`), /refund_not_found/), "the buyer cannot confirm for the seller");
+ok(refused(await me(BUYER2, `SELECT public.declutter_withdraw_refund('${rB.id}')`), /refund_already_answered/),
+  "  money review 2026-10-27: the buyer cannot withdraw once the item is coming back (the seller would keep item and payout)");
 ok(refused(await me(BUYER3, `SELECT public.declutter_refund_item_returned('${rB.id}')`), /refund_not_found/), "a stranger cannot confirm");
 ok(refused(await me(OUTSIDER, `SELECT public.declutter_refund_item_returned('${rB.id}')`), /feature_disabled/), "the hidden switch refuses an ordinary account");
 ok(refused(await anon(`SELECT public.declutter_refund_item_returned('${rB.id}')`), /permission denied/), "anon cannot execute it");

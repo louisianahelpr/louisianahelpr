@@ -11,6 +11,7 @@ import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
   answerRefund,
@@ -201,6 +202,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  const [confirmBack, setConfirmBack] = useState(false);
   const back = useMutation({
     mutationFn: () => confirmItemReturned(v.request?.id ?? ""),
     onSuccess: () => { toast.success("Refund sent. The buyer is told."); refresh(); },
@@ -213,7 +215,21 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
     return (
       <div className="space-y-2" data-refund-returning="">
         <p className="text-sm">You agreed to a full refund. Once {who} gives the item back, tap I got it back and the refund is sent.</p>
-        <button type="button" className={primary} disabled={back.isPending} onClick={() => back.mutate()}>I got it back</button>
+        <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button>
+        {/* Money review 2026-10-27: sending the refund can't be undone, so the tap asks once. */}
+        <BrandConfirmDialog
+          open={confirmBack}
+          onOpenChange={(next) => { if (!back.isPending) setConfirmBack(next); }}
+          title="You have the item back?"
+          description={`This sends ${refundDollars(v.full_refund_cents)} back to ${who} now, and you get no payout for this sale. It can't be undone.`}
+          primaryLabel={back.isPending ? "Sending…" : "Yes, send the refund"}
+          primaryTone="sienna"
+          primaryHaptic="warning"
+          primaryDisabled={back.isPending}
+          onPrimary={() => back.mutate(undefined, { onSettled: () => setConfirmBack(false) })}
+          secondaryLabel="Not yet"
+          onSecondary={() => setConfirmBack(false)}
+        />
         {r.return_by && <p className="text-ds-12 text-muted-foreground">Tap it by {at(r.return_by)}, or Louisiana Helpr decides. Your payout waits until then.</p>}
       </div>
     );

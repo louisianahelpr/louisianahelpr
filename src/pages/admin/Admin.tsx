@@ -39,10 +39,11 @@ const AdminCredentialQueue = lazy(() => import("@/components/admin/AdminCredenti
 const AdminExceptionQueue = lazy(() => import("@/components/admin/AdminExceptionQueue"));
 const AdminBanReview = lazy(() => import("@/components/admin/AdminBanReview"));
 const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"));
+const AdminWeeklyFlyer = lazy(() => import("@/components/admin/AdminWeeklyFlyer"));
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
 const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "flyer" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -72,6 +73,7 @@ const VIEW_LABELS: Record<View, string> = {
     audit: "Audit log", health: "Health", export: "Export",
     payouts: "Payout batches", tiers: "Helpr tiers", marketing: "Marketing",
     social: "Social posts",
+    flyer: "Weekly jobs flyer",
     idvreview: "Identity review",
     credentials: "License & insurance",
     exceptions: "Exception queue",
@@ -519,6 +521,7 @@ const Admin = () => {
       case "shops": return <AdminShopsOrders />;
       case "marketing": return <AdminMarketing />;
       case "social": return <AdminSocialPosts />;
+      case "flyer": return <AdminWeeklyFlyer />;
       default: return (
         <DashboardHome
           stats={stats}

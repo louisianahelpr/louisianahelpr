@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 946,
-    "files": 244,
-    "rendering": 812,
-    "suppressedByPolicy": 134,
+    "calls": 949,
+    "files": 245,
+    "rendering": 814,
+    "suppressedByPolicy": 135,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 677,
+      "toast.error": 679,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 137,
+      "toast.success": 138,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 440,
-      "template": 100,
+      "literal": 442,
+      "template": 101,
       "dynamic": 456,
       "jsx": 0
     }
@@ -2812,6 +2812,36 @@
       "title": {
         "form": "literal",
         "text": "Couldn't load users — refresh to retry."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWeeklyFlyer.tsx",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "One flyer holds ${FLYER_MAX_JOBS} jobs. Untick one first."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminWeeklyFlyer.tsx",
+      "line": 152,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Caption copied."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/AdminWeeklyFlyer.tsx",
+      "line": 153,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy. Select the caption and copy it by hand."
       },
       "renders": true
     },

@@ -16,6 +16,7 @@ import {
   Gavel,
   Gift,
   Headphones,
+  ImageIcon,
   LayoutDashboard,
   Mail,
   Scale,
@@ -119,6 +120,7 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
       // Email campaigns are "Marketing" above; this is the Facebook/Instagram
       // auto-poster, which is a different system with its own kill switch.
       { id: "social", label: "Social posts", icon: Share2 },
+      { id: "flyer", label: "Weekly jobs flyer", icon: ImageIcon },
     ],
   },
   {

@@ -826,6 +826,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Q2431 (growth lane 2026-10-27): Admin > Weekly jobs flyer.
+  "src/components/admin/AdminWeeklyFlyer.tsx": "writes nothing: its text boxes edit the job titles as they print on a PNG drawn in the admin's own browser (upper-cased, capped at 40) and the caption box is read-only; nothing typed is sent to the server or stored",
   // jobs-search-inline (owner 2026-10-27): the Posted / Working search that opens in place.
   "src/components/sections/InlineListSearch.tsx": "writes nothing: its one text box filters the tab's own already-loaded list (useActivityFilters' searchQuery, mirrored to ?q= by URLSearchParams) and is never sent to the server; X and Escape clear it (src/test/jobsSearchOpensInPlace.test.tsx)",
   // Owner 2026-10-25: a friend's referral code within 7 days of joining (Referrals tab).

@@ -182,6 +182,12 @@ CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), 
 CREATE TABLE public.declutter_problems (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, status text);
 CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean NOT NULL DEFAULT false,
   second_person boolean NOT NULL DEFAULT false, photo_path text);
+-- Q2450 Helpr Guarantee (20261027200455): job_messaging_closes_at (a HELPER) keeps the chat open while a request is
+-- open and for 24 h after it closes, so its newest body reads the requests.
+CREATE TABLE public.job_guarantee_claims (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text, closed_at timestamptz);
+-- Q2425 (20261027204500): declutter_meetup_spot_near_lines reads the spot; the class SQL's 'meetup' step writes one.
+CREATE TABLE public.declutter_meetup_spots (id uuid PRIMARY KEY, parish text, name text, address text, lat numeric, lng numeric,
+  kind text, active boolean NOT NULL DEFAULT true);
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
@@ -231,6 +237,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "declutter_delivery_raise_open",
   // Board 141, Declutter side (20261026155251); payout_unsent before problem_window_open, which calls it.
   "declutter_payout_unsent", "declutter_problem_window_open", "declutter_sale_final",
+  // Safe meetup spots (Q2425, 20261027204500).
+  "declutter_meetup_spot_near_lines",
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // SH2b public shop page (20261019042744).
@@ -261,7 +269,9 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Q1929: declutter_delivery_raise_open's SQL body calls it (validated at CREATE).
   "helpr_task_source_held",
   // Board 141: a deny helper the window and final checks call (validated at CREATE).
-  "declutter_sale_decided"];
+  "declutter_sale_decided",
+  // Q2425: declutter_meetup_spot_near_lines' SQL body calls both (validated at CREATE).
+  "declutter_miles_between", "declutter_meetup_rules"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const FIRST = ["job_payment_is_funded", "job_payment_is_listed"];
 const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];

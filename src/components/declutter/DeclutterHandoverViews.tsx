@@ -51,6 +51,7 @@ import {
 } from "@/lib/declutter/handover";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
+import { MeetupPanel } from "./DeclutterMeetup";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
@@ -190,7 +191,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
+            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>
@@ -241,8 +242,10 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         </>
       ) : (
         <>
-          {order.side === "buyer" && <PickupAddresses lines={order.lines} />}
+          {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
+          {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
           <BookingPanel order={order} booking={booking} />
+          {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
@@ -365,7 +368,8 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   if (order.side === "seller") {
-    if (order.handover !== "pickup_home") {
+    // Q2425: at a safe meeting spot the seller hands it over as at the door ("Picked up").
+    if (order.handover !== "pickup_home" && order.handover !== "meetup") {
       return (
         <p className="text-sm text-muted-foreground">
           You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported.

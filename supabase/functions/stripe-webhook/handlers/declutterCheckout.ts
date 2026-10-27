@@ -298,6 +298,9 @@ async function settleOrder(
           : parties?.handover === "seller_delivery"
           // 20261027153244: the seller brings them at the time the buyer picked.
           ? "Next: the seller delivers your items at the time you picked. Tap \"I got it\" in the app when you have them."
+          : parties?.handover === "meetup"
+          // Q2425 (20261027204500): a public meeting spot, never the seller's home; the spot is in the app.
+          ? "Next: book a time in the app and meet the seller at the safe spot you picked. Tap \"I'm here\" when you arrive."
           : "Next: pick up your items at the time you chose."}`);
   }
   if (answer.result === "paid" || answer.result === "already_paid") {

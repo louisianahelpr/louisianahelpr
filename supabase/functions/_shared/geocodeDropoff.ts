@@ -66,7 +66,7 @@ export interface AppleMapsAccess {
 }
 
 /** Apple's answer: a point, "not found", or why it could not answer. Never throws for the network. */
-export async function geocodeWithAppleMaps(
+async function geocodeWithAppleMaps(
   address: string,
   apple: AppleMapsAccess,
   fetchImpl: typeof fetch = fetch,

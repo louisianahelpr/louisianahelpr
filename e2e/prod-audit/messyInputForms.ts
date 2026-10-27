@@ -891,6 +891,8 @@ export const GAPS: Record<string, string> = {
   // Go online for deliveries (Q2440, 2026-10-27): two fixed <select>s (2/4/8 hours, 5/10/15/25 miles) and a switch; no free text.
   "src/components/declutter/GoOnlineCard.tsx": "behind the 'declutter' switch on Deliver for pay; its only inputs are two fixed <select> lists and a switch (no free text), and the server re-checks 1-12 hours, 1-50 miles and the location (helpr_go_online, src/test/pglite/helprGoOnline.pglite.mjs); FORMS sweep owed with Q?delivery-visual-pass",
   "src/components/declutter/StopActions.tsx": "behind the 'declutter' switch, only to the Helpr holding a paid delivery (LIVE Stripe: no fixture can pay one); its only inputs are photo files, cleaned and type-checked by cleanListingPhoto, and the server checks the path and the 200 m point (helpr_task_picked_up / helpr_task_delivered); FORMS sweep owed with Q?delivery-visual-pass",
+  // Q2430 (2026-10-27): one on/off switch on the seller's own listing; no text.
+  "src/components/declutter/AutoFreeRow.tsx": "behind the 'declutter' switch, in the seller's own Manage listing; its only input is an on/off switch (no text), and the server checks owner, status and not-already-free (declutter_set_auto_free, src/test/pglite/declutterAutoFree.pglite.mjs)",
   "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
   // Shops slice 1 (2026-10-15): behind the hidden 'shops' switch, created OFF on prod; the server refuses each field
   // (name 2-60, about <= 2000, area 2-80 and not a street address, fixed category list, parishes, SoS number format,

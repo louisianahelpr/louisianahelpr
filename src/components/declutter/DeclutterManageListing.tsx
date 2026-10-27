@@ -42,6 +42,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
+import { AutoFreeRow } from "./AutoFreeRow";
 
 type View = "menu" | "price" | "sold" | "delete";
 
@@ -136,6 +137,8 @@ export function ManageListingSheet({
                 />
               </li>
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
+              {/* Q2430: free on day 12 if unsold (only while it is live or paused and still priced). */}
+              <AutoFreeRow itemId={item.id} rowClassName={ROW} />
               </>)}
               <li>
                 {paused ? (

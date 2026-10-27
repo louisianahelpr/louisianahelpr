@@ -102,6 +102,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_set_item_seller_delivery', 'action', 'VOLATILE: a seller turns seller delivery on or off for one own item and gets the new setting back; a NULL item or setting raises item_not_found (20261027153244)'),
   ('declutter_refund_set_mode',     'action',   'VOLATILE: records a Declutter refund''s Stripe mode once and returns it (service only; 20261015042253)'),
   ('declutter_has_agreed_sales',    'noarg',    'reads auth.uid() only: does the caller have a Declutter sale in flight (row 62; 20261014224914)'),
+  ('declutter_set_auto_free',       'action',   'VOLATILE: the seller turns "free on day 12" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice (Q2430; 20261027205327)'),
+  ('declutter_auto_free_state',     'classify', 'reads the seller''s own "free on day 12" switch for one own listing (Q2430; 20261027205327)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),
   ('declutter_set_wanted_public',   'action',   'VOLATILE: the poster opens or closes public answers on their own Wanted post and gets the stored value back (a NULL choice is stored as false; 20261021031757)'),
   ('declutter_set_porch_ok',        'action',   'VOLATILE: the seller sets porch pickup on their own draft and gets the stored value back; a NULL choice raises invalid_porch_choice (row 101; 20261017055504)'),

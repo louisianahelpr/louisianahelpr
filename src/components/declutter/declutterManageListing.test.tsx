@@ -10,6 +10,9 @@
  * @mutate src/components/declutter/DeclutterManageListing.tsx |         if (!problem) save.mutate(undefined); |         save.mutate(undefined);
  * @mutate src/components/declutter/DeclutterManageListing.tsx |       : priceCents > item.price_cents | : false
  * @mutate src/components/declutter/DeclutterManageListing.tsx |                   <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText> |                   <RowText title="Pause listing">Hide it without losing it.</RowText>
+ * Q2430 "Free on day 12" (AutoFreeRow; backend proof src/test/pglite/declutterAutoFree.pglite.mjs).
+ * @mutate src/components/declutter/AutoFreeRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
+ * @mutate src/components/declutter/AutoFreeRow.tsx |   if (state.data === "not_deployed") return null; |   if (false) return null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -18,6 +21,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
+let autoFree: boolean | "not_deployed" = false;
 const stateReads = vi.hoisted(() => ({ n: 0 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
@@ -29,6 +33,8 @@ vi.mock("@/lib/declutter/api", () => ({
   pauseListing: async (...a: unknown[]) => { calls.push(["pause", ...a]); return "paused"; },
   relistListing: async (...a: unknown[]) => { calls.push(["relist", ...a]); return "live"; },
   withdrawItem: async (...a: unknown[]) => { calls.push(["withdraw", ...a]); },
+  fetchAutoFree: async () => autoFree,
+  setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
 }));
 
 import { ManageListingSheet, SellerListingPanel } from "./DeclutterManageListing";
@@ -73,6 +79,22 @@ describe("Manage a listing (board 158)", () => {
     expect(screen.queryByText("Stop price drops")).toBeNull();
     expect(screen.queryByText("Pause listing")).toBeNull();
     expect(screen.getByText("Delete listing")).toBeTruthy();
+  });
+
+  it("Free on day 12: the switch sends the seller's choice; hidden before the migration is on prod (Q2430)", async () => {
+    autoFree = false;
+    const a = sheet();
+    const sw = await screen.findByRole("switch", { name: "Free on day 12" });
+    await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(sw);
+    await waitFor(() => expect(calls).toContainEqual(["auto_free", "i1", true]));
+    a.unmount();
+    autoFree = "not_deployed";
+    sheet();
+    expect(await screen.findByText("Stop price drops")).toBeTruthy();
+    await act(async () => {});
+    expect(screen.queryByText("Free on day 12")).toBeNull();
+    autoFree = false;
   });
 
   it("the switch stops the drops (on = stopped)", async () => {

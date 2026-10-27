@@ -432,6 +432,20 @@ export async function setListingDrops(itemId: string, on: boolean): Promise<bool
   return rpcData(await supabase.rpc("declutter_set_listing_drops", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_listing_drops", e)) as boolean;
 }
 
+/**
+ * Q2430: "If it hasn't sold by day 12, make it free" (the seller's own listing). The evening sweep does it;
+ * this reads and sets the switch. "not_deployed" before migration 20261027205327 reaches prod (PGRST202).
+ */
+export async function fetchAutoFree(itemId: string): Promise<boolean | "not_deployed"> {
+  const r = await supabase.rpc("declutter_auto_free_state", { p_item_id: itemId });
+  if (r.error?.code === "PGRST202") return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_auto_free_state", e)) as boolean;
+}
+
+export async function setAutoFree(itemId: string, on: boolean): Promise<boolean> {
+  return rpcData(await supabase.rpc("declutter_set_auto_free", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_auto_free", e)) as boolean;
+}
+
 /** Board 158: hide a live listing from buyers (photos and saves kept; open offers close). */
 export async function pauseListing(itemId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_pause_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_pause_listing", e)) as string;

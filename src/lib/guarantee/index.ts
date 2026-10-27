@@ -17,7 +17,7 @@ import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "./errorCopy";
 
 /** An RPC refusal in plain words (the code's copy), else a generic line; the original is reported, never dropped. */
-export class GuaranteeError extends Error {}
+class GuaranteeError extends Error {}
 const GENERIC = "We couldn't save that. Check your connection and try again.";
 /** What a failed guarantee action says: the copy this module wrote (GuaranteeError), never a platform error's own text. */
 export function guaranteeErrorText(e: unknown): string {
@@ -28,7 +28,7 @@ function refusal(words: string | null, error: unknown, source: string): Guarante
   return new GuaranteeError(words ?? GENERIC);
 }
 
-export type GuaranteeStatus = "awaiting_helpr" | "fix_scheduled" | "fixed" | "escalating" | "closed" | "disputed";
+type GuaranteeStatus = "awaiting_helpr" | "fix_scheduled" | "fixed" | "escalating" | "closed" | "disputed";
 
 export interface GuaranteeClaim {
   id: string;
@@ -76,7 +76,7 @@ export interface GuaranteeJob {
 }
 
 /** When the job was done: jobs.completed_at, the column the server's 48-hour rule reads; else the later done stamp. */
-export function jobDoneAt(job: GuaranteeJob): Date | null {
+function jobDoneAt(job: GuaranteeJob): Date | null {
   if (job.completed_at) return new Date(job.completed_at);
   const stamps = [job.helper_completed_at, job.poster_completed_at].filter((s): s is string => !!s).map((s) => new Date(s).getTime());
   return stamps.length ? new Date(Math.max(...stamps)) : null;

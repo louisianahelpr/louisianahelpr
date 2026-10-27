@@ -235,8 +235,7 @@ const AdminDisputes = () => {
 
     const sorted = sortOpenDisputes(openJobs, tMap);
 
-    // Owner 2026-10-27: admin never shows a test (is_seed) job.
-    setDisputes(sorted.filter((j) => !j.is_seed));
+    setDisputes(sorted.filter((j) => !j.is_seed)); // Owner 2026-10-27: admin never shows a test (is_seed) job.
     // One case, one place. An unsettled dispute is open work, so it is shown
     // in Open only — the Decided tab is the audit log of settlements that
     // actually happened.

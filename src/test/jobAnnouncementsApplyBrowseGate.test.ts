@@ -38,11 +38,11 @@
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL\n |
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false

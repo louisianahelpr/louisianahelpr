@@ -65,6 +65,8 @@ const EXPECTED_CALLERS = [
   // Declutter slice 1 (20261014193955): v_uid := auth.uid() is one argument,
   // the item's seller the other (a blocked pair cannot watch or ask, B17).
   "declutter_ask_question",
+  "declutter_checkout_free",
+  "declutter_claim_free",
   // Declutter slice 3 (20261014210518): lock_buyable_item gets p_buyer =
   // v_uid := declutter_assert_member() (auth.uid()) from make_offer / buy_now;
   // respond_offer passes the thread's two parties, one of whom is v_uid
@@ -78,6 +80,7 @@ const EXPECTED_CALLERS = [
   "declutter_respond_offer",
   // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
   // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.
+  "declutter_seller_delivery_offer",
   "declutter_seller_moving_sale",
   "declutter_set_watch",
   "declutter_start_checkout",

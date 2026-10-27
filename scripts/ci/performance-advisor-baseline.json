@@ -165,6 +165,10 @@
     "public.declutter_refund_requests.declutter_refund_requests_offer_due_idx",
     "public.declutter_refund_requests.declutter_refund_requests_problem_idx",
     "public.declutter_refund_requests.declutter_refund_requests_refund_idx",
-    "public.declutter_refund_requests.declutter_refund_requests_return_due_idx"
+    "public.declutter_refund_requests.declutter_refund_requests_return_due_idx",
+    "public.declutter_item_no_seller_delivery.declutter_item_no_seller_delivery_seller_idx",
+    "public.declutter_seller_deliveries.declutter_seller_deliveries_buyer_idx",
+    "public.declutter_seller_deliveries.declutter_seller_deliveries_due_idx",
+    "public.declutter_seller_deliveries.declutter_seller_deliveries_slot_idx"
   ]
 }

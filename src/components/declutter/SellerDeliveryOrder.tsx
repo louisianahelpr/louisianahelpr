@@ -99,7 +99,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         </p>
         <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
-        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}. {b.side === "buyer" ? "Tap \"I got it\", or report a problem within 24 hours." : "You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
+        {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}. {b.side === "buyer" ? "Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : "You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
       </div>
       {can.changeHandoff && (
         <div role="radiogroup" aria-label="When the seller arrives" className="flex flex-wrap gap-2">

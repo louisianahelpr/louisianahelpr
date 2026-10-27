@@ -57,7 +57,7 @@ const SELLER = "0000000a-0000-4000-8000-000000000002";
 const ORDER = "0000000a-0000-4000-8000-0000000000aa";
 const ITEM = "0000000a-0000-4000-8000-0000000000bb";
 
-function env() {
+function env(extra: Record<string, string> = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -65,6 +65,7 @@ function env() {
     STRIPE_SECRET_KEY: "sk_live_declutter",
     STRIPE_TEST_SECRET_KEY: "sk_test_declutter",
     STRIPE_WEBHOOK_SECRET: "whsec_live",
+    ...extra,
   });
 }
 async function json(res: Response): Promise<Record<string, any>> {
@@ -876,6 +877,35 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
     expect(clientOf(set)?.key).toBe("service-key");
     const quote = rpcs("declutter_delivery_quote")[0];
     expect(clientOf(quote)?.key).toBe("anon-key");
+  });
+
+  // Q2413 (measured 2026-10-27): prod's Nominatim answers 403 to this server, so every quote failed.
+  // With the MapKit key set (it is on prod: mapkit-token mints), the REAL quote path asks Apple Maps
+  // with a token signed by that key, and Nominatim not at all.
+  // @mutate supabase/functions/declutter-checkout/index.ts |   const point = await geocodeDropoff(address, fetch, appleMapsAccess()); |   const point = await geocodeDropoff(address);
+  it("with the MapKit key set, the drop-off is looked up on Apple Maps with a signed token, never Nominatim (Q2413)", async () => {
+    const { generateKeyPairSync } = await import("node:crypto");
+    const pem = generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    const fn = await load();
+    env({ APPLE_MAPKIT_PRIVATE_KEY: pem, APPLE_MAPKIT_KEY_ID: "KEY1234567", APPLE_MAPKIT_TEAM_ID: "TEAM123456" });
+    geocoder
+      .mockResolvedValueOnce(new Response(JSON.stringify({ accessToken: "apple-access" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ results: [{ coordinate: { latitude: 30.4441, longitude: -91.1484 },
+        structuredAddress: { locality: "Baton Rouge", administrativeAreaCode: "LA" } }] }), { status: 200 }));
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.declutter_set_delivery_dropoff = null;
+    scenario.rpc.declutter_delivery_quote = { delivery_cents: 1800 };
+    const res = await fn.fetch(quoteReq(fn, "4000 Government St, Baton Rouge, LA 70806"));
+    expect(res.status).toBe(200);
+    const urls = geocoder.mock.calls.map((c) => String(c[0]));
+    expect(urls[0]).toBe("https://maps-api.apple.com/v1/token");
+    expect(urls[1]).toContain("https://maps-api.apple.com/v1/geocode");
+    expect(urls.some((u) => u.includes("nominatim"))).toBe(false);
+    const auth = String((geocoder.mock.calls[0]?.[1]?.headers as Record<string, string>)?.Authorization ?? "");
+    const [h, p] = auth.replace(/^Bearer /, "").split(".");
+    expect(JSON.parse(Buffer.from(h, "base64url").toString())).toMatchObject({ alg: "ES256", kid: "KEY1234567" });
+    expect(JSON.parse(Buffer.from(p, "base64url").toString())).toMatchObject({ iss: "TEAM123456" });
+    expect(rpcs("declutter_set_delivery_dropoff")[0]?.args).toMatchObject({ p_area_label: "Baton Rouge, LA", p_lat: 30.4441, p_lng: -91.1484 });
   });
 
   it("never takes coordinates from the request", async () => {

@@ -37,49 +37,12 @@
 import { corsHeadersFull, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 
 /** One hour. Apple's documented maximum for a MapKit JS token is 7 days; an
  *  hour is short enough that a scraped token is near-worthless and long enough
  *  that a normal session never re-fetches. MapKit refreshes on its own. */
 const TOKEN_TTL_SECONDS = 60 * 60;
-
-/** Base64url WITHOUT padding — required for JWT segments. */
-function base64url(bytes: Uint8Array): string {
-  let bin = "";
-  for (const b of bytes) bin += String.fromCharCode(b);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function base64urlJson(value: unknown): string {
-  return base64url(new TextEncoder().encode(JSON.stringify(value)));
-}
-
-/**
- * Import the .p8 PEM as an ECDSA P-256 signing key.
- *
- * Apple issues MapKit keys as PKCS#8 PEM. Deno's WebCrypto wants the raw DER,
- * so strip the armour and any whitespace the secret store may have introduced
- * — a PEM pasted through a web UI frequently arrives with literal "\n" rather
- * than real newlines, which is why both are normalised here.
- */
-async function importSigningKey(pem: string): Promise<CryptoKey> {
-  const der = pem
-    .replace(/\\n/g, "\n")
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-
-  if (!der) throw new Error("APPLE_MAPKIT_PRIVATE_KEY is empty after stripping PEM armour");
-
-  const raw = Uint8Array.from(atob(der), (c) => c.charCodeAt(0));
-  return await crypto.subtle.importKey(
-    "pkcs8",
-    raw,
-    { name: "ECDSA", namedCurve: "P-256" },
-    false,
-    ["sign"],
-  );
-}
 
 /**
  * The `origin` claim locks the token to one domain: MapKit rejects a token
@@ -149,13 +112,11 @@ serve(async (req: Request) => {
     return errorResponse("origin_not_allowed", 403, corsHeadersFull);
   }
 
-  const privateKey = Deno.env.get("APPLE_MAPKIT_PRIVATE_KEY");
-  const keyId = Deno.env.get("APPLE_MAPKIT_KEY_ID");
-  const teamId = Deno.env.get("APPLE_MAPKIT_TEAM_ID");
+  const key = mapkitKeyFromEnv((name) => Deno.env.get(name));
 
   // Not configured. 503 rather than 500: this is "not available"; the client
   // settles "missing-token" and its pages fall back to plain inputs.
-  if (!privateKey || !keyId || !teamId) {
+  if (!key) {
     return jsonResponse(
       {
         error: "not_configured",
@@ -168,29 +129,8 @@ serve(async (req: Request) => {
   }
 
   try {
-    const now = Math.floor(Date.now() / 1000);
     const origin = verdict.kind === "locked" ? verdict.origin : null;
-
-    const header = { alg: "ES256", kid: keyId, typ: "JWT" };
-    const payload: Record<string, unknown> = {
-      iss: teamId,
-      iat: now,
-      exp: now + TOKEN_TTL_SECONDS,
-    };
-    if (origin) payload.origin = origin;
-
-    const signingInput = `${base64urlJson(header)}.${base64urlJson(payload)}`;
-
-    const key = await importSigningKey(privateKey);
-    const signature = await crypto.subtle.sign(
-      // ES256 over P-256 with SHA-256. WebCrypto returns the raw r||s pair,
-      // which is exactly the JOSE encoding — no DER unwrapping needed.
-      { name: "ECDSA", hash: { name: "SHA-256" } },
-      key,
-      new TextEncoder().encode(signingInput),
-    );
-
-    const token = `${signingInput}.${base64url(new Uint8Array(signature))}`;
+    const token = await signMapkitJwt(key, TOKEN_TTL_SECONDS, origin);
 
     return jsonResponse(
       { token, expiresIn: TOKEN_TTL_SECONDS },

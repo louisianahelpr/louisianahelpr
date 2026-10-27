@@ -29,7 +29,7 @@
  * @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql |    WHERE user_id = o.buyer_id AND onboarding_fee_paid IS NOT TRUE\n |    WHERE user_id = o.buyer_id\n
  * @mutate supabase/functions/release-payout/index.ts |       .eq("user_id", job.helper_id)\n      .eq("onboarding_fee_paid", false)\n |       .eq("user_id", job.helper_id)\n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |   PERFORM public.declutter_claim_setup_fee(p_order_id);\n  RETURN jsonb_build_object('result', 'paid');\nEND; |   RETURN jsonb_build_object('result', 'paid');\nEND;
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   v_setup := public.declutter_setup_fee_due_cents(v_uid); |   v_setup := 0;
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   v_setup := public.declutter_setup_fee_due_cents(v_uid); |   v_setup := 0;
  * @mutate supabase/migrations/20261026154738_declutter_setup_fee_once.sql |     OR NEW.setup_fee_cents IS DISTINCT FROM OLD.setup_fee_cents THEN |     OR false THEN
  * @mutate supabase/functions/declutter-checkout/index.ts |   const chargeCents = order.total_cents + setupFeeCents; |   const chargeCents = order.total_cents;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (answer.result === "paid" \|\| answer.result === "already_paid") { |   if (answer.result === "paid") {
@@ -101,8 +101,8 @@ describe("Q2352 the setup fee is charged once per account", () => {
   it("checkout freezes the fee on the order, outside the sale's total", () => {
     const start = body("declutter_start_checkout");
     expect(start).toContain("v_setup := public.declutter_setup_fee_due_cents(v_uid);");
-    expect(start).toContain("AND v_existing.setup_fee_cents = v_setup AND (p_handover <> 'seller_delivery'");
-    expect(start).toMatch(/delivery_cents, total_cents, setup_fee_cents\) VALUES \(v_uid, p_seller_id, p_handover, v_items, v_premium, 0, v_delivery, v_items \+ v_premium \+ v_delivery, v_setup\)/);
+    expect(start).toContain("AND v_existing.setup_fee_cents = v_setup AND v_existing.items_cents = v_items AND (p_handover <> 'seller_delivery'");
+    expect(start).toMatch(/delivery_cents, total_cents, setup_fee_cents, bundle_discount_cents\) VALUES \(v_uid, p_seller_id, p_handover, v_items, v_premium, 0, v_delivery, v_items \+ v_premium \+ v_delivery, v_setup, v_bundle_off\)/);
     const due = body("declutter_setup_fee_due_cents");
     expect(due).toContain("WHEN COALESCE((SELECT p.onboarding_fee_paid FROM public.profiles p WHERE p.user_id = p_user), false) THEN 0");
     // The sale's total never names the fee (so every refund computed from it keeps the fee).

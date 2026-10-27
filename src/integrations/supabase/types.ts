@@ -1216,6 +1216,24 @@ export type Database = {
           },
         ]
       }
+      declutter_bundle_rules: {
+        Row: {
+          percent: number
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          percent: number
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          percent?: number
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       declutter_buyer_cards: {
         Row: {
           brand: string | null
@@ -1249,6 +1267,7 @@ export type Database = {
       }
       declutter_cart_items: {
         Row: {
+          list_price_cents: number | null
           buyer_id: string | null
           checkout_by: string
           closed_at: string | null
@@ -1266,6 +1285,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          list_price_cents?: number | null
           buyer_id?: string | null
           checkout_by: string
           closed_at?: string | null
@@ -1283,6 +1303,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          list_price_cents?: number | null
           buyer_id?: string | null
           checkout_by?: string
           closed_at?: string | null
@@ -2324,6 +2345,7 @@ export type Database = {
       }
       declutter_orders: {
         Row: {
+          bundle_discount_cents: number
           delivery_cents: number
           shipping_cents: number
           buyer_id: string | null
@@ -2352,6 +2374,7 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
           buyer_id?: string | null
@@ -2380,6 +2403,7 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          bundle_discount_cents?: number
           delivery_cents?: number
           shipping_cents?: number
           buyer_id?: string | null
@@ -13473,6 +13497,22 @@ export type Database = {
         Returns: string
       }
       declutter_book_pickup: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
+      declutter_bundle_preview: {
+        Args: { p_seller_id: string }
+        Returns: number
+      }
+      declutter_bundle_rule: {
+        Args: { p_seller_id: string }
+        Returns: number
+      }
+      declutter_bundle_targets: {
+        Args: { p_lines: string[]; p_seller_id: string }
+        Returns: {
+          base_cents: number
+          line_id: string
+          target_cents: number
+        }[]
+      }
       declutter_buy_now: {
         Args: { p_expected_price_cents: number; p_item_id: string }
         Returns: string
@@ -14134,6 +14174,10 @@ export type Database = {
       declutter_set_delivery_handoff: { Args: { p_handoff: string; p_order_id: string }; Returns: string }
       declutter_set_delivery_schedule: { Args: { p_days_off: string[]; p_windows: Json }; Returns: Json }
       declutter_set_item_seller_delivery: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_bundle_discount: {
+        Args: { p_percent: number }
+        Returns: number
+      }
       declutter_set_meetup_spot: {
         Args: { p_seller_id: string; p_spot_id: string }
         Returns: string

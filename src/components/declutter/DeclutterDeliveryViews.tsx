@@ -13,7 +13,11 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
+import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { DeclutterNotice } from "./declutterUi";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { DateTimeField } from "@/components/DateTimeField";
@@ -420,6 +424,35 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
   );
 }
 
+/**
+ * The answers helpr_task_assert_helpr gives a member who may not deliver YET (Q2351, measured
+ * 2026-10-27: 233 of 234 members on prod had no payout account, so every one of them who opened
+ * this page saw "We couldn't load deliveries." and filed an error_logs row). They are who-may-deliver
+ * rules, not failures: a plain notice with the next step, never ErrorState.
+ */
+const DELIVER_NOT_YET = ["payout_setup_incomplete", "under_18", "declutter_strikes_blocked", "account_restricted"] as const;
+type DeliverNotYet = (typeof DELIVER_NOT_YET)[number];
+
+export function deliverNotYet(err: unknown): DeliverNotYet | null {
+  const m = (err as { message?: unknown } | null)?.message;
+  return typeof m === "string" && (DELIVER_NOT_YET as readonly string[]).includes(m.trim()) ? (m.trim() as DeliverNotYet) : null;
+}
+
+function DeliverNotYetNotice({ code }: { code: DeliverNotYet }) {
+  const setupPaused = usePayoutSetupPaused();
+  if (code === "payout_setup_incomplete") {
+    if (setupPaused) return <PayoutSetupPausedNotice />;
+    return (
+      <DeclutterNotice title="Set up payouts to deliver.">
+        We pay you for each delivery through your payout account.{" "}
+        <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
+      </DeclutterNotice>
+    );
+  }
+  if (code === "under_18") return <DeclutterNotice title="You must be 18 or older to deliver." />;
+  return <DeclutterNotice title="Deliveries aren't open to you right now.">{declutterErrorMessage({ message: code })}</DeclutterNotice>;
+}
+
 /** /declutter?view=deliver: a Helpr's vehicle, deliveries to take, and their own deliveries. */
 export function DeliverView() {
   const { user } = useCurrentUser();
@@ -434,11 +467,24 @@ export function DeliverView() {
   });
   if (!userId) return null;
   const myList = mine.data ?? [];
+  const intro = (
+    <p className="text-sm text-muted-foreground">
+      Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. You keep the delivery fee minus 5% + 70¢.
+    </p>
+  );
+  // Q2351: who may deliver is a designed answer (helpr_task_assert_helpr), never an error screen.
+  const notYet = deliverNotYet(open.error) ?? deliverNotYet(mine.error);
+  if (notYet) {
+    return (
+      <div className="space-y-6">
+        {intro}
+        <DeliverNotYetNotice code={notYet} />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
-      <p className="text-sm text-muted-foreground">
-        Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. You keep the delivery fee minus 5% + 70¢.
-      </p>
+      {intro}
       <VehicleForm userId={userId} />
       <section className="space-y-3" aria-label="Your deliveries">
         <h2 className="text-base font-semibold">Your deliveries</h2>

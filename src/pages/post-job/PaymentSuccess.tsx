@@ -45,11 +45,8 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
  * =====================================
- * This page used to be a static "Payment authorized. Held securely…" card: it
- * asserted the outcome purely because the router had landed here, and every
- * one of its reads could fail without changing a single word on screen. That
- * is the worst shape of bug this app can ship — telling someone their money is
- * secured when we have no idea whether it is.
+ * This page used to assert "Payment authorized. Held securely…" just because the
+ * router landed here: telling someone their money is secured without knowing.
  *
  * So the claim is now EARNED, from `jobs.payment_status` — the same column the
  * `checkout.session.completed` webhook writes (`→ 'escrow'`) and the gift card

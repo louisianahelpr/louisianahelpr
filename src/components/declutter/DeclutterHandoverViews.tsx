@@ -166,7 +166,7 @@ const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
  * paid with the items (20261027153244), so the payout is items + rate - refunded - debt,
  * each read from the row's own columns. A free delivery adds no delivery part.
  */
-export function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents">): string {
+function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents">): string {
   if ((p.refunded_cents ?? 0) > 0) return " after the buyer's refund";
   const rate = p.delivery_cents ?? 0;
   if (rate <= 0 && p.debt_cents <= 0) return "";

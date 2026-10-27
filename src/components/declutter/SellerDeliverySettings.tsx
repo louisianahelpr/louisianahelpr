@@ -37,7 +37,7 @@ const KEY = ["declutter", "my-seller-delivery"] as const;
 const FIRST_WINDOW: DeliveryWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
 
 /** The seller's settings, read only while the switch is on for them. */
-export function useMySellerDelivery(on: boolean) {
+function useMySellerDelivery(on: boolean) {
   return useQuery({ queryKey: KEY, queryFn: fetchMySellerDelivery, enabled: on });
 }
 
@@ -45,7 +45,7 @@ export function useMySellerDelivery(on: boolean) {
  * One line for the closed card: "Off", or "On · $20 delivery · up to 10 miles",
  * "On · Free delivery · ...", "On · Free delivery on $50+, otherwise $10 · ..." (owner 2026-10-27).
  */
-export function sellerDeliverySummary(s: MySellerDelivery | undefined): string {
+function sellerDeliverySummary(s: MySellerDelivery | undefined): string {
   if (!s?.enabled || s.rate_cents === null || s.rate_cents === undefined) return "Off. Turn it on to offer delivery at checkout.";
   return `On · ${deliveryTermsLabel(s.rate_cents, s.free_over_cents ?? null)} · up to ${s.radius_miles} miles`;
 }

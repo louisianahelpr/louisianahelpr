@@ -76,7 +76,7 @@ export type MySellerDelivery = {
   rules: SellerDeliveryRules;
 };
 
-export type SellerDeliveryUnavailable =
+type SellerDeliveryUnavailable =
   | "seller_not_delivering"
   | "item_not_deliverable"
   | "address_needed"
@@ -175,7 +175,7 @@ const TIME_FMT = new Intl.DateTimeFormat("en-US", { timeZone: SELLER_DELIVERY_RU
 const KEY_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: SELLER_DELIVERY_RULES.timezone, year: "numeric", month: "2-digit", day: "2-digit" });
 
 /** "Sat, Oct 25" in Louisiana time. */
-export function slotDayLabel(iso: string): string {
+function slotDayLabel(iso: string): string {
   return DAY_FMT.format(new Date(iso));
 }
 

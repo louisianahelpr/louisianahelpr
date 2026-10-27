@@ -100,7 +100,7 @@ const CARD_POLL_MS = 1_500;
  * the server checks every buy and offer (strikes, card, sold) on its own.
  */
 /**
- * Board 4: "Buy now" over "$40.60 total with fee". The total is the checkout
+ * Board 4: "Buy now" over "$40.60 total". The total is the checkout
  * total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
  * freezes), never the bare price (D6). Screen readers hear one line.
  */
@@ -109,7 +109,7 @@ function BuyNowLabel({ priceCents }: { priceCents: number }) {
     <span className="flex flex-col items-center leading-tight">
       <span className="font-semibold">Buy now</span>{" "}
       <span className="sr-only">·</span>{" "}
-      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents))} total with fee</span>
+      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents))} total</span>
     </span>
   );
 }
@@ -175,7 +175,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     const total = buyNowTotalCents(item.current_price_cents);
     // The single-item pickup total (lh-money-escrow review notes: Helpr delivery
     // is added at checkout, and more from the same seller shares one 70c).
-    if (window.confirm(`Buy "${item.title}" for ${formatPrice(total)} (${formatPrice(item.current_price_cents)} + ${formatPrice(total - item.current_price_cents)} buyer's fee)? Delivery, if you choose it, is added at checkout. You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
+    if (window.confirm(`Buy "${item.title}" for ${formatPrice(total)}? Delivery, if you choose it, is added at checkout. You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
       buy.mutate();
     }
   };
@@ -307,7 +307,6 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
             // checkout (buyNowTotalCents = checkoutAmounts for one item, pickup). Delivery is added at checkout.
             <dl className="space-y-1 rounded-[20px] border border-border bg-background p-3 text-ds-14" data-offer-bill="">
               <div className="flex justify-between gap-3"><dt>Your offer</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
-              <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(cents) - cents)}</dd></div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
                 <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
                 <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(cents))}</dd>
@@ -325,7 +324,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         </form>
       )}
       <p className="text-xs text-muted-foreground">
-        At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
+        You see one total before you pay. The seller keeps the whole price.
       </p>
       {barShown && typeof document !== "undefined" &&
         createPortal(

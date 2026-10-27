@@ -282,7 +282,7 @@ describe("the photo-first Declutter item page", () => {
       },
     );
     open();
-    await screen.findAllByRole("button", { name: "Buy now · $42.70 total with fee" });
+    await screen.findAllByRole("button", { name: "Buy now · $42.70 total" });
     // The bar mounts from the observer's callback, in the panel's passive
     // effect, which can flush AFTER the in-page buttons are found: Vitest run
     // 39464962938 (main, 2026-10-20, CI's threads pool) read null here while a
@@ -296,7 +296,7 @@ describe("the photo-first Declutter item page", () => {
     expect(bar.className).toContain("bottom-0");
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
     await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
-    expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
+    expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
   });
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
@@ -406,7 +406,7 @@ describe("the photo-first Declutter item page", () => {
       { ...ITEM, id: "a3", title: "Rug", status: "reserved" },
     ];
     const first = open();
-    const row = await screen.findByRole("button", { name: /2 more from Dana\. Check out together: one pickup, one fee\./ });
+    const row = await screen.findByRole("button", { name: /2 more from Dana\. Check out together: one pickup, one payment\./ });
     expect(row).toHaveAttribute("data-bundle-row");
     first.unmount();
     // A full page of 12 (the read's limit) may hide more: "11+", never a short count.

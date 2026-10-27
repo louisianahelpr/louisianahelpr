@@ -318,7 +318,7 @@ describe("declutter-checkout: raise_pay", () => {
   }
   const started = [{ raise_id: RAISE, raise_cents: 1000, card_fee_cents: 61, total_cents: 1061, superseded_session_id: null }];
 
-  it("opens a second page tied to the order for the raise and its card fee only", async () => {
+  it("opens a second page tied to the order for the raise and its card cost only, on one line with no fee name", async () => {
     scenario.rpc.feature_enabled_for_user = true;
     scenario.reads.declutter_orders = { rows: [{ buyer_id: BUYER, seller_id: SELLER }] };
     scenario.reads.declutter_delivery_raises = { rows: [] };
@@ -330,8 +330,10 @@ describe("declutter-checkout: raise_pay", () => {
     expect(JSON.parse(await res.text()).url).toBe("https://checkout.stripe.test/raise");
     expect(rpcs("declutter_delivery_raise_start")[0]?.args).toEqual({ p_order_id: ORDER, p_raise_cents: 1000 });
     const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
-    expect(params.line_items.map((l: any) => l.price_data.unit_amount)).toEqual([1000, 61]);
-    expect(params.line_items.map((l: any) => l.price_data.product_data.name)).toEqual(["Higher Helpr delivery pay", "Card fee"]);
+    // Owner 2026-10-25 (issue #3672): one line, the raise row's own total, no fee name on the page.
+    // @mutate supabase/functions/declutter-checkout/index.ts | unit_amount: raise.raise_cents + raise.card_fee_cents, | unit_amount: raise.raise_cents,
+    expect(params.line_items.map((l: any) => l.price_data.unit_amount)).toEqual([1061]);
+    expect(params.line_items.map((l: any) => l.price_data.product_data.name)).toEqual(["Raise the delivery pay"]);
     expect(params.metadata).toMatchObject({ kind: "declutter_raise", raise_id: RAISE, order_id: ORDER, buyer_id: BUYER, payer_id: BUYER });
     expect(params.payment_intent_data.transfer_group).toBe(`declutter_order_${ORDER}`);
     expect(params.payment_intent_data.transfer_data).toBeUndefined();

@@ -157,7 +157,7 @@ const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
   pending: "We send it once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.",
   failed: "Your payout didn't go through yet. We'll keep trying. Check that your payout account is set up.",
   succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
-  nothing_due: "Nothing to pay out: this sale covered a card fee you owed.",
+  nothing_due: "Nothing to pay out: this sale covered an amount you owed from an earlier refund.",
 };
 
 /**

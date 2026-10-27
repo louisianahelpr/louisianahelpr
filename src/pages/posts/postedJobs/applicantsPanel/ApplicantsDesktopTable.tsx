@@ -17,9 +17,7 @@ import { ApplicantAvailableNow } from "./ApplicantAvailableNow";
 import { CompareCheck } from "./ApplicantCompare";
 import { ApplicantHireRow } from "./ApplicantHireRow";
 import { ApplicantPrivateNote } from "./ApplicantPrivateNote";
-import { ApplicantProofLine } from "./ApplicantProofLine";
 import { ApplicantsCompareCard } from "./ApplicantsCompareCard";
-import { ApplicantVerificationChip } from "./ApplicantVerificationChip";
 import { helperInitialsFrom, isImageAttachment } from "./applicantsPanelHelpers";
 
 /**
@@ -168,7 +166,6 @@ export function ApplicantsDesktopTable({
                       </div>
                     </div>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                      <ApplicantVerificationChip idVerified={app.profiles?.is_id_verified === true} payoutReady={app.profiles?.is_payout_ready === true} />
                       {distanceBand && (
                         <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-foreground">
                           <MapPin className="h-3 w-3 shrink-0" aria-hidden />
@@ -177,7 +174,6 @@ export function ApplicantsDesktopTable({
                       )}
                       <ApplicantAvailableNow until={app.profiles?.available_until} />
                     </span>
-                    <ApplicantProofLine categoryCount={inCategory(app)} totalCount={jobs} idVerified={app.profiles?.is_id_verified === true} category={category} />
                     <ApplicantSuggestedTime app={app} jobStartTime={jobStartTime} />
                     {idOn && app.profiles && app.profiles.is_id_verified !== true && (
                       <span className="mt-0.5 block text-ds-11 text-muted-foreground" data-applicant-id-note="">

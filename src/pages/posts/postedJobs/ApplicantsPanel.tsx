@@ -1,12 +1,10 @@
 import { ApplicantIdNote } from "./applicantsPanel/ApplicantIdNote";
 import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
-import { ApplicantVerificationChip } from "./applicantsPanel/ApplicantVerificationChip";
 import { Fragment, useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
 import { ApplicantHireRow } from "./applicantsPanel/ApplicantHireRow";
-import { ApplicantProofLine } from "./applicantsPanel/ApplicantProofLine";
 import { useApplicantCategoryCounts } from "./useApplicantCategoryCounts";
 import { CompareBar, CompareCheck, ShowMoreApplicants, useApplicantCompare } from "./applicantsPanel/ApplicantCompare";
 import { ArrowUp, Ban, Eye, Flag, MapPin, NotebookPen, Sparkles, Star } from "lucide-react";
@@ -488,10 +486,6 @@ export function ApplicantsPanel({
                                 one wrapping line (owner, 2026-10-08: "so the box
                                 isn't so big"); it had a row of its own. */}
                             <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                              <ApplicantVerificationChip
-                                idVerified={app.profiles?.is_id_verified === true}
-                                payoutReady={app.profiles?.is_payout_ready === true}
-                              />
                               {distanceBand && (
                                 <span
                                   className="inline-flex items-center gap-1 text-ds-11 font-sans font-semibold"
@@ -502,8 +496,7 @@ export function ApplicantsPanel({
                                 </span>
                               )}
                             </span>
-                            {/* ID once (owner, 2026-10-20): the offer stays open; the Helpr's accept waits on the ID. */}
-                            <ApplicantProofLine categoryCount={categoryCounts ? categoryCounts.get(app.helper_id) ?? 0 : undefined} totalCount={completedCountsMap.get(app.helper_id) ?? 0} idVerified={app.profiles?.is_id_verified === true} category={selectedJob.category} />
+                            {/* Owner 2026-10-27: no ID / payout badges and no proof line on applicant cards ("it doesn't make any sense"). */}
                             {/* Owner 2026-10-23: the day/time they suggested when applying; hiring them agrees to it. */}
                             <ApplicantSuggestedTime app={app} jobStartTime={selectedJob.start_time} />
                             {app.profiles && <ApplicantIdNote fullName={app.profiles.full_name} idVerified={app.profiles.is_id_verified} />}

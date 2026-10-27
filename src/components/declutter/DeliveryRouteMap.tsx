@@ -168,7 +168,7 @@ export default function DeliveryRouteMap({ stops, userId }: { stops: RouteStop[]
     if (!("geolocation" in navigator)) { setLocError("This device can't share its location."); setTracking(false); return; }
     const id = navigator.geolocation.watchPosition(
       (p) => { setLocError(null); setHere({ lat: p.coords.latitude, lng: p.coords.longitude }); },
-      (e) => { setLocError(e.code === e.PERMISSION_DENIED ? "Location is off for Louisiana Helpr. Turn it on to see your next turn." : "We couldn't find your location."); },
+      (e) => { setLocError(e.code === e.PERMISSION_DENIED ? "Location is off for Louisiana Helpr. Turn it on in Settings to see your next turn." : "We couldn't find your location."); },
       { enableHighAccuracy: true, maximumAge: 5_000, timeout: 20_000 },
     );
     return () => navigator.geolocation.clearWatch(id);

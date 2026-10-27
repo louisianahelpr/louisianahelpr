@@ -235,6 +235,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/geocodeDropoff.ts";`,
   );
 
+  // MapKit signer (Q2413): `_shared/mapkitJwt.ts` has ZERO imports (WebCrypto only), so the REAL
+  // signer serves mapkit-token and the delivery quote's Apple Maps lookup.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/mapkitJwt\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/mapkitJwt.ts";`,
+  );
+
   // One wallet: `_shared/stripeCustomer.ts` has ZERO imports (it takes the
   // service-role client and the Stripe client as arguments), so the REAL
   // resolver runs against the supabase and Stripe doubles.
@@ -964,6 +971,13 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/geocodeDropoff\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/geocodeDropoff.ts";`,
+  );
+
+  // MapKit signer (Q2413): `_shared/mapkitJwt.ts` has ZERO imports (WebCrypto only), so the REAL
+  // signer serves mapkit-token and the delivery quote's Apple Maps lookup.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/mapkitJwt\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/mapkitJwt.ts";`,
   );
 
   // Arrival rule: `_shared/arrivalRule.ts` has ZERO imports and is the one

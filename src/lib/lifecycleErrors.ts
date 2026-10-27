@@ -375,6 +375,13 @@ export const RPC_ERROR_COPY = {
   claim_my_referral_code: {
     account_restricted: "Your account is restricted right now, so you can't add a referral code.",
   },
+  // FindHelprs — "Find a Helpr" by skill and town (Q2437, owner 2026-10-27).
+  find_helprs: {
+    not_signed_in: "Please sign in again to find a Helpr.",
+    account_restricted: "Your account is restricted right now, so you can't browse Helprs.",
+    email_not_confirmed: "Confirm your email to browse Helprs.",
+    search_too_long: "That search is too long. Try a shorter skill or town.",
+  },
   // SeriesDatesPanel — picking visit dates on a series (Q407 5).
   claim_series_dates: {
     not_authorized: "You can pick dates once the person who posted this series offers them to you, or once you have dates on it.",

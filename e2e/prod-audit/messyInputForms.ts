@@ -444,6 +444,8 @@ export const FORMS: FormSpec[] = [
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
   // Board 89: /search, the one search across the sections (its field is always open).
   { name: "search-page", url: "/search", as: "helper", prepare: openSearch, covers: ["src/pages/search/SearchPage.tsx"] },
+  // Q2437: Find a Helpr's town box (find_helprs matches it literally and refuses over 60 characters).
+  { name: "find-helprs", url: "/helprs", as: "helper", covers: ["src/pages/helprs/FindHelprs.tsx"] },
   // Declutter > Browse (2026-10-19): the same shared SectionSearchRow as Jobs > Browse (every test account is a tester).
   { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/declutter/DeclutterBrowseBar.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },

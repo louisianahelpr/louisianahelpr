@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ChevronDown, Heart, UserCheck } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { ChevronDown, Heart, Search, UserCheck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -167,6 +167,16 @@ export function OfferToSavedHelpr({
               );
             })
           )}
+          {/* Q2437: not only saved Helprs. Find a Helpr lists Helprs by skill and
+              town; its "Offer a job" lands back here with ?offerTo=. */}
+          <Link
+            to="/helprs"
+            data-testid="offer-find-a-helpr"
+            className="sm:col-span-2 inline-flex min-h-11 items-center gap-2 font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]"
+          >
+            <Search className="h-4 w-4" aria-hidden />
+            Find a Helpr near you
+          </Link>
         </div>
   );
   if (headless) return list;

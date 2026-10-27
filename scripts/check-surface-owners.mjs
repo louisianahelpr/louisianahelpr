@@ -53,6 +53,7 @@ const OWNERS = {
   "/": ["lh-seo-web", "lh-copy-content"],
   "/browse": ["lh-browse-discovery"],
   "/search": ["lh-browse-discovery"],
+  "/helprs": ["lh-browse-discovery", "lh-trust-safety"],
   "/jobs/:id": ["lh-browse-discovery", "lh-seo-web", "lh-trust-safety"],
   "/legal": ["lh-compliance-store", "lh-copy-content"],
   "/privacy": ["lh-compliance-store"],

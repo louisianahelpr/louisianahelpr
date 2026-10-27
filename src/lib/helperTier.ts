@@ -61,6 +61,22 @@ export interface HelperTierStats {
 // internal identifier and is deliberately left alone — only the rung's
 // user-facing LABEL was renamed to "Top Rated" (the word "Elite" now
 // belongs solely to the paid membership tier).
+/**
+ * "Top Helpr" (owner 2026-10-27, Thumbtack "Top Pro" style): a performance
+ * badge earned on the Helpr side alone, separate from the verification ladder
+ * (which needs an ID check, switched off since Q2371). Helpr-side stats only.
+ */
+export const TOP_HELPR = { completedJobs: 10, avgRating: 4.8, reviewCount: 5 } as const;
+
+export function isTopHelpr(stats: Pick<HelperTierStats, "completedJobs" | "avgRating" | "reviewCount"> | null | undefined): boolean {
+  if (!stats) return false;
+  return (
+    stats.completedJobs >= TOP_HELPR.completedJobs &&
+    stats.reviewCount >= TOP_HELPR.reviewCount &&
+    stats.avgRating >= TOP_HELPR.avgRating
+  );
+}
+
 export const TIER_THRESHOLDS = {
   trusted: { completedJobs: 5, avgRating: 4.5, reviewCount: 3 },
   elite: { completedJobs: 25, avgRating: 4.8, reviewCount: 10 },

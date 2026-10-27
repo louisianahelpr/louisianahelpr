@@ -24,7 +24,7 @@ import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
-import { helperInitialsFrom, isImageAttachment } from "./applicantsPanel/applicantsPanelHelpers";
+import { helperInitialsFrom, isImageAttachment, TopHelprChip } from "./applicantsPanel/applicantsPanelHelpers";
 import { ApplicantStatusBadge } from "./ApplicantStatusBadge";
 import { MessageApplicantButton, canMessageApplicant } from "@/components/jobs/MessageApplicantButton";
 import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
@@ -427,7 +427,7 @@ export function ApplicantsPanel({
                                   returns the four credential fields; the badge
                                   renders nothing unless a credential is
                                   admin-verified or pending. */}
-                              <CredentialBadge credentials={app.profiles ?? {}} size="sm" />
+                              <CredentialBadge credentials={app.profiles ?? {}} size="sm" /><TopHelprChip stats={{ completedJobs: completedCountsMap.get(app.helper_id) ?? 0, avgRating: app.avgRating ?? 0, reviewCount: app.reviewCount ?? 0 }} />
                               {/* Inline rating — compact ★ 4.9 (23) */}
                               {(app.reviewCount ?? 0) > 0 && (
                                 /* Q321: the count is get_public_profile_stats — published reviews

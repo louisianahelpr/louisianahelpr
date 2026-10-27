@@ -23,12 +23,14 @@ import {
 import {
   computeHelperTier,
   describeTierProgress,
+  isTopHelpr,
   type HelperTier,
   type HelperTierProfile,
   type HelperTierStats,
 } from "@/lib/helperTier";
 import { TIER_META } from "@/components/profile/HelperTierBadge";
 import { ProfileBadge, PROFILE_BADGE_PILL } from "./ProfileBadge";
+import { TOP_HELPR_DESCRIPTION, TOP_HELPR_LABEL } from "@/components/profile/TopHelprChip";
 import {
   ID_VERIFIED_DESCRIPTION,
   ID_VERIFIED_LABEL,
@@ -420,6 +422,17 @@ export const RecognitionRow = ({
 
   const ladder = ladderSpec(ladderProfile, ladderStats);
   if (ladder) specs.push(ladder);
+
+  // Owner 2026-10-27: the performance badge posters look for, earned as a Helpr.
+  if (isTopHelpr(ladderStats)) {
+    specs.push({
+      key: "top_helpr",
+      group: "helpr",
+      label: TOP_HELPR_LABEL,
+      icon: <Award />,
+      description: TOP_HELPR_DESCRIPTION,
+    });
+  }
 
   const credential = credentialSpec(credentials);
   if (credential) specs.push(credential);

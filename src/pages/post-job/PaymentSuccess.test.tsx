@@ -68,6 +68,8 @@ vi.mock("@/lib/analytics", () => ({
 }));
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// The one-time "Add your phone" ask reads React Query (covered by src/test/smsPhonePrompt.test.ts); not this screen's subject.
+vi.mock("@/components/notificationPreferences/SmsPhonePrompt", () => ({ SmsPhonePrompt: () => null }));
 
 const navigateMock = vi.fn();
 vi.mock("react-router-dom", async () => {

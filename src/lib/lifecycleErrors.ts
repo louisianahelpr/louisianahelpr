@@ -1583,6 +1583,15 @@ export const RPC_ERROR_COPY = {
   get_my_sms_consent: {
     not_authenticated: "Sign in again to see your text alert settings.",
   },
+  // Q2423: the one-time "Add your phone" prompt (20261027183058). Its read fails quietly (no prompt) and its
+  // dismiss is logged, so these words only reach a member through a shared error path.
+  sms_phone_prompt_due: {
+    invalid_moment: "We couldn't check your text alerts. Try again.",
+    not_authenticated: "Sign in again to see your text alert settings.",
+  },
+  dismiss_sms_phone_prompt: {
+    not_authenticated: "Sign in again to change your text alert settings.",
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type MappedRpc = keyof typeof RPC_ERROR_COPY;

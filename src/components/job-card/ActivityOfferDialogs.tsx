@@ -8,6 +8,9 @@ import { HelperDoneWhatNextHost } from "@/components/whatNext/HelperDoneWhatNext
 const AwardGateDialog = lazy(() =>
   import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
+const SmsPhonePrompt = lazy(() =>
+  import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })),
+);
 const HiredPayoutSetupDialog = lazy(() =>
   import("@/components/payouts/HiredPayoutSetupDialog").then((m) => ({ default: m.HiredPayoutSetupDialog })),
 );
@@ -43,6 +46,13 @@ export function ActivityOfferDialogs({
       {actions.hiredPayout?.open && (
         <Suspense fallback={null}>
           <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) actions.hiredPayout?.close(); }} />
+        </Suspense>
+      )}
+      {/* Owner-approved 2026-10-27: the one-time "Add your phone" ask at a Helpr's FIRST hire (the server decides),
+          never on top of another of these pop-ups. */}
+      {!actions.awardBlockReason && !actions.paymentHeldSide && !actions.hiredPayout?.open && (
+        <Suspense fallback={null}>
+          <SmsPhonePrompt moment="first_hire" />
         </Suspense>
       )}
       {/* Board 81: the Helpr's "What next" after marking a job done (opened by JobTracking). */}

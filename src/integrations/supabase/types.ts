@@ -1165,6 +1165,7 @@ export type Database = {
           order_id: string
           porch_mode: string | null
           porch_until: string | null
+          reminded_slot_start: string | null
           seller_id: string
           seller_reschedules: number
           slot_end: string | null
@@ -1181,6 +1182,7 @@ export type Database = {
           order_id: string
           porch_mode?: string | null
           porch_until?: string | null
+          reminded_slot_start?: string | null
           seller_id: string
           seller_reschedules?: number
           slot_end?: string | null
@@ -1197,6 +1199,7 @@ export type Database = {
           order_id?: string
           porch_mode?: string | null
           porch_until?: string | null
+          reminded_slot_start?: string | null
           seller_id?: string
           seller_reschedules?: number
           slot_end?: string | null
@@ -13660,6 +13663,17 @@ export type Database = {
         }[]
       }
       declutter_pick_drop_stop: { Args: { p_floor: number }; Returns: number }
+      declutter_pickup_remind: {
+        Args: {
+          p_link: string
+          p_message: string
+          p_other: string
+          p_title: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      declutter_pickup_reminder_sweep: { Args: never; Returns: number }
       declutter_porch_note: {
         Args: { p_note: string; p_order_id: string }
         Returns: string

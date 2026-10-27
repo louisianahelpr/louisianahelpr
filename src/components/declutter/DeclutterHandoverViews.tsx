@@ -310,6 +310,12 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
   return (
     <div className="space-y-2">
       {booked && <p className="text-sm">Pickup: <span className="font-medium">{when(booked)}</span> (30 minutes)</p>}
+      {/* Q2432: the existing no-show rule (declutter_report_no_show), stated where the buyer books, plus the reminder. */}
+      {order.side === "buyer" && (
+        <p className="text-xs text-muted-foreground" data-testid="declutter-no-show-warning">
+          We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.
+        </p>
+      )}
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (once each)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
         <DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />

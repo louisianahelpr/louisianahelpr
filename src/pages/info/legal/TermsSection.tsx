@@ -105,6 +105,7 @@ export const TermsContent = () => {
         body={
           <>
             <p><strong className="text-foreground">Prohibited:</strong> Illegal activities, harassment, fraud, discrimination, off-platform payment solicitation, or any conduct that violates the rights of others.</p>
+            <p><strong className="text-foreground">Zero tolerance for objectionable content:</strong> Helpr has zero tolerance for objectionable content or abusive users. Messages with hateful, sexual or threatening language are hidden from the other person automatically, and any member can report or block another member from their profile or a conversation. Louisiana Helpr reviews every report within 24 hours and removes the content and the account that posted it when the report holds up.</p>
             <p><strong className="text-foreground">Termination:</strong> Helpr reserves the right to suspend or terminate accounts at its sole discretion. Specific behavior, strike, and ban rules are detailed in the <Link to="/legal?tab=community" className="font-semibold hover:underline" style={{ color: "hsl(var(--bark))" }}>Community Rules</Link>.</p>
             <p><strong className="text-foreground">Intellectual property:</strong> All content, branding, and technology are owned by Helpr. No copying, modifying, or redistributing without permission.</p>
             <p><strong className="text-foreground">Liability:</strong> Helpr is a marketplace and is not responsible for the quality, safety, or legality of jobs performed.</p>

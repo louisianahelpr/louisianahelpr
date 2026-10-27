@@ -33,6 +33,10 @@
  *   H16 [fix] job_card_holds: no client privilege; an 'authorized' row without a PaymentIntent is refused
  *   H17 [fix] a job whose hold is open (authorized) is never deleted (card_hold_open); a released one may be
  *   H18 [fix] the capture CLAIM: one 'authorized' -> 'capturing' update wins, a second finds nothing to claim
+ *   H19 [fix] the go-live (20261027185147, ready/card-hold-on-1027): applied 3x on a switch no admin has set, it
+ *             turns card_hold_at_post on for EVERYONE with exactly one audit row (an ordinary account's
+ *             get_my_job_card_hold answers); once an admin sets an audience, a replay never overrides it
+ *             (FLIP_PATH=<planted copy> to prove it red)
  */
 import { readdirSync, readFileSync } from "node:fs";
 import os from "node:os";
@@ -354,6 +358,28 @@ const c1 = await owner(claim);
 const c2 = await owner(claim);
 check("H18 [fix] the capture claim: the first 'authorized' -> 'capturing' wins, the second claims nothing",
   Array.isArray(c1) && c1.length === 1 && Array.isArray(c2) && c2.length === 0, err(c1) || err(c2) || `${c1.length}/${c2.length}`);
+
+// ─── H19: the go-live for everyone (20261027185147, split from the dark landing 2026-10-27) ───
+// As prod reads before the flip: the switch 'off' and no admin has ever set it (H15's
+// 'testers' and its audit row are undone, outside the trigger).
+const FLIP = readFileSync(process.env.FLIP_PATH ?? `${DIR}20261027185147_card_hold_at_post_on_for_everyone.sql`, "utf8");
+await owner(`SELECT set_config('lh.feature_switch_audited', 'card_hold_at_post', false)`);
+await owner(`UPDATE public.feature_switches SET audience = 'off' WHERE key = 'card_hold_at_post'`);
+await owner(`SELECT set_config('lh.feature_switch_audited', '', false)`);
+await owner(`DELETE FROM public.admin_audit_log WHERE target_type = 'feature_switch' AND target_id = 'card_hold_at_post'`);
+const offBefore = await as("authenticated", POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.held}')`);
+for (let i = 0; i < 3; i++) await db.exec(FLIP);
+const flipped = await owner(`SELECT audience FROM public.feature_switches WHERE key = 'card_hold_at_post'`);
+const flipAudit = await owner(`SELECT details FROM public.admin_audit_log WHERE action = 'set_feature_switch' AND target_type = 'feature_switch' AND target_id = 'card_hold_at_post'`);
+const ordinaryOn = await as("authenticated", POSTER, `SELECT * FROM public.get_my_job_card_hold('${J.held}')`);
+// An admin's later choice (Admin -> Settings writes its own audit row) is never overridden by a replay.
+await owner(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'card_hold_at_post'`);
+await db.exec(FLIP);
+const afterAdmin = await owner(`SELECT audience FROM public.feature_switches WHERE key = 'card_hold_at_post'`);
+check("H19 [fix] the go-live turns card_hold_at_post on for everyone once (one audit row; an ordinary account is answered), and a replay never overrides an admin's later choice",
+  /feature_disabled/.test(err(offBefore)) && flipped?.[0]?.audience === "everyone" && Array.isArray(flipAudit) && flipAudit.length === 1
+    && flipAudit[0].details?.to === "everyone" && Array.isArray(ordinaryOn) && afterAdmin?.[0]?.audience === "testers",
+  `before: ${err(offBefore) || "answered"}; after 3x: ${flipped?.[0]?.audience ?? err(flipped)}; audit rows ${Array.isArray(flipAudit) ? flipAudit.length : err(flipAudit)}; ordinary: ${err(ordinaryOn) || "answered"}; after an admin's 'testers' + replay: ${afterAdmin?.[0]?.audience ?? err(afterAdmin)}`);
 
 console.log(`\n${pass} passed, ${fail} failed${SKIP ? " (NEW_MIGRATION=skip: today's code)" : " (migration applied 3x)"}`);
 process.exit(fail === 0 ? 0 : 1);

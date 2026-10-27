@@ -884,6 +884,9 @@ export const GAPS: Record<string, string> = {
   // fixture can pay one) and after 20261017055505 is on prod. The address is checked server-side (5-300 chars with a
   // letter and a digit, then geocoded), the code is 4 digits with a 5-try lock, the slot inside the seller's windows,
   // all pinned by src/test/pglite/declutterDelivery.pglite.mjs. FORMS sweep owed with Q?delivery-visual-pass.
+  // My route (2026-10-27): the Picked up / drop-off photo inputs of a stop, the same two steps as the delivery
+  // card (useTaskSteps), shown only to the Helpr holding a delivery (behind 'declutter', a PAID order on LIVE Stripe).
+  "src/components/declutter/StopActions.tsx": "behind the 'declutter' switch, only to the Helpr holding a paid delivery (LIVE Stripe: no fixture can pay one); its only inputs are photo files, cleaned and type-checked by cleanListingPhoto, and the server checks the path and the 200 m point (helpr_task_picked_up / helpr_task_delivered); FORMS sweep owed with Q?delivery-visual-pass",
   "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
   // Shops slice 1 (2026-10-15): behind the hidden 'shops' switch, created OFF on prod; the server refuses each field
   // (name 2-60, about <= 2000, area 2-80 and not a street address, fixed category list, parishes, SoS number format,

@@ -50,6 +50,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
+  ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job, one of the two conditions for paying a referral'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
@@ -141,6 +142,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('refund_party_held',             'deny',     'TRUE = a party is banned, suspended, under a ban review or on a payout hold, so an agreed refund is NOT settled automatically (it goes to an admin); a NULL user is TRUE (fails safe); service only (20261021102943)'),
   ('is_user_error_screen_row',      'classify', 'labels an error_logs row as a user-facing error screen'),
   ('get_thread_counterparty_deleted', 'classify', 'labels a thread''s other party as a deleted account (read-only notice); grants no access (it discloses one bit, account gone vs exists, see its migration), and a NULL argument returns false (threadCounterpartyDeleted.pglite.mjs)'),
+  ('sms_phone_prompt_due',          'classify', 'SMS phone ask (20261027183058): TRUE shows the one-time "Add your phone" prompt to the caller; no access decision, and a NULL moment raises invalid_moment'),
   ('saved_search_category_matches', 'classify', 'labels a new job as matching a saved search''s category or its group (20261021072206); a NULL search category is the "any category" search and matches by design; no access decision (EXECUTE is service_role only; the alert trigger still applies every visibility gate)'),
   ('user_error_screen_is_real',     'classify', 'labels an error screen as real-user (ops alert counting)'),
   ('user_report_is_open',           'classify', 'labels a reports row still to-do in its admin queue (ledger close rule, Q64); NULL status = pending'),
@@ -221,6 +223,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('has_role',                      NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid', '''admin''::public.app_role'], ARRAY[1,2]),
   -- B is the Helpr on J (open, escrow: funded), so the non-NULL call is TRUE.
+  -- A posted R (completed), so the non-NULL call is TRUE for A.
+  ('referral_member_has_completed_job', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
   ('payout_setup_hire_allowed',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),

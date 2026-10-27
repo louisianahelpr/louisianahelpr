@@ -149,6 +149,28 @@ for (const r of await q(`SELECT user_id, job_id FROM public.parish_match_alert_q
 const np = await q(`SELECT message FROM public.notifications WHERE user_id = $1 AND job_id = $2`, [M.newSameParish, NOPARISH]);
 check("a job with no parish reaches members too, worded without one", np.length === 1 && np[0].message === 'A new errands job was just posted: "Grocery run"', JSON.stringify(np));
 
+// Owner 2026-10-27: the poster's title and the town, never the parish or the
+// category (20261027155507, applied 3x on top of everything above).
+if (!RED) {
+  await db.exec(`ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS location text`);
+  const TOWN_FILE = "20261027155507_job_alert_names_title_and_town.sql";
+  for (let i = 0; i < 3; i++) await db.exec(readFileSync(MIG_DIR + TOWN_FILE, "utf8"));
+  const post = async (title, location) => {
+    const [{ id }] = await q(
+      `INSERT INTO public.jobs (status, payment_status, customer_id, category, parish, title, location) VALUES ('open','escrow',$1,'yard_work','Vermilion',$2,$3) RETURNING id`,
+      [POSTER, title, location],
+    );
+    for (const r of await q(`SELECT user_id, job_id FROM public.parish_match_alert_queue WHERE job_id = $1`, [id])) {
+      await q(`SELECT public.deliver_parish_match_alert($1, $2)`, [r.user_id, r.job_id]);
+    }
+    return (await q(`SELECT message FROM public.notifications WHERE user_id = $1 AND job_id = $2`, [M.newSameParish, id]))[0]?.message;
+  };
+  const withTown = await post("Mow and Weed Eat", "4804 Dolphin St, New Iberia, LA 70560");
+  check("names the title and the town: '\"Mow and Weed Eat\" was just posted in New Iberia.'", withTown === '"Mow and Weed Eat" was just posted in New Iberia.', withTown);
+  const noTown = await post("Haul a couch", null);
+  check("no address, no place: '\"Haul a couch\" was just posted.'", noTown === '"Haul a couch" was just posted.', noTown);
+}
+
 // Grants: server-only, as before.
 const g = (await q(`SELECT has_function_privilege('anon','public.deliver_parish_match_alert(uuid,uuid)','EXECUTE') a,
                            has_function_privilege('authenticated','public.deliver_parish_match_alert(uuid,uuid)','EXECUTE') u`))[0];

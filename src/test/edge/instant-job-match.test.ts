@@ -265,6 +265,48 @@ describe("instant-job-match edge function (Q392)", () => {
     expect(missed).toEqual([]);
   });
 
+  // Q2438: a same-day job reaches Helprs who are online ("Available now") and
+  // nearby FIRST, whatever their skills; an offline one, or one far away, gets
+  // no boost. The title says "Today". A job for another day is unchanged.
+  // @mutate supabase/functions/instant-job-match/index.ts |         score += sameDayBoost(job, h, matchedAt); |
+  // @mutate supabase/functions/instant-job-match/index.ts |         title: `${emoji} ${sameDay ? "Today: " : ""}Match for you |         title: `${emoji} Match for you
+  it("Q2438: a same-day job goes first to online, nearby Helprs and says Today", async () => {
+    const run = async (dateNeeded: string) => {
+      resetSupabaseMock(); resetSharedMocks();
+      const fn = await load();
+      seed();
+      scenario.reads.jobs = {
+        rows: [{
+          id: JOB, title: "Clean gutters", category: "cleaning", location: "12 Canal St, New Orleans",
+          budget: 80, customer_id: POSTER, is_urgent: false, payment_status: "escrow",
+          date_needed: dateNeeded, parish: "Orleans", latitude: 29.95, longitude: -90.07,
+        }],
+      };
+      const soon = new Date(Date.now() + 60 * 60_000).toISOString();
+      const past = new Date(Date.now() - 60 * 60_000).toISOString();
+      scenario.reads.profiles = {
+        rows: [
+          { user_id: "u-skill", full_name: "S", skills: "cleaning", location: "New Orleans", subscription_tier: null, ban_status: "active", parish: "Orleans", available_until: null },
+          { user_id: "u-online", full_name: "O", skills: "", location: "Metairie", subscription_tier: null, ban_status: "active", parish: "Orleans", available_until: soon },
+          { user_id: "u-online-coords", full_name: "C", skills: "", location: "", subscription_tier: null, ban_status: "active", parish: null, latitude: 30.0, longitude: -90.15, available_until: soon },
+          { user_id: "u-offline", full_name: "F", skills: "", location: "Metairie", subscription_tier: null, ban_status: "active", parish: "Orleans", available_until: past },
+          { user_id: "u-online-far", full_name: "R", skills: "", location: "Shreveport", subscription_tier: null, ban_status: "active", parish: "Caddo", latitude: 32.5, longitude: -93.75, available_until: soon },
+        ],
+      };
+      scenario.reads.notification_preferences = { rows: [] };
+      await call(fn, SERVICE);
+      const args = enqueueCalls()[0].args as { p_matches: Array<{ user_id: string; title: string }> };
+      return args.p_matches;
+    };
+    const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    const sameDay = await run(today);
+    expect(sameDay.map((m) => m.user_id)).toEqual(["u-online", "u-online-coords", "u-skill"]);
+    expect(sameDay.every((m) => m.title === "🧹 Today: Match for you")).toBe(true);
+    const later = await run("2099-01-01");
+    expect(later.map((m) => m.user_id)).toEqual(["u-skill"]);
+    expect(later[0].title).toBe("🧹 Match for you");
+  });
+
   it("the edge label table is the app's category and skill-chip table", () => {
     expect(CATEGORY_LABELS).toEqual(JOB_CATEGORY_LABELS);
     for (const v of JOB_CATEGORY_VALUES) {

@@ -1018,6 +1018,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/categorySkillMatch.ts";`,
   );
 
+  // Same-day matching (Q2438): `_shared/sameDayMatch.ts` has ZERO imports, so
+  // the REAL module serves and instant-job-match's same-day boost is tested as is.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/sameDayMatch\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/sameDayMatch.ts";`,
+  );
+
   return out;
 }
 

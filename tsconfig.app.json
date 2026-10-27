@@ -93,6 +93,7 @@
     "supabase/functions/_shared/landlordIdRetention.ts",
     "supabase/functions/_shared/forEachBounded.ts",
     "supabase/functions/_shared/categorySkillMatch.ts",
+    "supabase/functions/_shared/sameDayMatch.ts",
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/jpegStripMetadata.ts",
     "supabase/functions/_shared/functionFetch.ts",

@@ -6,6 +6,7 @@ import { differenceInHours } from "date-fns";
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { isTodayJob } from "@/lib/sameDayJob";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
@@ -493,6 +494,25 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                     The bonus amount is still in the aria-label for anyone
                     who needs the detail; it just isn't the visible claim. */}
                 Urgent
+              </span>
+            );
+          }
+          // Q2438: a job for Louisiana's today wears "Today" (below Boosted and
+          // Urgent, which keep their corner).
+          if (isTodayJob(job.date_needed)) {
+            return (
+              <span
+                className={corner}
+                data-testid="job-card-today"
+                style={{
+                  color: "hsl(var(--bark))",
+                  background: "hsl(var(--bark) / 0.12)",
+                  borderColor: "hsl(var(--bark) / 0.4)",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
+                Today
               </span>
             );
           }

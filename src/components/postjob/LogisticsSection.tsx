@@ -5,13 +5,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Shield, Users, Wrench } from "lucide-react";
+import { MapPin, Shield, Users, Wrench, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AddressBlock } from "@/components/postjob/AddressBlock";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
-import { todayYmd } from "@/lib/jobDate";
+import { jobStartTimeLabel, todayYmd } from "@/lib/jobDate";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { dayStrip, TIME_CHIPS, timeChipOf } from "@/components/postjob/whenChoices";
@@ -23,6 +23,7 @@ import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
+import { sameDayStartTime } from "@/lib/sameDayJob";
 
 /** The smallest of the N frozen crew shares of `budget`, in dollars. */
 function crewSmallestShare(budget: number, n: number): number {
@@ -204,6 +205,18 @@ export function LogisticsSection({
     setStartTime(v);
   };
   const dateLabel = isRecurring ? "Start date" : "Date needed";
+  // Q2438 "Need it today": today, at the soonest start the server takes (2 hours' notice).
+  const today = strip[0]?.iso ?? todayYmd();
+  const sameDayStart = sameDayStartTime();
+  const isToday = !isRecurring && dateNeeded === today;
+  const needItToday = () => {
+    if (!sameDayStart) return;
+    setIsFlexibleSchedule(false);
+    setOtherTime(false);
+    setMoreDates(false);
+    setDateNeeded(today);
+    setStartTime(sameDayStart);
+  };
 
   // WHERE (board 45). The saved address is filled in for the poster only while
   // the form holds no address of its own (a draft or a rebook already did),
@@ -345,6 +358,36 @@ export function LogisticsSection({
           <p className="text-ds-12 text-muted-foreground leading-snug">
             Any time that day works. Add a start time if you like; the Helpr can shift it either way.
           </p>
+        )}
+        {/* Q2438: same-day jobs. Not for a repeating job (a series starts on a day the cron bills ahead). */}
+        {!isRecurring && (
+          <div className="flex flex-col gap-2" data-testid="need-it-today">
+            {/* A plain toggle button, not a ChoicePill: ChoicePill is role="radio" and
+                this sits in no radiogroup. Pressed while the form holds today. */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                aria-pressed={isToday}
+                onClick={needItToday}
+                disabled={!sameDayStart}
+                className={`inline-flex min-h-11 items-center gap-1.5 rounded-full px-4 font-sans text-ds-13 font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background disabled:cursor-not-allowed disabled:text-muted-foreground ${
+                  isToday ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
+                }`}
+              >
+                <Zap className="h-4 w-4" aria-hidden />
+                Need it today
+              </button>
+            </div>
+            {!sameDayStart ? (
+              <p className="text-ds-12 text-muted-foreground leading-snug">It is too late to post a job for today. Pick tomorrow or later.</p>
+            ) : isToday ? (
+              <p className="text-ds-12 text-muted-foreground leading-snug" data-testid="need-it-today-note">
+                Today{startTime.trim() ? `, starting ${jobStartTimeLabel(startTime)}` : ""}. Helprs nearby who are available now hear about it first, and it closes when it starts.
+              </p>
+            ) : (
+              <p className="text-ds-12 text-muted-foreground leading-snug">Today, from {jobStartTimeLabel(sameDayStart)} at the earliest. Jobs need 2 hours' notice.</p>
+            )}
+          </div>
         )}
       </div>
 

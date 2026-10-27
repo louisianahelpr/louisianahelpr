@@ -7,6 +7,7 @@
  * stands. While it is open the Helpr's pay waits; an admin decides anything not fixed, and a refund is of the job
  * price. No fee numbers anywhere (owner rule).
  */
+import { endSentence } from "@/lib/endSentence";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ImagePlus, ShieldCheck } from "lucide-react";
@@ -149,13 +150,13 @@ function PosterView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) 
   const reject = useMutation(action(() => posterAnswerGuarantee(claim.id, false, note.trim()), "Sent. An admin will decide."));
   switch (claim.status) {
     case "awaiting_helpr":
-      return <p className="text-ds-14">You asked for a fix. Your Helpr answers by {when(claim.helpr_answer_by)}.</p>;
+      return <p className="text-ds-14">You asked for a fix. Your Helpr answers by {endSentence(when(claim.helpr_answer_by))}</p>;
     case "fix_scheduled":
       return <p className="text-ds-14">Your Helpr will fix it on {claim.fix_date ? fixDateLabel(claim.fix_date) : "the day they picked"}. Message them in the job to set a time.</p>;
     case "fixed":
       return (
         <div className="space-y-3">
-          <p className="text-ds-14">Your Helpr says it's fixed. Take a look and tell us by {when(claim.poster_answer_by)}. If we don't hear from you, it counts as fixed.</p>
+          <p className="text-ds-14">Your Helpr says it's fixed. Take a look and tell us by {endSentence(when(claim.poster_answer_by))} If we don't hear from you, it counts as fixed.</p>
           {rejecting ? (
             <div className="space-y-2">
               <Label htmlFor="guarantee-reject">What's still not right?</Label>
@@ -199,7 +200,7 @@ function HelprView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) {
           <p className="text-ds-14 font-semibold">The person who posted this job says it wasn't done right.</p>
           <p className="whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]">{claim.note}</p>
           <ClaimPhotos paths={claim.photo_paths} />
-          <p className="text-ds-13 text-muted-foreground">Pick a day to fix it by {when(claim.helpr_answer_by)}. Your pay for this job waits until it's settled.</p>
+          <p className="text-ds-13 text-muted-foreground">Pick a day to fix it by {endSentence(when(claim.helpr_answer_by))} Your pay for this job waits until it's settled.</p>
           <div role="radiogroup" aria-label="Day to fix it" className="flex flex-wrap gap-2">
             {days.map((d) => (
               <Button key={d} type="button" size="sm" role="radio" aria-checked={day === d} variant={day === d ? "primary" : "outline"} className="rounded-full" onClick={() => setDay(d)}>
@@ -241,7 +242,7 @@ function HelprView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) {
         </div>
       );
     case "fixed":
-      return <p className="text-ds-14">The person who posted this job takes a look by {when(claim.poster_answer_by)}. If they don't answer, it counts as fixed.</p>;
+      return <p className="text-ds-14">The person who posted this job takes a look by {endSentence(when(claim.poster_answer_by))} If they don't answer, it counts as fixed.</p>;
     case "escalating":
     case "disputed":
       return <p className="text-ds-14">An admin is deciding this. Your pay for this job waits until then.</p>;

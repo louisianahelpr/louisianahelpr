@@ -16435,7 +16435,6 @@ export type Database = {
       guarantee_sweep: { Args: never; Returns: Json }
       guarantee_tell: {
         Args: {
-          p_chat: string
           p_job_id: string
           p_message: string
           p_title: string

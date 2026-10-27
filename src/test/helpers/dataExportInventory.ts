@@ -164,6 +164,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_delivery_days_off: { by: ["seller_id"] },
   declutter_item_no_seller_delivery: { by: ["seller_id"] },
   declutter_seller_deliveries: { by: ["buyer_id", "seller_id"] },
+  // Helpr Guarantee (20261027200455, exported by 20261027223332): each request either side is on.
+  job_guarantee_claims: { by: ["poster_id", "helper_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
@@ -510,6 +512,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "helpr_tasks.customer_id": { reason: "the buyer of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by buyer_id), and the Helpr's task row holds the seller's address, which is never the buyer's data (20261017055505)" },
   "helpr_tasks.pickup_contact_id": { reason: "the seller of the Declutter order a delivery belongs to; their side of it is exported through their order (declutter_orders by seller_id), and the Helpr's task row holds the buyer's drop-off address, which is never the seller's data (20261017055505)" },
   "helpr_tasks.confirmed_by": { reason: "how a delivery was confirmed ('code', 'customer', 'auto', 'admin'), not a person (20261017055505)" },
+  "job_guarantee_claims.helpr_answer_by": { reason: "a deadline timestamp (when the Helpr must answer), not a person (20261027200455)" },
+  "job_guarantee_claims.poster_answer_by": { reason: "a deadline timestamp (when the poster must answer), not a person (20261027200455)" },
   "declutter_seller_deliveries.proposed_by": { reason: "which side ('buyer' or 'seller') asked for a new delivery time, not a person; the delivery is exported by declutter_seller_deliveries.buyer_id/seller_id (20261027153244, exported by 20261027153245)" },
   "declutter_delivery_dropoffs.seller_id": { reason: "the other side of the order: the drop-off address is the BUYER's and is never exported to the seller (exported by declutter_delivery_dropoffs.buyer_id, 20261017055506)" },
   "declutter_handovers.confirmed_by": { reason: "how a Declutter handover was confirmed ('buyer', 'seller', 'porch', 'auto', 'admin'; 'code' on historical rows only), not a person; the table has no person column (it is keyed by order_id; 20261015042253, no QR 'scan' since 20261018183715)" },

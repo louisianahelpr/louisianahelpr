@@ -146,6 +146,12 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_a_series: "This job isn't part of a recurring series, so there's no series to end.",
   },
   // Declutter (DECLUTTER_ERROR_COPY, src/lib/declutter/errors.ts), slice 4 (20261015042253).
+  // Q2425 safe meetup spots (20261027204500).
+  admin_declutter_save_meetup_spot: {
+    admin_only: "Only an admin can add or edit meetup spots.",
+    meetup_spot_invalid: "Fill in the parish, name and address, pick a type, and put the map point in Louisiana.",
+    meetup_spot_not_found: "That spot no longer exists. Refresh the list.",
+  },
   declutter_admin_decide_problem: {
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,

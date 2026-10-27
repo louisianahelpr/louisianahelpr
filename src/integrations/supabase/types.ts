@@ -1959,6 +1959,51 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_meetup_spots: {
+        Row: {
+          active: boolean
+          address: string
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          lat: number
+          lng: number
+          name: string
+          note: string | null
+          parish: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          lat: number
+          lng: number
+          name: string
+          note?: string | null
+          parish: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          lat?: number
+          lng?: number
+          name?: string
+          note?: string | null
+          parish?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       declutter_offer_events: {
         Row: {
           action: string
@@ -2147,6 +2192,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_order_meetups: {
+        Row: {
+          buyer_here_at: string | null
+          created_at: string
+          order_id: string
+          seller_here_at: string | null
+          spot_address: string
+          spot_id: string | null
+          spot_lat: number
+          spot_lng: number
+          spot_name: string
+        }
+        Insert: {
+          buyer_here_at?: string | null
+          created_at?: string
+          order_id: string
+          seller_here_at?: string | null
+          spot_address: string
+          spot_id?: string | null
+          spot_lat: number
+          spot_lng: number
+          spot_name: string
+        }
+        Update: {
+          buyer_here_at?: string | null
+          created_at?: string
+          order_id?: string
+          seller_here_at?: string | null
+          spot_address?: string
+          spot_id?: string | null
+          spot_lat?: number
+          spot_lng?: number
+          spot_name?: string
+        }
+        Relationships: []
       }
       declutter_orders: {
         Row: {
@@ -12654,6 +12735,10 @@ export type Database = {
           title: string
         }[]
       }
+      admin_declutter_save_meetup_spot: {
+        Args: { p_active: boolean; p_address: string; p_id: string; p_kind: string; p_lat: number; p_lng: number; p_name: string; p_note: string; p_parish: string }
+        Returns: string
+      }
       admin_idv_request_reupload: {
         Args: { p_note: string; p_user_id: string }
         Returns: number
@@ -13480,6 +13565,14 @@ export type Database = {
         Returns: Json
       }
       declutter_member_out: { Args: { p_user: string }; Returns: boolean }
+      declutter_meetup_here: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
+      declutter_meetup_spots_near: {
+        Args: { p_seller_id: string }
+        Returns: { address: string; chosen: boolean; id: string; kind: string; miles: number; name: string; note: string; parish: string }[]
+      }
       declutter_miles: {
         Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
         Returns: number
@@ -13813,6 +13906,10 @@ export type Database = {
       declutter_set_delivery_handoff: { Args: { p_handoff: string; p_order_id: string }; Returns: string }
       declutter_set_delivery_schedule: { Args: { p_days_off: string[]; p_windows: Json }; Returns: Json }
       declutter_set_item_seller_delivery: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_meetup_spot: {
+        Args: { p_seller_id: string; p_spot_id: string }
+        Returns: string
+      }
       declutter_set_move_out_date: {
         Args: { p_move_out_on: string | null }
         Returns: number

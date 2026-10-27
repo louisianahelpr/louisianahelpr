@@ -579,6 +579,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "payment_fingerprints.user_id": { reason: "Q1324: ban-evasion data, salted hashes of Stripe card/bank fingerprints (no card or account details); the cards and accounts themselves are the person's own in Stripe, and listing which are fingerprinted would show a banned person which payment method to swap" },
   "dispute_settlement_claims.claimed_by": { reason: "transient settlement lock held by staff or a function, not the person's data" },
   "marketing_content.created_by": { reason: "staff-only marketing drafts" },
+  "declutter_meetup_spots.created_by": { reason: "Q2425 (20261027204500): the admin who added a public meetup spot (a police lot, a store); staff curation, not member data; each save is also in admin_audit_log" },
   "marketing_content.generated_by": { reason: "staff-only marketing drafts" },
   "marketing_settings.updated_by": { reason: "staff-only settings row" },
   "platform_settings.updated_by": { reason: "staff-only settings row" },

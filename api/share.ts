@@ -502,6 +502,119 @@ async function metaForShop(id: string, url: string): Promise<Meta | null> {
 }
 
 /* ------------------------------------------------------------------ *
+ * Declutter items (Q2426, owner 2026-10-27): share an item to Facebook
+ * ------------------------------------------------------------------ */
+
+/**
+ * The card reads declutter_public_item_card (migration 20261027194426), an
+ * anon RPC returning only what the card shows: title, price now (0 is Free),
+ * the town buyers already see, and the cover photo's ID. Never the seller id,
+ * the description (free text), the floor, the pickup address or a storage
+ * path. NULL (sold, withdrawn, hidden, Declutter off, no such item) is `absent`.
+ */
+interface PublicItemCard {
+  title: string;
+  price_cents: number;
+  area_label: string | null;
+  photo_id: string | null;
+}
+
+type ItemLookup = { state: "found"; item: PublicItemCard } | { state: "absent" } | { state: "unknown" };
+
+async function fetchPublicItemCard(id: string): Promise<ItemLookup> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return { state: "unknown" };
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/declutter_public_item_card`, {
+      method: "POST",
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ p_item_id: id }),
+      signal: AbortSignal.timeout(DB_TIMEOUT_MS),
+    });
+    if (!res.ok) return { state: "unknown" };
+    const body = (await res.json()) as PublicItemCard | null;
+    if (body === null) return { state: "absent" };
+    if (typeof body !== "object" || typeof body.title !== "string" || typeof body.price_cents !== "number") {
+      return { state: "unknown" };
+    }
+    return { state: "found", item: body };
+  } catch {
+    // Timeout, DNS, connection refused: we learned nothing, so the generic shell.
+    return { state: "unknown" };
+  }
+}
+
+/** The item page is sign-in only: the card is public, the page is not, so it is never indexed. */
+const DECLUTTER_ITEM_ROBOTS = "noindex, follow";
+/** Minutes, not a day: a sold or withdrawn item stops previewing as for sale. */
+const DECLUTTER_ITEM_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=60";
+
+/** "Free" for $0 (the Free section), else "$25" / "$12.50": the app's own itemPriceLabel wording. */
+function itemCardPrice(cents: number): string {
+  if (!Number.isFinite(cents) || cents <= 0) return "Free";
+  const dollars = cents / 100;
+  return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;
+}
+
+/**
+ * The cover at exactly 1200x630 through shop-photo kind=declutter (by photo
+ * ID, never by storage path: the path starts with the seller's user id, and
+ * this URL sits in third-party preview caches for good). The function
+ * re-checks the item is link-visible on every fetch.
+ */
+function itemImage(item: PublicItemCard, title: string): Meta["image"] | undefined {
+  const id = item.photo_id;
+  if (typeof id !== "string" || !UUID_RE.test(id) || !SUPABASE_URL) return undefined;
+  return {
+    url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`,
+    type: "image/jpeg",
+    width: 1200,
+    height: 630,
+    alt: clean(`${title} on Louisiana Helpr`, 120),
+  };
+}
+
+function unavailableItemMeta(url: string): Meta {
+  return {
+    title: "This item isn't available — Helpr",
+    ogTitle: "This item isn't available",
+    description: "It may have sold or been taken down. Find more secondhand finds from neighbors on Louisiana Helpr.",
+    url,
+    robots: DECLUTTER_ITEM_ROBOTS,
+    cdnCache: DECLUTTER_ITEM_CDN_CACHE,
+  };
+}
+
+async function metaForDeclutterItem(id: string, url: string): Promise<Meta | null> {
+  if (!UUID_RE.test(id)) return unavailableItemMeta(url);
+  const lookup = await fetchPublicItemCard(id);
+  if (lookup.state === "unknown") return null;
+  if (lookup.state === "absent") return unavailableItemMeta(url);
+  const item = lookup.item;
+  const title = clean(item.title, 80);
+  if (!title) return unavailableItemMeta(url);
+  const price = itemCardPrice(item.price_cents);
+  const town = clean(item.area_label, 80);
+  return {
+    title: `${title} — Helpr`,
+    // Facebook shows og:title in bold on the card: the price rides on it so it is seen at a glance.
+    ogTitle: clean(`${title} · ${price}`, 100),
+    description: clean(
+      `${price}${town ? ` · ${town}` : ""}. From a neighbor on Louisiana Helpr: pay in the app, pick it up nearby.`,
+      200,
+    ),
+    url,
+    robots: DECLUTTER_ITEM_ROBOTS,
+    image: itemImage(item, title),
+    cdnCache: DECLUTTER_ITEM_CDN_CACHE,
+  };
+}
+
+/* ------------------------------------------------------------------ *
  * Routing
  * ------------------------------------------------------------------ */
 
@@ -654,9 +767,9 @@ function metaForNoindexPage(id: string): Meta | null {
  * invoked directly with a real route path — which is how the local harness and
  * the unit-style checks exercise it.
  */
-function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop"; id: string } | null {
+function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "noindex" | "shop" | "declutter"; id: string } | null {
   const declared = url.searchParams.get("_og");
-  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop") {
+  if (declared === "job" || declared === "user" || declared === "page" || declared === "noindex" || declared === "shop" || declared === "declutter") {
     return { kind: declared, id: url.searchParams.get("_id") ?? "" };
   }
   if (declared === "signup") return { kind: "signup", id: "" };
@@ -665,6 +778,8 @@ function resolveRoute(url: URL): { kind: "job" | "signup" | "user" | "page" | "n
   const jobMatch = pathname.match(/^\/jobs\/([^/]+)$/);
   if (jobMatch) return { kind: "job", id: decodeURIComponent(jobMatch[1]) };
   if (pathname === "/signup") return { kind: "signup", id: "" };
+  const itemMatch = pathname.match(/^\/declutter\/item\/([^/]+)$/);
+  if (itemMatch) return { kind: "declutter", id: decodeURIComponent(itemMatch[1]) };
   const shopMatch = pathname.match(/^\/shops\/([^/]+)$/);
   if (shopMatch) return { kind: "shop", id: decodeURIComponent(shopMatch[1]) };
   const userMatch = pathname.match(/^\/user\/([^/]+)$/);
@@ -692,6 +807,11 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   if (route.kind === "shop") {
     const seg = safeIdSegment(route.id);
     return metaForShop(route.id, seg ? `${SITE_ORIGIN}/shops/${seg}` : `${SITE_ORIGIN}/shops`);
+  }
+
+  if (route.kind === "declutter") {
+    const seg = safeIdSegment(route.id);
+    return metaForDeclutterItem(route.id, seg ? `${SITE_ORIGIN}/declutter/item/${seg}` : `${SITE_ORIGIN}/declutter`);
   }
 
   if (route.kind === "signup") {
@@ -758,6 +878,7 @@ export default {
       if (!meta) return respond(shell);
       // A shop card goes stale within minutes, never a day: a shop hidden,
       // paused or closed must stop previewing (lh-authz-rls should-fix 2).
+      // A Declutter item card likewise: sold or withdrawn stops previewing (Q2426).
       return respond(withStaticBody(applyMeta(shell, meta), url), meta.cdnCache);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must

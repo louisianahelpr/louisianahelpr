@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterGallery.tsx |             if (el.clientWidth > 0) setAt(Math.round(el.scrollLeft / el.clientWidth)); |             void el;
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {reviews > 0 && (\n              <span data-seller-rating | {true && (\n              <span data-seller-rating
  * @mutate src/components/declutter/DeclutterSellerCard.tsx |             {joined && <span className="block text-xs text-muted-foreground">{joined}</span>} |
- * @mutate src/components/declutter/DeclutterItemView.tsx |     url: `${getPublicOrigin()}/declutter/item/${it.id}`, |     url: getPublicOrigin(),
+ * @mutate src/components/declutter/DeclutterShareCard.tsx |   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) }); |   void shareNative({ title: it.title, text: shareText(it), url: getPublicOrigin() });
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const barShown = useOffScreen(buttons); |   const barShown = false;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useDockYield(barShown && !underAge && item.status === "live"); |   void underAge;
  * @mutate src/lib/declutter/api.ts |   const row = pickRequestedProfile(rows, sellerId) | const row = rows[0]

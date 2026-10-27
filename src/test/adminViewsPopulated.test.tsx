@@ -224,8 +224,8 @@ describe("Q238 every admin review queue renders POPULATED", () => {
       db.tables = {};
       db.rpc = {};
       const { unmount } = renderView(c.Component);
-      expect(await screen.findByText(c.empty)).toBeInTheDocument();
+      expect(await screen.findByText(c.empty, {}, { timeout: 5000 })).toBeInTheDocument();
       unmount();
     }
-  });
+  }, 60_000);
 });

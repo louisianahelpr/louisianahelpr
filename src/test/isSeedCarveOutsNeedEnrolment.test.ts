@@ -155,6 +155,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   rentals_public_listing_visible: "hides",
   report_stale_dispute_settlement_claim: "alerts",
   // Closes a TEST-mode dispute without Stripe: test accounts only.
+  // Takes back the admin join notice when an account is marked a test account (owner 2026-10-27).
+  retract_new_member_notice_for_test_account: "hides",
   rpc_close_test_mode_dispute: "money-gate",
   saved_search_new_counts: "hides",
   search_profiles_by_name: "hides",

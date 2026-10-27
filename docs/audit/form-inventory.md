@@ -71,7 +71,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/dashboard/filterSheet/PayRangeSlider.tsx` | input×2 | range |  | pay-range · Lowest price · Highest price |
-| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-countdown-slot |
+| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-today · job-card-countdown-slot |
 | `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
 
 ## /complete-profile
@@ -235,7 +235,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/detailsSection/TitleField.tsx` | input×1 | text |  | title · title-too-long · title-contact-leak |
 | `src/components/postjob/detailsSection/VideoScope.tsx` | input×1 | file |  | Remove video |
 | `src/components/postjob/JobCategoryGroups.tsx` | input×1 | search |  | category-picker · e.g. wash my driveway · Matching categories · Category groups |
-| `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×2, checkbox/switch/radio×1 | number | 500 | job-type-label · Number of Helprs needed · when-label · flexible · date-label · date · start-time · start-time-label |
+| `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×2, checkbox/switch/radio×1 | number | 500 | job-type-label · Number of Helprs needed · when-label · flexible · need-it-today · need-it-today-note · date-label · date |
 | `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |
 | `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |
 | `src/lib/offerResponseWindow.ts` | select×1 |  |  |  |

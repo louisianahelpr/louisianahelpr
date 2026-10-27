@@ -7,7 +7,7 @@
  *
  * @mutate supabase/migrations/20261027182550_declutter_listing_review_tells_the_seller.sql | 'Your listing is live', | 'Listing updated',
  * @mutate supabase/migrations/20261027182550_declutter_listing_review_tells_the_seller.sql | 'Your listing needs a change', | 'Listing updated',
- * @mutate supabase/migrations/20261027182550_declutter_listing_review_tells_the_seller.sql | '" wasn''t approved: ' || v_note, | '" wasn''t approved.',
+ * @mutate supabase/migrations/20261027182550_declutter_listing_review_tells_the_seller.sql | '" wasn''t approved: ' \|\| v_note, | '" wasn''t approved.',
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

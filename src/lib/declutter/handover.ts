@@ -41,6 +41,10 @@ export interface MyBooking {
 export interface MyPayout {
   order_id: string;
   items_cents: number;
+  /** A seller delivery's rate, paid with the items (20261027153244); 0 otherwise or when free. */
+  delivery_cents: number;
+  /** Board 141d: what a refund after the handover took back from this payout. */
+  refunded_cents: number;
   debt_cents: number;
   amount_cents: number;
   status: "pending" | "succeeded" | "failed" | "nothing_due";
@@ -60,7 +64,7 @@ export async function fetchMyPayouts(userId: string): Promise<MyPayout[]> {
   const rows = unwrap(
     await supabase
       .from("declutter_payouts")
-      .select("order_id, items_cents, debt_cents, amount_cents, status, executed_at")
+      .select("order_id, items_cents, delivery_cents, refunded_cents, debt_cents, amount_cents, status, executed_at")
       .eq("seller_id", userId),
   );
   return (rows ?? []) as MyPayout[];

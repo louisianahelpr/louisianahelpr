@@ -340,7 +340,7 @@ const TS_MONEY_TOUCHES: string[] = [
   // Q2082 (b): the card fee a Helpr at fault is billed (bill_helpr_fault_card_fee), and its page if that fails.
   'supabase/functions/create-payment/index.ts: p_card_fee_cents: Math.max(0, Math.round(cardFeeCents ?? 0)),',
   'supabase/functions/create-payment/index.ts: fields: { job_id: jobId, helper_id: helperId, card_fee_cents: String(cardFeeCents ?? "") },',
-  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
+  'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("id, handover, stripe_checkout_session_id, delivery_cents") .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle()',
   // Q2352: READS the setup fee the order froze, to put it on its own Stripe line; no refund, no write.
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
@@ -467,10 +467,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // The buyer's fee keep_buyer_fee keeps (F1: 5% + 70c, at least 70c). Shipping S1 (2026-10-20,
       // reviewed: still keeps the fee): f1/premium15 pinned to shipping = 0, and f1_ship = 5% of
       // (items + shipping) + 70c, so a shipped order's kept fee also covers its card fee.
+      // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow: still keeps the fee): f1_seller_delivery
+      // = 5% of (items + the seller's rate) + 70c, so its kept fee covers the card fee on the rate too; a FREE delivery
+      // (rate 0) is the plain f1 fee on the items.
       {
         name: "declutter_orders_premium_rule",
-        file: "20261020024605_shipping_s1_data_model.sql",
-        text: "(fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'f1_ship' AND shipping_cents > 0 AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70) OR (fee_rule = 'premium15' AND shipping_cents = 0 AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
+        file: "20261027153244_declutter_seller_delivery.sql",
+        text: "(fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'f1_ship' AND shipping_cents > 0 AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70) OR (fee_rule = 'f1_seller_delivery' AND shipping_cents = 0 AND handover = 'seller_delivery' AND premium_cents = round((items_cents + delivery_cents) * 0.05)::integer + 70) OR (fee_rule = 'premium15' AND shipping_cents = 0 AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
       },
       { name: "declutter_orders_premium_cents_check", file: "20261015023613_declutter_buyer_fee_f1.sql", text: "premium_cents >= 70" },
     ],
@@ -522,7 +525,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
       // already tried, marked or sent; rebooks the seller's payout before returning.
-      declutter_refund_after_handover: "20261026155251_declutter_refund_requests.sql 4af9f900bb0464c4",
+      // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow): the same refunds and fee policies;
+      // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
+      declutter_refund_after_handover: "20261027153244_declutter_seller_delivery.sql a3500998a1a7f818",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",

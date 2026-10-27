@@ -43,9 +43,17 @@ vi.mock("@/integrations/supabase/client", () => {
   return {
     supabase: {
       from: () => builder(),
-      rpc: async (name: string) => {
+      rpc: async (name: string, args?: { p_status?: string }) => {
         if (name === "admin_support_replies" && db.repliesHold) await db.repliesHold;
-        return db.rpcErrors[name] ? { data: null, error: db.rpcErrors[name] } : { data: db.rpc[name] ?? [], error: null };
+        if (db.rpcErrors[name]) return { data: null, error: db.rpcErrors[name] };
+        let rows = db.rpc[name] ?? [];
+        // The queue RPC answers per status tab, as on prod: every pill counts
+        // its own tab (useFilterCounts), so all three are read at mount.
+        if (name === "admin_support_queue" && args?.p_status && args.p_status !== "all") {
+          const pending = args.p_status === "pending";
+          rows = rows.filter((t) => ((t as { status: string }).status === "pending") === pending);
+        }
+        return { data: rows, error: null };
       },
       functions: {
         invoke: async (name: string, opts: { body: unknown }) => {
@@ -192,16 +200,19 @@ describe("Admin Support: reply to a member", () => {
   });
 
   it("switching filters: a ticket the last fetch never covered says 'Loading replies…', never looks reply-less (lh-silent-failure r2 #2)", async () => {
+    db.rpc.admin_support_queue = [ticket(), ticket({ id: "r-2", status: "resolved", reason: "[Other] Old billing question" })];
     mount();
     await screen.findByRole("button", { name: "Reply" });
+    // The Resolved tab's list is read at mount for its pill count; its
+    // replies are not (only the shown tickets' threads are fetched).
+    await screen.findByRole("button", { name: "Resolved (1)" });
     let release!: () => void;
     db.repliesHold = new Promise<void>((r) => { release = r; });
-    db.rpc.admin_support_queue = [ticket({ id: "r-2", status: "resolved", reason: "[Other] Old billing question" })];
     db.rpc.admin_support_replies = [{
       id: "rep-9", report_id: "r-2", body: "Answered last week.", created_at: "2026-10-15T10:00:00Z",
       admin_name: "Ada Owner", notified: true, email_status: "sent", resolved_on_send: true, outcome_recorded: true,
     }];
-    fireEvent.click(screen.getByRole("button", { name: "Resolved" }));
+    fireEvent.click(screen.getByRole("button", { name: "Resolved (1)" }));
     expect(await screen.findByText("Loading replies…")).toBeInTheDocument();
     release();
     expect(await screen.findByText("Answered last week.")).toBeInTheDocument();

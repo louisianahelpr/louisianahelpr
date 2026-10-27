@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import HelprMark from "@/components/HelprMark";
@@ -24,7 +25,15 @@ import { useSidebar } from "@/components/ui/sidebar";
  * `sticky`, not `fixed`: the console lays out as a sidebar + scrolling main,
  * and a fixed bar would sit over the sidebar rather than beside it.
  */
-const AdminTopBar = () => {
+const AdminTopBar = ({ titleRow }: {
+  /**
+   * The open view's back arrow + title (AdminSectionHeader), drawn IN this
+   * bar's row in place of the emblem (owner, 2026-10-27: "support and any
+   * other page title should be at the top, not pushed down like that"). Absent
+   * on the Dashboard, which keeps the emblem and its own greeting card.
+   */
+  titleRow?: ReactNode;
+}) => {
   // The hamburger toggles the SAME shadcn sidebar this page already provides,
   // so open/close state has one owner rather than a second copy living here.
   const { toggleSidebar, state } = useSidebar();
@@ -59,7 +68,7 @@ const AdminTopBar = () => {
             both already exist as rows at the BOTTOM OF THE SIDEBAR, so the bar
             was a second copy of two controls that already had a home, next to a
             badge that only restated the page you were already on. */}
-        <HelprMark to="/home" size="sm" emblemOnly />
+        {titleRow ? <div className="min-w-0 flex-1">{titleRow}</div> : <HelprMark to="/home" size="sm" emblemOnly />}
         {/* `[&_button]:h-11 [&_button]:w-11` — verbatim from DesktopTopNav. The
             bell renders at the Button component's `size="icon"` default (h-14)
             while its neighbours are h-11, so without this the hover and focus

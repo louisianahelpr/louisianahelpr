@@ -16,7 +16,7 @@
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |   return [...YOU_ROWS.slice(0, at), ADMIN_ROW, ...YOU_ROWS.slice(at)]; |   return [...YOU_ROWS, ADMIN_ROW];
  * @mutate src/components/profile/profileLanding/YouMenu.tsx | (key === ADMIN_ROW.key ? navigate("/admin") : onSelectTab(key)) | onSelectTab(key)
  * @mutate src/components/DesktopSidebarNav.tsx |   const { user, isAdmin } = useCurrentUser(); |   const { user, adminStatus } = useCurrentUser(); const isAdmin = adminStatus !== "not_admin";
- * @mutate src/components/DesktopSidebarNav.tsx |         {isAdmin && ( |         {true && (
+ * @mutate src/components/DesktopSidebarNav.tsx |         {isAdmin && <AdminNavGroup />} |         {true && <AdminNavGroup />}
  * @mutate src/hooks/useCurrentUser.ts |     isAdmin: adminStatus === "admin", |     isAdmin: adminStatus !== "not_admin",
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -98,7 +98,8 @@ describe("the Admin entry is for confirmed admins only, from the shared role sig
     expect(keys.indexOf("support") - keys.indexOf("admin")).toBe(1);
     const rail = railAdmin() as HTMLButtonElement;
     expect(rail?.textContent).toBe("Admin");
-    fireEvent.click(rail);
+    // Open by default for an admin (owner 2026-10-27): no click needed.
+    expect(rail.getAttribute("aria-expanded")).toBe("true");
     const sections = [...document.querySelectorAll("#side-panel-admin-sections button")] as HTMLButtonElement[];
     expect(sections.length).toBeGreaterThan(5);
     fireEvent.click(sections.find((x) => x.textContent === "Dashboard")!);

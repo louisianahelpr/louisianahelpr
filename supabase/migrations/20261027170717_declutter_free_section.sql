@@ -686,6 +686,7 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
 DECLARE
   v_uid uuid;
+  v_taker text;
   v_n integer;
   v_items integer;
   v_lines uuid[];
@@ -766,8 +767,9 @@ BEGIN
   PERFORM public.declutter_notify(v_uid, 'payment', 'It''s yours',
     'Your free item is set. Next: pick it up at the time you chose. Nothing was charged.',
     '/declutter?view=cart', p_seller_id);
+  SELECT public.member_display_name(p.full_name, 'Someone') INTO v_taker FROM public.profiles p WHERE p.user_id = v_uid;
   PERFORM public.declutter_notify(p_seller_id, 'payment', 'Free item claimed',
-    'Someone is picking up your free item. Nothing to pay and nothing to set up.',
+    COALESCE(v_taker, 'Someone') || ' is picking up your free item. Nothing to pay and nothing to set up.',
     '/declutter?view=offers', v_uid);
   RETURN v_order;
 END;

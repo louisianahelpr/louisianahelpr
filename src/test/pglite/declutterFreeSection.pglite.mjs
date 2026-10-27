@@ -107,7 +107,16 @@ stmts.splice(feeAt, 0, `
   CREATE OR REPLACE FUNCTION public.update_updated_at_column() RETURNS trigger LANGUAGE plpgsql
     AS $$ BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
   CREATE TABLE IF NOT EXISTS public.payout_send_marks (payout_kind text NOT NULL CHECK (payout_kind IN ('declutter', 'helpr_task', 'shop')),
-    payout_id uuid NOT NULL, marked_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (payout_kind, payout_id));`);
+    payout_id uuid NOT NULL, marked_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY (payout_kind, payout_id));
+  -- 20261021061341 (on prod): the free checkout names the taker to the giver.
+  CREATE OR REPLACE FUNCTION public.member_display_name(p_full_name text, p_fallback text DEFAULT 'A neighbor')
+  RETURNS text LANGUAGE sql IMMUTABLE AS $fn$
+    SELECT CASE WHEN v.t = '' THEN p_fallback
+                WHEN array_length(v.parts, 1) > 1 THEN v.parts[1] || ' ' || left(v.parts[array_length(v.parts, 1)], 1) || '.'
+                ELSE v.parts[1] END
+      FROM (SELECT x.t, regexp_split_to_array(x.t, '\\s+') AS parts
+              FROM (SELECT regexp_replace(coalesce(p_full_name, ''), '^\\s+|\\s+$', '', 'g') AS t) x) v
+  $fn$;`);
 // The prod chain first; prod's bodies are checked at that point (section 0), before the two branches land.
 for (const sql of stmts.slice(0, feeAt)) await db.exec(sql);
 

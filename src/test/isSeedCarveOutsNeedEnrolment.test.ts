@@ -70,6 +70,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",
   declutter_haul_away_job_refunded: "alerts",
+  declutter_haul_away_sweep: "alerts", // Q2423 haul-away sweep: a test row's defect is logged under a -seed key
+  declutter_item_link_visible: "hides", // Q2426 share card: a test item is not shown to the public unless seeds are visible
+  declutter_pickup_remind: "hides", // Q2432: a test account never reminds a real member (the seed actor rule, like declutter_notify)
   declutter_items_seed_from_seller: "tags",
   declutter_lock_buyable_item: "hides",
   declutter_money_rows_seed: "tags",

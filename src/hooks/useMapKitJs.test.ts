@@ -170,11 +170,13 @@ describe("the minted token the edge function produces", () => {
     const { readFileSync } = await import("node:fs");
     const { resolve } = await import("node:path");
     const src = readFileSync(
-      resolve(__dirname, "../../supabase/functions/mapkit-token/index.ts"),
+      // The signing moved to the shared module (declutter-delivery-geocoder, 2026-10-27); mapkit-token calls it.
+      resolve(__dirname, "../../supabase/functions/_shared/mapkitJwt.ts"),
       "utf8",
     );
     // Floor: a missing or truncated read must fail here, not pass by absence.
     expect(src.length).toBeGreaterThan(1_000);
+    expect(readFileSync(resolve(__dirname, "../../supabase/functions/mapkit-token/index.ts"), "utf8")).toMatch(/signMapkitJwt\(/);
     expect(src).toMatch(/alg:\s*"ES256"/);
     // WebCrypto's ECDSA sign returns raw r||s; it is passed straight through.
     expect(src).toMatch(/base64url\(new Uint8Array\(signature\)\)/);

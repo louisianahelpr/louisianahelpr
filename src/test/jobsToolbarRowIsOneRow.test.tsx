@@ -19,7 +19,7 @@
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
  * @mutate src/pages/home/Dashboard.tsx |                   className={JOBS_TOOLBAR_LINE_CLASS}\n                  style={JOBS_TOOLBAR_LINE_STYLE} |                   className="shrink-0 flex items-center gap-2 px-4 py-2"\n                  style={JOBS_TOOLBAR_LINE_STYLE}
- * @mutate src/pages/home/Dashboard.tsx | <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>\n          <div className="min-w-0 flex-1"><BrowseCompactSearchRow | <div data-jobs-toolbar="" className="flex">\n          <div className="min-w-0 flex-1"><BrowseCompactSearchRow
+ * @mutate src/pages/home/Dashboard.tsx | <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow | <div data-jobs-toolbar="" className="flex">\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} | end={<InlineListSearch value="" onChange={() => {}}
  */

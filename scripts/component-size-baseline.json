@@ -18,7 +18,7 @@
     "src/components/profile/ScheduleTab.tsx": 843,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 790,
-    "src/pages/auth/CompleteProfile.tsx": 919,
+    "src/pages/auth/CompleteProfile.tsx": 898,
     "src/pages/auth/Signup.tsx": 611,
     "src/pages/home/Dashboard.tsx": 895,
     "src/pages/home/DashboardGuest.tsx": 805,

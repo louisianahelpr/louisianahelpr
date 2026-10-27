@@ -130,6 +130,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/messages/MessageBubble.tsx::url": "isSafeHttpsUrl(url) (new URL(url).protocol === 'https:') returns inert text first",
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,
+  // Q2425: a fixed https://maps.apple.com/?ll=<number>,<number>&q=<encodeURIComponent(name)> for an admin-curated public spot.
+  "components/declutter/DeclutterMeetup.tsx::meetupMapUrl(m)": "meetupMapUrl(): a fixed https://maps.apple.com prefix + Number() coordinates + encodeURIComponent(spot name)",
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
   "components/declutter/DeliveryRoute.tsx::maps.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",
   "components/ReferralSection.tsx::href": "`sms:?&body=${encodeURIComponent(...)}` built on the line above",

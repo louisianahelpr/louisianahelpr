@@ -57,6 +57,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
 vi.mock("@/lib/declutter/deliveryRaise", () => ({ fetchDeliveryRaiseStatus: async () => null, startDeliveryRaise: vi.fn() }));
 
 import { DeliverView, OrderDeliveryPanel } from "./DeclutterDeliveryViews";
+import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
 
 function show(el: React.ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -241,7 +242,8 @@ describe("DeliverView: who may not deliver yet (Q2351)", () => {
     state.openError = { message: "payout_setup_incomplete" };
     state.setupPaused = true;
     await showRouted(<DeliverView />);
-    await waitFor(() => expect(screen.queryByText(/Loading deliveries/)).toBeNull());
+    // Wait for the paused notice itself (a positive), then assert the setup notice is absent.
+    expect(await screen.findByText(PAYOUT_SETUP_NEEDS_HIRE_COPY)).toBeInTheDocument();
     expect(screen.queryByText("Set up payouts to deliver.")).toBeNull();
     expect(screen.queryByRole("link", { name: "Set up payouts" })).toBeNull();
     expect(screen.queryByText("We couldn't load deliveries.")).toBeNull();

@@ -110,7 +110,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
           {GROUP_EMOJI[g.id]}
         </span>
         <span data-tile-title="" className="block min-w-0 text-ds-15 font-semibold">{TILE_LABEL[g.id] ?? g.label}</span>
-        <span data-tile-sub="" className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{g.examples}</span>
+        <span data-tile-sub="" title={g.examples} className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{g.examples}</span>
       </button>
     );
   };

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 // Derive the auto-release window rather than restating "48 hours" in prose.
 // This is checkout copy — a legally load-bearing promise about when money
@@ -90,6 +90,7 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 // wrong for a payment that not only succeeded but has already been paid out.
 // `released` means the charge succeeded at least as much as `escrow` did.
 const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
 
 /** States that mean this job never got funded. */
 const NOT_HELD_STATUSES = new Set(["failed", "cancelled", "abandoned"]);
@@ -482,6 +483,8 @@ const PaymentSuccess = () => {
         {/* The escrow promise, the lifecycle preview and the auto-release
             window all describe what happens to money we are holding. They
             render ONLY when we have confirmed we're holding it. */}
+        {/* Owner-approved 2026-10-27: the one-time "Add your phone" ask at a member's FIRST job (the server decides). */}
+        {isHeld && <Suspense fallback={null}><SmsPhonePrompt moment="first_job" /></Suspense>}
         {isHeld && (
           <>
             <div className="space-y-3 text-left">

@@ -125,6 +125,8 @@ const h = vi.hoisted(() => {
 
 // ── Network boundaries ──────────────────────────────────────────────────────
 vi.mock("@/integrations/supabase/client", () => ({ supabase: h.supabase }));
+// PaymentSuccess's one-time "Add your phone" ask reads React Query (src/test/smsPhonePrompt.test.ts covers it).
+vi.mock("@/components/notificationPreferences/SmsPhonePrompt", () => ({ SmsPhonePrompt: () => null }));
 vi.mock("@/lib/restInsert", () => ({
   postRows: async (table: string, _cols: readonly string[], rowsFor: (asUser: boolean) => unknown[]) => {
     if (table === "analytics_events") {

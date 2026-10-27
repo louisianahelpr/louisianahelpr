@@ -39,7 +39,7 @@ const when = (iso: string | null) =>
   iso ? new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso)) : "";
 
 /** The poster's one-paragraph explainer (also in the Terms). */
-export function GuaranteeExplainer() {
+function GuaranteeExplainer() {
   return (
     <p data-guarantee-explainer="" className="text-ds-13 text-muted-foreground">
       Not done right? Tell us within 48 hours of

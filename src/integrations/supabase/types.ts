@@ -16419,6 +16419,30 @@ export type Database = {
         Returns: Json
       }
       rpc_helper_mark_done: { Args: { _job_id: string }; Returns: Json }
+      guarantee_claim_for_dispute: {
+        Args: { p_dispute_id: string }
+        Returns: Json
+      }
+      guarantee_close_on_lost_chargeback: {
+        Args: { p_job_id: string }
+        Returns: number
+      }
+      guarantee_escalate: {
+        Args: { p_claim_id: string; p_reason: string }
+        Returns: string
+      }
+      guarantee_rules: { Args: never; Returns: Json }
+      guarantee_sweep: { Args: never; Returns: Json }
+      guarantee_tell: {
+        Args: {
+          p_chat: string
+          p_job_id: string
+          p_message: string
+          p_title: string
+          p_to: string
+        }
+        Returns: undefined
+      }
       rpc_guarantee_helpr_answer: {
         Args: { _accept: boolean; _claim_id: string; _fix_date?: string }
         Returns: string

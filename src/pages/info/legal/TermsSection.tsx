@@ -139,7 +139,6 @@ export const TermsContent = () => {
           </>
         }
       />
-      {/* Owner 2026-10-27, "Redo first, then refund" (migration 20261027200455). No fee numbers (owner rule). */}
       <PolicyRowItem
         icon={DollarSign}
         title="Helpr Guarantee"

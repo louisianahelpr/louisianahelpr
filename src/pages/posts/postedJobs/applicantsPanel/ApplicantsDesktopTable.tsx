@@ -1,3 +1,4 @@
+import { TopHelprChip } from "@/components/profile/TopHelprChip";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { ApplicantSuggestedTime } from "./ApplicantSuggestedTime";
 import { useEffect, useState } from "react";
@@ -166,6 +167,7 @@ export function ApplicantsDesktopTable({
                       </div>
                     </div>
                     <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                      <TopHelprChip stats={{ completedJobs: jobs, avgRating: app.avgRating ?? 0, reviewCount: reviews }} />
                       {distanceBand && (
                         <span className="inline-flex items-center gap-1 text-ds-11 font-semibold text-foreground">
                           <MapPin className="h-3 w-3 shrink-0" aria-hidden />

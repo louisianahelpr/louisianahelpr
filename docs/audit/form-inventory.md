@@ -71,7 +71,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/dashboard/filterSheet/FilterSheetRows.tsx` | checkbox/switch/radio×1 |  |  |  |
 | `src/components/dashboard/filterSheet/PayRangeSlider.tsx` | input×2 | range |  | pay-range · Lowest price · Highest price |
-| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-today · job-card-countdown-slot |
+| `src/components/dashboard/JobCard.tsx` | date/calendar×2 |  |  | Just posted · Boosted · job-card-countdown-slot |
 | `src/components/SavedSearches.tsx` | input×1 | text | 60 | Saved searches · search-name · e.g. Lawn care under $200 · Save filter set · Delete saved search |
 
 ## /complete-profile

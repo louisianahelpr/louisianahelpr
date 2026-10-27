@@ -29,7 +29,7 @@ import {
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return milesBetween(jLat, jLng, hLat, hLng) <= SAME_DAY_RADIUS_MILES; |   return true;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(job.date_needed, now)) return 0; |
 // @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    setStartTime(sameDayStart); |     setDateNeeded(today);
-// @mutate src/components/dashboard/JobCard.tsx |           if (isTodayJob(job.date_needed)) { |           if (false) {
+// @mutate src/components/dashboard/JobCard.tsx |           if (isTodayJob(job.date_needed)) return <TodayCornerChip />; // Q2438 |           if (false) return <TodayCornerChip />; // Q2438
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -119,7 +119,7 @@ describe("the wiring (Q2438)", () => {
 
   it("the browse card shows Today for a job dated today", () => {
     const src = code("src/components/dashboard/JobCard.tsx");
-    expect(src).toMatch(/if \(isTodayJob\(job\.date_needed\)\) \{/);
+    expect(src).toContain("if (isTodayJob(job.date_needed)) return <TodayCornerChip />;");
   });
 
   it("instant-job-match reads the online state and boosts by it", () => {

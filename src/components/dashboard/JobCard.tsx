@@ -6,7 +6,7 @@ import { differenceInHours } from "date-fns";
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
-import { isTodayJob } from "@/lib/sameDayJob";
+import { JOB_CARD_CORNER as corner, TodayCornerChip, isTodayJob } from "./jobCardCorner";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
@@ -445,8 +445,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
           {/* 4. Status corner — the single highest-priority signal, mirroring
                  the category tab on the opposite corner. */}
           {(() => {
-          const corner =
-            "inline-flex items-center gap-1 shrink-0 pl-2.5 pr-3 py-1 rounded-bl-lg border-b border-l text-ds-9 font-bold uppercase leading-none shadow-sm";
           if (job.isBoosted)
             return (
               <span role="img"
@@ -497,25 +495,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             );
           }
-          // Q2438: a job for Louisiana's today wears "Today" (below Boosted and
-          // Urgent, which keep their corner).
-          if (isTodayJob(job.date_needed)) {
-            return (
-              <span
-                className={corner}
-                data-testid="job-card-today"
-                style={{
-                  color: "hsl(var(--bark))",
-                  background: "hsl(var(--bark) / 0.12)",
-                  borderColor: "hsl(var(--bark) / 0.4)",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
-                Today
-              </span>
-            );
-          }
+          if (isTodayJob(job.date_needed)) return <TodayCornerChip />; // Q2438
           return null;
           })()}
         </div>

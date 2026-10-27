@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 971,
+    "calls": 973,
     "files": 249,
-    "rendering": 825,
+    "rendering": 827,
     "suppressedByPolicy": 146,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 690,
+      "toast.error": 692,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 444,
       "template": 102,
-      "dynamic": 475,
+      "dynamic": 477,
       "jsx": 0
     }
   },
@@ -93,7 +93,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 264,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -103,7 +103,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 321,
+      "line": 323,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -113,7 +113,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 323,
+      "line": 325,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -123,13 +123,17 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 368,
+      "line": 370,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
-        "text": "cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew })",
+        "text": "cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew })",
         "from": "src/lib/cancelRefundCopy.ts",
         "branches": [
+          {
+            "form": "literal",
+            "text": "Job cancelled. The hold on your card is released, and your card was not charged."
+          },
           {
             "form": "dynamic",
             "text": "wasFunded ? neutral : \"Job cancelled. Your checkout was never completed, so your card was never charged, and the gift you set aside goes back to your gift balance within the hour.\"",
@@ -236,7 +240,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 382,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6003,7 +6007,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 154,
+      "line": 155,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6013,7 +6017,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 158,
+      "line": 159,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6023,7 +6027,17 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 383,
+      "line": 382,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "holdMessage"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 390,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6033,7 +6047,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 391,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6043,7 +6057,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 402,
+      "line": 409,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6053,7 +6067,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 408,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6063,7 +6077,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 412,
+      "line": 419,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6073,7 +6087,17 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 532,
+      "line": 534,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "holdMessage"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
+      "line": 545,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6083,7 +6107,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 538,
+      "line": 551,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6093,7 +6117,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 547,
+      "line": 560,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6103,7 +6127,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 551,
+      "line": 564,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6113,7 +6137,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 585,
+      "line": 598,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6123,7 +6147,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 589,
+      "line": 602,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6133,7 +6157,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 602,
+      "line": 615,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6143,7 +6167,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 617,
+      "line": 630,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -6153,7 +6177,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 625,
+      "line": 638,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -6163,7 +6187,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 649,
+      "line": 662,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10784,7 +10808,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 205,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10798,7 +10822,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 235,
+      "line": 237,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10812,7 +10836,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 395,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10822,7 +10846,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 402,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10832,7 +10856,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 411,
+      "line": 413,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10842,7 +10866,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 413,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10852,7 +10876,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 417,
+      "line": 419,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10862,7 +10886,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 423,
+      "line": 425,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10872,7 +10896,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 425,
+      "line": 427,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10882,7 +10906,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 426,
+      "line": 428,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10892,7 +10916,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 430,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10902,7 +10926,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 431,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10912,7 +10936,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 432,
+      "line": 434,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10922,7 +10946,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 433,
+      "line": 435,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10932,7 +10956,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 434,
+      "line": 436,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10942,7 +10966,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 439,
+      "line": 441,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10952,7 +10976,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 440,
+      "line": 442,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10962,7 +10986,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 449,
+      "line": 451,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10972,7 +10996,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 462,
+      "line": 464,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10982,7 +11006,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 463,
+      "line": 465,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10992,7 +11016,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 464,
+      "line": 466,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11002,7 +11026,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 468,
+      "line": 470,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11012,7 +11036,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 475,
+      "line": 477,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11022,7 +11046,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 520,
+      "line": 522,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11032,7 +11056,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 529,
+      "line": 531,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11042,7 +11066,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 545,
+      "line": 547,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11052,7 +11076,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 551,
+      "line": 553,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11062,7 +11086,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 673,
+      "line": 675,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11072,7 +11096,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 757,
+      "line": 759,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11132,7 +11156,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 797,
+      "line": 799,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11146,7 +11170,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 819,
+      "line": 821,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11160,7 +11184,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 852,
+      "line": 854,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -11170,7 +11194,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 877,
+      "line": 879,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11184,7 +11208,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1060,
+      "line": 1062,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11204,7 +11228,7 @@
     },
     {
       "file": "src/pages/post-job/useJobSubmit.ts",
-      "line": 1128,
+      "line": 1130,
       "kind": "toast.error",
       "title": {
         "form": "literal",

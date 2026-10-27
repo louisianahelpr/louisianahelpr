@@ -250,7 +250,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
         <span>
           <span className="font-medium">Refund in full</span>
           <span className="block text-ds-12 text-muted-foreground">
-            {cap(who)} gives the item back, then gets {refundDollars(v.full_refund_cents)} back, including the buyer fee, once you confirm you have it. You get no payout for this sale.
+            {cap(who)} gives the item back, then gets {refundDollars(v.full_refund_cents)} back once you confirm you have it. You get no payout for this sale.
           </span>
         </span>
       </label>

@@ -145,7 +145,7 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
                   <span>or more</span>
                 </label>
                 <p id="sd-free-over-help" className={`text-xs ${freeOver && !freeOverOk ? "text-destructive-ink" : "text-muted-foreground"}`}>
-                  The items' total from you, before fees, whole dollars. Below that, your price applies.
+                  The items' total from you, whole dollars. Below that, your price applies.
                 </p>
               </div>
             )}

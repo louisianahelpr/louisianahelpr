@@ -345,11 +345,12 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("setup_fee_cents") .eq("id", order.order_id).maybeSingle()',
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders").select("stripe_checkout_session_id, status") .eq("id", order.order_id).maybeSingle()',
   // Q1929 raise_pay: the raise row's card fee (decided by declutter_delivery_raise_start in SQL) is checked to add up
-  // and sent as its own Stripe line the BUYER pays; the order is READ for its two parties. No refund, no write.
+  // and sent with the raise as ONE Stripe line the BUYER pays (raise_cents + card_fee_cents = total_cents, checked
+  // above; issue #3672, members never see a fee line); the order is READ for its two parties. No refund, no write.
   "supabase/functions/declutter-checkout/index.ts: type RaiseRow = { raise_id: string; raise_cents: number; card_fee_cents: number; total_cents: number; superseded_session_id: string | null };",
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("buyer_id, seller_id").eq("id", orderId).maybeSingle()',
   "supabase/functions/declutter-checkout/index.ts: if (!raise?.raise_id || raise.raise_cents !== raiseCents || raise.raise_cents + raise.card_fee_cents !== raise.total_cents) {",
-  'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.card_fee_cents,',
+  'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,',
   // Q1929 settleRaise: READS the order's buyer to check the raise page's payer. No money column, no write.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle()',
@@ -493,7 +494,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.
-      declutter_close_paid_order: "20261027170717_declutter_free_section.sql 40e81d90ab8e5fd8",
+      declutter_close_paid_order: "20261027170717_declutter_free_section.sql c507c481a3209303",
       declutter_checkout_free: "20261027170717_declutter_free_section.sql cc106b9b8f29b7a2",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
@@ -508,7 +509,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // None records or changes an order refund.
       declutter_delivery_raise_start: "20261021185418_declutter_delivery_raise_pay.sql f54438c6e9a4e1f9",
       declutter_delivery_raise_status: "20261021185418_declutter_delivery_raise_pay.sql 359d147a69ed2a51",
-      declutter_delivery_raises_on_task_close: "20261021185418_declutter_delivery_raise_pay.sql f98b5e3bd01280f5",
+      declutter_delivery_raises_on_task_close: "20261021185418_declutter_delivery_raise_pay.sql adc539c67564a84c",
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
@@ -533,7 +534,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // already tried, marked or sent; rebooks the seller's payout before returning.
       // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow): the same refunds and fee policies;
       // only the seller's payout rebook changes (a full refund also undoes a seller delivery's rate for the seller).
-      declutter_refund_after_handover: "20261027153244_declutter_seller_delivery.sql a3500998a1a7f818",
+      declutter_refund_after_handover: "20261027153244_declutter_seller_delivery.sql 2a7eaad5c68fad89",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
       declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",
@@ -547,21 +548,21 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // policy recorded by declutter_record_refund stands.
       declutter_refund_executed: "20261019070737_payout_waits_for_payee_setup.sql d56d6750b97358bc",
       declutter_refund_gave_up_check: "20261017055500_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
-      declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql 2e178605dfca8501",
+      declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql d970c83965cd57c2",
       declutter_refund_reversed: "20261017055500_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261015042253_declutter_slice4_handover_payout.sql c41b6779b527f9c7",
       // Payout readiness (20261019070737): a deferred pending refund waits for next_attempt_at, and a delivery_damage
       // refund also counts a seller payout settled by hand as paid; the projected refund_cents is unchanged.
       declutter_refunds_due: "20261019070737_payout_waits_for_payee_setup.sql 42525eabe75fde8f",
       // Reads which order a refund belongs to and tells the seller the debt booked for it; writes no amount.
-      declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql 5cbd77f0949a09ec",
+      declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql b469d8dcc79e1b10",
       // A10 (owner, 2026-10-17): the trigger on a seller-fault refund cancels the buyer's setup job (no fee) and
       // marks it; it records no refund and changes no refund amount.
       declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
-      declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 9fb6ded3b0740512",
+      declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 943675e46fc54277",
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
-      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 4d24b4a83bd33864",
+      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 97d970d37fce8c5c",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
       shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",

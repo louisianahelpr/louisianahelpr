@@ -174,7 +174,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   invalid_address: "Enter the full drop-off address: street number, street, and town.",
   order_handover_frozen: "How you get this order can't be changed after checkout.",
   order_amounts_frozen: "The amounts of this order can't be changed after checkout.",
-  no_delivery_fee: "This order has no delivery fee to refund.",
+  no_delivery_fee: "This order has no delivery to refund.",
   not_a_delivery_in_transit: "Only a delivery the Helpr picked up can be decided as damaged in delivery.",
   delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
   task_not_found: "This delivery isn't available.",
@@ -202,7 +202,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // A10 (20261017073146): the seller-fault cancel's hand tool and the seller's fee debt (staff and server only).
   not_seller_fault: "This refund was not the seller's fault, so the setup job keeps the normal cancel rules.",
   order_gone: "This order no longer exists, so its setup jobs have to be settled by hand.",
-  invalid_fee: "That card fee amount isn't valid.",
+  invalid_fee: "That amount isn't valid.",
   setup_job_not_cancelled: "The setup job could not be cancelled. Try again.",
   // Service-only (a source or the money cron); worded for the ops log.
   invalid_result: "That payout or refund result couldn't be recorded.",

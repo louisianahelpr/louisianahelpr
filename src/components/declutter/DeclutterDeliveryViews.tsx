@@ -18,6 +18,9 @@ import { Check } from "lucide-react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { DeclutterNotice } from "./declutterUi";
+import { useHiredPayoutPrompt } from "@/components/payouts/useHiredPayoutPrompt";
+import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDialog";
+import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { DateTimeField } from "@/components/DateTimeField";
@@ -249,10 +252,19 @@ function VehicleForm({ userId }: { userId: string }) {
  */
 function OpenTaskRow({ t }: { t: OpenTask }) {
   const qc = useQueryClient();
+  const { user } = useCurrentUser();
+  // Q2416 (owner 2026-10-27): taking a delivery needs no payout account; right after it, a Helpr
+  // without one is asked to set it up, the same prompt as a hired Helpr (pay held until then).
+  const hiredPayout = useHiredPayoutPrompt();
   const [slot, setSlot] = useState("");
   const take = useMutation({
     mutationFn: (iso: string) => acceptTask(t.task_id, iso),
-    onSuccess: () => { toast.success("It's yours. The seller and the buyer are told your pickup time."); setSlot(""); invalidateTasks(qc); },
+    onSuccess: () => {
+      toast.success("It's yours. The seller and the buyer are told your pickup time.");
+      setSlot("");
+      invalidateTasks(qc);
+      if (user?.id) void hiredPayout.offer(user.id);
+    },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const id = `helpr-slot-${t.task_id}`;
@@ -305,7 +317,32 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
           Accept delivery
         </button>
       </div>
+      {hiredPayout.open && <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) hiredPayout.close(); }} />}
     </li>
+  );
+}
+
+/**
+ * Q2416: a Helpr who took deliveries without a payout account is told, on their own list, that the pay
+ * waits for the account, with the way to set it up (or the paused / needs-hire notice). A test account
+ * that is fixture-shaped (is_seed, no account) is never asked (payoutAccountReady's caller rule).
+ */
+function DeliveryPayoutHeld({ tasks }: { tasks: MyTask[] }) {
+  const { profile } = useCurrentUser();
+  const setupPaused = usePayoutSetupPaused();
+  // Pay still to come: a delivery in hand, or a confirmed one whose payout has not gone out.
+  const owed = tasks.some((t) => ["accepted", "picked_up", "delivered"].includes(t.status)
+    || (t.status === "confirmed" && t.payout_status !== "succeeded" && t.payout_status !== "nothing_due"));
+  if (!profile || !owed || payoutAccountReady(profile)) return null;
+  if (profile.is_seed === true && !profile.stripe_account_id) return null;
+  if (setupPaused) {
+    return <PayoutSetupPausedNotice />;
+  }
+  return (
+    <DeclutterNotice title="Set up payouts to get paid for your deliveries.">
+      Your delivery pay is held until your payout account is ready.{" "}
+      <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
+    </DeclutterNotice>
   );
 }
 
@@ -498,7 +535,10 @@ export function DeliverView() {
         ) : myList.length === 0 ? (
           <p className="text-sm text-muted-foreground">You haven't taken a delivery yet.</p>
         ) : (
-          <ul className="space-y-3">{myList.map((t) => <MyTaskCard key={t.task_id} t={t} userId={userId} />)}</ul>
+          <>
+            <DeliveryPayoutHeld tasks={myList} />
+            <ul className="space-y-3">{myList.map((t) => <MyTaskCard key={t.task_id} t={t} userId={userId} />)}</ul>
+          </>
         )}
       </section>
       <section className="space-y-3" aria-label="Deliveries near you">

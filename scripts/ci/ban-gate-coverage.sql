@@ -200,6 +200,7 @@ rpc_exempt(fn, why) AS (
   ('shops_admin_remove_strike', 'admin-only (body checks has_role admin first; Shops M4 removes one Shops strike, audited)'),
   ('shops_admin_give_strike', 'admin-only (body checks has_role admin first; Shops M4 gives one admin strike per order and side, audited)'),
   ('admin_payout_settle_by_hand', 'admin-only (body checks has_role admin; held-for-review payout recorded as settled by hand)'),
+  ('admin_declutter_save_meetup_spot', 'admin-only (body checks has_role admin first; Declutter safe meetup 20261027204500 adds or edits a public meetup spot, audited)'),
   -- No user-visible write.
   ('get_helper_earnings_export', 'read-only; VOLATILE only by default'),
   ('search_profiles_by_name', 'a read; its only write is its own rate-limit log'),
@@ -209,6 +210,7 @@ rpc_exempt(fn, why) AS (
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_thread_mute', 'unmuting an unusable thread changes nothing another person sees'),
   ('dismiss_sms_phone_prompt', 'SMS phone ask (20261027183058): stamps only the caller own notification_preferences row so the prompt stops; like opting out of notifications it must work for everyone, and it changes nothing another person sees'),
+  ('helpr_go_online', 'Declutter go-online 20261027203030: going ONLINE runs helpr_task_assert_helpr (which calls is_caller_banned()); going OFFLINE only clears the caller own helpr_delivery_online row so offers stop, like clear_available_now, and changes nothing another person sees'),
   ('rentals_end_tenancy', 'ending a tenancy (or revoking an unused invite) only removes access, like end_recurring_series: a banned tenant or landlord may still leave; it creates nothing and every other Rentals write is ban-gated'),
   ('rpc_withdraw_refund_request', 'board 141: the poster withdraws their own refund request (open or declined, before a dispute exists); it only closes the request, moves no money and posts no content, and asking is ban-gated (rpc_open_refund_request refuses a banned caller)'),
   ('rentals_withdraw_request', 'the tenant pulls back their own undecided maintenance request (status submitted -> withdrawn); it only reduces activity and posts nothing, and filing one is ban-gated'),

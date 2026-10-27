@@ -16,15 +16,15 @@
  * with the migration applied 3x; 5 FAIL on main). This guard pins, from the
  * NEWEST definition, that the grace stays narrow.
  *
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |           (resp.status_code = 404\n |           (resp.status_code >= 400\n
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |                            AND resp.created < f.first_seen + interval '30 minutes')) AS first_run_grace, |                            AND true) AS first_run_grace,
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |                            AND resp.created >= f.first_seen - interval '20 minutes'\n |                            AND true\n
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |         IF r.later_success THEN | IF true THEN
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |         ELSIF r.created > now() - interval '30 minutes' THEN | ELSIF true THEN
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |         ELSIF r.created > now() - interval '30 minutes' THEN | ELSIF r.created > now() - interval '45 minutes' THEN
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |            LEAST(now(), (SELECT min(h.created_at) FROM public.cron_http_requests h WHERE h.jobname = j.jobname)) | now()
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |           (resp.status_code = 404\n |           (resp.status_code >= 400\n
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |                            AND resp.created < f.first_seen + interval '30 minutes')) AS first_run_grace, |                            AND true) AS first_run_grace,
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |                            AND resp.created >= f.first_seen - interval '20 minutes'\n |                            AND true\n
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |         IF r.later_success THEN | IF true THEN
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |         ELSIF r.created > now() - interval '30 minutes' THEN | ELSIF true THEN
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |         ELSIF r.created > now() - interval '30 minutes' THEN | ELSIF r.created > now() - interval '45 minutes' THEN
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |            LEAST(now(), (SELECT min(h.created_at) FROM public.cron_http_requests h WHERE h.jobname = j.jobname)) | now()
  * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |     SELECT j.jobname, '-infinity'::timestamptz FROM cron.job j WHERE j.jobname IS NOT NULL | SELECT j.jobname, now() FROM cron.job j WHERE j.jobname IS NOT NULL
- * @mutate supabase/migrations/20261012202854_cron_first_run_404_grace.sql |                             'first_run_404_skipped', v_grace, |                             'first_run_404_skipped_x', v_grace,
+ * @mutate supabase/migrations/20261027141932_cron_gateway_5xx_needs_a_repeat.sql |                             'first_run_404_skipped', v_grace, |                             'first_run_404_skipped_x', v_grace,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

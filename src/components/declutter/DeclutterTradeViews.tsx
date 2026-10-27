@@ -50,7 +50,10 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
+import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
+import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
+import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -321,8 +324,16 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
   const [slot, setSlot] = useState<string | null>(null);
   const [handoff, setHandoff] = useState<DeliveryHandoff | null>(null);
   const sdState = sellerDeliveryOn && !sdOffer.isError ? sellerDeliveryState(sdOffer.data, sdTyped) : "hidden";
+  // Q2425: safe meetup spots near this seller's items (admin-curated); offered only when there is one.
+  const meetupSpots = useQuery({
+    queryKey: ["declutter", "meetup-spots", sellerId, itemsTotalCents],
+    queryFn: () => fetchMeetupSpotsNear(sellerId),
+    enabled: deliveryOpen,
+  });
+  const spotsNear = meetupSpots.data ?? [];
   // The spec's order: porch / safe place, pickup at the home, the seller delivers, Helpr delivery.
-  const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])];
+  const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", ...(spotsNear.length > 0 ? ["meetup" as const] : []),
+    ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])];
   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order;
   const [handover, setHandover] = useState<Handover>(order[0]);
   // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
@@ -354,6 +365,8 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
   // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
+  const meetingUp = chosen === "meetup";
+  const meetupReady = !meetingUp || spotsNear.some((s) => s.chosen);
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
   // The seller's rate counts in the buyer's premium (the server's rule), folded into "You pay" before checkout; a free
   // seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing. The bill never
@@ -390,6 +403,7 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
           <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
         )}
       </fieldset>
+      {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
       {sellerDelivering && (
         <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
           handoff={handoff} onHandoff={setHandoff}
@@ -453,7 +467,7 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
       <button
         type="button"
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady)}
+        disabled={opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
         onClick={async () => {
           setOpening(true);
           try {
@@ -476,7 +490,7 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
 
               void qc.invalidateQueries({ queryKey: sdKey });
             } else {
-              toast.error(declutterErrorMessage(err));
+              toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));
             }
             setOpening(false);
           }

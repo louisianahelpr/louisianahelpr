@@ -133,6 +133,8 @@ export interface RouteStop {
   size: TaskSize;
   area: string;
   address: string | null;
+  /** A drop-off not shown yet (issue #3684): when its address will show (2 hours before the pickup). */
+  address_shows_at: string | null;
   lat: number | null;
   lng: number | null;
   place: "porch" | "door";

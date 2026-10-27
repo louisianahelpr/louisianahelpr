@@ -131,6 +131,7 @@ const CLASSIFIED: Record<string, string> = {
   // --- app-built URLs, no stored value in the scheme position ---
   "components/job-card/JobCardMetaRow.tsx::mapHref": MAPS,
   "pages/jobs/appliedJobCard/DirectionsButton.tsx::href": MAPS,
+  "components/declutter/DeliveryRoute.tsx::maps.href": "routeMapsUrl() (src/lib/declutter/route.ts): a fixed https://www.google.com/maps/dir/?api=1 prefix + encodeURIComponent(address) per stop",
   "components/ReferralSection.tsx::href": "`sms:?&body=${encodeURIComponent(...)}` built on the line above",
   "components/admin/AdminIDVReview.tsx::stripeSessionUrl(r.idv_session_id)": "fixed https://dashboard.stripe.com/... prefix + session id",
   "components/dashboard/filterSheet/jobFilterSections.tsx::signupHref": "signupUrlFor(): \"/signup\" or `/signup?redirect=${encodeURIComponent(safeInternalRedirect(...))}`",

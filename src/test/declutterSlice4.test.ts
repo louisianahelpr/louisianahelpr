@@ -158,8 +158,10 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(DEFS.get("helpr_task_delivered")?.file).toBe(NO_DROPOFF_CODE_FILE);
     // helpr_task_view was restated verbatim from that file by 20261021131322 (only its Helpr-name line changed),
     // then it and helpr_task_confirm by 20261021181118 (only the take-home / payout amount rounded down to the
-    // whole dollar, owner 2026-10-21); the body checks below still read the newest definition.
-    for (const fn of ["helpr_task_view", "helpr_task_confirm"]) expect(DEFS.get(fn)?.file).toBe("20261021181118_helpr_delivery_payout_round_down.sql");
+    // whole dollar, owner 2026-10-21), and helpr_task_view again by 20261027201327 (only the drop-off shown to the
+    // assigned Helpr from accept, owner 2026-10-27); the body checks below still read the newest definition.
+    expect(DEFS.get("helpr_task_confirm")?.file).toBe("20261021181118_helpr_delivery_payout_round_down.sql");
+    expect(DEFS.get("helpr_task_view")?.file).toBe("20261027201327_delivery_dropoff_on_accept.sql");
     expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
     expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
     expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);

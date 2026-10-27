@@ -19,7 +19,7 @@
  * @mutate src/lib/jobCategoryGroups.ts |   home: "Cleaning, handyman, painting", |   home: "Cleaning, handyman, declutter help and more",
  * @mutate src/lib/jobCategoryGroups.ts |   trades: "Electrical, plumbing, HVAC", |   trades: "Electrical, plumbing, roofing, welding",
  * @mutate src/lib/jobCategoryGroups.ts |   moving_errands: "Moving, errands, delivery", |   moving_errands: "Moving, errands, painting",
- * @mutate src/components/postjob/JobCategoryGroups.tsx | <span data-tile-sub="" className="block min-w-0 line-clamp-2 | <span data-tile-sub="" className="block min-w-0
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | <span data-tile-sub="" title={g.examples} className="block min-w-0 line-clamp-2 | <span data-tile-sub="" title={g.examples} className="block min-w-0
  * @mutate src/components/postjob/JobCategoryGroups.tsx | text-muted-foreground">{g.examples}</span> | text-muted-foreground">{g.items.length > 1 ? g.examples : null}</span>
  * @mutate src/index.css | .pj-group-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; } | .pj-group-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; }
  * @mutate src/index.css | .pj-group-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; } | .pj-group-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }

@@ -13,6 +13,8 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { useRef, useState } from "react";
+import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
+import { DeliveryRoute } from "./DeliveryRoute";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
@@ -39,8 +41,6 @@ import {
   fetchMyVehicle,
   fetchOpenTasks,
   fetchTaskView,
-  markDelivered,
-  markPickedUp,
   releaseTask,
   reportPickupNoShow,
   saveVehicle,
@@ -75,10 +75,6 @@ function localInputToIso(v: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-function invalidateTasks(qc: ReturnType<typeof useQueryClient>) {
-  void qc.invalidateQueries({ queryKey: ["helpr-tasks"] });
-  void qc.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
-}
 
 /** A private task photo through a short-lived signed URL. */
 function TaskPhoto({ path, label }: { path: string; label: string }) {
@@ -113,7 +109,7 @@ function TaskPhotos({ view }: { view: TaskView }) {
 /** What the buyer or the seller reads about a paid delivery order. */
 export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; side: "buyer" | "seller"; orderId: string }) {
   const qc = useQueryClient();
-  const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId) });
+  const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
   const gotIt = useMutation({
     mutationFn: () => confirmReceived(taskId),
     onSuccess: () => {
@@ -348,41 +344,13 @@ function DeliveryPayoutHeld({ tasks }: { tasks: MyTask[] }) {
 
 /** One delivery the Helpr took: the addresses and every step. */
 function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
-  const qc = useQueryClient();
   const active = t.status === "accepted" || t.status === "picked_up" || t.status === "delivered";
-  const view = useQuery({ queryKey: ["helpr-tasks", "view", t.task_id], queryFn: () => fetchTaskView(t.task_id), enabled: active });
+  // Exact addresses: never written to the on-device query cache (lh-authz-rls review #6).
+  const view = useQuery({ queryKey: ["helpr-tasks", "view", t.task_id], queryFn: () => fetchTaskView(t.task_id), enabled: active, meta: { persist: false } });
   const [dropPhoto, setDropPhoto] = useState<File | null>(null);
-  const done = (msg: string) => { toast.success(msg); invalidateTasks(qc); };
-  const pickedUp = useMutation({
-    mutationFn: async (file: File) => {
-      const path = await uploadTaskPhoto(userId, t.task_id, file);
-      await markPickedUp(t.task_id, path, await currentPosition());
-    },
-    onSuccess: () => done("Picked up. The buyer is told it's on the way."),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  // The drop-off photo is uploaded once: a retry after a refusal reuses it (lh-silent-failure #10).
-  const uploaded = useRef<{ file: File; path: string } | null>(null);
-  const deliver = useMutation({
-    mutationFn: async () => {
-      let path: string | null = null;
-      if (dropPhoto) {
-        if (uploaded.current?.file !== dropPhoto) uploaded.current = { file: dropPhoto, path: await uploadTaskPhoto(userId, t.task_id, dropPhoto) };
-        path = uploaded.current.path;
-      }
-      const where = path ? await currentPosition() : null;
-      return markDelivered(t.task_id, path, where);
-    },
-    onSuccess: (r) => {
-      setDropPhoto(null);
-      done(r.result === "delivered"
-        ? r.held
-          ? "Left at the door. A problem was reported on this sale, so your pay waits until Louisiana Helpr decides."
-          : "Left at the door. You're paid when the buyer confirms, or after 24 hours."
-        : "Delivered. You're being paid.");
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+  // "Picked up" and "Left at the door" are shared with My route (useTaskSteps).
+  const { pickedUp, delivered: deliverStep, done } = useTaskSteps(t.task_id, userId, () => setDropPhoto(null));
+  const deliver = { isPending: deliverStep.isPending, mutate: () => deliverStep.mutate(dropPhoto) };
   const backOut = useMutation({
     mutationFn: () => releaseTask(t.task_id),
     onSuccess: (r) => done(r.strike ? "You backed out less than 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
@@ -525,6 +493,7 @@ export function DeliverView() {
       {intro}
       {/* Q2435: where open jobs and deliveries are waiting, by parish (counts only). */}
       <BusyAreasCard userId={userId} deliveries={open.data ?? []} />
+      {myList.some((t) => t.status === "accepted" || t.status === "picked_up") && <DeliveryRoute userId={userId} where={where} />}
       <VehicleForm userId={userId} />
       <section className="space-y-3" aria-label="Your deliveries">
         <h2 className="text-base font-semibold">Your deliveries</h2>

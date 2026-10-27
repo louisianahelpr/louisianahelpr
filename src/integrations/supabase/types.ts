@@ -15087,6 +15087,7 @@ export type Database = {
         Args: { p_flat_cents: number; p_percent: number; p_share_cents: number }
         Returns: number
       }
+      helpr_my_route: { Args: { p_lat: number; p_lng: number }; Returns: Json }
       helpr_my_tasks: {
         Args: never
         Returns: {
@@ -15103,6 +15104,8 @@ export type Database = {
         }[]
       }
       helpr_payout_round_down_cents: { Args: { p_cents: number }; Returns: number }
+      helpr_route_leg_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
+      helpr_route_plan: { Args: { p_lat: number; p_lng: number; p_now: string; p_stops: Json }; Returns: Json }
       helpr_set_vehicle: { Args: { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
       helpr_task_accept: { Args: { p_pickup_slot_start: string; p_task_id: string }; Returns: Json }
       helpr_task_assert_helpr: { Args: never; Returns: string }
@@ -15113,6 +15116,7 @@ export type Database = {
       helpr_task_delivered: { Args: { p_code: string; p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
       helpr_task_distance_m: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       helpr_task_fee_cents: { Args: { p_pay_cents: number }; Returns: number }
+      helpr_task_items: { Args: { p_kind: string; p_source: string }; Returns: Json }
       helpr_task_give_job_strike: { Args: { p_description: string; p_task: string; p_type: string; p_user: string }; Returns: Json }
       helpr_task_lock: { Args: { p_task: string }; Returns: unknown }
       helpr_task_log: { Args: { p_actor: string; p_detail: string; p_kind: string; p_task: string }; Returns: undefined }

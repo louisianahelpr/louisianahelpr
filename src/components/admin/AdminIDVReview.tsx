@@ -65,7 +65,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
-import { TestTag } from "@/components/admin/TestTag";
 import { userFacingError } from "@/lib/userFacingError";
 
 interface ReviewRow {
@@ -155,6 +154,8 @@ const AdminIDVReview = () => {
           // manual_review first: those people are actively waiting on a human.
           // `failed` is the rescue list, not the shift.
           .in("idv_status", ["manual_review", "failed"])
+          // Owner 2026-10-27: admin never shows a test account.
+          .eq("is_seed", false)
           .order("idv_status", { ascending: true })
           .order("idv_attempted_at", { ascending: true, nullsFirst: false })
           .limit(200),
@@ -341,7 +342,7 @@ const AdminIDVReview = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
                         <span className="truncate">{r.full_name || "Unnamed"}</span>
-                        {r.is_seed && <TestTag />}
+                        
                       </p>
                       <p className="text-ds-11 text-muted-foreground truncate">{r.email || "No email on file"}</p>
                       <IdvStatusBadge failed={isFailed} className="mt-1 sm:hidden" />

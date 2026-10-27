@@ -1,62 +1,51 @@
 /**
- * Q368 (owner, 2026-09-24; AM-012): admin home counts exclude seed rows and
- * show them beside the count as "0 (+N test)"; the Disputes, Users and Reports
- * queues keep listing them, each marked with a "Test" tag. Before this the
- * home tile read 0 disputes while the queue beside it listed 2 seed disputes
- * wired to money buttons, with nothing saying why the numbers differed.
+ * Owner 2026-10-25 and 2026-10-27 ("i should never see test stuff in my admin
+ * panel"): admin screens never show a test (is_seed) row, never count one, and
+ * never label one "Test". This replaces Q368 (2026-09-24), where the queues
+ * kept seed rows with a "Test" tag and the home tiles read "0 (+N test)".
+ * Per-view coverage is adminSeedEveryView.test.ts; this file pins the shared
+ * helper, the home tiles and the three queues Q368 named.
  */
-// @mutate src/components/admin/dashboard/types.ts | test > 0 ? | test < 0 ?
-// @mutate src/pages/admin/Admin.tsx | .eq("status", "disputed").eq("is_seed", true), | .eq("status", "disputed").eq("is_seed", false),
-// @mutate src/components/admin/dashboard/DashboardHome.tsx | value={v(withTestCount(stats.disputedJobs, stats.testDisputedJobs))} | value={v(stats.disputedJobs)}
-// @mutate src/components/admin/adminDisputes/DisputeCard.tsx | {job.is_seed && <TestTag />} | {null}
-// @mutate src/components/admin/adminusers/AdminUserRow.tsx | {p.is_seed && <TestTag />} | {null}
-// @mutate src/components/admin/AdminReports.tsx | {report.is_test && <> <TestTag /></>} | {null}
-// @mutate src/components/admin/AdminReports.tsx | if (j.is_seed) seedIds.add(j.id); | void j;
-// @mutate src/components/admin/AdminDisputes.tsx | customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, is_seed, dispute_helper_response",\n | customer_fee_amount, platform_fee_percent, sales_tax_amount, onboarding_fee_amount, dispute_helper_response",\n
+// @mutate src/components/admin/seedRows.ts |   return rows.filter((r) => !r.is_seed); |   return rows;
+// @mutate src/components/admin/AdminDisputes.tsx |     setDisputes(sorted.filter((j) => !j.is_seed)); |     setDisputes(sorted);
+// @mutate src/components/admin/AdminReports.tsx |         })).filter(r => !r.is_test); |         }));
+// @mutate src/components/admin/AutoRestrictedRail.tsx |       .eq("is_seed", false)\n      .not("auto_suspended_until", "is", null) |       .not("auto_suspended_until", "is", null)
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { withTestCount } from "./dashboard/types";
+import { withoutTestRows } from "./seedRows";
 
 const read = (rel: string) => readFileSync(join(__dirname, "..", "..", "..", rel), "utf8");
 
-describe("admin keeps test rows visible and says so", () => {
-  it("a home count names its test rows beside it", () => {
-    expect(withTestCount(0, 2)).toBe("0 (+2 test)");
-    expect(withTestCount(3, 0)).toBe("3");
-    expect(withTestCount(1200, 5)).toBe("1,200 (+5 test)");
+describe("admin never shows test rows", () => {
+  it("the shared helper drops seed rows and keeps everything else", () => {
+    const rows = [
+      { id: "real", is_seed: false },
+      { id: "seed", is_seed: true },
+      { id: "unknown", is_seed: null },
+      { id: "untagged" },
+    ];
+    expect(withoutTestRows(rows).map((r) => r.id)).toEqual(["real", "unknown", "untagged"]);
   });
 
-  it("home reads the seed side of the disputes, active-jobs and subscriptions counts", () => {
-    const admin = read("src/pages/admin/Admin.tsx");
-    expect(admin).toContain('.eq("status", "disputed").eq("is_seed", true),');
-    // Active = paid and not finished (isActivePaidJob), same as Admin → Jobs → Active.
-    expect(admin).toContain('.not("status", "in", "(completed,cancelled)").in("payment_status", ["escrow", "payout_pending"]).eq("is_seed", true),');
-    expect(admin).toContain('.not("subscription_tier", "is", null).eq("is_seed", true),');
+  it("home tiles show the real count alone, with no test side read", () => {
     const home = read("src/components/admin/dashboard/DashboardHome.tsx");
-    for (const k of ["activeJobs, stats.testActiveJobs", "disputedJobs, stats.testDisputedJobs", "activeSubscriptions, stats.testActiveSubscriptions"]) {
-      expect(home).toContain(`value={v(withTestCount(stats.${k}))}`);
+    expect(home).not.toMatch(/\(\+.*test\)|withTestCount|stats\.test/);
+    for (const k of ["activeJobs", "disputedJobs", "activeSubscriptions"]) {
+      expect(home).toContain(`stats.${k}.toLocaleString()`);
     }
+    expect(read("src/pages/admin/Admin.tsx")).not.toMatch(/\.eq\("is_seed", true\)/);
   });
 
-  it("each queue fetches is_seed and tags the row", () => {
+  it("Disputes, Reports, Users and the restricted rail drop test rows", () => {
     const disputes = read("src/components/admin/AdminDisputes.tsx");
-    const selects = disputes.match(/sales_tax_amount[^"]*"/g) ?? [];
-    expect(selects.length).toBe(3);
-    for (const s of selects) expect(s).toContain("is_seed");
-    expect(read("src/components/admin/adminDisputes/DisputeCard.tsx")).toContain("{job.is_seed && <TestTag />}");
-    expect(read("src/components/admin/adminusers/AdminUserRow.tsx")).toContain("{p.is_seed && <TestTag />}");
-    const reports = read("src/components/admin/AdminReports.tsx");
-    expect(reports).toContain('.select("id, title, is_seed")');
-    expect(reports).toContain('.select("user_id, full_name, is_seed")');
-    expect(reports).toContain("if (j.is_seed) seedIds.add(j.id);");
-    expect(reports).toContain("if (p.is_seed) seedIds.add(p.user_id);");
-    expect(reports).toContain("{report.is_test && <> <TestTag /></>}");
-  });
-
-  it("no queue filters seed rows out", () => {
-    for (const f of ["src/components/admin/AdminDisputes.tsx", "src/components/admin/AdminUsers.tsx", "src/components/admin/AdminReports.tsx"]) {
-      expect(read(f), f).not.toMatch(/\.eq\("is_seed", false\)/);
-    }
+    for (const s of disputes.match(/sales_tax_amount[^"]*"/g) ?? []) expect(s).toContain("is_seed");
+    expect(disputes).toContain("setDisputes(sorted.filter((j) => !j.is_seed));");
+    expect(disputes).toContain("!unsettledJobIds.has(j.id) && !j.is_seed");
+    expect(read("src/components/admin/AdminReports.tsx")).toContain("})).filter(r => !r.is_test);");
+    const users = read("src/components/admin/AdminUsers.tsx");
+    expect(users).toContain("const showTest = false;");
+    expect(users).not.toMatch(/Show test accounts/);
+    expect(read("src/components/admin/AutoRestrictedRail.tsx")).toMatch(/\.eq\("ban_status", "temp_banned"\)\s*\/\/[^\n]*\n\s*\.eq\("is_seed", false\)/);
   });
 });

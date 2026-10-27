@@ -18,9 +18,7 @@ import { type Profile } from "./adminUserHelpers";
 import { useAdminUserSummaries } from "./useAdminUserSummaries";
 import { makeOpenProfile, type AdminProfileBan, type AdminProfileJob, type AdminProfileViolation } from "./adminusers/useOpenProfile";
 import { makeAdminUserActions } from "./adminusers/useAdminUserActions";
-import { filterAndSortProfiles, getTabCounts, isTestAccount, usersEmptyBody, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { filterAndSortProfiles, getTabCounts, usersEmptyBody, type Tab, type SortDir } from "./adminusers/useAdminUsersFilter";
 import { AdminUserRow } from "./adminusers/AdminUserRow";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -57,18 +55,10 @@ const AdminUsers = () => {
     setSearchParams(params, { replace: true });
   };
 
-  // Test accounts (`is_seed`) are hidden from the list AND from every count on
-  // this screen unless the admin turns them on (owner, 2026-10-09: "hide all
-  // test accounts ... so i can see the actual number of real users"). The URL
-  // owns it, like the tab. They are still LOADED, so a ?user=<test id> deep
-  // link and the auto-restricted rail can still open one.
-  const showTest = searchParams.get("test") === "show";
-  const setShowTest = (next: boolean) => {
-    const params = new URLSearchParams(searchParams);
-    if (next) params.set("test", "show");
-    else params.delete("test");
-    setSearchParams(params, { replace: true });
-  };
+  // Test accounts (`is_seed`) never show on this screen, in the list or any
+  // count (owner 2026-10-09, then 2026-10-25 and 2026-10-27: "i should never
+  // see test stuff in my admin panel" — no switch).
+  const showTest = false;
 
   // Auto-restricted rail moved to its own component (AutoRestrictedRail).
   // Owns its own data fetch + reverse handler. Parent only forwards the
@@ -261,13 +251,7 @@ const AdminUsers = () => {
     paySummary,
     includeTest: showTest,
   });
-  const testAccountCount = profiles.filter(isTestAccount).length;
-  // A search that only matches hidden test accounts must say so, not read as
-  // "no such user".
-  const hiddenTestMatches =
-    !showTest && filtered.length === 0 && testAccountCount > 0
-      ? filterAndSortProfiles({ profiles, tab, searchQuery, sortDir, strikesSummary, lastLoginSummary, paySummary, includeTest: true }).length
-      : 0;
+  const hiddenTestMatches = 0;
 
   const isUnseen = (p: Profile) => !seenUserIds.has(p.user_id);
 
@@ -424,14 +408,6 @@ const AdminUsers = () => {
             )}
           </SelectContent>
         </Select>
-        </div>
-        {/* Off by default: the counts above and below are real people only. */}
-        <div className="flex items-center justify-between gap-3">
-          <Label htmlFor="show-test-accounts" className="text-ds-13 font-medium text-foreground cursor-pointer">
-            Show test accounts{" "}
-            <span className="text-muted-foreground font-normal">({testAccountCount})</span>
-          </Label>
-          <Switch id="show-test-accounts" checked={showTest} onCheckedChange={setShowTest} />
         </div>
       </AdminCard>
 

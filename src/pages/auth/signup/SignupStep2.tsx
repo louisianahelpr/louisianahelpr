@@ -51,10 +51,6 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 export interface SignupStep2Props {
   avatarPreview: string | null;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  firstName: string;
-  setFirstName: (v: string) => void;
-  lastName: string;
-  setLastName: (v: string) => void;
   location: string;
   setLocation: (v: string) => void;
   /** Optional — unlocks parish-based helper notifications + LA sales tax. */
@@ -95,6 +91,8 @@ export interface SignupStep2Props {
    * then creates the account (Step 2 is the final step).
    */
   onContinue: () => void | Promise<void>;
+  /** "Skip for now": create the account without any of this screen's fields. */
+  onSkip: () => void | Promise<void>;
   /** Account creation in flight — disables the button and shows a busy label. */
   loading?: boolean;
 }
@@ -104,10 +102,6 @@ export function SignupStep2(props: SignupStep2Props) {
   const {
     avatarPreview,
     onAvatarChange,
-    firstName,
-    setFirstName,
-    lastName,
-    setLastName,
     location,
     setLocation,
     zipCode,
@@ -124,13 +118,12 @@ export function SignupStep2(props: SignupStep2Props) {
     fieldErrors = {},
     clearFieldError,
     onContinue,
+    onSkip,
     loading = false,
   } = props;
 
   // Live field validity — drives the inline green check (mirrors Step 1's
   // email affordance) so a completed field reads as done, not just un-erroed.
-  const firstNameValid = firstName.trim().length > 0;
-  const lastNameValid = lastName.trim().length > 0;
   const locationValid = location.trim().length > 0;
 
   return (
@@ -193,46 +186,20 @@ export function SignupStep2(props: SignupStep2Props) {
           <FieldError id="avatar-error" message={fieldErrors.avatar} />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-2">
-            <Label htmlFor="firstName" className={labelCls}>First name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
-            <div className="relative">
-              <Input id="firstName" value={firstName} onChange={(e) => { setFirstName(e.target.value); clearFieldError?.("firstName"); }} required aria-required="true" autoComplete="given-name" autoCapitalize="words" aria-invalid={!!fieldErrors.firstName} aria-describedby={fieldErrors.firstName ? "firstName-error" : undefined} className={`${inputCls}${firstNameValid && !fieldErrors.firstName ? " pr-8" : ""}${fieldErrors.firstName ? " border-destructive" : ""}`} />
-              {firstNameValid && !fieldErrors.firstName && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-              )}
-            </div>
-            <FieldError id="firstName-error" message={fieldErrors.firstName} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName" className={labelCls}>Last name <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
-            <div className="relative">
-              <Input id="lastName" value={lastName} onChange={(e) => { setLastName(e.target.value); clearFieldError?.("lastName"); }} required aria-required="true" autoComplete="family-name" autoCapitalize="words" aria-invalid={!!fieldErrors.lastName} aria-describedby={fieldErrors.lastName ? "lastName-error" : undefined} className={`${inputCls}${lastNameValid && !fieldErrors.lastName ? " pr-8" : ""}${fieldErrors.lastName ? " border-destructive" : ""}`} />
-              {lastNameValid && !fieldErrors.lastName && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
-              )}
-            </div>
-            <FieldError id="lastName-error" message={fieldErrors.lastName} />
-          </div>
-        </div>
         {/* Birthday and phone left this step on 2026-10-09, and nothing asks
             for them before an Apply or a Post (owner, 2026-10-14: "no later
             prompt"). Step 1's 18+ box is the age gate
             complete-signup accepts (ageAttested) when no birthday is sent. */}
-        {/* City is REQUIRED (owner decision 2026-08-29, reversing the prior
-            2026-08-22 removal). It was pulled once as free text — any string
-            was accepted, so it collected values that were not real Louisiana
-            cities. CityAutocomplete (the same LA-validated combobox PostJob
-            and CompleteProfile already use) is what makes it trustworthy
-            enough to collect here. Colocating it in signup means an email
-            signup satisfies CompleteProfile's full gate immediately and
-            never sees /complete-profile at all. */}
+        {/* City and ZIP are OPTIONAL (owner 2026-10-26, the final sign-up ask;
+            it overrules 2026-08-29 city-required and 2026-09-05 ZIP-required).
+            A member who skips them has no parish, so no "a job near you"
+            notices until they add a ZIP on their profile. */}
         {/* City takes what is left; ZIP is a fixed 7rem so five digits
             plus the valid ✓ fit at 320-430 (a third of the row was 85px at 375,
             and with the check's padding the value read "705", 2026-09-12). */}
         <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
           <div className="space-y-2">
-            <Label htmlFor="location" className={labelCls}>City <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span></Label>
+            <Label htmlFor="location" className={labelCls}>City <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span></Label>
             <div className="relative">
               <CityAutocomplete
                 id="location"
@@ -246,18 +213,9 @@ export function SignupStep2(props: SignupStep2Props) {
             </div>
             <FieldError id="location-error" message={fieldErrors.location} />
           </div>
-          {/* ZIP is REQUIRED (owner decision 2026-09-05). It used to be
-              optional, on the reasoning that a second required field on the
-              highest-traffic form in the product is a friction cost worth
-              weighing deliberately. The owner has now weighed it: ZIP is the
-              only thing that resolves a member's PARISH, and parish is what
-              drives "a job near you" notifications, the daily digest, and
-              Louisiana sales tax on jobs this account posts. Optional meant a
-              silently degraded account — signed up fine, then never heard
-              about a single nearby job and never understood why. */}
           <div className="space-y-2">
             <Label htmlFor="zipCode" className={labelCls}>
-              ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
+              ZIP <span className="font-normal" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>(optional)</span>
             </Label>
             <div className="relative">
               <Input
@@ -364,6 +322,20 @@ export function SignupStep2(props: SignupStep2Props) {
           {loading ? "Creating account…" : "Create account"}
         </Button>
       </div>
+      {/* Every field on this screen is optional (owner 2026-10-26): "Skip for
+          now" creates the account with none of them. A referral code a share
+          link brought in still counts. */}
+      <Button
+        type="button"
+        variant="ghost"
+        className="w-full rounded-ds-md"
+        size="lg"
+        data-testid="signup-skip"
+        onClick={onSkip}
+        disabled={loading}
+      >
+        Skip for now
+      </Button>
     </div>
   );
 }

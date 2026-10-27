@@ -4,7 +4,7 @@
 // @mutate src/pages/auth/signup/SignupStep2.tsx | id="referralCode" | id="referralCodeGone"
 // @mutate src/pages/auth/signup/SignupStep2.tsx | data-testid="referral-code-toggle" | data-testid="referral-code-toggle-gone"
 // @mutate src/pages/auth/Signup.tsx | setReferralCode={setReferralCode} | setReferralCode={() => {}}
-// @mutate src/pages/auth/Signup.tsx | referralCode: referralCode.trim().toUpperCase() \|\| null, | referralCode: null,
+// @mutate src/pages/auth/Signup.tsx | referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, | referralCode: null,
 // @mutate src/pages/auth/Signup.tsx | const [referralCode, setReferralCode] = useState( | const [referralCode] = useState(
 //
 // Until 2026-09-22 the only door was `?ref=<code>`:
@@ -47,7 +47,7 @@ const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
  * so a requirement cannot be satisfied by a commented-out copy of itself.
  * String-aware, because `//` inside a string literal is not a comment.
  *
- * This is the lesson zipRequiredAtSignup.test.ts learned the hard way: a
+ * This is the lesson signupOptionalScreenTwo.test.tsx learned the hard way: a
  * whole-line-only stripper let `if (false) { } // if (!zip) …` pass 10/10.
  */
 const codeOnly = (src: string): string => {
@@ -129,8 +129,9 @@ describe("a referral code can be typed, not only deep-linked", () => {
 
   it("the code reaches complete-signup's body, trimmed and upper-cased", () => {
     // The whole point. A field nobody sends is decoration.
+    // "Skip for now" (2026-10-27) sends only the code a ?ref= link brought in.
     expect(SIGNUP).toMatch(
-      /referralCode:\s*referralCode\.trim\(\)\.toUpperCase\(\)\s*\|\|\s*null/,
+      /referralCode:\s*\(skipped \? linkReferralCode : referralCode\.trim\(\)\.toUpperCase\(\)\)\s*\|\|\s*null/,
     );
   });
 

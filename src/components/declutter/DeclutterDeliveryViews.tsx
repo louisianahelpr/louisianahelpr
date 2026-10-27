@@ -28,6 +28,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
+import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
 import {
   acceptTask,
   confirmReceived,
@@ -485,6 +486,8 @@ export function DeliverView() {
   return (
     <div className="space-y-6">
       {intro}
+      {/* Q2435: where open jobs and deliveries are waiting, by parish (counts only). */}
+      <BusyAreasCard userId={userId} deliveries={open.data ?? []} />
       <VehicleForm userId={userId} />
       <section className="space-y-3" aria-label="Your deliveries">
         <h2 className="text-base font-semibold">Your deliveries</h2>

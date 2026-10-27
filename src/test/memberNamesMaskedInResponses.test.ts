@@ -61,7 +61,7 @@ const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_
 /** A first-name reader restated verbatim by a later migration for another reason (its name line unchanged). EXACT. */
 const RESTATED_LATER: Record<string, string> = {
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
-  helpr_task_view: "20261021181118_helpr_delivery_payout_round_down.sql",
+  helpr_task_view: "20261027201327_delivery_dropoff_on_accept.sql",
 };
 
 /** Blank every call to the masking helpers, balanced parentheses, so what is left reads names raw. */

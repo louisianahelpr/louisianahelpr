@@ -6,19 +6,23 @@
  *   - a drop-off is not free to visit while its own pickup is left (pickup before drop-off);
  *   - a booked pickup's 30-minute time bounds every detour taken before it;
  *   - only the caller's own deliveries ('accepted', 'picked_up');
- *   - the drop-off address and point only after "Picked up" (helpr_task_view's rule), and the
- *     route is ordered from the drop-off's ~1 km point until then;
+ *   - the pickup address once the delivery is the caller's; the drop-off by ONE rule,
+ *     helpr_task_dropoff_shows_at (owner decided issue #3684, 2026-10-27): at accept for a Helpr with a
+ *     finished delivery, else 2 hours before the booked pickup or after Picked up; in the route (a
+ *     drop-off not shown yet is placed at its ~1 km point) and in helpr_task_view, and to nobody else;
  *   - the member switch is checked; the plan and items helpers are service_role only.
- * Backend proof, with six planted defects each RED: src/test/pglite/helprMyRoute.pglite.mjs.
+ * Backend proof, with nine planted defects each RED: src/test/pglite/helprMyRoute.pglite.mjs.
  *
  * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |       CONTINUE WHEN v_s->>'kind' = 'dropoff' AND EXISTS ( |       CONTINUE WHEN false AND EXISTS (
- * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |                       WHEN t.status = 'picked_up' THEN t.dropoff_address END, |                       ELSE t.dropoff_address END,
- * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |       'lat', CASE WHEN t.status = 'picked_up' THEN t.dropoff_lat ELSE round(t.dropoff_lat, 2) END, |       'lat', t.dropoff_lat,
+ * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |       'address', CASE WHEN p->>'kind' = 'pickup' THEN t.pickup_address WHEN v_shown THEN t.dropoff_address END, |       'address', CASE WHEN p->>'kind' = 'pickup' THEN t.pickup_address ELSE t.dropoff_address END,
+ * @mutate supabase/migrations/20261027201327_delivery_dropoff_on_accept.sql |   v_drop_shown := v_role = 'helpr' AND v_active |   v_drop_shown := v_active
+ * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |     ELSE p_slot - interval '2 hours' END; |     ELSE p_slot - interval '0 hours' END;
  * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |             WHERE x.helpr_id = v_uid AND x.status IN ('accepted', 'picked_up') |             WHERE x.status IN ('accepted', 'picked_up')
  * @mutate supabase/migrations/20261027194235_helpr_my_route.sql |          > (v_fixed->>'slot')::timestamptz + interval '30 minutes' THEN |          > 'infinity'::timestamptz THEN
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -49,12 +53,21 @@ describe("My route (helpr_my_route, helpr_route_plan)", () => {
     expect(body("helpr_my_route")).toMatch(/WHERE x\.helpr_id = v_uid AND x\.status IN \('accepted', 'picked_up'\)/);
   });
 
-  it("the drop-off's address and point only after Picked up; until then it is placed from its ~1 km point", () => {
+  it("the drop-off follows ONE rule (issue #3684) in the route and the view, and is nobody else's", () => {
+    const rule = body("helpr_task_dropoff_shows_at");
+    expect(rule).toContain("WHEN p_status IN ('picked_up', 'delivered') THEN '-infinity'::timestamptz");
+    expect(rule).toContain("WHEN EXISTS (SELECT 1 FROM public.helpr_tasks x WHERE x.helpr_id = p_helpr AND x.status = 'confirmed') THEN '-infinity'::timestamptz");
+    expect(rule).toContain("ELSE p_slot - interval '2 hours' END;");
     const route = body("helpr_my_route");
-    expect(route).toMatch(/'address', CASE WHEN p->>'kind' = 'pickup' THEN t\.pickup_address WHEN t\.status = 'picked_up' THEN t\.dropoff_address END/);
-    expect(route).toMatch(/'lat', CASE WHEN t\.status = 'picked_up' THEN t\.dropoff_lat ELSE round\(t\.dropoff_lat, 2\) END/);
-    expect(route).toMatch(/'lng', CASE WHEN t\.status = 'picked_up' THEN t\.dropoff_lng ELSE round\(t\.dropoff_lng, 2\) END/);
+    expect(route).toMatch(/'address', CASE WHEN p->>'kind' = 'pickup' THEN t\.pickup_address WHEN v_shown THEN t\.dropoff_address END/);
+    expect(route).toContain("'lat', CASE WHEN v_shown THEN t.dropoff_lat ELSE round(t.dropoff_lat, 2) END");
     expect(route).not.toMatch(/pay_cents|fee_cents|take_home/);
+    const view = body("helpr_task_view");
+    expect(view).toContain("v_drop_shown := v_role = 'helpr' AND v_active AND COALESCE(now() > public.helpr_task_dropoff_shows_at(t.helpr_id, t.status, t.pickup_slot_start), false);");
+    expect(route).toContain("v_shown := COALESCE(now() > public.helpr_task_dropoff_shows_at(v_uid, t.status, t.pickup_slot_start), false);");
+    expect(route).not.toMatch(/now\(\) >= (public\.helpr_task_dropoff_shows_at|v_shows)/);
+    for (const col of ["dropoff_address", "dropoff_lat", "dropoff_lng"]) expect(view, col).toContain(`'${col}', CASE WHEN v_drop_shown THEN t.${col} END`);
+    for (const col of ["pickup_address", "pickup_lat", "pickup_lng"]) expect(view, col).toContain(`'${col}', CASE WHEN v_role = 'helpr' AND v_active THEN t.${col} END`);
   });
 
   it("the member switch is checked and the helpers are not callable by members", () => {

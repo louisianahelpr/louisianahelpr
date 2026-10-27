@@ -4,7 +4,7 @@
  * on the in-app map. The ordering, the address rule and the grants are proven in SQL
  * (src/test/pglite/helprMyRoute.pglite.mjs); this pins what the screen does with them.
  *
- * @mutate src/components/declutter/DeliveryRoute.tsx |               : <span className="text-muted-foreground">Near {stop.area}. The address shows once you've picked the item up.</span>} |               : <span className="text-muted-foreground">{stop.area}</span>}
+ * @mutate src/components/declutter/DeliveryRoute.tsx |               ? <span className="font-medium">{stop.address}</span> |               ? <span className="font-medium">{stop.area}</span>
  * @mutate src/lib/declutter/route.ts |   const addressed = stops.map((s) => s.address?.trim() ?? "").filter((a) => a.length > 0); |   const addressed = stops.map((s) => s.address?.trim() ?? "near the buyer");
  * @mutate src/lib/declutter/route.ts |   while (i < steps.length && metersBetween(here, steps[i].start) < STEP_REACHED_M) i++; |   while (false) i++;
  * @mutate src/components/declutter/StopActions.tsx |   if (stop.status !== "picked_up") return <p className="text-ds-13 text-muted-foreground">Pick this item up first.</p>; |   if (false) return null;
@@ -33,7 +33,7 @@ import { MAX_MAPS_STOPS, nextStep, routeMapsUrl } from "@/lib/declutter/route";
 const stop = (over: Partial<RouteStop>): RouteStop => ({
   seq: 1, task_id: "t1", kind: "pickup", status: "accepted", title: "Oak dresser", size: "small", area: "Mid City",
   address: "1 Seller St, Baton Rouge", lat: 30.45, lng: -91.15, place: "porch", items: [], slot_start: "2026-10-28T19:00:00Z",
-  slot_end: "2026-10-28T19:30:00Z", arrive_at: "2026-10-28T19:00:00Z", late: false, leg_miles: 2.4, ...over,
+  slot_end: "2026-10-28T19:30:00Z", arrive_at: "2026-10-28T19:00:00Z", late: false, leg_miles: 2.4, address_shows_at: null, ...over,
 });
 
 const ROUTE = {
@@ -41,7 +41,8 @@ const ROUTE = {
   stops: [
     stop({ seq: 1, task_id: "t9", kind: "dropoff", status: "picked_up", title: "Blue lamp", area: "Shenandoah", address: "9 Buyer Ln", place: "door", slot_start: null, slot_end: null }),
     stop({ seq: 2, items: [{ title: "Oak dresser", photo_path: "s/declutter/i/a.jpg" }, { title: "Mirror", photo_path: null }] }),
-    stop({ seq: 3, kind: "dropoff", area: "Prairieville", address: null, lat: null, lng: null, place: "door", slot_start: null, slot_end: null }),
+    stop({ seq: 3, kind: "dropoff", area: "Prairieville", address: "22 Buyer Ln, Prairieville", lat: 30.31, lng: -90.98, place: "door", slot_start: null, slot_end: null }),
+    stop({ seq: 4, task_id: "t5", kind: "dropoff", area: "Baker", address: null, address_shows_at: "2026-10-28T21:00:00Z", lat: null, lng: null, place: "door", slot_start: null, slot_end: null }),
   ],
 };
 
@@ -61,34 +62,41 @@ describe("My route", () => {
     show();
     const list = await screen.findByRole("list", { name: "Stops in order" });
     const cards = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list);
-    expect(cards).toHaveLength(3);
+    expect(cards).toHaveLength(4);
     expect(cards[0]).toHaveTextContent("Drop off");
     expect(cards[0]).toHaveTextContent("9 Buyer Ln");
     expect(cards[1]).toHaveTextContent("Pick up");
     expect(cards[1]).toHaveTextContent("On the seller's porch");
     expect(within(cards[1]).getByRole("img", { name: "Oak dresser" })).toHaveAttribute("src", "https://cdn.test/s/declutter/i/a.jpg");
     expect(cards[1]).toHaveTextContent("Mirror");
-    expect(screen.getByText(/3 stops · about 14 mi · about 48 min/)).toBeInTheDocument();
+    expect(screen.getByText(/4 stops · about 14 mi · about 48 min/)).toBeInTheDocument();
   });
 
-  it("a drop-off not picked up yet shows its area only, never an address, and waits for the pickup", async () => {
+  it("a taken delivery's drop-off shows its address from the start (owner 2026-10-27) and waits for the pickup", async () => {
     show();
     const list = await screen.findByRole("list", { name: "Stops in order" });
     const third = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list)[2];
-    expect(third).toHaveTextContent("Near Prairieville. The address shows once you've picked the item up.");
+    expect(third).toHaveTextContent("22 Buyer Ln, Prairieville");
     expect(third).toHaveTextContent("Pick this item up first.");
     expect(within(third).queryByRole("button", { name: "Left at the door" })).toBeNull();
   });
 
-  it("Open in Maps carries the shown addresses in order, and says a drop-off joins later", async () => {
+  it("Open in Maps carries every stop's address in order, and no point", async () => {
     show();
     const link = await screen.findByRole("link", { name: /Open in Maps/ });
     const href = link.getAttribute("href") ?? "";
     expect(href).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?api=1&/);
-    expect(href).toContain(`destination=${encodeURIComponent("1 Seller St, Baton Rouge")}`);
-    expect(href).toContain(`waypoints=${encodeURIComponent("9 Buyer Ln")}`);
-    expect(href).not.toMatch(/30\.45|-91\.15|Prairieville/);
-    expect(screen.getByText(/a drop-off joins once you've picked its item up/)).toBeInTheDocument();
+    expect(href).toContain(`destination=${encodeURIComponent("22 Buyer Ln, Prairieville")}`);
+    expect(href).toContain(`waypoints=${encodeURIComponent("9 Buyer Ln")}%7C${encodeURIComponent("1 Seller St, Baton Rouge")}`);
+    expect(href).not.toMatch(/30\.45|-91\.15|30\.31|-90\.98|Baker/);
+    expect(screen.getByText(/Opens all 3 stops in this order\. A drop-off joins once its address shows, 2 hours before its pickup\./)).toBeInTheDocument();
+  });
+
+  it("a new Helpr's drop-off more than 2 hours out shows its area and when the address shows (issue #3684)", async () => {
+    show();
+    const list = await screen.findByRole("list", { name: "Stops in order" });
+    const fourth = within(list).getAllByRole("listitem").filter((li) => li.parentElement === list)[3];
+    expect(fourth).toHaveTextContent(/Near Baker\. The drop-off address shows .*2 hours before the pickup\./);
   });
 
   it("the Picked up photo and Left at the door send the existing steps", async () => {

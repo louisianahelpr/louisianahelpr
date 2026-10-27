@@ -575,7 +575,7 @@ export function CartView() {
                   </li>
                 ))}
               </ul>
-              <p className="text-sm font-medium">{allFree ? "Confirm by" : "Check out by"} {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up{allFree ? "" : " for sale"}.</p>
+              <p className="text-sm font-medium">{allFree ? "Confirm it by" : "Check out by"} {new Date(soonest).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} ({timeLeft(soonest)}). If you don't, you get a strike and the item goes back up{allFree ? "" : " for sale"}.</p>
               {allFree ? (
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
               ) : (

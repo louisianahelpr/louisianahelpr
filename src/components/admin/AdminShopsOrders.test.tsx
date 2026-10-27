@@ -28,7 +28,6 @@
  * @mutate src/components/admin/AdminShopsOrders.tsx |     await adminRefundOrder(a.orderId, reason, note); |     await adminRefundOrder(a.orderId, "problem_our_mistake", note);
  * @mutate src/components/admin/AdminShopsOrders.tsx |         primaryDisabled={act.isPending \|\| !note.trim() \|\| note.length > 500 \|\| (needsReason && !reason)} |         primaryDisabled={act.isPending}
  * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: a.side, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: "shop", p_note: note });
- * @mutate src/components/admin/AdminShopsOrders.tsx |                 {s.is_seed && <TestTag />} | {null}
  * @mutate src/pages/admin/Admin.tsx |       case "shops": return <AdminShopsOrders />; |
  */
 import { readFileSync } from "node:fs";
@@ -64,7 +63,9 @@ import { adminNavGroups } from "./adminNavGroups";
 
 const QUEUE = {
   problems: [{ order_id: "o1", seller_id: "s1", shop_name: "Bayou Bakes", ready_date: "2026-10-23", total_cents: 2370, card_fee_cents: 99,
-    handover_mode: "in_person", problem_at: "2026-10-23T15:00:00Z", problem_note: "Nobody was there", ready_at: null, is_seed: true }],
+    handover_mode: "in_person", problem_at: "2026-10-23T15:00:00Z", problem_note: "Nobody was there", ready_at: null, is_seed: false },
+    { order_id: "o-seed", seller_id: "s-seed", shop_name: "Seed Shop", ready_date: "2026-10-23", total_cents: 500, card_fee_cents: 0,
+      handover_mode: "in_person", problem_at: "2026-10-23T15:00:00Z", problem_note: "Seed problem", ready_at: null, is_seed: true }],
   refunds: [{ refund_id: "r1", order_id: "o9", reason: "shop_cancelled", refund_cents: 2370, status: "failed", attempts: 2,
     last_error: "card_declined", created_at: "2026-10-23T15:00:00Z", is_seed: false }],
   payouts: [
@@ -76,7 +77,9 @@ const QUEUE = {
       last_error: null, review_reason: "refunded_by_hand: re_abc", on_hold: false, hold_reason: null, is_seed: false },
   ],
   strikes: [{ strike_id: "k1", user_id: "u9abcdef0", offender_side: "shop", reason: "shop_cancelled", order_id: "o9",
-    given_at: "2026-10-20T00:00:00Z", expires_at: "2027-10-20T00:00:00Z", active_count: 1, is_seed: true }],
+    given_at: "2026-10-20T00:00:00Z", expires_at: "2027-10-20T00:00:00Z", active_count: 1, is_seed: false },
+    { strike_id: "k-seed", user_id: "useedseed0", offender_side: "buyer", reason: "seed", order_id: "o-seed",
+      given_at: "2026-10-20T00:00:00Z", expires_at: "2027-10-20T00:00:00Z", active_count: 1, is_seed: true }],
 };
 
 function renderView() {
@@ -101,7 +104,7 @@ describe("Admin > Shops Orders (M4)", () => {
     expect(adminNavGroups.find((g) => g.title === "Revenue")?.items.map((i) => i.id)).toContain("shops");
   });
 
-  it("renders the four sections, test rows tagged", async () => {
+  it("renders the four sections, and test rows never show (owner 2026-10-27)", async () => {
     renderView();
     expect(await screen.findByText(/"Nobody was there"/)).toBeTruthy();
     expect(screen.getAllByTestId("admin-shops-problem")).toHaveLength(1);
@@ -110,7 +113,9 @@ describe("Admin > Shops Orders (M4)", () => {
     expect(screen.getByText(/Held for review: refunded_by_hand: re_abc/)).toBeTruthy();
     expect(screen.getByText(/ON HOLD: Fraud check/)).toBeTruthy();
     expect(screen.getAllByTestId("admin-shops-strike")[0].textContent).toMatch(/shop u9abcdef · shop_cancelled · 1 of 3/);
-    expect(screen.getAllByText("Test").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByTestId("admin-shops-strike")).toHaveLength(1);
+    expect(screen.queryByText(/Seed problem|Seed Shop|useedsee/)).toBeNull();
+    expect(screen.queryByText("Test")).toBeNull();
   });
 
   it("Pay the shop needs a note and sends it", async () => {

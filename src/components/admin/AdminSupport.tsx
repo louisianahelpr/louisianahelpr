@@ -16,8 +16,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { TIER_PERKS, toSubscriptionTier, type SubscriptionTier } from "@/lib/subscriptionTiers";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { splitSupportScreenshot } from "@/lib/supportScreenshot";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { openSignedDocument } from "@/lib/openSignedDocument";
@@ -259,7 +258,7 @@ const AdminSupport = () => {
         // below renders.
         const rows = unwrap(rpc) ?? [];
         const seedIds = await fetchSeedUserIds(rows.map(row => row.reporter_id));
-        return rows.map(row => ({
+        return withoutTestRows(rows.map(row => ({
           id: row.id,
           reporter_id: row.reporter_id,
           reason: row.reason,
@@ -270,7 +269,7 @@ const AdminSupport = () => {
           reporter_email: row.reporter_email || "",
           support_tier: toSubscriptionTier(row.support_tier),
           is_seed: !!row.reporter_id && seedIds.has(row.reporter_id),
-        }));
+        })));
       }
 
       /* Deploy-lag fallback. Migrations land on merge to main via db-deploy.yml,
@@ -316,7 +315,7 @@ const AdminSupport = () => {
 
       const seedIds = await fetchSeedUserIds(userIds);
 
-      return sortSupportQueue(data.map(r => {
+      return sortSupportQueue(withoutTestRows(data.map(r => {
         const p = r.reporter_id ? profileMap.get(r.reporter_id) : undefined;
         return {
           ...r,
@@ -325,7 +324,7 @@ const AdminSupport = () => {
           support_tier: resolveSupportTier(p?.subscription_tier, p?.subscription_expires_at),
           is_seed: !!r.reporter_id && seedIds.has(r.reporter_id),
         };
-      }));
+      })));
     },
   });
 
@@ -459,7 +458,7 @@ const AdminSupport = () => {
                       </div>
                       <p className="text-ds-11 text-muted-foreground break-words">
                         {ticket.reporter_name}
-                        {ticket.is_seed && <> <TestTag /></>}
+                        
                         {ticket.reporter_email && <span className="text-muted-foreground"> · {ticket.reporter_email}</span>}
                         {" · "}
                         {formatShortDate(ticket.created_at)}

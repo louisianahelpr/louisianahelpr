@@ -6,7 +6,7 @@ import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Flag, CheckCircle2, Briefcase, Ghost, Users, FlaskConical } from "lucide-react";
+import { Flag, CheckCircle2, Briefcase, Ghost, Users } from "lucide-react";
 import { logAdminAction } from "@/lib/adminAudit";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
@@ -79,7 +79,7 @@ const AdminJobs = () => {
   const [overrideStatus, setOverrideStatus] = useState<"open" | "completed" | "cancelled">("open");
   const [overrideReason, setOverrideReason] = useState("");
   const [overriding, setOverriding] = useState(false);
-  const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost" | "active" | "test">("active");
+  const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost" | "active">("active");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
   const { resolvedFlags, markFlagResolved, reopenFlag } = useResolvedFlags();
 
@@ -405,9 +405,8 @@ const AdminJobs = () => {
     }
   };
 
-  // Test jobs have their own tab; every other tab and count is real jobs (owner, 2026-10-09).
+  // Owner 2026-10-27: admin never shows a test (is_seed) job, not even in a tab of its own.
   const realJobs = jobs.filter((j) => j.is_seed !== true);
-  const testJobs = jobs.filter((j) => j.is_seed === true);
   const realIds = new Set(realJobs.map((j) => j.id));
   const flaggedIds = [...jobFlags.keys()].filter((id) => realIds.has(id) && !resolvedFlags.has(id));
   const flaggedCount = flaggedIds.length;
@@ -429,8 +428,6 @@ const AdminJobs = () => {
       ? ghostJobs
       : filter === "active"
       ? activeJobs
-      : filter === "test"
-      ? testJobs
       : realJobs;
   // Staleness-only rows sink to the bottom. A passed date is the commonest flag
   // by far and the least actionable one — leaving it interleaved by created_at
@@ -454,7 +451,6 @@ const AdminJobs = () => {
     // failed to do. Buried among moderation flags it reads as one more banner.
     { id: "ghost", label: "Ghosts", count: ghostJobs.length, icon: Ghost },
     { id: "all", label: "All", count: realJobs.length, icon: Briefcase },
-    { id: "test", label: "Test", count: testJobs.length, icon: FlaskConical },
   ];
 
   if (loading) return <p className="text-muted-foreground">Loading jobs…</p>;
@@ -484,7 +480,7 @@ const AdminJobs = () => {
           EmptyState stays painted — with no outer card it IS the card. */}
       <AdminCard
         surface="none"
-        title={filter === "active" ? "Active Jobs" : filter === "test" ? "Test Jobs" : filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
+        title={filter === "active" ? "Active Jobs" : filter === "flagged" ? "Flagged Jobs" : filter === "resolved" ? "Resolved Flags" : filter === "ghost" ? "Ghost Jobs — open with no escrow" : "All Jobs"}
         subtitle={
           filteredJobs.length === 0
             ? undefined

@@ -54,12 +54,12 @@ const all = [real1, test1, real2];
 
 const deps = { tab: "all" as const, searchQuery: "", sortDir: "alpha" as const, strikesSummary: null, lastLoginSummary: null, paySummary: {} };
 
-describe("admin Users list hides test accounts by default (owner, 2026-10-09)", () => {
-  it("isTestAccount reads is_seed, the column the TEST chip reads", () => {
+describe("admin Users list never shows test accounts (owner, 2026-10-09 / 2026-10-27)", () => {
+  it("isTestAccount reads is_seed, and no row draws a Test tag", () => {
     expect(isTestAccount(test1)).toBe(true);
     expect(isTestAccount(real1)).toBe(false);
     const row = readFileSync(join(REPO, "src/components/admin/adminusers/AdminUserRow.tsx"), "utf8");
-    expect(blankComments(row)).toMatch(/p\.is_seed && <TestTag \/>/);
+    expect(blankComments(row)).not.toMatch(/TestTag/);
   });
 
   it("the list leaves test accounts out unless asked, and shows them when asked", () => {
@@ -76,12 +76,12 @@ describe("admin Users list hides test accounts by default (owner, 2026-10-09)", 
     expect(getTabCounts(all, unseen, true).allCount).toBe(3);
   });
 
-  it("AdminUsers wires the toggle into BOTH the list and the badges, off by default", () => {
+  it("AdminUsers hides test accounts from BOTH the list and the badges, with no switch (owner 2026-10-27)", () => {
     const src = blankComments(readFileSync(join(REPO, "src/components/admin/AdminUsers.tsx"), "utf8"));
-    expect(src).toContain('const showTest = searchParams.get("test") === "show";');
+    expect(src).toContain("const showTest = false;");
     expect(src).toContain("includeTest: showTest,");
     expect(src).toContain("getTabCounts(profiles, isUnseen, showTest);");
-    expect(src).toMatch(/Show test accounts/);
+    expect(src).not.toMatch(/Show test accounts|searchParams\.get\("test"\)/);
   });
 });
 
@@ -109,8 +109,9 @@ describe("every admin count of profiles says what it does with test accounts", (
   }
 
   it("finds the counts it guards (inventory floor)", () => {
-    // Admin.tsx loadStats: Total Users, subscribers, test subscribers.
-    expect(chains.length).toBeGreaterThan(2);
+    // Admin.tsx loadStats: Total Users and subscribers (the test-subscriber
+    // count went 2026-10-27: admin shows no test side).
+    expect(chains.length).toBe(2);
   });
 
   it("each one filters on is_seed", () => {

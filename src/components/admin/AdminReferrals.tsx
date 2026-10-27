@@ -12,8 +12,7 @@ import { formatShortDate, formatPriceExact } from "@/lib/format";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 
 /**
  * NOTE ON THE NULLABLE OWNER COLUMNS BELOW.
@@ -144,7 +143,7 @@ const AdminReferrals = () => {
         !id ? ADMIN_DELETED_ACCOUNT_LABEL : nameMap[id] || id.slice(0, 8);
 
       // Q233: which of the collected owners are seed accounts, so each list
-      // below can wear the same `TestTag` the other admin queues do.
+      // below can drop them (owner 2026-10-27: never show test rows).
       const seedIds = await fetchSeedUserIds(idsArray);
 
       // Codes outlive their owners (deletion nulls or orphans the owner
@@ -159,24 +158,24 @@ const AdminReferrals = () => {
       return {
         truncated,
         usersWithCodes,
-        codes: allCodes.slice(0, PAGE).map(c => ({
+        codes: withoutTestRows(allCodes.slice(0, PAGE).map(c => ({
           ...c,
           userName: nameFor(c.user_id),
           is_seed: !!c.user_id && seedIds.has(c.user_id),
-        })),
-        referrals: allReferrals.slice(0, PAGE).map(r => ({
+        }))),
+        referrals: withoutTestRows(allReferrals.slice(0, PAGE).map(r => ({
           ...r,
           referrerName: nameFor(r.referrer_id),
           referredName: nameFor(r.referred_id),
           // Tagged by the referrer — there is no single owning person on a
           // referral row otherwise.
           is_seed: !!r.referrer_id && seedIds.has(r.referrer_id),
-        })),
-        credits: allCredits.slice(0, PAGE).map(c => ({
+        }))),
+        credits: withoutTestRows(allCredits.slice(0, PAGE).map(c => ({
           ...c,
           userName: nameFor(c.user_id),
           is_seed: !!c.user_id && seedIds.has(c.user_id),
-        })),
+        }))),
       };
     },
   });
@@ -380,7 +379,7 @@ const AdminReferrals = () => {
                 <div>
                   <p className="font-medium text-foreground flex items-center gap-2">
                     {c.userName}
-                    {c.is_seed && <TestTag />}
+                    
                   </p>
                   <p className="text-ds-11 text-muted-foreground">
                     {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {formatShortDate(c.created_at)}
@@ -415,7 +414,7 @@ const AdminReferrals = () => {
               <div>
                 <p className="text-ds-13 font-medium text-foreground flex items-center gap-2">
                   {c.userName}
-                  {c.is_seed && <TestTag />}
+                  
                 </p>
                 <p className="text-ds-11 text-muted-foreground">Created {formatShortDate(c.created_at)}</p>
               </div>
@@ -455,7 +454,7 @@ const AdminReferrals = () => {
                 <div>
                   <p className="text-ds-13 font-medium text-foreground flex items-center gap-2 flex-wrap">
                     <span className="text-primary">{r.referrerName}</span>
-                    {r.is_seed && <TestTag />}
+                    
                     <span className="text-muted-foreground">→</span>
                     <span>{r.referredName}</span>
                   </p>
@@ -494,7 +493,7 @@ const AdminReferrals = () => {
               <div>
                 <p className="text-ds-13 font-medium text-foreground flex items-center gap-2">
                   {c.userName}
-                  {c.is_seed && <TestTag />}
+                  
                 </p>
                 <p className="text-ds-11 text-muted-foreground">
                   {c.reason === "referrer_bonus" ? "Referral bonus" : "First job bonus"} · {formatShortDate(c.created_at)}

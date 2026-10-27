@@ -240,7 +240,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.click(await screen.findByRole("button", { name: "They didn't show" }));
     const noShow = await screen.findByRole("dialog");
     // Board 160, the live rule: the buyer reporting the seller gets everything back.
-    expect(within(noShow).getByText(/you get everything back, including the buyer's fee/)).toBeInTheDocument();
+    expect(within(noShow).getByText(/you get everything back\./)).toBeInTheDocument();
     fireEvent.click(within(noShow).getByRole("button", { name: "Report it" }));
     await waitFor(() => expect(state.calls).toContainEqual(["no_show", "o1"]));
   });
@@ -308,7 +308,7 @@ describe("Declutter slice 4: paid-order cards", () => {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
- * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The sale is cancelled and you get everything back, including the buyer's fee.</li> | <li>The sale is cancelled.</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The sale is cancelled and you get everything back.</li> | <li>The sale is cancelled.</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
  */
@@ -369,7 +369,7 @@ describe("boards 159 + 160: handover sheets", () => {
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Dana didn't pick up?")).toBeInTheDocument();
     expect(within(sheet).getByText(/Dana can book one new time before the 7-day pickup deadline/)).toBeInTheDocument();
-    expect(within(sheet).getByText(/item price back \(not the buyer's fee\), and your item goes back on sale/)).toBeInTheDocument();
+    expect(within(sheet).getByText(/item price back, and your item goes back on sale/)).toBeInTheDocument();
     expect(sheet.textContent).not.toMatch(/\b(he|she|him|her)\b/);
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
     expect(state.calls).toEqual([]);

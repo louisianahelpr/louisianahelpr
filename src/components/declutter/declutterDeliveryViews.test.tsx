@@ -92,7 +92,7 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     state.view = VIEW;
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/Finding a Helpr\. If nobody takes it by/)).toBeInTheDocument();
-    expect(screen.getByText(/delivery fee comes back and you pick it up/)).toBeInTheDocument();
+    expect(screen.getByText(/what you paid for delivery comes back and you pick it up/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
   });
 
@@ -157,7 +157,7 @@ describe("DeliverView (the Helpr's screen)", () => {
       dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2026-10-18T15:00:00Z",
       latest_pickup_at: "2026-10-23T15:00:00Z" }];
     show(<DeliverView />);
-    // Board 50: the route as areas only, the take-home after the fee, addresses only after accepting.
+    // Board 50: the route as areas only, the take-home amount, addresses only after accepting.
     expect(await screen.findByText("Pick up in Mid-City")).toBeInTheDocument();
     expect(screen.getByText("From the seller · about 3 miles from you")).toBeInTheDocument();
     expect(screen.getByText("Drop off near Baker, LA")).toBeInTheDocument();

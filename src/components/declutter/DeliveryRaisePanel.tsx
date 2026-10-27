@@ -1,8 +1,8 @@
 /**
  * "Raise the pay" on the buyer's delivery (spec row 40, Q1929; migration
  * 20261021185418). Shown under the delivery while no Helpr has taken it: the
- * buyer offers more, sees exactly what the second card payment costs (the
- * raise plus its card fee), and pays it on a Stripe page. Nothing changes until
+ * buyer offers more, sees exactly what the second card payment costs (one
+ * "You pay now" total, never a fee line: owner 2026-10-25, issue #3672), and pays it on a Stripe page. Nothing changes until
  * that payment goes through; a raise the delivery never uses comes back in
  * full. Every rule (who, when, how much) is enforced in SQL; this only explains it.
  */
@@ -21,11 +21,11 @@ const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short
 
 function raiseLine(r: DeliveryRaise): string {
   if (r.status === "applied") return `You raised the pay by ${formatPrice(r.raise_cents)}.`;
-  // What actually goes back: the server's refund_cents (a buyer-side cancel keeps the raise's card fee).
+  // What actually goes back: the server's refund_cents (a buyer-side cancel keeps part of it). The line says the
+  // amount coming back and nothing about why the rest is kept (owner 2026-10-25: no fee names, issue #3672).
   const back = typeof r.refund_cents === "number" ? r.refund_cents : r.total_cents;
-  const kept = back < r.total_cents ? " The card fee is not refunded." : "";
-  if (r.status === "refunded") return `${formatPrice(back)} of your raise payment was refunded.${kept}`;
-  return `${formatPrice(back)} of your raise payment is coming back to your card.${kept}`;
+  if (r.status === "refunded") return `${formatPrice(back)} of your raise payment was refunded.`;
+  return `${formatPrice(back)} of your raise payment is coming back to your card.`;
 }
 
 export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
@@ -105,18 +105,14 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
               <dt>Added to the Helpr's pay</dt>
               <dd className={money}>{valid ? formatPrice(cents) : "-"}</dd>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <dt>Card fee</dt>
-              <dd className={money}>{valid ? formatPrice(fee) : "-"}</dd>
-            </div>
             <div className="flex items-center justify-between gap-3 border-t border-border pt-1 font-semibold">
               <dt>You pay now</dt>
               <dd className={money}>{valid ? formatPrice(cents + fee) : "-"}</dd>
             </div>
           </dl>
           <p className="text-ds-12 text-muted-foreground">
-            This is a second card payment, so the card fee is what the card company charges to take it.
-            {s.open_until ? ` If no Helpr takes the delivery by ${when(s.open_until)}, all of it comes back with your delivery fee.` : ""}
+            This is a second card payment.
+            {s.open_until ? ` If no Helpr takes the delivery by ${when(s.open_until)}, all of it comes back with what you paid for delivery.` : ""}
           </p>
           <button type="submit" className="btn-grad-primary min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold" disabled={!valid || busy}>
             {busy ? "Opening payment…" : "Raise the pay"}

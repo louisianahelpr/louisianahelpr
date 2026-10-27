@@ -251,7 +251,7 @@ describe("Declutter screens", () => {
     expect(screen.getByText("The exact address is shared after you pay.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Watch this item" })).toBeInTheDocument();
     // Owner 2026-10-19: the two actions show with no saved card (Marketplace / OfferUp / Mercari).
-    const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" });
+    const buyNow = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
     await waitFor(() => expect(buyNow).toBeEnabled());
@@ -298,7 +298,7 @@ describe("Declutter screens", () => {
       state.item = { ...ITEM, id: ID, seller_id: "u2", status: "live" };
       rememberAfterCard(ID, "offer");
       returnTo("/declutter?card=cancelled");
-      expect(await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
+      expect(await screen.findByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
       expect(screen.queryByLabelText("Your offer")).toBeNull();
       expect(screen.queryByText("Checking for your card…")).toBeNull();
     });

@@ -129,7 +129,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
   let line: string;
   if (v.status === "open") {
     line = side === "buyer"
-      ? `Finding a Helpr. If nobody takes it by ${when(v.open_until)}, your delivery fee comes back and you pick it up at the seller's home instead.`
+      ? `Finding a Helpr. If nobody takes it by ${when(v.open_until)}, what you paid for delivery comes back and you pick it up at the seller's home instead.`
       : "Finding a Helpr. You'll be told the pickup time.";
   } else if (v.status === "accepted" && v.pickup_slot_start) {
     line = side === "buyer"
@@ -144,7 +144,7 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
   } else if (v.status === "confirmed") {
     line = "Delivered.";
   } else if (v.status === "unfilled") {
-    line = "No Helpr took this delivery. The delivery fee was refunded.";
+    line = "No Helpr took this delivery. What you paid for delivery was refunded.";
   } else {
     line = "This delivery was closed.";
   }
@@ -293,7 +293,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
           <span className="text-ds-22 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(t.take_home_cents)}</span>
         </p>
         <p className="text-ds-12 text-muted-foreground">
-          After the Helpr's fee (5% + 70¢). Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.
+          Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.
         </p>
       </div>
       <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
@@ -470,7 +470,7 @@ export function DeliverView() {
   const myList = mine.data ?? [];
   const intro = (
     <p className="text-sm text-muted-foreground">
-      Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. You keep the delivery fee minus 5% + 70¢.
+      Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. Each delivery shows what you take home before you take it.
     </p>
   );
   // Q2351: who may deliver is a designed answer (helpr_task_assert_helpr), never an error screen.

@@ -80,7 +80,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
     b?.handoff === "hand" ? "Marked handed over. You're paid when the buyer confirms, or in 24 hours." : "Marked delivered. You're paid when the buyer confirms, or in 24 hours."));
   const gotIt = useMutation(act(() => confirmHandover(orderId), "Handover done. Enjoy your item."));
   const notDelivered = useMutation(act(() => reportNotDelivered(orderId), "Sorry it didn't come. Everything you paid is coming back to your card."));
-  const buyerCancel = useMutation(act(() => buyerCancelDelivery(orderId), "Cancelled. Your refund is on its way, less the card fee."));
+  const buyerCancel = useMutation(act(() => buyerCancelDelivery(orderId), "Cancelled. Your refund is on its way."));
   const sellerCancel = useMutation(act(() => sellerCancelDelivery(orderId), "Delivery cancelled. The buyer gets everything back."));
   const handoff = useMutation(act((h: DeliveryHandoff) => setDeliveryHandoff(orderId, h), "Saved. The seller is told."));
   const answer = useMutation(act((accept: boolean) => answerDeliveryTime(orderId, accept),
@@ -139,13 +139,13 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         )}
         {can.buyerCancel && (
           <button type="button" className={btn} disabled={busy}
-            onClick={() => { if (window.confirm("Cancel this order? You get everything back except the card fee. You can cancel until 24 hours before the delivery.")) buyerCancel.mutate(undefined); }}>
+            onClick={() => { if (window.confirm("Cancel this order? Most of what you paid comes back. You can cancel until 24 hours before the delivery.")) buyerCancel.mutate(undefined); }}>
             Cancel order
           </button>
         )}
         {can.sellerCancel && (
           <button type="button" className={btn} disabled={busy}
-            onClick={() => { if (window.confirm("Cancel this delivery? The buyer gets everything back, you get a Declutter strike, and the card fee comes out of your next payout.")) sellerCancel.mutate(undefined); }}>
+            onClick={() => { if (window.confirm("Cancel this delivery? The buyer gets everything back, you get a Declutter strike, and the cost of the refund comes out of your next payout.")) sellerCancel.mutate(undefined); }}>
             Cancel delivery
           </button>
         )}

@@ -207,12 +207,12 @@ export function NoShowSheet({
         {side === "seller" ? (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="seller">
             <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li>
-            <li>A second miss cancels the sale. {who === "the buyer" ? "The buyer" : who} gets the item price back (not the buyer's fee), and your item goes back on sale.</li>
+            <li>A second miss cancels the sale. {who === "the buyer" ? "The buyer" : who} gets the item price back, and your item goes back on sale.</li>
             <li className="text-ds-13 text-muted-foreground">Missed pickups count against the buyer, not you.</li>
           </ul>
         ) : (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="buyer">
-            <li>The sale is cancelled and you get everything back, including the buyer's fee.</li>
+            <li>The sale is cancelled and you get everything back.</li>
             <li className="text-ds-13 text-muted-foreground">A no-show counts against the seller, not you.</li>
           </ul>
         )}

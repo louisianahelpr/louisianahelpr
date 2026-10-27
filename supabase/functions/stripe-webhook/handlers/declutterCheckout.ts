@@ -139,7 +139,7 @@ async function settleRaise(
   }
   if (answer.result === "applied") {
     await sendMoneyEmail(ctx, buyer, "declutter_receipt", "Your Declutter receipt",
-      `You paid ${dollars(amount)} to raise your delivery's Helpr pay. Helprs now see the higher pay. If no Helpr takes it in time, the raise comes back with your delivery fee.`);
+      `You paid ${dollars(amount)} to raise your delivery's Helpr pay. Helprs now see the higher pay. If no Helpr takes it in time, the raise comes back with what you paid for delivery.`);
   }
 }
 

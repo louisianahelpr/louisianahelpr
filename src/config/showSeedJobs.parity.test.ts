@@ -264,6 +264,11 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // test, never a list of jobs shown to anyone.
     ["public.declutter_haul_away_state", "the seller's own haul-away job's state; not a feed"],
     ["public.declutter_link_haul_away", "single-job mutation on the caller's own job; status is a precondition"],
+    // Declutter haul-away sweep (20261027165903, Train D): service_role cron that unlinks a seller's
+    // stale haul-away from its cancelled or abandoned job; reads `status = 'open'` only to find an
+    // abandoned unpaid booking, writes, and lists no job to anyone.
+    ["public.declutter_haul_away_sweep", "service_role cron over sellers' own haul-away links; writes, never lists a job to anyone"],
+    ["public.declutter_haul_away_sweep_candidates", "service_role-only candidate list for declutter_haul_away_sweep (item ids, no job fields); not a feed"],
     // Rentals S3 (20261017220911): the landlord cancels the ONE job linked to
     // their own maintenance request (customer_id = auth.uid()); 'open' is a
     // precondition, the function returns nothing.

@@ -209,6 +209,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
  * does). Kept apart so the two-way check against the migrations stays exact.
  */
 export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
+  // declutter-checkout (seller delivery, 20261027153244): the price the screen showed is no longer the seller's.
+  delivery_rate_changed: "The seller's delivery price just changed. Check the new price, then tap Pay again.",
   ai_unavailable: "The photo tool isn't available right now. You can fill in the details yourself.",
   ai_photos_required: "Add at least one photo first, so the photo tool can see the item.",
   // The app's own timeout on the photo tool (AI_TIMEOUT_MS, api.ts).

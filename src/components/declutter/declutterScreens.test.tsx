@@ -35,6 +35,17 @@ const state = {
 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
+// Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
+vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
+  const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
+  return {
+    ...real,
+    fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [],
+      items_off: [], rules: real.SELLER_DELIVERY_RULES }),
+    fetchSellerDeliveryOffer: async () => ({ available: false, reason: "seller_not_delivering", rate_cents: null, base_rate_cents: null,
+      free_over_cents: null, items_cents: null, radius_miles: null, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null }),
+  };
+});
 vi.mock("@/hooks/useFeature", () => ({
   useFeature: () => state.feature,
   // DeclutterPage warms the declutter_wanted read with useFeatureStatus (Q?declutter-settle).

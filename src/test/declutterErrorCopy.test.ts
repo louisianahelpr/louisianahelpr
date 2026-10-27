@@ -17,11 +17,13 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 import { DECLUTTER_CLIENT_ERROR_COPY as SHARED_CLIENT_COPY, DECLUTTER_ERROR_COPY as SHARED_COPY, ListingPhotoError, declutterErrorMessage } from "@/lib/declutter/errors";
 import { HAUL_AWAY_CLIENT_ERROR_COPY, HAUL_AWAY_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
+import { SELLER_DELIVERY_ERROR_COPY } from "@/lib/declutter/sellerDeliveryErrors";
 import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
 
-// Haul-away's words live in their own lazily loaded module (Q178); the rule is
-// the same, so each pair is read as one table (and no code is in both).
-const DECLUTTER_ERROR_COPY: Record<string, string> = { ...SHARED_COPY, ...HAUL_AWAY_ERROR_COPY };
+// Haul-away's and seller delivery's words live in their own lazily loaded
+// modules (Q178); the rule is the same, so they are read as one table (and no
+// code is in two of them).
+const DECLUTTER_ERROR_COPY: Record<string, string> = { ...SHARED_COPY, ...HAUL_AWAY_ERROR_COPY, ...SELLER_DELIVERY_ERROR_COPY };
 const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = { ...SHARED_CLIENT_COPY, ...HAUL_AWAY_CLIENT_ERROR_COPY };
 
 const DIR = join(process.cwd(), "supabase/migrations");
@@ -54,6 +56,8 @@ const DECLUTTER_FILES = [
   "20261026154738_declutter_setup_fee_once.sql",
   // Board 141, Declutter side: the refund request after the handover (refund_window_over, invalid_amount, ...).
   "20261026155251_declutter_refund_requests.sql",
+  // Seller delivery (switch declutter_seller_delivery): its codes are in sellerDeliveryErrors.ts.
+  "20261027153244_declutter_seller_delivery.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -80,7 +84,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(20); // 20: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(21); // 21: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27)
     expect(codes.size).toBeGreaterThan(25);
   });
 
@@ -94,6 +98,7 @@ describe("Declutter error copy is exact (both ways)", () => {
 
   it("the haul-away tables repeat no shared code", () => {
     expect(Object.keys(HAUL_AWAY_ERROR_COPY).filter((c) => c in SHARED_COPY)).toEqual([]);
+    expect(Object.keys(SELLER_DELIVERY_ERROR_COPY).filter((c) => c in SHARED_COPY || c in HAUL_AWAY_ERROR_COPY)).toEqual([]);
     expect(Object.keys(HAUL_AWAY_CLIENT_ERROR_COPY).filter((c) => c in SHARED_CLIENT_COPY)).toEqual([]);
   });
 

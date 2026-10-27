@@ -208,7 +208,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   it("after handover: the seller sees the payout (minus a fee debt) and both can review (rows 45, 93)", async () => {
-    state.payouts = [{ order_id: "o1", items_cents: 4000, debt_cents: 150, amount_cents: 3850, status: "succeeded", executed_at: null }];
+    state.payouts = [{ order_id: "o1", items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 150, amount_cents: 3850, status: "succeeded", executed_at: null }];
     show([line({ my_side: "seller", order_status: "handed_over" })]);
     expect(await screen.findByText(/\$38\.50 \(\$40 minus \$1\.50 you owed\)/)).toBeInTheDocument();
     expect(screen.getByText("Review o1 as the seller (me)")).toBeInTheDocument();

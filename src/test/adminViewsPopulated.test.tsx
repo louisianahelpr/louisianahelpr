@@ -36,10 +36,14 @@ vi.mock("@/integrations/supabase/client", () => {
   const CHAIN = ["select", "eq", "neq", "in", "is", "not", "or", "order", "gte", "lte", "gt", "lt", "ilike", "match", "filter", "contains", "range"];
   const builder = (rows: unknown[]) => {
     let limit: number | null = null;
+    let seedOnly: boolean | null = null;
     const b: Record<string, unknown> = {};
     for (const m of CHAIN) b[m] = () => b;
+    // fetchSeedUserIds asks profiles for is_seed = true; a row without the column is a real account.
+    b.eq = (k: string, v: unknown) => { if (k === "is_seed") seedOnly = v as boolean; return b; };
     b.limit = (n: number) => { limit = n; return b; };
-    const out = () => (limit === null ? rows : rows.slice(0, limit));
+    const kept = () => (seedOnly === null ? rows : rows.filter((r) => ((r as { is_seed?: boolean }).is_seed ?? false) === seedOnly));
+    const out = () => (limit === null ? kept() : kept().slice(0, limit));
     b.maybeSingle = async () => ({ data: out()[0] ?? null, error: null });
     b.single = async () => ({ data: out()[0] ?? null, error: null });
     b.then = (res: (v: unknown) => unknown, rej?: (e: unknown) => unknown) =>

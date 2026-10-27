@@ -4,6 +4,7 @@ import { hapticLight } from "@/lib/haptics";
 import { differenceInHours } from "date-fns";
 
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
+import { JobTodayChip } from "@/components/job-card/JobTodayChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
 import { isTodayJob } from "@/lib/sameDayJob";
@@ -487,34 +488,13 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                 }}
               >
                 <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--accent))", fill: "hsl(var(--accent))" }} />
-                {/* Just "Urgent", not "+$10 Urgent" (owner, 2026-08-30: the
-                    dollar prefix read as "does the helper get this on TOP of
-                    the posted budget?" — ambiguous, since the bonus is
-                    already folded into the net take-home JobPrice shows).
-                    The bonus amount is still in the aria-label for anyone
-                    who needs the detail; it just isn't the visible claim. */}
+                {/* Just "Urgent", not "+$10 Urgent" (owner 2026-08-30: read as on top of the budget); the bonus stays in the aria-label. */}
                 Urgent
               </span>
             );
           }
-          // Q2438: a job for Louisiana's today wears "Today" (below Boosted and
-          // Urgent, which keep their corner).
           if (isTodayJob(job.date_needed)) {
-            return (
-              <span
-                className={corner}
-                data-testid="job-card-today"
-                style={{
-                  color: "hsl(var(--bark))",
-                  background: "hsl(var(--bark) / 0.12)",
-                  borderColor: "hsl(var(--bark) / 0.4)",
-                  letterSpacing: "0.05em",
-                }}
-              >
-                <Zap className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--bark))" }} aria-hidden />
-                Today
-              </span>
-            );
+            return <JobTodayChip className={corner} />;
           }
           return null;
           })()}

@@ -682,7 +682,7 @@ describe("declutter-checkout: pay", () => {
     expect(res.status).toBe(200);
     const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
     expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount])).toEqual([
-      ["Declutter items", 4000], ["Buyer's fee (5% + 70¢)", 600], ["One-time account setup fee", 200],
+      ["Declutter purchase", 4600], ["One-time account setup fee", 200],
     ]);
     expect(params.metadata).toMatchObject({ setup_fee_cents: "200" });
     expect(rpcs("declutter_attach_checkout_session")[0]?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_fee" });
@@ -974,8 +974,12 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
     expect(res.status).toBe(200);
     const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
     expect(params.line_items.map((l: any) => [l.price_data.product_data.name, l.price_data.unit_amount])).toEqual([
-      ["Declutter items", 4000], ["Buyer's fee (5% + 70¢)", 270], ["Helpr delivery", 2400],
+      ["Declutter purchase", 4270], ["Helpr delivery", 2400],
     ]);
+    // Owner 2026-10-25 (issue #3672): the Stripe page a buyer reads names no fee; the one purchase line carries the
+    // items and the premium together, so the page still totals exactly the order.
+    // @mutate supabase/functions/declutter-checkout/index.ts | unit_amount: order.items_cents + order.premium_cents, | unit_amount: order.items_cents,
+    expect(params.line_items.map((l: any) => l.price_data.product_data.name).join(" ")).not.toMatch(/fee|%|¢/i);
     expect(rpcs("declutter_start_checkout")[0]?.args).toEqual({ p_seller_id: SELLER, p_handover: "delivery" });
   });
 

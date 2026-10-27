@@ -1,12 +1,18 @@
 /**
  * Q2308 (owner approved the Declutter terms 2026-10-22; source docs/specs/declutter-terms-draft.md): the Terms
  * tab carries a Declutter section, and the numbers it states are the ones the code charges and enforces. Each
- * number is derived HERE from its source (the buyer's fee from src/lib/declutter/money.ts, the photo limits from
+ * number is derived HERE from its source (the photo limits from
  * photoRules.ts, the delivery price, the haul-away wait and limit, and the strike length from the NEWEST effective
  * SQL definitions, comments blanked, any dollar-quote tag), so a change to one side fails here until the other
  * follows. Also: no draft markers or citations leak into the published copy.
  *
- * @mutate src/pages/info/legal/TermsSection.tsx | a buyer&apos;s fee of 5% of the item total + $0.70 | a buyer&apos;s fee of 15% of the item total
+ * Owner 2026-10-25, re-confirmed for Declutter 2026-10-27 (issue #3672): members never see a fee number, fee
+ * name or fee maths; the Terms keep at most one general sentence, no numbers. So the buyer's fee (derived from
+ * src/lib/declutter/money.ts) is pinned ABSENT: no fee sentence in the section carries an amount or a percent,
+ * and the one-time account setup fee sentence stays.
+ *
+ * @mutate src/pages/info/legal/TermsSection.tsx | the item price plus a buyer&apos;s fee, once per checkout | the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout
+ * @mutate src/pages/info/legal/TermsSection.tsx | everything back, delivery included. | everything back, the $24 delivery fee too.
  * @mutate src/pages/info/legal/TermsSection.tsx | at least 1 and at most 12 photos | at least 3 and at most 12 photos
  * @mutate src/pages/info/legal/TermsSection.tsx | $10, plus $2 for each road mile, plus $20 for each large item and $40 for each extra-large item | $10, plus $3 for each road mile, plus $20 for each large item and $40 for each extra-large item
  * @mutate src/pages/info/legal/TermsSection.tsx | an item unsold 14 days after | an item unsold 30 days after
@@ -49,10 +55,21 @@ describe("Q2308: the Terms' Declutter section states the numbers the code enforc
     expect(defs.size).toBeGreaterThan(500);
   });
 
-  it("the buyer's fee is the one checkout charges", () => {
+  it("states no fee number: the buyer's fee rule never appears, and no sentence naming a fee carries an amount (issue #3672)", () => {
     const fixed = checkoutAmounts([0]).premiumCents;
     const pct = (checkoutAmounts([10_000]).premiumCents - fixed) / 100;
-    expect(section).toContain(`a buyer&apos;s fee of ${pct}% of the item total + $${(fixed / 100).toFixed(2)}`);
+    expect(fixed).toBeGreaterThan(0);
+    expect(pct).toBeGreaterThan(0);
+    for (const bad of [`$${(fixed / 100).toFixed(2)}`, `${fixed}¢`, `${fixed} cents`, `${fixed}c `, `${pct}% of the item`, `${pct}% +`, "% +"]) {
+      expect(section, `the Declutter Terms state the buyer's fee rule (${bad})`).not.toContain(bad);
+    }
+    // Every sentence that names a fee or a charge is free of amounts and percents.
+    const text = section.replace(/<[^>]*>/g, " ").replace(/&apos;/g, "'").replace(/\s+/g, " ");
+    const sentences = text.split(/(?<=[.;:])\s+/).filter((s) => /\bfees?\b|card cost|charge/i.test(s));
+    expect(sentences.length).toBeGreaterThan(2);
+    expect(sentences.filter((s) => /\$\d|\d\s*%|\d\s*¢|\d+ cents/.test(s))).toEqual([]);
+    // The one fee a member may see stays, without a number here.
+    expect(section).toContain("The one-time account setup fee is charged once per account");
   });
 
   it("the photo limits are the sell flow's", () => {

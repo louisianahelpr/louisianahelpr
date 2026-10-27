@@ -21,6 +21,7 @@ import { DeclutterReviewCard } from "./DeclutterReviewCard";
 import { ShopItemsReviewCard } from "./ShopItemsReviewCard";
 import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
+import { MeetupSpotsCard } from "./MeetupSpotsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
@@ -170,6 +171,7 @@ export function FeatureSwitchesCard() {
     <ShopItemsReviewCard />
     <CategorySuggestionsCard />
     <DeclutterProblemsCard />
+    <MeetupSpotsCard />
     <RentalsOwnershipCard />
     <HomesListingsCard />
     </>

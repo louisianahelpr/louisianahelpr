@@ -75,6 +75,8 @@ const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
 const MobileNav = lazy(() => import("./components/MobileNav"));
 const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
 const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
+// Q2440: "Online for deliveries" chip above the dock while a Helpr is online (phone web and the app).
+const DeliveryOnlinePill = lazy(() => import("./components/declutter/DeliveryOnlinePill").then((m) => ({ default: () => <m.DeliveryOnlinePill placement="dock" /> })));
 // Badge = To-do (owner, 2026-10-20): publishes Home's to-do count for the navs.
 const NeedsYouMount = lazy(() => import("./components/NeedsYouMount"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
@@ -559,6 +561,7 @@ const App = () => (
             <MobileNav />
             <DesktopSidebarNav />
             <DesktopTopNav />
+            <DeliveryOnlinePill />
             <PermissionRationaleDialog />
             <TermsReconsentDialog />
             <IdentityCheckHost />

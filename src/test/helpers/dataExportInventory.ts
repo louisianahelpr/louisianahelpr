@@ -574,6 +574,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
 
 
   "confirm_reminder_sends.user_id": { reason: "lead 2026-10-25: which confirm-your-email reminder (step 1 or 2) went to the account and when, service role only; the email itself is exported in email_send_log, and the rows go with the account" },
+  "helpr_delivery_online.user_id": { reason: "Q2440 (owner-approved 2026-10-27): the Go online switch, one row per Helpr: until when, a radius, and an area point rounded to ~1 km taken from the profile area (exported with profiles) or a position the member shared on the route screen; it turns itself off within 12 hours and the point is erased on Off, on the next go-online or new delivery after an auto-off; members read their own row on Deliver for pay, and it is deleted with the account (ON DELETE CASCADE)" },
   "come_back_email_sends.user_id": { reason: "owner 2026-10-21: which come-back email (step 1 or 2) went to the member and when, service role only; the email itself is exported in email_send_log, and the rows are deleted with the account" },
   "signup_leads.email": { reason: "owner 2026-10-09: the sign-up step-1 address saved BEFORE an account exists (service role only); for a member it holds only the address the account already exports plus a source and timestamps, and a completed row is deleted at 30 days" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },

@@ -261,7 +261,18 @@ describe("lesson 3 — a drive time is only offered for a drive", () => {
     const producers = FILES.filter(
       (f) => /expectedTravelTime|mapkit\.Directions|new .*Directions\(/.test(CODE.get(f)!),
     );
-    expect(producers).toEqual(["hooks/useDrivingTime.ts"]);
+    // Callers of MapKit Directions that produce NO minutes. Exact both ways: each must still call
+    // Directions and must never read expectedTravelTime.
+    const DIRECTIONS_WITHOUT_MINUTES: Record<string, string> = {
+      // My route's in-app map (Train D, Q2456): one Directions request per leg for the drawn line and
+      // the next-turn instructions (route.path / route.steps); it reads no expectedTravelTime and shows no ETA.
+      "components/declutter/DeliveryRouteMap.tsx": "draws the leg line and the next turn; no travel time",
+    };
+    for (const f of Object.keys(DIRECTIONS_WITHOUT_MINUTES)) {
+      expect(producers, f).toContain(f);
+      expect(CODE.get(f)!, f).not.toMatch(/expectedTravelTime/);
+    }
+    expect(producers.filter((f) => !(f in DIRECTIONS_WITHOUT_MINUTES))).toEqual(["hooks/useDrivingTime.ts"]);
   });
 
   it("every ETA surface goes through that funnel", () => {

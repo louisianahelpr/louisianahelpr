@@ -5,8 +5,8 @@
  * off, booked pickup times kept), with what to do at each stop, the in-app map (DeliveryRouteMap:
  * numbered pins, the driving line, the next turn) and Open in Maps for voice turn-by-turn.
  *
- * Addresses follow helpr_task_view's rule: the pickup once the delivery is theirs, the drop-off only
- * after the "Picked up" photo. No pay or fee figure is shown here (members never see fee numbers).
+ * Addresses follow helpr_task_view's rule: both, once the delivery is theirs (the drop-off from accept:
+ * owner decided 2026-10-27), so the map and Open in Maps carry every stop from the start. No pay or fee figure is shown here (members never see fee numbers).
  */
 import { lazy, Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -42,7 +42,9 @@ function StopCard({ stop, userId }: { stop: RouteStop; userId: string }) {
           <p className="text-ds-13 break-words">
             {stop.address
               ? <span className="font-medium">{stop.address}</span>
-              : <span className="text-muted-foreground">Near {stop.area}. The address shows once you've picked the item up.</span>}
+              : <span className="text-muted-foreground">
+                  Near {stop.area}.{stop.address_shows_at ? ` The drop-off address shows ${day(stop.address_shows_at)}, ${clock(stop.address_shows_at)}, 2 hours before the pickup.` : ""}
+                </span>}
           </p>
           <p className="text-ds-13 text-muted-foreground">{PLACE_WORDS[stop.kind][stop.place]}</p>
         </div>
@@ -106,8 +108,9 @@ export function DeliveryRoute({ userId, where }: { userId: string; where: { lat:
           </a>
           <p className="text-ds-12 text-muted-foreground">
             For spoken turn-by-turn. {maps.left_out > 0
-              ? `Opens the next ${maps.count} ${maps.count === 1 ? "stop" : "stops"}; a drop-off joins once you've picked its item up.`
+              ? `Opens the next ${maps.count} ${maps.count === 1 ? "stop" : "stops"}; the rest join once those are done.`
               : `Opens all ${maps.count} ${maps.count === 1 ? "stop" : "stops"} in this order.`}
+            {stops.some((s) => s.kind === "dropoff" && !s.address) && " A drop-off joins once its address shows, 2 hours before its pickup."}
           </p>
         </div>
       )}

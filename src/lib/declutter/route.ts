@@ -15,8 +15,8 @@ interface AddressedStop {
  * documented multi-stop URL, and Google's opens in the Google Maps app or the browser on every
  * device. Addresses, never points (src/lib/mapsLink.ts: "stop sending coordinates to Google").
  * At most MAX_MAPS_STOPS stops: mobile Maps handles three waypoints and a destination; the rest
- * open from the next tap once these are done. A drop-off whose address is not shown yet (not picked
- * up) has no address and is left out; `left_out` says how many.
+ * open from the next tap once these are done; `left_out` says how many. A stop with no address (a
+ * new Helpr's drop-off before 2 hours ahead of its pickup: owner decided issue #3684) is left out too.
  */
 export const MAX_MAPS_STOPS = 4;
 
@@ -31,7 +31,7 @@ export function routeMapsUrl(stops: AddressedStop[]): { href: string; count: num
   return {
     href: `https://www.google.com/maps/dir/?${params.join("&")}`,
     count: trip.length,
-    left_out: stops.length - trip.length,
+    left_out: addressed.length - trip.length,
   };
 }
 

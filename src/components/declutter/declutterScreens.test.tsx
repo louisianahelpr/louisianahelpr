@@ -45,6 +45,11 @@ vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: 
 // The whole hook shape: Sell it for me (on Selling and Sell an item) reads explain + gatedProps too.
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge, explain: () => {}, gatedProps: () => ({}) }) }));
 vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => state.payoutBlock }));
+// The server's answer to "may this member set up payouts" (payout_setup_hire_allowed_for_me):
+// since 2026-10-27, true for a seller only once a paid order holds money for them.
+const setupAllowed = { value: false };
+vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => setupAllowed.value }));
+vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: "setup" }, refetchStatus: () => {} }) }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,
@@ -197,13 +202,27 @@ describe("Declutter screens", () => {
     expect(document.querySelector("[data-add-photos]")).toBeNull();
   });
 
-  it("no payout setup: a plain block with the way to fix it, the form still usable", () => {
+  it("no payout setup: listing is not blocked and nobody is told to set up before a sale (owner 2026-10-27)", () => {
     state.payoutBlock = "payouts_not_ready";
+    setupAllowed.value = false;
     at("/declutter/sell", <DeclutterSellPage />);
-    expect(screen.getByText("Set up payouts before you list.")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
-    // The form is still usable: step 1's photo picker is there.
+    expect(screen.queryByText("Set up payouts before you list.")).toBeNull();
+    // List first, set up at first sale: the prompt waits for the server to say money is owed.
+    expect(screen.queryByText("Set up payouts to get paid.")).toBeNull();
+    // The form is usable: step 1's photo picker is there.
     expect(document.querySelector("[data-add-photos]")).not.toBeNull();
+  });
+
+  it("a seller owed money (a paid sale) whose payouts are not ready is prompted to set up, with the link", () => {
+    state.payoutBlock = "payouts_not_ready";
+    setupAllowed.value = true;
+    try {
+      at("/declutter/sell", <DeclutterSellPage />);
+      expect(screen.getByText("Set up payouts to get paid.")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
+    } finally {
+      setupAllowed.value = false;
+    }
   });
 
   it("the seller of a rejected listing reads the admin's reason; no offer button exists", async () => {

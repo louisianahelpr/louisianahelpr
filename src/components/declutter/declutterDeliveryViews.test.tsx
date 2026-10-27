@@ -47,6 +47,8 @@ vi.mock("@/lib/helprTasks/api", () => ({
   fetchTaskView: async () => state.view,
   fetchOpenTasks: async () => { if (state.openError) throw state.openError; return state.open; },
   fetchMyTasks: async () => state.mine,
+  // My route has its own test (deliveryRoute.test.tsx); here it has no stops and renders nothing.
+  fetchMyRoute: async () => ({ stops: [], miles: 0, drive_minutes: 0, finish_at: null }),
   fetchMyVehicle: async () => state.vehicle,
   taskPhotoUrl: async (p: string) => { if (p.includes("broken")) throw new Error("photo_unavailable"); return `https://signed.test/${p}`; },
   acceptTask: async (...a: unknown[]) => { state.calls.push(["accept", ...a]); },

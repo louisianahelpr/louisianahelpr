@@ -722,7 +722,7 @@ module; the client is src/lib/helprTasks/api.ts and the screens reuse it unchang
 
 Exact addresses (row 27): the Helpr reads the pickup address after taking the delivery and the drop-off address
 only after the "Picked up" photo; the buyer never reads the seller's address through the task, the seller never
-reads the buyer's; open deliveries show area words and rough miles only (`helpr_task_view`).
+reads the buyer's; open deliveries show area words and rough miles only (`helpr_task_view`). My route (helpr_my_route, 2026-10-27) orders a taken delivery's drop-off before the "Picked up" photo from its point rounded to 2 decimals, so the assigned Helpr can learn that ~1 km cell (no finer) before pickup; the address and exact point still come only after it (lh-authz-rls review of 20261027194235, #2).
 
 | # | Decision | Status | When |
 |---|----------|--------|------|

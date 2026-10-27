@@ -16,6 +16,11 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
   helpr_my_tasks: {
     not_authenticated: DC.not_authenticated,
   },
+  helpr_my_route: {
+    feature_disabled: DC.feature_disabled,
+    invalid_location: DC.invalid_location,
+    not_authenticated: DC.not_authenticated,
+  },
   helpr_set_vehicle: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

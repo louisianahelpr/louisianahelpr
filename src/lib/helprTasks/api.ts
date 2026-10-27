@@ -123,6 +123,42 @@ export async function fetchMyTasks(): Promise<MyTask[]> {
   return data<MyTask[] | null>(await supabase.rpc("helpr_my_tasks"), (e) => rpcErrorMessage("helpr_my_tasks", e)) ?? [];
 }
 
+/** One stop of the Helpr's route (helpr_my_route): exact address and point only where helpr_task_view shows them. */
+export interface RouteStop {
+  seq: number;
+  task_id: string;
+  kind: "pickup" | "dropoff";
+  status: "accepted" | "picked_up";
+  title: string;
+  size: TaskSize;
+  area: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  place: "porch" | "door";
+  items: { title: string; photo_path: string | null }[];
+  slot_start: string | null;
+  slot_end: string | null;
+  arrive_at: string;
+  late: boolean;
+  leg_miles: number;
+}
+
+export interface MyRoute {
+  stops: RouteStop[];
+  miles: number;
+  drive_minutes: number;
+  finish_at: string | null;
+}
+
+/** Every stop of the caller's deliveries in hand, in order (pickup before its drop-off, booked times kept). */
+export async function fetchMyRoute(where: { lat: number; lng: number } | null): Promise<MyRoute> {
+  const r = data<MyRoute | null>(await supabase.rpc("helpr_my_route", {
+    p_lat: (where?.lat ?? null) as number, p_lng: (where?.lng ?? null) as number,
+  }), (e) => rpcErrorMessage("helpr_my_route", e));
+  return r ?? { stops: [], miles: 0, drive_minutes: 0, finish_at: null };
+}
+
 export async function fetchTaskView(taskId: string): Promise<TaskView> {
   return data<TaskView>(await supabase.rpc("helpr_task_view", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_view", e));
 }

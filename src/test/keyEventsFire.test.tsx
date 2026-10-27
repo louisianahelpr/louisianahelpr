@@ -215,18 +215,18 @@ async function driveSignup(): Promise<string | undefined> {
       <Signup />
     </MemoryRouter>,
   );
-  // Step 1: credentials + the two required boxes.
+  // Step 1: names, credentials + the two required boxes (names moved here, owner 2026-10-26).
+  fireEvent.change(document.getElementById("firstName")!, { target: { value: "Kay" } });
+  fireEvent.change(document.getElementById("lastName")!, { target: { value: "Events" } });
   fireEvent.change(document.getElementById("email")!, { target: { value: "keyevents.test@example.com" } });
   fireEvent.change(document.getElementById("password")!, { target: { value: "Str0ng!Passw0rd#" } });
   // ONE consent box records both the agreement and the 18+ attestation (board 55).
   fireEvent.click(document.getElementById("policies")!);
   fireEvent.click(screen.getByRole("button", { name: /^continue$/i }));
-  // Step 2: about you.
-  await waitFor(() => expect(document.getElementById("firstName")).not.toBeNull());
+  // Step 2: about you (all optional).
+  await waitFor(() => expect(document.getElementById("avatar")).not.toBeNull());
   const photo = new File([new Uint8Array([137, 80, 78, 71])], "me.png", { type: "image/png" });
   fireEvent.change(document.getElementById("avatar")!, { target: { files: [photo] } });
-  fireEvent.change(document.getElementById("firstName")!, { target: { value: "Kay" } });
-  fireEvent.change(document.getElementById("lastName")!, { target: { value: "Events" } });
   fireEvent.change(document.getElementById("location")!, { target: { value: "New Orleans" } });
   fireEvent.change(document.getElementById("zipCode")!, { target: { value: "70112" } });
   // No phone or birthday on step 2 since 2026-10-09 (asked later); step 1's

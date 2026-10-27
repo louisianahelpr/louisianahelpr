@@ -4,13 +4,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { MapPin, Users, Wrench } from "lucide-react";
+import { MapPin, Shield, Users, Wrench } from "lucide-react";
+import { useEffect, useState } from "react";
 import { AddressBlock } from "@/components/postjob/AddressBlock";
 import { RecurringSchedulePicker } from "@/components/postjob/RecurringSchedulePicker";
 import { SectionCard } from "@/components/postjob/SectionCard";
 import { todayLocalISO } from "@/lib/dateUtils";
+import { todayYmd } from "@/lib/jobDate";
+import { ChoicePill } from "@/components/ui/ChoicePill";
+import { RadioCardList } from "@/components/ui/RadioCardList";
+import { dayStrip, TIME_CHIPS, timeChipOf } from "@/components/postjob/whenChoices";
+import type { SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { formatPriceExact } from "@/lib/format";
 import { allocateCents } from "../../../supabase/functions/_shared/crewShares";
 
@@ -116,6 +121,15 @@ interface LogisticsSectionProps {
   setIncludeMaterials?: (v: boolean) => void;
   materialsNote?: string;
   setMaterialsNote?: (v: string) => void;
+  /** Board 45's saved address (the poster's last full job address), or null
+   *  when there is none; the WHERE radio only shows when there is one. */
+  savedAddress?: SavedAddress | null;
+}
+
+/** Same address, ignoring case, spacing and a ZIP+4 tail. */
+function sameAddress(a: { streetAddress: string; city: string; zipCode: string }, b: SavedAddress): boolean {
+  const n = (v: string) => v.trim().replace(/\s+/g, " ").toLowerCase();
+  return n(a.streetAddress) === n(b.streetAddress) && n(a.city) === n(b.city) && a.zipCode.replace(/\D/g, "").slice(0, 5) === b.zipCode.replace(/\D/g, "").slice(0, 5);
 }
 
 // Categories where it's common for posters to provide their own paint /
@@ -169,9 +183,64 @@ export function LogisticsSection({
   setIncludeMaterials,
   materialsNote,
   setMaterialsNote,
+  savedAddress = null,
 }: LogisticsSectionProps) {
   const materialsToggleRelevant =
     !!category && MATERIALS_RELEVANT_CATEGORIES.has(category);
+
+  // WHEN (board 45). The day strip is Louisiana's next days: jobs.date_needed
+  // is a Louisiana calendar day (src/lib/jobDate.ts), so the strip starts on
+  // todayYmd(), never the device's today (postJobDayStrip.tz.test.tsx).
+  const strip = dayStrip(todayYmd());
+  const dateOnStrip = !dateNeeded || strip.some((d) => d.iso === dateNeeded);
+  const [moreDates, setMoreDates] = useState(false);
+  const showCalendar = moreDates || !dateOnStrip;
+  const chip = timeChipOf(startTime);
+  const [otherTime, setOtherTime] = useState(false);
+  // A stored time no chip names (a draft, a rebook, the wheel) IS "Other time".
+  const showWheel = otherTime || (!!startTime.trim() && !chip);
+  const pickTime = (v: string) => {
+    setOtherTime(false);
+    setStartTime(v);
+  };
+  const dateLabel = isRecurring ? "Start date" : "Date needed";
+
+  // WHERE (board 45). The saved address is filled in for the poster only while
+  // the form holds no address of its own (a draft or a rebook already did),
+  // and "Somewhere else" opens the existing address entry.
+  const [whereElse, setWhereElse] = useState(false);
+  const applySaved = (a: SavedAddress) => {
+    setStreetAddress(a.streetAddress);
+    setCity(a.city);
+    setAddrState(a.addrState);
+    setZipCode(a.zipCode);
+  };
+  const [savedOffered, setSavedOffered] = useState(false);
+  useEffect(() => {
+    if (!savedAddress || savedOffered) return;
+    setSavedOffered(true);
+    if (!streetAddress.trim() && !zipCode.trim()) {
+      applySaved(savedAddress);
+    }
+    // Once, when the saved address first arrives; never again over the poster's own typing.
+  }, [savedAddress]);
+  const onSaved = !!savedAddress && !whereElse && sameAddress({ streetAddress, city, zipCode }, savedAddress);
+  const chooseWhere = (v: string) => {
+    if (!savedAddress) return;
+    if (v === "saved") {
+      setWhereElse(false);
+      applySaved(savedAddress);
+      return;
+    }
+    setWhereElse(true);
+    if (sameAddress({ streetAddress, city, zipCode }, savedAddress)) {
+      setStreetAddress("");
+      setZipCode("");
+      setCity("");
+    }
+  };
+  const town = city.trim();
+
   return (
     <SectionCard
       stepNumber={stepNumber}
@@ -179,43 +248,23 @@ export function LogisticsSection({
       icon={MapPin}
       complete={logisticsComplete}
     >
-      <AddressBlock
-        streetAddress={streetAddress}
-        setStreetAddress={setStreetAddress}
-        city={city}
-        setCity={setCity}
-        addrState={addrState}
-        setAddrState={setAddrState}
-        zipCode={zipCode}
-        setZipCode={setZipCode}
-      />
+      {/* Whether a job repeats is the first scheduling fact (owner,
+          2026-08-24): it changes what the date below means (single visit vs
+          series start), so it stays ABOVE the date, at the top of the screen.
+          Board 45 does not draw it; it is kept, not dropped.
 
-      {/* MOVED ABOVE THE DATE (owner, 2026-08-24): whether a job repeats is
-          the first scheduling fact — it changes what the date below means
-          (single visit vs series start) — and buried seventh in this section
-          the owner themselves couldn't find it. */}
-      {/* Job type — One-time / Repeats / Group are mutually exclusive (a series
+          Job type — One-time / Repeats / Group are mutually exclusive (a series
           books one standing helper across many dates; group splits one date
           across many helpers), so a segmented control makes that obvious up
           front instead of toggles that quietly disable each other.
 
-          RECURRING WAS WITHDRAWN AND IS BACK, REBUILT. It was never finishable as built:
-          the poster funded escrow ONCE at checkout, and `spawn-recurring-jobs`
-          then posted every later visit straight into `jobs` with no payment at
-          all — `action: "escrow"` is invoked from exactly one place in the app
-          (useJobSubmit), the post flow, so there is no code path anywhere that
-          funds an already-existing job. Every visit after the first was
-          publicly listed and acceptable with nothing behind it: a helper could
-          do the work and there would be no escrow to release. Meanwhile this
-          screen showed "About 12 visits — roughly $600 total", which reads as
-          a $600 commitment against a $50 charge.
-
-          What replaced it: the poster picks weekdays and a number of weeks, the
-          budget is PER VISIT, and `charge-recurring-visits` bills the saved
-          card a few days before each date — creating the job row only AFTER
-          the money is in escrow, so an unfunded visit cannot exist for a helper
-          to walk into. One standing helper holds every date and can release a
-          single one they can't make. */}
+          Repeats: the poster picks weekdays and a number of weeks, the budget is
+          PER VISIT, and `charge-recurring-visits` bills the saved card a few days
+          before each date, creating the job row only AFTER the money is in
+          escrow, so an unfunded visit cannot exist for a helper to walk into.
+          One standing helper holds every date and can release a single one they
+          can't make. (It was withdrawn once because every visit after the first
+          was posted with nothing behind it; see RECURRING_ENABLED above.) */}
       <div className="space-y-3">
         <Label id="job-type-label">Job type</Label>
         {/* With Group withdrawn, a restored draft carrying `isGroupJob: true`
@@ -276,23 +325,72 @@ export function LogisticsSection({
         )}
       </div>
 
-      {/* Date and Start Time sit side by side once THIS GRID is 560px wide
-          (owner, 2026-10-05: side by side on a wide screen); stacked below
-          that, where each needs the full width. Keyed to the column, not the
-          screen (lead, 2026-10-25): at 1180 the desktop rail, step list and
-          preview card leave the form about 370px, and a screen breakpoint put
-          a 155px calendar beside a 155px time card ("SUMOTUWETHFRSA").
+      {/* WHEN (board 45): "A set time" / "Flexible" write jobs.is_flexible_schedule.
+          Flexible is a SUBSTITUTE for a start time (owner 2026-09-19: "they also
+          need times unless they were checked off as flexible"): with no time the
+          card reads "Flexible", with one it reads "9:00 AM · Flexible"
+          (jobStartTimeLabel), so under Flexible the time stays optional.
+
+          The board's "Any time this week" is LEFT OUT on purpose: jobs.date_needed
+          is one NOT NULL day (verified on prod 2026-10-25, information_schema) and
+          no column can say "any day this week", so storing it would print one
+          specific day on every card, reminder and day-of check. */}
+      <div className="space-y-3">
+        <Label id="when-label">When</Label>
+        <div id="flexible" role="radiogroup" aria-labelledby="when-label" className="flex flex-wrap gap-2">
+          <ChoicePill selected={!isFlexibleSchedule} onClick={() => setIsFlexibleSchedule(false)}>A set time</ChoicePill>
+          <ChoicePill selected={isFlexibleSchedule} onClick={() => setIsFlexibleSchedule(true)}>Flexible</ChoicePill>
+        </div>
+        {isFlexibleSchedule && (
+          <p className="text-ds-12 text-muted-foreground leading-snug">
+            Any time that day works. Add a start time if you like; the Helpr can shift it either way.
+          </p>
+        )}
+      </div>
+
+      {/* Day and time sit side by side once THIS GRID is 560px wide (owner,
+          2026-10-05: side by side on a wide screen); stacked below that. Keyed
+          to the column, not the screen (lead, 2026-10-25): at 1180 the desktop
+          rail, step list and preview card leave the form about 370px.
           index.css .pj-when-grid; guard postJobFitsItsColumn.test.ts. */}
-      {/* The calendar is always open (owner, 2026-10-08), and the two columns
-          are one height: Start Time's card stretches to the calendar's with
-          the wheel centred in it. */}
       <div className="pj-cq">
       <div className="pj-when-grid grid gap-5">
       <div className="flex flex-col gap-3 min-w-0">
         {/* A repeating job's date is when the series STARTS (owner,
             2026-09-14, VN-51); the same field feeds RecurringSchedulePicker's
             `startDate` above. */}
-        <Label id="date-label">{isRecurring ? "Start date" : "Date needed"} <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+        <Label id="date-label">{dateLabel}<span aria-hidden className="text-[hsl(var(--destructive-ink))]">{" *"}</span></Label>
+        <div id={showCalendar ? undefined : "date"} role="radiogroup" aria-labelledby="date-label" aria-required className="grid grid-cols-5 gap-1.5">
+          {strip.map((d) => {
+            const on = d.iso === dateNeeded;
+            return (
+              <button
+                key={d.iso}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                aria-label={d.long}
+                onClick={() => setDateNeeded(d.iso)}
+                className={`flex min-h-[60px] min-w-0 flex-col items-center justify-center rounded-ds-md px-1 py-2 font-sans transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
+                  on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"
+                }`}
+              >
+                <span className={`text-ds-11 leading-tight ${on ? "" : "text-muted-foreground"}`}>{d.weekday}</span>
+                <span className="text-ds-17 font-bold leading-tight tabular-nums">{d.day}</span>
+              </button>
+            );
+          })}
+        </div>
+        {!showCalendar && (
+          <button type="button" onClick={() => setMoreDates(true)} className="self-start inline-flex min-h-[44px] items-center font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
+            More dates
+          </button>
+        )}
+        {/* "More dates" opens the existing calendar INLINE, on the same field
+            (never a popover: the owner's 2026-10-08 "calendar always open" now
+            reads "open in place once asked"); a date past the strip keeps it
+            open so the chosen day is always on screen. */}
+        {showCalendar && (
         <DatePickerField
           id="date"
           inline
@@ -301,34 +399,40 @@ export function LogisticsSection({
           onChange={setDateNeeded}
           min={todayLocalISO()}
         />
+        )}
       </div>
 
       {/* `id="start-time"` is the scroll anchor `scrollToField` targets when
-          the submit handler refuses a schedule that has already passed — the
-          refusal used to scroll to the DATE field, which is not the thing that
-          is wrong when the date is today and the time is what has gone by. */}
-      <div
-        id="start-time"
-        className="flex flex-col gap-3 min-w-0"
-        role="group"
-        aria-labelledby="start-time-label"
-        aria-describedby={scheduleInPast ? "start-time-error" : undefined}
-      >
-        {/* The `*` is conditional because the requirement is. Ticking
-            "Flexible Schedule" below IS the answer to "when does this start?",
-            so a red required-marker over a field the form has stopped asking
-            for is the form contradicting itself. See the checkbox copy. */}
+          the submit handler refuses a schedule that has already passed. */}
+      <div id="start-time" className="flex flex-col gap-3 min-w-0">
+        {/* The `*` is conditional because the requirement is: under Flexible
+            the time is optional, and a required marker would contradict it. */}
         <Label id="start-time-label">
           Start time
-          {!isFlexibleSchedule && <span className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
+          {!isFlexibleSchedule && <span aria-hidden className="text-[hsl(var(--destructive-ink))]">{" *"}</span>}
         </Label>
-        {/* Fills its column like Date Needed beside it (owner, 2026-10-07:
-            "make time fill that empty space on the right"). */}
-        <div className="flex-1 flex flex-col justify-center rounded-2xl border border-input glass-field p-3">
-          {/* Wheels at every width: the desktop's native time field sat as one
-              thin bar in a card the calendar's height (2026-10-08). */}
+        <div
+          role="radiogroup"
+          aria-labelledby="start-time-label"
+          aria-required={!isFlexibleSchedule}
+          aria-describedby={scheduleInPast ? "start-time-error" : undefined}
+          className="flex flex-wrap gap-2"
+        >
+          {isFlexibleSchedule && (
+            <ChoicePill selected={!startTime.trim() && !showWheel} onClick={() => pickTime("")}>No set time</ChoicePill>
+          )}
+          {TIME_CHIPS.map((t) => (
+            <ChoicePill key={t.value} selected={!showWheel && chip === t.value} onClick={() => pickTime(t.value)}>{t.label}</ChoicePill>
+          ))}
+          <ChoicePill selected={showWheel} onClick={() => setOtherTime(true)}>Other time</ChoicePill>
+        </div>
+        {/* "Other time" opens the existing wheel; it never picks on its own
+            (timeWheelNeverPicksOnItsOwn.test.tsx). */}
+        {showWheel && (
+        <div className="flex flex-col justify-center rounded-2xl border border-input glass-field p-3">
           <TimePickerWheel value={startTime} onChange={setStartTime} ariaLabel="Start time" variant="wheels" className="max-w-none w-full" />
         </div>
+        )}
         {/* Live, not submit-only: this clears the moment the poster moves the
             date or the time, so fixing it visibly changes the screen. */}
         <FieldError id="start-time-error">
@@ -338,35 +442,42 @@ export function LogisticsSection({
       </div>
       </div>
 
-      {/* `items-center`, and no `mt-0.5` on the box. The label is one line at
-          every width this card is used at, so top-aligning the checkbox and
-          then nudging it down 2px sat it visibly high against its own text. */}
-      <label
-        htmlFor="flexible"
-        className="flex items-center gap-3 rounded-2xl border border-border bg-background/40 p-4 cursor-pointer min-h-[44px]"
-      >
-        <Checkbox
-          id="flexible"
-          checked={isFlexibleSchedule}
-          onCheckedChange={(checked) => setIsFlexibleSchedule(!!checked)}
-        />
-        {/* COPY MOVED WITH THE BEHAVIOUR (2026-09-19). This used to read
-            "Helpr can start earlier or later on the scheduled day" — which
-            describes a job that HAS a time, i.e. a pure modifier. The box is
-            now a SUBSTITUTE for the start time (owner: "they also need times
-            unless they were checked off as flexible"), so that sentence was
-            wrong for the case it now enables, and the box would have been
-            the only thing on the screen still claiming a time was required.
-
-            Both readings are named on purpose, because both stay legal: with
-            Start Time left blank the flag stands IN PLACE OF a time (the job
-            card renders "Flexible" — see jobStartTimeLabel), and with a time
-            set it stands BESIDE it as a preference (the card renders the clock
-            time). One sentence, no second reading to guess at. */}
-        <span className="text-ds-11 text-muted-foreground leading-snug">
-          <span className="font-medium text-foreground">Flexible Schedule</span> — any time that day works. Leave Start Time blank, or set one the Helpr can shift either way.
-        </span>
-      </label>
+      {/* WHERE (board 45): the saved address or "Somewhere else" (the existing
+          address entry). No saved address: the entry alone, as before. */}
+      <div className="space-y-3">
+        <Label id="where-label">Where</Label>
+        {savedAddress && (
+          <RadioCardList
+            label="Where"
+            options={[
+              { value: "saved", label: savedAddress.streetAddress, sub: `${savedAddress.city} · from your last job` },
+              { value: "else", label: "Somewhere else", sub: "Add an address" },
+            ]}
+            value={onSaved ? "saved" : "else"}
+            onChange={(v) => chooseWhere(v)}
+          />
+        )}
+        {(!savedAddress || !onSaved) && (
+          <AddressBlock
+            streetAddress={streetAddress}
+            setStreetAddress={setStreetAddress}
+            city={city}
+            setCity={setCity}
+            addrState={addrState}
+            setAddrState={setAddrState}
+            zipCode={zipCode}
+            setZipCode={setZipCode}
+            privacyLine={false}
+          />
+        )}
+        {/* No exact address before hire: Helprs see the town and the distance. */}
+        <div className="flex items-start gap-2.5 rounded-2xl border border-border bg-card p-4">
+          <Shield className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--bark))]" aria-hidden />
+          <p className="font-sans text-ds-13 leading-snug text-muted-foreground">
+            Helprs see <span className="font-semibold text-foreground">{town || "your town"}</span> and the distance. The street address is sent only to the Helpr you hire.
+          </p>
+        </div>
+      </div>
 
       {/* PETS — only on a pet-care job. See PetPicker for why this exists at
           all; in short, a pet profile could not previously reach the person

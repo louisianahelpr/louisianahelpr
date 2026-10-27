@@ -28,6 +28,9 @@ interface AddressBlockProps {
   setAddrState: (v: string) => void;
   zipCode: string;
   setZipCode: (v: string) => void;
+  /** The "Only your city is shown" line. Off where the screen draws its own
+   *  privacy note (Post a job's WHERE, board 45). */
+  privacyLine?: boolean;
 }
 
 /**
@@ -41,7 +44,7 @@ interface AddressBlockProps {
  * without a city or ZIP, so nothing is ever unreachable. The e2e journeys type ZIP 99999 through
  * that path on purpose (no parish, so no real Helpr is notified).
  */
-export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, addrState, setAddrState, zipCode, setZipCode }: AddressBlockProps) {
+export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, addrState, setAddrState, zipCode, setZipCode, privacyLine = true }: AddressBlockProps) {
   const mapKitReady = useMapKitJs() === "ready";
   const [manual, setManual] = useState(false);
   const [changing, setChanging] = useState(false);
@@ -187,10 +190,12 @@ export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, a
           </>
         )}
         {/* Parish is silently looked up from zip for Louisiana sales tax (admin-only). */}
-        <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
-          <Shield className="w-3 h-3 shrink-0" />
-          Only your city is shown until you pick a Helpr.
-        </p>
+        {privacyLine && (
+          <p className="text-ds-11 text-muted-foreground flex items-center gap-1.5">
+            <Shield className="w-3 h-3 shrink-0" />
+            Only your city is shown until you pick a Helpr.
+          </p>
+        )}
         {/* Apple MapKit JS embedded preview — confirms visually that the
             typed address resolved to the right spot. Hides itself when
             MapKit isn't configured. */}

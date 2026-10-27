@@ -322,6 +322,9 @@ test(authedTitle, async ({ browser, request, journey }) => {
     // with nothing painted, and Tab moving the chosen value (2026-09-12: two
     // presses moved the wheel's year 2008 -> 1906).
     const calendar = page.getByRole("group", { name: /Date needed|Start date/i });
+    // Board 45: the calendar opens inline from "More dates" under the day strip.
+    const more = page.getByRole("button", { name: "More dates" });
+    if (await more.isVisible().catch(() => false)) await more.click();
     await expect(calendar.locator("td[data-day]").first(), "the Date Needed calendar never mounted (lazy chunk)").toBeAttached({ timeout: 30_000 });
     const chosen = () => calendar.locator('td[aria-selected="true"]').evaluateAll((tds) => tds.map((td) => td.getAttribute("data-day")));
     const before = await chosen();

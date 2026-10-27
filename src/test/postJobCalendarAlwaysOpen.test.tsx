@@ -4,6 +4,12 @@
  * stretches to the calendar's height. No pill, no popover over the fields
  * below.
  *
+ * Board 45 (2026-10-25) put the board's day strip first: the calendar now
+ * opens from "More dates" (or by itself when the chosen day is past the
+ * strip), still INLINE and never a popover. The day strip and its Louisiana
+ * days are proven in postJobWhenWhereBoard45.test.tsx and
+ * postJobDayStrip.tz.test.tsx.
+ *
  * @mutate src/components/postjob/LogisticsSection.tsx |           inline\n          labelledBy="date-label" |           labelledBy="date-label"
  * @mutate src/components/DatePickerField.tsx |             onSelect={(d) => d && onChange(toLocalIso(d))} |             onSelect={() => {}}
  */

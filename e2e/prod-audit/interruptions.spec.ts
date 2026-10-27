@@ -537,6 +537,9 @@ test.describe("post a job", () => {
       await expect(native, "the native time field did not take the value").toHaveValue(slot.hh24);
       return;
     }
+    // Board 45: the common times are chips; "Other time" opens the wheel.
+    const other = page.getByRole("radio", { name: "Other time" });
+    if (await other.isVisible().catch(() => false)) await other.click();
     await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
     await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
     await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
@@ -565,6 +568,9 @@ test.describe("post a job", () => {
     await page.getByRole("textbox", { name: "Job budget in dollars" }).fill("25");
     await page.getByRole("button", { name: "Continue", exact: true }).click();
 
+    // Board 45: a poster with a past job gets that address pre-chosen; this post needs its own.
+    const elsewhere = page.getByRole("radio", { name: /Somewhere else/ });
+    if (await elsewhere.isVisible().catch(() => false)) await elsewhere.click();
     const manual = page.getByRole("button", { name: "Enter it yourself" });
     if (await manual.isVisible().catch(() => false)) await manual.click();
     await page.getByRole("combobox", { name: "Street Address" }).or(page.getByRole("textbox", { name: "Street Address" })).fill("100 Audit Way");

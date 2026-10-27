@@ -74,7 +74,8 @@ export async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhea
  */
 export async function fillJobDetails(page: Page, title: string, photoPath?: string) {
   // Screen 1 shows the 8 groups; Home opens its categories (1b), and a category tap goes on (owner 2026-10-21).
-  await page.getByRole("button", { name: /^Home/ }).click();
+  // Scoped to <main>: at 1440 the signed-in sidebar also has "Home" and "Homes" buttons.
+  await page.getByRole("main").getByRole("button", { name: /^Home/ }).first().click();
   await page.getByRole("button", { name: "Cleaning", exact: true }).click();
   await page.getByRole("textbox", { name: "Job Title *" }).fill(title);
   await page.getByRole("textbox", { name: "Description *" }).fill(

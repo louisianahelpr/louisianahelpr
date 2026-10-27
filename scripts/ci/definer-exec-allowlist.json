@@ -302,6 +302,7 @@
     "declutter_withdraw_refund(uuid)": "reviewed 2026-10-23 (Q2272): require_feature('declutter_refund_requests') first, then (SELECT auth.uid()), refusing a NULL or banned caller; only the order's own buyer, only an open or offered request; sets it withdrawn and tells the seller. No money moves.",
     "declutter_delivery_raise_start(uuid, integer)": "reviewed 2026-10-21 (Q1929): the buyer raises a delivery's Helpr pay; require_feature('declutter') first, then (SELECT auth.uid()), refusing a NULL or banned caller; only the order's own buyer (anyone else item_not_found), only while the task is open with an hour left; writes only an unpaid raise row (nothing changes until the webhook sees it paid).",
     "declutter_delivery_raise_status(uuid)": "reviewed 2026-10-21 (Q1929): require_feature('declutter') first, then (SELECT auth.uid()); returns the caller's OWN order's raise state only (anyone else item_not_found); no address, no Stripe id.",
+    "helpr_go_online(boolean, integer, numeric, numeric, integer)": "client",
     "helpr_my_route(numeric, numeric)": "client",
     "helpr_my_tasks()": "reviewed 2026-10-16 (Q14): Declutter slice 5 shared task module; returns only tasks whose helpr_id = auth.uid(), never an address or the drop-off code",
     "helpr_route_suggestions(uuid)": "client",

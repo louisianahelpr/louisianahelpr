@@ -5,6 +5,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
+import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -66,6 +67,8 @@ const DesktopTopNav = () => {
             so a page never adds a second row under this bar. */}
         <div ref={registerDesktopTitleSlot} data-desktop-title-slot="" className="flex-1 min-w-0 flex items-center" />
         <div className="flex items-center gap-1.5 -mr-1 [&_button]:h-11 [&_button]:w-11">
+          {/* Q2440: shown only while the member is online for deliveries. */}
+          <DeliveryOnlinePill placement="header" />
           <NotificationPanel />
           {/* Board 11: bell, then the member's photo (opens You). */}
           <button

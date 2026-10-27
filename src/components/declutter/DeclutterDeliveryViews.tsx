@@ -16,6 +16,7 @@ import { useRef, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
 import { RouteSuggestions } from "./RouteSuggestions";
+import { GoOnlineCard } from "./GoOnlineCard";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
@@ -500,6 +501,7 @@ export function DeliverView() {
       {intro}
       {/* Q2435: where open jobs and deliveries are waiting, by parish (counts only). */}
       <BusyAreasCard userId={userId} deliveries={open.data ?? []} />
+      <GoOnlineCard userId={userId} where={where} />
       {myList.some((t) => t.status === "accepted" || t.status === "picked_up") && <DeliveryRoute userId={userId} where={where} />}
       <VehicleForm userId={userId} />
       <section className="space-y-3" aria-label="Your deliveries">

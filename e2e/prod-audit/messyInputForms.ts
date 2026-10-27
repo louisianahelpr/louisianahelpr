@@ -886,6 +886,8 @@ export const GAPS: Record<string, string> = {
   // all pinned by src/test/pglite/declutterDelivery.pglite.mjs. FORMS sweep owed with Q?delivery-visual-pass.
   // My route (2026-10-27): the Picked up / drop-off photo inputs of a stop, the same two steps as the delivery
   // card (useTaskSteps), shown only to the Helpr holding a delivery (behind 'declutter', a PAID order on LIVE Stripe).
+  // Go online for deliveries (Q2440, 2026-10-27): two fixed <select>s (2/4/8 hours, 5/10/15/25 miles) and a switch; no free text.
+  "src/components/declutter/GoOnlineCard.tsx": "behind the 'declutter' switch on Deliver for pay; its only inputs are two fixed <select> lists and a switch (no free text), and the server re-checks 1-12 hours, 1-50 miles and the location (helpr_go_online, src/test/pglite/helprGoOnline.pglite.mjs); FORMS sweep owed with Q?delivery-visual-pass",
   "src/components/declutter/StopActions.tsx": "behind the 'declutter' switch, only to the Helpr holding a paid delivery (LIVE Stripe: no fixture can pay one); its only inputs are photo files, cleaned and type-checked by cleanListingPhoto, and the server checks the path and the 200 m point (helpr_task_picked_up / helpr_task_delivered); FORMS sweep owed with Q?delivery-visual-pass",
   "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
   // Shops slice 1 (2026-10-15): behind the hidden 'shops' switch, created OFF on prod; the server refuses each field

@@ -4012,6 +4012,34 @@ export type Database = {
           },
         ]
       }
+      helpr_delivery_online: {
+        Row: {
+          near_lat: number | null
+          near_lng: number | null
+          online_until: string | null
+          radius_miles: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          near_lat?: number | null
+          near_lng?: number | null
+          online_until?: string | null
+          radius_miles?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          near_lat?: number | null
+          near_lng?: number | null
+          online_until?: string | null
+          radius_miles?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+        ]
+      }
       helpr_task_events: {
         Row: {
           actor_id: string | null
@@ -15012,6 +15040,7 @@ export type Database = {
         Args: { p_flat_cents: number; p_percent: number; p_share_cents: number }
         Returns: number
       }
+      helpr_go_online: { Args: { p_hours: number; p_lat: number; p_lng: number; p_on: boolean; p_radius_miles: number }; Returns: Json }
       helpr_my_route: { Args: { p_lat: number; p_lng: number }; Returns: Json }
       helpr_my_tasks: {
         Args: never

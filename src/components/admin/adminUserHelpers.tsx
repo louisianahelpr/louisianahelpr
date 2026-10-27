@@ -16,6 +16,14 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 // can still see is an unconfirmed email — the "Email" tab, which offers
 // Resend Verification.
 export const isVerifiedEmail = (p: Profile) => !!p.email_verified;
+
+/**
+ * A member's FULL name, first and last, for admin screens only (owner
+ * 2026-10-27, Q2421; the same rule Q2365 applies to an admin's notifications).
+ * Every member-facing surface keeps formatName's "First L.".
+ */
+export const adminFullName = (fullName: string | null | undefined, fallback: string): string =>
+  (fullName ?? "").trim().replace(/\s+/g, " ") || fallback;
 export const isAwaitingEmail = (p: Profile) => !isVerifiedEmail(p);
 
 export const statusBadge = (profile: Profile) => {

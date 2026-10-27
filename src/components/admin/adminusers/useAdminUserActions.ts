@@ -40,6 +40,7 @@ export const makeAdminUserActions = ({
       });
       if (error) throw await functionInvokeError(error);
       if (data?.error) throw new Error(data.error);
+      toast.success(`Confirm email sent to ${profile.email ?? "this member"}.`);
       loadProfiles();
     } catch (err) {
       toast.error(userFacingError(err, "Couldn't resend the verification email — try again."));

@@ -1,7 +1,6 @@
 import { MailIcon, Eye, MousePointerClick } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { TabsContent } from "@/components/ui/tabs";
 import { type Profile, isVerifiedEmail } from "../adminUserHelpers";
 
@@ -12,8 +11,6 @@ interface EmailsTabProps {
   viewProfile: Profile;
   emailTracking: EmailEvent[];
   emailSendStats: EmailStat[];
-  resending: string | null;
-  resendVerificationEmail: (profile: Profile) => void;
 }
 
 // Approval / denial email controls and tracking were removed with the approval
@@ -23,8 +20,6 @@ export function EmailsTab({
   viewProfile,
   emailTracking,
   emailSendStats,
-  resending,
-  resendVerificationEmail,
 }: EmailsTabProps) {
   const verificationOpens = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'open');
   const verificationClicks = emailTracking.filter(t => t.email_type === 'email_verification' && t.event_type === 'click');
@@ -32,20 +27,8 @@ export function EmailsTab({
 
   return (
     <TabsContent value="emails" className="space-y-6 mt-4 flex-1 min-h-0 overflow-y-auto pr-1">
-      {/* Resend Verification Email */}
-      {awaitingEmail && (
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={() => resendVerificationEmail(viewProfile)}
-          disabled={resending === viewProfile.id}
-        >
-          <MailIcon className="w-4 h-4 mr-1" />
-          {resending === viewProfile.id
-            ? "Sending…"
-            : `Resend Verification${(viewProfile.verification_email_count || 0) > 0 ? ` (${viewProfile.verification_email_count}/3)` : ""}`}
-        </Button>
-      )}
+      {/* The resend button lives under the member's name on every tab now
+          (ConfirmEmailRow, owner 2026-10-27), so it is not repeated here. */}
 
       {/* Verification email tracking — for unverified users */}
       {awaitingEmail && (

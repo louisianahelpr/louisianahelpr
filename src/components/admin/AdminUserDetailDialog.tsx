@@ -18,6 +18,7 @@ import { JobsTab } from "./userDetail/JobsTab";
 import { ReviewsTab } from "./userDetail/ReviewsTab";
 import { DocumentsTab } from "./userDetail/DocumentsTab";
 import { EmailsTab } from "./userDetail/EmailsTab";
+import { ConfirmEmailRow } from "./userDetail/ConfirmEmailRow";
 import { ActionsTab } from "./userDetail/ActionsTab";
 
 interface AdminUserDetailDialogProps {
@@ -95,6 +96,7 @@ export function AdminUserDetailDialog({
               viewProfile={viewProfile}
               setEditEmailProfile={setEditEmailProfile}
             />
+            <ConfirmEmailRow viewProfile={viewProfile} resending={resending} resendVerificationEmail={resendVerificationEmail} />
 
             <Tabs defaultValue="actions" className="w-full flex flex-col flex-1 min-h-0">
               {/* Scroll strip below `sm`, six equal cells from `sm` up. Six
@@ -119,8 +121,6 @@ export function AdminUserDetailDialog({
                 viewProfile={viewProfile}
                 emailTracking={emailTracking}
                 emailSendStats={emailSendStats}
-                resending={resending}
-                resendVerificationEmail={resendVerificationEmail}
               />
               <ActionsTab
                 viewProfile={viewProfile}

@@ -1,9 +1,8 @@
 import { Pencil } from "lucide-react";
 import UserAvatar from "@/components/UserAvatar";
 import { Badge } from "@/components/ui/badge";
-import { formatName } from "@/lib/utils";
 import { openableDocumentUrl, safeDocumentUrl } from "@/lib/storagePath";
-import { type Profile, statusBadge, stripeBadge } from "../adminUserHelpers";
+import { type Profile, adminFullName, statusBadge, stripeBadge } from "../adminUserHelpers";
 
 // The "Move to Pending" / "Resend denial email" row for denied accounts was
 // removed with the denied state itself (Q193, owner 2026-09-23).
@@ -38,7 +37,7 @@ export function DetailHeader({
           target="_blank"
           rel="noopener noreferrer"
           className="flex-shrink-0"
-          aria-label={`Open ${formatName(viewProfile.full_name, "this user")}'s profile photo file`}
+          aria-label={`Open ${adminFullName(viewProfile.full_name, "this user")}'s profile photo file`}
         >
           <UserAvatar
             userId={viewProfile.user_id}
@@ -62,7 +61,7 @@ export function DetailHeader({
       )}
       <div className="flex-1 min-w-0 space-y-1.5">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <h3 className="text-ds-15 sm:text-ds-17 font-bold text-foreground truncate">{formatName(viewProfile.full_name, "—")}</h3>
+          <h3 className="text-ds-15 sm:text-ds-17 font-bold text-foreground truncate">{adminFullName(viewProfile.full_name, "—")}</h3>
           {statusBadge(viewProfile)}
           {stripeBadge(viewProfile)}
 

@@ -1,5 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { serve } from "../_shared/buildStamp.ts";
+import { getAppUrl } from "../_shared/appUrl.ts";
+import { CONFIRM_LINK_PATH } from "../_shared/confirmLink.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -105,9 +107,15 @@ serve(async (req) => {
       })
     }
 
+    // THE MEMBER'S OWN RESEND PATH (owner 2026-10-27, Q2420): the same GoTrue
+    // signup resend the "Check your email" screen calls (SignupPending's
+    // handleResend), so the same per-address rate limit applies, and the same
+    // landing (getSignupConfirmRedirect() = <site>/signup-pending). It used to
+    // send no redirect, so an admin-resent link fell back to the Site URL.
     const { error: resendErr } = await admin.auth.resend({
       type: 'signup',
       email: (profile as any).email,
+      options: { emailRedirectTo: new URL(CONFIRM_LINK_PATH, getAppUrl()).toString() },
     })
 
     if (resendErr) {
@@ -118,6 +126,14 @@ serve(async (req) => {
           JSON.stringify({ error: 'User has already verified their email' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         )
+      }
+      // The rate limit the member meets, said in the member's words.
+      const msg = (resendErr.message ?? '').toLowerCase()
+      if (msg.includes('rate') || msg.includes('limit') || msg.includes('too many') || msg.includes('security purposes')) {
+        return new Response(JSON.stringify({ error: 'Too many requests — try again in a minute.' }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
       }
       console.error('Resend error:', resendErr)
       return new Response(JSON.stringify({ error: resendErr.message }), {

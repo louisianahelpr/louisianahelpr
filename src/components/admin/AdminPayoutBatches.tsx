@@ -33,7 +33,7 @@ import { BatchRow } from "./adminPayoutBatches/BatchRow";
 import { LedgerList } from "./adminPayoutBatches/LedgerList";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { requireBiometric } from "@/lib/biometricGate";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
@@ -87,11 +87,11 @@ const AdminPayoutBatches = () => {
     fetcher: async () => {
       const data = unwrap(await supabase.rpc("get_payout_batches"));
       const seed = await fetchSeedUserIds((data ?? []).map((r) => r.helper_id));
-      return (data ?? []).map((r) => ({
+      return withoutTestRows((data ?? []).map((r) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
         is_seed: seed.has(r.helper_id),
-      })) as PayoutBatch[];
+      })) as PayoutBatch[]);
     },
   });
 
@@ -142,10 +142,12 @@ const AdminPayoutBatches = () => {
           )
         : [];
       const nameMap = new Map((profileRows ?? []).map((p) => [p.user_id, p]));
-      return rows.map((r) => ({
-        ...r,
-        profiles: { full_name: nameMap.get(r.helper_id)?.full_name ?? null, is_seed: nameMap.get(r.helper_id)?.is_seed ?? null },
-      }));
+      return rows
+        .map((r) => ({
+          ...r,
+          profiles: { full_name: nameMap.get(r.helper_id)?.full_name ?? null, is_seed: nameMap.get(r.helper_id)?.is_seed ?? null },
+        }))
+        .filter((r) => !r.profiles.is_seed);
     },
     staleTime: 60_000,
     gcTime: 5 * 60_000,

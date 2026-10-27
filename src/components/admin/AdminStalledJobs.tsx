@@ -30,8 +30,7 @@ import {
   type StalledQueueRow,
 } from "@/components/admin/adminStalledJobs/stalledQueue";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
 
 /**
@@ -124,10 +123,10 @@ const StalledJobsInner = () => {
       // Q233: a row is seed if EITHER party is — an admin deciding whose
       // escrow to touch needs to know it's a demo job, not a real one.
       const seedIds = await fetchSeedUserIds(ids);
-      const seededRows = rows.map((r) => ({
+      const seededRows = withoutTestRows(rows.map((r) => ({
         ...r,
         is_seed: seedIds.has(r.customer_id ?? "") || seedIds.has(r.helper_id ?? ""),
-      }));
+      })));
 
       return { deployed: true, rows: seededRows, names };
     },
@@ -318,7 +317,7 @@ const StalledJobRow = ({
             <h3 className="font-semibold text-foreground text-ds-13 min-w-0">
               {row.title ?? "Untitled job"}
             </h3>
-            {row.is_seed && <TestTag />}
+            
             <span
               className={cn(
                 "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-ds-10 font-semibold uppercase tracking-wide",

@@ -58,6 +58,8 @@ export function AutoRestrictedRail({ onReview, onChange }: AutoRestrictedRailPro
       .from("profiles")
       .select("user_id, full_name, email, auto_suspended_until")
       .eq("ban_status", "temp_banned")
+      // Owner 2026-10-27: admin never shows a test account.
+      .eq("is_seed", false)
       .not("auto_suspended_until", "is", null)
       .gt("auto_suspended_until", new Date().toISOString())
       .order("auto_suspended_until", { ascending: false })

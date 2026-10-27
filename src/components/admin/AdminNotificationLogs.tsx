@@ -17,8 +17,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { toneTextClasses } from "@/components/admin/tones";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 
 interface LogRow {
   id: string;
@@ -190,7 +189,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
       // recoverable retry instead of silently rendering an empty table.
       const logRows = (unwrap(await q) as LogRow[]) ?? [];
       const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id));
-      return logRows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) }));
+      return withoutTestRows(logRows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) })));
     },
   });
 
@@ -376,7 +375,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                       <span className="min-w-0 truncate">
                         {row.recipient_email || <span className="text-muted-foreground">—</span>}
                       </span>
-                      {row.is_seed && <TestTag />}
+                      
                     </div>
                   </td>
                   <td className="px-4 py-2.5 max-w-[280px] truncate">
@@ -438,7 +437,7 @@ const AdminNotificationLogs = ({ initialSearch = "" }: AdminNotificationLogsProp
                       <span className="min-w-0 truncate text-foreground">
                         {row.recipient_email || <span className="text-muted-foreground">No recipient</span>}
                       </span>
-                      {row.is_seed && <TestTag />}
+                      
                     </span>
                     <span className="text-ds-11 text-muted-foreground flex-shrink-0">
                       {CATEGORY_LABEL[row.category] ?? row.category}

@@ -402,22 +402,22 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
     holdsResult = { data: [{ helper_id: "helper-held", reason: "fraud review", held_at: "2026-10-03T00:00:00Z", held_by: "admin-2", denied_at: null, denied_reason: null }], error: null };
     renderScreen();
     const label = await screen.findByText("Total queued");
-    // Both batches are listed (the seed read lands with them); only one is money.
-    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
+    // Owner 2026-10-27: the test account's batch is not listed at all.
+    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(1));
+    expect(screen.queryByText("Test Helpr")).toBeNull();
     expect(label.nextElementSibling?.textContent).toBe("$310.50");
     expect(screen.getByText("Total jobs").nextElementSibling?.textContent).toBe("2");
     expect(screen.getByText("Helprs awaiting").nextElementSibling?.textContent).toBe("1");
   });
 
   /**
-   * Q1760 (lh-money-escrow review of the test-mode branch, 2026-10-12): with a
-   * real and a test batch selected, the selection bar and the bulk confirm
-   * call only the real batch real money, and name the test one apart.
+   * Q1760, superseded 2026-10-27 (owner: admin never shows test rows): a test
+   * account's batch cannot be ticked at all, so a bulk payout only ever names
+   * real batches.
    *
-   * @mutate src/components/admin/adminPayoutBatches/adminPayoutBatchesHelpers.ts |   const real = batches.filter((b) => !b.is_seed); |   const real = batches;
-   * @mutate src/components/admin/AdminPayoutBatches.tsx |         description={bulkPayoutDescription(selectedBatches)} |         description={`This fires ${selected.size} Stripe transfers totalling $${(selectedMoney.real + selectedMoney.test).toFixed(2)}. This moves real money and can't be undone here.`}
+   * @mutate src/components/admin/seedRows.ts |   return rows.filter((r) => !r.is_seed); |   return rows;
    */
-  it("Q1760: a ticked test batch is never called real money in the bulk confirm", async () => {
+  it("Q1760: a test batch is never listed, so it can never be ticked for a bulk payout", async () => {
     seedProfiles = [{ user_id: "helper-seed" }];
     rpcMock.mockImplementation(async (fn: string) =>
       fn === "get_payout_batches"
@@ -425,17 +425,8 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
         : { data: [{ job_id: JOB_ID }], error: null },
     );
     renderScreen();
-    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
-    for (const box of screen.getAllByRole("checkbox", { name: /for bulk payout/i })) fireEvent.click(box);
-    expect(await screen.findByText(/\$310\.50 real money · \$999\.00 to test accounts — fires 2 Stripe transfers/)).toBeTruthy();
-    fireEvent.click(await screen.findByRole("button", { name: /Bulk Approve/i }));
-    const dialog = await screen.findByRole("alertdialog").catch(() => screen.findByRole("dialog"));
-    const text = dialog.textContent ?? "";
-    expect(text).toContain("$310.50 of real money to 1 Helpr");
-    expect(text).toContain("can't be undone here");
-    // The dialog's button counts the same transfers the sentence does.
-    expect(screen.getByRole("button", { name: "Send 2" })).toBeTruthy();
-    expect(text).toContain("$999.00 to 1 test account");
-    expect(text).not.toMatch(/totalling \$1309\.50/);
+    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(1));
+    expect(screen.queryByText("Test Helpr")).toBeNull();
+    expect(screen.queryByText(/\$999\.00/)).toBeNull();
   });
 });

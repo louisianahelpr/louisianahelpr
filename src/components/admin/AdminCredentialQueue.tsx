@@ -26,8 +26,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { userFacingError } from "@/lib/userFacingError";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { ExpiryField } from "@/components/admin/credentialQueue/ExpiryField";
 
 interface PendingRow {
@@ -106,7 +105,7 @@ const AdminCredentialQueue = () => {
     fetcher: async () => {
       const rows = (unwrap(await supabase.rpc("get_pending_credentials")) ?? []) as PendingRow[];
       const seedIds = await fetchSeedUserIds(rows.map((r) => r.user_id));
-      return rows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) }));
+      return withoutTestRows(rows.map((r) => ({ ...r, is_seed: seedIds.has(r.user_id) })));
     },
   });
 
@@ -273,7 +272,7 @@ const AdminCredentialQueue = () => {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-ds-13 text-foreground flex items-center gap-2 min-w-0">
                     <span className="truncate">{r.full_name || "Unnamed"}</span>
-                    {r.is_seed && <TestTag />}
+                    
                   </p>
                   <p className="text-ds-11 text-muted-foreground truncate">{r.email}</p>
                 </div>

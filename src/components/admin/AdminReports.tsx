@@ -1,5 +1,4 @@
 import { logAdminAction } from "@/lib/adminAudit";
-import { TestTag } from "@/components/admin/TestTag";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -215,6 +214,7 @@ const AdminReports = () => {
           return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
         };
 
+        // Owner 2026-10-27: admin never shows a report a test account is part of.
         return reportRows.map(r => ({
           ...r,
           reporter_name: nameFor(r.reporter_id),
@@ -231,7 +231,7 @@ const AdminReports = () => {
             || (r.reporter_id !== null && seedIds.has(r.reporter_id))
             || (r.reported_type === "application"
               && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
-        }));
+        })).filter(r => !r.is_test);
       }
       return reportRows;
     },
@@ -480,7 +480,7 @@ const AdminReports = () => {
                         {report.reported_name}
                       </button>
                       <span className="text-muted-foreground font-normal"> — {report.reason}</span>
-                      {report.is_test && <> <TestTag /></>}
+                      
                     </p>
                     <p className="text-ds-11 text-muted-foreground">
                       Reported by{" "}

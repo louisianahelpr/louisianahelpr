@@ -26,7 +26,7 @@
  *   Payout hold       the existing admin_set_payout_hold / admin_release_payout_hold
  *                     (usePayoutHolds, which also freezes Stripe's automatic payouts)
  *
- * Test rows (an order with a test account on either side) wear <TestTag />.
+ * Test rows (an order with a test account on either side) are left out (owner 2026-10-27).
  */
 import { useId, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,7 +41,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { AdminCard, AdminViewShell } from "./AdminViewShell";
-import { TestTag } from "./TestTag";
+import { withoutTestRows } from "./seedRows";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./adminRpcErrorCopy";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
@@ -92,7 +92,13 @@ async function fetchQueue(): Promise<Queue> {
   if (error && isMissingRpcNamed(error, "shops_admin_queue")) return { problems: [], refunds: [], payouts: [], strikes: [], notDeployed: true };
   if (error) adminFail(error, false, rpcErrorMessage("shops_admin_queue", error));
   const q = (data ?? {}) as Partial<Queue>;
-  return { problems: q.problems ?? [], refunds: q.refunds ?? [], payouts: q.payouts ?? [], strikes: q.strikes ?? [] };
+  // Owner 2026-10-27: admin never shows a test (is_seed) row.
+  return {
+    problems: withoutTestRows(q.problems ?? []),
+    refunds: withoutTestRows(q.refunds ?? []),
+    payouts: withoutTestRows(q.payouts ?? []),
+    strikes: withoutTestRows(q.strikes ?? []),
+  };
 }
 
 async function runAction(a: Action, note: string, reason: AdminRefundReason | null): Promise<void> {
@@ -243,7 +249,7 @@ export default function AdminShopsOrders() {
           <ul className="space-y-3">
             {q.problems.map((p) => (
               <li key={p.order_id} className="space-y-1 rounded-xl border border-border p-3" data-testid="admin-shops-problem">
-                <p className="text-sm font-semibold">{p.shop_name ?? "A shop"} · {formatCents(p.total_cents)} · ready {p.ready_date}{p.is_seed && <TestTag />}</p>
+                <p className="text-sm font-semibold">{p.shop_name ?? "A shop"} · {formatCents(p.total_cents)} · ready {p.ready_date}</p>
                 <p className="text-sm [overflow-wrap:anywhere]">"{p.problem_note}"</p>
                 <p className="text-xs text-muted-foreground">
                   Reported {when(p.problem_at)}. {p.handover_mode === "porch" ? "Left out" : "In person"}; {p.ready_at ? "the shop marked it ready" : "never marked ready"}.
@@ -265,7 +271,7 @@ export default function AdminShopsOrders() {
           <ul className="space-y-2">
             {q.refunds.map((r) => (
               <li key={r.refund_id} className="text-sm" data-testid="admin-shops-refund">
-                {formatCents(r.refund_cents)} · {r.reason} · {r.status} ({r.attempts} tries) · order {short(r.order_id)}{r.is_seed && <TestTag />}
+                {formatCents(r.refund_cents)} · {r.reason} · {r.status} ({r.attempts} tries) · order {short(r.order_id)}
                 {r.last_error && <span className="block text-xs text-muted-foreground [overflow-wrap:anywhere]">{r.last_error}</span>}
               </li>
             ))}
@@ -282,7 +288,7 @@ export default function AdminShopsOrders() {
                 {p.status === "held_for_review" && p.review_reason && (
                   <span className="block w-full text-xs text-muted-foreground [overflow-wrap:anywhere]">Held for review: {p.review_reason}. Decide it in Payouts held for review.</span>
                 )}
-                {p.is_seed && <TestTag />}
+                
                 {p.seller_id && (p.on_hold ? (
                   <Button type="button" size="sm" variant="outline" onClick={() => void holds.releaseHold(p.seller_id!).then(() => qc.invalidateQueries({ queryKey: ["admin-shops-queue"] }))}>Release hold</Button>
                 ) : (
@@ -307,7 +313,7 @@ export default function AdminShopsOrders() {
             {q.strikes.map((s) => (
               <li key={s.strike_id} className="flex flex-wrap items-center gap-2 text-sm" data-testid="admin-shops-strike">
                 <span>{s.offender_side} {short(s.user_id)} · {s.reason} · {s.active_count} of 3 · ends {new Date(s.expires_at).toLocaleDateString()}</span>
-                {s.is_seed && <TestTag />}
+                
                 <Button type="button" size="sm" variant="outline" onClick={() => open({ kind: "remove_strike", strikeId: s.strike_id })}>Remove</Button>
               </li>
             ))}

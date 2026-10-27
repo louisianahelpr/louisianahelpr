@@ -26,8 +26,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { userFacingError } from "@/lib/userFacingError";
 import { functionInvokeError, unwrap } from "@/lib/supabaseResult";
 
@@ -188,7 +187,7 @@ const BanReviewInner = () => {
           is_seed: seedIds.has(r.user_id),
         });
       }
-      return collapsed;
+      return withoutTestRows(collapsed);
     },
   });
 
@@ -266,7 +265,7 @@ const BanReviewInner = () => {
                       <p className="font-semibold text-ds-13 text-foreground truncate">
                         {c.full_name || "Unnamed user"}
                       </p>
-                      {c.is_seed && <TestTag />}
+                      
                       <span className={cn("inline-flex items-center rounded-full text-ds-10 font-semibold px-2 py-0.5", toneBadgeClasses.warning)}>
                         {c.history.length} {caseNoun(c.violation_type, c.history.length)}
                       </span>

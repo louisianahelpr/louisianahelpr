@@ -6,7 +6,6 @@ import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice, formatCategory } from "@/lib/format";
 import { STALE_DATE_FLAG, moderationFlags } from "./adminJobsHelpers";
-import { TestTag } from "@/components/admin/TestTag";
 
 interface JobListItemProps {
   job: Job;
@@ -58,7 +57,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: 
         {showFlagStyle && <AlertTriangle className="w-4 h-4 mt-0.5 text-destructive-ink shrink-0" />}
         {modFlags.length > 0 && isResolved && <CheckCircle2 className="w-4 h-4 mt-0.5 text-primary shrink-0" />}
         <p title={job.title} className="min-w-0 flex-1 font-semibold text-foreground leading-snug line-clamp-2">{job.title}</p>
-        {job.is_seed && <TestTag />}
+        
       </div>
 
       {/* Meta row — every chip that used to crowd the title or stack at the

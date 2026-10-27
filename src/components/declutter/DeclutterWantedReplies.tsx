@@ -13,7 +13,7 @@ import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { dollarsToCents, fetchMyReplyListings, fetchWantedNear, replyToWanted, type WantedNear } from "@/lib/declutter/wanted";
 
 
@@ -71,7 +71,7 @@ function IHaveThisSheet({ post, userId, onClose }: { post: WantedNear | null; us
                   <label key={it.id} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-2xl border border-border px-4 py-2">
                     <input type="radio" name="wanted-reply-item" checked={itemId === it.id} onChange={() => pick(it.id)} />
                     <span className="min-w-0 flex-1 truncate text-ds-14" title={it.title}>{it.title}</span>
-                    <span className={`shrink-0 text-ds-14 ${money}`}>{formatPrice(it.current_price_cents)}</span>
+                    <span className={`shrink-0 text-ds-14 ${money}`}>{itemPriceLabel(it.current_price_cents)}</span>
                   </label>
                 ))}
               </fieldset>

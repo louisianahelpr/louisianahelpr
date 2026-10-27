@@ -51,7 +51,7 @@ import {
   type PickupWindow,
   photoPublicUrl,
 } from "@/lib/declutter/api";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ChipGroup, DropSchedule, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -71,6 +71,8 @@ interface FormState {
   deliverySize: DeliverySize;
   price: string;
   floor: string;
+  /** The Free section (20261027170717): given away, price and lowest price $0, no offers or drops. */
+  free: boolean;
   areaLabel: string;
   pickupAddress: string;
 }
@@ -83,6 +85,7 @@ const EMPTY: FormState = {
   deliverySize: "small",
   price: "",
   floor: "",
+  free: false,
   areaLabel: "",
   pickupAddress: "",
 };
@@ -96,8 +99,8 @@ export function formProblem(f: FormState): string | null {
   if (f.title.trim().length < 3) return "Give the item a name of at least 3 characters.";
   const price = dollarsToCents(f.price);
   const floor = dollarsToCents(f.floor);
-  if (price === null || price < 100 || price > 100_000) return "Set a price between $1 and $1,000.";
-  if (floor === null || floor < 100 || floor > price) {
+  if (!f.free && (price === null || price < 100 || price > 100_000)) return "Set a price between $1 and $1,000.";
+  if (!f.free && (price === null || floor === null || floor < 100 || floor > price)) {
     return "Set your lowest price: at least $1 and no more than your price.";
   }
   if (f.areaLabel.trim().length < 2) return "Add your neighborhood or town.";
@@ -157,8 +160,9 @@ export default function SellFlow() {
       category: it.category,
       conditionStars: it.condition_stars,
       deliverySize: it.delivery_size,
-      price: centsToDollars(it.price_cents),
-      floor: centsToDollars(priv.data.floor_price_cents),
+      price: it.price_cents === 0 ? "" : centsToDollars(it.price_cents),
+      floor: it.price_cents === 0 ? "" : centsToDollars(priv.data.floor_price_cents),
+      free: it.price_cents === 0,
       areaLabel: it.area_label,
       pickupAddress: priv.data.pickup_address,
     });
@@ -217,8 +221,8 @@ export default function SellFlow() {
         category: form.category,
         conditionStars: form.conditionStars,
         deliverySize: form.deliverySize,
-        priceCents: dollarsToCents(form.price)!,
-        floorPriceCents: dollarsToCents(form.floor)!,
+        priceCents: form.free ? 0 : dollarsToCents(form.price)!,
+        floorPriceCents: form.free ? 0 : dollarsToCents(form.floor)!,
         areaLabel: form.areaLabel.trim(),
         pickupAddress: form.pickupAddress.trim(),
         pickupLat: c.lat,
@@ -347,8 +351,8 @@ export default function SellFlow() {
 
   const input = "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground";
   const photoTotal = photoCount + held.length;
-  const priceCents = dollarsToCents(form.price);
-  const floorCents = dollarsToCents(form.floor);
+  const priceCents = form.free ? null : dollarsToCents(form.price);
+  const floorCents = form.free ? null : dollarsToCents(form.floor);
   const stepProblem = sellStepProblem(step, form, photoTotal);
   const next = async () => {
     if (stepProblem) {
@@ -422,7 +426,17 @@ export default function SellFlow() {
 
       {step === 3 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="What's your price?" sub="You keep the whole price. Buyers pay a small fee on top." />
+          <StepHead title="What's your price?" sub={form.free ? "Someone nearby picks it up for free." : "You keep the whole price. Buyers pay a small fee on top."} />
+          <label className="flex min-h-11 items-center gap-3 rounded-[14px] border border-border bg-card px-4 text-ds-15 font-semibold text-foreground" data-sell-free="">
+            <Checkbox checked={form.free} onCheckedChange={(v) => setForm((f) => ({ ...f, free: v === true }))} />
+            Give it away free
+          </label>
+          {form.free ? (
+            <p className="text-ds-14 text-muted-foreground" data-sell-free-note="">
+              Free items are claimed, not bought: no offers and no price drops. The person who claims it picks it up at
+              your door or from your porch, and nothing is charged.
+            </p>
+          ) : (<>
           <div className="flex items-center justify-center gap-4">
             <StepperButton label="Lower the price by $1" disabled={!priceCents || priceCents <= 100} onClick={() => set("price", centsToDollars(Math.max(100, (priceCents ?? 100) - 100)))}>−</StepperButton>
             <div className="flex min-w-0 items-baseline justify-center text-[hsl(var(--burnt-sienna))]">
@@ -452,7 +466,8 @@ export default function SellFlow() {
             </p>
           </div>
           <DropSchedule priceCents={priceCents} floorCents={floorCents} />
-          <PriceHint
+          </>)}
+          {!form.free && <PriceHint
             category={form.category}
             conditionStars={form.conditionStars}
             place="near_you"
@@ -465,7 +480,7 @@ export default function SellFlow() {
                     ? { lat: origin.lat, lng: origin.lng }
                     : null
             }
-          />
+          />}
         </section>
       )}
 
@@ -518,7 +533,7 @@ export default function SellFlow() {
             )}
             <div className="flex items-baseline justify-between gap-3">
               <p className="min-w-0 truncate text-ds-17 font-bold text-foreground">{form.title.trim()}</p>
-              {priceCents && <p className="shrink-0 text-ds-17 font-bold text-[hsl(var(--burnt-sienna))]">{formatPrice(priceCents)}</p>}
+              {(form.free || priceCents) && <p className="shrink-0 text-ds-17 font-bold text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(form.free ? 0 : (priceCents as number))}</p>}
             </div>
             <p className="text-ds-13 text-muted-foreground">
               {[CONDITION_LABEL[form.conditionStars], CATEGORY_LABEL[form.category], form.areaLabel.trim()].filter(Boolean).join(" · ")}
@@ -526,13 +541,15 @@ export default function SellFlow() {
             <ul className="flex flex-wrap gap-2 pt-1" aria-label="How buyers get it">
               {porchOk && <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Porch pickup</li>}
               <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Pickup at your door</li>
-              <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Helpr delivery</li>
+              {!form.free && <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Helpr delivery</li>}
             </ul>
           </div>
           <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
-            <ReviewRow title="Price drops" body={priceCents && floorCents && floorCents < priceCents ? `5% each evening at ${dropRunTime()}, never below ${formatPrice(floorCents)}` : "Off: your lowest price is your price"} onEdit={() => setStep(3)} />
+            {form.free
+              ? <ReviewRow title="Price" body="Free: claimed, never bought. No offers or price drops." onEdit={() => setStep(3)} />
+              : <ReviewRow title="Price drops" body={priceCents && floorCents && floorCents < priceCents ? `5% each evening at ${dropRunTime()}, never below ${formatPrice(floorCents)}` : "Off: your lowest price is your price"} onEdit={() => setStep(3)} />}
             <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
-            <ReviewRow title="Pickup" body={porchOk ? "Porch pickup, at your door, Helpr delivery" : "At your door, Helpr delivery"} onEdit={() => setStep(4)} />
+            <ReviewRow title="Pickup" body={form.free ? (porchOk ? "Porch pickup or at your door" : "At your door") : porchOk ? "Porch pickup, at your door, Helpr delivery" : "At your door, Helpr delivery"} onEdit={() => setStep(4)} />
           </ul>
           <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax">
             <h3 id="sell-tax" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>

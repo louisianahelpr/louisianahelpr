@@ -36,7 +36,7 @@ import NotFound from "@/pages/info/NotFound";
 import { geocodeAddress } from "@/lib/geocode";
 import { fetchMyItemPrivate, fetchMyPickupWindows, fetchPhotos, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import {
   chunk,
   createMoveDrafts,
@@ -408,7 +408,7 @@ export default function MoveFlow() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate" title={it.title}>{it.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {formatPrice(it.current_price_cents)} · {isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? photosWord(n) : `${n} of ${photosWord(DECLUTTER_MIN_PHOTOS)}`) : STATUS_LABEL[it.status]}
+                        {itemPriceLabel(it.current_price_cents)} · {isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? photosWord(n) : `${n} of ${photosWord(DECLUTTER_MIN_PHOTOS)}`) : STATUS_LABEL[it.status]}
                       </p>
                     </div>
                     <Button asChild variant="outline" size="sm" className="shrink-0">

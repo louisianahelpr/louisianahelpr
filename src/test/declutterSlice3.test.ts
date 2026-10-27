@@ -9,7 +9,7 @@
  * Concurrency (two real sessions, 6 races x 20 rounds, red on a planted
  * unlocked copy): scripts/declutter/race-accept.mjs.
  *
- * @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
  * @mutate supabase/migrations/20261020033623_declutter_items_seed_boundary.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

@@ -14,7 +14,7 @@
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;
  * @mutate src/pages/declutter/DeclutterPage.tsx |     navigate(afterCardPath(next.itemId), { replace: true, state }); |     void state;
- * @mutate src/components/declutter/DeclutterItemView.tsx |           {canAct && user && <OfferPanel item={it} userId={user.id} />}\n\n          <PriceHint |           <PriceHint
+ * @mutate src/components/declutter/DeclutterItemView.tsx | : <OfferPanel item={it} userId={user.id} />)} | : null)}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -394,9 +394,12 @@ describe("Declutter controls are the shared ones", () => {
 });
 
 describe("Sell form checks mirror the server", () => {
-  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large" as const, price: "40", floor: "20", areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" };
+  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large" as const, price: "40", floor: "20", free: false, areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" };
   it("accepts a complete form and converts dollars to cents", () => {
     expect(formProblem(ok)).toBeNull();
+    // Q2419: a free item needs no price or lowest price.
+    expect(formProblem({ ...ok, free: true, price: "", floor: "" })).toBeNull();
+    expect(formProblem({ ...ok, price: "", floor: "" })).toMatch(/price/);
     expect(dollarsToCents("$1,250.50")).toBe(125050);
   });
   it("refuses a floor above the price, a street address as the area, and a missing name", () => {

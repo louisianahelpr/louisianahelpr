@@ -608,6 +608,28 @@ export async function respondOffer(offerId: string, action: OfferAction, amountC
 }
 
 /** Buy at the price the member SAW; the server refuses if it is higher now. */
+/**
+ * Claim a FREE item (20261027170717): reserved to the buyer like a purchase (48 hours to choose a
+ * pickup), no card asked, at most 3 open free claims. Returns the cart line id.
+ */
+export async function claimFree(itemId: string): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_claim_free", { p_item_id: itemId }),
+    (e) => rpcErrorMessage("declutter_claim_free", e),
+  ) as string;
+}
+
+/**
+ * Finish a cart with one seller whose items are ALL free: no payment page, nothing charged; the order is
+ * set at once and goes to the handover (pickup at the seller's home or from the porch). Returns the order id.
+ */
+export async function checkoutFree(sellerId: string, handover: "pickup_home" | "porch"): Promise<string> {
+  return rpcData(
+    await supabase.rpc("declutter_checkout_free", { p_seller_id: sellerId, p_handover: handover }),
+    (e) => rpcErrorMessage("declutter_checkout_free", e),
+  ) as string;
+}
+
 export async function buyNow(itemId: string, seenPriceCents: number): Promise<string> {
   return rpcData(
     await supabase.rpc("declutter_buy_now", { p_item_id: itemId, p_expected_price_cents: seenPriceCents }),

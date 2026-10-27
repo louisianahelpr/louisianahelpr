@@ -24,6 +24,8 @@ export interface DeclutterFilters {
   category: string | null;
   porchOnly: boolean;
   dropsOnly: boolean;
+  /** The Free section (20261027170717): only items given away free (current_price_cents = 0). */
+  freeOnly: boolean;
 }
 
 export const NO_FILTERS: DeclutterFilters = {
@@ -34,6 +36,7 @@ export const NO_FILTERS: DeclutterFilters = {
   category: null,
   porchOnly: false,
   dropsOnly: false,
+  freeOnly: false,
 };
 
 export const SORT_LABEL: Record<DeclutterSort, string> = {
@@ -86,7 +89,8 @@ function positive(v: string | null): number | null {
 export function browseStateFromParams(p: URLSearchParams): { query: string; filters: DeclutterFilters; maxMiles: number | null } {
   return {
     query: p.get("q") ?? "",
-    filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")) },
+    filters: { ...NO_FILTERS, category: p.get("cat") || null, minDollars: positive(p.get("min")), maxDollars: positive(p.get("max")),
+      freeOnly: p.get("free") === "1" },
     maxMiles: positive(p.get("mi")),
   };
 }
@@ -100,6 +104,7 @@ export function activeFilterCount(f: DeclutterFilters, maxMiles: number | null):
     + (f.category ? 1 : 0)
     + (f.porchOnly ? 1 : 0)
     + (f.dropsOnly ? 1 : 0)
+    + (f.freeOnly ? 1 : 0)
   );
 }
 
@@ -125,6 +130,7 @@ export function applyBrowseFilters<T extends BrowseItem & { id: string; title: s
     if (maxC !== null && item.current_price_cents > maxC) return false;
     if (f.conditions.length > 0 && !f.conditions.includes(item.condition_stars)) return false;
     if (f.porchOnly && !item.porch_ok) return false;
+    if (f.freeOnly && item.current_price_cents !== 0) return false;
     if (f.dropsOnly && !dropOutlook(item, drops?.get(item.id), now).planned) return false;
     return true;
   });

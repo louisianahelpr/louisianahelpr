@@ -37,7 +37,8 @@
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | REVOKE ALL ON TABLE public.declutter_haul_aways FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.declutter_haul_aways FROM PUBLIC, anon;\nGRANT SELECT ON TABLE public.declutter_haul_aways TO authenticated;
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

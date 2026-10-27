@@ -35,7 +35,8 @@
  * @mutate docs/OPEN.md | done-when: test src/test/declutterHaulAwaySweep.test.ts. | done-when: later.
  */
 import { describe, expect, it } from "vitest";
-import { readdirSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

@@ -17,6 +17,7 @@ import { photoPublicUrl } from "@/lib/declutter/api";
 import { routeMapsUrl } from "@/lib/declutter/route";
 import { fetchMyRoute, type RouteStop } from "@/lib/helprTasks/api";
 import { StopActions } from "./StopActions";
+import { RouteSuggestions } from "./RouteSuggestions";
 
 const DeliveryRouteMap = lazy(() => import("./DeliveryRouteMap"));
 
@@ -117,6 +118,7 @@ export function DeliveryRoute({ userId, where }: { userId: string; where: { lat:
       <ol className="space-y-3" aria-label="Stops in order">
         {stops.map((s) => <StopCard key={`${s.task_id}:${s.kind}`} stop={s} userId={userId} />)}
       </ol>
+      <RouteSuggestions />
     </section>
   );
 }

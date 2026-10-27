@@ -22,6 +22,7 @@ vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/lib/declutter/api", () => ({ photoPublicUrl: (p: string) => `https://cdn.test/${p}` }));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchMyRoute: async () => state.route,
+  fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   markPickedUp: async (...a: unknown[]) => { state.calls.push(["picked_up", ...a]); },
   markDelivered: async (...a: unknown[]) => { state.calls.push(["delivered", ...a]); return { result: "delivered" }; },
   uploadTaskPhoto: async (_u: string, t: string) => `u1/task/${t}/photo.jpg`,

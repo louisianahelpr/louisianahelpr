@@ -15,6 +15,7 @@
 import { useRef, useState } from "react";
 import { invalidateTasks, useTaskSteps } from "./useTaskSteps";
 import { DeliveryRoute } from "./DeliveryRoute";
+import { RouteSuggestions } from "./RouteSuggestions";
 import { Link } from "react-router-dom";
 import { Check } from "lucide-react";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
@@ -253,6 +254,7 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
   // without one is asked to set it up, the same prompt as a hired Helpr (pay held until then).
   const hiredPayout = useHiredPayoutPrompt();
   const [slot, setSlot] = useState("");
+  const [showWay, setShowWay] = useState(false);
   const take = useMutation({
     mutationFn: (iso: string) => acceptTask(t.task_id, iso),
     onSuccess: () => {
@@ -313,6 +315,11 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
           Accept delivery
         </button>
       </div>
+      {/* "On your way" (owner 2026-10-27): other open deliveries that add little to this one. */}
+      <button type="button" className="text-ds-13 font-semibold underline min-h-11" aria-expanded={showWay} onClick={() => setShowWay((v) => !v)}>
+        {showWay ? "Hide deliveries on the way" : "Deliveries on the way"}
+      </button>
+      {showWay && <RouteSuggestions withTaskId={t.task_id} />}
       {hiredPayout.open && <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) hiredPayout.close(); }} />}
     </li>
   );

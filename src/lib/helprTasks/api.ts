@@ -161,6 +161,35 @@ export async function fetchMyRoute(where: { lat: number; lng: number } | null): 
   return r ?? { stops: [], miles: 0, drive_minutes: 0, finish_at: null };
 }
 
+/** An open delivery on the Helpr's way (helpr_route_suggestions): area words, rough miles, take-home pay only. */
+export interface RouteSuggestion {
+  task_id: string;
+  title: string;
+  size: TaskSize;
+  pickup_area: string;
+  dropoff_area: string;
+  trip_miles: number;
+  take_home_cents: number;
+  extra_minutes: number;
+  extra_miles: number;
+  pickup_slot_start: string;
+  latest_pickup_at: string;
+}
+
+export interface RouteSuggestions {
+  suggestions: RouteSuggestion[];
+  reason: "too_many_taken" | "too_many_releases" | "no_route" | "none_near" | null;
+}
+
+/** Up to 3 open deliveries that add little to the Helpr's route (plus `withTask`, one they are viewing). */
+export async function fetchRouteSuggestions(withTask: string | null): Promise<RouteSuggestions> {
+  // nullable-arg: p_with_task is NULL for "my route only". The Helpr's position is not sent (lh-authz-rls review).
+  const r = data<RouteSuggestions | null>(await supabase.rpc("helpr_route_suggestions", {
+    p_with_task: withTask as string,
+  }), (e) => rpcErrorMessage("helpr_route_suggestions", e));
+  return r ?? { suggestions: [], reason: null };
+}
+
 export async function fetchTaskView(taskId: string): Promise<TaskView> {
   return data<TaskView>(await supabase.rpc("helpr_task_view", { p_task_id: taskId }), (e) => rpcErrorMessage("helpr_task_view", e));
 }

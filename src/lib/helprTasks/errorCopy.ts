@@ -16,6 +16,19 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
   helpr_my_tasks: {
     not_authenticated: DC.not_authenticated,
   },
+  helpr_go_online: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_choice: "Something went wrong. Try again.",
+    invalid_hours: "Choose 1 to 12 hours.",
+    invalid_location: "We couldn't read your location. Try again, or go online from your saved area.",
+    invalid_radius: "Choose 1 to 50 miles.",
+    location_needed: "Add your area in your profile, or tap \"Nearest first\" to share your location, to go online.",
+    not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    under_18: DC.under_18,
+  },
   helpr_route_suggestions: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

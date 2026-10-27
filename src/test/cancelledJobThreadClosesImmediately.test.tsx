@@ -34,7 +34,7 @@
  * updated_at, completed at +1h → still open, completed at +40h → closed,
  * in_progress → open, ACLs unchanged).
  *
- * @mutate supabase/migrations/20260919220233_close_cancelled_job_messaging.sql | COALESCE(j.cancelled_at, j.updated_at, j.created_at) | j.cancelled_at
+ * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql | COALESCE(j.cancelled_at, j.updated_at, j.created_at) | j.cancelled_at
  * @mutate supabase/migrations/20260919220233_close_cancelled_job_messaging.sql | AND j.status IN ('completed', 'cancelled') | AND j.status = 'completed'
  * @mutate src/lib/messagingLockout.ts | jobStatus === "cancelled"\n    ? { notice: THREAD_CANCELLED_NOTICE, toast: THREAD_CANCELLED_TOAST }\n    : | false\n    ? { notice: THREAD_CANCELLED_NOTICE, toast: THREAD_CANCELLED_TOAST }\n    :
  * @mutate src/components/messages/chatView/ChatComposer.tsx |   if (draft.trim().length === 0) return null; |   if (draft.length >= 0) return null;
@@ -42,6 +42,7 @@
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { newestFunction } from "./helpers/parityReaders";
 import { render, screen, cleanup } from "@testing-library/react";
 
 vi.mock("@/lib/haptics", () => ({
@@ -57,15 +58,16 @@ import {
   THREAD_CLOSED_NOTICE,
 } from "@/lib/messagingLockout";
 
-const MIGRATION = resolve(
-  __dirname,
-  "../../supabase/migrations/20260919220233_close_cancelled_job_messaging.sql",
+/** The migrations that hold the NEWEST definition of each of the two functions (the Helpr Guarantee,
+ *  20261027200455, restated job_messaging_closes_at; its cancelled arm is unchanged). */
+const MIGRATIONS = [...new Set(["job_messaging_closes_at", "get_messaging_closes_at"].map((n) => newestFunction(n).file))].map(
+  (f) => resolve(__dirname, "../../supabase/migrations", f.replace(/^.*\//, "")),
 );
 
 /** The migration text with `--` comments stripped, so prose cannot satisfy a
  *  check that is supposed to be about SQL. */
 function migrationSql(): string {
-  return readFileSync(MIGRATION, "utf8").replace(/--[^\n]*/g, "");
+  return MIGRATIONS.map((m) => readFileSync(m, "utf8")).join("\n").replace(/--[^\n]*/g, "");
 }
 
 describe("the migration: cancelled jobs get a closing instant in the past", () => {

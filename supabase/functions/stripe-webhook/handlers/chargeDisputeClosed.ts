@@ -375,6 +375,15 @@ export async function handleChargeDisputeClosed(
             closedDispute.id,
           );
         }
+        // Helpr Guarantee (lh-money-escrow re-review note): the bank kept the money, so a guarantee request still
+        // open on this job has nothing left to hold and would otherwise stay open for good (payment_status stays
+        // 'chargeback', which the guarantee sweep leaves alone). Closed here, after the money steps; a failure is
+        // logged and does not retry the webhook (nothing about money depends on it). PGRST202: not deployed yet.
+        const { error: guaranteeErr } = await supabase.rpc("guarantee_close_on_lost_chargeback", { p_job_id: closedJob.id });
+        if (guaranteeErr && guaranteeErr.code !== "PGRST202") {
+          console.error(`[stripe-webhook] could not close the Helpr Guarantee request on job ${closedJob.id}: ${guaranteeErr.code} ${guaranteeErr.message}`);
+          logStep("guarantee close on lost chargeback failed", { jobId: closedJob.id, code: guaranteeErr.code });
+        }
       }
 
       if (outcome === "won" && repaid && repaid.rows > 0) {

@@ -131,6 +131,8 @@ const VAGUE_MAPPER_FALLBACK_KNOWN = new Set([
  */
 // @two-way src/test/toastCopy.test.ts:stale RAW_ERROR_EXEMPT entry
 const RAW_ERROR_EXEMPT: Record<string, string> = {
+  "src/components/guarantee/HelprGuaranteePanel.tsx: e.message":
+    "guaranteeErrorText(): only a GuaranteeError's message, which is copy from GUARANTEE_RPC_ERROR_COPY (src/lib/guarantee/errorCopy.ts) or the module's own GENERIC line; any other error gets GENERIC, never its own text.",
   "src/components/BrowseMap.tsx: geo.message":
     "useUserLocation's error state; every message is a failWith(\"…\") literal written in that hook, never a platform error.",
   "src/components/admin/marketing/MarketingQueue.tsx: issues[0].message":

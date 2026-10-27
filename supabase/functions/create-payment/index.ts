@@ -3832,6 +3832,23 @@ serve(async (req) => {
         throw new PublicError(`Job is not under dispute (status: ${job.status}). Use a general refund for non-dispute cases.`);
       }
 
+      // Helpr Guarantee (owner 2026-10-27): a dispute born of a "Not done right"
+      // request refunds the job price only, fees kept. Quick Refund returns the
+      // whole charge, so it is refused here; the admin records a decision and
+      // execute-dispute-split applies the price-only rule. Fails closed.
+      {
+        const { data: openDispute, error: odErr } = await supabaseAdmin
+          .from("disputes").select("id").eq("job_id", jobId).eq("status", "open").maybeSingle();
+        if (odErr) throw new PublicError("Could not read this job's dispute. Nothing was moved; try again.");
+        if (openDispute) {
+          const { data: g, error: gErr } = await supabaseAdmin.rpc("guarantee_claim_for_dispute", { p_dispute_id: openDispute.id });
+          if (gErr && gErr.code !== "PGRST202") throw new PublicError("Could not read whether this is a Helpr Guarantee dispute. Nothing was moved; try again.");
+          if (!gErr && g) {
+            throw new PublicError("This dispute came from a Helpr Guarantee request. Record a decision instead: its refund is the job price only, fees kept.");
+          }
+        }
+      }
+
       // Q1490: the same rule as a general full refund: a fee owed to a crew
       // member the poster blocked stays on the charge. Refused, nothing moved.
       {

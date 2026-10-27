@@ -297,6 +297,20 @@ serve(async (req) => {
       );
     }
   }
+  // ── 1c. A dispute born of a Helpr Guarantee claim (owner 2026-10-27) ──────
+  // refunds the poster's share of the JOB PRICE only; the fees are kept (a
+  // Helpr never absorbs a fee, and the platform keeps its own). Read before
+  // any write, fails CLOSED: an unreadable answer moves nothing. PGRST202
+  // (the migration not deployed yet) means no claim can exist.
+  let guaranteeClaim = false;
+  {
+    const { data: g, error: gErr } = await supabaseAdmin.rpc("guarantee_claim_for_dispute", { p_dispute_id: disputeId });
+    if (gErr && gErr.code !== "PGRST202") {
+      console.error(`[execute-dispute-split] guarantee claim read failed for dispute ${disputeId}:`, gErr);
+      return json({ error: "could not read whether this dispute came from a Helpr Guarantee request — nothing was moved, retry" }, 503);
+    }
+    guaranteeClaim = !gErr && g !== null && g !== undefined;
+  }
   if (dispute.status !== "decided") {
     return await refuse(
       { error: `dispute status is ${dispute.status}, expected decided`, dispute_status: dispute.status },
@@ -733,9 +747,26 @@ serve(async (req) => {
   });
   const nonRefundableCents = posterBase.feeKeptCents;
   const refundableCents = posterBase.ceilingCents;
+  // Helpr Guarantee: the poster's share of the job's PRICE, never more than
+  // the charge can return (the same ceiling), and none of the rush or service
+  // fee. A gift-funded or taxed charge is settled by an admin, as on the exact
+  // path: how a price-only amount divides between card and gift, and what tax
+  // the receipt would state (Q1998), are not decided. Nothing moves then.
+  const guaranteePriceOnly = guaranteeClaim && !exactAgreed && posterShare > 0;
+  if (guaranteePriceOnly && giftAppliedCents > 0) {
+    return await refuse({ error: "a Helpr Guarantee refund on a gift-funded job is settled by an admin — nothing was moved" }, 409);
+  }
+  if (guaranteePriceOnly) {
+    const guaranteeTaxCents = pi ? await checkoutChargeTaxCents(stripe, pi) : 0;
+    if (guaranteeTaxCents === null || guaranteeTaxCents > 0) {
+      return await refuse({ error: "a Helpr Guarantee refund on a taxed charge is settled by an admin until Q1998 is checked — nothing was moved" }, 409);
+    }
+  }
   const refundCents = exactAgreed && agreement !== null
     ? agreement.amountCents + rushBackCents
-    : Math.max(0, Math.round(refundableCents * posterShare));
+    : guaranteePriceOnly
+      ? Math.max(0, Math.min(refundableCents, Math.round(perHelperBudget * 100 * posterShare)))
+      : Math.max(0, Math.round(refundableCents * posterShare));
   // A TAXED charge is not settled on the exact path yet (lh-money-escrow
   // review of the Q2298 change): how Stripe Tax records a flat partial refund
   // of an automatic_tax Checkout charge is unchecked (Q1998), so the tax the

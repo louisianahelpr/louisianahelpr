@@ -41,6 +41,12 @@ const state = {
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
+// Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+vi.mock("@/lib/declutter/bundle", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/bundle")>()),
+  fetchBundleRule: async () => null,
+  fetchBundlePreview: async () => 0,
+}));
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
   const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
   return {

@@ -33,9 +33,9 @@
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL OR o.handover = 'seller_delivery' THEN |   IF o.delivery_cents <= 0 OR o.stripe_payment_intent_id IS NULL THEN
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |      WHERE o2.status = 'paid' AND o2.handover NOT IN ('delivery', 'seller_delivery') AND o2.paid_at + interval '7 days' <= now() |      WHERE o2.status = 'paid' AND o2.handover <> 'delivery' AND o2.paid_at + interval '7 days' <= now()
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'seller_delivery') THEN | IF false THEN
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n | \n
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     'dropoff_address', CASE WHEN v_side = 'buyer' OR o.status = 'paid' THEN d.dropoff_address END, |     'dropoff_address', d.dropoff_address,
- * @mutate supabase/migrations/20261027233614_export_my_data_meetup.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
+ * @mutate supabase/migrations/20261028003604_export_my_data_bundle.sql |              WHEN t.status IN ('held', 'released') THEN jsonb_build_object('order_id', t.order_id, 'status', t.status, 'created_at', t.created_at)\n | \n
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer' |                            ) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   PERFORM public.require_feature('declutter_seller_delivery');\n  v_uid := public.declutter_assert_member(false); |   v_uid := public.declutter_assert_member(false);
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); |   RETURN public.declutter_close_paid_order(o.id, 'seller_backed_out', NULL, NULL, NULL);
@@ -45,13 +45,13 @@
  * @mutate src/lib/declutter/sellerDelivery.ts |   const premiumCents = Math.round((Math.max(0, itemsCents) + Math.max(0, rateCents)) * 0.05) + 70; |   const premiumCents = Math.round(Math.max(0, itemsCents) * 0.05) + 70;
  * @mutate supabase/functions/declutter-checkout/index.ts |     : handover === "seller_delivery" ? Number.isInteger(deliveryCents) && deliveryCents >= 0 |     : handover === "seller_delivery" ? deliveryCents > 0
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |               WHEN p_free_over_cents IS NOT NULL AND COALESCE(p_items_cents, 0) >= p_free_over_cents THEN 0 |               WHEN p_free_over_cents IS NOT NULL AND COALESCE(p_items_cents, 0) > p_free_over_cents THEN 0
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   v_rate := public.declutter_seller_delivery_rate_cents(s.rate_cents, s.free_over_cents, v_items); |   v_rate := s.rate_cents;
- * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |   SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines); |   SELECT COALESCE(max(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   v_rate := public.declutter_seller_delivery_rate_cents(s.rate_cents, s.free_over_cents, v_items); |   v_rate := s.rate_cents;
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t; |   SELECT COALESCE(max(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t;
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |     v_refunded := o.items_cents + CASE WHEN o.handover = 'seller_delivery' THEN o.delivery_cents ELSE 0 END; |     v_refunded := o.items_cents;
  * @mutate src/lib/declutter/sellerDelivery.ts |   if (freeOverCents !== null && itemsCents >= freeOverCents) return 0; |   if (freeOverCents !== null && itemsCents > freeOverCents) return 0;
  * @mutate src/lib/declutter/sellerDelivery.ts |   if (rateCents <= 0) return "Free delivery"; |   if (rateCents <= 0) return "$0 delivery";
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) { |   if (false) {
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n    SELECT * INTO sd | SELECT * INTO sd
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |     PERFORM 1 FROM public.declutter_seller_delivery s WHERE s.seller_id = p_seller_id FOR UPDATE;\n    SELECT * INTO sd | SELECT * INTO sd
  * @mutate supabase/functions/declutter-checkout/index.ts |   const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);\n  if (off) return off;\n  const declutterOff | const declutterOff
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |     buyerCancel: open && b.side === "buyer" && !marked && (cancelBy === null \|\| now <= cancelBy), |     buyerCancel: open && b.side === "buyer",
  * @mutate src/components/declutter/SellerDeliveryChoice.tsx |     case "out_of_range": return typed ? "out_of_range" : "hidden"; |     case "out_of_range": return "out_of_range";
@@ -144,12 +144,13 @@ describe("Declutter seller delivery (20261027153244)", () => {
     const rule = flat(body("declutter_seller_delivery_rate_cents"));
     expect(rule).toContain("SELECT CASE WHEN COALESCE(p_rate_cents, 0) <= 0 THEN 0 WHEN p_free_over_cents IS NOT NULL AND COALESCE(p_items_cents, 0) >= p_free_over_cents THEN 0 ELSE p_rate_cents END;");
     const check = flat(body("declutter_seller_delivery_check"));
-    // X is the items total of EVERY line of the one order (several items from one seller), before fees.
-    expect(check).toContain("SELECT COALESCE(sum(c.price_cents), 0)::integer INTO v_items FROM public.declutter_cart_items c WHERE c.id = ANY (p_lines);");
+    // X is the items total of EVERY line of the one order (several items from one seller), before fees, at the
+    // bundle prices checkout charges (Q2427, 20261027211754: the offer and checkout agree).
+    expect(check).toContain("SELECT COALESCE(sum(t.target_cents), 0)::integer INTO v_items FROM public.declutter_bundle_targets(p_seller, p_lines) t;");
     expect(check).toContain("v_rate := public.declutter_seller_delivery_rate_cents(s.rate_cents, s.free_over_cents, v_items);");
     expect(check.match(/RETURN QUERY SELECT [^;]*v_rate, s\.radius_miles/g)?.length).toBe(5);
     // Checkout charges what the check says; the offer shows the same answer.
-    expect(flat(body("declutter_start_checkout"))).toContain("v_delivery := sd.rate_cents;");
+    expect(flat(body("declutter_start_checkout"))).toContain("v_delivery := public.declutter_seller_delivery_rate_cents(sd.base_rate_cents, sd.free_over_cents, v_items);");
     expect(flat(body("declutter_seller_delivery_offer"))).toContain("'rate_cents', c.rate_cents, 'base_rate_cents', c.base_rate_cents, 'free_over_cents', c.free_over_cents, 'items_cents', c.items_cents,");
     // The CHECKs: a seller delivery may be $0; a free-delivery amount needs a paid rate; the payout keeps 141d's refunds.
     const all = flat(blankSqlComments(ALL_SQL));

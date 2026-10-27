@@ -115,6 +115,7 @@
     "early_access_cutoff()": "reviewed 2026-10-05 (Q14): read inside the open_jobs_browse view, whose callers need EXECUTE; returns a timestamp only.",
     "end_recurring_series(uuid)": "client",
     "feature_enabled_for(text)": "client",
+    "find_helprs(text, text, integer)": "reviewed 2026-10-27 (Q2437): Find a Helpr directory (20261027201848; lh-authz-rls approve with fixes, fixes done). Refuses a NULL caller (not_signed_in), a banned one (is_caller_banned) and one without a confirmed email; anon has no EXECUTE. Returns a subset of get_safe_profiles' public fields (display_name_for_viewer name, avatar, skills, town, parish, ID badge), never a rate, phone, email or address; never the caller, banned, unverified, anonymised, under-18, blocked-either-way or hidden test accounts; 50 rows a call; typed text matched literally. Proof: src/test/pglite/findHelprsDirectory.pglite.mjs.",
     "get_fill_rate_stats(integer)": "client",
     "get_helper_analytics(integer)": "client",
     "get_helper_completed_counts(uuid[])": "client",

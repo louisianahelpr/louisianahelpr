@@ -107,6 +107,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   enqueue_instant_job_match: "alerts",
   expire_unanswered_offers: "alerts",
   facilitated_la_sales_cents: "hides",
+  find_helprs: "hides",
   flag_possible_ban_evasion_by_phone: "safety-skip",
   get_category_price_stats: "hides",
   get_fill_rate_stats: "hides",

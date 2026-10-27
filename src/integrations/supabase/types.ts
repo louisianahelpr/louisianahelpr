@@ -14262,6 +14262,18 @@ export type Database = {
       }
       feature_switches_for_me: { Args: { p_keys: string[] }; Returns: Json }
       features_open_to_everyone: { Args: never; Returns: string[] }
+      find_helprs: {
+        Args: { p_limit?: number; p_skill?: string; p_town?: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          is_id_verified: boolean
+          parish: string
+          skills: string
+          town: string
+          user_id: string
+        }[]
+      }
       flag_possible_ban_evasion_by_identity: {
         Args: { p_nodoc_sha256: string; p_user_id: string }
         Returns: Json

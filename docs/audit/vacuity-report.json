@@ -1,8 +1,9 @@
 {
-  "generated": "2026-10-27T20:10:22.657Z",
-  "guards": 2427,
-  "registered": 2420,
+  "generated": "2026-10-27T20:57:39.015Z",
+  "guards": 2439,
+  "registered": 2431,
   "unregistered": [
+    "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
     "src/components/job-card/posterMarkedDone.test.ts",
     "src/components/postjob/PostJobStepHeader.pick.test.tsx",
@@ -43,6 +44,7 @@
     {
       "module": "src/components/admin/AdminUserDetailDialog.tsx",
       "tests": [
+        "src/test/adminMemberDetail.test.tsx",
         "src/components/admin/AdminUserDetailDialog.test.tsx"
       ],
       "parents": [

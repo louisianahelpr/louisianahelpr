@@ -152,7 +152,7 @@ describe("complete-signup call sites (Q1810)", () => {
     const missing = sites.filter((s) => !/^[A-Za-z_$][\w$.]*$/.test(s.lastArg) || /=>/.test(s.lastArg));
     expect(missing.map((s) => `${s.file}: last argument ${JSON.stringify(s.lastArg)}`)).toEqual([]);
     const signup = readFileSync(join(process.cwd(), "src/pages/auth/Signup.tsx"), "utf8");
-    expect(blankComments(signup)).toMatch(/withTimeout\(completeProfile\(userId, gaveUp\.signal\)[^;]*\.finally\(\(\) => gaveUp\.abort\(\)\)/);
+    expect(blankComments(signup)).toMatch(/withTimeout\(completeProfile\(userId, gaveUp\.signal(?:, [\w$]+)?\)[^;]*\.finally\(\(\) => gaveUp\.abort\(\)\)/);
   });
 });
 

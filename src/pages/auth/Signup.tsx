@@ -225,12 +225,10 @@ const Signup = () => {
     return true;
   };
 
-  // The code a ?ref= share link brought in: the one referral "Skip for now"
-  // keeps (a code typed into step 2's field is part of what was skipped).
+  // A ?ref= link's code: the one referral "Skip for now" keeps (a typed code is skipped).
   const linkReferralCode = (searchParams.get("ref") || "").trim().toUpperCase();
 
-  // `skipped`: "Skip for now" on step 2, so none of that screen's fields
-  // (photo, city, ZIP, bio, a typed referral code) are sent.
+  // `skipped`: "Skip for now" on step 2; none of that screen's fields are sent.
   const completeProfile = async (userId: string, gaveUp: AbortSignal | undefined, skipped: boolean) => {
     // The photo is optional: a failed read must not stop the profile write,
     // which runs after the account already exists (CC-006).

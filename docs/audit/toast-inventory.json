@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 970,
-    "files": 249,
-    "rendering": 825,
-    "suppressedByPolicy": 145,
+    "calls": 972,
+    "files": 250,
+    "rendering": 826,
+    "suppressedByPolicy": 146,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 690,
+      "toast.error": 691,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 148,
+      "toast.success": 149,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 444,
       "template": 101,
-      "dynamic": 475,
+      "dynamic": 477,
       "jsx": 0
     }
   },
@@ -4070,6 +4070,36 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/AutoFreeRow.tsx",
+      "line": 19,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "on ? \"If it hasn't sold by day 12, it becomes free.\" : \"It won't become free on day 12.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "If it hasn't sold by day 12, it becomes free."
+          },
+          {
+            "form": "literal",
+            "text": "It won't become free on day 12."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/AutoFreeRow.tsx",
+      "line": 22,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
       "line": 116,
       "kind": "toast.success",
@@ -4491,7 +4521,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 64,
+      "line": 65,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4501,7 +4531,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 68,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

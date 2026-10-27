@@ -884,6 +884,8 @@ export const GAPS: Record<string, string> = {
   // fixture can pay one) and after 20261017055505 is on prod. The address is checked server-side (5-300 chars with a
   // letter and a digit, then geocoded), the code is 4 digits with a 5-try lock, the slot inside the seller's windows,
   // all pinned by src/test/pglite/declutterDelivery.pglite.mjs. FORMS sweep owed with Q?delivery-visual-pass.
+  // Q2430 (2026-10-27): one on/off switch on the seller's own listing; no text.
+  "src/components/declutter/AutoFreeRow.tsx": "behind the 'declutter' switch, in the seller's own Manage listing; its only input is an on/off switch (no text), and the server checks owner, status and not-already-free (declutter_set_auto_free, src/test/pglite/declutterAutoFree.pglite.mjs)",
   "src/components/declutter/DeclutterDeliveryViews.tsx": "behind the 'declutter' switch, for a paid delivery order only (LIVE Stripe); address / code / slot rules pinned by declutterDelivery.pglite.mjs; FORMS sweep owed with Q?delivery-visual-pass",
   // Shops slice 1 (2026-10-15): behind the hidden 'shops' switch, created OFF on prod; the server refuses each field
   // (name 2-60, about <= 2000, area 2-80 and not a street address, fixed category list, parishes, SoS number format,

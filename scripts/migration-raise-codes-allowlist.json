@@ -36,6 +36,30 @@
       "function": "public.rentals_create_property",
       "code": "identity_not_verified",
       "reason": "Owner 2026-10-19 (landlord ID by admin review): adding a property no longer needs a verified ID, because the landlord's ID photo goes to admin review together with the ownership proof. Identity is required where it matters, at rentals_invite_tenant (and the listing gates, 20261019061019), all through public.is_identity_verified."
+    },
+    {
+      "migration": "20261027163240_payout_setup_only_when_owed.sql",
+      "function": "public.declutter_publish_item",
+      "code": "payout_setup_incomplete",
+      "reason": "Owner 2026-10-27: payout setup only when money is owed; listing, opening a shop and taking a delivery no longer need a payout account (else no new seller reaches a first sale). The payout waits for setup instead (declutter-money: no_account)."
+    },
+    {
+      "migration": "20261027163240_payout_setup_only_when_owed.sql",
+      "function": "public.declutter_relist_listing",
+      "code": "payout_setup_incomplete",
+      "reason": "Owner 2026-10-27: payout setup only when money is owed; listing, opening a shop and taking a delivery no longer need a payout account (else no new seller reaches a first sale). The payout waits for setup instead (declutter-money: no_account)."
+    },
+    {
+      "migration": "20261027163240_payout_setup_only_when_owed.sql",
+      "function": "public.shops_assert_owner_eligible",
+      "code": "payout_setup_incomplete",
+      "reason": "Owner 2026-10-27: payout setup only when money is owed; listing, opening a shop and taking a delivery no longer need a payout account (else no new seller reaches a first sale). The payout waits for setup instead (declutter-money: no_account)."
+    },
+    {
+      "migration": "20261027163240_payout_setup_only_when_owed.sql",
+      "function": "public.helpr_task_assert_helpr",
+      "code": "payout_setup_incomplete",
+      "reason": "Owner 2026-10-27: anyone takes a Declutter delivery without payout setup and sets up after. Independent money review 2026-10-27: with payout_setup_hire_allowed narrowed to money owed, this gate locked every new delivery Helpr out (no delivery without an account, no account without a delivery). Their pay waits for setup (declutter-money: no_account)."
     }
   ]
 }

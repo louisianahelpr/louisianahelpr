@@ -5,9 +5,10 @@
  * (GET /v1/accounts, 2026-10-25); 30 of the 33 linked to a live profile
  * belonged to people nobody ever hired, most opened within an hour of sign-up.
  * So stripe-connect opens, finishes or resets a payout account only for a
- * member someone chose for a job that holds money (or who is owed money, or a
- * Declutter / Shops / Rentals seller): public.payout_setup_hire_allowed
- * (migration 20261025162003), asked for the VERIFIED caller with the service
+ * member someone chose for a job that holds money, or who is owed money (a
+ * paid Declutter or Shops sale, a delivery taken; owner 2026-10-27: only when
+ * owed, no section switch): public.payout_setup_hire_allowed (migrations
+ * 20261025162003, 20261027163240), asked for the VERIFIED caller with the service
  * client. It fails CLOSED: an RPC error, a missing function or any answer but
  * a literal true is "not hired", so no account is created on an answer the
  * server could not read.
@@ -31,7 +32,7 @@ const PAYOUT_SETUP_NEEDS_HIRE_CODE = "payout_setup_needs_hire";
  * src/lib/payoutSetupPaused.ts; the guard keeps the two equal), so an old build
  * that toasts the `error` field still reads the notice.
  */
-const PAYOUT_SETUP_NEEDS_HIRE_MESSAGE = "You'll set up payouts when you're hired for your first job.";
+const PAYOUT_SETUP_NEEDS_HIRE_MESSAGE = "You'll set up payouts once you're hired or make your first sale.";
 
 /** The one call this needs from a supabase-js client. */
 export interface HireCheckClient {

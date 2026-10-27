@@ -18,4 +18,4 @@ export const PAYOUT_SETUP_PAUSED_COPY =
  * (supabase/functions/_shared/payoutSetupHire.ts; the guard
  * src/test/payoutSetupNeedsHire.test.ts keeps the two equal).
  */
-export const PAYOUT_SETUP_NEEDS_HIRE_COPY = "You'll set up payouts when you're hired for your first job.";
+export const PAYOUT_SETUP_NEEDS_HIRE_COPY = "You'll set up payouts once you're hired or make your first sale.";

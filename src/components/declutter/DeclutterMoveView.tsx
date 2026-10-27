@@ -17,8 +17,7 @@
  * on; every RPC refuses without them anyway.
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -30,7 +29,6 @@ import { MovingSaleDetails } from "./DeclutterMovingSaleDetails";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { useAwardBlockReason } from "@/hooks/useAwardBlockReason";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
@@ -88,10 +86,6 @@ export default function MoveFlow() {
   const { user } = useCurrentUser();
   const qc = useQueryClient();
   const { underAge } = useAgeGate();
-  const payoutBlock = useAwardBlockReason();
-  // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
-  // account; the "Set up payouts" note gives way to the paused notice.
-  const setupPaused = usePayoutSetupPaused();
   const today = louisianaToday();
 
   const [date, setDate] = useState("");
@@ -288,13 +282,7 @@ export default function MoveFlow() {
       <p className="text-sm text-muted-foreground">
         Photograph each room. The photo tool lists what it sees, you set the prices, and everything goes up together as one moving sale on your profile.
       </p>
-      {payoutBlock && setupPaused && <PayoutSetupPausedNotice />}
-      {payoutBlock && !setupPaused && (
-        <DeclutterNotice tone="warn" title="Set up payouts before you list.">
-          You can save your items now and list them once payouts are set up.{" "}
-          <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
-        </DeclutterNotice>
-      )}
+      <SellerPayoutPrompt />
 
       {/* The numbers count only the sections on screen (audit #30: they skipped 1, 2, 4, 6 while "Check"
           and "List" were hidden). */}
@@ -454,15 +442,9 @@ export default function MoveFlow() {
               <label htmlFor={`move-tax-${i}`}>{s}</label>
             </div>
           ))}
-          {payoutBlock ? (
-            <p className="text-sm text-muted-foreground">
-              {setupPaused ? "Listing waits for payout setup (see the note at the top)." : "Set up payouts first (see the note at the top)."}
-            </p>
-          ) : (
-            <Button type="button" disabled={!!progress || chosen.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
-              {progress ? `Listing ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…` : `List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}
-            </Button>
-          )}
+          <Button type="button" disabled={!!progress || chosen.length === 0 || !savedWindows.isSuccess} onClick={() => void onListAll()}>
+            {progress ? `Listing ${Math.min(progress.done + 1, progress.total)} of ${progress.total}…` : `List ${chosen.length} ${chosen.length === 1 ? "item" : "items"}`}
+          </Button>
           <p className="text-xs text-muted-foreground">
             Each item gets the same photo check and review as a single listing, so some may wait for a review first. Listing many takes a few seconds each.
           </p>

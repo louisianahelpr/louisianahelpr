@@ -337,6 +337,21 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/insertNotifications\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/insertNotifications.ts";`,
   );
+  // Card hold (Q2399): `_shared/cardHoldCopy.ts` and `_shared/listedPaymentStatus.ts`
+  // have ZERO imports, and `_shared/cardHoldPlan.ts` imports only pure modules (cancellationFee, salesTax, threeDSecure) by `./`,
+  // so the REAL modules serve (cardHold.ts itself is walked: SHARED_WALKED, it
+  // imports slack-alerts).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(cardHoldCopy|listedPaymentStatus|cardHoldPlan)\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/$2.ts";`,
+  );
+  // `_shared/cardHoldPlan.ts` imports only pure siblings (cancellationFee,
+  // salesTax, threeDSecure), so the REAL module serves; cardHold.ts both
+  // imports from it and re-exports it (`export {...} from`).
+  out = out.replace(
+    /(import|export)\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/cardHoldPlan\.ts["'];?/g,
+    `$1 $2{$3} from "../../../supabase/functions/_shared/cardHoldPlan.ts";`,
+  );
 
   // Refund notice (Q1714): `_shared/refundNotice.ts` imports only zero-import
   // modules (caughtMessage, functionFetch; the email goes through the global
@@ -1052,7 +1067,7 @@ const serve = (h) => __hReg(h);
  * harness mocks (slack-alerts). Q1223 moved the chargeback clawback here from
  * stripe-webhook/handlers so process-scheduled-payouts can call it.
  */
-const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts", "/_shared/shopHolds.ts", "/_shared/connectReadiness.ts", "/_shared/shopRefunds.ts", "/_shared/livePayoutGate.ts", "/_shared/livePayoutHold.ts"];
+const SHARED_WALKED = ["/_shared/chargebackClawback.ts", "/_shared/heldTipRepay.ts", "/_shared/connectGateSync.ts", "/_shared/crewBlockFees.ts", "/_shared/shopHolds.ts", "/_shared/connectReadiness.ts", "/_shared/shopRefunds.ts", "/_shared/livePayoutGate.ts", "/_shared/cardHold.ts", "/_shared/livePayoutHold.ts"];
 
 function isLocalModuleSpecifier(spec: string): boolean {
   return (

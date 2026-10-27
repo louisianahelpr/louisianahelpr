@@ -25,7 +25,7 @@
  *      cancelled checkout now returns to the Post a job draft).
  *
  * @mutate supabase/functions/_shared/threeDSecure.ts | export const THREE_D_SECURE_MIN_CENTS = 30000; | export const THREE_D_SECURE_MIN_CENTS = 3000000;
- * @mutate supabase/functions/create-payment/index.ts | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options: threeDSecureOptions( | // (tax is only known once Checkout has the address; it can only add).\n        payment_method_options_unused: threeDSecureOptions(
+ * @mutate supabase/functions/create-payment/index.ts |         payment_method_options: holdPlan ? holdCheckoutPaymentMethodOptions(threeDSecureOptions(threeDSCents)) : threeDSecureOptions(threeDSCents), |         payment_method_options_unused: holdPlan ? holdCheckoutPaymentMethodOptions(threeDSecureOptions(threeDSCents)) : threeDSecureOptions(threeDSCents),
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | payment_method_options: threeDSecureOptions(chargeCents), | payment_method_options: undefined,
  * @mutate supabase/functions/create-payment/index.ts | const abandonedChallenge = prior.status === "open" && priorPi?.status === "requires_action"; | const abandonedChallenge = false;
  * @mutate supabase/functions/create-payment/index.ts |               await stripe.paymentIntents.cancel(priorPi.id); |               void priorPi;
@@ -60,7 +60,12 @@ const EXEMPT: Record<string, { maxCents: number; why: string }> = {
     why: "membership prices, largest is the annual top tier",
   },
   "pay-onboarding-fee": { maxCents: ONBOARDING_FEE_CENTS, why: "one-time $2 onboarding fee" },
-  "declutter-card": { maxCents: 0, why: "Declutter SETUP page: saves a card, charges nothing (row 36)" },
+};
+
+/** Functions whose `mode: "setup"` Checkout saves a card and charges nothing (exact both ways). */
+const SETUP_ONLY: Record<string, string> = {
+  "declutter-card": "Declutter SETUP page: saves a card, charges nothing (row 36)",
+  "create-payment": "Q2399 card hold: a job more than 6 days out saves the card; the hold is placed 4 days before (off-session, under $300 only)",
 };
 
 /**
@@ -115,12 +120,21 @@ describe("3D Secure on large card charges (Q202)", () => {
   it("every Checkout Session goes through threeDSecureOptions, or is exempt with a proven sub-$300 ceiling", () => {
     const missing: string[] = [];
     const exemptUsed = new Set<string>();
+    const setupUsed = new Set<string>();
     let total = 0;
     let covered = 0;
     for (const { fn, src } of functionSources()) {
       for (const call of createCalls(src)) {
         total++;
-        if (/payment_method_options:\s*threeDSecureOptions\(/.test(call)) {
+        // A card HOLD (Q2399) wraps the same rule: holdCheckoutPaymentMethodOptions(threeDSecureOptions(...)).
+        if (/payment_method_options:\s*(?:\w+\s*\?\s*holdCheckoutPaymentMethodOptions\(threeDSecureOptions\(\w+\)\)\s*:\s*)?threeDSecureOptions\(/.test(call)) {
+          covered++;
+          continue;
+        }
+        // A SETUP page saves a card and charges nothing, so there is no charge to
+        // challenge: only in the functions named in SETUP_ONLY (exact both ways).
+        if (/\bmode:\s*"setup"/.test(call) && SETUP_ONLY[fn]) {
+          setupUsed.add(fn);
           covered++;
           continue;
         }
@@ -132,6 +146,7 @@ describe("3D Secure on large card charges (Q202)", () => {
     // Two-way: an exemption for a function that no longer has an un-3DS'd checkout is stale.
     const staleExempt = Object.keys(EXEMPT).filter((fn) => !exemptUsed.has(fn));
     expect(staleExempt, "stale EXEMPT entry — remove it").toEqual([]);
+    expect(Object.keys(SETUP_ONLY).filter((fn) => !setupUsed.has(fn)), "stale SETUP_ONLY entry — remove it").toEqual([]);
     expect(missing, `Checkout Sessions with no 3DS rule:\n  ${missing.join("\n  ")}`).toEqual([]);
     // Inventory floors: 3 in create-payment (escrow, gift shortfall, tip) + gift cards.
     expect(total).toBeGreaterThan(7);

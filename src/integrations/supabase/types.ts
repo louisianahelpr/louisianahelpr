@@ -4431,6 +4431,97 @@ export type Database = {
           },
         ]
       }
+      job_card_holds: {
+        Row: {
+          amount_cents: number
+          attempts: number
+          capture_amount_cents: number | null
+          capture_before: string | null
+          capturing_from: string | null
+          created_at: string
+          failure_code: string | null
+          failure_message: string | null
+          intent_metadata: Json
+          job_id: string
+          notified_state: string | null
+          onboarding_fee_cents: number
+          onboarding_fee_claimed_at: string | null
+          payment_intent_id: string | null
+          payment_method_id: string | null
+          place_at: string | null
+          state: string
+          stripe_customer_id: string | null
+          stripe_mode: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          attempts?: number
+          capture_amount_cents?: number | null
+          capture_before?: string | null
+          capturing_from?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          intent_metadata?: Json
+          job_id: string
+          notified_state?: string | null
+          onboarding_fee_cents?: number
+          onboarding_fee_claimed_at?: string | null
+          payment_intent_id?: string | null
+          payment_method_id?: string | null
+          place_at?: string | null
+          state: string
+          stripe_customer_id?: string | null
+          stripe_mode: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          attempts?: number
+          capture_amount_cents?: number | null
+          capture_before?: string | null
+          capturing_from?: string | null
+          created_at?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          intent_metadata?: Json
+          job_id?: string
+          notified_state?: string | null
+          onboarding_fee_cents?: number
+          onboarding_fee_claimed_at?: string | null
+          payment_intent_id?: string | null
+          payment_method_id?: string | null
+          place_at?: string | null
+          state?: string
+          stripe_customer_id?: string | null
+          stripe_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "jobs_helper_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_card_holds_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: true
+            referencedRelation: "open_jobs_browse"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_checkins: {
         Row: {
           created_at: string | null
@@ -13818,6 +13909,15 @@ export type Database = {
         Args: { p_anchor: string; p_job_id: string; p_reason: string }
         Returns: boolean
       }
+      get_my_job_card_hold: {
+        Args: { p_job_id: string }
+        Returns: {
+          amount_cents: number
+          capture_before: string | null
+          place_at: string | null
+          state: string
+        }[]
+      }
       get_my_job_quotes: {
         Args: never
         Returns: {
@@ -15034,6 +15134,10 @@ export type Database = {
       }
       job_messaging_closes_at: { Args: { _job_id: string }; Returns: string }
       job_payment_is_funded: {
+        Args: { p_payment_status: string }
+        Returns: boolean
+      }
+      job_payment_is_listed: {
         Args: { p_payment_status: string }
         Returns: boolean
       }

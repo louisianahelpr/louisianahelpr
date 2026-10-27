@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { notifyJobParty } from "@/lib/notifications";
 import { report } from "@/lib/errorLogger";
@@ -369,13 +370,19 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     if (accept) await checkHelperAwardEligibility();
 
     // Shipped by migration 20260820000000; the accept since 20261003214350.
-    const { data, error } = await supabase.rpc("respond_to_direct_offer", {
+    // Q2399: accepting a direct offer on a held card is the hire: the card is charged first.
+    const { data, error, holdMessage } = await withCardHoldCapture(app.job_id, () => supabase.rpc("respond_to_direct_offer", {
       p_job_id: app.job_id,
       p_accept: accept,
-    });
+    }));
 
     if (error) {
       hapticError();
+      if (holdMessage) {
+        toast.error(holdMessage);
+        await refresh();
+        return;
+      }
       const code = String((error as { code?: string }).code ?? "");
       if (code === "PGRST202") {
         // Merge landed, migration hasn't deployed yet (db-deploy.yml runs on
@@ -501,7 +508,8 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // (useStripeConnectCheck), so a Helpr who just finished setup is judged
       // on it; its own verdict no longer stops the tap.
       await checkHelperAwardEligibility();
-      const { data: acceptData, error: acceptError } = await supabase.rpc("accept_job_offer", { p_job_id: app.job_id });
+      // Q2399: the accept on a held card is the hire: the card is charged first.
+      const { data: acceptData, error: acceptError, holdMessage } = await withCardHoldCapture(app.job_id, () => supabase.rpc("accept_job_offer", { p_job_id: app.job_id }));
       if (!acceptError) {
         const result = (acceptData ?? {}) as { state?: string; missing?: AcceptMissing[] };
         if (result.state === "pending_setup") {
@@ -522,6 +530,11 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       // the other applications pending, and the database refuses that write
       // since 20261004001807 (jobs_award_gate: accept_required).
       hapticError();
+      if (holdMessage) {
+        toast.error(holdMessage);
+        await refresh();
+        return;
+      }
       const blocked = awardBlockFromError(acceptError);
       if (blocked) {
         setPendingAcceptApp(app);

@@ -248,6 +248,8 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Card hold at posting (Q2399, 20261027185146): the crew-seat trigger reads ONE job's status to refuse a seat confirm on a held card.
+    ["public.enforce_crew_seat_held_never_confirmed", "trigger on one crew seat; the job's status/payment_status is a precondition, not a feed"],
     // Checkout nudge (20261025170841): a service_role claim on ONE new job whose checkout expired unpaid.
     ["public.claim_checkout_nudge", "single-job claim (service_role) on the poster's own unpaid job after its checkout expires; status is a precondition, not a feed"],
     // Board 141 refund requests (20261021102943): checks/mutations on ONE job the
@@ -535,5 +537,5 @@ describe("fixture-job visibility — one switch, every surface", () => {
 // the 2026-09-02 bug. Its latest definition is 20260904203654; strip the gate
 // there and the flag flips every other surface quiet while the public page
 // keeps advertising fixture jobs.
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
+// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND (NOT j.is_seed OR NOT public.seed_jobs_hidden_publicly()) |
 // @mutate src/config/showSeedJobs.parity.test.ts |     ["public.declutter_link_setup_job", "single-job mutation on the caller's own job; status is a precondition"],\n | \n

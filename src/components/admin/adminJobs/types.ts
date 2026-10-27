@@ -61,6 +61,9 @@ export const PAYMENT_TONE: Record<string, Tone> = {
   // cancellation unwinds it. 20260824210000 added this value for the
   // void-cancelled-payments path.
   cancelling: "warning",
+  // Q2399: the poster's card is only HELD (authorized, not captured): nothing
+  // has moved yet. Not 'warning' (that is captured money in escrow).
+  held: "info",
   // The two that need an operator. `failed` is a charge that errored, and
   // `chargeback` is money pulled back by the bank — both are money that is not
   // where the ledger expects it to be.

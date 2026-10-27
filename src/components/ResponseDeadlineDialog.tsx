@@ -206,6 +206,13 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
               </p>
             </div>
           )}
+          {job?.payment_status === "held" && (
+            // Q2399: the card is held (or, for a job more than 6 days out, only saved) and charged when the
+            // hire completes (their accept); "on hold" would be false for a saved card (round 4, silent #8).
+            <p className="rounded-ds-md px-3 py-2 font-sans text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-hire-card-held="">
+              Your card is charged when {them} accepts.
+            </p>
+          )}
           {funded && (
           <p className="rounded-ds-md px-3 py-2 font-sans text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-hire-no-new-charge="">
             {/* lh-money-escrow review 2026-10-21: say the JOB PRICE was paid (the card also paid the fee, a

@@ -239,6 +239,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "edge:cash-out-credits": {
     uncovered: "cashes out referral credits; neither shared account holds any (referral_credits, measured on prod 2026-09-26: 0 rows)",
   },
+  "edge:card-hold-sweep": { uncovered: SCHEDULED_EDGE },
   "edge:charge-recurring-visits": { uncovered: SCHEDULED_EDGE },
   "edge:check-pro-subscription": {
     uncovered: "writes on a Pro subscription state change; the shared accounts are free tier and a Pro checkout is a recurring charge the journeys do not start",
@@ -274,6 +275,11 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "edge:_shared/chargebackClawback": { uncovered: STRIPE_EVENT("charge.dispute.* (a chargeback)") },
   "edge:_shared/checkoutNudge": { uncovered: STRIPE_EVENT("checkout.session.expired on a new job's unpaid checkout (one \"Finish posting your job\" notice, switch checkout_nudge 'testers'); asserted in src/test/edge/checkoutNudge.test.ts") },
+  // Q2399 card hold at post: the poster's hold notices and the Helpr's "waiting on payment" notice need a card HOLD
+  // (a manual-capture authorization) that the journeys cannot place: Stripe is live on prod and the e2e 05-card-hold
+  // legs are test.skip with their reason; the behaviour is asserted in src/test/edge/card-hold.test.ts.
+  "edge:_shared/cardHold": { uncovered: STRIPE_EVENT("checkout.session.completed for a card-hold (manual capture) checkout, then a hire's capture") },
+  "edge:stripe-webhook/handlers/cardHoldCheckout": { uncovered: STRIPE_EVENT("checkout.session.completed for a card-hold (manual capture or setup) checkout") },
   "edge:_shared/heldTipRepay": { uncovered: STRIPE_EVENT("checkout.session.completed for a tip to a Helpr under a payout hold") },
   "edge:stripe-webhook/handlers/accountUpdated": { uncovered: STRIPE_EVENT("account.updated with a requirements change") },
   "edge:stripe-webhook/handlers/chargeDisputeClosed": { uncovered: STRIPE_EVENT("charge.dispute.closed") },

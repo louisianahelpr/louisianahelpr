@@ -136,6 +136,8 @@ export function cardShareCentsFromRead(rows: GiftRow[] | null, costCents?: numbe
  */
 export function cancelRefundToast(args: {
   wasFunded: boolean;
+  /** Q2399: the card is only held (payment_status 'held'): nothing was charged, so nothing is refunded. */
+  cardHeld?: boolean;
   appliedFee: number;
   flatModel: boolean;
   keptFeeSentence: string;
@@ -148,6 +150,8 @@ export function cancelRefundToast(args: {
   crew?: boolean;
 }): string {
   const { wasFunded, appliedFee, keptFeeSentence } = args;
+  // A held job never carries a gift (redeem_gift_card refuses 'held'), and its card was never charged.
+  if (args.cardHeld) return "Job cancelled. The hold on your card is released, and your card was not charged.";
   const gift = args.gift ?? "none";
   const neutral = `Job cancelled. Anything that comes back to you is returned within the hour, to the card or gift balance it came from.${keptFeeSentence}`;
   // A reserved gift is never spent before its card leg completes, so it comes

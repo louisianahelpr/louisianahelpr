@@ -71,7 +71,8 @@ export async function retireApplicantFixtures(api: APIRequestContext, poster: Se
       `withdraw helper-e2e's application on ${r.id}`,
     );
     if (gone.length) out.push(`withdrew ${gone.length} application(s) on ${r.id}`);
-    if (r.payment_status === "escrow" || r.payment_status === "cancelling") out.push(await retireFundedJob(api, poster, r.id));
+    // Q2399: a held card is released by the same cancel_escrow (no refund).
+    if (r.payment_status === "escrow" || r.payment_status === "held" || r.payment_status === "cancelling") out.push(await retireFundedJob(api, poster, r.id));
     else {
       // Never paid: nothing to refund; cancel it as its poster so it cannot linger as a draft.
       // Through poster_cancel_job, the RPC the Cancel button calls: a direct

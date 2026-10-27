@@ -80,6 +80,8 @@ const DETACHED: { file: string; value: string; table: string }[] = [
   // `updatePayload` built before the ternary update query: the payload object is
   // constructed separately from the .from("jobs") chain (ME-046 session-pin refactor).
   { file: "handlers/paymentIntentPaymentFailed.ts", value: "failed", table: "jobs" },
+  // Q2399: the hold checkout's `update` object (payment_status 'held' + its PaymentIntent), built before the jobs chain.
+  { file: "handlers/cardHoldCheckout.ts", value: "held", table: "jobs" },
 ];
 
 /** Writes whose value is a variable, with every value it can hold. */

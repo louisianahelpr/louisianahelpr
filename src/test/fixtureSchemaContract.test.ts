@@ -119,6 +119,13 @@ const ACKNOWLEDGED: Record<string, string> = {
 const constraints = extractConstraints();
 const schema = schemaTables();
 const distinctive = distinctiveColumns(schema);
+// Column names that live on one table but are ALSO the everyday key of
+// non-row objects, so they never identify a row on their own. `state`
+// (job_card_holds, Q2399 20261027185146) is Playwright's waitFor({ state:
+// "visible" }) and every RPC answer `{ state: "accepted" }`; a hold row is
+// still attributed by its own columns (capturing_from, notified_state, ...).
+const NOT_A_ROW_MARKER = ["state"];
+for (const k of NOT_A_ROW_MARKER) distinctive.delete(k);
 
 // ---------------------------------------------------------------------------
 // The grader must be capable of failing before its silence means anything.
@@ -141,6 +148,8 @@ describe("the constraint reader really read the constraints", () => {
     expect((jobs.get("jobs_payment_status_check") as { values: string[] }).values).toEqual([
       "unpaid", "escrow", "payout_pending", "released", "refunded",
       "cancelled", "abandoned", "failed", "chargeback", "cancelling",
+      // Q2399 (20261027185146): the poster's card held, charged at the hire.
+      "held",
     ]);
     expect((jobs.get("jobs_pricing_mode_check") as { values: string[] }).values).toEqual(["set_price"]);
     // 5000 until Q202 (2026-09-23); the one shared constant is jobBudgetLimits.ts.
@@ -173,6 +182,9 @@ describe("the constraint reader really read the constraints", () => {
   });
 
   it("reads the table shapes from the generated types", () => {
+    // Nor does `state` (only job_card_holds has it, but tests use it as a US state, a workflow state, a locator state).
+    expect(distinctive.has("state")).toBe(false);
+    expect(distinctive.get("capturing_from")).toBe("job_card_holds");
     expect(schema.size).toBeGreaterThan(50);
     expect(schema.get("jobs")?.has("payment_status")).toBe(true);
     expect(schema.get("notifications")?.has("type")).toBe(true);
@@ -191,6 +203,8 @@ describe("the constraint reader really read the constraints", () => {
     expect(distinctive.get("boost_auto_extended")).toBe("jobs");
     expect(distinctive.get("idv_status")).toBe("profiles");
     expect(distinctive.get("stake_status")).toBe("applications");
+    expect(distinctive.has("state")).toBe(false);
+    expect(distinctive.get("capturing_from")).toBe("job_card_holds");
   });
 
   it("actually rejects a row the database would reject", () => {
@@ -337,6 +351,9 @@ describe("every fixture literal could be inserted", () => {
     // and an account mock share one brace, so the refund's status is graded against disputes.
     { file: "src/test/edge/execute-dispute-split.test.ts", keys: ["dispute", "decided_at", "failure_reason", "payouts_enabled", "verdict", "token"] },
     { file: "src/test/edge/release-payout-dispute-stamp.test.ts", keys: ["execution_transfer_id", "rows", "stripe_transfer_id"] },
+    // A health-check response mock (`{ checks: { stripe_mode: "missing" } }`), not a job_card_holds row: the card hold
+    // (Q2399, 20261026001019) made `stripe_mode` a column only job_card_holds has.
+    { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
     // Test bodies that set a jobs read (`job({ status: "completed" })`) beside
     // a clawback row; the job's status was graded against chargeback_clawbacks.
     { file: "src/test/edge/chargebackHeldPayoutNotice.test.ts", keys: ["rows", "stripe_transfer_id", "amount_reversed", "original_transfer_id"] },
@@ -359,6 +376,8 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/edge/clearTestModeDisputeRecords.test.ts", keys: ["status", "body", "error"] },
     // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
+    // health-check's answer `{ checks: { stripe_mode } }`, not a job_card_holds row (Q2399 gave that table the only stripe_mode column).
+    { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

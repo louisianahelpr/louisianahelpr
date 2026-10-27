@@ -34,18 +34,19 @@
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.customer_id IS NOT NULL\n |
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |     AND p_job.parent_job_id IS NULL\n |
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND p_job.customer_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text]) | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND p_job.parent_job_id IS NULL\n |
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |         OR (b.blocker_id = p_user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |      WHERE l.user_id = p_user_id AND l.job_id = p_job_id | WHERE false
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |     (p_user_id, v_job.id, 'parish', | (p_user_id, v_job.id, 'instant',
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       AND public.job_announceable_to(NEW, c.user_id)\n |
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |             OR (b.blocker_id = c.user_id AND b.blocked_id = NEW.customer_id) | OR false
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |          WHERE l.user_id = c.user_id AND l.job_id = NEW.id | WHERE false
  * @mutate supabase/functions/instant-job-match/index.ts | supabase.rpc("enqueue_instant_job_match", { | supabase.rpc("enqueue_instant_job_match_v0", {
  * @mutate supabase/migrations/20261018035944_retire_job_match_digest.sql | DROP FUNCTION IF EXISTS public.job_match_digest_rows(uuid[]); | SELECT 1;
  */
@@ -96,7 +97,8 @@ const PIECES: Record<string, RegExp> = {
   ownerless: /customer_id IS (?:NOT )?NULL/,
   // A series visit is re-offered only inside its series (Q407, 20260927015010).
   series: /parent_job_id IS (?:NOT )?NULL/,
-  funded: /payment_status[^;]{0,80}ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]/,
+  // Q2399 (20261027185146): LISTED = funded or the card is held; browse lists a held job, so every announcement does.
+  funded: /payment_status[^;]{0,80}ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text\]/,
   offer: /offered_to_helper_id IS (?:NOT )?NULL[^;]{0,160}'declined', 'expired'/,
   fixture: /is_seed[^;]{0,60}seed_jobs_hidden_publicly\(\)/,
   credential: /credential_tier[^;]{0,200}get_user_credential_tier\(/,
@@ -232,7 +234,7 @@ describe("Q392: every job announcement applies the browse gate and the early-acc
       // every minute, and a job needs at least 2 h notice (lh-authz-rls review).
       ["started", /^\(date_needed IS NULL OR \(CASE WHEN start_time IS NULL THEN .* END\) > now\(\)\)$/],
       ["ownerless", /^customer_id IS NOT NULL$/],
-      ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text\]\)/],
+      ["funded", /payment_status = ANY \(ARRAY\['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text\]\)/],
       ["offer", /offered_to_helper_id IS NULL OR \(direct_offer_status = ANY \(ARRAY\['declined'::text, 'expired'::text\]\)\)/],
       ["clock", /created_at <= early_access_cutoff\(\)/],
       // Q552: the feed spares a test account (seed_hidden_in_discovery); the announcement keeps the plain switch, stricter, which is allowed.

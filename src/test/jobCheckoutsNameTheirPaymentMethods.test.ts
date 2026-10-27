@@ -60,16 +60,22 @@ describe("job Checkout Sessions name their payment methods and present dollars o
   const calls = checkoutCalls(blankComments(readFileSync(FILE, "utf8")));
 
   it("finds every create-payment Checkout Session (escrow, gift shortfall, tip, recurring visit)", () => {
-    // FLOOR and exact: four sessions today; a new one must be added here on purpose.
+    // FLOOR and exact: five sessions since Q2399 (card hold at post, 2026-10-25): the fifth is the SETUP-mode
+    // session of a job more than 6 days out (it saves the card; the hold is placed later). A new one must be added here on purpose.
     expect(calls.length).toBeGreaterThan(3);
-    expect(calls.length).toBe(4);
+    expect(calls.length).toBe(5);
   });
 
-  it("each sets payment_method_types and turns Adaptive Pricing off", () => {
+  it("each sets payment_method_types and turns Adaptive Pricing off (a setup session has no amount to convert)", () => {
+    const setup = calls.filter((c) => /\bmode:\s*"setup"/.test(c));
+    // Exactly the card-hold setup session, and it offers only card and Link (the methods a later hold can use).
+    expect(setup.length).toBe(1);
+    expect(setup[0]).toMatch(/\bpayment_method_types:\s*\["card", "link"\]/);
+    expect(setup[0]).toMatch(/card_hold_plan: "schedule"/);
     for (const c of calls) {
       const head = c.slice(0, 160);
       expect(c, head).toMatch(/\bpayment_method_types:/);
-      expect(c, head).toMatch(/\badaptive_pricing:\s*\{\s*enabled:\s*false\s*\}/);
+      if (!setup.includes(c)) expect(c, head).toMatch(/\badaptive_pricing:\s*\{\s*enabled:\s*false\s*\}/);
       expect(c, head).not.toMatch(/["']affirm["']/);
     }
   });

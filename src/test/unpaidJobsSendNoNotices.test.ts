@@ -8,7 +8,7 @@
  * funded (escrow) listings only.
  *
  * @mutate supabase/functions/auto-expire-jobs/index.ts |       if (!FUNDED_STATUSES.has(job.payment_status ?? "")) { |       if (false) {
- * @mutate supabase/functions/expiring-jobs-push/index.ts |       .eq("payment_status", "escrow") |       .neq("payment_status", "__none__")
+ * @mutate supabase/functions/expiring-jobs-push/index.ts |       .in("payment_status", [...LISTED_PAYMENT_STATUSES]) |       .neq("payment_status", "__none__")
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,15 +19,18 @@ const remind = blankComments(readFileSync("supabase/functions/expiring-jobs-push
 
 describe("never-funded jobs send no auto-cancel or expiry notices", () => {
   it("auto-expire-jobs closes an unfunded listing without notifying, before the auto-cancelled notice", () => {
-    expect(expire).toMatch(/const FUNDED_STATUSES = new Set\(\["escrow", "payout_pending", "released"\]\)/);
+    // Listed, not only captured (Q2399): a held card's job is a live listing that expires with a notice.
+    expect(expire).toMatch(/const FUNDED_STATUSES = new Set<string>\(LISTED_PAYMENT_STATUSES\)/);
+    expect(expire).toMatch(/import \{ LISTED_PAYMENT_STATUSES \} from "\.\.\/_shared\/listedPaymentStatus\.ts";/);
     const skip = expire.indexOf('if (!FUNDED_STATUSES.has(job.payment_status ?? "")) {');
     const notice = expire.indexOf('title: "Job auto-cancelled"');
     expect(skip).toBeGreaterThan(-1);
     expect(notice).toBeGreaterThan(skip);
     expect(expire.slice(skip, notice)).toMatch(/continue;/);
   });
-  it("expiring-jobs-push only reminds about funded (escrow) listings", () => {
+  it("expiring-jobs-push only reminds about listed listings (captured, or a held card: Q2399)", () => {
     const q = remind.slice(remind.indexOf('.from("jobs")'), remind.indexOf(".lte(\"expires_at\""));
-    expect(q).toMatch(/\.eq\("payment_status", "escrow"\)/);
+    expect(q).toMatch(/\.in\("payment_status", \[\.\.\.LISTED_PAYMENT_STATUSES\]\)/);
+    expect(remind).toMatch(/import \{ LISTED_PAYMENT_STATUSES \} from "\.\.\/_shared\/listedPaymentStatus\.ts";/);
   });
 });

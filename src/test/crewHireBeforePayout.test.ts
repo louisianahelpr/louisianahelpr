@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const REPO = join(__dirname, "..", "..");
 const read = (p: string) => readFileSync(join(REPO, p), "utf8");
@@ -24,8 +25,15 @@ const fn = (name: string) => {
   return d!.stmt;
 };
 // The migration that created crew_confirm_pending (20261007011530), found by the
-// newest definer of the roster gate it also restated, never pinned by name.
-const MIG = read(`supabase/migrations/${DEFS.get("enforce_group_roster_award_gate")!.file}`);
+// table's own CREATE, never pinned by name (the roster gate it also restated
+// was re-created later, by 20261027185146, Q2399).
+const MIG = (() => {
+  const dir = join(REPO, "supabase", "migrations");
+  const f = readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()
+    .find((x) => /CREATE TABLE (?:IF NOT EXISTS )?public\.crew_confirm_pending\b/.test(readFileSync(join(dir, x), "utf8")));
+  if (!f) throw new Error("no migration creates public.crew_confirm_pending");
+  return read(`supabase/migrations/${f}`);
+})();
 // The newest migration that (re)creates the trigger: since 20261021062140 (Q2292) restated the function
 // alone, the trigger's file and the function's newest file differ.
 const NEWEST_TRIGGER_SQL = read(
@@ -43,7 +51,10 @@ describe("a crew hire is an offer: the payout gate is at the member's Confirm", 
 
   it("the roster's hire gate keeps the funding check and no longer judges payouts", () => {
     const g = code(fn("enforce_group_roster_award_gate"));
-    expect(g).toMatch(/job_payment_is_funded\(v_payment\)/);
+    // Q2399: a seat OFFER is allowed on a listed job (a card hold included);
+    // the Confirm that completes the hire needs captured money
+    // (rpc_group_member_confirm, crew_seat_held_is_never_confirmed).
+    expect(g).toMatch(/job_payment_is_listed\(v_payment\)/);
     expect(g).not.toMatch(/helper_award_block_reason|helper_accept_block_reason/);
   });
 

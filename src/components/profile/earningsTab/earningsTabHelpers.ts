@@ -169,6 +169,8 @@ export const UNEARNED_PAYMENT_STATUSES: readonly string[] = [
   "failed",
   "chargeback",
   "cancelling",
+  // Q2399: the poster's card is only authorized (held until the hire); nothing was collected.
+  "held",
 ];
 
 type MoneyJob = { status: string; payment_status?: string | null };

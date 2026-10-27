@@ -19,10 +19,10 @@
  * their alert for good) and is one set-based INSERT. Behaviour:
  * src/test/pglite/jobMatchEmailsFollowups.pglite.mjs.
  *
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | )  -- N-007 once per job | ) OR true  -- N-007 once per job
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF v_recent >= 10 THEN  -- N-007 hourly cap\n    INSERT | IF v_recent >= 1000 THEN  -- N-007 hourly cap\n    INSERT
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |     INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at, retry_after) |     PERFORM 1; INSERT INTO public.parish_match_alert_queue_gone (user_id, job_id, notify_at, retry_after)
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates |   PERFORM public.deliver_parish_match_alert(NULL, NEW.id);\n  INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates |   PERFORM public.deliver_parish_match_alert(NULL, NEW.id);\n  INSERT INTO public.parish_match_alert_queue (user_id, job_id, notify_at)\n    WITH candidates
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN |   IF false THEN
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       DELETE FROM public.parish_match_alert_queue WHERE id = r.id;\n      IF public.deliver_parish_match_alert | IF public.deliver_parish_match_alert
  */

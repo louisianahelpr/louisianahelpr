@@ -24,16 +24,16 @@
  *  (d) job_match email carries a one-click List-Unsubscribe scoped to
  *      email_job_matches (edge behaviour: src/test/edge/jobMatchListUnsubscribe.test.ts).
  *
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |       WHERE p2.user_id IS NOT NULL | WHERE p2.parish = NEW.parish
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |       AND COALESCE(np.job_matches, true) IS TRUE\n      -- N-007 | AND COALESCE(np.job_matches, true) IS TRUE AND COALESCE(np.match_digest_mode, false) IS FALSE\n      -- N-007
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       WHERE p2.user_id IS NOT NULL | WHERE p2.parish = NEW.parish
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       AND COALESCE(np.job_matches, true) IS TRUE\n      -- N-007 | AND COALESCE(np.job_matches, true) IS TRUE AND COALESCE(np.match_digest_mode, false) IS FALSE\n      -- N-007
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   NEW.match_digest_mode := false; |   NULL;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |          SET retry_after = GREATEST(v_oldest + interval '1 hour', now() + interval '1 minute')\n       WHERE id = r.id; |          SET status = 'dropped', drop_reason = 'hourly job_match cap', settled_at = now()\n       WHERE id = r.id;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |           SELECT 1 FROM public.parish_match_alert_queue q\n           WHERE q.user_id = p.user_id AND q.job_id = nj.id | SELECT 1 WHERE false
  * @mutate supabase/functions/send-notification-email/index.ts |         ? await unsubscribeHeaders(profile.email, 'job_matches') |         ? await unsubscribeHeaders(profile.email)
  * @mutate supabase/functions/email-unsubscribe/index.ts |         await setJobMatchEmails(supabase, profile.user_id, action !== 'resubscribe') |         await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
- * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       ARRAY_AGG(s.id)                                   AS matched_search_ids\n    FROM |       ARRAY_AGG(s.id)                                   AS matched_search_ids,\n      COALESCE(BOOL_OR(np.match_digest_mode), false)    AS digest_mode\n    FROM
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       ARRAY_AGG(s.id)                                   AS matched_search_ids\n    FROM |       ARRAY_AGG(s.id)                                   AS matched_search_ids,\n      COALESCE(BOOL_OR(np.match_digest_mode), false)    AS digest_mode\n    FROM
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)
  */
 import { readFileSync, readdirSync } from "node:fs";

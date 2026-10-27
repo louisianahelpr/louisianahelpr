@@ -68,6 +68,7 @@ const ROUTED = [
   "auto-release-payment/index.ts",
   "auto-resolve-disputes/index.ts",
   "auto-tip-charge/index.ts",
+  "card-hold-sweep/index.ts",
   "cash-out-credits/index.ts",
   "charge-recurring-visits/index.ts",
   "create-bgc-payment/index.ts",

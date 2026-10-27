@@ -13855,6 +13855,15 @@ export type Database = {
         }[]
       }
       get_my_sms_consent: { Args: never; Returns: Json }
+      objectionable_reason: { Args: { p_text: string }; Returns: string }
+      referral_member_has_completed_job: {
+        Args: { p_user: string }
+        Returns: boolean
+      }
+      referral_settle_for: {
+        Args: { p_job_id: string; p_user: string }
+        Returns: undefined
+      }
       sms_phone_prompt_due: { Args: { p_moment: string }; Returns: boolean }
       dismiss_sms_phone_prompt: { Args: never; Returns: string }
       get_quotes_for_request: {

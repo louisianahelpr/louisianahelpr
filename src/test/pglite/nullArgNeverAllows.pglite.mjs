@@ -248,7 +248,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Homes rent tracker read policies (20261019073106).
   "rentals_tenancy_party",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
-  "payout_setup_hire_allowed"];
+  "payout_setup_hire_allowed", "referral_member_has_completed_job"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

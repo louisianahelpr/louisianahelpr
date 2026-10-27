@@ -1685,6 +1685,29 @@ export type Database = {
           },
         ]
       }
+      declutter_haul_away_notices: {
+        Row: {
+          item_id: string
+          notified_at: string
+        }
+        Insert: {
+          item_id: string
+          notified_at?: string
+        }
+        Update: {
+          item_id?: string
+          notified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_haul_away_notices_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: true
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_haul_aways: {
         Row: {
           created_at: string
@@ -13357,6 +13380,13 @@ export type Database = {
           pickup_group: string
           state: string
           title: string
+        }[]
+      }
+      declutter_haul_away_sweep: { Args: never; Returns: Json }
+      declutter_haul_away_sweep_candidates: {
+        Args: { p_limit: number }
+        Returns: {
+          item_id: string
         }[]
       }
       declutter_has_agreed_sales: { Args: never; Returns: boolean }

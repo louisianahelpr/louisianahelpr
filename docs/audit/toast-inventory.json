@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 973,
-    "files": 249,
-    "rendering": 827,
+    "calls": 975,
+    "files": 250,
+    "rendering": 829,
     "suppressedByPolicy": 146,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 66,
-      "toast.error": 692,
+      "toast": 67,
+      "toast.error": 693,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 444,
       "template": 102,
-      "dynamic": 477,
+      "dynamic": 479,
       "jsx": 0
     }
   },
@@ -5638,6 +5638,46 @@
         "text": "message"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/guarantee/HelprGuaranteePanel.tsx",
+      "line": 70,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "done"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/guarantee/HelprGuaranteePanel.tsx",
+      "line": 74,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "guaranteeErrorText(e)",
+        "from": "src/lib/guarantee/index.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e instanceof GuaranteeError ? e.message : GENERIC",
+            "branches": [
+              {
+                "form": "dynamic",
+                "text": "e.message"
+              },
+              {
+                "form": "dynamic",
+                "text": "GENERIC"
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "title: e.message"
+      ]
     },
     {
       "file": "src/components/identity/IdentityCheckSheet.tsx",

@@ -787,9 +787,12 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   // less its kept card fee), so the card fee is never what comes back.
   // Owner 2026-10-21: plus the same share of the rush fee (rushBackCents); the
   // same refundableCents ceiling still refuses anything over it.
+  // Helpr Guarantee (owner 2026-10-27): a dispute born of a guarantee request
+  // refunds the poster's share of the job PRICE, capped by the same
+  // refundableCents ceiling (Math.min), so the card fee still never comes back.
   "poster_share": [
     "refundCents",
-    "refundCents = exactAgreed && agreement !== null ? agreement.amountCents + rushBackCents : Math.max(0, Math.round(refundableCents * posterShare))",
+    "refundCents = exactAgreed && agreement !== null ? agreement.amountCents + rushBackCents : guaranteePriceOnly ? Math.max(0, Math.min(refundableCents, Math.round(perHelperBudget * 100 * posterShare))) : Math.max(0, Math.round(refundableCents * posterShare))",
     "rushBackCents = exactAgreed && agreement !== null ? agreedRushRefundCents(rushCents, agreement.amountCents, agreement.budgetCents) : 0",
     "refundableCents = posterBase.ceilingCents",
     "rushCents = Math.round(netUrgentFeeDollars(job.urgent_fee) * 100)",

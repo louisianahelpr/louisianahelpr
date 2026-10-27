@@ -101,7 +101,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterDeliveryViews.tsx` | input×7, date/calendar×1 | datetime-local, checkbox, file |  | What happened · Your vehicle · Route · Your deliveries · Deliveries near you |
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
-| `src/components/declutter/DeclutterHandoverViews.tsx` | input×3, textarea×1, select×1, date/calendar×1 | datetime-local, file | 1000 |  |
+| `src/components/declutter/DeclutterHandoverViews.tsx` | input×3, textarea×1, select×1, date/calendar×1 | datetime-local, file | 1000 | declutter-no-show-warning |
 | `src/components/declutter/DeclutterRefundRequest.tsx` | input×5, textarea×1 | radio, text | 1000 |  |
 | `src/components/declutter/DeclutterReviewForm.tsx` | textarea×1 |  | 1000 | Stars · Quick tags · Shown on their profile |
 | `src/components/declutter/DeclutterTradeViews.tsx` | input×3 | text, radio | 300 | Your price, like 30 · Sold, waiting for the buyer to pay · Your cart |

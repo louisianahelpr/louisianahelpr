@@ -38,6 +38,11 @@ vi.mock("@/integrations/supabase/client", () => {
     let limit: number | null = null;
     const b: Record<string, unknown> = {};
     for (const m of CHAIN) b[m] = () => b;
+    // .eq() filters on a column the fixture row actually has (admin lists now
+    // look up is_seed to drop test rows, owner 2026-10-27); a column the row
+    // does not carry is ignored, as before.
+    b.eq = (col: string, val: unknown) =>
+      builder(rows.filter((r) => !(r && typeof r === "object" && col in r) || (r as Record<string, unknown>)[col] === val));
     b.limit = (n: number) => { limit = n; return b; };
     const out = () => (limit === null ? rows : rows.slice(0, limit));
     b.maybeSingle = async () => ({ data: out()[0] ?? null, error: null });
@@ -80,7 +85,8 @@ import AdminFraudDashboard from "@/components/admin/AdminFraudDashboard";
 import AdminSupport from "@/components/admin/AdminSupport";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
-const PERSON = { user_id: "u-1", full_name: "Clementine Arceneaux", email: "clem@example.com" };
+// is_seed: false — admin lists now drop test (is_seed) rows (owner 2026-10-27), so the fixture says it is a real member.
+const PERSON = { user_id: "u-1", full_name: "Clementine Arceneaux", email: "clem@example.com", is_seed: false };
 const PAST = "2026-09-01T12:00:00Z";
 
 interface Case {

@@ -68,6 +68,8 @@ const SITES: Site[] = [
   { file: "src/components/DisputeDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/DisputeTimelineDialog.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/PhotoProof.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
+  // Helpr Guarantee (Q2450): the poster's photos on a request, the dispute-evidence path.
+  { file: "src/lib/guarantee/index.ts", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/pages/posts/CompletionChoiceSheet.tsx", bucket: "proof-photos", gate: [UT, "PROOF_PHOTO_TYPES"], via: ["isAllowedUploadType", "PROOF_PHOTO_TYPES"] },
   { file: "src/components/reviewPanel/ReviewForm.tsx", bucket: "job-photos", gate: [UT, "REVIEW_PHOTO_TYPES"], via: ["isAllowedUploadType", "REVIEW_PHOTO_TYPES"] },
   { file: "src/components/profile/SupportInline.tsx", bucket: "user-documents", gate: [UT, "SUPPORT_SCREENSHOT_TYPES"], via: ["isAllowedUploadType", "SUPPORT_SCREENSHOT_TYPES"] },
@@ -106,6 +108,7 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/DisputeDialog.tsx": { bucket: "proof-photos" },
   "src/components/DisputeTimelineDialog.tsx": { bucket: "proof-photos" },
   "src/components/PhotoProof.tsx": { bucket: "proof-photos" },
+  "src/components/guarantee/HelprGuaranteePanel.tsx": { bucket: "proof-photos" },
   "src/pages/posts/CompletionChoiceSheet.tsx": { bucket: "proof-photos" },
   "src/components/reviewPanel/ReviewForm.tsx": { bucket: "job-photos" },
   "src/components/profile/SupportInline.tsx": { bucket: "user-documents" },

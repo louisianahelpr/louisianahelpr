@@ -47,7 +47,13 @@ const FIX = "20261019020032_backout_notices_close_on_closed_job.sql";
  * Cron producers that read jobs but need no status test, each with why.
  */
 // @two-way src/test/cronJobNotificationsCheckJobStatus.test.ts:listed but now checks status, or no longer a cron producer reading jobs
-const NO_STATUS_CHECK: Record<string, string> = {};
+const NO_STATUS_CHECK: Record<string, string> = {
+  // Q2450 Helpr Guarantee (20261027200455), reached from cron 'helpr-guarantee-sweep' through guarantee_sweep.
+  open_dispute_as:
+    "the dispute filer: it reads the job FOR UPDATE into _status / _payment_status and branches on them " +
+    "(_status = 'completed' refused for a member, _status IN ('completed', 'in_progress', 'revision_requested', 'accepted') " +
+    "re-frozen, _payment_status = 'cancelling' refused); the check reads variables, which the column detector cannot see",
+};
 
 const INSERTS_NOTIFICATIONS = /\binsert\s+into\s+(?:public\s*\.\s*)?"?notifications"?\s*\(/i;
 /** An email about the row, posted straight to the delivery function (it decides nothing about the job). */

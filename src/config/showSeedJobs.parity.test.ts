@@ -248,6 +248,8 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // Mutations on ONE job the caller is already party to. They read
     // `status = 'open'` as a precondition, not as a feed filter.
     ["public.decline_job_offer", "single-job mutation; status is a precondition"],
+    // Helpr Guarantee (Q2450, 20261027200455): the poster opens a request on ONE job they posted, read FOR UPDATE.
+    ["public.rpc_guarantee_open", "single-job mutation on the caller's own completed job; status is a precondition"],
     // Card hold at posting (Q2399, 20261027185146): the crew-seat trigger reads ONE job's status to refuse a seat confirm on a held card.
     ["public.enforce_crew_seat_held_never_confirmed", "trigger on one crew seat; the job's status/payment_status is a precondition, not a feed"],
     // Checkout nudge (20261025170841): a service_role claim on ONE new job whose checkout expired unpaid.

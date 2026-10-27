@@ -121,7 +121,7 @@ const anon = await as(null);
 check(!anon.ok && anon.code === "not_authenticated", "[keep] no session is refused (not_authenticated)");
 
 const acl = await db.query(`select coalesce(proacl::text, '') as a from pg_proc where proname = 'helpr_task_assert_helpr'`);
-check(!/authenticated=|anon=|=X\/[a-z_]*,?$/.test(acl.rows[0].a.replace(/service_role=X\/\w+|postgres=X\/\w+/g, "")) && /service_role=X/.test(acl.rows[0].a),
+check(!/(?:authenticated=)|(?:anon=)|(?:=X\/[a-z_]*,?$)/.test(acl.rows[0].a.replace(/service_role=X\/\w+|postgres=X\/\w+/g, "")) && /service_role=X/.test(acl.rows[0].a),
   `[keep] EXECUTE stays service_role only (${acl.rows[0].a})`);
 
 console.log(failures === 0 ? `\nALL PASS${SKIP ? " (before state)" : " (after, 3x replay)"}` : `\n${failures} FAIL${SKIP ? " (before state: expected for [fix])" : ""}`);

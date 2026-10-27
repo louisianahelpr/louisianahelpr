@@ -13610,7 +13610,6 @@ export type Database = {
         Returns: string
       }
       declutter_refund_request_view: { Args: { p_order_id: string }; Returns: Json }
-      declutter_refund_requests_seed: { Args: never; Returns: unknown }
       declutter_refund_reversed: {
         Args: { p_refund_id: string; p_stripe_refund_id: string; p_why: string }
         Returns: string

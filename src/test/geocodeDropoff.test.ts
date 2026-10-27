@@ -5,6 +5,9 @@
  *
  * @mutate supabase/functions/_shared/geocodeDropoff.ts |   if (!/[a-z]/i.test(a) \|\| !/\d/.test(a)) return null; |
  * @mutate supabase/functions/_shared/geocodeDropoff.ts |   const town = pick("city") ?? pick("town") ?? pick("village") ?? pick("hamlet") ?? pick("suburb") ?? pick("county"); |   const town = pick("road") ?? pick("city");
+ * @mutate supabase/functions/_shared/geocodeDropoff.ts |     if (!("miss" in a) \|\| a.miss === "not_found") return a; |     if (!("miss" in a)) return a;
+ * @mutate supabase/functions/_shared/geocodeDropoff.ts |   const label = [str("locality") ?? str("subAdministrativeArea"), | const label = [str("fullThoroughfare") ?? str("locality"),
+ * @mutate supabase/functions/_shared/geocodeDropoff.ts |   if (apple) { |   if (apple && false) {
  */
 import { describe, expect, it, vi } from "vitest";
 import { geocodeDropoff, plausibleAddress } from "../../supabase/functions/_shared/geocodeDropoff";
@@ -46,5 +49,79 @@ describe("geocodeDropoff", () => {
     expect(await geocodeDropoff("1 A St", html as unknown as typeof fetch)).toMatchObject({ miss: "unavailable" });
     const boom = vi.fn(async () => { throw new Error("offline"); });
     expect(await geocodeDropoff("1 A St", boom as unknown as typeof fetch)).toMatchObject({ miss: "unavailable", status: null });
+  });
+});
+
+/**
+ * Q2413 (measured 2026-10-27): Nominatim answers HTTP 403 to the edge servers, so every Helpr
+ * delivery quote on prod failed "try again". Apple Maps (the MapKit key the app's maps already
+ * use) answers first; Nominatim only when Apple cannot answer.
+ */
+describe("geocodeDropoff with Apple Maps first (Q2413)", () => {
+  const appleRoute = (geocode: unknown, opts: { tokenStatus?: number; geocodeStatus?: number; nominatim?: unknown } = {}) =>
+    vi.fn(async (u: string, _i?: RequestInit) => {
+      const url = String(u);
+      if (url.startsWith("https://maps-api.apple.com/v1/token")) {
+        return new Response(JSON.stringify({ accessToken: "apple-access", expiresInSeconds: 1800 }), { status: opts.tokenStatus ?? 200 });
+      }
+      if (url.startsWith("https://maps-api.apple.com/v1/geocode")) return new Response(JSON.stringify(geocode), { status: opts.geocodeStatus ?? 200 });
+      if (url.startsWith("https://nominatim.openstreetmap.org/")) {
+        return new Response(JSON.stringify(opts.nominatim ?? [{ lat: "30.5412", lon: "-91.1543", address: { town: "Baker", state: "Louisiana" } }]), { status: 200 });
+      }
+      throw new Error(`unexpected fetch ${url}`);
+    });
+  const apple = { developerToken: vi.fn(async () => "dev-jwt") };
+  const found = { results: [{ coordinate: { latitude: 30.4441482, longitude: -91.1484169 }, structuredAddress: {
+    administrativeArea: "Louisiana", administrativeAreaCode: "LA", locality: "Baton Rouge", postCode: "70806",
+    thoroughfare: "Government St", subThoroughfare: "4000", fullThoroughfare: "4000 Government St",
+  } }] };
+
+  it("answers from Apple Maps: the developer token buys an access token, the lookup is US only, the area is town + state", async () => {
+    const f = appleRoute(found);
+    expect(await geocodeDropoff("4000 Government St, Baton Rouge", f as unknown as typeof fetch, apple))
+      .toEqual({ lat: 30.4441482, lng: -91.1484169, areaLabel: "Baton Rouge, LA" });
+    expect((f.mock.calls[0][1]?.headers as Record<string, string>).Authorization).toBe("Bearer dev-jwt");
+    const lookup = new URL(String(f.mock.calls[1][0]));
+    expect(lookup.searchParams.get("limitToCountries")).toBe("US");
+    expect(lookup.searchParams.get("q")).toBe("4000 Government St, Baton Rouge");
+    expect((f.mock.calls[1][1]?.headers as Record<string, string>).Authorization).toBe("Bearer apple-access");
+    // Nominatim (403 to our servers) is never asked when Apple answered.
+    expect(f.mock.calls.some((c) => String(c[0]).includes("nominatim"))).toBe(false);
+  });
+
+  it("the Apple area never carries the street", async () => {
+    const f = appleRoute({ results: [{ coordinate: { latitude: 1, longitude: 2 }, structuredAddress: { thoroughfare: "Secret Ln", subThoroughfare: "7" } }] });
+    expect(await geocodeDropoff("7 Secret Ln", f as unknown as typeof fetch, apple)).toMatchObject({ areaLabel: "Drop-off area" });
+  });
+
+  it("an Apple 'nothing found' is final: no second geocoder guesses a point", async () => {
+    const f = appleRoute({ results: [] });
+    expect(await geocodeDropoff("1 A St", f as unknown as typeof fetch, apple)).toEqual({ miss: "not_found" });
+    expect(f.mock.calls.some((c) => String(c[0]).includes("nominatim"))).toBe(false);
+  });
+
+  it("Apple unable to answer (token refused, 5xx, error object, signer throws) falls back to Nominatim", async () => {
+    const want = { lat: 30.5412, lng: -91.1543, areaLabel: "Baker, LA" };
+    expect(await geocodeDropoff("900 Far Rd, Baker", appleRoute(found, { tokenStatus: 401 }) as unknown as typeof fetch, apple)).toEqual(want);
+    expect(await geocodeDropoff("900 Far Rd, Baker", appleRoute(found, { geocodeStatus: 503 }) as unknown as typeof fetch, apple)).toEqual(want);
+    expect(await geocodeDropoff("900 Far Rd, Baker", appleRoute({ error: { message: "bad" } }) as unknown as typeof fetch, apple)).toEqual(want);
+    const broken = { developerToken: vi.fn(async () => { throw new Error("bad key"); }) };
+    expect(await geocodeDropoff("900 Far Rd, Baker", appleRoute(found) as unknown as typeof fetch, broken)).toEqual(want);
+  });
+
+  it("a signer that throws never puts its own text (it can quote the private key) into the detail", async () => {
+    const leaky = { developerToken: vi.fn(async () => { throw new Error("-----BEGIN PRIVATE KEY----- MIGTAgEAMBMG"); }) };
+    const f = vi.fn(async () => new Response("Forbidden", { status: 403 }));
+    const r = await geocodeDropoff("1 A St", f as unknown as typeof fetch, leaky);
+    expect(r).toMatchObject({ miss: "unavailable" });
+    expect((r as { detail: string }).detail).toContain("the MapKit developer token could not be signed");
+    expect((r as { detail: string }).detail).not.toMatch(/PRIVATE KEY|MIGT/);
+  });
+
+  it("both unable to answer is 'unavailable' naming both reasons, never 'not found'", async () => {
+    const f = vi.fn(async (u: string) => new Response("Forbidden", { status: String(u).includes("nominatim") ? 403 : 500 }));
+    const r = await geocodeDropoff("1 A St", f as unknown as typeof fetch, apple);
+    expect(r).toMatchObject({ miss: "unavailable", status: 403 });
+    expect((r as { detail: string }).detail).toMatch(/Apple Maps token HTTP 500; Nominatim: HTTP 403/);
   });
 });

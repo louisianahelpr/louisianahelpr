@@ -56,7 +56,8 @@ import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
-import { geocodeDropoff, plausibleAddress } from "../_shared/geocodeDropoff.ts";
+import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
+import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
@@ -336,6 +337,16 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   return json({ url: session.url, order_id: order.order_id });
 }
 
+/**
+ * Apple Maps for the drop-off lookup (Q2413): Nominatim answers 403 to this server, so the
+ * MapKit key the app's maps already use signs a 5-minute developer token per lookup.
+ * null when the key is not set: the lookup then asks Nominatim alone, as before.
+ */
+function appleMapsAccess(): AppleMapsAccess | null {
+  const key = mapkitKeyFromEnv((name) => Deno.env.get(name));
+  return key ? { developerToken: () => signMapkitJwt(key, 300) } : null;
+}
+
 async function deliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
@@ -344,7 +355,7 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
   // New work for a Helpr: the switch, from the verified user, never the body.
   const off = await requireFeature(admin, "declutter", user, corsHeaders);
   if (off) return off;
-  const point = await geocodeDropoff(address);
+  const point = await geocodeDropoff(address, fetch, appleMapsAccess());
   if ("miss" in point) {
     if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
     // The geocoder itself is down or refusing us: never "check your address".
@@ -352,7 +363,7 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
     await postSlackOpsAlert({
       kind: "custom", severity: "warning", oncePerDayKey: "declutter-dropoff-geocode-unavailable",
       title: "Declutter delivery: the address lookup is not answering",
-      message: `Nominatim could not answer a drop-off lookup (${point.detail}). Buyers are told to try again in a minute; delivery quotes fail until it answers.`,
+      message: `Neither Apple Maps nor Nominatim could answer a drop-off lookup (${point.detail}). Buyers are told to try again in a minute; delivery quotes fail until it answers.`,
       fields: { Status: point.status ?? "no answer" },
     }).catch((e) => console.error(JSON.stringify({ event: "dropoff_geocode_alert_failed", detail: String(e).slice(0, 200) })));
     return json({ error: "geocode_unavailable" }, 503);

@@ -46,6 +46,9 @@ const DISCLOSED: Record<string, string> = {
   "us.i.posthog.com": "PostHog",
   "sentry.io": "Sentry",
   "cdn.apple-mapkit.com": "MapKit",
+  // Q2413 (2026-10-27): the Helpr-delivery drop-off lookup sends the typed address to the Apple Maps
+  // Server API with the same MapKit key; the policy's "Apple Maps (MapKit JS) — address search" covers it.
+  "maps-api.apple.com": "MapKit",
   "nominatim.openstreetmap.org": "OpenStreetMap",
   // Owner 2026-10-22: AI drafting is Claude only (Gemini removed).
   "api.anthropic.com": "Anthropic",

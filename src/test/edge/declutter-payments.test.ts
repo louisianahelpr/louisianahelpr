@@ -25,7 +25,8 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (refunded === "sent") { |   if (true) {
@@ -774,6 +775,53 @@ describe("declutter-checkout: pay", () => {
     await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "pickup_home" } }));
     expect(order[0]).toBe("expire");
     expect(order).toContain("start");
+  });
+
+  it("Q2427 ruling 2: the SELLER changed their bundle discount: the open page is closed BEFORE the order is replaced", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_old", bundle_discount_cents: 650 }] };
+    scenario.rpc.declutter_bundle_preview = 1300;
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    const steps: string[] = [];
+    stripeMock.checkout.sessions.expire.mockImplementation(async () => { steps.push("expire"); return { status: "expired" }; });
+    scenario.rpc.declutter_start_checkout = () => { steps.push("start"); return order({ superseded_session_id: "cs_live_old" }); };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+    await fn.fetch(payReq(fn));
+    expect(rpcs("declutter_bundle_preview")[0]?.args).toEqual({ p_seller_id: SELLER });
+    expect(clientOf(rpcs("declutter_bundle_preview")[0])?.key).toBe("anon-key");
+    expect(steps.slice(0, 2)).toEqual(["expire", "start"]);
+  });
+
+  it("Q2427: the same bundle discount as the open order leaves its page alone (the RPC hands the same order back)", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", bundle_discount_cents: 650 }] };
+    scenario.rpc.declutter_bundle_preview = 650;
+    scenario.rpc.declutter_start_checkout = order({ checkout_session_id: "cs_live_open" });
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_open", "open", "https://x/open"));
+    const body = await json(await fn.fetch(payReq(fn)));
+    expect(body.url).toBe("https://x/open");
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  it("Q2427: a bundle read that fails says try again and touches nothing", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_open", bundle_discount_cents: 650 }] };
+    scenario.rpcErrors = { declutter_bundle_preview: { message: "boom", code: "XX000" } };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_open", "open", "https://x/open"));
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(503);
+    expect(rpcs("declutter_start_checkout")).toHaveLength(0);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
+  });
+
+  it("Q2427: a page already PAID is answered paid before any bundle read (follow-up review note 5)", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "porch", stripe_checkout_session_id: "cs_live_paid", bundle_discount_cents: 650 }] };
+    scenario.rpcErrors = { declutter_bundle_preview: { message: "boom", code: "XX000" } };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_paid", "complete"));
+    const body = await json(await fn.fetch(payReq(fn)));
+    expect(body.paid).toBe(true);
+    expect(rpcs("declutter_bundle_preview")).toHaveLength(0);
   });
 
   it("row 101: a switch TO porch the server would refuse keeps the open pickup page (money review, porch default #1)", async () => {

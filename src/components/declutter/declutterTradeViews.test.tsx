@@ -58,6 +58,10 @@ const state = {
   /** Q2425: the safe meetup spots near this cart (declutter_meetup_spots_near) and the chosen spot ids. */
   spots: [] as { id: string; name: string; address: string; parish: string; kind: "police" | "store" | "other"; note: string | null; miles: number | null; chosen: boolean }[],
   chosenSpots: [] as string[],
+  /** Q2427: the server's bundle preview (cents off this cart) and a seller's rule. */
+  bundleOff: 0,
+  bundleRule: null as number | null,
+  previewCalls: 0,
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
@@ -75,6 +79,11 @@ vi.mock("@/lib/declutter/delivery", () => ({
   },
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/lib/declutter/bundle", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/bundle")>()),
+  fetchBundleRule: async () => state.bundleRule,
+  fetchBundlePreview: async () => { state.previewCalls++; return state.bundleOff; },
+}));
 vi.mock("@/lib/declutter/meetup", () => ({
   fetchMeetupSpotsNear: async () => state.spots.map((sp) => ({ ...sp, chosen: state.chosenSpots.includes(sp.id) })),
   chooseMeetupSpot: async (_seller: string, spotId: string) => { state.chosenSpots = [spotId]; },
@@ -167,6 +176,9 @@ describe("Declutter slice 3 screens", () => {
     state.sdOffer = null;
     state.spots = [];
     state.chosenSpots = [];
+    state.bundleOff = 0;
+    state.bundleRule = null;
+    state.previewCalls = 0;
   });
 
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
@@ -478,6 +490,35 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pay $3.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "meetup" }]));
     state.deliveryOn = false;
+  });
+
+  it("Q2427: two paid items with a bundle discount: the bill shows it and the total is after it; the seller keeps the discounted price", async () => {
+    const mk = (id: string, price: number) => ({ line_id: id, item_id: `i-${id}`, item_title: `Lamp ${id}`, my_side: "buyer", seller_id: "s2", price_cents: price,
+      status: "in_cart", checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null,
+      premium_cents: null, total_cents: null, porch_ok: true });
+    state.cart = [mk("l1", 4000), mk("l2", 2500)];
+    state.bundleOff = 650;
+    show(<CartView />);
+    // @mutate src/components/declutter/useBundleDiscount.ts | totalCents: checkoutAmounts([itemsCents - discountCents]).totalCents | totalCents: checkoutAmounts([itemsCents]).totalCents
+    const bill = await screen.findByText("Bundle discount");
+    const rows = bill.closest("[data-checkout-breakdown]")!.textContent!;
+    expect(rows).toMatch(/2 items\$65/);
+    expect(rows).toMatch(/Bundle discount−\$6\.50/);
+    // $58.50 after the discount, plus the fee on $58.50 (5% + 70¢ = $3.63): $62.13.
+    expect(rows).toMatch(/You pay\$62\.13/);
+    expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/keeps the whole \$58\.50/);
+  });
+
+  it("Q2427: one paid item: no preview asked, no discount row", async () => {
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 4000, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    state.bundleOff = 650;
+    show(<CartView />);
+    await screen.findByRole("button", { name: /^Pay / });
+    // @mutate src/components/declutter/useBundleDiscount.ts |     enabled: paidCount >= 2,\n  });\n  const discountCents | enabled: true,\n  });\n  const discountCents
+    await new Promise((r) => setTimeout(r, 50));
+    expect(state.previewCalls).toBe(0);
+    expect(screen.queryByText("Bundle discount")).toBeNull();
   });
 
   it("Q2425: no spot near, no meetup choice", async () => {

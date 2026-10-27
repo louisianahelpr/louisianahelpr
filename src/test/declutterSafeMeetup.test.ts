@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |           AND public.declutter_miles_between(i.area_lat, i.area_lng, s.lat, s.lng)\n              > (public.declutter_meetup_rules() ->> 'max_miles')::numeric); |           AND false);
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF v_uid IS NULL OR NOT COALESCE(public.has_role(v_uid, 'admin'::public.app_role), false) THEN\n    RAISE EXCEPTION 'admin_only' |   IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'admin_only'
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |   IF false THEN
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN |     THEN
+ * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) THEN |     THEN
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (!chosen) return json({ error: "meetup_spot_needed" }, 400); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     spotChanged = frozenSpot !== pickedSpot; |     spotChanged = false; void pickedSpot;
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <MeetupSpotsCard />\n |
@@ -29,7 +29,9 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/
 describe("Q2425 safe meetup spots: the server", () => {
   it("reads the newest definitions (floor)", () => {
     const names = ["declutter_meetup_spots_near", "declutter_set_meetup_spot", "declutter_meetup_here", "admin_declutter_save_meetup_spot",
-      "declutter_meetup_spot_near_lines", "declutter_start_checkout", "declutter_address_access", "declutter_seller_picked_up"];
+      "declutter_meetup_spot_near_lines", "declutter_address_access", "declutter_seller_picked_up"];
+    // declutter_start_checkout: restated again by Q2427 (20261027211754) with the meetup lines kept (asserted below).
+    expect(newestFunction("declutter_start_checkout").file >= FILE).toBe(true);
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
     expect(names.length).toBeGreaterThan(6);
   });
@@ -86,7 +88,7 @@ describe("Q2425 safe meetup spots: the edge function and the admin screen", () =
   it("a changed spot closes the old payment page before the order is replaced (lh-authz-rls review #2)", () => {
     const s = read("supabase/functions/declutter-checkout/index.ts");
     expect(s).toContain("spotChanged = frozenSpot !== pickedSpot;");
-    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged)) {');
+    expect(s).toContain('if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged)) {');
   });
 
   it("Admin settings shows the meetup spots card", () => {

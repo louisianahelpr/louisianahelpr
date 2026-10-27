@@ -39,6 +39,12 @@ const state = { feature: true, featureSettled: true };
 
 // DeclutterHome reads its tab-row switches with useFeatureStatus (Q?declutter-settle):
 // each answers at once, like useFeature, so only the gate's own read is ever pending.
+// Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+vi.mock("@/lib/declutter/bundle", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/bundle")>()),
+  fetchBundleRule: async () => null,
+  fetchBundlePreview: async () => 0,
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatureStatus: () => ({ on: state.feature, settled: true }) }));
 // What Browse lists; empty unless a test puts an item up.
 const watchCalls: unknown[][] = [];

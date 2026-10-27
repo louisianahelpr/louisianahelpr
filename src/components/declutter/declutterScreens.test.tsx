@@ -34,6 +34,12 @@ const state = {
 };
 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
+// Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
+vi.mock("@/lib/declutter/bundle", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/bundle")>()),
+  fetchBundleRule: async () => null,
+  fetchBundlePreview: async () => 0,
+}));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
 vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {

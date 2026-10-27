@@ -6,7 +6,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { formatPriceExact } from "@/lib/format";
-import { CheckCircle2, AlertTriangle, History, SearchX } from "lucide-react";
+import { CheckCircle2, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import { report } from "@/lib/errorLogger";
@@ -15,6 +15,8 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { logAdminAction } from "@/lib/adminAudit";
 import { categoriseReason, CATEGORY_LABELS } from "./adminDisputes/adminDisputesHelpers";
 import { FilterChipGroup } from "./adminDisputes/FilterChipGroup";
+import { DisputeTabs } from "./adminDisputes/DisputeTabs";
+import { pillLabel } from "@/components/admin/useFilterCounts";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
 import { HelprFaultDisputeDialog } from "./helprFault/HelprFaultDisputeDialog";
 import { groupDisputeRecords } from "./adminDisputes/groupDisputeRecords";
@@ -504,31 +506,31 @@ const AdminDisputes = () => {
 
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
-  const passesAge = (j: DisputedJob): boolean => {
+  const passesAge = (j: DisputedJob, age: AgeFilter = ageFilter): boolean => {
     // An unsettled settlement is never filtered out of the Open queue. It is
     // stuck money, not a case waiting on someone — hiding it behind an age or
     // category chip is how it stayed invisible in the first place.
     if (isUnsettled(disputeRecords[j.id])) return true;
-    if (ageFilter === "all" || !j.disputed_at) return true;
+    if (age === "all" || !j.disputed_at) return true;
     const hours = (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
-    if (ageFilter === "0-24h") return hours < 24;
-    if (ageFilter === "1-7d") return hours >= 24 && hours < 24 * 7;
-    if (ageFilter === "7-30d") return hours >= 24 * 7 && hours < 24 * 30;
-    if (ageFilter === ">30d") return hours >= 24 * 30;
+    if (age === "0-24h") return hours < 24;
+    if (age === "1-7d") return hours >= 24 && hours < 24 * 7;
+    if (age === "7-30d") return hours >= 24 * 7 && hours < 24 * 30;
+    if (age === ">30d") return hours >= 24 * 30;
     return true;
   };
-  const passesParty = (j: DisputedJob): boolean => {
+  const passesParty = (j: DisputedJob, party: PartyFilter = partyFilter): boolean => {
     if (isUnsettled(disputeRecords[j.id])) return true;
-    if (partyFilter === "all" || !j.disputed_by) return true;
-    if (partyFilter === "poster") return j.disputed_by === j.customer_id;
-    if (partyFilter === "helper") return !!j.helper_id && j.disputed_by === j.helper_id;
+    if (party === "all" || !j.disputed_by) return true;
+    if (party === "poster") return j.disputed_by === j.customer_id;
+    if (party === "helper") return !!j.helper_id && j.disputed_by === j.helper_id;
     return true;
   };
-  const passesCategory = (j: DisputedJob): boolean => {
+  const passesCategory = (j: DisputedJob, category: CategoryFilter = categoryFilter): boolean => {
     if (isUnsettled(disputeRecords[j.id])) return true;
-    if (categoryFilter === "all") return true;
+    if (category === "all") return true;
     const reason = disputeRecords[j.id]?.reason ?? j.dispute_reason;
-    return categoriseReason(reason) === categoryFilter;
+    return categoriseReason(reason) === category;
   };
 
   // Computed for the Open queue regardless of which tab is active, because the
@@ -537,6 +539,11 @@ const AdminDisputes = () => {
   // describing a list the admin cannot see. The Users view already gets this
   // right (AdminUsers.tsx renders `filtered.length`); this makes Disputes match.
   const openFiltered = disputes.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j));
+  // Owner 2026-10-27: every chip carries the number of open disputes it would
+  // list, with the other two groups' current choices applied (as the list is).
+  const ageCount = (age: AgeFilter) => disputes.filter((j) => passesAge(j, age) && passesParty(j) && passesCategory(j)).length;
+  const partyCount = (party: PartyFilter) => disputes.filter((j) => passesAge(j) && passesParty(j, party) && passesCategory(j)).length;
+  const categoryCount = (category: CategoryFilter) => disputes.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j, category)).length;
   const filtersActive = ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all";
   // Decided is deliberately unfiltered — it is an audit log, not a work queue.
   const list = filter === "open" ? openFiltered : decidedJobs;
@@ -549,34 +556,7 @@ const AdminDisputes = () => {
   return (
     <AdminViewShell>
       {/* Filter tabs — Open queue vs. Decided audit log. */}
-      <div className="flex gap-1.5 border-b border-border">
-        <button
-          aria-pressed={filter === "open"}
-          type="button"
-          onClick={() => setFilter("open")}
-          className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
-            filter === "open" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <AlertTriangle className="w-3.5 h-3.5" /> Open
-            <span className="text-ds-11 tabular-nums">({openFiltered.length})</span>
-          </span>
-        </button>
-        <button
-          aria-pressed={filter === "decided"}
-          type="button"
-          onClick={() => setFilter("decided")}
-          className={`pb-2 px-3 -mb-px text-ds-13 font-medium border-b-2 transition-colors ${
-            filter === "decided" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <span className="inline-flex items-center gap-1.5">
-            <History className="w-3.5 h-3.5" /> Decided
-            <span className="text-ds-11 tabular-nums">({decidedJobs.length})</span>
-          </span>
-        </button>
-      </div>
+      <DisputeTabs filter={filter} setFilter={setFilter} openCount={openFiltered.length} decidedCount={decidedJobs.length} />
 
       {/* Cross-cutting filters — only meaningful on the Open queue. Panelled so
           the three chip groups read as one control block between the tabs and
@@ -607,7 +587,7 @@ const AdminDisputes = () => {
               { id: "1-7d", label: "1–7d" },
               { id: "7-30d", label: "7–30d" },
               { id: ">30d", label: ">30d" },
-            ]}
+            ].map((o) => ({ ...o, label: pillLabel(o.label, ageCount(o.id as AgeFilter)) }))}
           />
           <FilterChipGroup
             label="Filed by"
@@ -617,7 +597,7 @@ const AdminDisputes = () => {
               { id: "all", label: "Both" },
               { id: "poster", label: "Poster" },
               { id: "helper", label: "Helpr" },
-            ]}
+            ].map((o) => ({ ...o, label: pillLabel(o.label, partyCount(o.id as PartyFilter)) }))}
           />
           <FilterChipGroup
             label="Category"
@@ -626,7 +606,7 @@ const AdminDisputes = () => {
             options={[
               { id: "all", label: "All" },
               ...Object.entries(CATEGORY_LABELS).map(([id, label]) => ({ id, label })),
-            ]}
+            ].map((o) => ({ ...o, label: pillLabel(o.label, categoryCount(o.id as CategoryFilter)) }))}
           />
         </AdminCard>
       )}

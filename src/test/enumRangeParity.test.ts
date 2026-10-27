@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20260811120000_message_pins_reactions_replies.sql | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️', '❓')) | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️'))
  * @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "profile";
  * @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
- * @mutate src/components/admin/AdminReports.tsx | type ReportFilter = "pending" \| "investigating" | type ReportFilter = "pending" \| "triage"
+ * @mutate src/components/admin/adminQueueKeys.ts | type ReportQueueFilter = "pending" \| "investigating" | type ReportQueueFilter = "pending" \| "triage"
  * @mutate src/components/DisputeTimelineDialog.tsx | status: "open" \| "decided" \| "withdrawn" \| "superseded"; | status: "open" \| "decided" \| "withdrawn";
  * @mutate supabase/migrations/20260915071502_reapply_dispute_settlement_objects.sql | 'withdrawn'::text, 'superseded'::text])); | 'withdrawn'::text, 'superseded'::text, 'escalated'::text]));
  * @mutate src/lib/nps.ts | export type NpsRole = "customer" \| "helper"; | export type NpsRole = "poster" \| "helper";
@@ -88,7 +88,7 @@ const ROWS: Row[] = [
     relation: "subset",
     client: () => {
       const code = readCode("src/components/admin/AdminReports.tsx");
-      const filters = stringUnion("src/components/admin/AdminReports.tsx", "ReportFilter").filter((f) => f !== "all");
+      const filters = stringUnion("src/components/admin/adminQueueKeys.ts", "ReportQueueFilter").filter((f) => f !== "all");
       const inList = /query\.in\("status",\s*\[([^\]]*)\]\)/.exec(code);
       if (!inList) throw new Error("AdminReports: pending filter no longer reads a status list");
       return [...filters, ...[...inList[1].matchAll(/"([^"]+)"/g)].map((m) => m[1])];

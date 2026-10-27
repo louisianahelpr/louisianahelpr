@@ -22,7 +22,7 @@ import {
   DialogSecondaryAction,
 } from "@/components/ui/dialog";
 import { formatShortDate } from "@/lib/format";
-import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search, type LucideIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock, User, Briefcase, MessageSquare, ExternalLink, Send, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import { toneBadgeClasses, type Tone } from "@/components/admin/tones";
@@ -33,6 +33,9 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { userFacingError } from "@/lib/userFacingError";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
+import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
+import { reportsQueueKey, type ReportQueueFilter } from "@/components/admin/adminQueueKeys";
+import { REPORT_FILTERS } from "@/components/admin/adminReports/reportFilters";
 
 type Report = {
   id: string;
@@ -66,7 +69,154 @@ type Report = {
 // merge and the manual `supabase db push`.
 const SLA_BREACH_HOURS = 24;
 
-type ReportFilter = "pending" | "investigating" | "resolved" | "dismissed" | "all";
+type ReportFilter = ReportQueueFilter;
+const REPORT_FILTER_VALUES = REPORT_FILTERS.map((f) => f.value);
+
+/** One status tab's reports, test accounts left out: the list AND its pill count (useFilterCounts) read this. */
+export async function fetchReports(filter: ReportFilter): Promise<Report[]> {
+  // For the pending queue, oldest-first surfaces SLA-breaching items at
+  // the top (they need triage soonest). For resolved/all, newest-first
+  // matches the rest of admin views.
+  const ascending = filter === "pending" || filter === "investigating";
+  let query = supabase.from("reports")
+    .select("*")
+    .neq("reported_type", "support")
+    .order("created_at", { ascending });
+  if (filter === "pending") query = query.in("status", ["pending", "new"]);
+  if (filter === "investigating") query = query.eq("status", "investigating");
+  if (filter === "resolved") query = query.eq("status", "resolved");
+  if (filter === "dismissed") query = query.eq("status", "dismissed");
+
+  // Throw into React Query rather than returning a fallback: an empty
+  // array here is indistinguishable from "the queue is clear".
+  const reportRows = (unwrap(await query) || []) as Report[];
+  // `reported_id` IS NOT ALWAYS A USER. For reported_type 'job' it holds a
+  // JOB id, and looking that up in `profiles` can only ever miss — which
+  // the fallback below then renders as "Deleted user". Measured in prod
+  // 2026-09-05: all four job reports in the queue read "Deleted user",
+  // including two whose job row is alive and titled, while the three user
+  // reports beside them showed real names. An admin opening the moderation
+  // queue could not tell WHAT had been reported, and the two states the
+  // fallback exists to distinguish — gone vs. unreadable — were both wrong
+  // for every job report.
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application";
+  // Q366: an 'application' report holds an APPLICATION id. The person is
+  // its helper and the context is its job; both are read from the row.
+  const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
+  const appHelper = new Map<string, string>();
+  const appJob = new Map<string, string>();
+  if (appIds.length > 0) {
+    const { data: appRows, error: appsError } = await supabase
+      .from("applications")
+      .select("id, helper_id, job_id")
+      .in("id", appIds);
+    if (appsError) report(appsError, { severity: "warning", tags: { source: "AdminReports.hydrateApplications" } });
+    for (const a of appRows || []) {
+      if (a.helper_id) appHelper.set(a.id, a.helper_id);
+      if (a.job_id) appJob.set(a.id, a.job_id);
+    }
+  }
+  const subjectUserOf = (r: Report): string | null =>
+    r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
+      : isUserSubject(r) ? r.reported_id : null;
+  const userIds = [
+    ...new Set(reportRows.flatMap(r => [
+      r.reporter_id,
+      subjectUserOf(r),
+      r.assigned_to,
+    ].filter(Boolean) as string[])),
+  ];
+  // Hydrated separately because it is a different table, and kept OUT of
+  // `nameMap` so `reported_exists` still means "is a messageable user" —
+  // a job report has no person to message, and that button must stay off.
+  const jobIds = [...new Set([
+    ...reportRows.filter(r => r.reported_type === "job").map(r => r.reported_id),
+    ...appJob.values(),
+  ].filter(Boolean))];
+  const jobTitles = new Map<string, string>();
+  const seedIds = new Set<string>();
+  if (jobIds.length > 0) {
+    const { data: jobRows, error: jobsError } = await supabase
+      .from("jobs")
+      .select("id, title, is_seed")
+      .in("id", jobIds);
+    // Same rule as the profile read below: never drop the error, never let
+    // a failed lookup blank the queue.
+    if (jobsError) report(jobsError, { severity: "warning", tags: { source: "AdminReports.hydrateJobTitles" } });
+    for (const j of jobRows || []) {
+      jobTitles.set(j.id, j.title);
+      if (j.is_seed) seedIds.add(j.id);
+    }
+  }
+  if (userIds.length > 0) {
+  // Secondary name-hydration read. Don't drop the error: on failure every
+  // row silently renders the "Unknown"/fallback name, which looks like real
+  // data rather than a failed lookup. Report it, then still render the list
+  // — a missing display name must not blank the whole surface.
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, is_seed")
+      .in("user_id", userIds);
+  if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminReports.hydrateNames" } });
+    const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
+    for (const p of profiles || []) if (p.is_seed) seedIds.add(p.user_id);
+
+    // "Unknown" used to cover two very different situations, and an admin
+    // could not tell them apart on the card:
+    //
+    //   the lookup FAILED  — the name exists, we just could not read it
+    //   the user IS GONE   — there is no such row to read
+    //
+    // Only `assigned_to` has a foreign key (ON DELETE SET NULL);
+    // `reporter_id` and `reported_id` have none, so a report survives the
+    // deletion of the person it names and keeps pointing at a dead id.
+    // Prod has one: report b9a558e0 names a `reported_id` that is absent
+    // from BOTH `profiles` and `auth.users`.
+    //
+    // So: if the read errored, every miss is "unavailable" — we genuinely
+    // do not know. If it succeeded, a miss means the row is not there.
+    // Accepts null: `reporter_id` is nulled by purge_user_data() when the
+    // reporter deletes their account, and a null owner is the same thing to
+    // an admin as an id with no profile behind it — ADMIN_DELETED_ACCOUNT_LABEL.
+    const nameFor = (id: string | null) =>
+      (id ? nameMap.get(id) : undefined) ??
+      (profilesError && id ? "Name unavailable" : ADMIN_DELETED_ACCOUNT_LABEL);
+
+    // A job report names the JOB. Falling back to "Deleted job" keeps the
+    // same two-state honesty as `nameFor`: the row is genuinely gone (a
+    // cancelled job the admin can no longer read) rather than mislabelled
+    // as a person who never existed.
+    const subjectFor = (r: Report) => {
+      if (r.reported_type === "application") {
+        const helper = appHelper.get(r.reported_id);
+        if (!helper) return "Deleted application";
+        const title = jobTitles.get(appJob.get(r.reported_id) ?? "");
+        return title ? `${nameFor(helper)} · application on "${title}"` : `${nameFor(helper)} · application`;
+      }
+      return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
+    };
+
+    // Owner 2026-10-27: admin never shows a report a test account is part of.
+    return reportRows.map(r => ({
+      ...r,
+      reporter_name: nameFor(r.reporter_id),
+      reported_name: subjectFor(r),
+      // Deleted actors cannot receive a message — the notification would
+      // be written against a user_id with nothing behind it.
+      reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),
+      reported_exists: (() => { const u = subjectUserOf(r); return u !== null && nameMap.has(u); })(),
+      subject_user_id: subjectUserOf(r),
+      // A job subject that still exists is one the admin can open.
+      reported_job_exists: r.reported_type === "job" && jobTitles.has(r.reported_id),
+      assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
+      is_test: seedIds.has(r.reported_id)
+        || (r.reporter_id !== null && seedIds.has(r.reporter_id))
+        || (r.reported_type === "application"
+          && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
+    })).filter(r => !r.is_test);
+  }
+  return reportRows;
+}
 
 const AdminReports = () => {
   const navigate = useNavigate();
@@ -82,7 +232,9 @@ const AdminReports = () => {
   const [deleteReviewTarget, setDeleteReviewTarget] = useState<Report | null>(null);
   const [deletingReview, setDeletingReview] = useState(false);
 
-  const queryKey = ["admin-reports", filter];
+  const queryKey = reportsQueueKey(filter);
+  // Owner 2026-10-27: each pill carries the number of reports it lists.
+  const counts = useFilterCounts(REPORT_FILTER_VALUES, reportsQueueKey, fetchReports, (rows) => rows.length);
   // isError/refetch, not a swallowed toast. This caught the error, told the
   // user once, and returned [] — so a failed read rendered "No pending
   // reports", which is the same screen as a genuinely empty queue. An admin
@@ -91,153 +243,11 @@ const AdminReports = () => {
   const { data: reports, isInitialLoading, isError, refetch } = useInstantQuery<Report[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => {
-      // For the pending queue, oldest-first surfaces SLA-breaching items at
-      // the top (they need triage soonest). For resolved/all, newest-first
-      // matches the rest of admin views.
-      const ascending = filter === "pending" || filter === "investigating";
-      let query = supabase.from("reports")
-        .select("*")
-        .neq("reported_type", "support")
-        .order("created_at", { ascending });
-      if (filter === "pending") query = query.in("status", ["pending", "new"]);
-      if (filter === "investigating") query = query.eq("status", "investigating");
-      if (filter === "resolved") query = query.eq("status", "resolved");
-      if (filter === "dismissed") query = query.eq("status", "dismissed");
-
-      // Throw into React Query rather than returning a fallback: an empty
-      // array here is indistinguishable from "the queue is clear".
-      const reportRows = (unwrap(await query) || []) as Report[];
-      // `reported_id` IS NOT ALWAYS A USER. For reported_type 'job' it holds a
-      // JOB id, and looking that up in `profiles` can only ever miss — which
-      // the fallback below then renders as "Deleted user". Measured in prod
-      // 2026-09-05: all four job reports in the queue read "Deleted user",
-      // including two whose job row is alive and titled, while the three user
-      // reports beside them showed real names. An admin opening the moderation
-      // queue could not tell WHAT had been reported, and the two states the
-      // fallback exists to distinguish — gone vs. unreadable — were both wrong
-      // for every job report.
-      const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application";
-      // Q366: an 'application' report holds an APPLICATION id. The person is
-      // its helper and the context is its job; both are read from the row.
-      const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
-      const appHelper = new Map<string, string>();
-      const appJob = new Map<string, string>();
-      if (appIds.length > 0) {
-        const { data: appRows, error: appsError } = await supabase
-          .from("applications")
-          .select("id, helper_id, job_id")
-          .in("id", appIds);
-        if (appsError) report(appsError, { severity: "warning", tags: { source: "AdminReports.hydrateApplications" } });
-        for (const a of appRows || []) {
-          if (a.helper_id) appHelper.set(a.id, a.helper_id);
-          if (a.job_id) appJob.set(a.id, a.job_id);
-        }
-      }
-      const subjectUserOf = (r: Report): string | null =>
-        r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null
-          : isUserSubject(r) ? r.reported_id : null;
-      const userIds = [
-        ...new Set(reportRows.flatMap(r => [
-          r.reporter_id,
-          subjectUserOf(r),
-          r.assigned_to,
-        ].filter(Boolean) as string[])),
-      ];
-      // Hydrated separately because it is a different table, and kept OUT of
-      // `nameMap` so `reported_exists` still means "is a messageable user" —
-      // a job report has no person to message, and that button must stay off.
-      const jobIds = [...new Set([
-        ...reportRows.filter(r => r.reported_type === "job").map(r => r.reported_id),
-        ...appJob.values(),
-      ].filter(Boolean))];
-      const jobTitles = new Map<string, string>();
-      const seedIds = new Set<string>();
-      if (jobIds.length > 0) {
-        const { data: jobRows, error: jobsError } = await supabase
-          .from("jobs")
-          .select("id, title, is_seed")
-          .in("id", jobIds);
-        // Same rule as the profile read below: never drop the error, never let
-        // a failed lookup blank the queue.
-        if (jobsError) report(jobsError, { severity: "warning", tags: { source: "AdminReports.hydrateJobTitles" } });
-        for (const j of jobRows || []) {
-          jobTitles.set(j.id, j.title);
-          if (j.is_seed) seedIds.add(j.id);
-        }
-      }
-      if (userIds.length > 0) {
-      // Secondary name-hydration read. Don't drop the error: on failure every
-      // row silently renders the "Unknown"/fallback name, which looks like real
-      // data rather than a failed lookup. Report it, then still render the list
-      // — a missing display name must not blank the whole surface.
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, is_seed")
-          .in("user_id", userIds);
-      if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminReports.hydrateNames" } });
-        const nameMap = new Map((profiles || []).map(p => [p.user_id, formatName(p.full_name, "Unknown")]));
-        for (const p of profiles || []) if (p.is_seed) seedIds.add(p.user_id);
-
-        // "Unknown" used to cover two very different situations, and an admin
-        // could not tell them apart on the card:
-        //
-        //   the lookup FAILED  — the name exists, we just could not read it
-        //   the user IS GONE   — there is no such row to read
-        //
-        // Only `assigned_to` has a foreign key (ON DELETE SET NULL);
-        // `reporter_id` and `reported_id` have none, so a report survives the
-        // deletion of the person it names and keeps pointing at a dead id.
-        // Prod has one: report b9a558e0 names a `reported_id` that is absent
-        // from BOTH `profiles` and `auth.users`.
-        //
-        // So: if the read errored, every miss is "unavailable" — we genuinely
-        // do not know. If it succeeded, a miss means the row is not there.
-        // Accepts null: `reporter_id` is nulled by purge_user_data() when the
-        // reporter deletes their account, and a null owner is the same thing to
-        // an admin as an id with no profile behind it — ADMIN_DELETED_ACCOUNT_LABEL.
-        const nameFor = (id: string | null) =>
-          (id ? nameMap.get(id) : undefined) ??
-          (profilesError && id ? "Name unavailable" : ADMIN_DELETED_ACCOUNT_LABEL);
-
-        // A job report names the JOB. Falling back to "Deleted job" keeps the
-        // same two-state honesty as `nameFor`: the row is genuinely gone (a
-        // cancelled job the admin can no longer read) rather than mislabelled
-        // as a person who never existed.
-        const subjectFor = (r: Report) => {
-          if (r.reported_type === "application") {
-            const helper = appHelper.get(r.reported_id);
-            if (!helper) return "Deleted application";
-            const title = jobTitles.get(appJob.get(r.reported_id) ?? "");
-            return title ? `${nameFor(helper)} · application on "${title}"` : `${nameFor(helper)} · application`;
-          }
-          return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
-        };
-
-        // Owner 2026-10-27: admin never shows a report a test account is part of.
-        return reportRows.map(r => ({
-          ...r,
-          reporter_name: nameFor(r.reporter_id),
-          reported_name: subjectFor(r),
-          // Deleted actors cannot receive a message — the notification would
-          // be written against a user_id with nothing behind it.
-          reporter_exists: r.reporter_id !== null && nameMap.has(r.reporter_id),
-          reported_exists: (() => { const u = subjectUserOf(r); return u !== null && nameMap.has(u); })(),
-          subject_user_id: subjectUserOf(r),
-          // A job subject that still exists is one the admin can open.
-          reported_job_exists: r.reported_type === "job" && jobTitles.has(r.reported_id),
-          assigned_to_name: r.assigned_to ? nameMap.get(r.assigned_to) : undefined,
-          is_test: seedIds.has(r.reported_id)
-            || (r.reporter_id !== null && seedIds.has(r.reporter_id))
-            || (r.reported_type === "application"
-              && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),
-        })).filter(r => !r.is_test);
-      }
-      return reportRows;
-    },
+    fetcher: () => fetchReports(filter),
   });
 
-  const loadReports = () => qc.invalidateQueries({ queryKey });
+  // Every status tab: a status change moves a report between tabs, and each pill counts its own (useFilterCounts).
+  const loadReports = () => qc.invalidateQueries({ queryKey: ["admin-reports"] });
 
   const assignToSelf = async (id: string) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -396,18 +406,6 @@ const AdminReports = () => {
 
   // "New" is the label for the `pending` status because that is what the
   // report badge says; keeping the two in one table stops them drifting.
-  const REPORT_FILTERS: {
-    value: ReportFilter;
-    label: string;
-    icon?: LucideIcon;
-    iconClassName?: string;
-  }[] = [
-    { value: "pending", label: "New", icon: Clock },
-    { value: "investigating", label: "Investigating", icon: Search },
-    { value: "resolved", label: "Resolved", icon: CheckCircle2 },
-    { value: "dismissed", label: "Dismissed", icon: CheckCircle2, iconClassName: "opacity-60" },
-    { value: "all", label: "All" },
-  ];
 
   const typeIcon = (type: string) => {
     if (type === "user") return <User className="w-4 h-4" />;
@@ -429,7 +427,7 @@ const AdminReports = () => {
           same screen. A screen-reader user got two differently-cased buttons
           with the same name, one of which changes a report's status. */}
       <AdminFilterStrip label="Filter reports by status">
-        {REPORT_FILTERS.map(({ value, label, icon: Icon, iconClassName }) => (
+        {REPORT_FILTERS.map(({ value, label, icon: Icon, dim }) => (
           <Button
             key={value}
             variant={filter === value ? "default" : "outline"}
@@ -438,8 +436,8 @@ const AdminReports = () => {
             aria-pressed={filter === value}
             className="shrink-0"
           >
-            {Icon && <Icon className={cn("w-3.5 h-3.5 mr-1", iconClassName)} />}
-            {label}
+            {Icon && <Icon className={cn("w-3.5 h-3.5 mr-1", dim && "opacity-60")} />}
+            {pillLabel(label, counts.get(value))}
           </Button>
         ))}
       </AdminFilterStrip>

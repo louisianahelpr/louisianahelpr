@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
+import { pillLabel } from "@/components/admin/useFilterCounts";
 
 interface SubscribedProfile {
   user_id: string;
@@ -54,10 +55,10 @@ const AdminSubscriptions = () => {
     return "active";
   };
 
-  const filtered = allProfiles.filter(p => {
+  const passes = (p: SubscribedProfile, f: typeof filter) => {
     const status = getStatus(p);
-    if (filter === "active" && status !== "active") return false;
-    if (filter === "expired" && status !== "expired") return false;
+    if (f === "active" && status !== "active") return false;
+    if (f === "expired" && status !== "expired") return false;
     if (search) {
       const q = search.toLowerCase();
       return (p.full_name || "").toLowerCase().includes(q) ||
@@ -65,7 +66,10 @@ const AdminSubscriptions = () => {
         (p.subscription_tier || "").toLowerCase().includes(q);
     }
     return true;
-  });
+  };
+  const filtered = allProfiles.filter(p => passes(p, filter));
+  // Owner 2026-10-27: each pill carries the number of rows it would list (search applied, like the list).
+  const pillCount = (f: typeof filter) => allProfiles.filter(p => passes(p, f)).length;
 
   const countOf = (status: "active" | "expired") =>
     allProfiles.filter(p => getStatus(p) === status).length.toLocaleString();
@@ -182,7 +186,7 @@ const AdminSubscriptions = () => {
                   : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {pillLabel(f.charAt(0).toUpperCase() + f.slice(1), isInitialLoading || isError ? undefined : pillCount(f))}
             </button>
           ))}
         </div>

@@ -39,6 +39,15 @@ export function AdminFrame({
   navigate: (to: string) => void;
   children: ReactNode;
 }) {
+  // ONE header row for every admin view (owner, 2026-10-27: "support and any
+  // other page title should be at the top, not pushed down like that"). On the
+  // desktop website AdminSectionHeader portals itself into the global top bar
+  // (PageTitleBar); on a phone AdminTopBar draws it in its own row. It used to
+  // be a row of its own inside the scroll container, ~100px under the bar.
+  // Guard: src/test/adminTitleInTopBar.test.tsx.
+  const header = view !== "home"
+    ? <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />
+    : null;
   return (
     <>
       {/* Top padding ONLY below `lg`, where admin renders its own fixed bar.
@@ -77,7 +86,7 @@ export function AdminFrame({
 
             Below `lg` the global pair is `hidden lg:flex`, so admin still
             needs its own — hence the split rather than a plain delete. */}
-        {!isWebDesktop && <AdminTopBar />}
+        {!isWebDesktop && <AdminTopBar titleRow={header} />}
 
         {/* A <div>, not a <main>: App.tsx already wraps every route in
             <main id="main-content">, and a second one nested inside it
@@ -92,9 +101,8 @@ export function AdminFrame({
               between. It routes through handleViewChange so a jump behaves
               exactly like a rail click — same seen-marking, same URL write. */}
           <AdminCommandPalette onSelect={handleViewChange} />
-          {view !== "home" && (
-            <AdminSectionHeader title={viewLabels[view]} onBack={() => handleViewChange("home")} />
-          )}
+          {/* Renders nothing here: it portals into the desktop bar. */}
+          {isWebDesktop && header}
           {/* The app's one loading mark (HelprSpinner, which carries its own
               role="status"), not a hand-rolled border spinner (Q191). */}
           <Suspense fallback={<div className="flex items-center justify-center py-12"><HelprSpinner size={32} /></div>}>

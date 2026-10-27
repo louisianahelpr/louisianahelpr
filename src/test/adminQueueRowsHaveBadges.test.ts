@@ -22,14 +22,13 @@
  * @mutate src/components/admin/adminRailBadges.ts |   if (id === "fraud" && (openQueues.fraud ?? 0) > 0) return openQueues.fraud; |
  * @mutate src/components/admin/adminRailBadges.ts |   return userIds.filter((id): id is string => !!id && !seed.has(id)); |   return userIds.filter((id): id is string => !!id);
  * @mutate src/components/admin/adminRailBadges.ts |       return rows.filter((r) => r.is_seed !== true).length; |       return rows.length;
- * @mutate src/pages/admin/Admin.tsx |   const openQueues = { stalled: stalledCount.data, ...queueCounts.data }; |   const openQueues = { stalled: stalledCount.data };
+ * @mutate src/components/admin/adminRailBadges.ts | () => ({ ...queues.data, stalled: stalled.data, | () => ({ stalled: stalled.data,
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { adminBadgeFor } from "@/components/admin/adminRailBadges";
-import type { Stats } from "@/components/admin/dashboard/types";
 import { blankComments } from "./helpers/blankNonCode";
 
 // Q1653: queues still without a rail count. Empty since Q1691 (2026-10-14) gave
@@ -39,7 +38,7 @@ const KNOWN_NO_BADGE: string[] = [];
 
 const admin = blankComments(readFileSync(join(process.cwd(), "src/pages/admin/Admin.tsx"), "utf8"));
 const rail = blankComments(readFileSync(join(process.cwd(), "src/components/admin/adminRailBadges.ts"), "utf8"));
-const badgeFor = rail.slice(rail.indexOf("function adminBadgeFor("), rail.indexOf("export function useStalledQueueCount("));
+const badgeFor = rail.slice(rail.indexOf("function adminBadgeFor("), rail.indexOf("function useStalledQueueCount("));
 const hasBadge = (id: string) =>
   new RegExp(`id === "${id}"`).test(badgeFor) || new RegExp(`key: "${id}"`).test(admin);
 
@@ -55,9 +54,11 @@ describe("admin queue rows show a live count (Q1071)", () => {
 
   it("Stuck Jobs has a badge source that reads the open stalled queue", () => {
     expect(hasBadge("stalled")).toBe(true);
-    // Admin.tsx mounts the count and feeds it to the rail.
-    expect(admin).toMatch(/const stalledCount = useStalledQueueCount\(!loading\);/);
-    expect(admin).toMatch(/adminBadgeFor\(id, unreadCounts, stats, openQueues\)/);
+    // Admin.tsx mounts every queue count (useAdminPendingCounts, which reads
+    // the stalled count) and feeds it to the rail.
+    expect(admin).toMatch(/const pendingCounts = useAdminPendingCounts\(!loading\);/);
+    expect(rail).toMatch(/const stalled = useStalledQueueCount\(enabled\);/);
+    expect(admin).toMatch(/adminBadgeFor\(id, unreadCounts, openQueues\)/);
     expect(rail).toMatch(/rpc\("admin_stalled_job_queue", \{ p_include_resolved: false \}\)/);
     // Test jobs stay out, like every other rail count (lh-silent-failure review).
     expect(rail).toMatch(/fetchSeedUserIds\(rows\.flatMap\(\(r\) => \[r\.customer_id, r\.helper_id\]\)\)/);
@@ -69,20 +70,20 @@ describe("admin queue rows show a live count (Q1071)", () => {
   });
 
   it("Q1691: each of the five queues returns its own open count, and none when zero", () => {
-    const stats = { disputedJobs: 0, openReports: 0, supportTickets: 0 } as unknown as Stats;
     const counts = { banreview: 1, credentials: 2, exceptions: 3, fraud: 4, idvreview: 5 };
     for (const [id, n] of Object.entries(counts)) {
-      expect(adminBadgeFor(id, {}, stats, counts), id).toBe(n);
-      expect(adminBadgeFor(id, {}, stats, { [id]: 0 }), `${id} at zero`).toBeUndefined();
+      expect(adminBadgeFor(id, {}, counts), id).toBe(n);
+      expect(adminBadgeFor(id, {}, { [id]: 0 }), `${id} at zero`).toBeUndefined();
     }
-    expect(admin).toMatch(/const queueCounts = useOpenQueueCounts\(!loading\);/);
-    expect(admin).toMatch(/const openQueues = \{ stalled: stalledCount\.data, \.\.\.queueCounts\.data \};/);
-    expect(admin).toMatch(/\{ stalled: stalledCount\.data, \.\.\.queueCounts\.data \}\);/);
-    expect(admin).toMatch(/queueCounts\.isError\}/);
+    const hook = rail.slice(rail.indexOf("export function useAdminPendingCounts("));
+    expect(hook).toMatch(/const queues = useOpenQueueCounts\(enabled\);/);
+    expect(hook).toMatch(/\(\) => \(\{ \.\.\.queues\.data, stalled: stalled\.data,/);
+    expect(admin).toMatch(/const openQueues = pendingCounts\.data;/);
+    expect(admin).toMatch(/pendingCounts\.isError\}/);
   });
 
   it("Q1691: the counts read each screen's own source and leave test accounts out", () => {
-    const hook = rail.slice(rail.indexOf("export function useOpenQueueCounts("));
+    const hook = rail.slice(rail.indexOf("function useOpenQueueCounts("), rail.indexOf("async function fetchOpenDisputeCount("));
     expect(hook.length).toBeGreaterThan(500);
     // Same reads as AdminBanReview, AdminExceptionQueue, AdminFraudDashboard,
     // AdminCredentialQueue and AdminIDVReview.

@@ -156,16 +156,15 @@ function OfferRow({ o }: { o: MyOffer }) {
         </p>
       )}
       {myTurn && o.my_side === "seller" && (
-        // Sellers keep the whole price; the buyer's fee is on top (spec v2 §9.11).
+        // Sellers keep the whole price (spec v2 §9.11). Members never see a fee name or number (owner 2026-10-25).
         <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-offer-note="">
-          If you accept and the buyer pays, you keep the whole {formatPrice(takeCents)}. The buyer pays the buyer's fee on top.
+          If you accept and the buyer pays, you keep the whole {formatPrice(takeCents)}.
         </p>
       )}
       {myTurn && o.my_side === "buyer" && (
         // Board 70: what accepting the counter costs at checkout (pickup), from the same rule as Buy now.
         <dl className="space-y-1 rounded-xl border border-border p-3 text-ds-13" data-offer-bill="">
           <div className="flex justify-between gap-3"><dt>Their price</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
-          <div className="flex justify-between gap-3"><dt>Buyer's fee (5% + 70¢)</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(takeCents) - takeCents)}</dd></div>
           <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay with pickup</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(takeCents))}</dd></div>
           <p className="text-ds-12 text-muted-foreground">At most. More items from this seller make it less.</p>
         </dl>
@@ -321,9 +320,9 @@ const PORCH_OR_SAFE_PLACE = "Porch or safe place";
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, porchOk, onBack, itemCount = 1 }: {
-  sellerId: string; itemsTotalCents: number; premiumCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
-  /** Board 161: how many items this one checkout covers (the fee is charged once on their total). */
+function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, itemCount = 1 }: {
+  sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+  /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
   itemCount?: number;
 }) {
   const qc = useQueryClient();
@@ -370,11 +369,10 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
   const setupFeeKnown = useFirstPayoutFeeKnown();
   const sellerDelivering = chosen === "seller_delivery";
   const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
-  // The seller's rate counts in the buyer's fee (5% of items + rate, + 70c): the server's rule, shown before checkout.
-  // A free seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing:
-  // the fee is on the items alone, the same number the server freezes.
+  // The seller's rate counts in the buyer's premium (the server's rule), folded into "You pay" before checkout; a free
+  // seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing. The bill never
+  // shows the premium on its own line (owner 2026-10-25, issue #3672).
   const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(itemsTotalCents, sdRate) : null;
-  const shownPremium = sdAmounts ? sdAmounts.premiumCents : premiumCents;
   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff;
   const addressId = `dcl-dropoff-${sellerId}`;
@@ -429,7 +427,7 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
               <div className="flex justify-between text-xs text-muted-foreground"><dt>$10 + $2 a mile{liveQuote.size_cents > 0 ? " + size" : ""}</dt><dd>{formatPrice(liveQuote.base_cents)} + {formatPrice(liveQuote.per_mile_cents)}{liveQuote.size_cents > 0 ? ` + ${formatPrice(liveQuote.size_cents)}` : ""}</dd></div>
             </dl>
           ) : (
-            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, the delivery fee comes back and you pick it up instead.</p>
+            <p className="text-xs text-muted-foreground">$10 + $2 a mile, plus $20 for a large item or $40 for an extra large one. If no Helpr takes it within 48 hours, what you paid for delivery comes back and you pick it up instead.</p>
           )}
         </div>
       )}
@@ -441,7 +439,6 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
         {sdRate !== null && (
           <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
         )}
-        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(shownPremium)}</dd></div>
         {setupFeeCents > 0 && (
           <div className="flex justify-between gap-3" data-checkout-setup-fee=""><dt>One-time account setup fee</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(setupFeeCents)}</dd></div>
         )}
@@ -562,7 +559,7 @@ export function CartView() {
             <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               <h3 className="text-base font-semibold">From one seller · one checkout</h3>
-              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one fee.</p>}
+              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one payment.</p>}
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
@@ -579,7 +576,7 @@ export function CartView() {
               {allFree ? (
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
               ) : (
-                <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} premiumCents={amounts.premiumCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
+                <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
               )}
             </section>
           );

@@ -37,7 +37,7 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
         <span className="font-semibold">
           {buyable.length}{capped ? "+" : ""} more from {name}.
         </span>{" "}
-        Check out together: one pickup, one fee.
+        Check out together: one pickup, one payment.
       </span>
     </button>
   );

@@ -162,7 +162,7 @@ describe("Declutter slice 3 screens", () => {
 
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
-    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" });
+    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
     // The reassurance is a line under the buttons, not a box in their place.
     expect(screen.getByText("You're only charged when you buy.")).toBeInTheDocument();
@@ -195,11 +195,11 @@ describe("Declutter slice 3 screens", () => {
   it("back from saving a card in the app (the sheet closes): Buy goes straight to its confirm", async () => {
     state.returnWithCard = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
-    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" });
+    const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
-    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$42\.70 \(\$40 \+ \$2\.70 buyer.s fee\)\? Delivery, if you choose it, is added at checkout\./)));
+    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$42\.70\? Delivery, if you choose it, is added at checkout\./)));
     await waitFor(() => expect(state.bought).toBe(1));
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
   });
@@ -221,7 +221,8 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(cents))}</dd> | {formatPrice(cents)}</dd>
     const bill = document.querySelector("[data-offer-bill]")!;
     expect(bill.textContent).toMatch(/Your offer\$30/);
-    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$2\.20/);
+    // Owner 2026-10-25 (issue #3672): the bill names what the buyer pays, never a fee line, name or number.
+    expect(bill.textContent).not.toMatch(/fee|%|¢|\$2\.20/i);
     expect(bill.textContent).toMatch(/You pay if the seller says yes\$32\.20/);
     // Under half the price: no bill, the rule instead.
     fireEvent.change(screen.getByLabelText("Your offer"), { target: { value: "5" } });
@@ -231,7 +232,7 @@ describe("Declutter slice 3 screens", () => {
   it("a link with ?after_card=buy does nothing by itself: only the router state resumes", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />, "/declutter/item/i1?after_card=buy");
-    await waitFor(() => expect(screen.getByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeEnabled());
+    await waitFor(() => expect(screen.getByRole("button", { name: "Buy now · $42.70 total" })).toBeEnabled());
     expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("Your offer")).toBeNull();
   });
@@ -273,7 +274,7 @@ describe("Declutter slice 3 screens", () => {
   it("with a card: Buy at the price and an offer of at least half (rows 57-58)", async () => {
     state.card = { brand: "visa", last4: "4242" };
     show(<OfferPanel item={ITEM} userId="u1" />);
-    expect(await screen.findByRole("button", { name: "Buy now · $42.70 total with fee" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole("button", { name: "Make an offer" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
     const input = screen.getByLabelText("Your offer");
@@ -338,7 +339,7 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText("their counter")).toBeInTheDocument();
     const bill = document.querySelector("[data-offer-bill]")!;
     expect(bill.textContent).toMatch(/Their price\$30/);
-    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$2\.20/);
+    expect(bill.textContent).not.toMatch(/fee|%|¢|\$2\.20/i);
     expect(bill.textContent).toMatch(/You pay with pickup\$32\.20/);
   });
 
@@ -374,14 +375,14 @@ describe("Declutter slice 3 screens", () => {
     state.setupFeeKnown = true;
   });
 
-  it("cart: one checkout per seller with one 5% + 70c fee (F1), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
+  it("cart: one checkout per seller, the items and what you pay with no fee line (F1 total, issue #3672), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
     show(<CartView />);
     expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
     expect(screen.getByText("$7")).toBeInTheDocument();
-    expect(screen.getByText("$1.05")).toBeInTheDocument();
+    expect(screen.queryByText("$1.05")).toBeNull();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
     // Board 30: the breakdown ends in "You pay" = the real checkout total, the seller keeps the whole item price,
     // and no vendor is named (spec §1.7).
@@ -390,10 +391,11 @@ describe("Declutter slice 3 screens", () => {
     expect(bill.textContent).toMatch(/You pay\$8\.05/);
     // Q2352: an account that already paid the setup fee is never shown it.
     expect(document.querySelector("[data-checkout-setup-fee]")).toBeNull();
-    // Board 161: two items, one checkout, the fee once on their total.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt> | <dt>Buyer's fee (5% + 70¢)</dt>
-    expect(bill.textContent).toMatch(/^2 items\$7Buyer's fee \(5% \+ 70¢, once\)\$1\.05/);
-    expect(screen.getByText("One checkout, one pickup, one fee.")).toBeInTheDocument();
+    // Board 161: two items, one checkout. Owner 2026-10-25 (issue #3672): the bill is the items and what you pay,
+    // never a fee line, name or number.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         <div><dt>Buyer's fee (5% + 70¢, once)</dt><dd>{formatPrice(totalCents - itemsTotalCents)}</dd></div>{setupFeeCents > 0 && (
+    expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05$/);
+    expect(screen.getByText("One checkout, one pickup, one payment.")).toBeInTheDocument();
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.
@@ -434,11 +436,11 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     expect(await screen.findByText(/Helpr delivery, about 5 miles/)).toBeInTheDocument();
-    // The quote joins the bill as its own line, outside the 5% base: $3 item + $0.85 fee + $40 delivery.
+    // The quote joins the bill as its own line: $3 item + $40 delivery, $43.85 in all (no fee line, issue #3672).
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/Helpr delivery\$40/);
-    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$0\.85/);
+    expect(bill.textContent).not.toMatch(/fee|%|¢|\$0\.85/i);
     expect(bill.textContent).toMatch(/You pay\$43\.85/);
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
@@ -446,7 +448,7 @@ describe("Declutter slice 3 screens", () => {
     state.deliveryOn = false;
   });
 
-  it("seller delivery (20261027153244): after pickup at the home, with the seller's rate, a time and the door choice; the fee counts the rate", async () => {
+  it("seller delivery (20261027153244): after pickup at the home, with the seller's rate, a time and the door choice; the total counts the rate, no fee line", async () => {
     state.sellerDeliveryOn = true;
     const slots = ["2026-11-03T15:00:00.000Z", "2026-11-03T16:00:00.000Z", "2026-11-04T15:00:00.000Z"];
     state.sdOffer = { available: true, reason: null, rate_cents: 2000, radius_miles: 10, dropoff_area: "Mid-City", slot_minutes: 60, slots, held_slot: null };
@@ -461,12 +463,13 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByLabelText(/Seller delivers/));
     // Pay waits for a time AND the door choice.
     fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
-    // $3 item + $20 rate: the fee is 5% of $23 + 70c = $1.85; total $24.85.
+    // $3 item + $20 rate: the server's premium is 5% of $23 + 70c = $1.85, folded into the $24.85 total (never its own line, issue #3672).
     expect(screen.getByRole("button", { name: "Pay $24.85" })).toBeDisabled();
     fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/Seller delivery\$20/);
-    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$1\.85/);
+    expect(bill.textContent).toMatch(/^Item\$3Seller delivery\$20You pay\$24\.85$/);
+    expect(bill.textContent).not.toMatch(/fee|%|¢|\$1\.85/i);
     fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
   });

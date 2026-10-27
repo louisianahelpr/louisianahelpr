@@ -324,9 +324,9 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">48 hours to check out.</strong> After you buy, or your offer is accepted, the item is reserved for you and you have 48 hours to check out and pay. We remind you 24 hours and 2 hours before. Missing the deadline is 1 Declutter strike, and the item goes back on sale.</p>
             <p>Your saved card is charged only when you check out and pay, or automatically in a part of Louisiana Helpr where you turned on automatic charges.</p>
-            <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout (it includes card processing). With seller delivery, the buyer&apos;s fee is worked out on the items and the seller&apos;s delivery rate together. A Helpr delivery fee carries no buyer&apos;s fee. You see one total before you pay.</p>
+            <p><strong className="text-foreground">What you pay:</strong> the item price plus a buyer&apos;s fee, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.</p>
             <p>Items from the same seller go into one checkout: one payment, one pickup or delivery.</p>
-            <p><strong className="text-foreground">Sellers pay no fee</strong> and receive the whole item price, less any card fee they owe from a sale they cancelled. We hold the payment through Stripe until the sale is final.</p>
+            <p><strong className="text-foreground">Sellers pay no fee</strong> and receive the whole item price, less anything they owe from a sale they cancelled. We hold the payment through Stripe until the sale is final.</p>
           </>
         }
       />
@@ -352,11 +352,11 @@ export const TermsContent = () => {
           <>
             <p><strong className="text-foreground">Price:</strong> $10, plus $2 for each road mile, plus $20 for each large item and $40 for each extra-large item. Road miles are estimated from the straight-line distance (times 1.3, rounded up, at least 1 mile). There is no distance limit. Delivery is offered when every item is at one pickup address.</p>
             <p>A Helpr takes the delivery, picks the pickup time within the seller&apos;s times and the 7 days, takes a photo at pickup and leaves the item at your door with a photo. Then you tap &ldquo;I got it&rdquo;, or it counts as done 24 hours after the drop-off.</p>
-            <p><strong className="text-foreground">No Helpr in 48 hours:</strong> the whole delivery fee comes back to you and the order becomes a pickup at the seller&apos;s door.</p>
-            <p><strong className="text-foreground">Raising the pay:</strong> while you wait, you may raise the delivery pay, at least $5 at a time in whole dollars, at most $150 in total for one delivery, and not in the last hour of the 48 hours. You pay the raise plus its card fee, and the Helpr gets the whole raise. A refunded raise comes back with its card fee unless you cancel for your own reason; if the seller&apos;s fault cancels a raised delivery, the seller pays the raise&apos;s card fee.</p>
-            <p><strong className="text-foreground">Who can deliver:</strong> a Helpr who is 18 or older, has set up payouts, is not banned, has fewer than 3 Declutter strikes and is not the buyer or seller. Large items need a truck; extra-large items a truck and a second person.</p>
-            <p><strong className="text-foreground">The Helpr&apos;s pay:</strong> the delivery fee minus the same service fee as jobs, plus any raise in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.</p>
-            <p>A Helpr who backs out less than 2 hours before the pickup, or doesn&apos;t pick up within 2 hours of the pickup time, gets a strike on the jobs strike ladder. If the item is damaged on the way, you get everything back, the seller is still paid, and the Helpr isn&apos;t paid. If the Helpr already picked up the item and the sale is refunded for the seller&apos;s fault, the Helpr is paid for the trip and the delivery fee is not refunded.</p>
+            <p><strong className="text-foreground">No Helpr in 48 hours:</strong> everything you paid for delivery comes back to you and the order becomes a pickup at the seller&apos;s door.</p>
+            <p><strong className="text-foreground">Raising the pay:</strong> while you wait, you may raise the delivery pay, at least $5 at a time in whole dollars, at most $150 in total for one delivery, and not in the last hour of the 48 hours. You see what the raise costs before you pay, and the Helpr gets the whole raise. A refunded raise comes back in full, unless you cancel for your own reason, when most of it comes back; if the seller&apos;s fault cancels a raised delivery, it comes back in full at the seller&apos;s cost.</p>
+            <p><strong className="text-foreground">Who can deliver:</strong> a member who is 18 or older, is not banned, has fewer than 3 Declutter strikes and is not the buyer or seller. You set up payouts after you take a delivery; your pay is held until that is done. Large items need a truck; extra-large items a truck and a second person.</p>
+            <p><strong className="text-foreground">The Helpr&apos;s pay:</strong> the take-home amount the delivery shows before the Helpr takes it, with any raise added in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.</p>
+            <p>A Helpr who backs out less than 2 hours before the pickup, or doesn&apos;t pick up within 2 hours of the pickup time, gets a strike on the jobs strike ladder. If the item is damaged on the way, you get everything back, the seller is still paid, and the Helpr isn&apos;t paid. If the Helpr already picked up the item and the sale is refunded for the seller&apos;s fault, the Helpr is paid for the trip and what you paid for delivery is not refunded.</p>
           </>
         }
       />
@@ -367,7 +367,7 @@ export const TermsContent = () => {
           <>
             <p>A seller may offer to deliver: one flat rate per order in whole dollars, from $5 to $150; a range of 5, 10, 25 or 50 miles from their pickup address (10 unless they change it); and weekly 1-hour delivery slots. The seller keeps the whole delivery rate; Louisiana Helpr takes no cut of it. The seller can turn delivery off for an item.</p>
             <p>At checkout it shows only when your address is in range and a time is open. You book a slot from 24 hours ahead up to 14 days out and choose &ldquo;Leave it at my door&rdquo; (left with a photo, confirmed like a porch pickup) or &ldquo;Hand it to me&rdquo; (if nobody is home, report a problem and an admin decides). The seller sees your address only after you pay. Either of you may ask to move the time, at most 3 times each.</p>
-            <p><strong className="text-foreground">Cancelling:</strong> you may cancel a paid seller delivery until 24 hours before the slot and get everything back except the card fee; after that, report a problem. A seller who cancels a paid delivery refunds you in full, gets a Declutter strike and pays the card fee.</p>
+            <p><strong className="text-foreground">Cancelling:</strong> you may cancel a paid seller delivery until 24 hours before the slot and get most of the payment back; after that, report a problem. A seller who cancels a paid delivery refunds you in full at the seller&apos;s cost and gets a Declutter strike.</p>
           </>
         }
       />
@@ -376,15 +376,15 @@ export const TermsContent = () => {
         title="Refunds and when the sale is final"
         body={
           <>
-            <p><strong className="text-foreground">You always get 24 hours.</strong> However the pickup is confirmed, you have 24 hours after pickup to ask for a refund. The seller can refund all of it (you get everything back except the card fee, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.</p>
+            <p><strong className="text-foreground">You always get 24 hours.</strong> However the pickup is confirmed, you have 24 hours after pickup to ask for a refund. The seller can refund all of it (most of the payment comes back to you, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.</p>
             <p><strong className="text-foreground">The seller is paid when the sale is final:</strong> 24 hours after pickup with no refund asked and no problem open, or once Louisiana Helpr has decided. After that the item is yours as is, with no returns.</p>
             <ul className="list-disc pl-4 space-y-0.5">
               <li><strong className="text-foreground">Our mistake</strong> (a duplicate charge, a payment on a closed order): everything back.</li>
-              <li><strong className="text-foreground">Not as described, seller no-show, seller backs out or blocks you after you paid:</strong> everything back; the seller pays the card fee and gets a strike. The same full refund applies if the seller can no longer sell when you pay.</li>
-              <li><strong className="text-foreground">Damaged in Helpr delivery:</strong> everything back, the delivery fee too.</li>
-              <li><strong className="text-foreground">A delivery that falls through with less than 48 hours left:</strong> the delivery fee in full and the rest minus the card fee; no strike.</li>
-              <li><strong className="text-foreground">Buyer never picks up, or misses a pickup twice:</strong> the item price back; the buyer&apos;s fee is kept; a buyer strike.</li>
-              <li><strong className="text-foreground">Buyer cancels, pays twice by restarting checkout, or nobody&apos;s fault:</strong> the payment back minus the card fee.</li>
+              <li><strong className="text-foreground">Not as described, seller no-show, seller backs out or blocks you after you paid:</strong> everything back, at the seller&apos;s cost, and the seller gets a strike. The same full refund applies if the seller can no longer sell when you pay.</li>
+              <li><strong className="text-foreground">Damaged in Helpr delivery:</strong> everything back, delivery included.</li>
+              <li><strong className="text-foreground">A delivery that falls through with less than 48 hours left:</strong> everything paid for delivery and most of the rest; no strike.</li>
+              <li><strong className="text-foreground">Buyer never picks up, or misses a pickup twice:</strong> the item price back, and a buyer strike.</li>
+              <li><strong className="text-foreground">Buyer cancels, pays twice by restarting checkout, or nobody&apos;s fault:</strong> most of the payment back.</li>
               <li><strong className="text-foreground">Missed the 48-hour checkout:</strong> nothing was charged; a buyer strike.</li>
             </ul>
           </>
@@ -416,7 +416,7 @@ export const TermsContent = () => {
         title="Extras"
         body={
           <>
-            <p><strong className="text-foreground">Add a Helpr:</strong> after you pay, you can book a Helpr to put an item together, hang it or set it up. It is an ordinary Helpr job under the normal job rules and fees, paid separately. If the sale is refunded because the seller failed, that job is cancelled with no cancellation fee, you get the card fee back, and the seller owes it.</p>
+            <p><strong className="text-foreground">Add a Helpr:</strong> after you pay, you can book a Helpr to put an item together, hang it or set it up. It is an ordinary Helpr job under the normal job rules, paid separately. If the sale is refunded because the seller failed, that job is cancelled and everything you paid for it comes back, except the one-time account setup fee.</p>
             <p><strong className="text-foreground">Haul-away:</strong> an item unsold 14 days after it went up for sale (or off sale without selling) can be taken by a Helpr to donation, or the dump if donation won&apos;t take it. Up to 10 items from one pickup address per trip; it is an ordinary Helpr job you price and pay for. Booking takes the items off sale. A paused item must be relisted first.</p>
             <p><strong className="text-foreground">Moving out:</strong> photograph each room and the app drafts up to 15 listings at a time for you to check and price. A moving sale can show its name, dates and move-out date (up to 180 days away) on your profile, never your address. Room photos are used once and never stored.</p>
             <p><strong className="text-foreground">Price hint:</strong> what similar items sold for nearby, worked out only from real Declutter sales, and shown only when there are enough of them. It is a guide, not a promise.</p>

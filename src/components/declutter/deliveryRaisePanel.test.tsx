@@ -2,8 +2,9 @@
  * The buyer's "Raise the pay" panel (Q1929, spec row 40; migration
  * 20261021185418). The amounts and the rules are proven in SQL by
  * src/test/pglite/declutterDeliveryRaise.pglite.mjs; this proves the panel
- * shows the honest price of the second payment (raise + card fee, the same
- * formula as the SQL) and sends exactly the raise the buyer typed.
+ * shows the honest price of the second payment (one "You pay now" total, the
+ * raise + its card cost by the same formula as the SQL, never a fee line: owner
+ * 2026-10-25, issue #3672) and sends exactly the raise the buyer typed.
  *
  * @mutate src/components/declutter/DeliveryRaisePanel.tsx |  const fee = valid ? raiseCardFeeCents(cents) : 0; |  const fee = 0;
  * @mutate src/components/declutter/DeliveryRaisePanel.tsx |  const valid = /^\d+$/.test(dollars) && cents >= RAISE_MIN_CENTS && cents <= s.room_cents; |  const valid = /^\d+$/.test(dollars);
@@ -47,20 +48,21 @@ beforeEach(() => {
 });
 
 describe("DeliveryRaisePanel", () => {
-  it("while no Helpr has it: the raise, its card fee and the total, each shown", async () => {
+  it("while no Helpr has it: the raise and what you pay now, never a fee line", async () => {
     show();
     expect(await screen.findByRole("heading", { name: "Raise the pay" })).toBeTruthy();
     expect(screen.getByText("Added to the Helpr's pay").nextSibling?.textContent).toBe("$10");
-    expect(screen.getByText("Card fee").nextSibling?.textContent).toBe("$0.61");
     expect(screen.getByText("You pay now").nextSibling?.textContent).toBe("$10.61");
-    expect(screen.getByText(/all of it comes back with your delivery fee/)).toBeTruthy();
+    expect(screen.queryByText(/fee/i)).toBeNull();
+    expect(screen.queryByText("$0.61")).toBeNull();
+    expect(screen.getByText(/all of it comes back with what you paid for delivery/)).toBeTruthy();
   });
 
   it("sends exactly the raise typed, then opens the payment page", async () => {
     show();
     const input = await screen.findByLabelText("Add to the pay");
     fireEvent.change(input, { target: { value: "25" } });
-    expect(screen.getByText("Card fee").nextSibling?.textContent).toBe("$1.06");
+    expect(screen.getByText("You pay now").nextSibling?.textContent).toBe("$26.06");
     fireEvent.click(screen.getByRole("button", { name: "Raise the pay" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/raise"]));
     expect(state.started).toEqual([["o1", 2500]]);
@@ -90,11 +92,11 @@ describe("DeliveryRaisePanel", () => {
   // lh-money-escrow review 2026-10-21 #1: a buyer-side cancel keeps the raise's card fee, so the line shows the
   // server's refund_cents, never the whole payment.
   // @mutate src/components/declutter/DeliveryRaisePanel.tsx |   const back = typeof r.refund_cents === "number" ? r.refund_cents : r.total_cents; |   const back = r.total_cents;
-  it("a buyer-side cancel shows what really comes back: the raise without its card fee", async () => {
+  it("a buyer-side cancel shows what really comes back (the amount, never why the rest is kept)", async () => {
     state.status = { ...STATUS, can_raise: false, task_status: "cancelled",
       raises: [{ raise_cents: 2000, card_fee_cents: 92, total_cents: 2092, refund_cents: 2000, status: "refunding", refund_reason: "delivery_cancelled_buyer", paid_at: "2026-10-21T10:00:00Z" }] };
     show();
-    expect(await screen.findByText("$20 of your raise payment is coming back to your card. The card fee is not refunded.")).toBeTruthy();
+    expect(await screen.findByText("$20 of your raise payment is coming back to your card.")).toBeTruthy();
   });
 
   it("nothing to raise and no raises: nothing at all", async () => {

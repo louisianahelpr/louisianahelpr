@@ -426,7 +426,7 @@ export default function SellFlow() {
 
       {step === 3 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="What's your price?" sub={form.free ? "Someone nearby picks it up for free." : "You keep the whole price. Buyers pay a small fee on top."} />
+          <StepHead title="What's your price?" sub={form.free ? "Someone nearby picks it up for free." : "You keep the whole price."} />
           <label className="flex min-h-11 items-center gap-3 rounded-[14px] border border-border bg-card px-4 text-ds-15 font-semibold text-foreground" data-sell-free="">
             <Checkbox checked={form.free} onCheckedChange={(v) => setForm((f) => ({ ...f, free: v === true }))} />
             Give it away free

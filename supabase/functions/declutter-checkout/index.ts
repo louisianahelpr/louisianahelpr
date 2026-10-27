@@ -337,11 +337,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     console.error(`[declutter-checkout] order ${order.order_id} carries tax before the tax slice`);
     return json({ error: TRY_AGAIN }, 500);
   }
+  // Owner 2026-10-25 (issue #3672): members never see a fee name or number, so
+  // the page shows ONE line for the purchase, the items and the buyer's premium
+  // together (the same cents the order froze; the total check below is unchanged).
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
-    { quantity: 1, price_data: { currency: "usd", unit_amount: order.items_cents,
-      product_data: { name: "Declutter items", tax_code: NONTAXABLE_TAX_CODE } } },
-    { quantity: 1, price_data: { currency: "usd", unit_amount: order.premium_cents,
-      product_data: { name: "Buyer's fee (5% + 70¢)", tax_code: NONTAXABLE_TAX_CODE } } },
+    { quantity: 1, price_data: { currency: "usd", unit_amount: order.items_cents + order.premium_cents,
+      product_data: { name: "Declutter purchase", tax_code: NONTAXABLE_TAX_CODE } } },
   ];
   if (deliveryCents > 0) {
     // Row 29: $10 + $2 per road mile + size add-ons, computed and frozen in SQL.
@@ -522,11 +523,11 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     {
       mode: "payment",
       payment_method_types: ["card"],
+      // One line, the raise and its card cost together (owner 2026-10-25, issue #3672: no fee
+      // line a member reads); the cents are the raise row's own and the total check is unchanged.
       line_items: [
-        { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents,
-          product_data: { name: "Higher Helpr delivery pay", tax_code: NONTAXABLE_TAX_CODE } } },
-        { quantity: 1, price_data: { currency: "usd", unit_amount: raise.card_fee_cents,
-          product_data: { name: "Card fee", tax_code: NONTAXABLE_TAX_CODE } } },
+        { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,
+          product_data: { name: "Raise the delivery pay", tax_code: NONTAXABLE_TAX_CODE } } },
       ],
       ...(payerCustomer ? { customer: payerCustomer } : { customer_email: user.email ?? undefined }),
       client_reference_id: orderId,

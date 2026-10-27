@@ -32,6 +32,16 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           message: `You received $${formatPayoutDollars(helperPayout)} for "${job.title}", which was cancelled.`, |           message: `You received a $${formatPayoutDollars(helperPayout)} cancellation fee for "${job.title}" (${commissionPercent}% commission deducted).`,
  * @mutate supabase/functions/_shared/refundNotice.ts |     if (feeCents > 0) parts.push(`${refundDollars(feeCents)} for your Helpr's time`); |     if (feeCents > 0) parts.push(`${refundDollars(feeCents)} cancellation fee paid to your Helpr`);
  * @mutate supabase/migrations/20261025203540_notices_never_name_the_helpr_fee.sql | $q$'The amount for your Helpr''s time is now $%s.'$q$ | $q$'The cancellation fee is now $%s.'$q$
+ *
+ * Declutter (owner re-confirmed 2026-10-27 before its 2026-10-28 launch, issue #3672): FEE_WORDS missed
+ * "buyer's fee", "seller's fee", "delivery fee" and "5% + 70¢" (it only knew "% + $"), so most Declutter copy
+ * never reached the allowlist. They are fee words now, in every quote form a source holds them in (', ’,
+ * &apos; and SQL's ''), and Declutter has no allowlist entry left but three ops-ledger lines.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | You see one total before you pay. The seller keeps the whole price. | At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Each delivery shows what you take home before you take it. | You keep the delivery fee minus 5% + 70¢.
+ * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | the raise comes back with what you paid for delivery.` | the raise comes back with your delivery fee.`
+ * @mutate supabase/migrations/20261027172503_declutter_notices_name_no_fee.sql | $q$'Amount owed'$q$ | $q$'Card fee owed'$q$
+ * @mutate supabase/migrations/20261027172503_declutter_notices_name_no_fee.sql | $q$is coming back to your card.$q$, 'g'), | $q$is coming back to your card. Your buyer''s fee is not refunded.$q$, 'g'),
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -46,7 +56,7 @@ const ROOT = resolve(__dirname, "../..");
 
 /** Fee words and fee maths a member may never read. The setup fee is not one of them. */
 export const FEE_WORDS =
-  /platform fees?|service fees?|helpr'?s? fees?|processing fees?|processor'?s fee|card fees?|card-processing|card processing|stripe'?s? (?:processing )?fees?|%\s*\+\s*\$|cancellation fees?|(?<![\w])commission(?![\w])/i;
+  /platform fees?|service fees?|helpr'?s? fees?|buyer(?:''|'|&apos;|’)?s? fees?|seller(?:''|'|&apos;|’)?s? fees?|delivery[- ]fees?|processing fees?|processor'?s fee|card fees?|card-processing|card processing|stripe'?s? (?:processing )?fees?|%\s*\+\s*\$|%\s*\+\s*(?:\d+|\$\{\})\s*(?:¢|c\b|cents?\b)|cancellation fees?|(?<![\w])commission(?![\w])/i;
 
 /**
  * Callees whose string arguments are staff text (logs, ops alerts), never shown
@@ -136,29 +146,9 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "sql:admin_alert_manual_close::'cancellation fee transfer failed'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:bill_helpr_fault_card_fee::'job %s: the Helpr ruled at fault was deleted while its full refund ran, so the %s-cent card fee the refund returned could not be billed: recover it by hand'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:block_user_and_settle::'\"%s\": the person who posted it blocked a committed crew member %s hours before the start. That member is owed a $%s cancellation fee (%s%% of their $%s share). Nothing was charged or paid automatically; settle it by hand.'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
-  "sql:declutter_apply_seller_fault::'\"%s\" was cancelled: on the Declutter order it was booked for, %s. It was not the poster''s choice, so no cancellation fee applies.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_apply_seller_fault::'On your Declutter order, %s, so \"%s\" was cancelled. There is no cancellation fee, and anything you paid for it comes back in full (the one-time account setup fee excepted).'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_apply_seller_fault::'crew setup job %s of seller-fault Declutter refund %s was not cancelled (a crew''s fee ledger is per member): settle it by hand (no fee, card fee to the seller)'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_close_paid_order::'Your refund is on its way. The card fee is not refunded.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_complete_handover::'This sale paid off the $%s card fee you owed, so there is nothing to send.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_report_not_delivered::'You did not deliver a booked Declutter order. The buyer got everything back, delivery included; the card fee comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_seller_cancel_delivery::'You cancelled a paid Declutter delivery. The buyer got everything back, delivery included; the card fee comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/SellerDeliveryOrder.tsx::Cancel this delivery? The buyer gets everything back, you get a Declutter strike, and the card fee comes out of your next payout.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/SellerDeliveryOrder.tsx::Cancel this order? You get everything back except the card fee. You can cancel until 24 hours before the delivery.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/SellerDeliveryOrder.tsx::Cancelled. Your refund is on its way, less the card fee.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_delivery_on_task_event::'No Helpr could deliver in time, so this sale is cancelled. Your delivery fee comes back in full and the rest of your payment minus the card fee.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_delivery_raises_on_task_close::'A card fee comes out of your next payout'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_delivery_raises_on_task_close::'The $%s you added to the delivery pay is coming back to your card (its card fee is not refunded).'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_delivery_raises_on_task_close::'The buyer had raised the delivery pay, and the sale was cancelled on your side, so the $%s card fee on that raise comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_delivery_raises_on_task_close::'seller-fault close of a raised delivery with no seller left to bill: the raise card fee is not booked'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_refund_paid_order::'You backed out of a sale after the buyer paid. The card fee for that payment comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_refund_paid_order::'Your refund is on its way. The card fee is not refunded.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_report_no_show::'You did not show up for a booked Declutter pickup. The buyer got everything back; the card fee comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_seller_out_fee_notice::'A buyer paid for your items while your account can''t sell on Declutter, so they get every cent back. The $%s card fee for that payment comes out of your future Declutter payouts.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_seller_out_fee_notice::'Card fee owed'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_setup_job_fee_debt::'Card fee added'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_setup_job_fee_debt::'The buyer''s Helpr setup job for a Declutter order refunded on you was refunded in full. Its $%s card fee is added to what you owe; it comes out of your next Declutter payout.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "sql:declutter_setup_job_fee_debt::'setup job %s: the seller of seller-fault Declutter refund %s is gone, so its %s-cent card fee could not be billed (the platform absorbs it)'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
+  "sql:declutter_apply_seller_fault::'crew setup job %s of seller-fault Declutter refund %s was not cancelled (a crew''s fee ledger is per member): settle it by hand (no fee, card fee to the seller)'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
+  "sql:declutter_delivery_raises_on_task_close::'seller-fault close of a raised delivery with no seller left to bill: the raise card fee is not booked'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
+  "sql:declutter_setup_job_fee_debt::'setup job %s: the seller of seller-fault Declutter refund %s is gone, so its %s-cent card fee could not be billed (the platform absorbs it)'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:poster_cancel_job::'crew_fee_exceeds_budget: the crew''s cancellation fee % is more than the budget % (job_id=%)'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:redeem_gift_card::'This job''s service fee is missing. Please try again.'": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
   "sql:shop_complete_handover::'$%s is on its way to your payout account ($%s card fee you owed was taken out).'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
@@ -168,11 +158,6 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "sql:shops_admin_refund_order::', less the card-processing cost'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "sql:shops_buyer_cancel_order::'$%s is on its way back to your card, less the card-processing cost%s. Card refunds usually show up in 5 to 10 business days.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "sql:shops_shop_cancel_order::'You cancelled an accepted order. The buyer gets everything back, the $%s card fee comes out of your next payout, and it counts as a Shops strike.'": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/DeclutterDeliveryViews.tsx::After the Helpr's fee (5% + 70¢). Paid when the buyer confirms it arrived, or 24 hours after you leave it. Take a photo at the pickup and at the drop-off.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/DeclutterHandoverViews.tsx::Nothing to pay out: this sale covered a card fee you owed.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/DeliveryRaisePanel.tsx::Card fee": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/DeliveryRaisePanel.tsx::The card fee is not refunded.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/components/declutter/DeliveryRaisePanel.tsx::This is a second card payment, so the card fee is what the card company charges to take it.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "src/components/postjob/CheckoutStep.tsx::(the job budget and service fee)": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
   "src/components/postjob/CheckoutStep.tsx::Service fee": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
   "src/components/postjob/CheckoutStep.tsx::Urgent bonus card fee": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
@@ -181,7 +166,6 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/components/shops/ShopOrderCancel.tsx::less the card-processing cost and the sales tax on it. The shop is told not to make it.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "src/components/shops/ShopOrderCard.tsx::+ service fee": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "src/components/shops/ShopOrderSheet.tsx::Service fee (5% + $0.70)": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
-  "src/lib/declutter/errors.ts::That card fee amount isn't valid.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "src/lib/posterFees.ts::Covers card processing": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
   "src/lib/posterJobFee.ts::5% + $0.70, covers card processing": "poster-fee model: the jobs_poster_fee switch stays off and the poster never pays a fee (owner 2026-10-25), so this line never renders",
   "src/lib/rentals/listingCopy.ts::Listed by its verified owner. No commission. A title company or attorney handles the closing.": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
@@ -195,23 +179,14 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "src/lib/shops/orders.ts::Cancelled by you (refunded, less the card-processing cost)": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "src/pages/info/legal/TermsSection.tsx::${} Louisiana Helpr keeps a service fee from each Helpr payout; a Helpr always sees what they will take home before they apply.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::Helpr's total liability for any claim is limited to the greater of the platform fees you paid us on the transaction at issue, or $100.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::However the pickup is confirmed, you have 24 hours after pickup to ask for a refund. The seller can refund all of it (you get everything back except the card fee, and the item goes back to the seller), offer to refund part of it (exactly the amount offered), or decline (you can then report a problem, and Louisiana Helpr decides). If the seller doesn&apos;t answer within 24 hours, Louisiana Helpr decides.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::Louisiana Helpr keeps a service fee from each Helpr's pay, deducted from the payout; it covers card processing. Every job shows the Helpr the amount they will take home before they apply, and a job keeps the fee in force when it was paid for. Every payout to a Helpr, for a job or a delivery, is rounded down to the whole dollar, and Louisiana Helpr keeps the cents left over. Tips are paid in full, and a card fee you owe for a refund you were at fault for comes off after the rounding, to the cent.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::No plan changes the fee on a job: every Helpr pays the same service fee.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::Service fee:": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::The poster pays the job price plus the service fee shown at checkout, before they pay.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::You pay the agreed job price plus any applicable sales tax (and, on your first paid job, the one-time account setup fee). Louisiana taxes only enumerated services (LA R.S. 47:301(14)), so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::after you pay, you can book a Helpr to put an item together, hang it or set it up. It is an ordinary Helpr job under the normal job rules and fees, paid separately. If the sale is refunded because the seller failed, that job is cancelled with no cancellation fee, you get the card fee back, and the seller owes it.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::and receive the whole item price, less any card fee they owe from a sale they cancelled. We hold the payment through Stripe until the sale is final.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::everything back; the seller pays the card fee and gets a strike. The same full refund applies if the seller can no longer sell when you pay.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::minimum bonus, added by the poster for priority placement. It is part of the job price the poster pays and goes to the Helpr (split among the crew on a group job), with the service fee above taken from each Helpr's share of the job price, bonus included.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::the delivery fee in full and the rest minus the card fee; no strike.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::the delivery fee minus the same service fee as jobs, plus any raise in full, paid in whole dollars rounded down; Louisiana Helpr keeps the leftover cents.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::the item price plus a buyer&apos;s fee of 5% of the item total + $0.70, once per checkout (it includes card processing). With seller delivery, the buyer&apos;s fee is worked out on the items and the seller&apos;s delivery rate together. A Helpr delivery fee carries no buyer&apos;s fee. You see one total before you pay.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
+  "src/pages/info/legal/TermsSection.tsx::the item price plus a buyer&apos;s fee, once per checkout, which covers running Declutter and card processing. You see one total before you pay, delivery included.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "src/pages/info/legal/TermsSection.tsx::the one-time account setup fee and the service fee above.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::the payment back minus the card fee.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::while you wait, you may raise the delivery pay, at least $5 at a time in whole dollars, at most $150 in total for one delivery, and not in the last hour of the 48 hours. You pay the raise plus its card fee, and the Helpr gets the whole raise. A refunded raise comes back with its card fee unless you cancel for your own reason; if the seller&apos;s fault cancels a raised delivery, the seller pays the raise&apos;s card fee.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
-  "src/pages/info/legal/TermsSection.tsx::you may cancel a paid seller delivery until 24 hours before the slot and get everything back except the card fee; after that, report a problem. A seller who cancels a paid delivery refunds you in full, gets a Declutter strike and pays the card fee.": "Terms of Service legal text: the owner kept one general service-fee sentence; the rest is legal terms or the paused Declutter terms",
   "supabase/functions/_shared/accountPurge.ts::cancellation fee ${}": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/_shared/chargebackClawback.ts::Card dispute won — re-pay ledger row has an UNKNOWN platform fee": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/_shared/crewBlockFeeRead.ts::A crew member blocked by the person who posted this job is owed a $${} cancellation fee from this job's payment, so it can't be refunded in full. No money was moved. Cancel the job instead (everything but that fee goes back to whoever paid), or refund a partial amount.": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
@@ -234,7 +209,6 @@ export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
   "supabase/functions/create-payment/index.ts::full refund less the card processing fee and the kept $2 setup fee": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/create-payment/index.ts::the $${} card processing fee and the one-time $${} setup fee are kept": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/create-payment/index.ts::the $${} card processing fee is kept": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
-  "supabase/functions/declutter-checkout/index.ts::Card fee": "Declutter, Shops or Rentals: paused, testers only; not reworded (owner 2026-10-25), listed in the fee-copy report",
   "supabase/functions/execute-dispute-split/index.ts::Helpr-fault card fee read failed": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/execute-dispute-split/index.ts::dispute split — poster's share (minus non-refundable Stripe processing fee)": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "supabase/functions/money-reconciliation/index.ts::A SETTLED payout_transfer recorded a commission that differs from what the Helpr's LIVE subscription tier would charge — the discount was not applied to money that actually moved. Graded against the transfer ledger, never against jobs.helper_fee_percent, which is a global escrow-time stamp and is expected to differ from the ladder.": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
@@ -289,12 +263,27 @@ describe("members see no fee words (owner 2026-10-25)", () => {
       `throw new PublicError("Your card fee is due");`,
       `const d = "one-time $2 account setup fee";`,
       `// a comment about the platform fee`,
+      `const e = "Buyer's fee (5% + 70¢)";`,
+      `const f = "5% + 70 cents, once per seller";`,
+      `const g = <p>the buyer&apos;s fee is kept</p>;`,
+      `const h = "Your delivery fee comes back";`,
+      `const i = "The seller’s fee";`,
+      `const j = "Delivery $24";`,
+      `const k = "The item price drops 5% each evening";`,
     ].join("\n");
     expect(feeLiteralsIn("x.tsx", src)).toEqual([
       "x.tsx::You received a $5 cancellation fee",
       "x.tsx::${}% + $${}",
       "x.tsx::Platform fee",
       "x.tsx::Your card fee is due",
+      "x.tsx::Buyer's fee (5% + 70¢)",
+      "x.tsx::5% + 70 cents, once per seller",
+      "x.tsx::the buyer&apos;s fee is kept",
+      "x.tsx::Your delivery fee comes back",
+      "x.tsx::The seller’s fee",
     ]);
+    // SQL holds a quote doubled.
+    expect(FEE_WORDS.test("'The item price was refunded; the buyer''s fee was not.'")).toBe(true);
+    expect(FEE_WORDS.test("'The item price was refunded.'")).toBe(false);
   });
 });

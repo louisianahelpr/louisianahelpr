@@ -77,7 +77,7 @@ describe("DeclutterRefundPanel", () => {
 
   it("seller: the offer starts empty, cannot be sent until it is an amount, and sends exactly that amount", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: REQ });
-    expect(await screen.findByText(/then gets \$41\.20 back, including the buyer fee, once you confirm you have it/)).toBeTruthy();
+    expect(await screen.findByText(/then gets \$41\.20 back once you confirm you have it/)).toBeTruthy();
     fireEvent.click(screen.getByText("Offer part of it"));
     const box = screen.getByLabelText(/How much back\?/) as HTMLInputElement;
     expect(box.value).toBe("");

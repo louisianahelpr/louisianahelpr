@@ -15,7 +15,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
+import { unwrap, functionErrorMessage, functionErrorBody } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
@@ -37,6 +37,34 @@ export type PayoutMethod = {
 };
 
 /**
+ * stripe-connect's answer after it CONFIRMED and CLEARED an unusable Connect
+ * account (a deleted acct_, or a sandbox one under the live key; Q859): a 409
+ * whose body says `recoverable: true` (stripe-connect/index.ts, the
+ * isStaleAccountErr branch). Not a failure: the helper now has no account,
+ * which is exactly the edge function's own no-account answer.
+ *
+ * Sentry JAVASCRIPT-1Q (14 events / 7 users on /profile by 2026-10-27): both
+ * fetchers reported this as an error, and fetchPayoutStatus threw it, so the
+ * helper saw "We couldn't check your payout status" instead of the set-up
+ * flow. The status is 409 AND the flag, nothing wider: a 5xx is still a
+ * failure even if a body ever carried the flag.
+ */
+export async function payoutAccountWasCleared(err: unknown): Promise<boolean> {
+  const ctx = (err as { context?: unknown } | null)?.context;
+  if (!(ctx instanceof Response) || ctx.status !== 409) return false;
+  return (await functionErrorBody(err))?.recoverable === true;
+}
+
+/** The edge function's own no-account answer (stripe-connect "status", no stripe_account_id). */
+export const NO_PAYOUT_ACCOUNT: PayoutAccountStatus = {
+  connected: false,
+  details_submitted: false,
+  payouts_enabled: false,
+  transfers_status: "inactive",
+  requirements: [],
+};
+
+/**
  * A failed status check THROWS rather than resolving to null. Resolving null
  * made a transient stripe-connect failure indistinguishable from a brand-new
  * account, so a fully connected helper could open the form and be told
@@ -47,6 +75,9 @@ export async function fetchPayoutStatus(): Promise<PayoutAccountStatus | null> {
     const data = unwrap(await supabase.functions.invoke("stripe-connect", { body: { action: "status" } }));
     return (data as PayoutAccountStatus | null) || null;
   } catch (err: unknown) {
+    // A cleared account is the no-account answer (the set-up flow), never null:
+    // useStripeConnectStatus's select reports and throws on null.
+    if (await payoutAccountWasCleared(err)) return NO_PAYOUT_ACCOUNT;
     // The edge function's own reason, not the SDK's generic non-2xx message
     // (Sentry JAVASCRIPT-1Q: its 2026-10-26 event came from this path).
     const detail = await functionErrorMessage(err, "(no edge-fn body)");
@@ -60,6 +91,9 @@ export async function fetchPayoutMethods(): Promise<PayoutMethod[]> {
   try {
     const res = await supabase.functions.invoke("stripe-connect", { body: { action: "list_payout_methods" } });
     if (res.error) {
+      // The same cleared account answers list_payout_methods with the same
+      // 409: nothing to list, and nothing to report.
+      if (await payoutAccountWasCleared(res.error)) return [];
       // Extract the body message so Sentry shows the actual edge-fn reason
       // ("Your previous payout account is no longer valid", "Could not load
       // your profile — please try again", etc.) rather than the generic SDK

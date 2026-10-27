@@ -65,9 +65,32 @@ const GROUP_LABELS: Record<JobCategoryGroupId, string> = {
 
 const GROUP_ORDER: JobCategoryGroupId[] = ["home", "yard", "moving_errands", "auto", "pets", "events", "trades", "other"];
 
+/**
+ * Each group's one short line on its Post a job tile: two or three examples of what it holds (owner,
+ * 2026-10-27: the grid "needs better organization"; every tile now has the same icon, title, examples).
+ * A group of several categories names three of its own categories; a one-category group names kinds of work in
+ * that category, from the words the title auto-pick already maps to it (categoryFromTitle: mow, leaves,
+ * hedge -> yard_work; mechanic, small engine -> auto_repair; walk, sitter, feed -> pet_care).
+ * At most GROUP_EXAMPLES_MAX characters, so it never wraps past two lines on a 375 phone tile.
+ * Guard: src/test/postJobCategoryGridOrderly.test.tsx.
+ */
+export const GROUP_EXAMPLES_MAX = 28;
+const GROUP_EXAMPLES: Record<JobCategoryGroupId, string> = {
+  home: "Cleaning, handyman, painting",
+  yard: "Mowing, leaves, hedges",
+  moving_errands: "Moving, errands, delivery",
+  auto: "Car repair, small engines",
+  pets: "Walking, sitting, feeding",
+  events: "Setup, serving, cleanup",
+  trades: "Electrical, plumbing, HVAC",
+  other: "Anything not listed",
+};
+
 interface JobCategoryGroup {
   id: JobCategoryGroupId;
   label: string;
+  /** The tile's one short line of examples (GROUP_EXAMPLES). */
+  examples: string;
   items: { value: JobCategory; label: string }[];
 }
 
@@ -75,6 +98,7 @@ interface JobCategoryGroup {
 export const JOB_CATEGORY_GROUPS: JobCategoryGroup[] = GROUP_ORDER.map((id) => ({
   id,
   label: GROUP_LABELS[id],
+  examples: GROUP_EXAMPLES[id],
   items: (Object.keys(JOB_CATEGORY_LABELS) as JobCategory[])
     .filter((v) => GROUP_OF[v] === id)
     .map((value) => ({ value, label: sentenceCaseLabel(JOB_CATEGORY_LABELS[value]) })),

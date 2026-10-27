@@ -24,7 +24,7 @@
  * @mutate src/index.css | .pj-cq { container-type: inline-size; } | .pj-cq { }
  * @mutate src/index.css | .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } | .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
  * @mutate src/index.css | .pj-when-grid { grid-template-columns: minmax(0, 1fr); } | .pj-when-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
- * @mutate src/components/postjob/JobCategoryGroups.tsx |       <section aria-label="Category groups" className="pj-tiles grid gap-2.5"> |       <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+ * @mutate src/components/postjob/JobCategoryGroups.tsx |       <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5"> |       <section aria-label="Category groups" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
  * @mutate src/components/postjob/LogisticsSection.tsx |       <div className="pj-when-grid grid gap-5"> |       <div className="grid gap-5 md:grid-cols-2 md:items-stretch">
  * @mutate src/pages/post-job/FormStep.tsx |       <aside className="hidden xl:block sticky top-6"> |       <aside className="hidden lg:block sticky top-6">
  * @mutate src/pages/post-job/FormStep.tsx |             <div className="xl:hidden"><PostJobPreviewCard |             <div className="lg:hidden"><PostJobPreviewCard
@@ -66,10 +66,9 @@ describe("Post a job sizes its grids to its own column", () => {
     const s = css();
     expect(ruleBody(s, ".pj-cq", null)).toBe("container-type: inline-size;");
     expect(ruleBody(s, ".pj-tiles", null)).toBe("grid-template-columns: repeat(2, minmax(0, 1fr));");
-    expect(ruleBody(s, ".pj-tile-sub", null)).toBe("display: none;");
+    // The group tiles' own grid (owner 2026-10-27): src/test/postJobCategoryGridOrderly.test.tsx.
     expect(ruleBody(s, ".pj-when-grid", null)).toBe("grid-template-columns: minmax(0, 1fr);");
     expect(ruleBody(s, ".pj-tiles", "min-width: 560px")).toBe("grid-template-columns: repeat(3, minmax(0, 1fr));");
-    expect(ruleBody(s, ".pj-tile-sub", "min-width: 560px")).toBe("display: block;");
     expect(ruleBody(s, ".pj-when-grid", "min-width: 560px")).toContain("grid-template-columns: repeat(2, minmax(0, 1fr));");
   });
 
@@ -86,9 +85,9 @@ describe("Post a job sizes its grids to its own column", () => {
 
   it("the tiles and the date/time grid sit inside a container", () => {
     const tiles = read("src/components/postjob/JobCategoryGroups.tsx");
-    expect(tiles.match(/className="pj-tiles grid gap-2\.5"/g)?.length).toBe(3);
+    expect(tiles.match(/className="pj-tiles grid gap-2\.5"/g)?.length).toBe(2);
+    expect(tiles.match(/className="pj-group-tiles grid gap-2\.5"/g)?.length).toBe(1);
     expect(tiles.match(/id="category-picker" className="pj-cq/g)?.length).toBe(2);
-    expect(tiles).toMatch(/className="pj-tile-sub /);
     const when = read("src/components/postjob/LogisticsSection.tsx");
     expect(when).toMatch(/<div className="pj-cq">\s*<div className="pj-when-grid grid gap-5">/);
   });

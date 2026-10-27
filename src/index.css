@@ -3327,11 +3327,22 @@ button,
    sit side by side from 560px (the 1440 card gives them 590px). Guard: src/test/postJobFitsItsColumn.test.ts. */
 .pj-cq { container-type: inline-size; }
 .pj-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.pj-tile-sub { display: none; }
 .pj-when-grid { grid-template-columns: minmax(0, 1fr); }
+/* Post a job screen 2's eight group tiles (owner, 2026-10-27): two columns at every width, so 8 tiles make
+   full rows (no ragged last row), and every row the same height. Each tile is icon, title, examples: on a
+   phone tile they stack (a 28px icon, then the title and the examples at the tile's full width, so no title
+   wraps); from a 560px column the 40px icon sits beside the title and the examples.
+   Guard: src/test/postJobCategoryGridOrderly.test.tsx. */
+.pj-group-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
+.pj-group-tile { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "icon" "title" "sub"; row-gap: 0.25rem; align-content: start; justify-items: start; padding: 0.625rem 0.75rem; }
+.pj-group-tile > [data-tile-icon] { grid-area: icon; width: 1.75rem; height: 1.75rem; font-size: 15px; }
+.pj-group-tile > [data-tile-title] { grid-area: title; }
+.pj-group-tile > [data-tile-sub] { grid-area: sub; align-self: start; }
 @container (min-width: 560px) {
   .pj-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .pj-tile-sub { display: block; }
+  .pj-group-tile { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "icon title" "icon sub"; column-gap: 0.625rem; row-gap: 0.125rem; align-content: center; align-items: center; justify-items: stretch; padding: 0.75rem; }
+  .pj-group-tile > [data-tile-icon] { width: 2.5rem; height: 2.5rem; font-size: 20px; }
+  .pj-group-tile > [data-tile-title] { align-self: end; }
 }
 @container (min-width: 560px) {
   .pj-when-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }

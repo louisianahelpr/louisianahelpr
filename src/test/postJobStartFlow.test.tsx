@@ -5,7 +5,7 @@
  *   step 1b "<Group>": that group's categories; a tap is the choice and goes on to Details;
  *   no floating Continue on screen 1; no dock or "+" anywhere in the flow.
  * @mutate src/components/postjob/JobCategoryGroups.tsx |     setCategory(value);\n    onPicked(); |     setCategory(value);
- * @mutate src/components/postjob/JobCategoryGroups.tsx | () => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id)), | () => setGroup(g.id),
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | onClick={() => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id))} | onClick={() => setGroup(g.id)}
  * @mutate src/pages/post-job/FormStep.tsx |         {page !== 1 && ( |         {true && (
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/post-job", "/declutter/sell"]; | "/post-job"];
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job", "/declutter/sell"]; | "/admin", "/declutter/sell"];

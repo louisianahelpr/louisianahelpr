@@ -77,6 +77,9 @@ const CompleteProfile = () => {
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  // Apple/Google: the name is asked only when the provider gave no full name
+  // (owner 2026-10-26). Set once, from the profile the sign-in created.
+  const [providerGaveName, setProviderGaveName] = useState(false);
   // The 18+ box, the same one sign-up step 1 shows an email sign-up (owner,
   // 2026-10-14 ~3 PM CT): a Google/Apple sign-up never sees step 1, so it ticks
   // it here, and this screen asks no birthday and no phone. UNCHECKED by
@@ -132,6 +135,7 @@ const CompleteProfile = () => {
     const { firstName: parsedFirst, lastName: parsedLast } = splitName(profile.full_name);
     if (parsedFirst && !firstName) setFirstName(parsedFirst);
     if (parsedLast && !lastName) setLastName(parsedLast);
+    if (parsedFirst && parsedLast) setProviderGaveName(true);
     if (profile.age_attested_at) setAgeConfirmed(true);
     if (profile.location && !location) setLocation(profile.location);
     if (profile.zip_code && !zipCode) setZipCode(profile.zip_code);
@@ -196,25 +200,11 @@ const CompleteProfile = () => {
     }
   };
 
-  // Live checklist. IT DOES NOT MIRROR ProtectedRoute's GATE, though
-  // this said it did until 2026-09-10, and the divergence has a consequence.
-  //
-  // PROFILE_GATE_FIELDS (ProtectedRoute.tsx) carries neither "ZIP code" nor
-  // the policy acceptance that this list has. The early-return below bounces
-  // to /home on isProfileComplete(profile), which consults only the gate
-  // fields. So an account whose row already holds the gate fields but NO zip_code
-  // is redirected away before this screen can ask for the ZIP — i.e. the
-  // requirement added 2026-09-05 to close the parish gap is unreachable for
-  // exactly the population that predates it. That is the S-001 shape:
-  // a correct fix sitting behind a gate that makes it a no-op.
-  //
-  // ProtectedRoute's own comment states the contract — "The two definitions
-  // of 'complete' must stay in sync; the form is the source of truth." Adding
-  // zip_code to PROFILE_GATE_FIELDS is the fix, and it is a behaviour change
-  // deliberately NOT made in this comment-only pass. Note the direction
-  // matters: that file records two prior redirect LOOPS caused by the gate
-  // requiring MORE than the form, so the sync has to be done in the order
-  // the contract names.
+  // Live checklist: name, the 18+ box (Google/Apple) and the policies. City
+  // and ZIP are optional here and on sign-up step 2 (owner 2026-10-26), so
+  // neither is in this list or in ProtectedRoute's gate. Never add one to the
+  // gate while the form lets it be skipped: that is the redirect loop
+  // ProtectedRoute's comment records twice.
   //
   // Each item is satisfied either by the local form state OR by an existing
   // value already on the profile row (e.g. an avatar uploaded previously).
@@ -222,14 +212,8 @@ const CompleteProfile = () => {
     return [
       { label: "Full name", done: firstName.trim().length > 0 && lastName.trim().length > 0 },
       ...(ageBoxShown ? [{ label: "Confirm you're 18 or older", done: ageConfirmed }] : []),
-      { label: "City", done: location.trim().length > 0 },
-      // ZIP is REQUIRED as of 2026-09-05 (owner). It matters MORE on this
-      // screen than on email signup: Google/Apple sign-ins never see
-      // SignupStep2, so this is the only place they are ever asked. Leaving it
-      // optional here would have moved the gap rather than closed it — social
-      // accounts would still land with no parish, and therefore no job-match
-      // notifications, no digest, and no Louisiana sales tax.
-      { label: "ZIP code", done: zipCode.replace(/\D/g, "").length === 5 },
+      // City and ZIP left the checklist (owner 2026-10-26: optional, as on
+      // sign-up step 2); a typed ZIP is still checked on submit.
       // Government-issued ID is intentionally NOT in the required checklist:
       // new signup (SignupStep2) no longer collects it, and identity
       // verification is deferred to first-post / IDV. The upload field below
@@ -242,12 +226,6 @@ const CompleteProfile = () => {
     lastName,
     ageBoxShown,
     ageConfirmed,
-    location,
-    // zipCode is load-bearing here, not tidiness: the checklist gates the
-    // submit button, so omitting it would leave "ZIP code" permanently
-    // unchecked and the button permanently disabled no matter what the user
-    // typed — a form nobody could finish.
-    zipCode,
     acceptedPolicies,
   ]);
 
@@ -298,8 +276,8 @@ const CompleteProfile = () => {
     if (!firstName.trim() || !lastName.trim()) return fail("Add your first and last name.");
     // The same words Signup.tsx says when step 1's 18+ box is left empty.
     if (!ageDone) return fail("Check the box to confirm you're 18 or older.");
-    if (!location.trim()) return fail("Tell us your city to continue.");
-    if (zipCode.replace(/\D/g, "").length !== 5) return fail("Add your 5-digit ZIP code to continue.");
+    // City and ZIP are optional (owner 2026-10-26); a typed ZIP is five digits.
+    { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail("Enter a 5-digit ZIP code, or leave it blank."); }
     // Government-issued ID is no longer required here — it's optional at
     // profile completion and deferred to first-post / IDV (matches the
     // signup gate, which stopped collecting it).
@@ -322,9 +300,9 @@ const CompleteProfile = () => {
       const updates: ProfileCompletionUpdates = {
         full_name: fullName,
         bio: bio.trim(),
-        location: location.trim(),
-        // Required now — the checklist and submit guard both enforce 5 digits.
-        zip_code: zipCode.trim(),
+        // Optional: an empty field never overwrites what the profile has.
+        ...(location.trim() ? { location: location.trim() } : {}),
+        ...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),
         ...(resolvedZipParish ? { parish: resolvedZipParish } : {}), // the live effect's value
         // The 18+ box (checked above): the record ProtectedRoute's gate reads
         // for a Google/Apple sign-up. The first tick's moment is kept.
@@ -629,10 +607,11 @@ const CompleteProfile = () => {
               </p>
             </div>
 
-            {/* Same as above: pre-filled and editable, never hidden — Google
-                usually returns a name, Apple often doesn't, so this is the
-                one chance to catch a wrong or missing name either way. */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Asked only when the provider gave no full name (owner 2026-10-26:
+                "Apple/Google: ask first+last only if the provider gave no full
+                name"). Google usually returns one; Apple often does not. */}
+            {!providerGaveName && (
+            <div className="grid grid-cols-2 gap-3" data-testid="complete-profile-names">
               <div className="space-y-1.5">
                 <Label htmlFor="firstName">First name <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
                 <div className="relative">
@@ -666,13 +645,14 @@ const CompleteProfile = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* City takes what is left; ZIP is a fixed 7rem so five digits
                 plus the valid ✓ fit at 320-430 (a third of the row was 85px at 375,
                 and with the check's padding the value read "705", 2026-09-12). */}
             <div className="grid grid-cols-[minmax(0,1fr)_7rem] gap-3">
               <div className="space-y-1.5">
-                <Label htmlFor="city">City <span className="text-[hsl(var(--destructive-ink))]">*</span></Label>
+                <Label htmlFor="city">City <span className="font-normal text-muted-foreground">(optional)</span></Label>
                 {/* CityAutocomplete is the same combobox used on the
                     Post-a-Task form. It nudges the user toward canonical
                     Louisiana spellings (the LOUISIANA_CITIES bundle) but
@@ -690,12 +670,11 @@ const CompleteProfile = () => {
                   )}
                 </div>
               </div>
-              {/* REQUIRED (owner, 2026-09-05) — see the checklist entry above.
-                  SignupStep2 carries the identical field for the same reason;
-                  this one covers the social sign-ins that never see it. */}
+              {/* Optional (owner 2026-10-26), as on sign-up step 2; this one
+                  covers the social sign-ins that never see that step. */}
               <div className="space-y-1.5">
                 <Label htmlFor="zipCode">
-                  ZIP <span aria-hidden style={{ color: "hsl(var(--destructive-ink))" }}>*</span>
+                  ZIP <span className="font-normal text-muted-foreground">(optional)</span>
                 </Label>
                 {/* Same valid ✓ as City beside it (owner, 2026-09-12:
                     "missing the check even though the zip is entered"). */}

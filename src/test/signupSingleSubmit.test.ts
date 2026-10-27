@@ -14,10 +14,13 @@ import { describe, expect, it } from "vitest";
 const src = readFileSync("src/pages/auth/Signup.tsx", "utf8");
 
 describe("signup Create Account is single-flight (OA-002)", () => {
-  const handler = src.slice(src.indexOf("onContinue={async () => {"), src.indexOf("createAccountAndFinish();", src.indexOf("onContinue={async () => {")));
+  // Both step-2 buttons ("Create account" and "Skip for now", 2026-10-27) go through finishStep2.
+  const handler = src.slice(src.indexOf("const finishStep2 = async"), src.indexOf("createAccountAndFinish(skip);", src.indexOf("const finishStep2 = async")));
 
   it("the step-2 handler is found", () => {
     expect(handler).toContain("validateAboutYouStep()");
+    expect(src).toContain("onContinue={() => finishStep2(false)}");
+    expect(src).toContain("onSkip={() => finishStep2(true)}");
   });
 
   it("takes the in-flight guard before the first await", () => {
@@ -30,7 +33,7 @@ describe("signup Create Account is single-flight (OA-002)", () => {
   });
 
   it("releases the guard in a finally", () => {
-    const after = src.slice(src.indexOf("await createAccountAndFinish();"));
+    const after = src.slice(src.indexOf("await createAccountAndFinish(skip);"));
     expect(after.slice(0, 200)).toMatch(/finally \{\s*submittingRef\.current = false;/);
   });
 });

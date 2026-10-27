@@ -19,7 +19,7 @@
 // through SignupStep2; Google and Apple sign-ins never see that screen and land
 // on CompleteProfile; an existing member changes their ZIP in ProfileEditForm.
 // Warning on one of them moves the gap rather than closing it — the same
-// reasoning, and the same trap, as zipRequiredAtSignup.test.ts.
+// reasoning, and the same trap, as signupOptionalScreenTwo.test.tsx.
 //
 // READ THROUGH THE AST, NOT `toContain` OVER TEXT. The text form was HOLLOW
 // (proved 2026-09-21): turning ProfileEditForm's warning off — `{unknownZip &&

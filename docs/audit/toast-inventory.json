@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 940,
+    "calls": 942,
     "files": 243,
-    "rendering": 808,
+    "rendering": 810,
     "suppressedByPolicy": 132,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 65,
-      "toast.error": 674,
+      "toast.error": 676,
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,7 +18,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 435,
+      "literal": 437,
       "template": 100,
       "dynamic": 454,
       "jsx": 0
@@ -9038,7 +9038,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 174,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9048,7 +9048,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 178,
+      "line": 182,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9058,7 +9058,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 297,
+      "line": 275,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9068,7 +9068,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 401,
+      "line": 379,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9078,7 +9078,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 457,
+      "line": 435,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9188,7 +9188,27 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 212,
+      "line": 200,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add your first name."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 201,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Add your last name."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/Signup.tsx",
+      "line": 202,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9198,7 +9218,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 232,
+      "line": 222,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9208,7 +9228,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 233,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9218,7 +9238,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 234,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9228,7 +9248,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 246,
+      "line": 242,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9238,7 +9258,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 329,
+      "line": 325,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9248,7 +9268,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 337,
+      "line": 333,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -9258,7 +9278,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 408,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9268,7 +9288,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 469,
+      "line": 465,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

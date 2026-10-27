@@ -40,6 +40,10 @@ const RESTING: Record<string, string> = {
   unpaid: "a posted job before checkout; abandoned-checkout sweeps own it",
   pending: "tips and gift-card checkouts awaiting Stripe; the webhook settles them",
   escrow: "a funded open job; escrow on a terminal job is escrow_on_terminal_job",
+  // Q2399 (card hold at post): an open job whose card is authorized, resting until the hire captures it. Watched by
+  // card-hold-sweep every 10 min, not by money-reconciliation: a 'held' job with no open hold row is a recorded
+  // defect, a closed one's hold is released, an expiring one is renewed.
+  held: "an open job whose card is only authorized; card-hold-sweep watches it (held with no open hold = defect)",
   released: "settled; released_without_transfer grades it",
   paid: "settled tip / gift card",
   cancelled: "settled; the stripe_* checks grade it against Stripe",
@@ -81,6 +85,19 @@ describe("in-flight payment_status values are watched by money-reconciliation (Q
       (s) => !(s in RESTING) && !(IN_FLIGHT as readonly string[]).includes(s),
     );
     expect(unclassified, `classify these (written in ${unclassified.map((s) => written.get(s)).join("; ")})`).toEqual([]);
+  });
+
+  // Q2399: 'held' rests on its card hold, and its watcher is card-hold-sweep, not money-reconciliation (round 4,
+  // silent #9): on its cron (20261027185146, every 10 minutes from :07), it reads every 'held' job and records one with no open hold as a defect.
+  // @mutate supabase/functions/card-hold-sweep/index.ts |         for (const id of heldIds) if (!open.has(id)) defects.record( |         for (const id of heldIds) if (false) defects.record(
+  // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     PERFORM cron.schedule('card-hold-sweep', '7-59/10 * * * *', |     PERFORM cron.schedule('card-hold-sweep-off', '7-59/10 * * * *',
+  it("'held' is watched by card-hold-sweep: scheduled by cron, and a held job with no open hold is a defect", () => {
+    const sweep = blankComments(readSource(resolve(FUNCTIONS, "card-hold-sweep/index.ts")) ?? "");
+    expect(sweep).toMatch(/from\("jobs"\)\.select\("id"\)\.eq\("payment_status", "held"\)/);
+    expect(sweep).toMatch(/for \(const id of heldIds\) if \(!open\.has\(id\)\) defects\.record\(/);
+    const mig = readSource(resolve(ROOT, "supabase/migrations/20261027185146_card_hold_at_post.sql")) ?? "";
+    expect(mig).toMatch(/cron\.schedule\('card-hold-sweep', '7-59\/10 \* \* \* \*'/);
+    expect(RESTING.held).toMatch(/card-hold-sweep/);
   });
 
   it("every IN_FLIGHT value is compared against in money-reconciliation's code", () => {

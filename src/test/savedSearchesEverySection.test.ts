@@ -5,9 +5,9 @@
  * "chair" -> "1 new", RLS, grants) is proven by
  * src/test/pglite/savedSearchesEverySection.pglite.mjs.
  *
- * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       AND s.section = 'jobs'\n      AND p.email_verified | AND p.email_verified
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql | AND s.notify_email\n     AND (s.last_emailed_at | AND (s.last_emailed_at
- * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |   IF v_email_ids IS NOT NULL THEN\n  UPDATE |   IF true THEN\n  UPDATE
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |       AND s.section = 'jobs'\n      AND p.email_verified | AND p.email_verified
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND s.notify_email\n     AND (s.last_emailed_at | AND (s.last_emailed_at
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF v_email_ids IS NOT NULL THEN\n  UPDATE |   IF true THEN\n  UPDATE
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       AND public.feature_enabled_for_user('declutter', s.user_id)\n |
  * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |            AND NOT public.declutter_seller_hidden(i.seller_id)\n |
  * @mutate supabase/migrations/20261021042132_saved_searches_every_section.sql |       AND (NOT v_seller_seed OR COALESCE(p.is_seed, false))\n | 

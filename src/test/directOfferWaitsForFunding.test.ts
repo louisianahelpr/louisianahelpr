@@ -40,22 +40,22 @@
  * stands aside for a job booked from an agreed quote), so its @mutate lines
  * point there; the trigger, the list, the sweep and the clock stay on J's file.
  *
- * @mutate supabase/migrations/20261021061341_member_display_name.sql | AND public.job_payment_is_funded(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
- * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AND public.job_payment_is_funded(j.payment_status) | AND true
- * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AND public.job_payment_is_funded(payment_status) | AND true
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_payment_is_listed(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_payment_is_listed(j.payment_status) | AND true
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_payment_is_listed(payment_status) | AND true
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs | AFTER INSERT OR UPDATE OF offered_to_helper_id ON public.jobs
- * @mutate supabase/migrations/20261021061341_member_display_name.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job
- * @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND NEW.status::text = 'open' |      AND true
- * @mutate supabase/migrations/20261021061341_member_display_name.sql | OR public.job_offer_cutoff(NEW.date_needed, NEW.start_time) > now()) | OR true)
- * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | NEW.direct_offer_expires_at := LEAST( | NEW.direct_offer_expires_at := GREATEST(
- * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |      AND (OLD.payment_status IS NULL\n          OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed'))\n  THEN |   THEN
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      -- cancelled row).\n     AND NEW.status::text = 'open' |      -- cancelled row).\n     AND true
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | OR public.job_offer_cutoff(NEW.date_needed, NEW.start_time) > now()) | OR true)
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | NEW.direct_offer_expires_at := LEAST( | NEW.direct_offer_expires_at := GREATEST(
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND (OLD.payment_status IS NULL\n          OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed'))\n  THEN |   THEN
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   BEFORE UPDATE OF status ON public.jobs
- * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql |             OR public.job_offer_cutoff(date_needed, start_time) > now()) |             OR true)
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |             OR public.job_offer_cutoff(date_needed, start_time) > now()) |             OR true)
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |            v_job.id\n           WHERE public.job_payment_is_funded(v_job.payment_status); |            v_job.id\n           WHERE true;
  * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
- * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |              CASE WHEN public.job_payment_is_funded(NEW.payment_status) THEN |              CASE WHEN true THEN
- * @mutate supabase/migrations/20261018050953_offer_notices_wait_for_funding.sql |          CASE WHEN public.job_payment_is_funded(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |      AND public.job_payment_is_funded(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |              CASE WHEN public.job_payment_is_listed(NEW.payment_status) THEN |              CASE WHEN true THEN
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND public.job_payment_is_listed(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
  * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
  * (12 PASS on the fix; with --before U1-U5 FAIL, and G: the fixture grants
  * nothing, prod never let anon run these functions).
@@ -68,7 +68,13 @@ import { bodyOf, triggerInventory } from "./helpers/migrationTriggers";
 
 const REPO = resolve(__dirname, "..", "..");
 const MIG = join(REPO, "supabase/migrations");
-const FUNDED = /\bjob_payment_is_funded\s*\(/i;
+/**
+ * The money gate. Q2399 (card hold at post, 20261027185146): a job whose card is HELD counts as the money being in
+ * for a direct offer (job_payment_is_listed = funded or held): the offer, its notices and its clock run on a held
+ * card exactly as on a funded one, while the hire itself still needs the charge (complete_job_accept keeps
+ * job_payment_is_funded). Either predicate is a gate; neither "true" nor a missing one is.
+ */
+const FUNDED = /\bjob_payment_is_(?:funded|listed)\s*\(/i;
 /** OLD.payment_status in the never-paid set (money has never arrived). */
 const NEVER_PAID = /OLD\.payment_status\s+IS\s+NULL\s+OR\s+OLD\.payment_status\s+IN\s*\(\s*'unpaid'\s*,\s*'abandoned'\s*,\s*'failed'\s*\)/i;
 const PENDING = /direct_offer_status\s*=\s*'pending'/i;
@@ -153,7 +159,7 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     const body = bodyOf(defs.get("record_backout_notice")!.stmt);
     const cond = /ELSIF\s+OLD\.direct_offer_status\s*=\s*'pending'([\s\S]*?)\bTHEN\b/i.exec(body)?.[1] ?? "";
     expect(cond).toMatch(/NEW\.direct_offer_status\s+IN\s*\(\s*'declined'\s*,\s*'expired'\s*\)/i);
-    expect(cond).toMatch(/job_payment_is_funded\s*\(\s*NEW\.payment_status\s*\)/i);
+    expect(cond).toMatch(/job_payment_is_(?:funded|listed)\s*\(\s*NEW\.payment_status\s*\)/i);
   });
 
   it("the offer notice fires on the funding transition, not only at insert", () => {
@@ -161,7 +167,7 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     expect(trg?.fn).toBe("notify_helper_on_direct_offer");
     expect(trg?.events).toMatch(/\bUPDATE OF\b[^]*\bPAYMENT_STATUS\b/);
     const body = bodyOf(defs.get("notify_helper_on_direct_offer")!.stmt);
-    expect(body).toMatch(/job_payment_is_funded\s*\(\s*NEW\.payment_status\s*\)/i);
+    expect(body).toMatch(/job_payment_is_(?:funded|listed)\s*\(\s*NEW\.payment_status\s*\)/i);
     // First arrival only: the never-paid set, never "OLD not funded".
     expect(body).toMatch(NEVER_PAID);
     expect(body).not.toMatch(/NOT\s+public\.job_payment_is_funded\s*\(\s*OLD\.payment_status\s*\)/i);

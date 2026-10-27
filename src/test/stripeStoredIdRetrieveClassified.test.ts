@@ -215,6 +215,20 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
 /** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
+  // Q2399 card hold at post (20261027185146, 2026-10-25): a job's own card hold. Every hold was minted after the
+  // 2026-09-27 live switch (the feature did not exist before), and each is read on the client of the mode it was
+  // placed in: create-payment's job money mode, card-hold-sweep's hold row stripe_mode, or the webhook event's own.
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)": "the hold being captured or released, re-read after Stripe refused the capture / cancel, on the hold's own mode; minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(piId)#2": "the hold being released, re-read after Stripe refused the cancel, on the hold's own mode; minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)": "a resumed off-session charge this claim recorded while it was processing (round 4): read, never re-created; on the hold's own mode (the claim refuses another); minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)#2": "a closed job's stale claim on a SAVED card: did its recorded off-session charge go through? On the hold's own mode; minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)#3": "a closed job's stale capture claim: is the hold captured at Stripe? On the hold's own mode; minted after the live switch",
+  "_shared/cardHold.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)#4": "a failing hold, re-read after Stripe refused its cancel, on the hold's own mode; minted after the live switch",
+  "card-hold-sweep/index.ts::stripe.paymentIntents.retrieve(hold.payment_intent_id)": "a superseded hold, re-read after Stripe refused its cancel, on the hold row's stripe_mode; minted after the live switch",
+  "card-hold-sweep/index.ts::stripe.paymentIntents.retrieve(oldPi)": "an expiring hold read before its renewal, on the hold row's stripe_mode; minted after the live switch",
+  "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.setupIntents.retrieve(siId)": "the setup session's own SetupIntent, from the event, on the event's mode",
+  "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the hold session's own PaymentIntent, from the event, on the event's mode",
+  "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(pi.id)": "the same event's PaymentIntent, re-read after Stripe refused cancelling it as a duplicate, on the event's mode",
   // Declutter (slice 3b): ids from the webhook event itself, read on the client of the event's own mode
   // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "the paid session's own PaymentIntent, from the event, on the event's mode",

@@ -73,8 +73,9 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_link_visible',             'allow',    'SH2b (20261019042744): anyone with the link may see this shop (shop_state_ok, not paused, Shops not switched off)'),
   ('shop_extras_readable',          'allow',    'SH12 (20261019072541): this caller may read the shop FAQs and policies (owner, admin, or shop_link_visible)'),
   ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
-  ('job_is_funded',                 'allow',    'job escrow is funded (applications WITH CHECK)'),
+  ('job_is_funded',                 'allow',    'job is listed: funded or its card held (applications WITH CHECK; Q2399 20261027185146)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
+  ('job_payment_is_listed',         'allow',    'payment_status counts as listed: funded or the card held (browse, apply, alerts, offers; Q2399 20261027185146)'),
   ('user_has_pending_application',  'allow',    'user applied to the job'),
   ('user_may_see_job_address',      'allow',    'user may see the exact job address'),
   ('is_series_party',               'allow',    'user is on the recurring series (reads its holds, offers, releases; 20260927012806)'),
@@ -231,6 +232,7 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('job_announceable_to',           NULL, ARRAY['(SELECT j FROM public.jobs j WHERE j.id = ''00000000-0000-4000-8140-000000000101''::uuid)', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),
   ('job_is_funded',                 NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   ('job_payment_is_funded',         NULL, ARRAY['''escrow'''], ARRAY[1]),
+  ('job_payment_is_listed',         NULL, ARRAY['''held'''], ARRAY[1]),
   ('user_has_pending_application',  NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   ('user_may_see_job_address',      NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A posts J, so A (the caller) is a party to it as a series (the poster branch).

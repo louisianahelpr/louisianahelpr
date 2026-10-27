@@ -23,7 +23,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n        metadata: { job_id: jobId, customer_id: user.id, onboarding | metadata: { job_id: jobId, customer_id: user.id, onboarding
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n          metadata: { job_id: jobId, customer_id: user.id, gift_card_id | metadata: { job_id: jobId, customer_id: user.id, gift_card_id
- * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}` | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${remintKeySuffix}`
+ * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}` | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${remintKeySuffix}`
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (session.status === "expired" && session.payment_status === "unpaid") { | if (session.payment_status === "unpaid") {
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | const superseded = !!job?.stripe_session_id && job.stripe_session_id !== session.id; | const superseded = false;
  */
@@ -56,8 +56,8 @@ function jobCheckouts() {
 describe("Q770: job checkouts carry a short, idempotency-safe expires_at", () => {
   const found = jobCheckouts();
 
-  it("finds the job checkouts (escrow + gift-card shortfall)", () => {
-    expect(found.length).toBe(2);
+  it("finds the job checkouts (escrow + gift-card shortfall + the card-hold save-card page, Q2399)", () => {
+    expect(found.length).toBe(3);
   });
 
   it.each(found.map((f, i) => [i, f] as const))("job checkout #%i sets expires_at and keys on its bucket", (_i, f) => {

@@ -574,6 +574,21 @@ const JOB_SEEDS: JobSeed[] = [
     created_at: AGO(1),
     customer_id: HELPER_ID,
   },
+  {
+    // Q2399 card hold at post: an open job whose card is only HELD (payment_status 'held'), never hired.
+    id: "10000000-0000-4000-8000-000000000026",
+    title: "Hang four shelves in a laundry room",
+    description: "Shelves and brackets are here. Studs are marked in pencil.",
+    category: "handyman",
+    status: "open",
+    payment_status: "held",
+    budget: 70,
+    location: "Lafayette, LA",
+    parish: "Lafayette",
+    date_needed: DATE(3),
+    created_at: AGO(0),
+    customer_id: CUSTOMER_ID,
+  },
 ];
 
 export const SEED_JOBS = JOB_SEEDS.map((j) => ({ ...JOB_BASE, ...j })) satisfies JobsInsert[];

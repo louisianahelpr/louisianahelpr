@@ -229,8 +229,11 @@ export function ActivityDialogs(props: ActivityDialogsProps) {
             // review of 39279d3e5, #1).
             props.cancelDialogJob.payment_status !== "unpaid" &&
             props.cancelDialogJob.payment_status !== "abandoned" &&
-            props.cancelDialogJob.payment_status !== "failed"
+            props.cancelDialogJob.payment_status !== "failed" &&
+            // Q2399: a card only HELD was never charged; its hold is released, nothing refunded.
+            props.cancelDialogJob.payment_status !== "held"
           }
+          cardHeld={props.cancelDialogJob.payment_status === "held"}
           helperId={props.cancelDialogJob.helper_id}
           helperName={props.cancelDialogJob.helper_id ? (props.helperNames?.[props.cancelDialogJob.helper_id] || "the Helpr") : undefined}
           open={!!props.cancelDialogJob} onClose={() => props.setCancelDialogJob(null)} onCancelled={props.onRefresh}

@@ -28,9 +28,10 @@ import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { isLiveSeriesParent } from "../_shared/seriesParent.ts";
+import { LISTED_PAYMENT_STATUSES } from "../_shared/listedPaymentStatus.ts";
 
-/** Payment states in which a listing was live to Helprs (open_jobs_browse). */
-const FUNDED_STATUSES = new Set(["escrow", "payout_pending", "released"]);
+/** Payment states in which a listing was live to Helprs (open_jobs_browse; Q2399: a held card included). */
+const FUNDED_STATUSES = new Set<string>(LISTED_PAYMENT_STATUSES);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -352,13 +353,30 @@ serve(async (req) => {
         }
       }
 
+      // A Helpr's accept is capturing this job's held card right now: the
+      // expiry waits for the next run (the capture re-reads the job after its
+      // claim, so the two never both win; Q2399 round 2, money #1).
+      if (job.payment_status === "held") {
+        const { data: holdRow, error: holdErr } = await supabase.from("job_card_holds").select("state").eq("job_id", job.id).maybeSingle();
+        if (holdErr) {
+          defects.record(`job ${job.id}: card hold not read before expiry (${holdErr.message}); left open`);
+          continue;
+        }
+        if ((holdRow as { state?: string } | null)?.state === "capturing") continue;
+      }
+
       // Conditional on still being open — see the reopen guard above. Without
       // it, a helper who won this job via accept_application or
       // instant_book_claim between the read and this write ended up accepted on
       // a CANCELLED job: no cancellation_fee written, and void-cancelled-payments
       // then refunded the poster in full while the helper still believed they
       // were booked.
-      const { data: cancelledRows, error: cancelError } = await supabase
+      // Q2399 (lh-money-escrow review 2026-10-26 #1): a held job is cancelled
+      // only while its card is STILL held. A direct offer or crew confirm keeps
+      // the job 'open' while the hire captures the card and moves it to
+      // escrow; without this filter the stale read cancelled a job whose card
+      // was just charged and told the poster "Your card was not charged".
+      let cancelQuery = supabase
         .from("jobs")
         .update({
           status: "cancelled",
@@ -366,8 +384,9 @@ serve(async (req) => {
           cancellation_reason: "Job listing expired — scheduled time passed with no Helpr assigned",
         })
         .eq("id", job.id)
-        .eq("status", "open")
-        .select("id");
+        .eq("status", "open");
+      if (job.payment_status === "held") cancelQuery = cancelQuery.eq("payment_status", "held");
+      const { data: cancelledRows, error: cancelError } = await cancelQuery.select("id");
 
       if (cancelError) {
         console.error(`Failed to cancel expired job ${job.id}:`, cancelError);
@@ -393,13 +412,24 @@ serve(async (req) => {
         user_id: job.customer_id,
         job_id: job.id,
         title: "Job auto-cancelled",
-        message: `"${job.title}" was automatically cancelled because the scheduled time passed without a helpr being assigned. You can repost anytime.`,
+        // Q2399: a held card was never charged; card-hold-sweep cancels the
+        // hold and, told here already, does not say it a second time.
+        message: `"${job.title}" was automatically cancelled because the scheduled time passed without a helpr being assigned. You can repost anytime.${job.payment_status === "held" ? " Your card was not charged." : ""}`,
         // 61 of the 71 prod rows under this title went to ordinary posters,
         // not admins — a job-lifecycle event, not a platform alert.
         type: "job_updates",
         link: "/post-job",
       };
       const noticeLanded = await insertNotifications(supabase, autoCancelNotice);
+      if (noticeLanded && job.payment_status === "held") {
+        // The "not charged" sentence went out above: card-hold-sweep's release
+        // (job_card_holds.notified_state) does not repeat it.
+        // Zero rows is legitimate: a held job whose hold row is already gone.
+        const { error: toldErr } = await supabase.from("job_card_holds").update({ notified_state: "released" }).eq("job_id", job.id)
+          // Never on a hold a capture claimed or took (review 2026-10-26 #1): its own notice must still go out.
+          .in("state", ["authorized", "scheduled", "needs_action", "failed"]);
+        if (toldErr) defects.record(`job ${job.id}: hold notice state not recorded (${toldErr.message}); the poster may hear "not charged" twice`);
+      }
       // Q1817: the in-app row fans out to push only; nothing turned it into an
       // email, so a poster who was not in the app never heard their paid job
       // was cancelled. Sent explicitly and its answer read, the way

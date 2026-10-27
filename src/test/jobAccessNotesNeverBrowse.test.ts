@@ -26,7 +26,7 @@
  * src/test/pglite/jobAccessNotes.pglite.mjs. Live: the
  * scripts/check-job-access-notes-live.mjs read of prod's catalog.
  *
- * @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql |     helper_fee_percent\n   FROM jobs |     helper_fee_percent,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     helper_fee_percent\n   FROM jobs |     helper_fee_percent,\n    (SELECT n.notes FROM public.job_access_notes n WHERE n.job_id = jobs.id) AS access_notes\n   FROM jobs
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO authenticated | CREATE POLICY "Poster and booked Helprs read access notes" ON public.job_access_notes\n  FOR SELECT TO anon, authenticated
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql |          OR public.can_read_job_access_notes(job_id)); |          OR true);
  * @mutate supabase/migrations/20261006204113_job_materials_and_access_notes.sql | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO authenticated; | GRANT SELECT, INSERT, UPDATE, DELETE ON public.job_access_notes TO anon, authenticated;

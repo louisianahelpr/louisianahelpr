@@ -74,6 +74,12 @@ const RELEASE_EXEMPT: Record<string, string> = {
     "cancels the PaymentIntent of an abandoned 3D Secure challenge before a new checkout: the challenge never completed, so nothing was authorised or held",
   "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts":
     "cancelDeadBankPayment (lane-b-money-1): cancels the PaymentIntent of a bank debit that already FAILED (live status requires_payment_method, Checkout Session complete); no money was taken or held, so there is no refund to announce, and the poster was already told the payment failed by this handler",
+  "supabase/functions/_shared/cardHold.ts":
+    "Q2399 card hold at post: every site here acts on an AUTHORIZATION that was never charged. The capture at the hire (amount_to_capture) charges the hold; the part it leaves is the $2 setup fee another job already collected, which was only ever authorized. failHold drops a hold that failed or needs the poster (the poster is told to pay again, notifyPosterOnce 'failed' / 'needs_action'); releaseCardHold cancels the hold of a job that closed unhired and tells the poster 'Your card was not charged' (notifyPosterOnce 'released'). No money was taken, so there is no refund to announce",
+  "supabase/functions/card-hold-sweep/index.ts":
+    "Q2399: cancels authorizations that were never charged and are not the job's money: a hold superseded because the poster paid another way, the old authorization a renewal replaced, and one Stripe placed that no row recorded. Nothing was taken, so there is nothing to refund or announce",
+  "supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts":
+    "Q2399: cancels a duplicate hold-mode authorization when the job already holds another one; it was never charged, so there is nothing to refund or announce",
   "supabase/functions/_shared/shopHolds.ts":
     "Shops M1 (20261018164442): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
 };
@@ -89,6 +95,8 @@ const REFUND_OWN_NOTICE: Record<string, string> = {
     "Shops M3 (20261019071055): sends a shop_refunds row (metadata.kind shop_refund) for shop-checkout's tap and declutter-money's retry; the buyer was told in the SQL that wrote the row (declutter_notify 'Order refunded' in the shop cancel, the sweep and the admin refund; the buyer's own cancel is their tap), and charge.refunded leaves kind shop_refund alone",
   "supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts":
     "a duplicate onboarding-fee correction (metadata.reason duplicate_onboarding_fee) is announced as \"Duplicate fee refunded\"; handleChargeRefunded skips it as a correction",
+  "supabase/functions/_shared/cardHold.ts":
+    "Q2399: refundCaptureForNobody refunds in full a hold a Helpr's accept captured while the job closed with nobody hired (metadata job_id, card_hold, why captured_for_a_closed_job; not pathAnnouncesRefund), so the charge.refunded it raises sends the poster the refund notice; the 'not charged' notice is never sent for it",
   "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts":
     "refunds a second payment inside the webhook itself; the charge.refunded it raises sends the notice (recipient from the payment's metadata)",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
@@ -144,7 +152,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // declutter_refund) and tells the buyer itself (tellBuyerRefunded; the SQL bell "Your raise is coming back").
     // 20 since Q2352 (20261026154738): the stripe-webhook sends a Declutter setup fee owed back (settleSetupFee,
     // metadata.kind declutter_refund); the buyer is told by declutter_setup_fee_refunded ("Setup fee coming back").
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(20);
+    // 21 since Q2399 card hold (2026-10-25): _shared/cardHold.ts refundCaptureForNobody refunds in full a hold that a
+    // Helpr's accept captured while the job closed with nobody hired; charge.refunded announces it (REFUND_OWN_NOTICE).
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(21);
     {
       const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
       const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));
@@ -152,7 +162,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
       expect(fn).toMatch(/source: "void_cancelled_payments_crew_share"/);
       expect(fn).toMatch(/await tellPosterMoneyBack\([^]*?key: `refund:\$\{refund\.id\}`, kind: "refund"/);
     }
-    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(5); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
+    // 12 since Q2399 card hold (2026-10-25): 3 in _shared/cardHold.ts, 3 in card-hold-sweep, 1 in cardHoldCheckout
+    // (each releases an authorization that was never charged: RELEASE_EXEMPT).
+    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(12); // 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);
     expect(new Set(refundSites.map((s) => s.file)).size).toBeGreaterThan(5);

@@ -68,6 +68,7 @@
  * @mutate supabase/functions/process-scheduled-payouts/index.ts | const owedCents = unfilledCents - flatCardFeeKeptCents + feeReturnCents + taxReturnCents; | const owedCents = unfilledCents - flatCardFeeKeptCents + feeProRataCents + taxReturnCents;
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |       const feeReturnCents = crewFeeShareReturnCents({ customerFeeCents: feeCents, actualFeeCents: feeHoldsCardFee ? crewStripeFeeCents : 0, proRataCents: feeProRataCents }); |       const feeReturnCents = feeProRataCents;
  * @mutate supabase/functions/stripe-webhook/handlers/settleOnboardingFee.ts |         // own-mistake full refund (owner, 2026-10-14): we charged the one-time |         // we charged the one-time
+ * @mutate supabase/functions/_shared/cardHold.ts |   // own-mistake full refund (owner, 2026-10-14): the card was charged for a job |   // the card was charged for a job
  * Q2082 (a), delta review of 2e397597d #1: a poster-fee visit's taxed fee line stays inside the tax base.
  * @mutate supabase/functions/charge-recurring-visits/index.ts | budgetCents + (posterFeeSeries ? feeCents : 0) + taxCents); | budgetCents + taxCents);
  * The three charge-recurring-visits own-mistake branches (owner pop-up, 2026-10-14 ~3 PM CT, confirmed each):
@@ -219,6 +220,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   // after the account had paid it elsewhere first sends exactly that fee back (declutter_claim_setup_fee: refund_due).
   { file: "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts", key: "payment_intent: feeIntentId", kind: "own-mistake", why: "the $2 setup fee charged a second time on a Declutter order (Q2352)" },
   { file: "supabase/functions/stripe-webhook/handlers/refundDuplicateFunding.ts", key: "duplicate-funding-refund:", kind: "own-mistake", why: "a second payment for an already-funded job" },
+  { file: "supabase/functions/_shared/cardHold.ts", key: "card-hold-nobody-refund-", kind: "own-mistake", why: "Q2399: a held card captured for a job that closed with nobody hired (a capture racing the close); the hold model charges only at a hire" },
   { file: "supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts", key: "recurring-visit-refund:", kind: "own-mistake", why: "a visit checkout we could not settle" },
   {
     file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: r.payment_intent_id", kind: "sql-policy",
@@ -1305,7 +1307,8 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     const stale = REFUND_SITES.filter((e) => sites.filter((s) => s.file === e.file && s.call.includes(e.key)).length !== 1);
     expect(stale.map((e) => `${e.file} ${e.key}`), "stale REFUND_SITES entry: remove it").toEqual([]);
     // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
-    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(7);
+    // 8 since Q2399 (2026-10-25): a held card captured for a job that closed with nobody hired (_shared/cardHold.ts).
+    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(8);
   });
 
   // Boards 66/172 slice 2: posterCancelSplit (the sweep's refund and the poster's quote) is a HELPER above only

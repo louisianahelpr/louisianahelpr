@@ -157,6 +157,20 @@ const PATHS: Record<string, Protection> = {
     kind: "not-job-escrow",
     why: "reverses and re-pays only a TIP (its own destination charge, Q1222), never a job's escrow",
   },
+  // Q2399 card hold at post (20261027185146). A held job is never hired (CHECK jobs_held_is_never_hired), so it can
+  // carry no dispute; every move below runs before the money is escrow, or on a hold that is not the job's money.
+  "supabase/functions/_shared/cardHold.ts": {
+    kind: "not-job-escrow",
+    why: "captures a HELD card into escrow (held -> escrow is the funding, never a move out), cancels an uncaptured authorization, and refunds a capture only after a CAS marks the job held -> cancelled (refundCaptureForNobody refunds nothing if the money had moved)",
+  },
+  "supabase/functions/card-hold-sweep/index.ts": {
+    kind: "not-job-escrow",
+    why: "runs cardHold.ts's capture/release on held or failed jobs, and cancels only an 'authorized' hold whose PaymentIntent is NOT the job's stripe_payment_intent_id (a superseded authorization, never captured money)",
+  },
+  "supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts": {
+    kind: "not-job-escrow",
+    why: "records a hold-mode Checkout as payment_status 'held' (an authorization) and cancels a duplicate uncaptured authorization; it never touches captured money",
+  },
 };
 
 type Gate = "unsettled-check" | "claim-refusal" | { custom: RegExp };

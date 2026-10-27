@@ -17,6 +17,7 @@
  *     (IF / WHEN / WHERE / AND / OR / CASE ... cancellation_reason), except
  *     the trigger that REFUSES the reserved reason.
  *
+ * @mutate supabase/functions/_shared/cardHold.ts | (${now.cancellation_reason ?? "canceled"}) | (${job.cancellation_reason ?? "canceled"})
  * @mutate supabase/functions/_shared/seriesRefund.ts |   if (inSeries && !!job.series_ban_cancelled_at) return true; |   if (inSeries && (job as { cancellation_reason?: string }).cancellation_reason === "series_ended_account_banned") return true;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days") | helper_fee_percent, helper_fee_flat_cents, poster_fee_flat_cents, is_group_job, helpers_needed, parent_job_id, recurrence_days, cancellation_reason")
  * @mutate supabase/migrations/20260927012808_permanent_ban_ends_recurring_series.sql |            AND c.status::text = 'accepted'\n           AND c.helper_completed_at IS NULL |            AND c.status::text = 'accepted'\n           AND c.helper_completed_at IS NULL AND c.cancellation_reason IS NULL
@@ -27,6 +28,17 @@ import { walkSource, readSource } from "./helpers/walkSource";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
+/**
+ * Reads of a STRIPE object's own `cancellation_reason` (a PaymentIntent's: why Stripe cancelled it), never the
+ * job's column: file -> the exact expression and why. EXACT, both ways.
+ */
+const STRIPE_FIELD_READS: Record<string, { expr: string; why: string }> = {
+  "supabase/functions/_shared/cardHold.ts": {
+    expr: "now.cancellation_reason",
+    why: "Q2399: `now` is the hold's PaymentIntent re-read from Stripe after a refused capture; its cancellation_reason (automatic, abandoned, ...) only goes into the hold's failure_message",
+  },
+};
+
 /** SQL functions allowed to test the reason: they refuse it, they settle nothing. */
 const SQL_REFUSERS = new Set(["enforce_series_ban_marker_server_owned"]);
 
@@ -36,6 +48,7 @@ describe("no settlement path branches on jobs.cancellation_reason (HIGH-1)", () 
     expect(files.length).toBeGreaterThan(50);
     const writers: string[] = [];
     const readers: string[] = [];
+    const stripeSeen: string[] = [];
     for (const f of files) {
       const src = readSource(f);
       if (!src) continue;
@@ -44,12 +57,18 @@ describe("no settlement path branches on jobs.cancellation_reason (HIGH-1)", () 
         const after = code.slice(m.index! + m[0].length, m.index! + m[0].length + 3);
         const before = code.slice(Math.max(0, m.index! - 1), m.index!);
         // `cancellation_reason: <value>` in an object literal, not `.cancellation_reason` or a select list.
+        const rel = f.replace(process.cwd() + "/", "");
+        const stripeRead = STRIPE_FIELD_READS[rel];
         if (/^\s*:/.test(after) && before !== ".") writers.push(f);
-        else readers.push(`${f.replace(process.cwd() + "/", "")} @${m.index}`);
+        else if (stripeRead && code.slice(m.index! - stripeRead.expr.length + "cancellation_reason".length, m.index! + m[0].length) === stripeRead.expr) {
+          stripeSeen.push(rel);
+        } else readers.push(`${rel} @${m.index}`);
       }
     }
     expect(writers.length).toBeGreaterThanOrEqual(2);
     expect(readers).toEqual([]);
+    // Each Stripe-field read is still there, exactly once (a stale entry fails).
+    expect([...stripeSeen].sort()).toEqual(Object.keys(STRIPE_FIELD_READS).sort());
   });
 
   it("no SQL function the migrations leave branches on it (except the refuser)", () => {

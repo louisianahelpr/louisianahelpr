@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -156,8 +157,9 @@ function stampOrThrow(data: unknown, key: string, rpc: string): string {
 export type CrewConfirmResult = { confirmedAt: string } | { pendingMissing: AcceptMissing[] };
 
 export async function confirmCrewSpot(jobId: string): Promise<CrewConfirmResult> {
-  const { data, error } = await supabase.rpc("rpc_group_member_confirm", { _job_id: jobId });
-  if (error) throw new CrewActionError(rpcErrorMessage("rpc_group_member_confirm", error), error, error.message);
+  // Q2399: the first confirmed spot on a held card is the hire, so the card is charged first.
+  const { data, error, holdMessage } = await withCardHoldCapture(jobId, () => supabase.rpc("rpc_group_member_confirm", { _job_id: jobId }));
+  if (error) throw new CrewActionError(holdMessage ?? rpcErrorMessage("rpc_group_member_confirm", error), error, error.message);
   const answer = (data ?? {}) as { action?: string; missing?: AcceptMissing[] };
   if (answer.action === "pending_setup") {
     return { pendingMissing: answer.missing?.length ? answer.missing : ["payout_setup"] };

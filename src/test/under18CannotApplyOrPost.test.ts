@@ -35,7 +35,7 @@
  * @mutate src/components/sections/AppTopBar.tsx |   const gate = useAgeGate(); |   const gate = { gate: (_k: string, f: () => void) => f, gatedProps: (_k: string) => ({}) };
  * @mutate src/pages/post-job/useJobSubmit.ts |           : isUnder18Refusal(error) |           : false
  * @mutate src/lib/seriesDates.ts | ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null) | ?? null
- * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
+ * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |       BEFORE INSERT ON public.applications | AFTER INSERT ON public.applications
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |     CREATE TRIGGER trg_job_accept_pending_refuse_under_18 |     CREATE TRIGGER trg_job_accept_pending_refuse_under_18_off
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |       BEFORE INSERT ON public.series_visit_holds | AFTER INSERT ON public.series_visit_holds

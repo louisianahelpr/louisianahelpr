@@ -645,7 +645,8 @@ export async function resolveFixtures(api: APIRequestContext, poster: Session, h
   };
   const live = (j: H) => j.status === "in_progress" && !j.disputed_at && !j.helper_completed_at && !j.poster_completed_at;
   return {
-    openJob: pick((j) => j.status === "open" && j.payment_status === "escrow" && !appliedIds.has(j.id)),
+    // Q2399: a held card (card_hold_at_post) is an open, listed job too.
+    openJob: pick((j) => j.status === "open" && (j.payment_status === "escrow" || j.payment_status === "held") && !appliedIds.has(j.id)),
     inProgressJob: pick((j) => j.status === "in_progress" && j.helper_id === helper.user.id),
     jobWithPendingApplicant: pick((j) => j.status === "open" && apps.some((a) => a.job_id === j.id && a.status === "pending")),
     disputedJob: pick((j) => j.status === "disputed" && j.helper_id === helper.user.id),

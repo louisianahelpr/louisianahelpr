@@ -57,6 +57,8 @@ type CancellationDialogProps = {
    *  nothing held, and promising a refund there is a false statement about
    *  the poster's money — see the confirmation toast below. */
   wasFunded: boolean;
+  /** Q2399: the card is only HELD (never charged): the cancel releases the hold, nothing is refunded. */
+  cardHeld?: boolean;
   helperId?: string | null;
   helperName?: string;
   /** The one-time setup fee this (first) job's checkout kept, in dollars
@@ -84,7 +86,7 @@ type CancellationDialogProps = {
   onCancelled: () => void;
 };
 
-export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
+export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, jobBudget, jobUrgentFee, hasHelper, wasFunded, cardHeld, helperId: _helperId, helperName, crew, setupFeeKept, feeStamp, posterFee, open, onClose, onCancelled }: CancellationDialogProps) => {
   // Q1674: the sentence both the policy text and the toast add for a first job.
   const keptFee = wasFunded && typeof setupFeeKept === "number" && setupFeeKept > 0 ? setupFeeKept : 0;
   const keptFeeSentence = keptFee > 0
@@ -369,7 +371,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // Nothing charged -> nothing to refund (an unfunded cancel used to be
         // told "the full amount returns to your card"); otherwise the refund
         // sentence for this job's fee model (src/lib/cancelRefundCopy.ts).
-        cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+        cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
         { action: { label: "Dismiss", onClick: () => { /* toast closes itself */ } } },
       );
       onCancelled();

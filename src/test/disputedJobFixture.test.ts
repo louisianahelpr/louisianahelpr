@@ -10,6 +10,7 @@
  *
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (disputed) return { kind: "reuse", row: disputed }; | if (disputed && false) return { kind: "reuse", row: disputed };
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | if (hired) return { kind: "resume", row: hired, next: "dispute" }; | if (hired) return { kind: "create" };
+ * @mutate e2e/prod-audit/fundedOpenJobPlan.ts |     (r.payment_status === "escrow" \|\| (r.payment_status === "held" && r.status === "accepted"))); |     r.payment_status === "escrow");
  * @mutate e2e/prod-audit/fundedOpenJob.ts | helper.user.id}&select=job_id,status` | helper.user.id}&status=eq.pending&select=job_id,status`
  * @mutate e2e/prod-audit/fundedOpenJobPlan.ts | const open = mine.find((r) => r.status === "open" && !r.helper_id && !isDeadFor(opts.applications, r.id)); | const open = mine.find((r) => r.status === "open" && !r.helper_id);
  * @mutate e2e/prod-audit/fundedOpenJob.ts |   await helperConfirmsOffer(api, helper, id, log, "dispute"); |   // dispute confirm removed
@@ -47,6 +48,9 @@ describe("planDisputedJob", () => {
   it("RESUMES a half-made fixture at the step it stopped on, never paying twice", () => {
     const hired = row({ status: "accepted", payment_status: "escrow", helper_id: HELPER });
     expect(plan([hired])).toEqual({ kind: "resume", row: hired, next: "dispute" });
+    // Q2399: hired on a held card and not yet confirmed (the confirm charges it): resumed, never left to expire.
+    const heldHire = row({ status: "accepted", payment_status: "held", helper_id: HELPER });
+    expect(plan([heldHire])).toEqual({ kind: "resume", row: heldHire, next: "dispute" });
     const funded = row({ status: "open", payment_status: "escrow" });
     expect(plan([funded])).toEqual({ kind: "resume", row: funded, next: "apply" });
     expect(plan([funded], { [funded.id]: "pending" })).toEqual({ kind: "resume", row: funded, next: "hire" });

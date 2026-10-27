@@ -99,8 +99,8 @@ describe("AdminUserDetailDialog", () => {
   it("renders the header and all six tabs for a profile", () => {
     render(<AdminUserDetailDialog {...makeProps(pendingProfile)} />);
     expect(screen.getByText("User profile")).toBeInTheDocument();
-    // formatName abbreviates "Marie Beaumont" to "Marie B." in the header.
-    expect(screen.getByText("Marie B.")).toBeInTheDocument();
+    // Admin sees the FULL name in the header (owner 2026-10-27, Q2421), not "Marie B.".
+    expect(screen.getByText("Marie Beaumont")).toBeInTheDocument();
     for (const tab of ["Actions", "Overview", "Jobs", "Reviews", "Docs", "Emails"]) {
       expect(screen.getByRole("tab", { name: tab })).toBeInTheDocument();
     }

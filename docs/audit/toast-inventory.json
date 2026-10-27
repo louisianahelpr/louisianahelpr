@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 970,
+    "calls": 971,
     "files": 249,
     "rendering": 825,
-    "suppressedByPolicy": 145,
+    "suppressedByPolicy": 146,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,12 +14,12 @@
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 148,
+      "toast.success": 149,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 444,
-      "template": 101,
+      "template": 102,
       "dynamic": 475,
       "jsx": 0
     }
@@ -1775,7 +1775,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 105,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1785,7 +1785,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 142,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1795,7 +1795,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 159,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1805,7 +1805,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 284,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1815,7 +1815,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 307,
+      "line": 309,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1825,7 +1825,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 344,
+      "line": 346,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1835,7 +1835,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 353,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1845,7 +1845,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 366,
+      "line": 368,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1855,7 +1855,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 375,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1865,7 +1865,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 385,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1875,7 +1875,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 413,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1885,7 +1885,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 492,
+      "line": 494,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2397,7 +2397,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 271,
+      "line": 281,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2407,7 +2407,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 274,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2417,7 +2417,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 289,
+      "line": 299,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2427,7 +2427,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 312,
+      "line": 322,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2437,7 +2437,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 315,
+      "line": 325,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2447,7 +2447,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 336,
+      "line": 346,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2457,7 +2457,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 392,
+      "line": 402,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2687,7 +2687,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 154,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2697,7 +2697,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 166,
+      "line": 174,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -2707,7 +2707,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 170,
+      "line": 178,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2717,7 +2717,7 @@
     },
     {
       "file": "src/components/admin/AdminStalledJobs.tsx",
-      "line": 175,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2727,7 +2727,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 354,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2737,7 +2737,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 563,
+      "line": 573,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3391,7 +3391,17 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 45,
+      "line": 43,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Confirm email sent to ${profile.email ?? \"this member\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 46,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3401,7 +3411,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 68,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3411,7 +3421,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 97,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3421,7 +3431,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 116,
+      "line": 117,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

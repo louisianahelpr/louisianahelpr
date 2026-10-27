@@ -167,16 +167,19 @@ export const SCENARIOS = {
       { tap: "button[role=radio]:has-text('Repeats')", now: true },
       { tap: "button[role=radio]:has-text('One-Time')", now: true },
       // One address box since 2026-10-21; the lab measures the four fields, so open them.
+      { tap: "button[role=radio]:has-text('Somewhere else')" },
       { tap: "button:text-is('Enter it yourself')" },
       { type: "#streetAddress", text: "222 Saint Louis St" },
       { tap: "[role=option] >> nth=0" },
       { type: "#zipCode", text: "70802", clear: true },
-      { tap: "#date" },
+      // Board 45: a day strip and time chips; "More dates" opens the inline calendar.
+      { tap: "#date [role=radio] >> nth=2" },
+      { tap: "button:text-is('More dates')" },
       { tap: "button[aria-label='Go to the Next Month']" },
       { tap: "button[aria-label*=' 15th, ']" },
-      { type: "input[aria-label='Start time']", text: "1030A" },
-      { tap: "#flexible" },
-      { tap: "#flexible" },
+      { tap: "button[role=radio]:text-is('10:00 AM')" },
+      { tap: "button[role=radio]:text-is('Flexible')" },
+      { tap: "button[role=radio]:text-is('A set time')" },
       // Review: the form's own submit renders the checkout step in place (no
       // write: the job is inserted only from the checkout step's Pay button,
       // which the lab never presses).

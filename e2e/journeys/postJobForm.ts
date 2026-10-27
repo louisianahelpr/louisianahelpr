@@ -60,6 +60,9 @@ export async function pickStartTime(page: Page, slot: ReturnType<typeof slotAhea
     await expect(native, "the native time field did not take the value").toHaveValue(slot.hh24);
     return;
   }
+  // Board 45: the common times are chips; "Other time" opens the wheel.
+  const other = page.getByRole("radio", { name: "Other time" });
+  if (await other.isVisible().catch(() => false)) await other.click();
   await page.getByRole("listbox", { name: "Hour" }).getByRole("option", { name: slot.hour, exact: true }).click();
   await page.getByRole("listbox", { name: "Minute" }).getByRole("option", { name: slot.minute, exact: true }).click();
   await page.getByRole("radiogroup", { name: "AM or PM" }).getByRole("radio", { name: slot.ampm }).click();
@@ -93,6 +96,9 @@ export async function fillJobDetails(page: Page, title: string, photoPath?: stri
  */
 export async function fillLogistics(page: Page, slot: Slot, allowReport: (message: RegExp, why: string) => void) {
   await expect(page.getByRole("heading", { name: "When and where?" })).toBeVisible({ timeout: 20_000 });
+  // Board 45: a poster with a past job gets that address pre-chosen; this journey needs its own.
+  const elsewhere = page.getByRole("radio", { name: /Somewhere else/ });
+  if (await elsewhere.isVisible().catch(() => false)) await elsewhere.click();
   // Friction 4 (2026-10-21): one address search box; "Enter it yourself" opens the four fields, the
   // path this journey needs for the parish-less ZIP 99999. Absent when MapKit is not ready (fields show).
   const manual = page.getByRole("button", { name: "Enter it yourself" });

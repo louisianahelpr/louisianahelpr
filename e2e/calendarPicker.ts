@@ -82,6 +82,12 @@ export async function pickCalendarDay(page: Page, isoDay: string, opts: { inline
   const popover = opts.inline
     ? page.getByRole("group", { name: opts.inline })
     : page.getByRole("dialog", { name: "Choose a date" });
+  // Board 45 (2026-10-25): Post a job shows a day strip first and opens the
+  // same inline calendar from "More dates".
+  if (opts.inline && !(await popover.isVisible().catch(() => false))) {
+    const more = page.getByRole("button", { name: "More dates" });
+    if (await more.isVisible().catch(() => false)) await more.click();
+  }
   await expect(popover, "the calendar is not on screen").toBeVisible({ timeout: 10_000 });
   // The grid is lazy (DatePickerField defers react-day-picker's chunk behind a
   // Suspense skeleton). Wait for the month sheet to exist before looking for a

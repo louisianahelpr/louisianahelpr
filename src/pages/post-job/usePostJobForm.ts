@@ -14,6 +14,7 @@ import { useJobEntry } from "./useJobEntry";
 import { useJobDerived } from "./useJobDerived";
 import { useJobFormEffects } from "./useJobFormEffects";
 import { usePostJobGiftCard } from "./usePostJobGiftCard";
+import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 
@@ -74,6 +75,8 @@ export function usePostJobForm() {
   // knew a gift existed, so it quoted full price against a $0 charge.
   const giftCardId = searchParams.get("gift_card");
   const giftCard = usePostJobGiftCard(giftCardId);
+  // Board 45's WHERE radio: the poster's last full job address, or null.
+  const savedAddress = useSavedJobAddress();
 
   // Advance to the form when `rebook`/`offerTo` arrives AFTER mount.
   //
@@ -607,6 +610,7 @@ export function usePostJobForm() {
     setAddrState,
     zipCode,
     setZipCode,
+    savedAddress,
     // Resolved from the zip by useJobFormEffects. Exposed because the checkout
     // summary quotes the parish's real sales-tax rate from `parish_tax_rates`
     // (it used to be passed as a hardcoded `null` and the rate was invented).

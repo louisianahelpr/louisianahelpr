@@ -20,6 +20,8 @@ const state = {
   mine: [] as unknown[],
   vehicle: null as unknown,
   calls: [] as unknown[][],
+  openError: null as null | { message: string },
+  setupPaused: false,
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -31,9 +33,13 @@ vi.mock("@/components/DateTimeField", () => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
+vi.mock("@/hooks/usePayoutSetupPaused", () => ({
+  usePayoutSetupPaused: () => state.setupPaused,
+  usePayoutSetupBlock: () => (state.setupPaused ? "needs_hire" : null),
+}));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchTaskView: async () => state.view,
-  fetchOpenTasks: async () => state.open,
+  fetchOpenTasks: async () => { if (state.openError) throw state.openError; return state.open; },
   fetchMyTasks: async () => state.mine,
   fetchMyVehicle: async () => state.vehicle,
   taskPhotoUrl: async (p: string) => { if (p.includes("broken")) throw new Error("photo_unavailable"); return `https://signed.test/${p}`; },
@@ -73,6 +79,8 @@ beforeEach(() => {
   state.mine = [];
   state.vehicle = null;
   state.calls = [];
+  state.openError = null;
+  state.setupPaused = false;
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
@@ -202,5 +210,61 @@ describe("DeliverView (the Helpr's screen)", () => {
       trip_miles: 2, take_home_cents: 1000, pickup_slot_start: null, payout_status: "succeeded" }];
     show(<DeliverView />);
     expect(await screen.findByText("Delivered and paid.")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Q2351 (ledger cae29df0662b, measured 2026-10-27): helpr_tasks_open_near refuses a member with no
+ * payout account ('payout_setup_incomplete', 233 of 234 members on prod), and the page showed
+ * "We couldn't load deliveries." with the selling sentence, filing an error_logs row each time.
+ * A who-may-deliver answer is a plain notice with the next step; a real failure keeps ErrorState.
+ *
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const notYet = deliverNotYet(open.error) ?? deliverNotYet(mine.error); |   const notYet = null as DeliverNotYet \| null;
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |     if (setupPaused) return <PayoutSetupPausedNotice />; |
+ */
+describe("DeliverView: who may not deliver yet (Q2351)", () => {
+  const showRouted = async (el: React.ReactNode) => {
+    const { MemoryRouter } = await import("react-router-dom");
+    return show(<MemoryRouter>{el}</MemoryRouter>);
+  };
+
+  it("no payout account: a 'Set up payouts' notice, never the error screen", async () => {
+    state.openError = { message: "payout_setup_incomplete" };
+    await showRouted(<DeliverView />);
+    expect(await screen.findByText("Set up payouts to deliver.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
+    expect(screen.queryByText("We couldn't load deliveries.")).toBeNull();
+    expect(screen.queryByText(/when your item sells/)).toBeNull();
+  });
+
+  it("payout setup paused: the paused notice instead of a setup link", async () => {
+    state.openError = { message: "payout_setup_incomplete" };
+    state.setupPaused = true;
+    await showRouted(<DeliverView />);
+    await waitFor(() => expect(screen.queryByText(/Loading deliveries/)).toBeNull());
+    expect(screen.queryByText("Set up payouts to deliver.")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Set up payouts" })).toBeNull();
+    expect(screen.queryByText("We couldn't load deliveries.")).toBeNull();
+  });
+
+  it("under 18, strikes or a restricted account: their own plain notice", async () => {
+    const cases = [
+      ["under_18", "You must be 18 or older to deliver."],
+      ["declutter_strikes_blocked", "Deliveries aren't open to you right now."],
+      ["account_restricted", "Deliveries aren't open to you right now."],
+    ] as const;
+    for (const [code, words] of cases) {
+      state.openError = { message: code };
+      const { unmount } = await showRouted(<DeliverView />);
+      expect(await screen.findByText(words)).toBeInTheDocument();
+      expect(screen.queryByText("We couldn't load deliveries.")).toBeNull();
+      unmount();
+    }
+  });
+
+  it("a real failure still shows the error screen", async () => {
+    state.openError = { message: "boom" };
+    await showRouted(<DeliverView />);
+    expect(await screen.findByText("We couldn't load deliveries.")).toBeInTheDocument();
   });
 });

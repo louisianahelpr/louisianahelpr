@@ -88,9 +88,10 @@ const JobsSection = () => {
       <AppTopBar title={section.label} add={section.add} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
-          the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry Explore's
-          "Search all sections" as an ICON at the end of their status chip row (EmbeddedActivityHeader).
-          Guard: src/test/jobsSearchIsAnIcon.test.tsx. */}
+          the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search
+          ICON at the end of their status chip row that opens IN PLACE, leftward, and filters that tab's list
+          (owner 2026-10-27: "search should just open where its at"; EmbeddedActivityHeader, InlineListSearch).
+          Guards: src/test/jobsSearchIsAnIcon.test.tsx, src/test/jobsToolbarRowIsOneRow.test.tsx. */}
     </div>
   );
 

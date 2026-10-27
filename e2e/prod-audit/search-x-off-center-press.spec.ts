@@ -54,7 +54,8 @@ const CLEAR = 'button[aria-label="Clear search"]';
 // no trigger element (the Cmd-K palette) by pressing it instead of a click.
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; close: string; minWidth?: number; maxWidth?: number; as?: "admin"; key?: string }[] = [
   // browse-phone (/home), jobs (/jobs) and posts (/posts) left 2026-10-19 (Q2205): the phone Browse bar, My Jobs and
-  // My Posts were retired with the old screens. Jobs > Browse is jobs-browse-row below; Posted / Working carry no search.
+  // My Posts were retired with the old screens. Jobs > Browse is jobs-browse-row below; Posted / Working's search opens
+  // in place in their status chip row (owner 2026-10-27, InlineListSearch): jobs-posted-search below.
   {
     name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
     url: "/profile?tab=saved_helpers",
@@ -101,6 +102,13 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: '[data-feed-strip] input[aria-label="Search jobs"]',
     close: `[data-feed-strip] ${CLOSE}`,
     minWidth: 900,
+  },
+  {
+    name: "jobs-posted-search", file: "src/components/sections/InlineListSearch.tsx",
+    url: "/jobs?tab=posted",
+    trigger: 'button[aria-label="Search posted jobs"]',
+    field: 'input[aria-label="Search posted jobs"]',
+    close: CLOSE,
   },
   {
     name: "legal", file: "src/pages/info/Legal.tsx",

@@ -616,9 +616,11 @@ const SURFACES: {
     triggerSel: "[data-feed-strip] [data-search-trigger]",
     fieldSel: '[data-feed-strip] input[aria-label="Search jobs"]',
     closeSel: '[data-feed-strip] button[aria-label="Close search"]',
-    // BrowseSearchBar wraps its input in an inner flex box, so the strip has
-    // to be named or the walk stops inside the field itself.
-    rowSel: "[data-feed-strip]",
+    // BrowseSearchBar wraps its input in an inner flex box, so the row has
+    // to be named or the walk stops inside the field itself. Since 2026-10-27
+    // the strip is the hairline box and the row inside it is the shared
+    // [data-jobs-toolbar] row (jobsToolbar.ts), whose children are the siblings.
+    rowSel: "[data-feed-strip] [data-jobs-toolbar]",
     minWidth: 900,
   },
   {

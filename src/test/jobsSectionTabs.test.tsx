@@ -15,7 +15,7 @@
  * @mutate src/components/sections/StatusBoxes.tsx | {chip(ALL, "All", allCount ?? 0, value === null, () => { if (value !== null) onToggle(value); })} |
  * @mutate src/pages/home/useDetailJob.ts |         if (!next.has("tab")) next.set("tab", "browse"); |
  * @mutate src/pages/jobs/JobsSection.tsx |   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse"; |   const tab = resolveJobsTab(params, picked);
- * @mutate src/components/job-card/embeddedActivity.tsx |         end={<ExploreSearchEntry variant="icon" />} |         end={<ExploreSearchEntry />}
+ * @mutate src/components/job-card/embeddedActivity.tsx | label={tab === "posted" ? "Search posted jobs" | label={tab === "posted" ? "Search all sections"
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, renderHook, act, screen, cleanup, fireEvent, within } from "@testing-library/react";
@@ -72,7 +72,7 @@ const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("
 afterEach(cleanup);
 
 describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
-  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry it as an icon in their status chip row (owner 2026-10-25, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
+  it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon in their status chip row (owner 2026-10-25 / 2026-10-27, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
     let n = 0;
     for (const url of ["/jobs", "/jobs?tab=posted", "/jobs?tab=working"]) {
       open(url);
@@ -81,9 +81,10 @@ describe("one search bar per screen (owner 2026-10-21: two were stacked on Brows
       cleanup();
     }
     expect(n).toBe(3);
-    render(<MemoryRouter><EmbeddedActivityHeader header={null} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} /></MemoryRouter>);
-    const icon = screen.getByTestId("explore-search-entry");
-    expect(icon.getAttribute("aria-label")).toBe("Search all sections");
+    const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={null} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
+    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
+    const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
+    expect(icon.getAttribute("aria-label")).toBe("Search posted jobs");
     expect((icon.textContent ?? "").trim()).toBe("");
   });
 });

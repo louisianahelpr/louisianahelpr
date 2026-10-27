@@ -54,6 +54,7 @@ import { useApplyFlow } from "./useApplyFlow";
 import { useDetailJob } from "./useDetailJob";
 import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
+import { JOBS_TOOLBAR_LINE_CLASS, JOBS_TOOLBAR_LINE_STYLE, JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 
 
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
@@ -341,7 +342,12 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
   const embeddedTitle = (
     <div className="flex flex-col gap-4">
       {embeddedHeader}
-      {!isWebDesktop && <BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} />}
+      {/* The same 46px row box as Posted / Working's chip row (jobsToolbar.ts, owner 2026-10-27). */}
+      {!isWebDesktop && (
+        <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
+          <div className="min-w-0 flex-1"><BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} /></div>
+        </div>
+      )}
     </div>
   );
 
@@ -362,25 +368,23 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
             announces the wait. */}
         <p className="sr-only" role="status" aria-live="polite">Loading jobs near you…</p>
         {isWebDesktop ? (
-          <div className="flex flex-1 min-h-0 overflow-hidden" data-testid="dashboard-desktop-loading">
-            <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-              {/* The feed strip's box: px-4 py-2 around its 40px controls. */}
-              <div
-                className="shrink-0 flex items-center gap-2 px-4 py-2"
-                style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
-                aria-hidden
-              >
-                <div className="h-10" />
-              </div>
-              <DashboardSkeleton />
+          <div className="flex flex-1 min-h-0 flex-col overflow-hidden" data-testid="dashboard-desktop-loading">
+            {/* The feed strip's box: the loaded strip's own line and 46px row (jobsToolbar.ts), across the panel. */}
+            <div className={JOBS_TOOLBAR_LINE_CLASS} style={JOBS_TOOLBAR_LINE_STYLE} aria-hidden>
+              <div className={JOBS_TOOLBAR_ROW} />
             </div>
-            {mapVisible && (
-              <div
-                className="w-[48%] shrink-0 min-h-0"
-                style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
-                aria-hidden
-              />
-            )}
+            <div className="flex flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
+                <DashboardSkeleton />
+              </div>
+              {mapVisible && (
+                <div
+                  className="w-[48%] shrink-0 min-h-0"
+                  style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
+                  aria-hidden
+                />
+              )}
+            </div>
           </div>
         ) : (
           <DashboardSkeleton />
@@ -464,140 +468,138 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
                   toolbar list/map toggle (BrowseMap inside BrowseTasksFeed),
                   not a side panel — a fixed split-screen map clipped at the
                   edge of the centered phone-width frame. */}
+              {/* The feed's own controls (owner: "add section above just the job cards like it's their own box"),
+                  now the SAME row as Posted / Working's status chip row (owner, 2026-10-27: "0 jobs and the line
+                  under should be the same size as the posted screen"): one 46px row with no side inset, and its
+                  hairline across the whole panel, over the list and the map, as Posted's spans. jobsToolbar.ts. */}
+              {isWebDesktop && (
+                <div
+                  ref={desktopStripRef}
+                  /* Named so the browser geometry probe
+                     (e2e/prod-audit/expanding-search-geometry.spec.ts) can
+                     address THIS row's magnifier. The loading screen above
+                     renders a DashboardTitleBar with its own
+                     `[data-search-trigger]` at every width, so an
+                     unscoped query measured the skeleton's trigger and
+                     reported a geometry no user ever sees. */
+                  data-feed-strip
+                  className={JOBS_TOOLBAR_LINE_CLASS}
+                  style={JOBS_TOOLBAR_LINE_STYLE}
+                >
+                  <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
+                  {/* THE COUNT AND THE ICON CLUSTER BOTH SURVIVE SEARCH.
+                      Owner, 2026-09-19: "search bars should also never open
+                      and cover anything anywhere. the search bar on home
+                      opens on the left right on top of the number of jobs.
+                      that's wrong. it needs to open where it was clicked,
+                      open slightly to the left of the icon so it doesn't
+                      cover anything."
+
+                      This row used to be a ternary whose ALTERNATE held
+                      everything — the count, the filters button, the saved
+                      toggle and the map toggle — so opening search
+                      unmounted the lot and the field, being the row's only
+                      child, started at the row's left edge where the count
+                      had been. To the reader there is no difference between
+                      a field drawn over a label and a field that took its
+                      place, and "open slightly to the left of the icon" was
+                      not merely unimplemented but impossible: the icon
+                      itself disappeared.
+
+                      Now nothing is conditional but the field. The count is
+                      `shrink-0` so the field yields to it and never starts
+                      inside its box (the count already truncates — that is
+                      the fallback at 900 with the map shown, where this
+                      column is ~300px; overlay never is). The field is
+                      `ml-auto`, so the row's slack sits IN FRONT of it and
+                      it grows leftward out of the cluster the magnifier
+                      came from. And the magnifier's own 40px slot inside
+                      BrowseTasksActions is held open while the field is up,
+                      which is what keeps the ✕ off the box it comes back
+                      to. Same geometry PostsHeader / JobsHeader carry since
+                      VN-31, so Browse stops being the screen that does it
+                      differently. */}
+                  {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden
+                      on web-desktop and no title on this screen (owner:
+                      "home will not have a title just the H logo"), the
+                      left half of this 44px band was empty and the four
+                      icons huddled at the right — a full row saying
+                      nothing above the list it belongs to.
+                      The count is what it can honestly say instead:
+                      live, about the list directly beneath, and the
+                      same shape as the "N unread" and bucket counts
+                      every sibling screen puts in that slot. */}
+                  <span
+                    /* Bumped from ds-13 to ds-16 to match the desktop
+                       sidebar nav's own link size (owner, 2026-08-31:
+                       "17 jobs should be the same size fonta as the
+                       info on the right panel"). Still font-display
+                       italic, same family as the status-tab count this
+                       previously matched. */
+                    className="font-display text-ds-16 leading-none min-w-0 shrink-0 truncate"
+                    /* --ink-deep, matching the SELECTED status tab on
+                       Posts and Jobs — those went black in the same
+                       pass and this is the same label in the same slot
+                       (owner: "black and same size as other pages"). */
+                    style={{ color: "hsl(var(--ink-deep))" }}
+                  >
+                    {/* True total under the current filters
+                        (useDashboardJobsCount), not
+                        `filteredJobs.length` — the feed is
+                        paginated via infinite scroll, so that only
+                        counts jobs loaded into memory so far and
+                        undercounted against the map's honest total
+                        (owner: "13 jobs" on the list vs "14 Jobs"
+                        on the map). Fall back to the loaded count
+                        while the true-total query is in flight so
+                        the header never shows nothing. */}
+                    <JobsHeaderCount wantsQuotes={wantsQuotes} count={headerCount} hasFilters={filters.hasFilters} />
+                  </span>
+                  {filters.searchOpen && (
+                    <BrowseSearchBar filters={filters} className="ml-auto" />
+                  )}
+                  <div className={`flex items-center gap-1 ${filters.searchOpen ? "" : "ml-auto"}`}>
+                    <BrowseTasksActions
+                      filters={filters}
+                      filtersButtonRef={filtersButtonRef}
+                      savedOnly={savedOnly}
+                      onToggleSavedOnly={toggleSavedOnly}
+                      savedCount={filters.savedShownCount ?? 0}
+                    />
+                    {/* Show / hide the map column. It sits with search
+                        and filters because it is the same kind of
+                        control — it changes how you read the board, not
+                        what is on it. */}
+                    <button
+                      type="button"
+                      onClick={toggleMap}
+                      aria-pressed={mapVisible}
+                      // While the feed is showing the load-error card
+                      // the map column is suppressed (see
+                      // `feedShowingLoadError`), so this control has
+                      // nothing to show or hide. Offering it would be an
+                      // affordance that is guaranteed to do nothing.
+                      disabled={feedShowingLoadError}
+                      aria-label={mapVisible ? "Hide the map" : "Show the map"}
+                      title={mapVisible ? "Hide the map" : "Show the map"}
+                      className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+                        mapVisible
+                          ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
+                          : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
+                      }`}
+                    >
+                      {mapVisible ? (
+                        <Map className="w-5 h-5" />
+                      ) : (
+                        <MapPinned className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                  </div>
+                </div>
+              )}
               <div className="flex flex-1 min-h-0 overflow-hidden">
                 <div className="flex-1 min-w-0 overflow-hidden flex flex-col">
-                  {/* The feed's own controls, above the CARDS and nothing else
-                      (owner: "add section above just the job cards like it's
-                      their own box"). On the desktop website this column is one
-                      of two — a full-width strip above both would be filtering
-                      the map as much as the list, which is not what the search
-                      field does. Phone/native have no second column, so this
-                      renders exactly where the strip used to. */}
-                  {isWebDesktop && (
-                    <div
-                      ref={desktopStripRef}
-                      /* Named so the browser geometry probe
-                         (e2e/prod-audit/expanding-search-geometry.spec.ts) can
-                         address THIS row's magnifier. The loading screen above
-                         renders a DashboardTitleBar with its own
-                         `[data-search-trigger]` at every width, so an
-                         unscoped query measured the skeleton's trigger and
-                         reported a geometry no user ever sees. */
-                      data-feed-strip
-                      className="shrink-0 flex items-center gap-2 px-4 py-2"
-                      style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}
-                    >
-                      {/* THE COUNT AND THE ICON CLUSTER BOTH SURVIVE SEARCH.
-                          Owner, 2026-09-19: "search bars should also never open
-                          and cover anything anywhere. the search bar on home
-                          opens on the left right on top of the number of jobs.
-                          that's wrong. it needs to open where it was clicked,
-                          open slightly to the left of the icon so it doesn't
-                          cover anything."
-
-                          This row used to be a ternary whose ALTERNATE held
-                          everything — the count, the filters button, the saved
-                          toggle and the map toggle — so opening search
-                          unmounted the lot and the field, being the row's only
-                          child, started at the row's left edge where the count
-                          had been. To the reader there is no difference between
-                          a field drawn over a label and a field that took its
-                          place, and "open slightly to the left of the icon" was
-                          not merely unimplemented but impossible: the icon
-                          itself disappeared.
-
-                          Now nothing is conditional but the field. The count is
-                          `shrink-0` so the field yields to it and never starts
-                          inside its box (the count already truncates — that is
-                          the fallback at 900 with the map shown, where this
-                          column is ~300px; overlay never is). The field is
-                          `ml-auto`, so the row's slack sits IN FRONT of it and
-                          it grows leftward out of the cluster the magnifier
-                          came from. And the magnifier's own 40px slot inside
-                          BrowseTasksActions is held open while the field is up,
-                          which is what keeps the ✕ off the box it comes back
-                          to. Same geometry PostsHeader / JobsHeader carry since
-                          VN-31, so Browse stops being the screen that does it
-                          differently. */}
-                      {/* THE ROW EARNS ITS HEIGHT. With the emblem hidden
-                          on web-desktop and no title on this screen (owner:
-                          "home will not have a title just the H logo"), the
-                          left half of this 44px band was empty and the four
-                          icons huddled at the right — a full row saying
-                          nothing above the list it belongs to.
-                          The count is what it can honestly say instead:
-                          live, about the list directly beneath, and the
-                          same shape as the "N unread" and bucket counts
-                          every sibling screen puts in that slot. */}
-                      <span
-                        /* Bumped from ds-13 to ds-16 to match the desktop
-                           sidebar nav's own link size (owner, 2026-08-31:
-                           "17 jobs should be the same size fonta as the
-                           info on the right panel"). Still font-display
-                           italic, same family as the status-tab count this
-                           previously matched. */
-                        className="font-display text-ds-16 leading-none min-w-0 shrink-0 truncate"
-                        /* --ink-deep, matching the SELECTED status tab on
-                           Posts and Jobs — those went black in the same
-                           pass and this is the same label in the same slot
-                           (owner: "black and same size as other pages"). */
-                        style={{ color: "hsl(var(--ink-deep))" }}
-                      >
-                        {/* True total under the current filters
-                            (useDashboardJobsCount), not
-                            `filteredJobs.length` — the feed is
-                            paginated via infinite scroll, so that only
-                            counts jobs loaded into memory so far and
-                            undercounted against the map's honest total
-                            (owner: "13 jobs" on the list vs "14 Jobs"
-                            on the map). Fall back to the loaded count
-                            while the true-total query is in flight so
-                            the header never shows nothing. */}
-                        <JobsHeaderCount wantsQuotes={wantsQuotes} count={headerCount} hasFilters={filters.hasFilters} />
-                      </span>
-                      {filters.searchOpen && (
-                        <BrowseSearchBar filters={filters} className="ml-auto" />
-                      )}
-                      <div className={`flex items-center gap-1 ${filters.searchOpen ? "" : "ml-auto"}`}>
-                        <BrowseTasksActions
-                          filters={filters}
-                          filtersButtonRef={filtersButtonRef}
-                          savedOnly={savedOnly}
-                          onToggleSavedOnly={toggleSavedOnly}
-                          savedCount={filters.savedShownCount ?? 0}
-                        />
-                        {/* Show / hide the map column. It sits with search
-                            and filters because it is the same kind of
-                            control — it changes how you read the board, not
-                            what is on it. */}
-                        <button
-                          type="button"
-                          onClick={toggleMap}
-                          aria-pressed={mapVisible}
-                          // While the feed is showing the load-error card
-                          // the map column is suppressed (see
-                          // `feedShowingLoadError`), so this control has
-                          // nothing to show or hide. Offering it would be an
-                          // affordance that is guaranteed to do nothing.
-                          disabled={feedShowingLoadError}
-                          aria-label={mapVisible ? "Hide the map" : "Show the map"}
-                          title={mapVisible ? "Hide the map" : "Show the map"}
-                          className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
-                            mapVisible
-                              ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
-                              : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
-                          }`}
-                        >
-                          {mapVisible ? (
-                            <Map className="w-5 h-5" />
-                          ) : (
-                            <MapPinned className="w-5 h-5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <BrowseTasksToolbar
                     screenName="Jobs"
                     // The section's top bar carries the screen's one <h1> ("Jobs"); a second, sr-only one here

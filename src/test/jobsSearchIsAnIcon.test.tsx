@@ -9,8 +9,8 @@
  * padding, thumb and gaps stay within Browse's measures. Red on 25fc6a8ef9: JobsSection drew the "Search all
  * sections" field under the tabs, and MineJobFace was p-4 with a 56px thumb.
  *
- * @mutate src/components/job-card/embeddedActivity.tsx | end={<ExploreSearchEntry variant="icon" />} | end={null}
- * @mutate src/components/sections/ExploreSearchEntry.tsx |   if (variant === "icon") { |   if (variant !== "icon") {
+ * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} />} | end={null}
+ * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
@@ -22,7 +22,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup, within } from "@testing-library/react";
+import { render, cleanup, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -66,7 +66,7 @@ const wrap = (ui: ReactNode, url = "/jobs") =>
 /** A search control drawn as an expanded field: it shows words (a placeholder look-alike) instead of only a glyph. */
 function expandedSearchFields(root: HTMLElement): HTMLElement[] {
   const all = [
-    ...root.querySelectorAll<HTMLElement>('[data-testid="explore-search-entry"]'),
+    ...root.querySelectorAll<HTMLElement>('[data-testid="explore-search-entry"], [data-jobs-search]'),
     ...root.querySelectorAll<HTMLElement>('input[type="search"], [role="search"]'),
   ];
   return all.filter((el) => (el.textContent ?? "").trim() !== "" || el.tagName === "INPUT" || el.getAttribute("role") === "search");
@@ -85,13 +85,14 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
   });
 
   for (const tab of ["posted", "applied"] as const) {
-    it(`${tab}: the list header carries "Search all sections" as a 40px icon at the end of the status chip row`, () => {
+    it(`${tab}: the list header carries its search as a 40px icon at the end of the status chip row (it opens in place: jobsToolbarRowIsOneRow)`, () => {
       const { container } = wrap(
-        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} />,
+        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
       );
-      const link = screen.getByTestId("explore-search-entry");
-      expect(link.getAttribute("aria-label")).toBe("Search all sections");
-      expect(link.getAttribute("href")).toBe("/search");
+      const link = container.querySelector<HTMLElement>("[data-jobs-search]")!;
+      expect(link, "the search icon").not.toBeNull();
+      expect(link.getAttribute("aria-label")).toBe(tab === "posted" ? "Search posted jobs" : "Search jobs you're working");
+      expect(link.getAttribute("aria-expanded")).toBe("false");
       expect((link.textContent ?? "").trim(), "the icon shows no words").toBe("");
       expect(link.querySelector("svg"), "a glyph").not.toBeNull();
       expect(link.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-10", "w-10"]));
@@ -104,9 +105,9 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
 
     it(`${tab}: no chip looks clipped by the icon: the row fades over at least one icon width, and its end padding lets the last chip clear the fade`, () => {
       const { container } = wrap(
-        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} />,
+        <EmbeddedActivityHeader header={<div />} tab={tab} statusFilter="all" counts={{ all: 3, needs_you: 1 }} onFilter={() => {}} search="" onSearch={() => {}} />,
       );
-      const icon = screen.getByTestId("explore-search-entry");
+      const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
       const iconPx = Math.max(...icon.className.split(/\s+/).map((c) => /^w-(\d+(?:\.\d+)?)$/.exec(c)).filter(Boolean).map((m) => px(m![1])));
       expect(iconPx).toBe(40);
       const cls = within(container).getByRole("group", { name: "Filter by status" }).className.split(/\s+/);

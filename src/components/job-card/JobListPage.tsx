@@ -412,7 +412,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     (tab === "applied" && filteredAppliedApps.length === 0);
 
   const headerEl = (
-    <EmbeddedActivityHeader header={embeddedHeader} tab={tab} statusFilter={statusFilter} counts={activeCounts} onFilter={setStatusFilter} />
+    <EmbeddedActivityHeader header={embeddedHeader} tab={tab} statusFilter={statusFilter} counts={activeCounts} onFilter={setStatusFilter} search={searchQuery} onSearch={setSearchQuery} />
   );
 
   return (

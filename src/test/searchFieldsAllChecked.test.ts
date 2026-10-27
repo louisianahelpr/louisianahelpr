@@ -186,7 +186,8 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-20: +1, the landing's hero search (HeroSection, on NO_X).
     // 2026-10-20 (TRAIN24): +1, Post a job's category search (JobCategoryGroups, on NO_X, Q2260).
     // 2026-10-21: +1, /search (board 89, SearchPage), a permanent field with a "Clear search" ✕.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(14);
+    // 2026-10-27: +1, Jobs > Posted / Working's in-place search (InlineListSearch), an opening field with a "Close search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(15);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -197,6 +198,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
+      "src/components/sections/InlineListSearch.tsx",
       "src/components/sections/SectionSearchRow.tsx",
       "src/pages/info/Legal.tsx",
       "src/pages/search/SearchPage.tsx",
@@ -246,12 +248,14 @@ describe("every search field is driven in a real browser (inventory minus checke
     expect([...files].filter((f) => !want.includes(f)), `title-spec surfaces naming a file with no opening search`).toEqual([]);
   });
 
-  // Six before Q913; four since Q2205 (PostsHeader / JobsHeader left with the old My Posts / My Jobs pages).
-  it("the opening searches are exactly these four (a permanent field is not one)", () => {
+  // Six before Q913; four since Q2205 (PostsHeader / JobsHeader left with the old My Posts / My Jobs pages);
+  // five since 2026-10-27 (Jobs > Posted / Working's search opens in place: InlineListSearch).
+  it("the opening searches are exactly these five (a permanent field is not one)", () => {
     expect(OPENING_X_FILES).toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
+      "src/components/sections/InlineListSearch.tsx",
       "src/pages/info/Legal.tsx",
     ]);
   });

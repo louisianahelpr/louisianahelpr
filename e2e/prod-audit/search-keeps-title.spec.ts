@@ -46,6 +46,13 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
   },
   { name: "legal", file: "src/pages/info/Legal.tsx", url: "/legal", trigger: 'button[aria-label="Search all policies"]', field: 'input[aria-label="Search all policies"]' },
+  // Jobs > Posted / Working: the search opens in place in the status chip row (owner 2026-10-27, InlineListSearch).
+  {
+    name: "jobs-posted-search", file: "src/components/sections/InlineListSearch.tsx",
+    url: "/jobs?tab=posted",
+    trigger: 'button[aria-label="Search posted jobs"]',
+    field: 'input[aria-label="Search posted jobs"]',
+  },
   {
     name: "browse-desktop-strip", file: "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
     url: "/jobs",

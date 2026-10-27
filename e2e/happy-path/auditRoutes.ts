@@ -261,6 +261,8 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   { name: "jobs-settings", url: "/jobs/settings" },
   // Board 89: one search across the sections (src/pages/search/SearchPage.tsx).
   { name: "search", url: "/search?q=chair" },
+  // Q2437: Find a Helpr (src/pages/helprs/FindHelprs.tsx).
+  { name: "find-helprs", url: "/helprs" },
   { name: "jobs", url: "/jobs?tab=working" },
   // Explore (the bottom bar's second slot, 2026-10-20): the four sections' switcher.
   { name: "explore", url: "/explore" },

@@ -18,18 +18,19 @@
  * tests fail (neither exists). Behaviour: src/test/pglite/newMemberNoticeOnConfirm.pglite.mjs;
  * complete-signup itself: src/test/edge/complete-signup-new-member-notice.test.ts.
  *
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   IF v_confirmed IS NULL THEN\n    RETURN 'not_confirmed'; |   IF false THEN\n    RETURN 'not_confirmed';
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   ON CONFLICT (user_id) DO NOTHING\n  RETURNING user_id INTO v_claimed; |   ON CONFLICT (user_id) DO UPDATE SET via = EXCLUDED.via\n  RETURNING user_id INTO v_claimed;
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |   IF v_confirmed IS NULL THEN\n    RETURN 'not_confirmed'; |   IF false THEN\n    RETURN 'not_confirmed';
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |   ON CONFLICT (user_id) DO NOTHING\n  RETURNING user_id INTO v_claimed; |   ON CONFLICT (user_id) DO UPDATE SET via = EXCLUDED.via\n  RETURNING user_id INTO v_claimed;
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   WHEN (OLD.email_confirmed_at IS NULL AND NEW.email_confirmed_at IS NOT NULL) |   WHEN (NEW.email_confirmed_at IS NOT NULL)
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   AFTER UPDATE OF email_confirmed_at ON auth.users\n  FOR EACH ROW\n  WHEN | AFTER INSERT ON auth.users\n  FOR EACH ROW\n  WHEN
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   EXCEPTION WHEN OTHERS OR query_canceled THEN | EXCEPTION WHEN division_by_zero THEN
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   EXCEPTION WHEN OTHERS OR query_canceled THEN |   EXCEPTION WHEN OTHERS THEN
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql | SET lock_timeout TO '3s' | SET lock_timeout TO '0'
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |     RETURN 'wipe_failed'; |     NULL;
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   IF v_seed AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id) THEN |   IF false THEN
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql |   IF v_seed AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p_user_id) THEN |   IF v_seed THEN
- * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql | ' just joined and can post and apply now.', | ' just joined. They can start posting + applying as soon as they confirm their email.',
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql | SET lock_timeout TO '3s' | SET lock_timeout TO '0'
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |   IF EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN |   IF false AND EXISTS (SELECT 1 FROM public.notifications x\n              WHERE x.user_id IN
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |     RETURN 'wipe_failed'; |     NULL;
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql |   IF v_seed THEN
+    RETURN 'seed'; |   IF false THEN
+    RETURN 'seed';
+ * @mutate supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql | ' just joined and can post and apply now.', | ' just joined. They can start posting + applying as soon as they confirm their email.',
  * @mutate supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notify_admins_new_member(uuid, text) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
@@ -90,9 +91,9 @@ describe("the new-member admin notice waits for the email confirmation", () => {
     expect(claim).toBeGreaterThan(confirmedGate);
     expect(send).toBeGreaterThan(claim);
     expect(c).toMatch(/IF\s+v_claimed\s+IS\s+NULL\s+THEN\s+RETURN\s+'already_sent'/i);
-    // A TEST account is is_seed AND enrolled in test_accounts (20261007033530):
-    // is_seed alone is set for anyone using a public fixture inbox.
-    expect(c).toMatch(/IF\s+v_seed\s+AND\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.test_accounts\s+t\s+WHERE\s+t\.user_id\s*=\s*p_user_id\s*\)\s+THEN\s+RETURN\s+'seed'/i);
+    // Owner 2026-10-27 ("test stuff should never be shown"): ANY is_seed account
+    // is skipped (20261027154114), not only one enrolled in test_accounts.
+    expect(c).toMatch(/IF\s+v_seed\s+THEN\s+RETURN\s+'seed'/i);
     // A notice the signup-time code already sent counts as sent (deploy order).
     expect(c).toMatch(/IF\s+EXISTS\s*\(\s*SELECT\s+1\s+FROM\s+public\.notifications\s+x\s+WHERE\s+x\.user_id\s+IN\s*\(\s*SELECT\s+r\.user_id\s+FROM\s+public\.user_roles\s+r\s+WHERE\s+r\.role\s*=\s*'admin'\s*\)\s+AND\s+x\.title\s*=\s*'New member joined'/i);
     // A failed takeover wipe still holds the squatter's name: announce nothing, claim nothing.

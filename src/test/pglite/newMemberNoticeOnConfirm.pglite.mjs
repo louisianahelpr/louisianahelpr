@@ -28,6 +28,8 @@ import os from "node:os";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const THIS = readFileSync(new URL("../../../supabase/migrations/20261009223353_new_member_notice_on_email_confirm.sql", import.meta.url).pathname, "utf8");
+// Owner 2026-10-27: every is_seed account is skipped (the newest body).
+const SKIP_ALL_SEED = readFileSync(new URL("../../../supabase/migrations/20261027154114_admin_new_member_notice_skips_every_test_account.sql", import.meta.url).pathname, "utf8");
 const SKIP = process.env.NEW_MIGRATION === "skip";
 
 let failures = 0;
@@ -99,6 +101,7 @@ await q(`INSERT INTO public.notifications (user_id, type, title, message, link)
 
 if (!SKIP) {
   for (let i = 0; i < 3; i++) await db.exec(THIS);
+  for (let i = 0; i < 3; i++) await db.exec(SKIP_ALL_SEED);
   check("migration applies 3x", true);
 }
 
@@ -164,7 +167,7 @@ if (!SKIP) {
   const MAILINATOR = "00000000-0000-0000-0000-0000000000c6";
   await signup(MAILINATOR, "Throwaway Person", "Erath", true);   // fixture-domain email: is_seed, not a test account
   await confirm(MAILINATOR);
-  check("is_seed alone (a public fixture inbox) is still announced", (await notices(MAILINATOR)).length === 2);
+  check("is_seed alone (a nightly journey's throwaway account) is never announced either", (await notices(MAILINATOR)).length === 0);
 
   // A notice the OLD complete-signup writes after this migration lands.
   const LATE_OLD = "00000000-0000-0000-0000-0000000000c7";

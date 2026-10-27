@@ -10,6 +10,7 @@ import { hasPerk } from "@/lib/subscriptionTiers";
 import { previewDisputeSplit } from "@/lib/disputeSplitPreview";
 import { isUnsettled, unsettledReason } from "./unsettled";
 import { partitionEvidenceUrls } from "@/lib/evidenceUrl";
+import { AdminGuaranteeNote } from "@/components/guarantee/AdminGuaranteeNote";
 import { useProofPhotoUrls, PENDING_PHOTO_SRC } from "@/hooks/useProofPhotoUrls";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { EarlierDisputes } from "./EarlierDisputes";
@@ -199,6 +200,8 @@ export const DisputeCard = ({
             </p>
           )}
         </div>
+
+        <AdminGuaranteeNote jobId={job.id} />
 
         {job.dispute_helper_response && (
           <div className="p-3 rounded-ds-sm bg-muted/40 border border-border">

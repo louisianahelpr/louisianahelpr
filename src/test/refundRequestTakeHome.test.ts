@@ -117,7 +117,8 @@ describe("the split refunds EXACTLY the agreed part (Q2298)", () => {
   const src = blankComments(readFileSync(join(resolve(__dirname, "../.."), "supabase/functions/execute-dispute-split/index.ts"), "utf8")).replace(/\s+/g, " ");
   it("an agreed part is the amount itself; an agreed all keeps the full-refund rule", () => {
     expect(src).toContain("const exactAgreed = agreement !== null && agreement.amountCents < agreement.budgetCents;");
-    expect(src).toContain("const refundCents = exactAgreed && agreement !== null ? agreement.amountCents + rushBackCents : Math.max(0, Math.round(refundableCents * posterShare));");
+    // Helpr Guarantee (owner 2026-10-27): a guarantee dispute's arm sits between the two, price only.
+    expect(src).toContain("const refundCents = exactAgreed && agreement !== null ? agreement.amountCents + rushBackCents : guaranteePriceOnly ? Math.max(0, Math.min(refundableCents, Math.round(perHelperBudget * 100 * posterShare))) : Math.max(0, Math.round(refundableCents * posterShare));");
     expect(src).toContain("? (agreement.budgetCents - agreement.amountCents) / 100 : perHelperBudget * helperShare;");
     // Owner 2026-10-21: on an exact agreed part the rush fee comes back in the same share as the price.
     expect(src).toContain("const rushBackCents = exactAgreed && agreement !== null ? agreedRushRefundCents(rushCents, agreement.amountCents, agreement.budgetCents) : 0;");

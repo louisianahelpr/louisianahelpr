@@ -49,7 +49,7 @@ const ROUTE = {
 
 function show() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}><DeliveryRoute userId="u1" where={null} /></QueryClientProvider>);
+  return { qc, ...render(<QueryClientProvider client={qc}><DeliveryRoute userId="u1" where={null} /></QueryClientProvider>) };
 }
 const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg" });
 
@@ -120,8 +120,14 @@ describe("My route", () => {
 
   it("no stops: nothing shows", async () => {
     state.route = { stops: [], miles: 0, drive_minutes: 0, finish_at: null };
-    const { container } = show();
-    await waitFor(() => expect(screen.queryByText("Loading your route…")).toBeNull());
+    const { container, qc } = show();
+    // Wait on the QUERY (waitForEmptyIsVacuous): once the route read settles, an empty container is the
+    // no-stops branch, not the first paint.
+    await waitFor(() => {
+      const entry = qc.getQueryCache().find({ queryKey: ["helpr-tasks", "route", null, null] });
+      expect(entry?.state.status, "the route query never settled").toBe("success");
+    });
+    expect(screen.queryByText("Loading your route…")).toBeNull();
     expect(container).toBeEmptyDOMElement();
   });
 });

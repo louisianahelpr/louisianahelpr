@@ -182,3 +182,12 @@ REVOKE ALL ON FUNCTION public.helpr_task_offer_online() FROM PUBLIC, anon, authe
 DROP TRIGGER IF EXISTS trg_helpr_tasks_offer_online ON public.helpr_tasks;
 CREATE TRIGGER trg_helpr_tasks_offer_online AFTER INSERT ON public.helpr_tasks
   FOR EACH ROW EXECUTE FUNCTION public.helpr_task_offer_online();
+
+-- Every public table keeps the unconfirmed-email gate (db-deploy smoke; lander, Train D).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;

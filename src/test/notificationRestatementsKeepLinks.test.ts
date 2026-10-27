@@ -142,6 +142,10 @@ const INTENDED_LINK_CHANGES = new Set([
   // crew '/jobs?job=') moved, links unchanged, into settle_job_detail_change,
   // which a crew member leaving also runs.
   "20261012053253_detail_change_settles_after_crew_departure.sql::respond_job_detail_change",
+  // Owner 2026-10-27 (referral pays only once BOTH people have a completed job):
+  // check_referral_bonus's notices, links unchanged ('/profile?tab=referral'),
+  // moved into referral_settle_for, which it calls once per party.
+  "20261027201034_referral_bonus_needs_a_job_from_each.sql::check_referral_bonus",
 ]);
 
 /**

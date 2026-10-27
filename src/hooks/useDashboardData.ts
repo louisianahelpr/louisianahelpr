@@ -17,6 +17,7 @@ import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { raceVisibleDeadline, raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
@@ -192,6 +193,8 @@ async function fetchDashboardContext(
 }
 
 export function useDashboardData() {
+  // Memberships off: no early-access wait for anyone (owner 2026-10-27).
+  const membershipsOn = useMembershipsOn();
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, isLoading: userLoading, refresh: refreshCurrentUser } = useCurrentUser();
 
@@ -292,7 +295,7 @@ export function useDashboardData() {
         profile?.subscription_expires_at,
       );
       const earlyAccessCutoff = new Date(
-        Date.now() - earlyAccessDelayMs(effectiveTier),
+        Date.now() - earlyAccessDelayMs(effectiveTier, membershipsOn),
       ).toISOString();
 
       // The browse view's row. `columns` is a runtime string, so PostgREST's

@@ -30,6 +30,9 @@ beforeEach(() => {
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 // Bypass the geolocation rationale dialog by stubbing the hook output.
+// The tier ladder below only applies while memberships are on (owner 2026-10-27:
+// off = no wait); these tests grade the ladder.
+vi.mock("@/hooks/useMembershipsOn", () => ({ useMembershipsOn: () => true }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
 }));

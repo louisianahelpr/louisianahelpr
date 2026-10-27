@@ -1959,6 +1959,27 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_meetup_choices: {
+        Row: {
+          buyer_id: string
+          chosen_at: string
+          seller_id: string
+          spot_id: string
+        }
+        Insert: {
+          buyer_id: string
+          chosen_at?: string
+          seller_id: string
+          spot_id: string
+        }
+        Update: {
+          buyer_id?: string
+          chosen_at?: string
+          seller_id?: string
+          spot_id?: string
+        }
+        Relationships: []
+      }
       declutter_meetup_spots: {
         Row: {
           active: boolean

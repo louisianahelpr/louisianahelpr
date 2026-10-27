@@ -43,8 +43,9 @@ const TWIN = "helpr_payout_round_down_cents";
 const TAKE_HOME = /\b(?:t\.)?pay_cents\s*-\s*(?:t\.)?fee_cents\b/g;
 const WRAPPED = new RegExp(`\\bpublic\\.${TWIN}\\(\\s*(?:t\\.)?pay_cents\\s*-\\s*(?:t\\.)?fee_cents\\s*\\)`, "g");
 
-/** Every live function whose newest body computes a delivery take-home. EXACT. */
-const TAKE_HOME_READERS = ["helpr_my_tasks", "helpr_task_confirm", "helpr_task_view", "helpr_tasks_open_near"];
+/** Every live function whose newest body computes a delivery take-home. EXACT.
+ * helpr_route_suggestions: the "On your way" add-on stops (20261027200024, Train D) show each stop's take-home. */
+const TAKE_HOME_READERS = ["helpr_my_tasks", "helpr_route_suggestions", "helpr_task_confirm", "helpr_task_view", "helpr_tasks_open_near"];
 
 describe("Helpr delivery payouts are whole dollars, rounded down (owner 2026-10-21)", () => {
   it("the SQL twin floors exactly like roundPayoutDownCents", () => {

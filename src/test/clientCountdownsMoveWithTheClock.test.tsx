@@ -173,6 +173,8 @@ const NOT_PROVEN: Record<string, string> = {
     "the payout request floor (MIN_WORK_MS, a 60 s tick) on the money path; its button's greyed state is useDoneFloorActive's, proven above",
   "src/components/shops/ShopDashboardView.tsx":
     "the shop's 24 h answer window (accept_by, a 60 s tick) greys Accept; the server is the gate: shops_accept_order refuses once now() > accept_by (20261018164442) and shop_order_sweep releases the hold, so a late tick only shows the button up to a minute longer",
+  "src/components/declutter/DeliveryOnlinePill.tsx":
+    "the Online for deliveries pill hides at the auto-off (online_until, a 60 s tick); display only: the offers trigger reads online_until > now() on the server, so a late tick only shows the pill up to a minute longer",
 };
 /** The components the 2026-10-06 inventory named, and the primitive each draws its clock through. */
 const NAMED: Record<string, string> = {

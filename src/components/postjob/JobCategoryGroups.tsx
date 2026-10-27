@@ -67,7 +67,7 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
     onPicked();
   };
 
-  const tile = (key: string, icon: string, label: string, onClick: () => void, opts: { pressed?: boolean; sub?: string } = {}) => (
+  const tile = (key: string, icon: string, label: string, onClick: () => void, opts: { pressed?: boolean } = {}) => (
     <button
       key={key}
       type="button"
@@ -82,10 +82,38 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
       </span>
       <span className="min-w-0 flex-1 leading-tight break-normal hyphens-none">
         <span className="block text-ds-15 font-semibold">{label}</span>
-        {opts.sub && <span className="pj-tile-sub mt-1 text-ds-13 font-normal text-muted-foreground">{opts.sub}</span>}
       </span>
     </button>
   );
+
+  /**
+   * A GROUP tile (owner, 2026-10-27: screen 2 "needs better organization"). Every group tile has the same
+   * three parts: the icon, the title, and one short line of examples (jobCategoryGroups GROUP_EXAMPLES,
+   * never past two lines). Every tile in the grid is the same height (.pj-group-tiles grid-auto-rows: 1fr).
+   * The three parts are placed by index.css (.pj-group-tile): below a 560px column a small icon sits beside
+   * the title and the examples run the tile's full width under both (a 163px phone tile has no room for
+   * them beside a 40px icon); from 560px the 40px icon sits beside the title and the examples (one line).
+   */
+  const groupTile = (g: (typeof JOB_CATEGORY_GROUPS)[number]) => {
+    const pressed = g.items.some((it) => it.value === category);
+    return (
+      <button
+        key={g.id}
+        type="button"
+        aria-pressed={pressed}
+        data-group-tile=""
+        onClick={() => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id))}
+        // The same olive OUTLINE for a group that holds the pick as the category tiles above (board 166).
+        className={`pj-group-tile rounded-2xl bg-card text-left font-sans text-foreground leading-tight break-normal hyphens-none transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${pressed ? "border-2 !border-primary" : "border border-border"}`}
+      >
+        <span data-tile-icon="" className="inline-flex shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] leading-none" aria-hidden>
+          {GROUP_EMOJI[g.id]}
+        </span>
+        <span data-tile-title="" className="block min-w-0 text-ds-15 font-semibold">{TILE_LABEL[g.id] ?? g.label}</span>
+        <span data-tile-sub="" className="block min-w-0 line-clamp-2 text-ds-13 font-normal text-muted-foreground">{g.examples}</span>
+      </button>
+    );
+  };
   const categoryTile = (it: { value: string; label: string }) =>
     tile(it.value, categoryEmoji(it.value), it.label, () => pick(it.value), { pressed: category === it.value });
 
@@ -127,17 +155,8 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
         </section>
       ) : null}
 
-      <section aria-label="Category groups" className="pj-tiles grid gap-2.5">
-        {JOB_CATEGORY_GROUPS.map((g) => {
-          const holdsPick = g.items.some((it) => it.value === category);
-          return tile(
-            g.id,
-            GROUP_EMOJI[g.id],
-            TILE_LABEL[g.id] ?? g.label,
-            () => (g.items.length === 1 ? pick(g.items[0].value) : setGroup(g.id)),
-            { pressed: holdsPick, sub: g.items.length > 1 ? groupSample(g.items) : undefined },
-          );
-        })}
+      <section aria-label="Category groups" className="pj-group-tiles grid gap-2.5">
+        {JOB_CATEGORY_GROUPS.map(groupTile)}
       </section>
 
       {/* I1: "Other" always works; this sends a missing category to the admin
@@ -147,9 +166,3 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
   );
 }
 
-/** "Cleaning, handyman, assembly": the group's first three categories, in sentence case. */
-function groupSample(items: readonly { label: string }[]): string {
-  // Lower only a capital that starts an ordinary word ("Handyman" -> "handyman"), never an acronym ("HVAC").
-  const names = items.slice(0, 3).map((it, i) => (i === 0 || /^[A-Z]{2}/.test(it.label) ? it.label : it.label.charAt(0).toLowerCase() + it.label.slice(1)));
-  return items.length > 3 ? `${names.join(", ")} and more` : names.join(", ");
-}

@@ -51,6 +51,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
   ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job, one of the two conditions for paying a referral'),
+  ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
+  ('declutter_meetup_spot_near_lines','allow',  'Q2425 safe meetup (20261027204500): is this active spot within the meetup radius of every one of these cart lines'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
@@ -228,6 +230,10 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- B is the Helpr on J (open, escrow: funded), so the non-NULL call is TRUE.
   -- A posted R (completed), so the non-NULL call is TRUE for A.
   ('referral_member_has_completed_job', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1]),
+  -- L is D's LIVE Declutter item and Declutter is on for testers (the 'declutter' fixture step), so the non-NULL call is TRUE.
+  ('declutter_item_link_visible',   NULL, ARRAY['''00000000-0000-4000-8140-000000000311''::uuid'], ARRAY[1]),
+  -- Spot S sits on item I's area (Metairie) and B's cart line for I is within the radius, so the non-NULL call is TRUE.
+  ('declutter_meetup_spot_near_lines', NULL, ARRAY['''00000000-0000-4000-8140-000000000312''::uuid', 'ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.item_id = ''00000000-0000-4000-8140-000000000301''::uuid)'], ARRAY[1,2]),
   ('payout_setup_hire_allowed',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
   ('helper_credential_document_ok', NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''trade_license''', '''00000000-0000-4000-8140-00000000000a/credentials/trade_license-1757721600000.png'''], ARRAY[1,2,3]),
   ('helper_has_advanced_analytics', '00000000-0000-4000-8140-00000000000b', ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1]),
@@ -375,6 +381,17 @@ BEGIN
                            '00000000-0000-4000-8140-00000000000a', 1000, 'buy', 'in_cart', now() + interval '1 day')$q$;
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
+          -- L: D's live item (D is ID-verified), and Declutter on for testers, for declutter_item_link_visible (Q2426).
+          EXECUTE $q$INSERT INTO public.declutter_items (id, seller_id, status, title, category, condition_stars, delivery_size,
+                                                        price_cents, current_price_cents, area_label, area_lat, area_lng)
+                   VALUES ('00000000-0000-4000-8140-000000000311', '00000000-0000-4000-8140-00000000000d', 'live', '[q140] chair',
+                           'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
+          EXECUTE $q$UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'$q$;
+          -- S: an active meetup spot on item I's area, for declutter_meetup_spot_near_lines (Q2425).
+          IF to_regclass('public.declutter_meetup_spots') IS NOT NULL THEN
+            EXECUTE $q$INSERT INTO public.declutter_meetup_spots (id, parish, name, address, lat, lng, kind)
+                     VALUES ('00000000-0000-4000-8140-000000000312', 'Jefferson', '[q140] spot', '1 Test St, Metairie', 29.98, -90.15, 'police')$q$;
+          END IF;
         END IF;
       WHEN 'delivery' THEN
         -- Slice 5 (20261017055505): order O, B's PAID delivery order from seller A (paid now: the 7-day

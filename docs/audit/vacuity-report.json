@@ -1,10 +1,11 @@
 {
-  "generated": "2026-10-27T21:40:46.788Z",
-  "guards": 2442,
-  "registered": 2434,
+  "generated": "2026-10-27T22:56:42.724Z",
+  "guards": 2460,
+  "registered": 2451,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
+    "src/components/declutter/declutterShareRow.test.tsx",
     "src/components/job-card/posterMarkedDone.test.ts",
     "src/components/postjob/PostJobStepHeader.pick.test.tsx",
     "src/components/referral/EnterReferralCodeCard.test.tsx",

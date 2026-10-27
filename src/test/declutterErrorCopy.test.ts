@@ -19,12 +19,13 @@ import { DECLUTTER_CLIENT_ERROR_COPY as SHARED_CLIENT_COPY, DECLUTTER_ERROR_COPY
 import { HAUL_AWAY_CLIENT_ERROR_COPY, HAUL_AWAY_ERROR_COPY } from "@/lib/declutter/haulAwayErrors";
 import { SELLER_DELIVERY_ERROR_COPY } from "@/lib/declutter/sellerDeliveryErrors";
 import { MEETUP_ERROR_COPY } from "@/lib/declutter/meetupErrors";
+import { BUNDLE_ERROR_COPY } from "@/lib/declutter/bundleErrors";
 import { LISTING_PHOTO_UNCLEANABLE } from "@/lib/declutter/photos";
 
 // Haul-away's and seller delivery's words live in their own lazily loaded
 // modules (Q178); the rule is the same, so they are read as one table (and no
 // code is in two of them).
-const DECLUTTER_ERROR_COPY: Record<string, string> = { ...SHARED_COPY, ...HAUL_AWAY_ERROR_COPY, ...SELLER_DELIVERY_ERROR_COPY, ...MEETUP_ERROR_COPY };
+const DECLUTTER_ERROR_COPY: Record<string, string> = { ...SHARED_COPY, ...HAUL_AWAY_ERROR_COPY, ...SELLER_DELIVERY_ERROR_COPY, ...MEETUP_ERROR_COPY, ...BUNDLE_ERROR_COPY };
 const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = { ...SHARED_CLIENT_COPY, ...HAUL_AWAY_CLIENT_ERROR_COPY };
 
 const DIR = join(process.cwd(), "supabase/migrations");
@@ -63,6 +64,8 @@ const DECLUTTER_FILES = [
   "20261027170717_declutter_free_section.sql",
   // Q2425 safe meetup spots: its codes are in meetupErrors.ts.
   "20261027204500_declutter_safe_meetup.sql",
+  // Q2427 bundle discounts: its codes are in bundleErrors.ts.
+  "20261027211754_declutter_bundle_discount.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -89,7 +92,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(23); // 23: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(24); // 24: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27) + bundle discounts (20261027211754, Q2427, 2026-10-27)
     expect(codes.size).toBeGreaterThan(25);
   });
 
@@ -105,6 +108,7 @@ describe("Declutter error copy is exact (both ways)", () => {
     expect(Object.keys(HAUL_AWAY_ERROR_COPY).filter((c) => c in SHARED_COPY)).toEqual([]);
     expect(Object.keys(SELLER_DELIVERY_ERROR_COPY).filter((c) => c in SHARED_COPY || c in HAUL_AWAY_ERROR_COPY)).toEqual([]);
     expect(Object.keys(MEETUP_ERROR_COPY).filter((c) => c in SHARED_COPY || c in HAUL_AWAY_ERROR_COPY || c in SELLER_DELIVERY_ERROR_COPY)).toEqual([]);
+    expect(Object.keys(BUNDLE_ERROR_COPY).filter((c) => c in SHARED_COPY || c in HAUL_AWAY_ERROR_COPY || c in SELLER_DELIVERY_ERROR_COPY || c in MEETUP_ERROR_COPY)).toEqual([]);
     expect(Object.keys(HAUL_AWAY_CLIENT_ERROR_COPY).filter((c) => c in SHARED_CLIENT_COPY)).toEqual([]);
   });
 

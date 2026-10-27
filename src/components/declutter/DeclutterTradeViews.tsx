@@ -41,7 +41,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { buyNowTotalCents, checkoutAmounts } from "@/lib/declutter/money";
+import { buyNowTotalCents } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
@@ -54,6 +54,7 @@ import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
+import { useBundleDiscount } from "./useBundleDiscount";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -300,6 +301,11 @@ export function SalesWaiting() {
   );
 }
 
+/** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
+function PayWithBundle({ sellerId, lines, porchOk, onBack }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void }) {
+  const b = useBundleDiscount(sellerId, lines);
+  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} />;
+}
 
 /**
  * Row 24 + B30 + row 101 + slice 5: choose how you get it, then pay on Stripe's
@@ -310,8 +316,10 @@ export function SalesWaiting() {
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, itemCount = 1 }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1 }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+  /** Q2427: the bundle discount on the paid items (0 when none); totalCents is already after it. */
+  discountCents?: number;
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
   itemCount?: number;
 }) {
@@ -372,7 +380,9 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
   // The seller's rate counts in the buyer's premium (the server's rule), folded into "You pay" before checkout; a free
   // seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing. The bill never
   // shows the premium on its own line (owner 2026-10-25, issue #3672).
-  const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(itemsTotalCents, sdRate) : null;
+  // Q2427: every amount after the items line is on the discounted items (what checkout freezes).
+  const netItemsCents = itemsTotalCents - discountCents;
+  const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(netItemsCents, sdRate) : null;
   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff;
   const addressId = `dcl-dropoff-${sellerId}`;
@@ -434,6 +444,9 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
       )}
       <dl className="space-y-1.5 rounded-[20px] border border-border bg-card p-4 text-ds-14" data-checkout-breakdown="">
         <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(itemsTotalCents)}</dd></div>
+        {discountCents > 0 && (
+          <div className="flex justify-between gap-3" data-bundle-discount=""><dt>Bundle discount</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">−{formatPrice(discountCents)}</dd></div>
+        )}
         {delivering && liveQuote && (
           <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
@@ -458,7 +471,7 @@ function PayForSeller({ sellerId, itemsTotalCents, totalCents, porchOk, onBack, 
           seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
       <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
-        The seller keeps the whole {formatPrice(itemsTotalCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
+        The seller keeps the whole {formatPrice(netItemsCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
           : sellerDelivering
@@ -552,7 +565,6 @@ export function CartView() {
         <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.</DeclutterNotice>
       ) : (
         [...bySeller.entries()].map(([sellerId, lines], i) => {
-          const amounts = checkoutAmounts(lines.map((l) => l.price_cents));
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
           // The Free section (20261027170717): an all-free group never reaches a payment page.
           const allFree = lines.every((l) => l.price_cents === 0);
@@ -577,7 +589,7 @@ export function CartView() {
               {allFree ? (
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
               ) : (
-                <PayForSeller sellerId={sellerId} itemsTotalCents={amounts.itemsCents} totalCents={amounts.totalCents} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} itemCount={lines.length} />
+                <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
               )}
             </section>
           );

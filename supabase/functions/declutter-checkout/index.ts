@@ -192,13 +192,14 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // can never be paid next to the new one. A page that cannot be closed
   // stays the buyer's page.
   const { data: openOrder, error: openErr } = await admin.from("declutter_orders")
-    .select("id, handover, stripe_checkout_session_id, delivery_cents")
+    .select("id, handover, stripe_checkout_session_id, delivery_cents, bundle_discount_cents")
     .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
     console.error(`[declutter-checkout] open order read failed: ${openErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
-  const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null } | null;
+  const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null;
+    bundle_discount_cents?: number | null } | null;
   // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
   // too, so its page is closed first exactly as for a changed handover.
   let slotChanged = false;
@@ -234,7 +235,24 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
-    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged)) {
+    // Q2427 (lead ruling 2): the SELLER changed or removed their bundle discount while the buyer's page is open,
+    // so the order's frozen discount is not the one checkout gives now. Close that page FIRST, exactly as for a
+    // changed time or spot: a payment on it is then the old order, paid as the buyer saw it, never a superseded
+    // order the webhook refunds as the buyer's own restart (which keeps the card fee). The preview reads the
+    // buyer's cart from this seller now, through the same computation checkout runs; when that cart is not the
+    // order's lines any more, checkout replaces the order anyway, so closing first is never worse. Read only for
+    // an open page, after the retrieve (follow-up review notes 4-5: a paid page is answered first, and the gap
+    // to checkout is as short as the slot and spot checks').
+    let bundleChanged = false;
+    if (page.status === "open") {
+      const { data: off, error: offErr } = await asBuyer.rpc("declutter_bundle_preview", { p_seller_id: sellerId });
+      if (offErr) {
+        console.error(`[declutter-checkout] bundle preview failed: ${offErr.message}`);
+        return json({ error: TRY_AGAIN }, 503);
+      }
+      bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0);
+    }
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged)) {
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);

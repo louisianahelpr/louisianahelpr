@@ -168,6 +168,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   job_guarantee_claims: { by: ["poster_id", "helper_id"] },
   // Safe meetup spots (20261027204500, exported by 20261027233614, Q2451): the buyer's own pick per seller.
   declutter_meetup_choices: { by: ["buyer_id"] },
+  // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
+  declutter_bundle_rules: { by: ["seller_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations

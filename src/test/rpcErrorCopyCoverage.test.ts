@@ -10,6 +10,7 @@ import { REFUND_RPC_ERROR_COPY } from "@/lib/refundRequests/errorCopy";
 import { SELLER_DELIVERY_RPC_ERROR_COPY } from "@/lib/declutter/sellerDeliveryErrors";
 import { GUARANTEE_RPC_ERROR_COPY } from "@/lib/guarantee/errorCopy";
 import { MEETUP_RPC_ERROR_COPY } from "@/lib/declutter/meetupErrors";
+import { BUNDLE_RPC_ERROR_COPY } from "@/lib/declutter/bundleErrors";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -284,7 +285,9 @@ const SELLER_DELIVERY = SELLER_DELIVERY_RPC_ERROR_COPY as CopyTable;
 const GUARANTEE = GUARANTEE_RPC_ERROR_COPY as CopyTable;
 // Q2425 safe meetup spots, likewise (src/lib/declutter/meetupErrors.ts, 20261027204500).
 const MEETUP = MEETUP_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP };
+// Q2427 bundle discounts, likewise (src/lib/declutter/bundleErrors.ts, 20261027211754).
+const BUNDLE = BUNDLE_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...BUNDLE };
 /** An RPC that refuses anyone without the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 const adminGated = new Set([...calls.keys()].filter((rpc) => ADMIN_GATE.test(defs.get(rpc)?.body ?? "")));
@@ -356,7 +359,7 @@ describe("every code a client-called RPC raises has copy at its call site", () =
 
   it("no copy or allowlist entry names a code the RPC does not raise, or an RPC no client calls", () => {
     const stale: string[] = [];
-    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["UNREACHABLE", UNREACHABLE]] as const) {
+    for (const [table, entries] of [["RPC_ERROR_COPY", SHARED], ["ADMIN_RPC_ERROR_COPY", ADMIN], ["SELLER_DELIVERY_RPC_ERROR_COPY", SELLER_DELIVERY], ["MEETUP_RPC_ERROR_COPY", MEETUP], ["BUNDLE_RPC_ERROR_COPY", BUNDLE], ["UNREACHABLE", UNREACHABLE]] as const) {
       for (const [rpc, codes] of Object.entries(entries)) {
         if (!calls.has(rpc)) stale.push(`${table}.${rpc}: no client calls this RPC`);
         for (const code of Object.keys(codes)) {

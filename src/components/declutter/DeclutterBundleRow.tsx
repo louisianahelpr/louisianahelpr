@@ -12,6 +12,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
 import { fetchSellerCard, fetchSellerItems, type DeclutterItem } from "@/lib/declutter/api";
 import { formatName } from "@/lib/utils";
+import { bundleLabel, fetchBundleRule } from "@/lib/declutter/bundle";
 
 export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; viewerId: string | null }) {
   // Same keys as DeclutterItemRows / DeclutterSellerCard: one read each, shared.
@@ -20,6 +21,8 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
     queryFn: () => fetchSellerItems(item.seller_id, item.id),
   });
   const card = useQuery({ queryKey: ["declutter", "seller-card", item.seller_id], queryFn: () => fetchSellerCard(item.seller_id) });
+  // Q2427 (20261027211754): the seller's "Buy 2+, get N% off", when they set one. A failed read says nothing extra.
+  const rule = useQuery({ queryKey: ["declutter", "bundle-rule", item.seller_id], queryFn: () => fetchBundleRule(item.seller_id) });
   const buyable = (more.data ?? []).filter((r) => r.status === "live" && r.seller_id !== viewerId);
   // fetchSellerItems reads at most 12 (live + reserved): a full page may hide more, so say "12+".
   const capped = (more.data?.length ?? 0) >= 12;
@@ -38,6 +41,7 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
           {buyable.length}{capped ? "+" : ""} more from {name}.
         </span>{" "}
         Check out together: one pickup, one payment.
+        {rule.data ? <span className="font-semibold text-primary" data-bundle-offer=""> {bundleLabel(rule.data)}.</span> : null}
       </span>
     </button>
   );

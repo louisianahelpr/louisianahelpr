@@ -56,7 +56,7 @@ function StopCard({ stop, userId }: { stop: RouteStop; userId: string }) {
           : <>Drop off about {clock(stop.arrive_at)}, any time after the pickup</>}
         {stop.leg_miles > 0 && <span className="text-muted-foreground"> · about {stop.leg_miles} mi from {stop.seq === 1 ? "you" : "the last stop"}</span>}
       </p>
-      {stop.late && <p className="text-ds-13 font-semibold text-destructive" role="status">You may be late for this pickup time.</p>}
+      {stop.late && <p className="text-ds-13 font-semibold text-destructive-ink" role="status">You may be late for this pickup time.</p>}
       {stop.items.length > 0 && (
         <ul className="flex flex-wrap gap-3" aria-label="Items">
           {stop.items.map((it, i) => (

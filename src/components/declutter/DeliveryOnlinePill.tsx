@@ -46,7 +46,7 @@ export function DeliveryOnlinePill({ placement }: { placement: "header" | "dock"
   );
   if (placement === "header") return body;
   return createPortal(
-    <div className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
+    <div data-rail-inset="" className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
       style={{ bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 8px)" }}>
       <span className="pointer-events-auto">{body}</span>
     </div>,

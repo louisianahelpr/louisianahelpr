@@ -29,6 +29,7 @@ import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
+import { isCardHoldSession, settleCardHoldCheckout } from "./cardHoldCheckout.ts";
 import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
 
 export async function handleCheckoutSessionCompleted(
@@ -59,6 +60,12 @@ async function settleCheckoutSession(
   // charged here; the maker's acceptance captures it (shop-checkout).
   if (isShopSession(session)) {
     await settleShopSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
+  // Q2399: a job checkout that HELD the card (card_hold_at_post). A bank
+  // payment on it cannot be held and returns false: the job path below
+  // settles it exactly as today.
+  if (isCardHoldSession(session) && await settleCardHoldCheckout(session, { stripe, supabase, logStep })) {
     return;
   }
   // Q210(b): a $300+ recurring visit paid on-session. Settled before the

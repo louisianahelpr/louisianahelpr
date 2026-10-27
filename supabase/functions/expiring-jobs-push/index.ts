@@ -25,6 +25,7 @@ import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { fetchFunction } from "../_shared/functionFetch.ts";
+import { LISTED_PAYMENT_STATUSES } from "../_shared/listedPaymentStatus.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -114,10 +115,11 @@ serve(async (req) => {
       .from("jobs")
       .select("id, title, customer_id, expires_at, category")
       .eq("status", "open")
-      // Only a FUNDED job is live to Helprs. A checkout nobody finished
+      // Only a LISTED job is live to Helprs: captured (escrow) or, with the card
+      // hold at posting (Q2399), a held card. A checkout nobody finished
       // (unpaid / abandoned) was never shown to anyone, so "no helpr yet,
       // Boost it" is false (owner report, 2026-10-09: Ben's unpaid draft).
-      .eq("payment_status", "escrow")
+      .in("payment_status", [...LISTED_PAYMENT_STATUSES])
       .is("helper_id", null)
       // AL-010: a deleted poster leaves customer_id NULL; the notification
       // insert then fails NOT NULL, the job is never marked, and every run
@@ -192,13 +194,14 @@ serve(async (req) => {
     // Same shape as the day-out read above (open, funded, unhired, has a poster). The
     // values are named here so each guard's @mutate string stays unique to that read
     // (unpaidJobsSendNoNotices, retryingCronsSkipOwnerlessJobs mutate the day-out one).
-    const FUNDED = "escrow";
+    // Listed, as above: a held card's job is live and gets the "pick someone" nudge too (Q2399).
+    const LISTED_FOR_FINAL: string[] = [...LISTED_PAYMENT_STATUSES];
     const NO_POSTER = null;
     const { data: finalJobs, error: finalErr } = await supabase
       .from("jobs")
       .select("id, title, customer_id")
       .eq("status", "open")
-      .eq("payment_status", FUNDED)
+      .in("payment_status", LISTED_FOR_FINAL)
       .is("helper_id", null)
       .not("customer_id", "is", NO_POSTER)
       .is("expiring_final_notif_sent", null)

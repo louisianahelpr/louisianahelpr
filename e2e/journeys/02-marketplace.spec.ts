@@ -361,7 +361,8 @@ test.describe.serial("marketplace chain", () => {
       await payCheckoutSession(page);
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 90_000, message: "the webhook never funded the job" })
-        .toBe("escrow");
+        // Q2399: with card_hold_at_post the card is HELD ('held'); the Helpr's Accept below charges it (escrow).
+        .toMatch(/^(escrow|held)$/);
       S.funded = true;
       await assertHealthy(page, "return from Stripe", { settleMs: 30_000 });
       await journey.milestone(page, "payment-return");
@@ -544,6 +545,11 @@ test.describe.serial("marketplace chain", () => {
       await expect
         .poll(async () => (await readJob(request, S.poster, S.jobId!)).helper_id, { timeout: 30_000, message: "hire never set helper_id" })
         .toBe(S.helper.user.id);
+      // The poster's Hire already set helper_id: the Accept is done only once its capture_hold
+      // charged a held card (Q2399), so the funded check below never reads 'held' mid-capture.
+      await expect
+        .poll(async () => (await readJob(request, S.poster, S.jobId!)).payment_status, { timeout: 45_000, message: "the Helpr's Accept never charged the held card" })
+        .toBe("escrow");
       await assertHealthy(hp, "after accepting");
       await journey.milestone(hp, "offer-accepted");
     });

@@ -40,12 +40,21 @@ const cp = blankComments(readFileSync(join(ROOT, "supabase/functions/create-paym
 const redeem = effectiveDefs(join(ROOT, "supabase", "migrations")).get("redeem_gift_card");
 const body = blankSqlComments(redeem?.stmt ?? "");
 
-/** Poster-charge columns written by any stampSession(<id>, { ... }) call. */
+/**
+ * Poster-charge columns written by any stampSession(<id>, { ... }) call, or stampSession(<id>, <name>) whose
+ * `const <name> = { ... }` is in the same file (Q2399: the escrow and card-hold setup checkouts share one stamp).
+ */
 function stampedPosterFeeColumns(src: string): { calls: number; cols: string[] } {
-  const calls = [...src.matchAll(/stampSession\(\s*[\w.]+\s*,\s*\{([^}]*)\}/g)];
+  const bodies: string[] = [];
+  for (const c of src.matchAll(/stampSession\(\s*[\w.]+\s*,\s*(?:\{([^}]*)\}|([A-Za-z_$][\w$]*)\s*\))/g)) {
+    if (c[1] !== undefined) { bodies.push(c[1]); continue; }
+    const decl = new RegExp(`const\\s+${c[2]}\\s*=\\s*\\{([^}]*)\\}`).exec(src);
+    expect(decl, `stampSession(..., ${c[2]}) with no object-literal declaration`).not.toBeNull();
+    bodies.push(decl![1]);
+  }
   const cols = new Set<string>();
-  for (const c of calls) for (const k of c[1].matchAll(/\b(\w+)\s*:/g)) if (k[1].startsWith("customer_")) cols.add(k[1]);
-  return { calls: calls.length, cols: [...cols].sort() };
+  for (const b of bodies) for (const k of b.matchAll(/\b(\w+)\s*:/g)) if (k[1].startsWith("customer_")) cols.add(k[1]);
+  return { calls: bodies.length, cols: [...cols].sort() };
 }
 
 describe("a gift-settled job keeps no card fee stamp", () => {

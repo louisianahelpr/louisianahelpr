@@ -941,7 +941,7 @@ describe("create-payment edge function", () => {
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
-    // @mutate supabase/functions/create-payment/index.ts |             + salesTaxCeilingCents(Math.round(job.budget * 100), job.category), |             + 0,
+    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100), job.category); |         + 0;
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();
@@ -1155,7 +1155,7 @@ describe("create-payment edge function", () => {
     // @mutate supabase/functions/create-payment/index.ts |       await refuseQuoteJobPriceMismatch(supabaseAdmin, jobId, job.budget); |       void refuseQuoteJobPriceMismatch;
     // @mutate supabase/functions/create-payment/index.ts |   if (linkErr) {\n    console.error(`[create-payment] quote request read failed | if (false) {\n    console.error(`[create-payment] quote request read failed
     // @mutate supabase/functions/create-payment/index.ts |   if (acceptedErr) {\n    console.error( | if (false) {\n    console.error(
-    // @mutate supabase/functions/create-payment/index.ts |           : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative), |           : buildRedirectUrl(`/post-job`, isNative),
+    // @mutate supabase/functions/create-payment/index.ts |         : buildRedirectUrl(`/quotes/request/${cancelQuoteRequestId}`, isNative); |         : buildRedirectUrl(`/post-job`, isNative);
     // @mutate supabase/functions/create-payment/index.ts |   if (m) return m[1];\n  throw new PublicError("That page can't be used to come back from checkout."); |   return m ? m[1] : null;
     describe("a job booked from an agreed quote (Q1867, Q1862)", () => {
       const REQ_ID = "6f1c2a0e-1b2c-4d5e-8f90-123456789abc";
@@ -1462,7 +1462,7 @@ describe("create-payment edge function", () => {
 
       // Review of 91927c016 #1: the retry after a refused stamp is at a new
       // price and must not reuse the old session's idempotency key.
-      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}`,
+      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`,
       it("the checkout's idempotency key carries the price, so a new price never replays an old session (Q1846)", async () => {
         const keys: string[] = [];
         for (const budget of [100, 150]) {

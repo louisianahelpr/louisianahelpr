@@ -31,6 +31,8 @@ let viewerId: string | null = POSTER;
 let jobsLookup: { data: unknown; error: unknown } = { data: null, error: null };
 
 const maybeSingle = vi.fn(async () => jobsLookup);
+/** What get_my_job_card_hold answers (Q2399: a card only HELD at posting). */
+let cardHoldRead: { data: unknown; error: unknown } = { data: [], error: null };
 const getUser = vi.fn(async () => ({ data: { user: null } }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -42,6 +44,7 @@ vi.mock("@/integrations/supabase/client", () => ({
       getSession: () =>
         Promise.resolve({ data: { session: viewerId ? { user: { id: viewerId } } : null }, error: null }),
     },
+    rpc: async () => cardHoldRead,
     from: () => ({
       // The confirmation lookup: .select(...).eq(...).maybeSingle()
       // The analytics count query: .select(..., {count}).eq(...).not(...)
@@ -163,6 +166,34 @@ describe("PaymentSuccess", () => {
       expectNoSuccessClaim();
       // …and never quotes an amount as held, even though budget read fine.
       expect(screen.queryByText(/\$120/)).toBeNull();
+    });
+  });
+
+  // Q2399: payment_status 'held' means the card is only HELD (nothing charged until the hire), so the
+  // screen says that, with the hold's own amount, and never the escrow "held securely" copy.
+  // @mutate src/pages/post-job/PaymentSuccess.tsx |             setCardHold(line); |             void line;
+  describe("the card is only held ('held', card hold at posting)", () => {
+    afterEach(() => { cardHoldRead = { data: [], error: null }; });
+    it("says the card is on hold for the hold's amount, never that money is held in escrow", async () => {
+      jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
+      cardHoldRead = { data: [{ state: "held", amount_cents: 12600 }], error: null };
+      renderAt();
+      await screen.findByText(/your card is on hold for \$126\.00\. you're only charged when you hire someone/i);
+      expect(screen.queryByText(/held securely/i)).toBeNull();
+    });
+    it("a far-out job's saved card says when the hold comes", async () => {
+      jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
+      cardHoldRead = { data: [{ state: "scheduled", amount_cents: 12600 }], error: null };
+      renderAt();
+      await screen.findByText(/your card is saved\. we'll hold \$126\.00 about 4 days before the job/i);
+    });
+    it("an unreadable hold names no amount and claims no hold", async () => {
+      jobsLookup = { data: { budget: 120, category: "cleaning", payment_status: "held", customer_id: POSTER }, error: null };
+      cardHoldRead = { data: null, error: { code: "XX000", message: "simulated" } };
+      renderAt();
+      await screen.findByText(/your job is posted\. you're only charged when you hire someone/i);
+      expect(screen.queryByText(/on hold/i)).toBeNull();
+      expect(screen.queryByText(/held securely/i)).toBeNull();
     });
   });
 

@@ -41,6 +41,8 @@ import { readdirSync } from "./helpers/trackedFiles";
  * Behaviour (red before, 3x replay): src/test/pglite/groupCrewNoLead.pglite.mjs.
  */
 
+// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | IF NOT public.job_payment_is_listed(v_payment) THEN | IF false THEN
+// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF v_pay = 'held' THEN\n    RAISE EXCEPTION 'payment_not_captured'\n      USING | IF false THEN\n    RAISE EXCEPTION 'payment_not_captured'\n      USING
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN | IF public.is_server_context() THEN RETURN NEW; END IF;\n  IF NEW.is_group_job IS TRUE AND NEW.helper_id IS NOT NULL THEN
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |   BEFORE INSERT OR UPDATE OF helper_id, is_group_job, helpers_needed ON public.jobs |   BEFORE INSERT OR UPDATE OF helper_id ON public.jobs
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     AND NOT public.is_server_context()\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid' |     AND false\n     AND (OLD.payment_status IS DISTINCT FROM 'unpaid'
@@ -158,8 +160,11 @@ describe("a crew has no lead (Q407)", () => {
     expect(body("crew_slot_share_cents")).toMatch(/p_total_cents \/ GREATEST[\s\S]*p_slot < p_total_cents % GREATEST/);
     // Nobody but a server context moves a slot or a share.
     expect(body("freeze_crew_member_share")).toMatch(/NEW\.slot_no IS DISTINCT FROM OLD\.slot_no OR NEW\.share_cents IS DISTINCT FROM OLD\.share_cents[\s\S]*NOT public\.is_server_context\(\)/);
-    // Every hire needs a funded job (the funding gate saw only the lead's write).
-    expect(body("enforce_group_roster_award_gate")).toMatch(/job_payment_is_funded\(v_payment\)/);
+    // Every hire needs a funded job (the funding gate saw only the lead's write). Q2399 (20261027185146): a crew hire
+    // is an offer, so a job whose card is held is enough to add the member; their Confirm is the commitment, and a
+    // seat on a held card is never confirmed, whoever writes it (crew_seat_held_is_never_confirmed).
+    expect(body("enforce_group_roster_award_gate")).toMatch(/IF NOT public\.job_payment_is_listed\(v_payment\) THEN\s+RAISE EXCEPTION/);
+    expect(body("enforce_crew_seat_held_never_confirmed")).toMatch(/IF v_pay = 'held' THEN\s+RAISE EXCEPTION 'payment_not_captured'/);
   });
 
   it("4a. the owner rules are ONE place each, and SQL and TypeScript agree", () => {

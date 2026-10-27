@@ -248,7 +248,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Homes rent tracker read policies (20261019073106).
   "rentals_tenancy_party",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
-  "payout_setup_hire_allowed", "referral_member_has_completed_job"];
+  "payout_setup_hire_allowed", "referral_member_has_completed_job",
+  // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.
+  "job_payment_is_listed"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
@@ -261,7 +263,8 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Board 141: a deny helper the window and final checks call (validated at CREATE).
   "declutter_sale_decided"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
-const ORDER = [...HELPERS, "job_payment_is_funded", ...ALLOW.filter((f) => f !== "job_payment_is_funded" && !AFTER_STUBS.includes(f))];
+const FIRST = ["job_payment_is_funded", "job_payment_is_listed"];
+const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];
 const loaded = [];
 // Skip mode loads the newest definition that exists BEFORE the fix. A function
 // first defined after it (is_off_job, 20260925230845, which today's

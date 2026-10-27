@@ -53,6 +53,9 @@ export const CARD_PAYMENT_STATE: Record<PaymentStatus, CardPaymentState> = {
   cancelling: "voided",
   failed: "failed",
   chargeback: "chargeback",
+  // Q2399: the poster's card is held for the job (charged at the hire): the
+  // job status tells the truth, as for escrow, and there is no money problem.
+  held: "held",
 };
 
 export type JobPaymentProblem = "failed" | "chargeback";

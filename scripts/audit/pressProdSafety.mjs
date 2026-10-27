@@ -888,6 +888,7 @@ export const STRIPE_WRITE_FUNCTIONS = new Set([
   "cleanup-abandoned-accounts", // purgeAccount
   "cash-out-credits",
   "charge-recurring-visits",
+  "card-hold-sweep", // Q2399 cron: places, captures, renews and cancels card holds (_shared/cardHold.ts)
   "create-bgc-payment",
   "create-boost-payment",
   "declutter-card", // Checkout (setup) + customers.create

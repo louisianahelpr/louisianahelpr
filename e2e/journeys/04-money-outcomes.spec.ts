@@ -302,7 +302,8 @@ test.describe("money outcomes", () => {
       expect(res.text, `${action} refused the non-admin for some other reason`).toMatch(/admin only/i);
     }
     const untouched = await readRow(request, poster, jobId);
-    expect(`${untouched.status}/${untouched.payment_status}`, "a refused admin action still moved the job").toBe("open/escrow");
+    // Q2399: card_hold_at_post holds the card ('held'): posted, not charged.
+    expect(`${untouched.status}/${untouched.payment_status}`, "a refused admin action still moved the job").toMatch(/^open\/(escrow|held)$/);
 
     // 2. SUCCESS: the admin's Quick Refund. CI-only credential.
     if (!sessionAvailable("admin")) {
@@ -314,6 +315,16 @@ test.describe("money outcomes", () => {
     const admin = await getSession(request, "admin");
     const since = new Date(Date.now() - 5_000).toISOString();
     const refund = await invoke(request, admin, "create-payment", { action: "admin_refund_general", jobId, reason: `E2E journey Quick Refund ${RUN}` });
+    if (untouched.payment_status === "held") {
+      // Q2399: nothing was charged, so there is nothing to refund: refused, and
+      // the cleanup's cancel_escrow releases the hold (no refund, no fee).
+      expect(refund.status, `admin_refund_general on a held card answered ${refund.status} ${refund.text.slice(0, 300)}`).toBe(409);
+      expect(refund.json.cardHold, "the refusal does not say the card is only held").toBe(true);
+      expect((await readRow(request, poster, jobId)).payment_status, "a refused refund moved the held job").toBe("held");
+      // The Quick Refund success leg never ran: said as uncovered, never a silent pass (Q2399 round 2, silent #6).
+      test.skip(true, `Quick Refund success not driven on a held card: ${jobId}: the card is only held (nothing charged), so Quick Refund refused, as it must; a refund of captured money needs a hire`);
+      return;
+    }
     expect(refund.status, `admin_refund_general answered ${refund.status} ${refund.text.slice(0, 300)}`).toBe(200);
     const after = await readRow(request, poster, jobId);
     expect(`${after.status}/${after.payment_status}`, "the Quick Refund answered 200 but the job did not land refunded").toBe("cancelled/refunded");

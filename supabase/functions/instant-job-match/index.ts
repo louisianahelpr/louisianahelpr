@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
+import { LISTED_PAYMENT_STATUSES } from "../_shared/listedPaymentStatus.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
@@ -118,7 +119,8 @@ serve(async (req) => {
     // The matching rule and the browse rule have to be the SAME rule. A helper
     // must never be told about a job they cannot open, and the cheapest way to
     // guarantee that is to ask the same question browse asks.
-    const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];
+    // Q2399: a held card is listed too (job_payment_is_listed), so it is announced like a funded job.
+    const FUNDED_PAYMENT_STATUSES = [...LISTED_PAYMENT_STATUSES];
     const { data: job, error: jobError } = await supabase
       .from("jobs")
       .select("id, title, category, location, budget, customer_id, is_urgent, payment_status, date_needed, parish, latitude, longitude")

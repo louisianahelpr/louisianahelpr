@@ -1,6 +1,7 @@
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | ...(!isAsyncPayment ? { payment_status: "escrow" } : {}), | payment_status: "escrow",
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const isAsyncPayment = session.payment_status !== "paid"; | const isAsyncPayment = false;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (intent.status !== "succeeded") { | if (false) {
+// @mutate supabase/functions/_shared/cardHold.ts |       if (now.status === "succeeded") capturedPi = now.id; |       if (now.status !== "canceled") capturedPi = now.id;
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const FUNDED_PAYMENT_STATES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATES = new Set(["payout_pending", "released"]);
 // @mutate supabase/functions/stripe-webhook/index.ts | "payment_intent.payment_failed": handlePaymentIntentPaymentFailed, | "payment_intent.payment_failedX": handlePaymentIntentPaymentFailed,
 // @mutate supabase/migrations/20261017205845_failed_bank_payment_cancels_hired_job.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true);\n  PERFORM set_config('app.payment_failed_cancel', 'on', true); |   PERFORM set_config('app.payment_failed_cancel', 'on', true);
@@ -92,6 +93,16 @@ const ESCROW_WRITERS: Record<string, { why: string; gates: RegExp[] }> = {
   "charge-recurring-visits/index.ts": {
     why: "books a visit only after its off-session PaymentIntent reads succeeded",
     gates: [/if \(intent\.status !== "succeeded"\) \{/],
+  },
+  // Q2399 card hold at post: the hire's capture (or the saved card's one off-session charge) moves held -> escrow
+  // only once Stripe reads the PaymentIntent succeeded (the capture's own answer, or a re-read after an error).
+  "_shared/cardHold.ts": {
+    why: "captureCardHold writes escrow only after the capture or off-session charge reads succeeded",
+    gates: [
+      /if \(pi\.status === "succeeded"\) capturedPi = pi\.id;/,
+      /if \(now\.status === "succeeded"\) capturedPi = now\.id;/,
+      /if \(capturedPi\) \{\s+const \{ data: moved, error: moveErr \} = await db\s+\.from\("jobs"\)\s+\.update\(\{\s+payment_status: "escrow",/,
+    ],
   },
 };
 

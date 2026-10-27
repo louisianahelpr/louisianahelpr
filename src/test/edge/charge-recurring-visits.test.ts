@@ -1225,7 +1225,7 @@ describe("charge-recurring-visits edge function", () => {
   // Finding 5 / Q734 — the series' own card, never a card found by email
   // ═══════════════════════════════════════════════════════════════════════
 
-  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (pi.setup_future_usage !== "off_session") { |   if (false) {
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!savedOffSession) { |   if (false) {
   // @mutate supabase/functions/charge-recurring-visits/index.ts |   if (!paymentIntentId) return { kind: "none", reason: "no checkout payment on the series" }; |   if (!paymentIntentId) return { kind: "card", customerId: "cus_1", paymentMethodId: "pm_1" };
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           customerId = card.customerId; |           customerId = "cus_1";
   // @mutate supabase/functions/charge-recurring-visits/index.ts |           paymentMethodId = card.paymentMethodId; |           paymentMethodId = "pm_1";

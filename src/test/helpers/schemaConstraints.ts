@@ -335,11 +335,21 @@ export function schemaRequired(): Map<string, Set<string>> {
  * noise, because `status`, `type`, `role` and `reason` are ordinary English
  * words that test code uses for its own report objects.
  */
+/**
+ * Column names that are ordinary English keys in test code even though only one
+ * table has them, so they identify no row: `state` (job_card_holds, Q2399) is
+ * also a US state, a workflow's or a PR's state, and Playwright's `{ state:
+ * "visible" }`. A job_card_holds literal is still recognised by its own columns
+ * (capturing_from, capture_before, place_at).
+ */
+const GENERIC_COLUMN_WORDS: ReadonlySet<string> = new Set(["state"]);
+
 export function distinctiveColumns(schema = schemaTables()): Map<string, string> {
   const count = new Map<string, number>();
   const owner = new Map<string, string>();
   for (const [table, cols] of schema) {
     for (const c of cols) {
+      if (GENERIC_COLUMN_WORDS.has(c)) continue;
       count.set(c, (count.get(c) ?? 0) + 1);
       owner.set(c, table);
     }

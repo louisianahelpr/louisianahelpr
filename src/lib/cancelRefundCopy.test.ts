@@ -8,7 +8,7 @@
 // @mutate src/lib/cancelRefundCopy.ts | ${fee} is for your Helpr's time; most of the rest of your payment comes back to your card within the hour. | The ${fee} cancellation fee applies — the rest, less the card-processing fee Stripe keeps, returns to your card.
 // @mutate src/lib/cancelRefundCopy.ts |   return `Job cancelled. Most of your payment comes back to your card within the hour.${keptFeeSentence}`; |   return `Job cancelled — your payment returns to your card, less the card-processing fee Stripe keeps.${keptFeeSentence}`;
 // @mutate src/lib/cancelRefundCopy.ts |   if (!wasFunded) { |   if (false) {
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel: false, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
 // Q?gift-cancel-copy (lh-money-escrow review of 7166349cd, #7, and the Q1806
 // design review, 2026-10-17): a gift-paid job's money goes back to the GIFT
 // balance; the card copy ("returns to your card, less ...") was false for it.
@@ -37,7 +37,7 @@
 // @mutate src/lib/cancelRefundCopy.ts |     if (reserved.payment_status != null && reserved.payment_status !== "paid") return "unknown"; |     if (false) return "unknown";
 // @mutate src/lib/cancelRefundCopy.ts |     return appliedFee > 0\n      ? neutral | return appliedFee < 0\n      ? neutral
 // @mutate src/components/job-card/ActivityDialogs.tsx | &&\n            props.cancelDialogJob.payment_status !== "failed" | && true
-// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
+// @mutate src/components/CancellationDialog.tsx |         cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }), |         cancelRefundToast({ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, cardShareCents, keptSetupCents: Math.round(keptFee * 100), crew: !!crew }),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { cancelRefundToast, cardShareCentsFromRead, giftCostCents, giftOnJobFromRead } from "./cancelRefundCopy";
@@ -46,6 +46,19 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 const kept = " The one-time $2.00 account setup fee is kept: it is paid once and never refunded.";
 
 describe("cancelRefundToast", () => {
+  // Q2399: a card only HELD at posting was never charged; the cancel releases the hold (round 4, money #7).
+  // @mutate src/lib/cancelRefundCopy.ts |   if (args.cardHeld) return | if (false) return
+  // @mutate src/components/job-card/ActivityDialogs.tsx |           cardHeld={props.cancelDialogJob.payment_status === "held"} |
+  it("a card only held: released, not charged, never a refund or a fee", () => {
+    const t = cancelRefundToast({ wasFunded: false, cardHeld: true, appliedFee: 12, flatModel: true, keptFeeSentence: kept });
+    expect(t).toBe("Job cancelled. The hold on your card is released, and your card was not charged.");
+    const dialogs = blankComments(readFileSync("src/components/job-card/ActivityDialogs.tsx", "utf8"));
+    expect(dialogs).toMatch(/cardHeld=\{props\.cancelDialogJob\.payment_status === "held"\}/);
+    expect(dialogs).toMatch(/payment_status !== "held"\s*\}/);
+    const dialog = blankComments(readFileSync("src/components/CancellationDialog.tsx", "utf8"));
+    expect(dialog).toMatch(/cancelRefundToast\(\{ wasFunded, cardHeld,/);
+  });
+
   it("never funded: nothing to refund, whatever the model", () => {
     for (const flatModel of [true, false]) {
       expect(cancelRefundToast({ wasFunded: false, appliedFee: 12, flatModel, keptFeeSentence: "" }))
@@ -147,7 +160,7 @@ describe("cancelRefundToast", () => {
 
   it("CancellationDialog passes the job's own fee model and gift to it", () => {
     const src = blankComments(readFileSync("src/components/CancellationDialog.tsx", "utf8"));
-    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew \}\)/);
+    expect(src).toMatch(/cancelRefundToast\(\{ wasFunded, cardHeld, appliedFee, flatModel, keptFeeSentence, gift, cardShareCents, keptSetupCents: Math\.round\(keptFee \* 100\), crew: !!crew \}\)/);
     expect(src).toMatch(/cardShareCents = cardShareCentsFromRead\(giftRows, costCents\);/);
     expect(src).toMatch(/gift = giftOnJobFromRead\(giftRows, giftErr, costCents\);/);
     // The fee model is the job's own stamp plus its poster-fee stamp (a legacy job moved

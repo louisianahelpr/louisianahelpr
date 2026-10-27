@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 // moves — so it must follow the config the cron actually enforces. Imported
 // straight from the Deno _shared module, the same pattern the parity tests use.
 import { APPROVAL_WINDOW_HOURS } from "../../../supabase/functions/_shared/escrowTiming";
+import { cardHoldSentence, readCardHoldLine, type CardHoldLine } from "@/lib/cardHoldRead";
 import { Button } from "@/components/ui/button";
 import {
   Share2,
@@ -139,9 +140,8 @@ const PaymentSuccess = () => {
   // from "already released" — both are `isHeld`, but they are not the same
   // claim, and the escrow copy below is false for the second one.
   const [alreadyReleased, setAlreadyReleased] = useState(false);
-  const [confirmState, setConfirmState] = useState<ConfirmState>(
-    resolvedJobId ? "checking" : "unknown",
-  );
+  const [cardHold, setCardHold] = useState<CardHoldLine | null>(null); // Q2399: card only HELD; cardHoldRead.ts words it
+  const [confirmState, setConfirmState] = useState<ConfirmState>(resolvedJobId ? "checking" : "unknown");
   const [unknownReason, setUnknownReason] = useState<UnknownReason>(
     resolvedJobId ? "unreachable" : "no-reference",
   );
@@ -329,8 +329,13 @@ const PaymentSuccess = () => {
         // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
 
         const status = data.payment_status;
-        if (status && HELD_STATUSES.has(status)) {
+        if (status === "held" || (status && HELD_STATUSES.has(status))) {
           if (status === "released") setAlreadyReleased(true);
+          if (status === "held") { // only a card hold (Q2399): its own line, never the escrow copy
+            const line = await readCardHoldLine(resolvedJobId);
+            if (cancelled) return;
+            setCardHold(line);
+          }
           // Once, only when held, and awaited before the held state: a direct offer never flashes
           // "Your job is live" first (money review notes, 2026-10-21).
           const offerTargets = await fetchJobOfferTargets([resolvedJobId]);
@@ -440,7 +445,7 @@ const PaymentSuccess = () => {
                 and a $136.60 escrow read "$137" (claiming 40c that is not
                 there). This is a receipt, which is exactly what
                 `formatPriceExact` is for. */}
-            {isHeld ? (
+            {isHeld && cardHold ? cardHoldSentence(cardHold) : isHeld ? (
               alreadyReleased ? (
                 escrowAmount != null ? (
                   <>

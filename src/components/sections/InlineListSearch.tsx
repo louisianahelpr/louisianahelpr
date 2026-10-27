@@ -91,7 +91,7 @@ export function InlineListSearch({ value, onChange, label }: { value: string; on
         type="button"
         aria-label="Close search"
         onClick={() => close(true, true)}
-        className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground"
+        className="ctl-exit ctl-tint w-8 h-8 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground"
       >
         <X className="w-4 h-4" aria-hidden />
       </button>

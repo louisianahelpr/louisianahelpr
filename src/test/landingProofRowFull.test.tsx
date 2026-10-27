@@ -70,7 +70,7 @@ describe("the landing proof row has as many columns as items, and they are three
 
 /** The px of a Tailwind text size token in the class list for one breakpoint prefix ("" = base). */
 function sizeAt(classes: string, prefix: string): number | null {
-  const esc = prefix.replace(/[[\]]/g, "\\$&");
+  const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const m = new RegExp(`(?:^|\\s)${esc}text-(?:ds-(\\d+)|\\[(\\d+(?:\\.\\d+)?)rem\\])(?=\\s|$)`).exec(classes);
   if (!m) return null;
   return m[1] ? Number(m[1]) : Number(m[2]) * 16;

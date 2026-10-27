@@ -80,7 +80,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/postjob/CityAutocomplete.tsx` | input×1 | text | 100 | City |
 | `src/hooks/useComboboxKeyboard.ts` | input×1 | search |  |  |
-| `src/pages/auth/CompleteProfile.tsx` | input×4, textarea×1, checkbox/switch/radio×2 | file, text | 5 | avatar · firstName · lastName · city · zipCode · 70801 · bio · bio-contact-leak |
+| `src/pages/auth/CompleteProfile.tsx` | input×4, textarea×1, checkbox/switch/radio×2 | file, text | 5 | avatar · complete-profile-names · firstName · lastName · city · zipCode · 70801 · bio |
 
 ## /complete-profile, /account-banned, /profile
 
@@ -366,8 +366,8 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/pages/auth/signup/SignupStep1.tsx` | input×2, checkbox/switch/radio×2 | email, text |  | signup-card-head · email · signup-email-error · signup-email-typo · password · signup-password-error · policies · policies-label |
-| `src/pages/auth/signup/SignupStep2.tsx` | input×5, textarea×1 | file, text | 5 | avatar · avatar-error · firstName · firstName-error · lastName · lastName-error · location · location-error |
+| `src/pages/auth/signup/SignupStep1.tsx` | input×4, checkbox/switch/radio×2 | text, email |  | signup-card-head · firstName · signup-firstName-error · lastName · signup-lastName-error · email · signup-email-error · signup-email-typo |
+| `src/pages/auth/signup/SignupStep2.tsx` | input×3, textarea×1 | file, text | 5 | avatar · avatar-error · location · location-error · zipCode · 70801 · zipCode-error · zipCode-unknown |
 
 ## /signup-pending
 

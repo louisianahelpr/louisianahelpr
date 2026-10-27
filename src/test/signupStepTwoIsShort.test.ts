@@ -1,7 +1,7 @@
 /**
  * SIGN-UP STEP 2 IS SHORT (owner, 2026-10-09: 12 of 16 people who finished step
  * 1 that day never finished; every step-2 failure was a required field). Step 2
- * asks name, city and ZIP only: no photo requirement, no phone, no birthday.
+ * is now all optional (owner 2026-10-26): no phone, no birthday, and a "Skip for now".
  * Step 1's 18+ box is the age gate complete-signup accepts (ageAttested).
  * Google/Apple sign-ups tick the same box on Complete Profile, which asks no
  * birthday and no phone either (owner, 2026-10-14;
@@ -19,7 +19,7 @@ const signup = blankComments(readFileSync("src/pages/auth/Signup.tsx", "utf8"));
 
 const completeProfile = blankComments(readFileSync("src/pages/auth/CompleteProfile.tsx", "utf8"));
 
-describe("sign-up step 2 asks only name, city and ZIP", () => {
+describe("sign-up step 2 is short and optional", () => {
   it("Complete Profile (Google/Apple sign-ups) requires the 18+ box, not a birthday", () => {
     expect(completeProfile).toMatch(/if \(!ageDone\) return fail\(/);
     expect(completeProfile).not.toMatch(/id="dob"/);
@@ -28,7 +28,9 @@ describe("sign-up step 2 asks only name, city and ZIP", () => {
   it("renders no phone or birthday field", () => {
     expect(step2).not.toMatch(/id="phone"/);
     expect(step2).not.toMatch(/id="dob"/);
-    expect(step2).toMatch(/id="firstName"/);
+    // The names moved to step 1 (owner 2026-10-26); step 2 is photo, city,
+    // ZIP, bio and referral code, all optional (src/test/signupOptionalScreenTwo.test.tsx).
+    expect(step2).not.toMatch(/id="firstName"/);
     expect(step2).toMatch(/id="zipCode"/);
   });
   it("validates no phone or birthday, and still sends the step-1 18+ attestation", () => {

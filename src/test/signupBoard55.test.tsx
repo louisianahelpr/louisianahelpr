@@ -55,8 +55,8 @@ describe("Create account matches board 55", () => {
 
   it("label-only inputs (owner 2026-08-22): no placeholder text on any step-1 field", () => {
     expect(step1).not.toMatch(/\bplaceholder=/);
-    // Email and Password (First name moved to step 2, owner 2026-10-25).
-    expect((step1.match(/<Label htmlFor=/g) ?? []).length).toBe(2);
+    // First name, Last name, Email and Password (names back on step 1, owner 2026-10-26).
+    expect((step1.match(/<Label htmlFor=/g) ?? []).length).toBe(4);
   });
 
   it("the plain 'or' rule and an olive pill; nothing rust on the card (rust is money only)", () => {
@@ -70,6 +70,7 @@ describe("Create account matches board 55", () => {
     const { container } = render(
       <MemoryRouter>
         <SignupStep1
+          firstName="" setFirstName={() => {}} lastName="" setLastName={() => {}}
           email="" setEmail={() => {}} password="" setPassword={() => {}} showPassword={false} setShowPassword={() => {}}
           acceptedPolicies={false} setAcceptedPolicies={(v) => { set.policies = v; }}
           ageConfirmed={false} setAgeConfirmed={(v) => { set.age = v; }}

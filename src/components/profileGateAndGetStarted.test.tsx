@@ -67,7 +67,7 @@ describe("the public top bar: Jobs | Log in · Join free on every page", () => {
 });
 
 // The phone must not be a gate field again.
-// @mutate src/components/ProtectedRoute.tsx |   { key: "location", label: "City" }, |   { key: "phone", label: "Phone number" }, { key: "location", label: "City" },
+// @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "phone", label: "Phone number" },
 // Jobs opens the job list on every page.
 // @mutate src/components/Navbar.tsx |                 to="/browse" |                 to={location.pathname === "/browse" ? "/signup" : "/browse"}
 // Join free is the sign-up on every page.

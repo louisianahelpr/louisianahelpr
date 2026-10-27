@@ -191,10 +191,11 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
   });
 
   it("an email sign-up (step 1's box already ticked) is not asked twice", () => {
-    // An email account only lands here with a gate field missing (no city).
+    // An email account only lands here with a gate field missing: since City
+    // left the gate (owner 2026-10-26), that is the name.
     socialUser.app_metadata.provider = "email";
-    const city = socialProfile.location;
-    socialProfile.location = "";
+    const name = socialProfile.full_name;
+    socialProfile.full_name = "";
     try {
       renderPage();
       expect(screen.getByRole("button", { name: /Complete required fields/ })).toBeDisabled(); // the page, not a redirect
@@ -202,7 +203,7 @@ describe("Complete Profile: the 18+ box, no birthday, no phone", () => {
       expect(screen.queryByText("Confirm you're 18 or older")).toBeNull();
     } finally {
       socialUser.app_metadata.provider = "google";
-      socialProfile.location = city;
+      socialProfile.full_name = name;
     }
   });
 });

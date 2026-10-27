@@ -32,9 +32,11 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 describe("payout setup only when money is owed", () => {
   it("reads the newest definitions (floor)", () => {
     for (const n of ["declutter_publish_item", "declutter_relist_listing",
-      "shops_assert_owner_eligible", "shop_owner_sell_block_reason", "declutter_admin_review_item"]) {
+      "shops_assert_owner_eligible", "shop_owner_sell_block_reason"]) {
       expect(newestFunction(n).file, n).toContain("20261027163240");
     }
+    // Restated by the review notice (Q2414), which keeps this file's no-payout-gate body.
+    expect(newestFunction("declutter_admin_review_item").file).toContain("20261027182550");
     // Restated once more by the Free section, which only adds "a free claim is never money owed".
     expect(newestFunction("payout_setup_hire_allowed").file).toContain("20261027170717");
   });

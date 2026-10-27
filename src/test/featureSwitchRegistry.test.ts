@@ -85,11 +85,17 @@ interface InsertFinding { file: string; problem: string }
  *     through the lead): the checkout reminder, confirm-email reminders,
  *     payout setup at hire and card hold at post "are not features. they
  *     should be done always for everyone."
+ *   - card_hold_at_post: the same owner words (2026-10-25); its code landed
+ *     dark first (lead 2026-10-27) and this flip follows once the card-hold
+ *     edge functions' deploy is verified and a real walkthrough has run.
  */
 export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
   "20261021135921_come_back_emails_on_for_everyone.sql": "come_back_emails",
   "20261025235208_confirm_reminders_on_for_everyone.sql": "confirm_reminders",
   "20261025235210_scanner_safe_confirm_links_on_for_everyone.sql": "scanner_safe_confirm_links",
+  // card_hold_at_post: owner 2026-10-25 (pop-up, through the lead): "are not features. they should be done always for everyone."
+  // Split from the dark landing by the lead 2026-10-27: lands after the card-hold functions' deploy is verified and a real walkthrough.
+  "20261027185147_card_hold_at_post_on_for_everyone.sql": "card_hold_at_post",
 };
 
 export function readRegistryFromMigrations(

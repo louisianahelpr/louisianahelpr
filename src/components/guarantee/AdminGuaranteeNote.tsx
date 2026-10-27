@@ -13,7 +13,7 @@ export function AdminGuaranteeNote({ jobId }: { jobId: string }) {
   const c = claim.data;
   const urls = useProofPhotoUrls(c?.photo_paths ?? []);
   if (claim.isError) {
-    return <p className="text-ds-11 text-destructive">Couldn't read whether this came from a Helpr Guarantee request. Refresh before deciding.</p>;
+    return <p className="text-ds-11 text-destructive-ink">Couldn't read whether this came from a Helpr Guarantee request. Refresh before deciding.</p>;
   }
   if (!c || (c.status !== "disputed" && c.status !== "escalating")) return null;
   return (

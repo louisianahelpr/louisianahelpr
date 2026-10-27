@@ -11,6 +11,9 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { DisputeCard } from "@/components/admin/adminDisputes/DisputeCard";
 import type { DisputedJob, DisputeRecord } from "@/components/admin/adminDisputes/types";
+// The Helpr Guarantee note (Q2450) reads its request through React Query; this suite renders the dispute card
+// without a QueryClient and is about other controls, so the note renders nothing here.
+vi.mock("@/components/guarantee/AdminGuaranteeNote", () => ({ AdminGuaranteeNote: () => null }));
 
 const JOB_ID = "bb2c3732-476a-4f66-aae6-372cbdfcfdf6";
 const DISPUTE_ID = "c7a12050-1542-40f0-99b6-189c47a13bd8";

@@ -30,6 +30,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "group_job_helpers", column: "proof_after_urls", array: true, bucket: "proof-photos", writer: "group-job proof upload (path)" },
   { table: "helper_credentials", column: "document_url", array: false, bucket: "user-documents", writer: "src/components/profile/CredentialsTab.tsx (path)" },
   { table: "job_revisions", column: "photos", array: true, bucket: "proof-photos", writer: "src/pages/posts/CompletionChoiceSheet.tsx (<jobId>/revisions/...)" },
+  { table: "job_guarantee_claims", column: "photo_paths", array: true, bucket: "proof-photos", writer: "src/lib/guarantee/index.ts uploadGuaranteePhotos (<uid>/disputes/<jobId>/..., Q2450)" },
   { table: "jobs", column: "photos", array: true, bucket: "job-photos", writer: "src/pages/post-job/useJobMediaUpload.ts (public URL)" },
   { table: "jobs", column: "scope_video_url", array: false, bucket: "job-photos", writer: "src/pages/post-job/useJobMediaUpload.ts (public URL)" },
   { table: "jobs", column: "proof_before_urls", array: true, bucket: "proof-photos", writer: "src/components/PhotoProof.tsx (path)" },

@@ -62,6 +62,9 @@ vi.mock("@/components/PhotoProof", () => ({ PhotoProofGroup: () => null, PhotoPr
 
 import { PostedJobActions } from "../pages/posts/postedJobCard/PostedJobActions";
 import AdminDisputes from "./admin/AdminDisputes";
+// The Helpr Guarantee note (Q2450) reads its request through React Query; this suite renders the dispute card
+// without a QueryClient and is about other controls, so the note renders nothing here.
+vi.mock("@/components/guarantee/AdminGuaranteeNote", () => ({ AdminGuaranteeNote: () => null }));
 
 function doubleClick(button: HTMLElement) {
   act(() => {

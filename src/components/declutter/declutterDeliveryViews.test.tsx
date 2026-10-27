@@ -32,6 +32,8 @@ vi.mock("@/components/DateTimeField", () => ({
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
+// Q2435: the Busy right now card reads the Browse map's jobs and loads MapKit; not what this file tests.
+vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => null }));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({
   usePayoutSetupPaused: () => state.setupPaused,

@@ -64,6 +64,7 @@ import {
   type MKAnnotation,
   type MKMap,
 } from "./browseMap/mapkitRuntime";
+import { useBusyAreaShading, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
 
 interface BrowseMapProps {
   /**
@@ -178,7 +179,6 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
   // The pin set and its load state; see browseMap/useMapJobs.ts.
   const { jobs, loading, loadError, retry } = useMapJobs(currentUserId, refreshKey);
   const [mapReady, setMapReady] = useState(false);
-  const [isDark, setIsDark] = useState(readIsDark);
 
   // Filtered pin set. Every downstream consumer (count badge, fitToPins, the
   // markers themselves, the empty state) reads THIS, not the raw `jobs` —
@@ -341,23 +341,8 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     };
   }, []);
 
-  // Follow the app's light/dark theme. `useDarkMode` writes the resolved
-  // theme to `<html data-theme>`, so an attribute observer catches both an
-  // explicit toggle and a system-preference flip while the map is open.
-  useEffect(() => {
-    if (typeof MutationObserver === "undefined") return;
-    const obs = new MutationObserver(() => setIsDark(readIsDark()));
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => obs.disconnect();
-  }, []);
-  useEffect(() => {
-    const mk = getMapKit();
-    const map = mapRef.current;
-    if (!mk || !map) return;
-    try {
-      map.colorScheme = colorSchemeFor(mk, isDark);
-    } catch { /* older runtimes may not allow reassignment — leave as built */ }
-  }, [isDark, mapReady]);
+  useMapFollowsTheme(mapRef, mapReady);
+  useBusyAreaShading(mapRef, mapReady, visibleJobs); // Q2435
 
   /** Remove every job annotation currently on the map. */
   const clearAnnotations = useCallback(() => {

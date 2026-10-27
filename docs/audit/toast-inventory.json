@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 971,
-    "files": 250,
-    "rendering": 825,
-    "suppressedByPolicy": 146,
+    "calls": 973,
+    "files": 251,
+    "rendering": 826,
+    "suppressedByPolicy": 147,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 690,
+      "toast.error": 691,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 149,
+      "toast.success": 150,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 444,
-      "template": 102,
-      "dynamic": 475,
+      "template": 103,
+      "dynamic": 476,
       "jsx": 0
     }
   },
@@ -4081,7 +4081,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 115,
+      "line": 116,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4091,7 +4091,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 119,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4101,7 +4101,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 204,
+      "line": 205,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4111,7 +4111,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 208,
+      "line": 209,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4121,7 +4121,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 258,
+      "line": 260,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4131,7 +4131,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 263,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4141,7 +4141,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 356,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4151,7 +4151,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 367,
+      "line": 374,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4161,7 +4161,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 471,
+      "line": 478,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5383,6 +5383,26 @@
     {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
       "line": 67,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/RouteSuggestions.tsx",
+      "line": 29,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Added to your route. Pick it up ${when(s.pickup_slot_start)}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/RouteSuggestions.tsx",
+      "line": 34,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

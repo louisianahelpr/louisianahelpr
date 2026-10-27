@@ -16,6 +16,15 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
   helpr_my_tasks: {
     not_authenticated: DC.not_authenticated,
   },
+  helpr_route_suggestions: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    task_not_found: DC.task_not_found,
+    under_18: DC.under_18,
+  },
   helpr_my_route: {
     feature_disabled: DC.feature_disabled,
     invalid_location: DC.invalid_location,

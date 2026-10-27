@@ -146,7 +146,7 @@ describe("no registered mutation is inert", () => {
         '(h-[26px] -> h-[96px], not an appended `style`).\n\n' +
         lines.join("\n"),
     ).toEqual([]);
-  });
+  }, 60_000); // it parses every registered mutation's target (about 21 s on a loaded runner, 2026-10-27).
 });
 
 // Proof this is able to fail: the appended-`style` mutation that survived on

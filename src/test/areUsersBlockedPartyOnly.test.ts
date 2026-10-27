@@ -77,6 +77,10 @@ const EXPECTED_CALLERS = [
   // seller / the task's buyer or seller the other.
   "declutter_delivery_quote",
   "declutter_lock_buyable_item",
+  // Price-drop alerts (20261027204745, Train D): an AFTER UPDATE trigger on declutter_items passes the
+  // pair (the watcher, the item's seller); neither is necessarily auth.uid() (the evening sweep lowers
+  // prices as service_role) and it gets the real answer through the pg_trigger_depth() > 0 arm.
+  "declutter_price_drop_alert",
   "declutter_respond_offer",
   // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
   // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.
@@ -99,8 +103,15 @@ const EXPECTED_CALLERS = [
   "export_my_data",
   "get_my_saved_helpers",
   "get_quotes_for_request",
+  // "On your way" (20261027200024, Train D): v_uid := helpr_task_assert_helpr() (auth.uid()) is one
+  // argument, the candidate task's buyer (customer_id) or seller (pickup_contact_id) the other.
+  "helpr_route_suggestions",
   "helpr_task_accept",
   // Slice 5 (lh-authz-rls #8): an open task's view repeats open_near's check, (the caller, the buyer / the seller).
+  // Go online (20261027203030, Train D): the AFTER INSERT trigger on helpr_tasks passes (an online
+  // Helpr, the new task's buyer / seller); neither is necessarily auth.uid()
+  // and it gets the real answer through the pg_trigger_depth() > 0 arm.
+  "helpr_task_offer_online",
   "helpr_task_view",
   "helpr_tasks_open_near",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread

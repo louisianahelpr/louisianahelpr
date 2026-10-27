@@ -78,8 +78,8 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   "sql:block_user_and_settle": {
     uncovered: "blocks the other party; a block between the two shared accounts refuses every hire, message and offer the other lanes drive (are_users_blocked) until it is lifted",
   },
-  "sql:check_referral_bonus": {
-    uncovered: "fires on a referred Helpr's first completed job; no referrals row names either shared account (measured on prod 2026-09-26: 0 rows), and a new referred account needs a signup the journeys cannot complete (email verification)",
+  "sql:referral_settle_for": {
+    uncovered: "pays a referral once both the referrer and the referred member have a completed job (20261027201034, called by check_referral_bonus); no referrals row names either shared account (measured on prod 2026-09-26: 0 rows), and a new referred account needs a signup the journeys cannot complete (email verification)",
   },
   "sql:claim_series_dates": { uncovered: SERIES },
   "sql:clear_job_accept_pending": {

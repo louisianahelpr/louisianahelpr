@@ -34,8 +34,8 @@ import {
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
 
-/** A Louisiana wall-clock instant on 2026-10-27 (CDT, UTC-5). */
-const ct = (hhmm: string) => new Date(`2026-10-27T${hhmm}:00-05:00`);
+/** A Louisiana wall-clock instant on 2024-03-14 (CDT, UTC-5). */
+const ct = (hhmm: string) => new Date(`2024-03-14T${hhmm}:00-05:00`);
 
 describe("Need it today (Q2438)", () => {
   it("fills the soonest start the server takes: now + 2 h + 10 min, up to the next half hour", () => {
@@ -67,25 +67,25 @@ describe("Need it today (Q2438)", () => {
   });
 
   it("a card is a Today card only for Louisiana's today", () => {
-    expect(isTodayJob("2026-10-27", "2026-10-27")).toBe(true);
-    expect(isTodayJob("2026-10-28", "2026-10-27")).toBe(false);
-    expect(isTodayJob(null, "2026-10-27")).toBe(false);
+    expect(isTodayJob("2024-03-14", "2024-03-14")).toBe(true);
+    expect(isTodayJob("2024-03-15", "2024-03-14")).toBe(false);
+    expect(isTodayJob(null, "2024-03-14")).toBe(false);
   });
 });
 
 describe("same-day matching (Q2438)", () => {
   const now = ct("14:00");
-  const job = { date_needed: "2026-10-27", parish: "Lafayette", latitude: 30.22, longitude: -92.02 };
+  const job = { date_needed: "2024-03-14", parish: "Lafayette", latitude: 30.22, longitude: -92.02 };
 
   it("same day is Louisiana's calendar day, not UTC's", () => {
     // 8:30 PM CDT on the 27th is already the 28th in UTC.
-    expect(isSameDayJob("2026-10-27", ct("20:30"))).toBe(true);
-    expect(isSameDayJob("2026-10-28", ct("20:30"))).toBe(false);
+    expect(isSameDayJob("2024-03-14", ct("20:30"))).toBe(true);
+    expect(isSameDayJob("2024-03-15", ct("20:30"))).toBe(false);
   });
 
   it("online means Available now is still running", () => {
-    expect(isOnlineNow("2026-10-27T15:00:00-05:00", now)).toBe(true);
-    expect(isOnlineNow("2026-10-27T13:59:00-05:00", now)).toBe(false);
+    expect(isOnlineNow("2024-03-14T15:00:00-05:00", now)).toBe(true);
+    expect(isOnlineNow("2024-03-14T13:59:00-05:00", now)).toBe(false);
     expect(isOnlineNow(null, now)).toBe(false);
   });
 
@@ -99,11 +99,11 @@ describe("same-day matching (Q2438)", () => {
   });
 
   it("the boost is for online AND nearby Helprs on a same-day job only", () => {
-    const online = "2026-10-27T18:00:00-05:00";
+    const online = "2024-03-14T18:00:00-05:00";
     expect(sameDayBoost(job, { parish: "Lafayette", available_until: online }, now)).toBe(SAME_DAY_ONLINE_SCORE);
     expect(sameDayBoost(job, { parish: "Lafayette", available_until: null }, now)).toBe(0);
     expect(sameDayBoost(job, { parish: "Orleans", available_until: online }, now)).toBe(0);
-    expect(sameDayBoost({ ...job, date_needed: "2026-10-28" }, { parish: "Lafayette", available_until: online }, now)).toBe(0);
+    expect(sameDayBoost({ ...job, date_needed: "2024-03-15" }, { parish: "Lafayette", available_until: online }, now)).toBe(0);
     // Above any skill/location score instant-job-match gives (3 + 2 + 1).
     expect(SAME_DAY_ONLINE_SCORE).toBeGreaterThan(6);
   });

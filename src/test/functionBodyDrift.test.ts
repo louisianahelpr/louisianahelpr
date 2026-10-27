@@ -155,7 +155,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
   const rewritten = [...effective.entries()].filter(([, d]) => d.rewrites.length > 0);
 
   it("inventories the rewritten functions (a parser that finds none must not pass)", () => {
-    // EXACT (2026-10-25): 17. 20261025203540 (fee-free notice copy, owner
+    // EXACT (2026-10-27): 16. 20261027201034 re-created check_referral_bonus
+    // (referral pays once both have a job), so its in-place copy rewrite is
+    // superseded. (2026-10-25: 17.) 20261025203540 (fee-free notice copy, owner
     // 2026-10-25) rewrites 11 functions in place and 20261025214015 (the SQL
     // fee default is 10) rewrites 2, on top of the 4 below.
     // (2026-10-17: 4.) 20261018024631 re-created
@@ -169,10 +171,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // re-created sweep_no_show_alerts, both with the new copy written in; the
     // older link rewrites (20260831232514, 20260901021929) were all superseded
     // by later CREATEs.
-    expect(rewritten.length).toBe(17);
+    expect(rewritten.length).toBe(16);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
-      "check_referral_bonus",
       "helper_abort_job",
       "notify_helper_application_viewed",
       "track_revision_scope_creep",

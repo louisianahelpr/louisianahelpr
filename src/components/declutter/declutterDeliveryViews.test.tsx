@@ -22,6 +22,8 @@ const state = {
   calls: [] as unknown[][],
   openError: null as null | { message: string },
   setupPaused: false,
+  profile: undefined as undefined | Record<string, unknown>,
+  offered: [] as string[],
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -31,7 +33,11 @@ vi.mock("@/components/DateTimeField", () => ({
   ),
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
-vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
+// Q2416: the hired-Helpr payout prompt after taking a delivery (its own dialog test is payoutAfterHire.test.tsx).
+vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
+  useHiredPayoutPrompt: () => ({ open: false, offer: async (id: string) => { state.offered.push(id); return true; }, close: () => {} }),
+}));
 vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({
   usePayoutSetupPaused: () => state.setupPaused,
@@ -82,6 +88,8 @@ beforeEach(() => {
   state.calls = [];
   state.openError = null;
   state.setupPaused = false;
+  state.profile = undefined;
+  state.offered = [];
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
@@ -268,5 +276,55 @@ describe("DeliverView: who may not deliver yet (Q2351)", () => {
     state.openError = { message: "boom" };
     await showRouted(<DeliverView />);
     expect(await screen.findByText("We couldn't load deliveries.")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Q2416 (owner 2026-10-27, #3675): a delivery is taken without a payout account; right after, the Helpr
+ * is offered payout setup (the hired-Helpr prompt), and their list says the pay is held until it is done.
+ *
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |       if (user?.id) void hiredPayout.offer(user.id); |
+ * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   if (!profile \|\| !owed \|\| payoutAccountReady(profile)) return null; |   return null;
+ */
+describe("DeliverView: payout setup comes after taking a delivery (Q2416)", () => {
+  const showRouted = async (el: React.ReactNode) => {
+    const { MemoryRouter } = await import("react-router-dom");
+    return show(<MemoryRouter>{el}</MemoryRouter>);
+  };
+  const TAKEN = { task_id: "t1", status: "accepted", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+    trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2099-10-20T15:00:00Z", payout_status: null };
+
+  it("taking a delivery offers payout setup to the Helpr who took it", async () => {
+    state.open = [{ task_id: "t9", source_kind: "declutter_delivery", size: "small", title: "Lamp", pickup_area: "Mid-City",
+      dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2026-10-18T15:00:00Z",
+      latest_pickup_at: "2026-10-23T15:00:00Z" }];
+    await showRouted(<DeliverView />);
+    fireEvent.change(await screen.findByLabelText(/Pickup time/), { target: { value: "2026-10-20T10:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Accept delivery" }));
+    await waitFor(() => expect(state.offered).toEqual(["u1"]));
+  });
+
+  it("a Helpr with a delivery in hand and no payout account is told the pay is held, with Set up payouts", async () => {
+    state.mine = [TAKEN];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2099-10-20T15:00:00Z" };
+    state.profile = { stripe_account_id: null, stripe_payouts_enabled: null, is_seed: false };
+    await showRouted(<DeliverView />);
+    expect(await screen.findByText("Set up payouts to get paid for your deliveries.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
+  });
+
+  it("no prompt once payouts are ready, or when nothing is owed", async () => {
+    state.mine = [TAKEN];
+    state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2099-10-20T15:00:00Z" };
+    state.profile = { stripe_account_id: "acct_1", stripe_payouts_enabled: true, is_seed: false };
+    const { unmount } = await showRouted(<DeliverView />);
+    expect(await screen.findByText("Lamp")).toBeInTheDocument();
+    expect(screen.queryByText("Set up payouts to get paid for your deliveries.")).toBeNull();
+    unmount();
+    state.mine = [{ ...TAKEN, status: "confirmed", payout_status: "nothing_due" }];
+    state.profile = { stripe_account_id: null, stripe_payouts_enabled: null, is_seed: false };
+    await showRouted(<DeliverView />);
+    expect(await screen.findByText("Lamp")).toBeInTheDocument();
+    expect(screen.queryByText("Set up payouts to get paid for your deliveries.")).toBeNull();
   });
 });

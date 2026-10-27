@@ -19,9 +19,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
-import { TestTag } from "@/components/admin/TestTag";
 import { AdminBanEvasionReview } from "@/components/admin/AdminBanEvasionReview";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import {
   Dialog,
   DialogPrimaryAction,
@@ -123,14 +122,14 @@ const AdminFraudDashboard = () => {
       // `details`, and this is an admin-only surface.
       const emailMap = new Map(profiles?.map(p => [p.user_id, p.email]) || []);
       const seedIds = await fetchSeedUserIds(userIds);
-      return data.map((f) => {
+      return withoutTestRows(data.map((f) => {
         const named = formatName(nameMap.get(f.user_id), "");
         return {
           ...f,
           user_name: named || emailMap.get(f.user_id) || "Unknown",
           is_seed: seedIds.has(f.user_id),
         };
-      });
+      }));
     },
   });
 
@@ -251,7 +250,7 @@ const AdminFraudDashboard = () => {
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-ds-13 text-foreground">{flag.user_name}</span>
-                  {flag.is_seed && <TestTag />}
+                  
                   <Badge className={toneBadgeClasses[flagTone[flag.flag_type] ?? "neutral"]}>
                     {formatCategory(flag.flag_type)}
                   </Badge>

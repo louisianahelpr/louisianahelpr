@@ -1,8 +1,4 @@
-// @mutate src/components/admin/AdminSubscriptions.tsx | {p.full_name \|\| "No name"}{p.is_seed && <TestTag />} | {p.full_name \|\| "No name"}
-// @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | {batch.is_seed && <TestTag />} | {null}
-// @mutate src/components/admin/AdminHelperTiers.tsx | {helper.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminHelperTiers.tsx | const seed = await fetchSeedUserIds(rows.map((r) => r.user_id)); | const seed = new Set<string>();
-// @mutate src/components/admin/adminJobs/JobListItem.tsx | {job.is_seed && <TestTag />} | {null}
 // @mutate src/components/admin/AdminNotificationLogs.tsx | const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id)); | const seedIds = new Set<string>();
 // @mutate src/components/admin/AdminAnalytics.tsx | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false }); | .select(JOB_READABLE_COLUMNS).order("created_at", { ascending: false });
 // @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.gift_card_paid === true) | true
@@ -40,10 +36,12 @@ const ROOT = join(__dirname, "..", "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
 
 type Rule =
-  /** Lists rows and marks seed ones: every `render` file shows <TestTag />
-   *  behind an is_seed (or derived is_test) check, and every `resolve` file
-   *  reads is_seed: a column select, `select("*")` on profiles, or fetchSeedUserIds. */
-  | { kind: "tags"; render: string[]; resolve: string[] }
+  /** Lists rows and DROPS seed ones (owner 2026-10-27: "i should never see
+   *  test stuff in my admin panel"): every `resolve` file reads is_seed (a
+   *  column select, `select("*")` on profiles, or fetchSeedUserIds), every
+   *  `drop` file removes those rows before render, and no `render` file still
+   *  draws a "Test" tag. */
+  | { kind: "tags"; render: string[]; resolve: string[]; drop?: string[] }
   /** Aggregates only: every query in `file` excludes seed rows. */
   | { kind: "filters"; file: string }
   /** Exports: each CSV carries a Test column. */
@@ -56,7 +54,7 @@ const VIEWS: Record<string, Rule> = {
   analytics: { kind: "filters", file: `${A}AdminAnalytics.tsx` },
   // `select("*")` on profiles carries is_seed.
   people: { kind: "tags", render: [`${A}adminusers/AdminUserRow.tsx`], resolve: [`${A}AdminUsers.tsx`] },
-  jobs: { kind: "tags", render: [`${A}adminJobs/JobListItem.tsx`], resolve: ["src/lib/jobColumns.ts"] },
+  jobs: { kind: "tags", render: [`${A}adminJobs/JobListItem.tsx`], resolve: ["src/lib/jobColumns.ts"], drop: [`${A}AdminJobs.tsx`] },
   settings: { kind: "none", why: "platform_settings and the admin role list; no member rows" },
   disputes: { kind: "tags", render: [`${A}adminDisputes/DisputeCard.tsx`], resolve: [`${A}AdminDisputes.tsx`] },
   notifications: { kind: "none", why: "the signed-in admin's own notification preferences" },
@@ -102,7 +100,12 @@ function switchCases(): string[] {
   return [...body.matchAll(/case\s+"(\w+)"\s*:/g)].map((m) => m[1]);
 }
 
-describe("Q233: every admin view filters or tags seed rows", () => {
+/** The row is removed before render: the shared helper, a server-side
+ *  `.eq("is_seed", false)`, a `!x.is_seed` / `is_seed !== true` filter, a
+ *  derived `!r.is_test`, or the Users screen's fixed `showTest = false`. */
+const DROPS_SEED = /withoutTestRows\(|\.eq\("is_seed", false\)|!\w+(?:\.profiles)?\.is_seed\b|\.is_seed !== true|!r\.is_test\b|const showTest = false/;
+
+describe("Q233: every admin view filters or hides seed rows", () => {
   it("the classification covers exactly the views Admin.tsx renders", () => {
     const cases = switchCases();
     expect(cases.length).toBeGreaterThan(20);
@@ -111,9 +114,10 @@ describe("Q233: every admin view filters or tags seed rows", () => {
 
   for (const [view, rule] of Object.entries(VIEWS)) {
     if (rule.kind === "tags") {
-      it(`${view}: rows wear <TestTag /> and is_seed is resolved`, () => {
-        for (const f of rule.render) expect(code(f), f).toMatch(/\.is_(?:seed|test)\s*&&[^;]{0,40}?<TestTag\s*\/>/);
+      it(`${view}: is_seed is resolved and test rows never render`, () => {
+        for (const f of rule.render) expect(code(f), f).not.toMatch(/TestTag/);
         for (const f of rule.resolve) expect(code(f), f).toMatch(RESOLVES_SEED);
+        for (const f of rule.drop ?? rule.resolve) expect(code(f), f).toMatch(DROPS_SEED);
       });
     } else if (rule.kind === "filters") {
       it(`${view}: every profiles/jobs read excludes seed rows`, () => {
@@ -135,14 +139,14 @@ describe("Q233: every admin view filters or tags seed rows", () => {
     }
   }
 
-  it("the home page counts real rows and names the seed ones beside them", () => {
+  it("the home page counts real rows only (owner 2026-10-27: no test side)", () => {
     const admin = code("src/pages/admin/Admin.tsx");
     const start = admin.indexOf("const loadStats");
     const statsBody = admin.slice(start, admin.indexOf("setStats(", start));
     // One query = from `supabase.from("jobs"|"profiles")` up to the next `supabase.`.
     const reads = statsBody.split("supabase.").filter((q) => /^from\("(profiles|jobs)"\)/.test(q));
-    expect(reads.length).toBe(18); // exact (2026-09-25): a new stat read raises this
-    for (const r of reads) expect(r, r.slice(0, 120)).toMatch(/\.eq\("is_seed", (false|true)\)/);
+    expect(reads.length).toBe(15); // exact (2026-10-27, the three test-side reads removed): a new stat read raises this
+    for (const r of reads) expect(r, r.slice(0, 120)).toMatch(/\.eq\("is_seed", false\)/);
   });
 });
 

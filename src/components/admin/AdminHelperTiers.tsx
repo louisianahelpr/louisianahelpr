@@ -13,8 +13,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { report } from "@/lib/errorLogger";
-import { TestTag } from "@/components/admin/TestTag";
-import { fetchSeedUserIds } from "@/components/admin/seedRows";
+import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 
 interface HelperTier {
   user_id: string;
@@ -88,7 +87,7 @@ const AdminHelperTiers = () => {
       // failed RPC as the query's error state (isError), handled in render.
       const rows = ((unwrap(await supabase.rpc("get_helper_tiers", { p_limit: 50 })) as HelperTier[]) || []);
       const seed = await fetchSeedUserIds(rows.map((r) => r.user_id));
-      return rows.map((r) => ({ ...r, is_seed: seed.has(r.user_id) }));
+      return withoutTestRows(rows.map((r) => ({ ...r, is_seed: seed.has(r.user_id) })));
     },
   });
 
@@ -183,7 +182,7 @@ const AdminHelperTiers = () => {
                     <p className="font-semibold text-ds-13 text-foreground truncate">
                       {formatName(helper.full_name, "—")}
                     </p>
-                    {helper.is_seed && <TestTag />}
+                    
                     <Badge className={`${color} text-ds-10 gap-0.5`}>
                       <Icon className="w-3 h-3" /> {helper.tier}
                     </Badge>

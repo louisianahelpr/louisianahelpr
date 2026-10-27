@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { withoutTestRows } from "@/components/admin/seedRows";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Crown, Clock, Users, X } from "lucide-react";
@@ -11,8 +12,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
-import { TestTag } from "@/components/admin/TestTag";
-import { withTestCount } from "@/components/admin/dashboard/types";
 
 interface SubscribedProfile {
   user_id: string;
@@ -43,7 +42,7 @@ const AdminSubscriptions = () => {
         .is("subscription_tier", null)
         .not("subscription_expires_at", "is", null));
 
-      return [...(data || []), ...(expiredData || [])];
+      return withoutTestRows([...(data || []), ...(expiredData || [])]);
     },
   });
 
@@ -68,24 +67,17 @@ const AdminSubscriptions = () => {
     return true;
   });
 
-  // Q233: the stat tiles count real subscribers and name the seed ones beside
-  // them, the same "N (+M test)" the admin home uses (Q368); the list below
-  // keeps every row and tags the seed ones.
-  const countOf = (status: "active" | "expired") => {
-    const rows = allProfiles.filter(p => getStatus(p) === status);
-    const test = rows.filter(p => p.is_seed).length;
-    return withTestCount(rows.length - test, test);
-  };
+  const countOf = (status: "active" | "expired") =>
+    allProfiles.filter(p => getStatus(p) === status).length.toLocaleString();
   const activeCount = countOf("active");
   const expiredCount = countOf("expired");
-  const tierTally: Record<string, { real: number; test: number }> = {};
+  const tierTally: Record<string, number> = {};
   allProfiles.filter(p => getStatus(p) === "active").forEach(p => {
     const t = p.subscription_tier || "unknown";
-    tierTally[t] ??= { real: 0, test: 0 };
-    tierTally[t][p.is_seed ? "test" : "real"] += 1;
+    tierTally[t] = (tierTally[t] ?? 0) + 1;
   });
   const tierCounts: Record<string, string> = Object.fromEntries(
-    Object.entries(tierTally).map(([t, c]) => [t, withTestCount(c.real, c.test)]),
+    Object.entries(tierTally).map(([t, n]) => [t, n.toLocaleString()]),
   );
 
   if (isInitialLoading) {
@@ -203,7 +195,7 @@ const AdminSubscriptions = () => {
           return (
             <div key={p.user_id} className="rounded-ds-md border border-border/60 bg-background/40 p-4 flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-ds-13 font-medium text-foreground flex items-center gap-2">{p.full_name || "No name"}{p.is_seed && <TestTag />}</p>
+                <p className="text-ds-13 font-medium text-foreground flex items-center gap-2">{p.full_name || "No name"}</p>
                 <p className="text-ds-11 text-muted-foreground">{p.email}</p>
               </div>
               <div className="flex items-center gap-2">

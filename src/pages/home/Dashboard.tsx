@@ -343,11 +343,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: ReactNode }) => {
     <div className="flex flex-col gap-4">
       {embeddedHeader}
       {/* The same 46px row box as Posted / Working's chip row (jobsToolbar.ts, owner 2026-10-27). */}
-      {!isWebDesktop && (
-        <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
-          <div className="min-w-0 flex-1"><BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} /></div>
-        </div>
-      )}
+      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
+        <div className="min-w-0 flex-1"><BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} /></div>
+      </div>}
     </div>
   );
 

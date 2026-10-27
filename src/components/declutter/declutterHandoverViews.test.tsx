@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} who={who} onProblem={() => setProblemOpen(true)} />} |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home") { |     if (true) {
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
@@ -28,6 +28,8 @@ const state = {
   payouts: [] as unknown[],
   calls: [] as unknown[][],
   handover: null as Record<string, unknown> | null,
+  /** Q2425: the spot frozen on a meetup order (declutter_order_meetups). */
+  meetup: null as Record<string, unknown> | null,
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -58,6 +60,14 @@ vi.mock("@/lib/declutter/handover", () => ({
   leaveReview: async (...a: unknown[]) => { state.calls.push(["review", ...a]); return "r1"; },
 }));
 
+// Q2425: the meetup reads and the check-in.
+vi.mock("@/lib/declutter/meetup", () => ({
+  fetchOrderMeetup: async () => state.meetup,
+  meetupHere: async (...a: unknown[]) => { state.calls.push(["here", ...a]); return "here"; },
+  meetupMapUrl: (m: { spot_lat: number; spot_lng: number }) => `https://maps.apple.com/?ll=${m.spot_lat},${m.spot_lng}`,
+  chooseMeetupSpot: async () => undefined,
+}));
+
 // Boards 159/160 name the other person; the name read has its own test (declutterReviewForm.test.tsx).
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 
@@ -84,6 +94,44 @@ const line = (over: Record<string, unknown> = {}) => ({
 const slot = (minsAgo: number) => ({
   order_id: "o1", slot_start: new Date(Date.now() - minsAgo * 60_000).toISOString(),
   slot_end: new Date(Date.now() - minsAgo * 60_000 + 30 * 60_000).toISOString(), porch_mode: null, porch_until: null,
+});
+
+describe("Q2425: a safe-spot meetup order", () => {
+  beforeEach(() => {
+    state.calls = [];
+    state.payouts = [];
+    state.handover = null;
+    state.meetup = { order_id: "o1", spot_name: "BRPD Safe Exchange Zone", spot_address: "9000 Airline Hwy, Baton Rouge",
+      spot_lat: 30.46, spot_lng: -91.14, buyer_here_at: null, seller_here_at: null };
+  });
+
+  it("the buyer sees the public spot and a map link, never the seller's home address; I'm here from an hour before", async () => {
+    state.bookings = [slot(-30)]; // the meeting is in 30 minutes
+    show([line({ handover: "meetup" })]);
+    expect(await screen.findByText("BRPD Safe Exchange Zone")).toBeInTheDocument();
+    expect(screen.getByText(/Meet at a safe spot · You're buying/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open in Maps/ }).getAttribute("href")).toContain("30.46,-91.14");
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />} |           {order.side === "buyer" && <PickupAddresses lines={order.lines} />}
+    // Let every read on the card settle before asserting the address is absent.
+    await new Promise((r) => setTimeout(r, 100));
+    expect(screen.queryByText(/1234 Example St/)).toBeNull();
+    expect(screen.getByText("The seller hasn't checked in yet.", { exact: false })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "I'm here" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["here", "o1"]));
+  });
+
+  it("more than an hour before: no I'm here button yet; the seller can mark it Picked up once the time comes", async () => {
+    state.bookings = [slot(-180)];
+    show([line({ handover: "meetup", my_side: "seller" })]);
+    expect(await screen.findByText(/You can tap "I'm here" from an hour before the meeting time/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I'm here" })).toBeNull();
+  });
+
+  it("at the meeting time the seller gets Picked up, as at the door", async () => {
+    state.bookings = [slot(5)];
+    show([line({ handover: "meetup", my_side: "seller" })]);
+    expect(await screen.findByRole("button", { name: "Picked up" })).toBeInTheDocument();
+  });
 });
 
 describe("Declutter slice 4: paid-order cards", () => {

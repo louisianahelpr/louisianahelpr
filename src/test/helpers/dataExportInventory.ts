@@ -166,6 +166,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_seller_deliveries: { by: ["buyer_id", "seller_id"] },
   // Helpr Guarantee (20261027200455, exported by 20261027223332): each request either side is on.
   job_guarantee_claims: { by: ["poster_id", "helper_id"] },
+  // Safe meetup spots (20261027204500, exported by 20261027233614, Q2451): the buyer's own pick per seller.
+  declutter_meetup_choices: { by: ["buyer_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
@@ -272,6 +274,12 @@ export const EXTRA_SECTIONS: Record<string, { table: string; scope: string; stri
   // Board 141, Declutter side (20261026155252): refund requests on the member's own sales (no person column; the buyer's words).
   declutter_refund_requests: {
     table: "declutter_refund_requests",
+    scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
+    stripped: [],
+    noPersonColumn: true,
+  },  // Q2451 (20261027233614): the meeting spot of each order the member is a side of (no person column; a public place).
+  declutter_order_meetups: {
+    table: "declutter_order_meetups",
     scope: "WHERE EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = t.order_id AND v_uid IN (o.buyer_id, o.seller_id))",
     stripped: [],
     noPersonColumn: true,
@@ -583,6 +591,8 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "payment_fingerprints.user_id": { reason: "Q1324: ban-evasion data, salted hashes of Stripe card/bank fingerprints (no card or account details); the cards and accounts themselves are the person's own in Stripe, and listing which are fingerprinted would show a banned person which payment method to swap" },
   "dispute_settlement_claims.claimed_by": { reason: "transient settlement lock held by staff or a function, not the person's data" },
   "marketing_content.created_by": { reason: "staff-only marketing drafts" },
+  "declutter_meetup_choices.seller_id": { reason: "Q2451 (20261027204500, exported by 20261027233614): which seller a BUYER's pick of a meeting spot is for; the pick is the buyer's own until checkout and the seller never sees it, so it is exported to the buyer only. The order's agreed spot is exported to both sides (declutter_order_meetups)" },
+  "declutter_meetup_spots.created_by": { reason: "Q2425 (20261027204500): the admin who added a public meetup spot (a police lot, a store); staff curation, not member data; each save is also in admin_audit_log" },
   "marketing_content.generated_by": { reason: "staff-only marketing drafts" },
   "marketing_settings.updated_by": { reason: "staff-only settings row" },
   "platform_settings.updated_by": { reason: "staff-only settings row" },

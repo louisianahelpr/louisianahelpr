@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady)} |         disabled={opening \|\| (sellerDelivering && !sdReady)}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={opening \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
@@ -55,6 +55,9 @@ const state = {
   /** declutter_seller_delivery (20261027153244), read on its own. */
   sellerDeliveryOn: false,
   sdOffer: null as unknown,
+  /** Q2425: the safe meetup spots near this cart (declutter_meetup_spots_near) and the chosen spot ids. */
+  spots: [] as { id: string; name: string; address: string; parish: string; kind: "police" | "store" | "other"; note: string | null; miles: number | null; chosen: boolean }[],
+  chosenSpots: [] as string[],
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
@@ -72,6 +75,10 @@ vi.mock("@/lib/declutter/delivery", () => ({
   },
 }));
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("@/lib/declutter/meetup", () => ({
+  fetchMeetupSpotsNear: async () => state.spots.map((sp) => ({ ...sp, chosen: state.chosenSpots.includes(sp.id) })),
+  chooseMeetupSpot: async (_seller: string, spotId: string) => { state.chosenSpots = [spotId]; },
+}));
 vi.mock("@/lib/declutter/api", () => ({
   fetchMyCard: async () => state.card,
   fetchMyActiveStrikes: async () => state.strikes,
@@ -158,6 +165,8 @@ describe("Declutter slice 3 screens", () => {
     state.quotes = [];
     state.sellerDeliveryOn = false;
     state.sdOffer = null;
+    state.spots = [];
+    state.chosenSpots = [];
   });
 
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
@@ -445,6 +454,40 @@ describe("Declutter slice 3 screens", () => {
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+    state.deliveryOn = false;
+  });
+
+  it("Q2425: a safe meetup spot is offered only when one is near; Pay waits for a spot; checkout sends 'meetup'", async () => {
+    state.deliveryOn = true;
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    state.spots = [
+      { id: "sp1", name: "BRPD Safe Exchange Zone", address: "9000 Airline Hwy, Baton Rouge", parish: "East Baton Rouge", kind: "police", note: "Lit lot, cameras", miles: 0.9, chosen: false },
+      { id: "sp2", name: "Busy grocery lot", address: "1 Main St, Baton Rouge", parish: "East Baton Rouge", kind: "store", note: null, miles: 2.4, chosen: false },
+    ];
+    show(<CartView />);
+    await waitFor(async () => expect((await screen.findAllByRole("radio")).map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "meetup", "delivery"]));
+    fireEvent.click(screen.getByLabelText(/Meet at a safe spot/));
+    expect(screen.getByText("BRPD Safe Exchange Zone")).toBeInTheDocument();
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const meetupReady = !meetingUp \|\| spotsNear.some((s) => s.chosen); |   const meetupReady = true;
+    expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/BRPD Safe Exchange Zone/));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeEnabled());
+    expect(state.chosenSpots).toEqual(["sp1"]);
+    fireEvent.click(screen.getByRole("button", { name: "Pay $3.85" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "meetup" }]));
+    state.deliveryOn = false;
+  });
+
+  it("Q2425: no spot near, no meetup choice", async () => {
+    state.deliveryOn = true;
+    state.cart = [{ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true }];
+    show(<CartView />);
+    const radios = await screen.findAllByRole("radio");
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | ...(spotsNear.length > 0 ? ["meetup" as const] : []), | "meetup" as const,
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "delivery"]);
     state.deliveryOn = false;
   });
 

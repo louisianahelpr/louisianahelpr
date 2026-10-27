@@ -59,6 +59,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
   ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
+  ('declutter_meetup_spot_near_lines','allow', 'is this meetup spot near every one of these cart lines (Q2425, 20261027204500): TRUE lets checkout freeze the spot'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('payout_setup_hire_allowed',     'allow',    'may this member open a payout account: chosen for a job that holds money, or owed money (owner 2026-10-25, 20261025162003)'),
@@ -280,6 +281,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_payout_unsent',       NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   ('declutter_problem_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
+  -- Q2425: spot S (the 'meetup' step) is active and beside item I, whose line is in B's cart (the 'declutter' step).
+  ('declutter_meetup_spot_near_lines', NULL, ARRAY['''00000000-0000-4000-8140-000000000701''::uuid', 'ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.item_id = ''00000000-0000-4000-8140-000000000301''::uuid)'], ARRAY[1,2]),
   ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
   -- A and B are both real (not test) accounts.
   ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
@@ -318,7 +321,7 @@ BEGIN
   -- with triggers on, the admin-role guard refuses a non-service_role grant and
   -- the application notifier's pg_net call dies on a NULL url.
   FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
-                              'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows',
+                              'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows', 'public.declutter_meetup_spots',
                               'public.declutter_orders', 'public.declutter_payouts', 'public.shops', 'public.feature_switches'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
@@ -326,7 +329,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'delivery', 'handed_over', 'rentals', 'bucket', 'objects', 'shop']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'rentals', 'bucket', 'objects', 'shop']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -384,6 +387,13 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000311', '00000000-0000-4000-8140-00000000000d', 'live', '[q140] chair',
                            'furniture', 3, 'small', 1000, 1000, 'Metairie', 29.98, -90.15)$q$;
           EXECUTE $q$UPDATE public.feature_switches SET audience = 'testers' WHERE key = 'declutter'$q$;
+        END IF;
+      WHEN 'meetup' THEN
+        -- Q2425 (20261027204500): spot S, an active public place beside item I (to_regclass: before it there are no spots).
+        IF to_regclass('public.declutter_meetup_spots') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_meetup_spots (id, parish, name, address, lat, lng, kind, active)
+                   VALUES ('00000000-0000-4000-8140-000000000701', 'Jefferson', '[q140] safe exchange', '1 Test St, Metairie, LA',
+                           29.98, -90.15, 'police', true)$q$;
         END IF;
       WHEN 'delivery' THEN
         -- Slice 5 (20261017055505): order O, B's PAID delivery order from seller A (paid now: the 7-day

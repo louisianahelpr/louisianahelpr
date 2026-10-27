@@ -47,17 +47,7 @@ import { DeclutterQuestions } from "./DeclutterQuestions";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
-import { shareNative } from "@/lib/nativeShare";
-import { getPublicOrigin } from "@/lib/authRedirects";
-
-/** Share (native sheet, else copy the link): the item's own address, never a filler page. */
-function shareItem(it: { id: string; title: string; current_price_cents: number }) {
-  void shareNative({
-    title: it.title,
-    text: `${it.title} · ${itemPriceLabel(it.current_price_cents)} on Louisiana Helpr`,
-    url: `${getPublicOrigin()}/declutter/item/${it.id}`,
-  });
-}
+import { shareListing } from "./DeclutterShareCard";
 
 /** One label / value row of the details list. */
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -138,7 +128,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             type="button"
             aria-label="Share this item"
             className="w-11 h-11 rounded-full border border-border flex items-center justify-center"
-            onClick={() => shareItem(it)}
+            onClick={() => shareListing(it)}
           >
             <Share2 className="w-5 h-5" aria-hidden />
           </button>

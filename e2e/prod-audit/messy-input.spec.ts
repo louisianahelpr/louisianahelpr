@@ -345,21 +345,21 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     await page.waitForTimeout(400);
     expect(signup).toHaveLength(0);
     await expect(page.locator("#signup-email-error, #signup-password-error").first()).toBeVisible();
-    await expect(page.locator("#firstName")).toHaveCount(0);
+    await expect(page.locator("#zipCode")).toHaveCount(0); // still on step 1
     await assertHealthy(page, info, "signup-step1-bad");
     await ctx.close();
   });
 
-  // Step 2 asks name, city and ZIP only since 2026-10-09 (owner; c34c5fee5): no
-  // phone, no birthday. Step 1's 18+ box (#policies, ticked in this form's
+  // Step 2 is photo, city, ZIP, bio and referral code, all optional (owner
+  // 2026-10-26; names moved to step 1): no phone, no birthday. Step 1's 18+ box (#policies, ticked in this form's
   // prepare) is the age gate complete-signup accepts. Pinned on the app side by
   // src/test/signupStepTwoIsShort.test.ts; every `#id` this file drives must
   // exist in src/ (src/test/messyInputApplicantNames.test.ts).
   scoped("signup step 2: asks no birthday or phone (step 1's 18+ box is the age gate); a 4-digit ZIP is refused inline; nothing is sent", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "signup-step2")!);
     const signup = watchWrites(page, /\/auth\/v1\/signup/);
-    await expect(page.locator("#firstName"), "step 2 did not open").toBeVisible({ timeout: 10_000 });
-    await expect(page.locator("#dob, #phone"), "step 2 asks a birthday or phone again (owner, 2026-10-09: name, city and ZIP only)").toHaveCount(0);
+    await expect(page.locator("#zipCode"), "step 2 did not open").toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("#dob, #phone"), "step 2 asks a birthday or phone again (owner, 2026-10-09)").toHaveCount(0);
     await page.locator("#zipCode").fill("1234");
     await page.locator("#zipCode").press("Tab");
     await page.getByRole("button", { name: /create account|sign up|continue|finish/i }).last().click().catch(() => {});

@@ -58,6 +58,7 @@ function Harness({ onContinue, initial }: { onContinue: () => void; initial: str
   return (
     <MemoryRouter>
       <SignupStep1
+        firstName="Ann" setFirstName={() => {}} lastName="Lee" setLastName={() => {}}
         email={email} setEmail={setEmail} password={password} setPassword={setPassword}
         showPassword={show} setShowPassword={setShow}
         acceptedPolicies={policies} setAcceptedPolicies={setPolicies}

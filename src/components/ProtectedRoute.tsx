@@ -82,6 +82,7 @@ type GateProfile = {
   age_attested_at?: string | null;
   phone?: string | null;
   location?: string | null;
+  accepted_terms_at?: string | null;
   is_legacy_user?: boolean | null;
 };
 
@@ -99,7 +100,12 @@ const PROFILE_GATE_FIELDS = [
   // "we don't use" it). date_of_birth is not a gate field either (owner,
   // 2026-10-14 ~3 PM CT): Google/Apple sign-ups tick the 18+ box on Complete
   // Profile instead; see isProfileComplete.
-  { key: "location", label: "City" },
+  // City left the gate 2026-10-27 (owner 2026-10-26: sign-up screen 2 is
+  // optional, with "Skip for now"; Complete Profile asks it as optional too).
+  // A gate field the form lets you skip is the redirect loop described below.
+  // What the city ALSO meant (only complete-signup or Complete Profile wrote
+  // it, so a sign-up whose completion failed had none) is now asked directly:
+  // see signupFinished below.
   // Government-issued ID is intentionally NOT a gate field. CompleteProfile
   // makes it optional (identity verification is deferred to first-post / IDV),
   // so requiring it here trapped freshly-completed profiles in a redirect loop
@@ -142,9 +148,24 @@ const filled = (v: string | null | undefined): boolean => typeof v === "string" 
  *     gave a birthday there instead, and is not sent back to tick a box.
  * A saved birthday under 18 still greys out Apply and Post (useAgeGate).
  */
+/**
+ * The sign-up was FINISHED: complete-signup or Complete Profile ran. Both write
+ * accepted_terms_at (the first-ever consent; handle_new_user leaves it NULL,
+ * and the re-consent dialog writes only terms_accepted_at), and before
+ * 2026-09-01 they were the only writers of the city. Without this, an email
+ * sign-up whose completion failed (10 of 296 sign-ups, 2026-09-27..10-27,
+ * error_logs Signup.completeProfile) has a name from the signUp metadata and
+ * would skip /complete-profile, losing its referral and marketing choice.
+ * Measured on prod 2026-10-27: of 299 non-legacy profiles with a name, this
+ * changes the answer for none (62 with a city and no accepted_terms_at stay
+ * complete; the 1 with neither stays incomplete).
+ */
+const signupFinished = (profile: GateProfile): boolean => filled(profile.location) || filled(profile.accepted_terms_at);
+
 export const isProfileComplete = (profile: GateProfile | null, user: GateUser): boolean => {
   if (!profile) return false;
   if (!PROFILE_GATE_FIELDS.every((f) => isFieldComplete(profile, f.key))) return false;
+  if (!signupFinished(profile)) return false;
   if (user?.app_metadata?.provider === "email") return true;
   return filled(profile.age_attested_at) || filled(profile.date_of_birth);
 };

@@ -382,6 +382,9 @@ export const FORMS: FormSpec[] = [
     name: "signup-step2", url: "/signup", as: null,
     prepare: async (page) => {
       // Step 2 is gated on a well-formed step 1; nothing is sent until the final step.
+      // First and last name are on step 1 since 2026-10-27 (owner 2026-10-26).
+      await page.locator("#firstName").fill("Messy");
+      await page.locator("#lastName").fill("Prodaudit");
       await page.locator("#email").fill("messy.prodaudit@example.com");
       await page.locator("#password").fill("Sturdy-passw0rd-123");
       // A HARD GATE (SignupStep1.handleContinue): ONE box (#policies, board 55)
@@ -399,9 +402,9 @@ export const FORMS: FormSpec[] = [
       }
       await page.getByRole("button", { name: /continue|next/i }).first().click();
       // Say WHICH gate held, instead of surfacing three steps later as a
-      // missing #firstName.
+      // missing #zipCode.
       await expect(
-        page.locator("#firstName"),
+        page.locator("#zipCode"),
         "step 1 did not advance to step 2 — email/password accepted and both consent boxes checked, " +
           "so a new required control was added to SignupStep1",
       ).toBeVisible({ timeout: 15_000 });

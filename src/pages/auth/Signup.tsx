@@ -96,7 +96,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [location, setLocation] = useState("");
-  // ZIP is REQUIRED (owner, 2026-09-05) — see the validator below. It resolves
+  // ZIP is optional (owner 2026-10-26); a typed one must be 5 digits. It resolves
   // the member's parish, which is what drives job-match notifications, the
   // daily digest, and Louisiana sales tax. Digits only, mirrors
   // ProfileEditForm's own zipCode input.
@@ -165,25 +165,13 @@ const Signup = () => {
   const validateAboutYouStep = async () => {
     const errors: Record<string, string> = {};
 
-    if (!firstName.trim()) errors.firstName = "Add your first name";
-    if (!lastName.trim()) errors.lastName = "Add your last name";
-    // Photo, phone and birthday are NOT collected here (owner, 2026-10-09:
-    // sign-ups were stopping at step 2), and nothing asks for them before an
-    // Apply or a Post (owner, 2026-10-14: "no later prompt"); they are optional
-    // on the profile. Step 1's 18+ box is the age gate (ageAttested).
-    // City is REQUIRED (owner decision 2026-08-29) — collecting it here means
-    // an email signup satisfies the full CompleteProfile gate (name, city;
-    // photo, phone and birthday left the gate 2026-10-09) and skips /complete-profile entirely; only Google/
-    // Apple sign-ins, which never see this step, still land on it.
-    if (!location.trim()) errors.location = "Add your city";
-    // ZIP is REQUIRED as of 2026-09-05 (owner). It is the ONLY input that
-    // resolves a parish, and parish drives helper job-match notifications, the
-    // daily digest, and Louisiana sales tax. An account without one works
-    // everywhere except the places that quietly matter most.
+    // Every field on this screen is optional (owner 2026-10-26, the final
+    // sign-up ask: screen 2 is photo, city, ZIP, bio and referral code, all
+    // optional, with "Skip for now"). The names moved to step 1. A typed ZIP
+    // must still be five digits: a half one would resolve no parish.
     {
       const zip = zipCode.replace(/\D/g, "");
-      if (!zip) errors.zipCode = "Add your ZIP code";
-      else if (zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";
+      if (zip && zip.length !== 5) errors.zipCode = "Enter a 5-digit ZIP code";
     }
     // Bio is optional — but if the user starts one, keep the 20-char floor so
     // a half-typed sentence doesn't ship as their whole profile.
@@ -209,6 +197,8 @@ const Signup = () => {
 
   // Validates the "Account credentials + agreements" content (UI step 1).
   const validateAccountStep = async () => {
+    if (!firstName.trim()) { toast.error("Add your first name."); return false; }
+    if (!lastName.trim()) { toast.error("Add your last name."); return false; }
     if (!email.trim()) { toast.error("Add your email address."); return false; }
     // The password rules must match the Supabase project's policy exactly.
     // They did not: the project requires a lowercase letter, an uppercase
@@ -235,22 +225,28 @@ const Signup = () => {
     return true;
   };
 
-  const completeProfile = async (userId: string, gaveUp?: AbortSignal) => {
+  // The code a ?ref= share link brought in: the one referral "Skip for now"
+  // keeps (a code typed into step 2's field is part of what was skipped).
+  const linkReferralCode = (searchParams.get("ref") || "").trim().toUpperCase();
+
+  // `skipped`: "Skip for now" on step 2, so none of that screen's fields
+  // (photo, city, ZIP, bio, a typed referral code) are sent.
+  const completeProfile = async (userId: string, gaveUp: AbortSignal | undefined, skipped: boolean) => {
     // The photo is optional: a failed read must not stop the profile write,
     // which runs after the account already exists (CC-006).
     let avatarBase64: string | null = null;
-    if (avatarFile) {
+    if (avatarFile && !skipped) {
       try {
         avatarBase64 = await fileToBase64(avatarFile);
       } catch {
         toast.error("We couldn't read your photo. You can add one later from your profile.");
       }
     }
-    const avatarExt = avatarFile ? avatarFile.name.split(".").pop() : null;
+    const avatarExt = avatarFile && !skipped ? avatarFile.name.split(".").pop() : null;
     // Reuse the already-resolved value from the live effect above rather
     // than re-querying — it tracks zipCode exactly, so it's always current
     // by the time a user reaches this step.
-    const parish = resolvedZipParish;
+    const parish = skipped ? null : resolvedZipParish;
 
     // The optional profile extras that used to be collected on Step 3 are
     // handled two different ways now, and the difference matters:
@@ -265,11 +261,11 @@ const Signup = () => {
         userId,
         avatarBase64,
         avatarExt,
-        avatarContentType: avatarFile?.type,
-        bio,
-        location,
-        // Required now — the validator above guarantees 5 digits.
-        zipCode: zipCode.trim(),
+        avatarContentType: skipped ? undefined : avatarFile?.type,
+        bio: skipped ? "" : bio,
+        location: skipped ? "" : location,
+        // Optional (owner 2026-10-26); when typed, the validator guarantees 5 digits.
+        zipCode: skipped ? "" : zipCode.trim(),
         parish,
         // Explicit marketing-email consent captured at signup. Defaults to
         // false server-side; passing it here lets a user who ticked the box
@@ -291,7 +287,7 @@ const Signup = () => {
         // Normalised here as well as server-side: process_referral already
         // upper-cases and trims, so casing/whitespace must never be the reason
         // a hand-typed code fails. Empty stays null — never an empty string.
-        referralCode: referralCode.trim().toUpperCase() || null,
+        referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) || null,
       },
     }), undefined, gaveUp);
 
@@ -316,7 +312,7 @@ const Signup = () => {
     return result;
   };
 
-  const createAccountAndFinish = async () => {
+  const createAccountAndFinish = async (skipped: boolean) => {
     hapticMedium();
     setLoading(true);
 
@@ -379,7 +375,7 @@ const Signup = () => {
       let result: Awaited<ReturnType<typeof completeProfile>>;
       try {
         const gaveUp = new AbortController(); // aborted when the 60 s wait gives up, so a pending second send never goes out after it (Q1810)
-        result = await withTimeout(completeProfile(userId, gaveUp.signal), "Finishing your account").finally(() => gaveUp.abort());
+        result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), "Finishing your account").finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
         if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }
@@ -475,6 +471,21 @@ const Signup = () => {
   // Match the Login screen's field styling exactly so the two auth screens
   // read as one set. (The `pl-10`/`pr-10` icon padding is appended at each
   // call site, mirroring Login.)
+  // Step 2's two ways out, one single-flight path (OA-002): "Create account"
+  // checks the optional fields' format first; "Skip for now" sends none of them.
+  const finishStep2 = async (skip: boolean) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    try {
+      if (!skip && !(await validateAboutYouStep())) return;
+      setStep2Errors({});
+      track(AhaEvent.SignupStepCompleted, { step: 2, ...(skip ? { skipped: true } : {}), ...ppoTrackingProps() });
+      await createAccountAndFinish(skip);
+    } finally {
+      submittingRef.current = false;
+    }
+  };
+
   const inputCls =
     "rounded-ds-md text-ellipsis bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]";
   const labelCls = "text-ds-13 font-sans font-medium";
@@ -537,9 +548,6 @@ const Signup = () => {
           <SignupStep2
             avatarPreview={avatarPreview}
             onAvatarChange={handleAvatarChange}
-            firstName={firstName} setFirstName={setFirstName}
-            lastName={lastName}
-            setLastName={setLastName}
             location={location}
             setLocation={setLocation}
             zipCode={zipCode}
@@ -556,18 +564,8 @@ const Signup = () => {
             fieldErrors={step2Errors}
             clearFieldError={(key) => setStep2Errors((prev) => { const next = { ...prev }; delete next[key]; return next; })}
             loading={loading}
-            onContinue={async () => {
-              if (submittingRef.current) return;
-              submittingRef.current = true;
-              try {
-                if (!(await validateAboutYouStep())) return;
-                setStep2Errors({});
-                track(AhaEvent.SignupStepCompleted, { step: 2, ...ppoTrackingProps() });
-                await createAccountAndFinish();
-              } finally {
-                submittingRef.current = false;
-              }
-            }}
+            onContinue={() => finishStep2(false)}
+            onSkip={() => finishStep2(true)}
           />
           </>
         )}
@@ -575,6 +573,10 @@ const Signup = () => {
         {/* Step 1: Account credentials + agreements */}
         {step === 1 && (
           <SignupStep1
+            firstName={firstName}
+            setFirstName={setFirstName}
+            lastName={lastName}
+            setLastName={setLastName}
             email={email}
             setEmail={setEmail}
             password={password}

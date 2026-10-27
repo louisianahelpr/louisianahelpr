@@ -85,17 +85,17 @@ test(guestTitle, async ({ browser, journey }) => {
   const page = journey.track("guest", await ctx.newPage());
   await test.step("signup step 2: every ✓-bearing field shows its value", async () => {
     await page.goto("/signup");
+    // First and last name are on step 1 since 2026-10-27 (owner 2026-10-26).
+    await page.locator("#firstName").fill("Marguerite");
+    await page.locator("#lastName").fill("Thibodeaux-Broussard");
     await page.locator("#email").fill(`trailing-icon-${Date.now()}@example.com`);
     await page.locator("#password").fill("Ti!journey12345");
     // ONE consent box (board 55) records the agreement and the 18+ attestation.
     await page.locator("#policies").click();
     await page.getByRole("button", { name: /continue/i }).first().click();
-    await expect(page.locator("#firstName")).toBeVisible({ timeout: 30_000 });
-    await page.locator("#firstName").fill("Marguerite");
-    await page.locator("#lastName").fill("Thibodeaux-Broussard");
-    // No phone here since c34c5fee5 (owner, 2026-10-09): step 2 is name, city
-    // and ZIP; phone and birthday are not asked before Apply or Post either
-    // (owner, 2026-10-14: the later prompt was removed).
+    await expect(page.locator("#location")).toBeVisible({ timeout: 30_000 });
+    // Step 2 is photo, city, ZIP, bio and referral code, all optional (owner
+    // 2026-10-26); no phone or birthday.
     await page.locator("#location").fill("Lafayette, LA");
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
@@ -148,7 +148,7 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
 // what the ✓ actually covers (right-3 + w-4 = 28px). `pr-8` (32px) clears the
 // icon by 4px; `pr-16` (64px) clears it by 36px, which is the "padded past the
 // icon — starves the field" leg — the exact shape that left 29px for five ZIP
-// digits at ≤430. Last name is the field the guest leg always renders a ✓ on
-// ("Thibodeaux-Broussard" is valid the moment it is typed), so the mutation is
-// reachable without depending on a parish lookup for the ZIP.
-// @mutate src/pages/auth/signup/SignupStep2.tsx | lastNameValid && !fieldErrors.lastName ? " pr-8" : "" | lastNameValid && !fieldErrors.lastName ? " pr-16" : ""
+// digits at ≤430. City is the step-2 field the guest leg always renders a ✓ on
+// ("Lafayette, LA" is valid the moment it is typed; the names moved to step 1
+// on 2026-10-27), so the mutation is reachable without a parish lookup.
+// @mutate src/pages/auth/signup/SignupStep2.tsx | locationValid && !fieldErrors.location ? " pr-8" : "" | locationValid && !fieldErrors.location ? " pr-16" : ""

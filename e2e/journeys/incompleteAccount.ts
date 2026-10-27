@@ -9,7 +9,8 @@ import { expect, rest, SUPABASE_URL, type Session } from "./fixtures";
  * on a field that is not there with nothing saying why.
  *
  * The gate (isProfileComplete, src/components/ProtectedRoute.tsx) is
- * full_name + location for an email sign-up (plus the 18+ box,
+ * full_name + a finished sign-up (a city, or accepted_terms_at, which only
+ * complete-signup and Complete Profile write; 2026-10-27) for an email sign-up (plus the 18+ box,
  * age_attested_at, or a pre-2026-10-14 birthday, for Google/Apple). The seed account used to be incomplete by having no avatar;
  * the avatar left the gate in 2943847db and phone in c34c5fee5 (both owner,
  * 2026-10-09), which made it complete, so e2e-journeys 37996630522 landed it

@@ -27,6 +27,11 @@ import {
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
 
 export interface SignupStep1Props {
+  /** First and last name, side by side, both required (owner 2026-10-26: names on screen 1). */
+  firstName: string;
+  setFirstName: (v: string) => void;
+  lastName: string;
+  setLastName: (v: string) => void;
   email: string;
   setEmail: (v: string) => void;
   password: string;
@@ -51,6 +56,10 @@ export interface SignupStep1Props {
 
 
 export function SignupStep1({
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
   email,
   setEmail,
   password,
@@ -81,6 +90,8 @@ export function SignupStep1({
   // no-op on the iOS soft keyboard, which never reports the modifier).
   const [capsLockOn, setCapsLockOn] = useState(false);
 
+  const firstNameRef = useRef<HTMLInputElement>(null);
+  const lastNameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
@@ -103,9 +114,19 @@ export function SignupStep1({
   // show one without the other.
   const emailError = (email.length > 0 && !emailValid) || (attempted && !email.trim());
   const passwordError = (password.length > 0 && !passwordValid) || (attempted && !password);
+  const firstNameError = attempted && !firstName.trim();
+  const lastNameError = attempted && !lastName.trim();
 
   const handleContinue = () => {
     setAttempted(true);
+    if (!firstName.trim()) {
+      firstNameRef.current?.focus();
+      return;
+    }
+    if (!lastName.trim()) {
+      lastNameRef.current?.focus();
+      return;
+    }
     if (!emailValid) {
       emailRef.current?.focus();
       return;
@@ -135,6 +156,18 @@ export function SignupStep1({
   // fully keyboard-drivable on web.
   const trackCaps = (e: KeyboardEvent<HTMLInputElement>) =>
     setCapsLockOn(e.getModifierState?.("CapsLock") ?? false);
+  const onFirstNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      lastNameRef.current?.focus();
+    }
+  };
+  const onLastNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      emailRef.current?.focus();
+    }
+  };
   const onEmailKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -169,8 +202,33 @@ export function SignupStep1({
       </div>
 
       <section className="space-y-3.5">
-        {/* No First name here (owner 2026-10-25): first and last name are asked
-            together on step 2 ("About you"). */}
+        {/* First and last name, side by side, both required (owner 2026-10-26,
+            final sign-up ask: screen 1 is names, email, password and the Terms
+            box; screen 2 is optional). They moved here from step 2. */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="firstName" className={labelCls}>First name</Label>
+            <Input ref={firstNameRef} id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} onKeyDown={onFirstNameKeyDown} required aria-required="true" autoComplete="given-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={firstNameError} aria-describedby={firstNameError ? "signup-firstName-error" : undefined}
+              className={`${inputCls} ${firstNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
+            {firstNameError && (
+              <p id="signup-firstName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                Add your first name
+              </p>
+            )}
+          </div>
+          <div className="space-y-2 min-w-0">
+            <Label htmlFor="lastName" className={labelCls}>Last name</Label>
+            <Input ref={lastNameRef} id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} onKeyDown={onLastNameKeyDown} required aria-required="true" autoComplete="family-name" autoCapitalize="words" enterKeyHint="next" aria-invalid={lastNameError} aria-describedby={lastNameError ? "signup-lastName-error" : undefined}
+              className={`${inputCls} ${lastNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
+            {lastNameError && (
+              <p id="signup-lastName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
+                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                Add your last name
+              </p>
+            )}
+          </div>
+        </div>
         <div className="space-y-2">
           {/* Single email field — confirm-email was removed since
               email-verification (the click-the-link step after signup)

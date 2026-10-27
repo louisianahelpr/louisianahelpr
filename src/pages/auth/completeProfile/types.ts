@@ -7,7 +7,8 @@
 export interface ProfileCompletionUpdates {
   full_name: string;
   bio: string;
-  location: string;
+  /** Optional (owner 2026-10-26); an empty field is not sent, so it never overwrites. */
+  location?: string;
   /** Optional — unlocks parish-based helper notifications + LA sales tax. */
   zip_code?: string;
   parish?: string | null;

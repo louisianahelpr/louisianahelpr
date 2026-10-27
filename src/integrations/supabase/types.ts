@@ -13184,6 +13184,28 @@ export type Database = {
       }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
+      declutter_item_link_visible: {
+        Args: { p_item_id: string }
+        Returns: boolean
+      }
+      declutter_meetup_rules: { Args: never; Returns: Json }
+      declutter_meetup_spot_near_lines: {
+        Args: { p_lines: string[]; p_spot_id: string }
+        Returns: boolean
+      }
+      declutter_miles_between: {
+        Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }
+        Returns: number
+      }
+      declutter_my_cart_lines: {
+        Args: { p_buyer: string; p_seller: string }
+        Returns: string[]
+      }
+      declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
+      declutter_public_photo_path: {
+        Args: { p_photo_id: string }
+        Returns: string
+      }
       declutter_active_strike_count: { Args: { p_user_id: string }; Returns: number }
       create_quote_request: {
         Args: {

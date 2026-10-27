@@ -11,7 +11,7 @@
  * @mutate src/components/mobileNav/mobileNavHelpers.ts | "/admin", "/post-job", "/declutter/sell"]; | "/admin", "/declutter/sell"];
  * @mutate src/pages/post-job/usePostJobForm.ts |     if (step === "entry" && entryPanel) { |     if (false) {
  * @mutate src/components/postjob/JobCategoryGroups.tsx | tile(it.value, categoryEmoji(it.value), it.label, | tile(it.value, "", it.label,
- * @mutate src/components/postjob/JobCategoryGroups.tsx | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
+ * @mutate src/lib/jobCategoryGroups.ts | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" }; | export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = {};
  */
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";

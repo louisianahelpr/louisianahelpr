@@ -70,7 +70,14 @@ export function resolveEarlyAccessTier(
  */
 export const MAX_EARLY_ACCESS_DELAY_MINUTES = 20;
 
-export function earlyAccessDelayMs(tier: string | null | undefined): number {
+/**
+ * `membershipsOn` false (the "memberships" switch is off for this viewer, owner
+ * 2026-10-27): nobody waits. The wait only exists so a paying tier can see jobs
+ * first; with memberships off it delayed every job 20 minutes for everyone.
+ * Mirrors public.early_access_delay_minutes() (20261027155019).
+ */
+export function earlyAccessDelayMs(tier: string | null | undefined, membershipsOn = true): number {
+  if (!membershipsOn) return 0;
   return earlyAccessWaitMinutes(tier) * 60 * 1000;
 }
 

@@ -79,9 +79,16 @@ function sqlEarnedMinutes(): Record<string, number> {
 describe("early-access delay — client/SQL parity", () => {
   it("uses the same 20-minute base on both sides", () => {
     expect(earlyAccessDelayMs(null)).toBe(20 * 60 * 1000);
-    expect(LADDER_BODY).toContain("SELECT 20 - COALESCE(");
+    expect(LADDER_BODY).toContain("ELSE 20 - COALESCE((");
     // The feed cutoff takes the caller's delay from the ladder, not a copy of it.
     expect(CUTOFF_BODY).toContain("make_interval(mins => public.early_access_delay_minutes((SELECT auth.uid())))");
+  });
+
+  it("memberships off means no wait at all, on both sides (owner 2026-10-27)", () => {
+    expect(earlyAccessDelayMs(null, false)).toBe(0);
+    expect(earlyAccessDelayMs("elite", false)).toBe(0);
+    expect(earlyAccessDelayMs(null, true)).toBe(20 * 60 * 1000);
+    expect(LADDER_BODY).toMatch(/SELECT CASE\s+WHEN NOT public\.feature_enabled_for_user\('memberships', p_user_id\) THEN 0\s+ELSE 20 - COALESCE\(\(/);
   });
 
   it("shaves the same minutes off per tier", () => {
@@ -179,3 +186,4 @@ describe("early-access delay — client/SQL parity", () => {
 // migration file. It proves the two agree; it cannot see a prod function that
 // drifted from its migration, and it does not execute either side.
 // @mutate src/lib/earlyAccess.ts | export const MAX_EARLY_ACCESS_DELAY_MINUTES = 20; | export const MAX_EARLY_ACCESS_DELAY_MINUTES = 0;
+// @mutate src/lib/earlyAccess.ts |   if (!membershipsOn) return 0; |   void membershipsOn;

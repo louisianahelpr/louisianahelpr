@@ -8,6 +8,7 @@ import { haversineMiles, parseNearbyFilter } from "@/lib/geo";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { sortJobsSmart, compareJobsBySortMode } from "@/lib/smartSort";
 import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 import { jobMatchesWhen, jobWhenRange } from "@/lib/jobWhenFilter";
@@ -286,6 +287,8 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     profile?.subscription_tier,
     profile?.subscription_expires_at,
   );
+  // Memberships off: no early-access wait for anyone (owner 2026-10-27).
+  const membershipsOn = useMembershipsOn();
 
   // Local "YYYY-MM-DD" for today — used to hide past-dated jobs. Built from
   // local date parts (not toISOString, which is UTC and would flip the day
@@ -389,7 +392,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // This is now a redundant client pre-filter in any case: the server
       // enforces it via `public.early_access_cutoff()`.
       const jobAge = Date.now() - new Date(job.created_at).getTime();
-      if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false;
+      if (jobAge < earlyAccessDelayMs(earlyAccessTier, membershipsOn)) return false;
       if (matchAvailability && helperAvailability.length > 0) {
         const jobDate = new Date(job.date_needed + "T12:00:00");
         const jobDow = jobDate.getDay();
@@ -451,7 +454,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         }
         default: return compareJobsBySortMode(a, b, sortBy, effectiveFee);
       }
-    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, whenRange, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions]);
+    }), [browsableJobs, userId, searchQuery, selectedCategory, minBudget, maxBudget, locationFilter, nearbyMiles, userLoc, expiresWithin, whenRange, earlyAccessTier, matchAvailability, helperAvailability, sortBy, boostedOnly, urgentOnly, profile?.parish, profile?.location, smartIndexByJobId, todayLocalDate, effectiveFee, viewerExclusions, membershipsOn]);
 
   // The same filter state, shaped for the Browse map. The map runs its own
   // (unpaginated) fetch against a narrow PII-safe row, so it can't reuse
@@ -474,7 +477,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       userLoc: userLoc.status === "ready" ? { lat: userLoc.lat, lng: userLoc.lng } : null,
       // Mirrors the list's early-access gate. Without it the map leaked
       // exactly the brand-new jobs the subscription perk exists to hold back.
-      earlyAccessDelayMs: earlyAccessDelayMs(earlyAccessTier),
+      earlyAccessDelayMs: earlyAccessDelayMs(earlyAccessTier, membershipsOn),
       // The map evaluates `matchAvailability` itself now (2026-09-21). It
       // needs only `date_needed` + `start_time`, which the map RPC has
       // returned since 20260823120000 — the filter was never unsupportable
@@ -518,6 +521,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     expiresWithin,
     jobWhen,
     earlyAccessTier,
+    membershipsOn,
     appliedJobIds: appliedIdsKey,
     blockedUserIds: blockedIdsKey,
     dismissedJobIds: dismissedIdsKey,
@@ -543,6 +547,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
     expiresWithin: "",
     jobWhen: "",
     earlyAccessTier,
+    membershipsOn,
     appliedJobIds: appliedIdsKey,
     blockedUserIds: blockedIdsKey,
     dismissedJobIds: dismissedIdsKey,

@@ -61,6 +61,8 @@ export interface DashboardJobsCountFilters {
   jobWhen?: string;
   /** Same resolver output useDashboardFilters/useDashboardData use — keeps this layer in sync with both. */
   earlyAccessTier: string | null;
+  /** False when the memberships switch is off: no early-access wait (owner 2026-10-27). */
+  membershipsOn?: boolean;
   /**
    * Ids of jobs the viewer has already applied to, and user-ids of posters the
    * viewer has blocked — both already fetched by useDashboardData and threaded
@@ -98,14 +100,14 @@ function escapeIlike(raw: string): string {
 export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
   const {
     userId, selectedCategory, searchQuery, minBudget, maxBudget,
-    urgentOnly, boostedOnly, expiresWithin, jobWhen = "", earlyAccessTier,
+    urgentOnly, boostedOnly, expiresWithin, jobWhen = "", earlyAccessTier, membershipsOn = true,
     appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
   } = filters;
 
   return useQuery({
     queryKey: [
       "dashboardJobsCount", userId, selectedCategory, searchQuery, minBudget, maxBudget,
-      urgentOnly, boostedOnly, expiresWithin, jobWhen, earlyAccessTier,
+      urgentOnly, boostedOnly, expiresWithin, jobWhen, earlyAccessTier, membershipsOn,
       appliedJobIds, blockedUserIds, dismissedJobIds, savedOnlyJobIds,
     ],
     queryFn: async () => {
@@ -138,7 +140,7 @@ export function useDashboardJobsCount(filters: DashboardJobsCountFilters) {
       // log-out bypass). Redundant with the server gate in
       // `public.early_access_cutoff()`; kept so the count matches the list it
       // counts during the db-deploy window.
-      query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier)).toISOString());
+      query = query.lte("created_at", new Date(Date.now() - earlyAccessDelayMs(earlyAccessTier, membershipsOn)).toISOString());
       if (userId) query = query.neq("customer_id", userId);
       // Exclude the jobs the feed itself hides (see the header comment): jobs
       // the viewer applied to, and jobs from posters they blocked. Only when

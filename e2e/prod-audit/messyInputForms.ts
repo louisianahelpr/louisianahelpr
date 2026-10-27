@@ -826,6 +826,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // jobs-search-inline (owner 2026-10-27): the Posted / Working search that opens in place.
+  "src/components/sections/InlineListSearch.tsx": "writes nothing: its one text box filters the tab's own already-loaded list (useActivityFilters' searchQuery, mirrored to ?q= by URLSearchParams) and is never sent to the server; X and Escape clear it (src/test/jobsSearchOpensInPlace.test.tsx)",
   // Owner 2026-10-25: a friend's referral code within 7 days of joining (Referrals tab).
   "src/components/referral/EnterReferralCodeCard.tsx": "shows only in an account's first 7 days, and the shared test accounts are older, so a sweep finds no field; its one text box is upper-cased and trimmed as typed, sent only through claim_my_referral_code, which upper-cases, trims and refuses anything over 32 characters ('invalid') and answers a fixed word set the card maps to copy (src/test/pglite/claimReferralCode.pglite.mjs)",
   // Lead 2026-10-25 (scanner-safe confirm links): the expired-link panel's email box.

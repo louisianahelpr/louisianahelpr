@@ -115,12 +115,19 @@ describe("Declutter slice 4: paid-order cards", () => {
   it("the buyer sees the address and books the pickup; the seller waits for the buyer (rows 14, 98)", async () => {
     const { unmount } = show([line()]);
     expect(await screen.findByText("1234 Example St, Baton Rouge")).toBeInTheDocument();
+    // Q2432: the buyer is told about the 1-hour reminder and the existing no-show rule, in one line, no money words.
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && ( |       {false && (
+    const warn = screen.getByTestId("declutter-no-show-warning");
+    expect(warn).toHaveTextContent("We'll remind you 1 hour before.");
+    expect(warn).toHaveTextContent("a second miss cancels the sale with a strike");
+    expect(warn.textContent).not.toMatch(/\$|fee|refund/i);
     fireEvent.change(screen.getByLabelText("Pick a pickup time"), { target: { value: "2026-10-20T12:00" } });
     fireEvent.click(screen.getByRole("button", { name: "Book" }));
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("book"));
     unmount();
     show([line({ my_side: "seller" })]);
     expect(await screen.findByText(/Waiting for the buyer to book a pickup time/)).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
   it("a multi-item order lists every item's pickup address, not only the first item's (authz review 2.7)", async () => {

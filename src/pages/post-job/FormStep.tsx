@@ -451,6 +451,19 @@ export function FormStep({ form }: FormStepProps) {
             </span>
           </Button>
           )}
+          {/* The floating bar rides `safe-nav` above the scroller's padding,
+              which is itself `pb-safe-nav` (AppPage), so it sat TWO safe-navs
+              above the screen's bottom edge (2 x (16px + the iPhone safe area)
+              on this screen, where no dock shows; measured 32px at 375 in
+              WebKit), and the form used to show through that strip: a
+              calendar row could peek out UNDER the bar, in the zone above
+              Safari's toolbar and the home indicator where a tap is not
+              reliable (owner 2026-10-27: a tapped day did nothing). This band
+              fills the strip with the page's own ground, so what is visible is
+              always above the bar, and anything under it scrolls clear (the
+              bar is sticky, so at the end of the form it settles below the
+              last field). Guard: e2e/journeys/post-job-day-tap.spec.ts. */}
+          {barFloats && <div aria-hidden data-testid="post-job-bar-band" className="absolute inset-x-0 top-full h-[calc(theme(spacing.safe-nav)*2)] bg-premium-page" />}
         </div>
         )}
       </form>

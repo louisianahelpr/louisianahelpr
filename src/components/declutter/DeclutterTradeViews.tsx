@@ -51,6 +51,7 @@ import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
+import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
 import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 
@@ -298,23 +299,6 @@ export function SalesWaiting() {
     </section>
   );
 }
-
-const HANDOVER_TITLE: Record<Handover, string> = {
-  porch: "Porch pickup",
-  pickup_home: "Meet at the seller's home",
-  seller_delivery: "Seller delivers",
-  delivery: "Helpr delivery",
-  meetup: "Meet at a safe spot",
-};
-const HANDOVER_WORDS: Record<Handover, string> = {
-  porch: "The seller leaves it out for you, no need to meet. Address after you pay.",
-  pickup_home: "Pick it up at the seller's door. Address after you pay.",
-  seller_delivery: "The seller brings it to you at a time you pick.",
-  delivery: "A local Helpr picks it up and brings it to you. Best for big items.",
-  meetup: "Meet at a public place Louisiana Helpr checked, like a police safe exchange spot. No address is shared.",
-};
-/** With seller delivery open, the porch choice says what it is: porch or another safe place (the spec's wording). */
-const PORCH_OR_SAFE_PLACE = "Porch or safe place";
 
 /**
  * Row 24 + B30 + row 101 + slice 5: choose how you get it, then pay on Stripe's

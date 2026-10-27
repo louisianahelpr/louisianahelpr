@@ -126,7 +126,7 @@ describe("Review N applicants opens the applicants (boards 22 / 170)", () => {
 
   it("a never-paid job (the audit's test jobs) opens nothing and says why", async () => {
     renderAt("/posts?highlight=j-draft&applicants=1", "posted");
-    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job isn't paid yet, so it isn't on Posted. Open it to finish paying."));
+    await waitFor(() => expect(toastInfo).toHaveBeenCalledWith("That job isn't paid yet, so it isn't on Posted. Open it to pay for it."));
     expect(loadApplications).not.toHaveBeenCalled();
   });
 });

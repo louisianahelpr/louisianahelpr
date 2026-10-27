@@ -7,7 +7,7 @@ export const onPostedList = (j: { payment_status?: string | null }): boolean => 
 /** What a job-page link to a job not on Posted says, instead of landing silently. */
 export function notOnPostedCopy(job: { payment_status?: string | null } | undefined): string {
   return job && jobIsUnfundedDraft(job)
-    ? "That job isn't paid yet, so it isn't on Posted. Open it to finish paying."
+    ? "That job isn't paid yet, so it isn't on Posted. Open it to pay for it."
     : "That job is no longer in Posted.";
 }
 

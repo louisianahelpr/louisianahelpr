@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 943,
+    "calls": 944,
     "files": 244,
     "rendering": 810,
-    "suppressedByPolicy": 133,
+    "suppressedByPolicy": 134,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,12 +14,12 @@
       "toast.info": 2,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 137,
+      "toast.success": 138,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 438,
-      "template": 100,
+      "template": 101,
       "dynamic": 455,
       "jsx": 0
     }
@@ -3391,7 +3391,17 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 45,
+      "line": 43,
+      "kind": "toast.success",
+      "title": {
+        "form": "template",
+        "text": "Confirm email sent to ${profile.email ?? \"this member\"}."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminusers/useAdminUserActions.ts",
+      "line": 46,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3401,7 +3411,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 68,
+      "line": 69,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3411,7 +3421,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 97,
+      "line": 98,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3421,7 +3431,7 @@
     },
     {
       "file": "src/components/admin/adminusers/useAdminUserActions.ts",
-      "line": 116,
+      "line": 117,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

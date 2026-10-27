@@ -368,7 +368,7 @@ BEGIN
   END IF;
 
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('card-hold-sweep', '7-59/10 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'card-hold-sweep')
+    PERFORM cron.schedule('card-hold-sweep', '9-59/10 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'card-hold-sweep')
   FROM (
       SELECT net.http_post(timeout_milliseconds := 90000,
         url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)

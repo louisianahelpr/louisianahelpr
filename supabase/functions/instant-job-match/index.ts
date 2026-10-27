@@ -5,6 +5,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { skillMatchesCategory } from "../_shared/categorySkillMatch.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
+import { isSameDayJob, sameDayBoost } from "../_shared/sameDayMatch.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -120,7 +121,7 @@ serve(async (req) => {
     const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, title, category, location, budget, customer_id, is_urgent, payment_status")
+      .select("id, title, category, location, budget, customer_id, is_urgent, payment_status, date_needed, parish, latitude, longitude")
       .eq("id", jobId)
       .eq("status", "open")
       // Q392: an ownerless job (the poster deleted their account) is off every
@@ -190,7 +191,7 @@ serve(async (req) => {
     // sort dimension once the user base actually splits across tiers.
     const { data: helpers, error: helpersError } = await supabase
       .from("profiles")
-      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at, ban_status")
+      .select("user_id, full_name, skills, location, subscription_tier, subscription_expires_at, ban_status, parish, latitude, longitude, available_until")
       .eq("email_verified", true)
       .neq("user_id", job.customer_id);
 
@@ -229,6 +230,8 @@ serve(async (req) => {
     }
 
     const jobLocation = job.location.toLowerCase();
+    const matchedAt = new Date();
+    const sameDay = isSameDayJob(job.date_needed, matchedAt);
     const jobCategory = job.category.toLowerCase();
 
     // Q1844 (roadmap F4a, owner 2026-10-15): a membership tier is a paid perk,
@@ -280,6 +283,9 @@ serve(async (req) => {
         if (helperSkills.some((s: string) => job.title.toLowerCase().includes(s))) {
           score += 1;
         }
+        // Q2438: a same-day job goes FIRST to Helprs who are online ("Available
+        // now") and nearby, whatever their skills (_shared/sameDayMatch.ts).
+        score += sameDayBoost(job, h, matchedAt);
         return { ...h, score };
       })
       .filter((h) => h.score > 0);
@@ -368,7 +374,7 @@ serve(async (req) => {
       matches.push({
         user_id: h.user_id,
         // Category emoji in the title for faster glance recognition.
-        title: `${emoji} Match for you${job.is_urgent ? " · Urgent" : ""}`,
+        title: `${emoji} ${sameDay ? "Today: " : ""}Match for you${job.is_urgent ? " · Urgent" : ""}`,
         message: `${job.title} in ${displayLocation} · $${job.budget}. Tap to review and apply.`,
         link: `/home?quickApply=${job.id}`,
       });

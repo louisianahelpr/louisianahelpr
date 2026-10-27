@@ -15,60 +15,72 @@
  *     be false.
  *   - Money: held until the poster approves (or the auto-release window), the
  *     same rule the money band below states with the cron's own hours.
+ *   - You pick who helps (lead 2026-10-27, owner: the row showed 2 of its 3
+ *     items, the ID line being hidden while the check is off, so the right
+ *     third stood empty): a job's poster sees everyone who applied, can write
+ *     to any of them before hiring (MessageApplicantButton, poster-first, server
+ *     rule can_send_message_to_in_job) and hires the one they choose. It is the
+ *     second step of "How it works" below ("See who applied and chat before you
+ *     hire"). It takes the ID line's place while the ID check is off, so the
+ *     row always holds three items.
  */
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
-const ITEMS = [
-  { label: "Verified ID", title: "Photo ID checked", body: "Before anyone posts or heads out to a job" },
-  { label: "You name the price", title: "Paid only when it’s done", body: "Money held safely until then" },
-] as const;
+const ID_ITEM = { label: "Verified ID", title: "Photo ID checked", body: "Before anyone posts or heads out to a job" } as const;
+const PICK_ITEM = { label: "You pick who helps", title: "Chat before you hire", body: "See who applied, then choose" } as const;
+const PRICE_ITEM = { label: "You name the price", title: "Paid only when it’s done", body: "Money held safely until then" } as const;
+
+/** The two text items beside the finished job: always two, so the row is always three even columns. */
+export function proofItems(idOn: boolean) {
+  return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM];
+}
 
 export function LandingProof() {
   const idOn = useIdentityCheckOnStore();
-  const items = idOn ? ITEMS : ITEMS.filter((it) => it.label !== "Verified ID");
+  const items = proofItems(idOn);
   return (
     <ul
       data-testid="landing-proof"
-      className={`mt-12 lg:mt-16 w-full max-w-[1120px] mx-auto border-t pt-8 lg:pt-10 grid gap-4 lg:gap-16 text-left ${idOn ? "lg:grid-cols-3" : "lg:grid-cols-2"}`}
+      className="mt-8 w-full max-w-[1040px] mx-auto border-t pt-5 lg:pt-6 grid gap-3 lg:grid-cols-3 lg:gap-10 text-left"
       style={{ borderColor: "var(--lp-line)" }}
     >
-      <li className="flex items-center justify-center lg:justify-start gap-4 lg:gap-5 min-w-0">
+      <li className="flex items-center justify-center lg:justify-start gap-3 lg:gap-4 min-w-0">
         <img
           src="/landing/new-iberia-yard.jpg"
           alt="A freshly mowed yard in New Iberia"
-          width={104}
-          height={104}
+          width={72}
+          height={72}
           loading="lazy"
           decoding="async"
-          className="w-16 h-16 lg:w-[104px] lg:h-[104px] shrink-0 rounded-xl lg:rounded-2xl object-cover"
+          className="w-14 h-14 lg:w-[72px] lg:h-[72px] shrink-0 rounded-xl object-cover"
         />
-        <div className="flex flex-col gap-1 lg:gap-2 min-w-0">
-          <span className="text-ds-11 lg:text-ds-14 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
+        <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
+          <span className="text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
             Just finished
           </span>
-          <span className="text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>
+          <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>
             2 yards in New Iberia
           </span>
-          <span className="text-ds-13 lg:text-ds-17" style={{ color: "var(--lp-body)" }}>
+          <span className="text-ds-13 lg:text-ds-14" style={{ color: "var(--lp-body)" }}>
             <span role="img" aria-label="5 stars" style={{ color: "var(--lp-money)" }}>★★★★★</span> · $20 tip
           </span>
         </div>
       </li>
       {items.map((it) => (
-        <li key={it.label} className="hidden lg:flex flex-col gap-2 min-w-0">
-          <span className="text-ds-11 lg:text-ds-14 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
+        <li key={it.label} className="hidden lg:flex flex-col justify-center gap-1 min-w-0">
+          <span className="text-ds-11 lg:text-ds-12 font-bold uppercase tracking-[0.1em]" style={{ color: "var(--lp-action-strong)" }}>
             {it.label}
           </span>
-          <span className="text-ds-15 lg:text-ds-20 font-semibold" style={{ color: "var(--lp-ink)" }}>
+          <span className="text-ds-15 lg:text-ds-16 font-semibold" style={{ color: "var(--lp-ink)" }}>
             {it.title}
           </span>
-          <span className="text-ds-13 lg:text-ds-17 text-balance" style={{ color: "var(--lp-body)" }}>
+          <span className="text-ds-13 lg:text-ds-14 text-balance" style={{ color: "var(--lp-body)" }}>
             {it.body}
           </span>
         </li>
       ))}
       {/* Phone: the same two facts on one quiet line (owner, 2026-10-23: less space on the phone). */}
       <li className="lg:hidden text-center text-ds-13 font-semibold" style={{ color: "var(--lp-body)" }}>
-        {idOn ? "✓ Photo ID checked · Paid when it’s done" : "✓ Paid when it’s done"}
+        {idOn ? "✓ Photo ID checked · Paid when it’s done" : "✓ You pick who helps · Paid when it’s done"}
       </li>
     </ul>
   );

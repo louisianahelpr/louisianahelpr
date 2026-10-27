@@ -7,7 +7,7 @@
  *
  * @mutate src/components/profile/profileEditForm/TrustMarksCard.tsx |   const rows = allRows.filter((r) => r.key !== "id" \|\| idOn \|\| r.done); |   const rows = allRows;
  * @mutate src/components/identity/IdentityPromptCard.tsx |   if (!idOn \|\| view === "verified") return null; |   if (view === "verified") return null;
- * @mutate src/components/landing/LandingProof.tsx |   const items = idOn ? ITEMS : ITEMS.filter((it) => it.label !== "Verified ID"); |   const items = ITEMS;
+ * @mutate src/components/landing/LandingProof.tsx |   return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM]; |   return [ID_ITEM, PRICE_ITEM];
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

@@ -2340,6 +2340,31 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_price_alerts: {
+        Row: {
+          id: number
+          item_id: string
+          price_cents: number
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: number
+          item_id: string
+          price_cents: number
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: number
+          item_id?: string
+          price_cents?: number
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: [
+        ]
+      }
       declutter_problems: {
         Row: {
           admin_note: string | null

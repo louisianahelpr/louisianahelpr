@@ -58,6 +58,14 @@ CREATE INDEX IF NOT EXISTS job_guarantee_claims_open_idx ON public.job_guarantee
   WHERE status IN ('awaiting_helpr', 'fix_scheduled', 'fixed', 'escalating');
 CREATE INDEX IF NOT EXISTS job_guarantee_claims_dispute_idx ON public.job_guarantee_claims (dispute_id) WHERE dispute_id IS NOT NULL;
 ALTER TABLE public.job_guarantee_claims ENABLE ROW LEVEL SECURITY;
+-- Every public table keeps the unconfirmed-email gate (db-deploy smoke).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 REVOKE ALL ON TABLE public.job_guarantee_claims FROM PUBLIC, anon, authenticated;
 GRANT SELECT ON TABLE public.job_guarantee_claims TO authenticated;
 GRANT ALL ON TABLE public.job_guarantee_claims TO service_role;

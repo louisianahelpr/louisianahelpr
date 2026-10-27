@@ -43,6 +43,9 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { buyNowTotalCents, checkoutAmounts } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
+import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
+import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
+import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
 import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
@@ -296,13 +299,17 @@ export function SalesWaiting() {
 const HANDOVER_TITLE: Record<Handover, string> = {
   porch: "Porch pickup",
   pickup_home: "Meet at the seller's home",
+  seller_delivery: "Seller delivers",
   delivery: "Helpr delivery",
 };
 const HANDOVER_WORDS: Record<Handover, string> = {
   porch: "The seller leaves it out for you, no need to meet. Address after you pay.",
   pickup_home: "Pick it up at the seller's door. Address after you pay.",
+  seller_delivery: "The seller brings it to you at a time you pick.",
   delivery: "A local Helpr picks it up and brings it to you. Best for big items.",
 };
+/** With seller delivery open, the porch choice says what it is: porch or another safe place (the spec's wording). */
+const PORCH_OR_SAFE_PLACE = "Porch or safe place";
 
 /**
  * Row 24 + B30 + row 101 + slice 5: choose how you get it, then pay on Stripe's
@@ -320,7 +327,16 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
 }) {
   const qc = useQueryClient();
   const deliveryOpen = useFeature("declutter");
-  const order: Handover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"];
+  // Seller delivery (20261027153244): asked of the server only while the switch is on for this member.
+  const sellerDeliveryOn = useFeature("declutter_seller_delivery");
+  const sdKey = ["declutter", "seller-delivery-offer", sellerId, itemsTotalCents] as const;
+  const sdOffer = useQuery({ queryKey: sdKey, queryFn: () => fetchSellerDeliveryOffer(sellerId), enabled: sellerDeliveryOn });
+  const [sdTyped, setSdTyped] = useState(false);
+  const [slot, setSlot] = useState<string | null>(null);
+  const [handoff, setHandoff] = useState<DeliveryHandoff | null>(null);
+  const sdState = sellerDeliveryOn && !sdOffer.isError ? sellerDeliveryState(sdOffer.data, sdTyped) : "hidden";
+  // The spec's order: porch / safe place, pickup at the home, the seller delivers, Helpr delivery.
+  const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])];
   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order;
   const [handover, setHandover] = useState<Handover>(order[0]);
   // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
@@ -351,7 +367,15 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
   }, [profileQc, me?.id]);
   // Until the fee answer is in (or if its read failed) the total may be short by it: say so, never a figure $2 low.
   const setupFeeKnown = useFirstPayoutFeeKnown();
-  const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents;
+  const sellerDelivering = chosen === "seller_delivery";
+  const sdRate = sellerDelivering && sdOffer.data?.available ? sdOffer.data.rate_cents : null;
+  // The seller's rate counts in the buyer's fee (5% of items + rate, + 70c): the server's rule, shown before checkout.
+  // A free seller delivery (rate 0, or the order is over the seller's free-delivery amount) adds nothing:
+  // the fee is on the items alone, the same number the server freezes.
+  const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(itemsTotalCents, sdRate) : null;
+  const shownPremium = sdAmounts ? sdAmounts.premiumCents : premiumCents;
+  const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+  const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
     <>
@@ -365,11 +389,15 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
           >
             <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
             <span className="min-w-0 flex-1">
-              <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
+              <span className="block text-ds-15 font-semibold text-foreground">{h === "porch" && sellerDeliveryOn ? PORCH_OR_SAFE_PLACE : HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>
             </span>
             <span className="shrink-0 text-ds-15 font-bold text-[hsl(var(--burnt-sienna))]">
-              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>) : "Free"}
+              {h === "delivery" ? (liveQuote ? formatPrice(liveQuote.delivery_cents) : <span className="font-semibold text-muted-foreground">Get a price</span>)
+                : h === "seller_delivery" ? (sdState === "no_times"
+                  ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
+                  : sellerDeliveryPriceWords(sdOffer.data, sdState))
+                : "Free"}
             </span>
           </label>
         ))}
@@ -377,6 +405,11 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
           <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
         )}
       </fieldset>
+      {sellerDelivering && (
+        <SellerDeliveryPicker sellerId={sellerId} offer={sdOffer.data} state={sdState} slot={slot} onSlot={setSlot}
+          handoff={handoff} onHandoff={setHandoff}
+          onOffer={(o: SellerDeliveryOffer) => { setSdTyped(true); qc.setQueryData(sdKey, o); }} />
+      )}
       {delivering && (
         <div className="space-y-2 rounded-xl border border-border p-3">
           <label htmlFor={addressId} className="block text-xs font-medium">Deliver to (street number, street and town)</label>
@@ -404,7 +437,10 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
         {delivering && liveQuote && (
           <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
         )}
-        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(premiumCents)}</dd></div>
+        {sdRate !== null && (
+          <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
+        )}
+        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? "Buyer's fee (5% + 70¢, once)" : "Buyer's fee (5% + 70¢)"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(shownPremium)}</dd></div>
         {setupFeeCents > 0 && (
           <div className="flex justify-between gap-3" data-checkout-setup-fee=""><dt>One-time account setup fee</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(setupFeeCents)}</dd></div>
         )}
@@ -423,19 +459,22 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
           seller; declutter_handover_sweep pays 24 h after the slot unless a problem is open, porch also needs the
           set-out photo: measured live with pg_get_functiondef), so never "held until you have your items". */}
       <p className="rounded-xl bg-[hsl(var(--burnt-sienna)/0.10)] px-3 py-2 text-ds-13 text-[hsl(var(--sienna-ink))]" data-checkout-note="">
-        The seller keeps the whole {formatPrice(itemsTotalCents)}.{" "}
+        The seller keeps the whole {formatPrice(itemsTotalCents)}{sdRate ? ` and the ${formatPrice(sdRate)} delivery` : ""}.{" "}
         {delivering
           ? "It's paid to the seller once the delivery is done."
-          : "It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem."}
+          : sellerDelivering
+            ? "It's paid to the seller when you have your items, or 24 hours after they mark it delivered unless you report a problem."
+            : "It's paid to the seller when the handover is done, or 24 hours after your pickup time unless you report a problem."}
       </p>
       <button
         type="button"
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={opening || (delivering && !liveQuote)}
+        disabled={opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady)}
         onClick={async () => {
           setOpening(true);
           try {
-            const res = await startCheckoutPayment(sellerId, chosen);
+            const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
+              sellerDelivering ? sdRate : null);
             if (res.paid || !res.url) {
               toast.success("This order is already paid.");
               invalidateTrades(qc);
@@ -444,7 +483,17 @@ function PayForSeller({ sellerId, itemsTotalCents, premiumCents, totalCents, por
             }
             await openExternalUrl(res.url, () => { setOpening(false); invalidateTrades(qc); onBack(); });
           } catch (err) {
-            toast.error(declutterErrorMessage(err));
+            if (sellerDelivering) {
+              // A time taken by someone else meanwhile: say so, show the times again, ask for a new pick.
+              toast.error(sellerDeliveryErrorMessage(err));
+              if ((err as { message?: string } | null)?.message === "slot_unavailable") setSlot(null);
+              // The seller changed their delivery price meanwhile: the offer is read again, so the
+              // screen shows the new price before the buyer taps Pay again.
+
+              void qc.invalidateQueries({ queryKey: sdKey });
+            } else {
+              toast.error(declutterErrorMessage(err));
+            }
             setOpening(false);
           }
         }}

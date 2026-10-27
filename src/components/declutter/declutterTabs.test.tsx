@@ -40,8 +40,21 @@ const state = {
   cart: [] as unknown[],
 };
 
+// Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
+vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
+  const real = await orig<typeof import("@/lib/declutter/sellerDelivery")>();
+  return {
+    ...real,
+    fetchMySellerDelivery: async () => ({ enabled: false, rate_cents: null, free_over_cents: null, radius_miles: 10, windows: [], days_off: [],
+      items_off: [], rules: real.SELLER_DELIVERY_RULES }),
+    fetchSellerDeliveryOffer: async () => ({ available: false, reason: "seller_not_delivering", rate_cents: null, base_rate_cents: null,
+      free_over_cents: null, items_cents: null, radius_miles: null, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null }),
+  };
+});
 vi.mock("@/hooks/useFeature", () => ({
-  useFeature: () => true,
+  // Every switch on except seller delivery, which this suite does not cover (its own tests do:
+  // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); with it on, porch reads "Porch or safe place".
+  useFeature: (key: string) => key !== "declutter_seller_delivery",
   useFeatureStatus: () => ({ on: true, settled: true }),
 }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));

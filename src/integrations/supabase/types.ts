@@ -6623,6 +6623,7 @@ export type Database = {
           saved_helper_availability: boolean
           saved_searches_paused: boolean
           system_alerts: boolean
+          sms_phone_prompt_dismissed_at: string | null
           transit_updates: boolean
           updated_at: string
           user_id: string
@@ -6661,6 +6662,7 @@ export type Database = {
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
           system_alerts?: boolean
+          sms_phone_prompt_dismissed_at?: string | null
           transit_updates?: boolean
           updated_at?: string
           user_id: string
@@ -6699,6 +6701,7 @@ export type Database = {
           saved_helper_availability?: boolean
           saved_searches_paused?: boolean
           system_alerts?: boolean
+          sms_phone_prompt_dismissed_at?: string | null
           transit_updates?: boolean
           updated_at?: string
           user_id?: string
@@ -13852,6 +13855,8 @@ export type Database = {
         }[]
       }
       get_my_sms_consent: { Args: never; Returns: Json }
+      sms_phone_prompt_due: { Args: { p_moment: string }; Returns: boolean }
+      dismiss_sms_phone_prompt: { Args: never; Returns: string }
       get_quotes_for_request: {
         Args: { p_request_id: string }
         Returns: {

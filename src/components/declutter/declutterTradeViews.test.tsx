@@ -19,13 +19,13 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote)} |         disabled={opening}
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents; |   const payCents = totalCents + setupFeeCents;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady)} |         disabled={opening \|\| (sellerDelivering && !sdReady)}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} | porchOk={true}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
@@ -52,11 +52,19 @@ const state = {
   setupFeeCents: 0,
   /** useFirstPayoutFeeKnown: false while the fee answer is not in (the total then says "+ any setup fee"). */
   setupFeeKnown: true,
+  /** declutter_seller_delivery (20261027153244), read on its own. */
+  sellerDeliveryOn: false,
+  sdOffer: null as unknown,
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.deliveryOn }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn : state.deliveryOn) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
+vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/sellerDelivery")>()),
+  fetchSellerDeliveryOffer: async () => state.sdOffer,
+  quoteSellerDelivery: async () => state.sdOffer,
+}));
 vi.mock("@/lib/declutter/delivery", () => ({
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
@@ -80,8 +88,8 @@ vi.mock("@/lib/declutter/api", () => ({
   },
   sellerCancelSale: async () => 1,
   startCardSave: async () => "https://checkout.stripe.test/setup",
-  startCheckoutPayment: async (sellerId: string, handover: string) => {
-    state.paid.push({ sellerId, handover });
+  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null) => {
+    state.paid.push(handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : { sellerId, handover });
     return { url: "https://checkout.stripe.test/pay", paid: false };
   },
 }));
@@ -148,6 +156,8 @@ describe("Declutter slice 3 screens", () => {
     state.opened = [];
     state.deliveryOn = false;
     state.quotes = [];
+    state.sellerDeliveryOn = false;
+    state.sdOffer = null;
   });
 
   it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
@@ -334,7 +344,7 @@ describe("Declutter slice 3 screens", () => {
 
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee sees it on its own line
   // and in "You pay", exactly as declutter-checkout puts it on the page; an account that paid it sees neither.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents) + setupFeeCents; |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents;
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         {false && (
   it("Q2352: the first purchase shows the one-time account setup fee on its own line and in the total", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -434,6 +444,46 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
     state.deliveryOn = false;
+  });
+
+  it("seller delivery (20261027153244): after pickup at the home, with the seller's rate, a time and the door choice; the fee counts the rate", async () => {
+    state.sellerDeliveryOn = true;
+    const slots = ["2026-11-03T15:00:00.000Z", "2026-11-03T16:00:00.000Z", "2026-11-04T15:00:00.000Z"];
+    state.sdOffer = { available: true, reason: null, rate_cents: 2000, radius_miles: 10, dropoff_area: "Mid-City", slot_minutes: 60, slots, held_slot: null };
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findByLabelText(/Seller delivers/);
+    const radios = screen.getAllByRole("radio").filter((r) => r.tagName === "INPUT");
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "pickup_home", "seller_delivery"]);
+    expect(screen.getByLabelText(/Porch or safe place/)).toBeChecked();
+    fireEvent.click(screen.getByLabelText(/Seller delivers/));
+    // Pay waits for a time AND the door choice.
+    fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
+    // $3 item + $20 rate: the fee is 5% of $23 + 70c = $1.85; total $24.85.
+    expect(screen.getByRole("button", { name: "Pay $24.85" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
+    const bill = document.querySelector("[data-checkout-breakdown]")!;
+    expect(bill.textContent).toMatch(/Seller delivery\$20/);
+    expect(bill.textContent).toMatch(/Buyer's fee \(5% \+ 70¢\)\$1\.85/);
+    fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
+    await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
+  });
+
+  it("seller delivery: no open times shows the rate's place as 'No delivery times open'; a stored out-of-range address hides it", async () => {
+    state.sellerDeliveryOn = true;
+    state.sdOffer = { available: false, reason: "no_times", rate_cents: 2000, radius_miles: 10, dropoff_area: null, slot_minutes: 60, slots: [], held_slot: null };
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [line];
+    const first = show(<CartView />);
+    expect(await screen.findByText("No delivery times open")).toBeInTheDocument();
+    first.unmount();
+    state.sdOffer = { ...(state.sdOffer as object), reason: "out_of_range" };
+    show(<CartView />);
+    await screen.findByLabelText(/Porch or safe place/);
+    expect(screen.queryByLabelText(/Seller delivers/)).toBeNull();
   });
 
   it("slice 5: changing the address drops the old price until it is priced again", async () => {

@@ -40,6 +40,7 @@ import {
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
+import { ItemDeliveryRow } from "./SellerDeliverySettings";
 
 type View = "menu" | "price" | "sold" | "delete";
 
@@ -130,6 +131,7 @@ export function ManageListingSheet({
                   onCheckedChange={(on) => drops.mutate(!on)}
                 />
               </li>
+              <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               <li>
                 {paused ? (
                   <button type="button" className={ROW} onClick={() => relist.mutate(undefined)} disabled={busy}>

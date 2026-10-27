@@ -40,6 +40,17 @@
  *                kind declutter_raise, the order's transfer group). The webhook
  *                applies it only once it is paid.
  *
+ *   seller_delivery_quote { seller_id, address? }  The seller delivers
+ *                (20261027153244, switch 'declutter_seller_delivery'): with an
+ *                address, it is geocoded HERE and stored exactly as for Helpr
+ *                delivery; then declutter_seller_delivery_offer AS THE BUYER
+ *                answers: available or why not, the seller's rate, the open
+ *                times. Nothing is charged and no distance is returned.
+ *   pay with handover 'seller_delivery', slot_start (an ISO time from the
+ *                offer's slots) and handoff ('leave' | 'hand', the buyer's door
+ *                choice): declutter_start_checkout holds the slot and freezes
+ *                the rate; the rate is its own "Seller delivery" line.
+ *
  * Row 62: no switch check for pay/cancel_sale. Both only finish a sale that was
  * already agreed; starting anything new (offer, Buy, a card, a delivery) needs
  * the switch: delivery_quote checks it here, and declutter_start_checkout
@@ -113,8 +124,12 @@ async function expirePage(stripe: Stripe, sessionId: string): Promise<void> {
   }
 }
 
-async function startCheckout(asBuyer: Db, sellerId: string, handover: string): Promise<{ row?: OrderRow; refusal?: Response }> {
-  const { data, error } = await asBuyer.rpc("declutter_start_checkout", { p_seller_id: sellerId, p_handover: handover });
+async function startCheckout(asBuyer: Db, sellerId: string, handover: string, slotStart: string | null, handoff: string | null): Promise<{ row?: OrderRow; refusal?: Response }> {
+  // p_slot_start and p_handoff only for a seller delivery: every other call is the same call as before.
+  const args = handover === "seller_delivery"
+    ? { p_seller_id: sellerId, p_handover: handover, p_slot_start: slotStart, p_handoff: handoff }
+    : { p_seller_id: sellerId, p_handover: handover };
+  const { data, error } = await asBuyer.rpc("declutter_start_checkout", args);
   if (error) return { refusal: rpcRefusal(error) };
   const row = (Array.isArray(data) ? data[0] : data) as OrderRow | undefined;
   if (!row?.order_id) return { refusal: json({ error: TRY_AGAIN }, 500) };
@@ -150,6 +165,17 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   const handover = typeof body.handover === "string" ? body.handover : "";
   if (!UUID_RE.test(sellerId)) return json({ error: "item_not_found" }, 404);
+  // Seller delivery: the chosen slot, an ISO time; the RPC checks it is one of the open ones.
+  const slotStart = handover === "seller_delivery" ? isoTime(body.slot_start) : null;
+  if (handover === "seller_delivery" && !slotStart) return json({ error: "slot_unavailable" }, 400);
+  // The buyer's door choice (owner 2026-10-22): "leave" it at the door, or "hand" it to me.
+  const handoff = handover === "seller_delivery" && (body.handoff === "leave" || body.handoff === "hand") ? body.handoff : null;
+  if (handover === "seller_delivery" && !handoff) return json({ error: "invalid_handoff" }, 400);
+  // The delivery price the buyer's screen showed (owner 2026-10-27: it may be "Free"). When the
+  // order's frozen rate differs (the seller changed it meanwhile), no page is made: the app asks
+  // again (lh-money-escrow review of the free-delivery change #2). Optional: an older app sends none.
+  const expectedRate = handover === "seller_delivery" && typeof body.expected_delivery_cents === "number"
+    && Number.isInteger(body.expected_delivery_cents) && body.expected_delivery_cents >= 0 ? body.expected_delivery_cents : null;
   const native = isNativeRequest(body);
 
   const mode = await stripeModeForParties(admin, [user.id, sellerId], { caller: user.id });
@@ -166,17 +192,33 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // can never be paid next to the new one. A page that cannot be closed
   // stays the buyer's page.
   const { data: openOrder, error: openErr } = await admin.from("declutter_orders")
-    .select("id, handover, stripe_checkout_session_id")
+    .select("id, handover, stripe_checkout_session_id, delivery_cents")
     .eq("buyer_id", user.id).eq("seller_id", sellerId).eq("status", "awaiting_payment").maybeSingle();
   if (openErr) {
     console.error(`[declutter-checkout] open order read failed: ${openErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
-  const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null } | null;
+  const open = openOrder as { id: string; handover: string; stripe_checkout_session_id: string | null; delivery_cents?: number | null } | null;
+  // lh-money-escrow review #4: a seller delivery whose TIME changed replaces the open order
+  // too, so its page is closed first exactly as for a changed handover.
+  let slotChanged = false;
+  if (open && handover === "seller_delivery" && open.handover === "seller_delivery") {
+    const { data: held, error: heldErr } = await admin.from("declutter_seller_deliveries")
+      .select("slot_start").eq("order_id", open.id).maybeSingle();
+    if (heldErr) {
+      console.error(`[declutter-checkout] held slot read failed: ${heldErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const heldAt = (held as { slot_start?: string | null } | null)?.slot_start;
+    slotChanged = !heldAt || Date.parse(heldAt) !== Date.parse(slotStart!)
+      // Review note 3: a different delivery price (the seller changed it, or the cart crossed the
+      // free-delivery amount) replaces the order too, so its open page is closed first.
+      || (expectedRate !== null && Number(open.delivery_cents ?? 0) !== expectedRate);
+  }
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
-    if (page.status === "open" && open.handover !== handover) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged)) {
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);
@@ -188,6 +230,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
         const { error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
         if (quoteErr) return rpcRefusal(quoteErr);
       }
+      if (handover === "seller_delivery") {
+        // The same for a seller delivery: a refused offer or a time no longer open
+        // must not cost the buyer their open page. The RPC stays the protection.
+        const refused = await sellerDeliveryRefused(asBuyer, sellerId, slotStart!);
+        if (refused) return refused;
+      }
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);
       } catch (e) {
@@ -198,7 +246,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     }
   }
 
-  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover);
+  let { row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff);
   if (refusal) return refusal;
 
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
@@ -214,13 +262,24 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       console.error(`[declutter-checkout] retire failed: ${retireErr.message}`);
       return json({ error: TRY_AGAIN }, 503);
     }
-    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover));
+    ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff));
     if (refusal) return refusal;
   }
   const order = row!;
-  // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery').
+  if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) {
+    // The order is left open with no page (its hold lapses; the next checkout replaces it).
+    return json({ error: "delivery_rate_changed", delivery_cents: Number(order.delivery_cents ?? 0) }, 409);
+  }
+  // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery'
+  // or 'seller_delivery', the seller's rate). A seller delivery may be FREE
+  // (owner 2026-10-27: a $0 rate, or the order reached the seller's free-delivery
+  // amount), so for it 0 is a real answer; a Helpr delivery always costs, and no
+  // other handover carries a delivery charge.
   const deliveryCents = Number(order.delivery_cents ?? 0);
-  if ((handover === "delivery") !== (deliveryCents > 0)
+  const deliveryShapeOk = handover === "delivery" ? deliveryCents > 0
+    : handover === "seller_delivery" ? Number.isInteger(deliveryCents) && deliveryCents >= 0
+    : deliveryCents === 0;
+  if (!deliveryShapeOk
       || order.items_cents + order.premium_cents + order.tax_cents + deliveryCents !== order.total_cents || order.total_cents <= 0) {
     console.error(`[declutter-checkout] order ${order.order_id} amounts do not add up`);
     return json({ error: TRY_AGAIN }, 500);
@@ -286,8 +345,9 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   ];
   if (deliveryCents > 0) {
     // Row 29: $10 + $2 per road mile + size add-ons, computed and frozen in SQL.
+    // Seller delivery: the seller's flat rate, frozen in SQL (20261027153244).
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: deliveryCents,
-      product_data: { name: "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
+      product_data: { name: handover === "seller_delivery" ? "Seller delivery" : "Helpr delivery", tax_code: NONTAXABLE_TAX_CODE } } });
   }
   if (setupFeeCents > 0) {
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents,
@@ -494,6 +554,65 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
   return json({ url: session.url, order_id: orderId, raise_id: raise.raise_id });
 }
 
+/** An ISO time string the database can read, or null. */
+function isoTime(v: unknown): string | null {
+  if (typeof v !== "string" || v.length > 40 || Number.isNaN(Date.parse(v))) return null;
+  return new Date(v).toISOString();
+}
+
+/**
+ * Would declutter_start_checkout refuse this seller delivery (offer not
+ * available, or the time no longer open)? Asked only before closing an open
+ * page to switch it to seller delivery. null = it would go ahead.
+ */
+async function sellerDeliveryRefused(asBuyer: Db, sellerId: string, slotStart: string): Promise<Response | null> {
+  const { data, error } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (error) return rpcRefusal(error);
+  const offer = data as { available?: boolean; reason?: string | null; slots?: string[] } | null;
+  if (!offer?.available) return json({ error: "seller_delivery_unavailable", reason: offer?.reason ?? null }, 400);
+  const want = Date.parse(slotStart);
+  if (!(offer.slots ?? []).some((s) => Date.parse(s) === want)) return json({ error: "slot_unavailable" }, 400);
+  return null;
+}
+
+async function sellerDeliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
+  const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
+  if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
+  // New work for the seller: the switch, from the verified user, never the body.
+  const off = await requireFeature(admin, "declutter_seller_delivery", user, corsHeaders);
+  if (off) return off;
+  const declutterOff = await requireFeature(admin, "declutter", user, corsHeaders);
+  if (declutterOff) return declutterOff;
+  // lh-authz-rls review #3: the buyer's own cart with this seller first (the offer RPC's
+  // cart and seller checks), so no address is geocoded or stored against an arbitrary id.
+  const { error: cartErr } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (cartErr) return rpcRefusal(cartErr);
+  if (body.address !== undefined && body.address !== null && body.address !== "") {
+    const address = plausibleAddress(body.address);
+    if (!address) return json({ error: "invalid_address" }, 400);
+    const point = await geocodeDropoff(address);
+    if ("miss" in point) {
+      if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+      console.error(JSON.stringify({ event: "dropoff_geocode_unavailable", status: point.status, detail: point.detail }));
+      await postSlackOpsAlert({
+        kind: "custom", severity: "warning", oncePerDayKey: "declutter-dropoff-geocode-unavailable",
+        title: "Declutter delivery: the address lookup is not answering",
+        message: `Nominatim could not answer a drop-off lookup (${point.detail}). Buyers are told to try again in a minute; delivery quotes fail until it answers.`,
+        fields: { Status: point.status ?? "no answer" },
+      }).catch((e) => console.error(JSON.stringify({ event: "dropoff_geocode_alert_failed", detail: String(e).slice(0, 200) })));
+      return json({ error: "geocode_unavailable" }, 503);
+    }
+    const { error: setErr } = await admin.rpc("declutter_set_delivery_dropoff", {
+      p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
+    });
+    // A seller id that is no member (foreign key) answers like any unknown seller.
+    if (setErr) return setErr.code === "23503" ? json({ error: "item_not_found" }, 404) : rpcRefusal(setErr);
+  }
+  const { data: offer, error: offerErr } = await asBuyer.rpc("declutter_seller_delivery_offer", { p_seller_id: sellerId });
+  if (offerErr) return rpcRefusal(offerErr);
+  return json({ offer });
+}
+
 async function cancelSale(body: Record<string, unknown>, user: { id: string }, asSeller: Db, admin: Db) {
   const itemId = typeof body.item_id === "string" ? body.item_id : "";
   if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
@@ -541,6 +660,7 @@ serve(async (req) => {
     if (body.action === "cancel_sale") return await cancelSale(body, user, asMember, admin);
     if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);
     if (body.action === "raise_pay") return await raisePay(body, user, asMember, admin);
+    if (body.action === "seller_delivery_quote") return await sellerDeliveryQuote(body, user, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

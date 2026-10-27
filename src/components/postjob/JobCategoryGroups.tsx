@@ -4,7 +4,7 @@ import { SuggestCategory } from "@/components/SuggestCategory";
 import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
 import { JOB_CATEGORY_LABELS, type JobCategory } from "@/lib/jobCategories";
-import { JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
+import { GROUP_TILE_LABEL, JOB_CATEGORY_GROUPS, sentenceCaseLabel, type JobCategoryGroupId } from "@/lib/jobCategoryGroups";
 
 
 /**
@@ -17,8 +17,9 @@ const SEARCH_HINTS: [RegExp, JobCategory[]][] = [
   [/\b(?:furniture|boxes|haul)\b/, ["moving", "declutter_help"]],
 ];
 
-/** Shorter tile labels where the group name wraps to three lines at 375 (lead 2026-10-21; the mock-up's own wording). */
-const TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" };
+/** Shorter tile labels where the group name wraps to three lines at 375 (lead 2026-10-21; the mock-up's own wording).
+ *  One list with Edit profile's skill headings: jobCategoryGroups GROUP_TILE_LABEL. */
+const TILE_LABEL = GROUP_TILE_LABEL;
 
 interface Props {
   category: string;

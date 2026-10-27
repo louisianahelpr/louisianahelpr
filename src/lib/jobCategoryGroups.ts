@@ -1,4 +1,4 @@
-import { JOB_CATEGORY_LABELS, type JobCategory } from "./jobCategories";
+import { JOB_CATEGORY_LABELS, skillChipLabel, type JobCategory } from "./jobCategories";
 
 /**
  * Post a Job step 1 (board 23): the category GROUPS a poster opens to find
@@ -157,3 +157,32 @@ export function sentenceCaseLabel(label: string): string {
     .map((w, i) => (i === 0 || (w.length > 1 && w === w.toUpperCase()) ? w : w.toLowerCase()))
     .join(" ");
 }
+
+/**
+ * A group's name where it labels a tile or a heading: the group label, shortened where it wraps at 375
+ * ("Moving & errands"; lead 2026-10-21, the mock-up's own wording). Post a job's group tiles and Edit
+ * profile's "I can help with" headings read it, so the two say the same words.
+ */
+export const GROUP_TILE_LABEL: Partial<Record<JobCategoryGroupId, string>> = { moving_errands: "Moving & errands" };
+
+export function groupTileLabel(g: { id: JobCategoryGroupId; label: string }): string {
+  return GROUP_TILE_LABEL[g.id] ?? g.label;
+}
+
+/**
+ * EDIT PROFILE'S "I CAN HELP WITH", GROUPED (owner, 2026-10-27: it "should be the same top categories from
+ * the job posting"): the same groups, in the same order, as Post a job (JOB_CATEGORY_GROUPS), each with its
+ * categories as skill chips. A chip's words are skillChipLabel's, unchanged: they are what is SAVED in
+ * profiles.skills and what job matching reads ("Moving help", "Event help"). "Other" is not a chip: it is
+ * the free-text field, shown under "Something else". Guard: src/test/profileSkillsGrouped.test.tsx.
+ */
+export interface SkillGroup {
+  id: JobCategoryGroupId;
+  label: string;
+  skills: { value: JobCategory; label: string }[];
+}
+export const SKILL_GROUPS: SkillGroup[] = JOB_CATEGORY_GROUPS.map((g) => ({
+  id: g.id,
+  label: groupTileLabel(g),
+  skills: g.items.filter((it) => it.value !== "other").map((it) => ({ value: it.value, label: skillChipLabel(it.value) })),
+}));

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, MapPin } from "lucide-react";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
-import { JOB_CATEGORY_LABELS, skillChipLabel, type JobCategory } from "@/lib/jobCategories";
+import { SKILL_GROUPS } from "@/lib/jobCategoryGroups";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
@@ -23,18 +23,14 @@ import { TAB_TITLES } from "@/pages/profile/types";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
-// Preset skill chips — reuses the canonical job-category labels
-// (src/lib/jobCategories.ts) so a Helpr's offered skills line up with the
-// categories jobs actually get posted under, minus "Other" (that's the
-// free-text field below the chips, not a chip itself). "Moving" and
-// "Events" get a small wording nudge ("Moving help" / "Event help") since
-// these describe a *skill offered*, not a job category being posted.
-const SKILL_PRESETS: { value: JobCategory; label: string }[] = Object.entries(JOB_CATEGORY_LABELS)
-  .filter(([value]) => value !== "other")
-  .map(([value]) => ({
-    value: value as JobCategory,
-    label: skillChipLabel(value as JobCategory),
-  }));
+// Preset skill chips — the canonical job categories, grouped under Post a
+// job's own groups (SKILL_GROUPS, src/lib/jobCategoryGroups.ts; owner
+// 2026-10-27), minus "Other" (that's the free-text field under "Something
+// else", not a chip itself). "Moving" and "Events" get a small wording nudge
+// ("Moving help" / "Event help", skillChipLabel) since these describe a
+// *skill offered*, not a job category being posted; those words are what is
+// saved, unchanged.
+const SKILL_PRESETS = SKILL_GROUPS.flatMap((g) => g.skills);
 
 export function ProfileEditForm({
   profile,
@@ -324,49 +320,62 @@ export function ProfileEditForm({
               matrix sweep, 2026-09-11). Wrapping shows every preset; the
               card grows by a row or two, which is the honest height of an
               eleven-option picker. */}
-          <div className="flex flex-wrap gap-1.5">
-            {SKILL_PRESETS.map(({ value, label }) => {
-              const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => toggleSkillPreset(label)}
-                  aria-pressed={active}
-                  /* Unselected chips are an OUTLINE of the same category colour, not a
-                     45%-opacity copy of the filled one. `opacity-45` multiplied through the
-                     AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
-                     WCAG AA failure on all 11 presets. Filled-vs-outline carries the
-                     selected state without touching the text colour. */
-                  /* Board 41 / spec v2 §1.1: one chip style, olive when selected,
-                     never a per-category colour (a rust "Handyman" chip read as money). */
-                  className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
-                    active ? "btn-grad-primary border-transparent !text-[hsl(var(--parchment))]" : "bg-transparent border-border text-foreground"
-                  }`}
-                >
-                  {active ? (
-                    <Check className="w-3 h-3 shrink-0" strokeWidth={3} />
+          {/* GROUPED UNDER POST A JOB'S CATEGORIES (owner, 2026-10-27: "should be the same top
+              categories from the job posting"): one small heading per group, its chips under it,
+              the free-text "Other" under "Something else". Guard: src/test/profileSkillsGrouped.test.tsx. */}
+          <div className="space-y-3">
+            {SKILL_GROUPS.map((g) => (
+              <div key={g.id} role="group" aria-label={g.label} data-skill-group={g.id} className="space-y-1.5">
+                <p data-skill-group-head="" className="text-ds-11 font-semibold uppercase tracking-[0.08em] text-muted-foreground">{g.label}</p>
+                {g.skills.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {g.skills.map(({ value, label }) => {
+                      const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
+                      return (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => toggleSkillPreset(label)}
+                          aria-pressed={active}
+                          /* Unselected chips are an OUTLINE of the same category colour, not a
+                             45%-opacity copy of the filled one. `opacity-45` multiplied through the
+                             AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
+                             WCAG AA failure on all 11 presets. Filled-vs-outline carries the
+                             selected state without touching the text colour. */
+                          /* Board 41 / spec v2 §1.1: one chip style, olive when selected,
+                             never a per-category colour (a rust "Handyman" chip read as money). */
+                          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
+                            active ? "btn-grad-primary border-transparent !text-[hsl(var(--parchment))]" : "bg-transparent border-border text-foreground"
+                          }`}
+                        >
+                          {active ? (
+                            <Check className="w-3 h-3 shrink-0" strokeWidth={3} />
+                          ) : (
+                            <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
+                          )}
+                          <span className="font-sans whitespace-nowrap">{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   ) : (
-                    <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
-                  )}
-                  <span className="font-sans whitespace-nowrap">{label}</span>
-                </button>
-              );
-            })}
-          </div>
-          <div>
-            <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
-              Other (not listed above)
-            </Label>
-            <Input
-              id="skillsOther"
-              value={customText}
-              onChange={(e) => handleCustomTextChange(e.target.value)}
-              placeholder="Anything else you offer…"
-              autoCapitalize="words"
-              enterKeyHint="done"
-              className="h-10"
-            />
+                  <div>
+                    <Label htmlFor="skillsOther" className="text-ds-11 mb-1.5 block text-muted-foreground">
+                      Other (not listed above)
+                    </Label>
+                    <Input
+                      id="skillsOther"
+                      value={customText}
+                      onChange={(e) => handleCustomTextChange(e.target.value)}
+                      placeholder="Anything else you offer…"
+                      autoCapitalize="words"
+                      enterKeyHint="done"
+                      className="h-10"
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
           <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Tap what applies, or type your own. These show as tags on your public profile and decide which jobs get matched to you.

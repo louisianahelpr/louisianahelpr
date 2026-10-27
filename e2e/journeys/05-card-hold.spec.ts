@@ -62,7 +62,7 @@ async function postJob(api: APIRequestContext, poster: Session, label: string): 
     await api.post(`${SUPABASE_URL}/rest/v1/jobs?select=id,parish`, {
       headers: rest(poster, { Prefer: "return=representation" }),
       data: {
-        customer_id: poster.user.id, is_seed: true, title: fitJobTitle(`${E2E_TITLE_MARKER} hold ${label}`),
+        customer_id: poster.user.id, is_seed: true, title: fitJobTitle(`${E2E_TITLE_MARKER} ${label}`),
         description: `Card-hold journey ${label}: rake and bag the front yard, bags and rakes on site.`,
         category: "yard_work", location: "4412 Highland Rd, Baton Rouge, LA 70808", parish: null,
         latitude: 30.4028, longitude: -91.1714, date_needed: centralDatePlus(2), budget: 25,

@@ -215,10 +215,26 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       // free-delivery amount) replaces the order too, so its open page is closed first.
       || (expectedRate !== null && Number(open.delivery_cents ?? 0) !== expectedRate);
   }
+  // Q2425 (lh-authz-rls review #2): a meetup whose SPOT changed replaces the open order too, so its page is
+  // closed first, exactly as for a changed seller-delivery time (the order's frozen spot vs the buyer's pick now).
+  let spotChanged = false;
+  if (open && handover === "meetup" && open.handover === "meetup") {
+    const [frozen, picked] = await Promise.all([
+      admin.from("declutter_order_meetups").select("spot_id").eq("order_id", open.id).maybeSingle(),
+      admin.from("declutter_meetup_choices").select("spot_id").eq("buyer_id", user.id).eq("seller_id", sellerId).maybeSingle(),
+    ]);
+    if (frozen.error || picked.error) {
+      console.error(`[declutter-checkout] meetup spot read failed: ${(frozen.error ?? picked.error)!.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const frozenSpot = (frozen.data as { spot_id?: string | null } | null)?.spot_id ?? null;
+    const pickedSpot = (picked.data as { spot_id?: string | null } | null)?.spot_id ?? null;
+    spotChanged = frozenSpot !== pickedSpot;
+  }
   if (open?.stripe_checkout_session_id) {
     const page = await stripeOf(open.stripe_checkout_session_id).checkout.sessions.retrieve(open.stripe_checkout_session_id);
     if (page.status === "complete") return json({ paid: true, order_id: open.id });
-    if (page.status === "open" && (open.handover !== handover || slotChanged)) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged)) {
       if (handover === "porch") {
         const refused = await porchRefused(admin, user.id, sellerId);
         if (refused === null) return json({ error: TRY_AGAIN }, 503);
@@ -235,6 +251,14 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
         // must not cost the buyer their open page. The RPC stays the protection.
         const refused = await sellerDeliveryRefused(asBuyer, sellerId, slotStart!);
         if (refused) return refused;
+      }
+      if (handover === "meetup") {
+        // Q2425: a meetup with no spot chosen (or none near any more) must not cost the buyer their open page
+        // either. The RPC stays the protection (declutter_start_checkout: meetup_spot_needed).
+        const { data: spots, error: spotsErr } = await asBuyer.rpc("declutter_meetup_spots_near", { p_seller_id: sellerId });
+        if (spotsErr) return rpcRefusal(spotsErr);
+        const chosen = Array.isArray(spots) && spots.some((s: { chosen?: boolean }) => s.chosen === true);
+        if (!chosen) return json({ error: "meetup_spot_needed" }, 400);
       }
       try {
         await stripeOf(open.stripe_checkout_session_id).checkout.sessions.expire(open.stripe_checkout_session_id);

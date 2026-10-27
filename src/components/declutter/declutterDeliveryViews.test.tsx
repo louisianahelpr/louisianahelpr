@@ -63,6 +63,8 @@ vi.mock("@/lib/helprTasks/api", () => ({
   uploadTaskPhoto: async (_u: string, t: string) => `u1/task/${t}/photo.jpg`,
   uploadVehiclePhoto: async () => "u1/vehicle/truck.jpg",
 }));
+// "Go online for deliveries" has its own test (goOnline.test.tsx); here the Helpr is offline.
+vi.mock("@/lib/helprTasks/online", () => ({ fetchOnlineStatus: async () => null, isOnline: () => false, setOnline: vi.fn() }));
 // Q1929's "Raise the pay" panel has its own test (deliveryRaisePanel.test.tsx); here it shows nothing.
 vi.mock("@/lib/declutter/deliveryRaise", () => ({ fetchDeliveryRaiseStatus: async () => null, startDeliveryRaise: vi.fn() }));
 

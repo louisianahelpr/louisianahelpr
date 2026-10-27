@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 973,
-    "files": 251,
-    "rendering": 826,
-    "suppressedByPolicy": 147,
+    "calls": 975,
+    "files": 252,
+    "rendering": 827,
+    "suppressedByPolicy": 148,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 66,
-      "toast.error": 691,
+      "toast.error": 692,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 150,
+      "toast.success": 151,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 444,
       "template": 103,
-      "dynamic": 476,
+      "dynamic": 478,
       "jsx": 0
     }
   },
@@ -4081,7 +4081,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 116,
+      "line": 117,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4091,7 +4091,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 120,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4101,7 +4101,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4111,7 +4111,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 209,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4121,7 +4121,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 260,
+      "line": 261,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4131,7 +4131,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 265,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4141,7 +4141,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 363,
+      "line": 364,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4151,7 +4151,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 374,
+      "line": 375,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4161,7 +4161,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
-      "line": 478,
+      "line": 479,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5343,6 +5343,36 @@
     {
       "file": "src/components/declutter/DeliveryRaisePanel.tsx",
       "line": 51,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/GoOnlineCard.tsx",
+      "line": 30,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "on ? \"You're online. New deliveries near you are sent to you.\" : \"You're offline.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You're online. New deliveries near you are sent to you."
+          },
+          {
+            "form": "literal",
+            "text": "You're offline."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/GoOnlineCard.tsx",
+      "line": 33,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

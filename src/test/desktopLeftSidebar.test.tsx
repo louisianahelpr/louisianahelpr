@@ -45,6 +45,8 @@ vi.mock("@/components/create/CreateSheet", () => ({
 
 import DesktopSidebarNav from "@/components/DesktopSidebarNav";
 import { readSidePanelOpen } from "@/components/sidePanelOpen";
+// The "Online for deliveries" pill (Q2440) reads the member's own row with React Query; it has its own test (goOnline.test.tsx).
+vi.mock("@/components/declutter/DeliveryOnlinePill", () => ({ DeliveryOnlinePill: () => null }));
 import DesktopTopNav from "@/components/DesktopTopNav";
 
 const ROOT = resolve(__dirname, "../..");

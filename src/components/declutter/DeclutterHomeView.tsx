@@ -81,7 +81,6 @@ const haulLib = () => import("@/lib/declutter/haulAway");
 // signed-in-shared and put /posts over its critical-path budget.
 const DeliverView = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.DeliverView })));
 
-
 /** Grey shimmer rows shaped like the listing cards (owner 2026-10-18, tweak 5). */
 function ListingsSkeleton() {
   return (
@@ -484,7 +483,6 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
           </div>
         }
       />
-      {/* Seller delivery (20261027153244): only while its switch is on for the member. */}
       <SellerDeliveryCard />
       <DeliverEntry />
     </div>

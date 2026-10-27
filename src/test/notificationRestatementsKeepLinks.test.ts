@@ -146,6 +146,11 @@ const INTENDED_LINK_CHANGES = new Set([
   // check_referral_bonus's notices, links unchanged ('/profile?tab=referral'),
   // moved into referral_settle_for, which it calls once per party.
   "20261027201034_referral_bonus_needs_a_job_from_each.sql::check_referral_bonus",
+  // Q2429 (Declutter price-drop alerts, Train D): the evening sweep no longer
+  // sends; its watcher notice and '/declutter/item/' || id link live in the
+  // trg_declutter_items_price_drop_alert trigger function
+  // declutter_price_drop_alert (v_link, the same link), which every price drop runs.
+  "20261027204745_declutter_price_drop_alerts.sql::declutter_price_drop_sweep",
 ]);
 
 /**
@@ -295,6 +300,10 @@ describe("Q139: a restated notification producer keeps the links the database wr
       "20261025203540_notices_never_name_the_helpr_fee.sql",
       // Not links: the SQL fee default follows the 10% rule.
       "20261025214015_helpr_fee_sql_default_is_ten.sql",
+      // Copy, not links: Declutter notices name no fee (hide-fees, owner 2026-10-27).
+      "20261027172503_declutter_notices_name_no_fee.sql",
+      // Not links: the setup-job card-fee debt is capped at the order total (code edits only).
+      "20261027174633_declutter_setup_job_fee_debt_order_cap.sql",
     ]);
     expect(tuples).toBeGreaterThan(28);
     expect(unparsed.sort()).toEqual([...NOT_LINK_REWRITES].sort());

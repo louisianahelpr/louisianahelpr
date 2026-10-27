@@ -75,6 +75,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_money_rows_seed: "tags",
   declutter_notify: "hides",
   declutter_order_rows_seed: "tags",
+  declutter_price_drop_alert: "hides",
   declutter_price_drop_sweep: "hides",
   declutter_price_hint: "hides",
   declutter_refund_cancels_setup_jobs: "alerts",

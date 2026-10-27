@@ -570,6 +570,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
 
 
   "confirm_reminder_sends.user_id": { reason: "lead 2026-10-25: which confirm-your-email reminder (step 1 or 2) went to the account and when, service role only; the email itself is exported in email_send_log, and the rows go with the account" },
+  "declutter_price_alerts.user_id": { reason: "Q2429 (owner 2026-10-27): the rate-limit ledger of price-drop notices sent to a watcher (item, price, when), service role only; the notice itself is exported in notifications, and the rows are deleted with the account or the item" },
   "come_back_email_sends.user_id": { reason: "owner 2026-10-21: which come-back email (step 1 or 2) went to the member and when, service role only; the email itself is exported in email_send_log, and the rows are deleted with the account" },
   "signup_leads.email": { reason: "owner 2026-10-09: the sign-up step-1 address saved BEFORE an account exists (service role only); for a member it holds only the address the account already exports plus a source and timestamps, and a completed row is deleted at 30 days" },
   "retained_bans.email_sha256": { reason: "ban-evasion hash kept AFTER deletion; a live account's ban is exported via user_bans" },

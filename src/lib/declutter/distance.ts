@@ -51,6 +51,11 @@ export function nearestFirst<T extends Located>(
     .sort((x, y) => (x.miles as number) - (y.miles as number));
 }
 
+/** An item's price as a member reads it: "Free" for a free item (20261027170717), else "$40" / "$40.50". */
+export function itemPriceLabel(cents: number): string {
+  return cents === 0 ? "Free" : formatPrice(cents);
+}
+
 export function formatPrice(cents: number): string {
   const dollars = cents / 100;
   return Number.isInteger(dollars) ? `$${dollars}` : `$${dollars.toFixed(2)}`;

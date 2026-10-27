@@ -90,7 +90,7 @@
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261017055505_declutter_helpr_delivery.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -470,12 +470,15 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Seller delivery (20261027153244, reviewed 2026-10-27 by lh-money-escrow: still keeps the fee): f1_seller_delivery
       // = 5% of (items + the seller's rate) + 70c, so its kept fee covers the card fee on the rate too; a FREE delivery
       // (rate 0) is the plain f1 fee on the items.
+      // Q2419 the Free section (20261027170717, reviewed 2026-10-27: still keeps the fee): one arm added, fee_rule
+      // 'free' with premium 0, which declutter_orders_free ties to paid_with 'free' AND every amount 0 AND no Stripe
+      // payment, so a free order has nothing a refund could return; every card arm is unchanged.
       {
         name: "declutter_orders_premium_rule",
-        file: "20261027153244_declutter_seller_delivery.sql",
-        text: "(fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'f1_ship' AND shipping_cents > 0 AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70) OR (fee_rule = 'f1_seller_delivery' AND shipping_cents = 0 AND handover = 'seller_delivery' AND premium_cents = round((items_cents + delivery_cents) * 0.05)::integer + 70) OR (fee_rule = 'premium15' AND shipping_cents = 0 AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
+        file: "20261027170717_declutter_free_section.sql",
+        text: "(fee_rule = 'f1' AND shipping_cents = 0 AND premium_cents = round(items_cents * 0.05)::integer + 70) OR (fee_rule = 'f1_ship' AND shipping_cents > 0 AND premium_cents = round((items_cents + shipping_cents) * 0.05)::integer + 70) OR (fee_rule = 'f1_seller_delivery' AND shipping_cents = 0 AND handover = 'seller_delivery' AND premium_cents = round((items_cents + delivery_cents) * 0.05)::integer + 70) OR (fee_rule = 'free' AND premium_cents = 0) OR (fee_rule = 'premium15' AND shipping_cents = 0 AND premium_cents = greatest(round(items_cents * 0.15)::integer, 100))",
       },
-      { name: "declutter_orders_premium_cents_check", file: "20261015023613_declutter_buyer_fee_f1.sql", text: "premium_cents >= 70" },
+      { name: "declutter_orders_premium_cents_check", file: "20261027170717_declutter_free_section.sql", text: "premium_cents >= 70 OR paid_with = 'free'" },
     ],
     /**
      * EVERY SQL function that decides, feeds or can change a Declutter refund amount (refundMoneyFunctions():
@@ -488,7 +491,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     functions: {
       declutter_admin_decide_delivery_damage: "20261017055505_declutter_helpr_delivery.sql fe11a9a3460b2a93",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
-      declutter_close_paid_order: "20261017055505_declutter_helpr_delivery.sql 0c52fabd4123f2d4",
+      // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
+      // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.
+      declutter_close_paid_order: "20261027170717_declutter_free_section.sql 40e81d90ab8e5fd8",
+      declutter_checkout_free: "20261027170717_declutter_free_section.sql 248fe5ad356ab151",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale
@@ -602,6 +608,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "declutter_refunds 20261026155251_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],
       "declutter_refunds 20261014224914_declutter_slice3b_payments.sql": ["4bff57b818038dfb", "501086bd450ecad3", "3dac3faed7ee24b1", "f5f2155930f94544"],
       "declutter_orders 20261014224914_declutter_slice3b_payments.sql": ["09890255c7e1c936", "594addefda2af9a3"],
+      // Q2419: declutter_orders_free (a free order is $0 everywhere, card fee 0, no Stripe session or payment).
+      "declutter_orders 20261027170717_declutter_free_section.sql": ["2422b43339382e42"],
       "declutter_refunds 20261017055500_declutter_refund_hand_settle.sql": ["ae2d271f25de116b"],
       "declutter_refunds 20261017055505_declutter_helpr_delivery.sql": ["1192c0e245b11665", "aa722c4315c803d9", "afb94a44f9fb4011", "97fe1330f0f7f13d"],
       // Owner answer 7: the reason CHECK and the reason -> policy CHECK swapped to add 'seller_out' (seller pays);

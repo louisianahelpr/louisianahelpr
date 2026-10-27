@@ -13,7 +13,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchSellerItems, photoPublicUrl } from "@/lib/declutter/api";
-import { formatPrice } from "@/lib/declutter/distance";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
@@ -58,7 +58,7 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
                 )}
               </div>
               <div className="min-w-0">
-                <p className="text-ds-14 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(it.current_price_cents)}</p>
+                <p className="text-ds-14 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</p>
                 <p className="text-ds-13 truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

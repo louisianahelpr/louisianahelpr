@@ -27,7 +27,7 @@ import {
   setWatch,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice, milesBetween, milesLabel } from "@/lib/declutter/distance";
+import { formatPrice, milesBetween, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
 import {
   CATEGORY_LABEL,
   ConditionChip,
@@ -36,6 +36,7 @@ import {
   STATUS_HELP,
   STATUS_LABEL,
 } from "./declutterUi";
+import { FreeClaimPanel, isFreeItem } from "./DeclutterFreeClaim";
 import { OfferPanel } from "./DeclutterOfferPanel";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
@@ -53,7 +54,7 @@ import { getPublicOrigin } from "@/lib/authRedirects";
 function shareItem(it: { id: string; title: string; current_price_cents: number }) {
   void shareNative({
     title: it.title,
-    text: `${it.title} · ${formatPrice(it.current_price_cents)} on Louisiana Helpr`,
+    text: `${it.title} · ${itemPriceLabel(it.current_price_cents)} on Louisiana Helpr`,
     url: `${getPublicOrigin()}/declutter/item/${it.id}`,
   });
 }
@@ -119,6 +120,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const away = milesLabel(miles, geo.status === "ready" && geo.approximate);
   const canAct = !isSeller && (it.status === "live" || it.status === "reserved");
 
+  const free = isFreeItem(it);
   const dropped = it.current_price_cents < it.price_cents;
   // Board 4: the next drop only from the real rule (priceDrop.ts), never a promise the server may not keep.
   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null;
@@ -164,7 +166,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           <section aria-label="Price and condition" className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <p data-item-price="" className="min-w-0 text-ds-32 font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
-                {formatPrice(it.current_price_cents)}
+                {itemPriceLabel(it.current_price_cents)}
                 {dropped && (
                   <span className="ml-2 text-lg font-medium text-muted-foreground">
                     <span className="sr-only">Price dropped, was </span>
@@ -198,9 +200,10 @@ export default function ItemView({ itemId }: { itemId: string }) {
           {canAct && <DeclutterBundleRow item={it} viewerId={user?.id ?? null} />}
 
           {/* Buy now and Make an offer sit right under the price and seller (owner, 2026-10-19). */}
-          {canAct && user && <OfferPanel item={it} userId={user.id} />}
+          {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
+          {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />)}
 
-          <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />
+          {!free && <PriceHint category={it.category} conditionStars={it.condition_stars} at={{ lat: Number(it.area_lat), lng: Number(it.area_lng) }} place="this_area" />}
 
           <section className="space-y-1" aria-labelledby="declutter-details">
             <h2 id="declutter-details" className="text-base font-semibold">Details</h2>
@@ -218,7 +221,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm" data-testid="declutter-porch-line">
               {it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}
             </p>
-            <p className="text-xs text-muted-foreground">The exact address is shared after you pay.</p>
+            <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>
           </section>
 
           <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} />

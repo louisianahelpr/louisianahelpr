@@ -8,7 +8,7 @@ import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { photoPublicUrl, type DeclutterItem, type DeclutterPhoto } from "@/lib/declutter/api";
-import { formatPrice, milesLabel } from "@/lib/declutter/distance";
+import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -72,7 +72,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
       </span>
       <span className="block min-w-0 px-0.5 pt-2">
         <span data-card-price className="block min-w-0 text-base font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
-          {formatPrice(item.current_price_cents)}
+          {itemPriceLabel(item.current_price_cents)}
           {item.current_price_cents < item.price_cents && (
             <span className="ml-1.5 text-xs font-medium text-muted-foreground">
               <span className="sr-only">Price dropped, was </span>

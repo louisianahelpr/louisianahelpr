@@ -38,7 +38,7 @@ import {
   type DeclutterItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
 
@@ -95,6 +95,8 @@ export function ManageListingSheet({
   const takeDown = useListingAction(() => withdrawItem(item.id), view === "sold" ? "Marked sold. It's off sale." : "Listing deleted.", close);
   const busy = drops.isPending || pause.isPending || relist.isPending || takeDown.isPending;
   const paused = item.status === "paused";
+  // A free item (20261027170717) has no price to change, no drops and no seller delivery: only pause, relist, take down.
+  const free = item.current_price_cents === 0;
 
   return (
     <Sheet
@@ -111,10 +113,11 @@ export function ManageListingSheet({
             <ListingSummary item={item} coverUrl={coverUrl} />
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
               {deployed && (<>
+              {!free && (<>
               <li>
                 <button type="button" className={ROW} onClick={() => setView("price")} disabled={busy}>
                   <RowText title="Change price or lowest price">
-                    Now {formatPrice(item.current_price_cents)}
+                    Now {itemPriceLabel(item.current_price_cents)}
                     {manage ? ` · lowest ${formatPrice(manage.floor_price_cents)}` : ""}
                   </RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -122,7 +125,7 @@ export function ManageListingSheet({
               </li>
               <li className={ROW}>
                 <RowText title="Stop price drops" id="manage-stop-drops">
-                  {stopped ? `Stopped at ${formatPrice(item.current_price_cents)}` : `Keep it at ${formatPrice(item.current_price_cents)}`}
+                  {stopped ? `Stopped at ${itemPriceLabel(item.current_price_cents)}` : `Keep it at ${itemPriceLabel(item.current_price_cents)}`}
                 </RowText>
                 <Switch
                   aria-labelledby="manage-stop-drops"
@@ -132,6 +135,7 @@ export function ManageListingSheet({
                 />
               </li>
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
+              </>)}
               <li>
                 {paused ? (
                   <button type="button" className={ROW} onClick={() => relist.mutate(undefined)} disabled={busy}>
@@ -217,7 +221,7 @@ function ListingSummary({ item, coverUrl }: { item: DeclutterItem; coverUrl: str
           {[item.area_label, item.porch_ok !== false ? "porch pickup" : null].filter(Boolean).join(" · ")}
         </span>
       </span>
-      <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(item.current_price_cents)}</span>
+      <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
     </div>
   );
 }

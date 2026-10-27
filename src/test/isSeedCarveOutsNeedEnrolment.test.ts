@@ -65,6 +65,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   create_quote_request: "tags",
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
+  declutter_claim_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",
   declutter_delivery_on_task_event: "tags",
   declutter_delivery_open_task: "tags",

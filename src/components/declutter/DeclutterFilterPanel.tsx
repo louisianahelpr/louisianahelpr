@@ -125,6 +125,10 @@ export function DeclutterFilterPanel({
         </label>
       </Block>
       <Block title="Price">
+        {/* The Free section (20261027170717): items given away, $0. */}
+        <div className="flex flex-wrap gap-2">
+          <Chip on={filters.freeOnly} onClick={() => onChange({ ...filters, freeOnly: !filters.freeOnly })}>Free</Chip>
+        </div>
         <div className="flex items-center gap-2">
           <DollarBox label="Lowest price" value={filters.minDollars} onCommit={(v) => onChange({ ...filters, minDollars: v })} />
           <span className="text-ds-13 text-muted-foreground">to</span>

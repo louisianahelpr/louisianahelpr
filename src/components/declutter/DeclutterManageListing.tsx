@@ -17,6 +17,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ShareListingRow } from "./DeclutterShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -343,6 +344,13 @@ export function SellerListingPanel({ item, coverUrl }: { item: DeclutterItem; co
             </Button>
           )}
         </div>
+        {/* Q2426: share only a listing buyers can open now, never a paused one. */}
+        {!paused && (
+          <div className="border-t border-border pt-3 space-y-2">
+            <p className="text-ds-13 text-muted-foreground">Post it in your local Facebook groups. The link shows its photo, price and town.</p>
+            <ShareListingRow item={item} />
+          </div>
+        )}
       </div>
       {paused && (
         <p className="px-1 text-ds-13 text-muted-foreground">Relisting brings it back with its photos and price.</p>

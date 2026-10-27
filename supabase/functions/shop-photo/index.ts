@@ -14,7 +14,12 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 // draft, must-fix 1). shops_public_shop therefore returns photo IDS only, and
 // this function turns an id into the image without ever saying the path.
 //
-//   GET /functions/v1/shop-photo?id=<photo uuid>&kind=shop|item&w=<px>[&og=1]
+//   GET /functions/v1/shop-photo?id=<photo uuid>&kind=shop|item|declutter&w=<px>[&og=1]
+//
+// kind=declutter (Q2426, 20261027194426): a Declutter item's photo for its
+// shared link card, while declutter_public_photo_path finds the item
+// link-visible. Declutter photos live in the same job-photos bucket, at
+// <seller uid>/declutter/<item id>/<file>, so the same reason applies.
 //
 // It serves a photo only while its shop passes shop_link_visible (not hidden,
 // not paused, owner in good standing, Shops not switched off), and an item
@@ -97,7 +102,8 @@ serve(async (req: Request) => {
   if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
   const url = new URL(req.url);
   const id = url.searchParams.get("id") ?? "";
-  const kind = url.searchParams.get("kind") === "item" ? "item" : "shop";
+  const askedKind = url.searchParams.get("kind");
+  const kind = askedKind === "item" ? "item" : askedKind === "declutter" ? "declutter" : "shop";
   const og = url.searchParams.get("og") === "1";
   const asked = Number(url.searchParams.get("w") ?? 640);
   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : (WIDTHS.find((w) => w >= asked) ?? 1200);
@@ -109,7 +115,12 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { data, error } = await admin.rpc("shops_public_photo_path", { p_photo_id: id, p_kind: kind });
+    // Q2426: a shared Declutter item's link card asks kind=declutter. Same proxy, its own visibility rule
+    // (declutter_item_link_visible: live or reserved, seller not out, Declutter not switched off).
+    const { data, error } =
+      kind === "declutter"
+        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
+        : await admin.rpc("shops_public_photo_path", { p_photo_id: id, p_kind: kind });
     if (error) {
       console.error("shop-photo: lookup failed", error.code, error.message);
       return new Response("Unavailable", { status: 503 });

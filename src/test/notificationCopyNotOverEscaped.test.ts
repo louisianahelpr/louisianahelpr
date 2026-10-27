@@ -13,7 +13,7 @@
  * dollar-quoted body a literal with '''' is an escaped '' — never intended in
  * user-facing copy.
  *
- * @mutate supabase/migrations/20260923211309_referral_bonus_links_and_apostrophe.sql | 'Your referral''s first | 'Your referral''''s first
+ * @mutate supabase/migrations/20261027201034_referral_bonus_needs_a_job_from_each.sql | 'You and the friend who invited you have both | 'You and the friend who invited you''''ve both
  */
 import { describe, it, expect } from "vitest";
 import { resolve, join } from "node:path";

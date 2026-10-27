@@ -170,6 +170,8 @@
     "public.declutter_item_no_seller_delivery.declutter_item_no_seller_delivery_seller_idx",
     "public.declutter_seller_deliveries.declutter_seller_deliveries_buyer_idx",
     "public.declutter_seller_deliveries.declutter_seller_deliveries_due_idx",
-    "public.declutter_seller_deliveries.declutter_seller_deliveries_slot_idx"
+    "public.declutter_seller_deliveries.declutter_seller_deliveries_slot_idx",
+    "public.job_guarantee_claims.job_guarantee_claims_dispute_idx",
+    "public.job_guarantee_claims.job_guarantee_claims_open_idx"
   ]
 }

@@ -6,6 +6,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor, fireEvent } from "@testing-library/react";
 import AdminDisputes from "./AdminDisputes";
+// The Helpr Guarantee note (Q2450) reads its request through React Query; this suite renders the dispute card
+// without a QueryClient and is about other controls, so the note renders nothing here.
+vi.mock("@/components/guarantee/AdminGuaranteeNote", () => ({ AdminGuaranteeNote: () => null }));
 
 /**
  * Q1732 (OWNER DECISION 2026-10-12): the admin button that un-sticks a decided

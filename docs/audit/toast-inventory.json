@@ -5641,7 +5641,7 @@
     },
     {
       "file": "src/components/guarantee/HelprGuaranteePanel.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5651,7 +5651,7 @@
     },
     {
       "file": "src/components/guarantee/HelprGuaranteePanel.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

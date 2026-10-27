@@ -82,6 +82,8 @@ const HELPER_ID_KEYED =
  * roster-aware one fails until it is taken off.
  */
 const SINGLE_HELPER_ONLY: Record<string, string> = {
+  rpc_guarantee_helpr_answer: "Helpr Guarantee (Q2450, 20261027200455): a request opens only on a one-Helpr job (rpc_guarantee_open refuses j.is_group_job), so its Helpr is the job's single helper_id; a crew member is never granted anything",
+  rpc_guarantee_mark_fixed: "Helpr Guarantee (Q2450): the same one-Helpr request as rpc_guarantee_helpr_answer (rpc_guarantee_open refuses a crew job), answered by the job's single Helpr",
   rpc_admin_end_recurring_series: "reads helper_id only to REFUSE an admin who worked the series (admin_is_party); it grants nothing, and a recurring series is a one-Helpr booking",
   nudge_confirm: "one-Helpr booking by design (owner 2026-10-08): a crew's members confirm on their roster rows (rpc_group_member_confirm)",
   record_backout_notice: "returns at once for a group job (crew back-outs have their own notices, Q1409)",

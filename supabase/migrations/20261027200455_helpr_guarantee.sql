@@ -100,32 +100,23 @@ GRANT EXECUTE ON FUNCTION public.guarantee_rules() TO authenticated, service_rol
 
 -- One notice + one system row in the job's chat (both parties see it there), never a raise: the caller's
 -- write is the point, and the notice is written in the same transaction (no swallowed error either way).
-CREATE OR REPLACE FUNCTION public.guarantee_tell(p_job_id uuid, p_to uuid, p_title text, p_message text, p_chat text)
+CREATE OR REPLACE FUNCTION public.guarantee_tell(p_job_id uuid, p_to uuid, p_title text, p_message text)
 RETURNS void
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-DECLARE
-  v_customer uuid;
-  v_helper uuid;
 BEGIN
+  -- The bell only. No system row in the job's chat: a messages insert from an RPC (not a trigger) is counted by
+  -- enforce_message_rate and could refuse the request itself (serverMessageInsertsSkipBlocked, Q1169).
   IF p_to IS NOT NULL THEN
     INSERT INTO public.notifications (user_id, job_id, title, message, type, link)
     VALUES (p_to, p_job_id, p_title, p_message, 'job_update', '/jobs/' || p_job_id::text);
   END IF;
-  -- Every caller already holds this job row FOR UPDATE (job, then claim); taken again here so the read is locked on its own.
-  SELECT j.customer_id, j.helper_id INTO v_customer, v_helper FROM public.jobs j WHERE j.id = p_job_id FOR UPDATE;
-  -- messages.sender_id is NOT NULL: an ownerless job (poster deleted) or a deleted Helpr has no thread row.
-  IF p_chat IS NOT NULL AND v_customer IS NOT NULL AND v_helper IS NOT NULL
-     AND NOT public.are_users_blocked(v_customer, v_helper) THEN
-    INSERT INTO public.messages (job_id, sender_id, receiver_id, content, read, is_system)
-    VALUES (p_job_id, v_customer, v_helper, p_chat, false, true);
-  END IF;
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.guarantee_tell(uuid, uuid, text, text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.guarantee_tell(uuid, uuid, text, text, text) TO service_role;
+REVOKE ALL ON FUNCTION public.guarantee_tell(uuid, uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.guarantee_tell(uuid, uuid, text, text) TO service_role;
 
 -- The claim becomes a dispute: the platform files it (the only filing open_dispute_as allows on a completed
 -- job; a platform filing carries no evidence, so the photos stay on the claim, where the admin's dispute card
@@ -177,9 +168,9 @@ BEGIN
    WHERE id = c.id;
   -- open_dispute_as already wrote the job's "Dispute opened" thread row (the status trigger).
   PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr Guarantee request is now a dispute',
-    'An admin will look at your photos and note and decide. A refund, if any, is of the job price.', NULL);
+    'An admin will look at your photos and note and decide. A refund, if any, is of the job price.');
   PERFORM public.guarantee_tell(c.job_id, c.helper_id, 'The Helpr Guarantee request is now a dispute',
-    'An admin will decide. Your pay stays held until then. You can add your side in the dispute.', NULL);
+    'An admin will decide. Your pay stays held until then. You can add your side in the dispute.');
   RETURN v_dispute;
 END;
 $fn$;
@@ -281,8 +272,7 @@ BEGIN
           now() + make_interval(hours => (v_rules ->> 'helpr_answer_hours')::integer))
   RETURNING id INTO v_id;
   PERFORM public.guarantee_tell(_job_id, j.helper_id, 'The person who posted the job says it wasn''t done right',
-    'Open the job to see their note and photos. Pick a day to fix it (within 3 days), or say you can''t. Your pay is held until it''s settled.',
-    '⚠ Helpr Guarantee: not done right, a fix is asked for');
+    'Open the job to see their note and photos. Pick a day to fix it (within 3 days), or say you can''t. Your pay is held until it''s settled.');
   RETURN v_id;
 END;
 $fn$;
@@ -327,8 +317,7 @@ BEGIN
        SET status = 'escalating', close_reason = 'helpr_cant_fix', helpr_answered_at = now(), updated_at = now()
      WHERE id = c.id;
     PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr says they can''t fix it',
-      'An admin will look at your photos and note and decide. A refund, if any, is of the job price.',
-      '⚠ Helpr Guarantee: the Helpr can''t fix it, an admin will decide');
+      'An admin will look at your photos and note and decide. A refund, if any, is of the job price.');
     RETURN 'escalating';
   END IF;
   IF _fix_date IS NULL OR _fix_date < v_today
@@ -339,8 +328,7 @@ BEGIN
      SET status = 'fix_scheduled', fix_date = _fix_date, helpr_answered_at = now(), updated_at = now()
    WHERE id = c.id;
   PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr will come back to fix it',
-    'They picked ' || to_char(_fix_date, 'FMDay, Mon FMDD') || '. Message them in the job to set a time.',
-    '✓ Helpr Guarantee: fix set for ' || to_char(_fix_date, 'FMDay, Mon FMDD'));
+    'They picked ' || to_char(_fix_date, 'FMDay, Mon FMDD') || '. Message them in the job to set a time.');
   RETURN 'fix_scheduled';
 END;
 $fn$;
@@ -378,8 +366,7 @@ BEGIN
          updated_at = now()
    WHERE id = c.id;
   PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr says it''s fixed',
-    'Take a look and tell us within 48 hours. If we don''t hear from you, we''ll take it as fixed.',
-    '✓ Helpr Guarantee: the Helpr says it''s fixed');
+    'Take a look and tell us within 48 hours. If we don''t hear from you, we''ll take it as fixed.');
   RETURN 'fixed';
 END;
 $fn$;
@@ -420,8 +407,7 @@ BEGIN
        SET status = 'closed', close_reason = 'poster_confirmed', closed_at = now(), updated_at = now()
      WHERE id = c.id;
     PERFORM public.guarantee_tell(c.job_id, c.helper_id, 'They say it''s fixed',
-      'Thanks for making it right. Your pay is on its way on the usual schedule.',
-      '✓ Helpr Guarantee: fixed, all settled');
+      'Thanks for making it right. Your pay is on its way on the usual schedule.');
     RETURN 'closed';
   END IF;
   IF v_note IS NULL OR char_length(v_note) < 15 THEN
@@ -435,8 +421,7 @@ BEGIN
      SET poster_reject_note = v_note, status = 'escalating', close_reason = 'poster_rejected_fix', updated_at = now()
    WHERE id = c.id;
   PERFORM public.guarantee_tell(c.job_id, c.helper_id, 'They say it''s still not right',
-    'An admin will decide. Your pay stays held until then.',
-    '⚠ Helpr Guarantee: still not right, an admin will decide');
+    'An admin will decide. Your pay stays held until then.');
   RETURN 'escalating';
 END;
 $fn$;
@@ -510,10 +495,9 @@ BEGIN
          SET status = 'closed', close_reason = 'poster_silent', closed_at = now(), updated_at = now()
        WHERE id = c.id;
       PERFORM public.guarantee_tell(c.job_id, c.helper_id, 'The Helpr Guarantee request is closed',
-        'No answer came within 48 hours, so it counts as fixed. Your pay is on its way on the usual schedule.',
-        '✓ Helpr Guarantee: closed, all settled');
+        'No answer came within 48 hours, so it counts as fixed. Your pay is on its way on the usual schedule.');
       PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr Guarantee request is closed',
-        'We didn''t hear back within 48 hours, so we took it as fixed.', NULL);
+        'We didn''t hear back within 48 hours, so we took it as fixed.');
       v_closed := v_closed + 1;
     END IF;
    EXCEPTION WHEN OTHERS THEN
@@ -550,9 +534,9 @@ BEGIN
      SET status = 'closed', close_reason = 'job_moved_on', closed_at = now(), updated_at = now()
    WHERE id = c.id;
   PERFORM public.guarantee_tell(c.job_id, c.poster_id, 'Your Helpr Guarantee request is closed',
-    'Your bank decided the card dispute for you and returned the payment, so there is nothing left to settle here.', NULL);
+    'Your bank decided the card dispute for you and returned the payment, so there is nothing left to settle here.');
   PERFORM public.guarantee_tell(c.job_id, c.helper_id, 'The Helpr Guarantee request is closed',
-    'The bank returned the payment for this job, so the request is closed.', NULL);
+    'The bank returned the payment for this job, so the request is closed.');
   RETURN 1;
 END;
 $fn$;
@@ -697,8 +681,8 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('helpr-guarantee-sweep', '*/5 * * * *',
-      $c$SELECT public.cron_record_work('helpr-guarantee-sweep', public.guarantee_sweep());$c$);
+    PERFORM cron.schedule('helpr-guarantee-sweep', '4-59/5 * * * *',
+      $c$SELECT public.cron_record_work('helpr-guarantee-sweep', to_jsonb(public.guarantee_sweep()));$c$);
   END IF;
 END
 $do$;

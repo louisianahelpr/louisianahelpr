@@ -13,8 +13,10 @@ import { unwrap } from "@/lib/supabaseResult";
 import { isNotDeployedYet } from "@/lib/seriesDates";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
+import { PROOF_PHOTO_TYPES, isAllowedUploadType } from "@/lib/uploadTypes";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorMessage } from "./errorCopy";
+import { GUARANTEE_RULES } from "./rules";
 
 /** An RPC refusal in plain words (the code's copy), else a generic line; the original is reported, never dropped. */
 class GuaranteeError extends Error {}
@@ -48,8 +50,8 @@ export interface GuaranteeClaim {
   created_at: string;
 }
 
-/** The window and limits, the same numbers as guarantee_rules(). */
-export const GUARANTEE_RULES = { claimWindowHours: 48, fixWithinDays: 3, maxPhotos: 6, noteMin: 15, noteMax: 1000 } as const;
+/** The window and limits, the same numbers as guarantee_rules() (./rules, which the Terms page reads too). */
+export { GUARANTEE_RULES };
 
 const COLUMNS =
   "id, job_id, poster_id, helper_id, note, photo_paths, status, helpr_answer_by, fix_date, fixed_at, poster_answer_by, closed_at, close_reason, poster_reject_note, created_at";
@@ -94,6 +96,10 @@ export function canAskForFix(job: GuaranteeJob, viewerId: string, claim: Guarant
 /** Upload the poster's photos where the dispute-evidence rule accepts them; returns the storage PATHS. */
 export async function uploadGuaranteePhotos(uid: string, jobId: string, files: File[]): Promise<string[]> {
   const paths: string[] = [];
+  // A type the proof-photos bucket refuses (a GIF, a PDF) is refused here first, with the same copy (Q54).
+  if (files.some((f) => !isAllowedUploadType(f, PROOF_PHOTO_TYPES))) {
+    throw refusal(rpcErrorMessage("rpc_guarantee_open", "guarantee_bad_photo"), new Error("unsupported_upload_type"), "guarantee.uploadPhoto");
+  }
   for (const file of files) {
     const ext = storageExtFor(file, "jpg");
     const path = `${uid}/disputes/${jobId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;

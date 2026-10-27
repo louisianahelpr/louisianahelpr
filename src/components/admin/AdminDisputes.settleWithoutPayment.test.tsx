@@ -19,6 +19,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import AdminDisputes from "./AdminDisputes";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
+// The Helpr Guarantee note (Q2450) reads its request through React Query; this suite renders the dispute card
+// without a QueryClient and is about other controls, so the note renders nothing here.
+vi.mock("@/components/guarantee/AdminGuaranteeNote", () => ({ AdminGuaranteeNote: () => null }));
 
 /**
  * Q235: a DECIDED dispute on a job with no payment on file had no way out.

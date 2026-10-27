@@ -184,7 +184,7 @@ const tomorrow = `((now() at time zone 'America/Chicago')::date + 1)`;
   const told = await server(db, `select count(*)::int from public.notifications where user_id = '${A}' and job_id = '${J(1)}'`);
   check("the Helpr is told", val(told) === 1);
   const chat = await server(db, `select count(*)::int from public.messages where job_id = '${J(1)}' and is_system and receiver_id = '${A}'`);
-  check("a system row lands in the job's chat", val(chat) === 1);
+  check("no system row in the job's chat (the bell is the notice; an RPC's messages insert could trip the message-rate cap, Q1169)", val(chat) === 0);
   check("the chat stays open while the claim is open", val(await server(db, `select public.job_messaging_closes_at('${J(1)}')`)) === null);
   check("the poster cannot answer for the Helpr", /guarantee_not_yours/.test((await poster(db, `select public.rpc_guarantee_helpr_answer('${c.id}', true, ${tomorrow})`)).err ?? ""));
   check("a fix date 4 days out is refused",

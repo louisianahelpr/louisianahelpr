@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-27T17:08:03.562Z",
-  "guards": 2418,
-  "registered": 2411,
+  "generated": "2026-10-27T20:10:22.657Z",
+  "guards": 2427,
+  "registered": 2420,
   "unregistered": [
     "src/components/EarningsExport.noFee.test.ts",
     "src/components/job-card/posterMarkedDone.test.ts",
@@ -12,7 +12,8 @@
     "src/test/takeHomeOnlyNoJobPrice.test.ts"
   ],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/admin/adminTestRows.test.ts"
   ],
   "classD_selfReferential": [
     {

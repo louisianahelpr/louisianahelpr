@@ -255,7 +255,8 @@ const NO_SEED_SUBJECT: Record<string, string> = {
   // producer judges Q137 itself with the landlord as the actor.
   "sql:rentals_submit_ownership_proof#1": "operator broadcast to every admin: an ownership proof waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: rentalsMaintenance)",
   "sql:rentals_submit_landlord_id#1": "operator broadcast to every admin: a landlord's ID photo waits for review; the insert skips every admin for whom notification_crosses_seed_boundary(admin, NULL, NULL, landlord) is true, so a test landlord never pages a real admin (PGlite: landlordIdReview)",
-  "sql:declutter_price_drop_sweep#1": "Price dropped to watchers: a seed listing alerts only seed watchers (AND (NOT r.is_seed OR COALESCE(wp.is_seed, false)))",
+  // Q2429 (20261027204745): the watcher alert moved from the evening sweep into one trigger on every price cut.
+  "sql:declutter_price_drop_alert#1": "Price dropped / now free to watchers: a seed listing alerts only seed watchers (AND (NOT NEW.is_seed OR COALESCE(wp.is_seed, false)))",
 };
 // DIGEST: one row about MANY jobs; the producer must exclude seed jobs for
 // non-seed recipients itself (asserted below).
@@ -382,7 +383,9 @@ describe("Q137: a seed subject never notifies a real person", () => {
     const emailers = sqlCalling("send-notification-email");
     // Q225 (2026-09-26): the parish fan-out queues; deliver_parish_match_alert sends.
     // Rentals S1 (2026-10-15): rentals_notify mails beside its own notifications row, judged with the actor (20261017205605).
+    // Q2429 (2026-10-27): declutter_price_drop_alert mails each watcher beside its own notifications row.
     expect(emailers).toEqual([
+      "declutter_price_drop_alert",
       "deliver_job_match",
       "deliver_parish_match_alert",
       "deliver_saved_search_alert",

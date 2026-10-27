@@ -32,7 +32,7 @@
  * @mutate supabase/functions/send-notification-email/index.ts |         ? await unsubscribeHeaders(profile.email, 'job_matches') |         ? await unsubscribeHeaders(profile.email)
  * @mutate supabase/functions/email-unsubscribe/index.ts |         await setJobMatchEmails(supabase, profile.user_id, action !== 'resubscribe') |         await setCommercialConsent(supabase, profile.user_id, action !== 'resubscribe')
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF NEW.status <> 'open' THEN |   IF NEW.parish IS NULL OR NEW.status <> 'open' THEN
- * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
+ * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   v_title TEXT := 'New job posted'; |   v_title TEXT := 'New job in your parish';
  * @mutate supabase/migrations/20261021072206_saved_search_alerts_by_group.sql |       ARRAY_AGG(s.id)                                   AS matched_search_ids\n    FROM |       ARRAY_AGG(s.id)                                   AS matched_search_ids,\n      COALESCE(BOOL_OR(np.match_digest_mode), false)    AS digest_mode\n    FROM
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |            m->>'title', m->>'message', m->>'link', true) |            m->>'title', m->>'message', m->>'link', false)
  */

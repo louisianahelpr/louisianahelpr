@@ -659,7 +659,7 @@ describe("useDashboardFilters — viewer-local culls reach filteredJobs", () => 
 
 // ...and the paid early-access delay, the one filter a non-subscriber must not
 // be able to see through.
-// @mutate src/hooks/useDashboardFilters.ts | if (jobAge < earlyAccessDelayMs(earlyAccessTier)) return false; |
+// @mutate src/hooks/useDashboardFilters.ts | if (jobAge < earlyAccessDelayMs(earlyAccessTier, membershipsOn)) return false; |
 // ...and the ownerless cull — a job outlives its poster with customer_id NULL,
 // and the own-post filter above passes a NULL straight through.
 // @mutate src/hooks/useDashboardFilters.ts | allJobs.filter((j) => !!j.customer_id) | allJobs.filter(() => true)

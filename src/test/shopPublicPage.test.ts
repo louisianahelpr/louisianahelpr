@@ -35,7 +35,7 @@
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
 // @mutate api/share.ts |     robots: SHOP_ROBOTS,\n    image: shopImage(shop), |     image: shopImage(shop),
-// @mutate vercel.json | "value": "noindex" | "value": "index"
+// @mutate vercel.json | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "noindex" | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "index"
 // @mutate public/robots.txt | Allow: /shops/ | Allow: /shopz/
 // @mutate src/lib/shops/publicShop.ts |     url: shopLink(shop.id), |     url: SHOP_LINK_ORIGIN,
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)

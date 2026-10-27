@@ -15,7 +15,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { unwrap, functionErrorMessage } from "@/lib/supabaseResult";
+import { functionErrorMessage, functionErrorBody } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 
@@ -41,18 +41,26 @@ export type PayoutMethod = {
  * made a transient stripe-connect failure indistinguishable from a brand-new
  * account, so a fully connected helper could open the form and be told
  * "Connect to start earning".
+ *
+ * Exception: a 409 with `{ recoverable: true }` means the edge function
+ * detected and cleared a stale (unusable) Stripe account. After the clear the
+ * user has no linked account, so we return null (the "Set up payouts" UI)
+ * rather than throwing a spurious error (Sentry JAVASCRIPT-1Q, 14 events /
+ * 7 users on the /profile page).
  */
 export async function fetchPayoutStatus(): Promise<PayoutAccountStatus | null> {
-  try {
-    const data = unwrap(await supabase.functions.invoke("stripe-connect", { body: { action: "status" } }));
-    return (data as PayoutAccountStatus | null) || null;
-  } catch (err: unknown) {
-    // The edge function's own reason, not the SDK's generic non-2xx message
-    // (Sentry JAVASCRIPT-1Q: its 2026-10-26 event came from this path).
-    const detail = await functionErrorMessage(err, "(no edge-fn body)");
-    report(err, { tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } });
-    throw err;
+  const result = await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+  if (result.error) {
+    const body = await functionErrorBody(result.error);
+    if (body?.recoverable === true) {
+      // Expected: edge fn cleared a stale account; profile now has no linked id.
+      return null;
+    }
+    const detail = typeof body?.error === "string" ? body.error : await functionErrorMessage(result.error, "(no edge-fn body)");
+    report(result.error, { tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } });
+    throw result.error;
   }
+  return (result.data as PayoutAccountStatus | null) || null;
 }
 
 /** Methods are additive detail — degrade to an empty list, but never silently. */

@@ -1,8 +1,24 @@
+/**
+ * The Dashboard's three Priority Alert numbers. NOT loaded with the rest of
+ * Stats: Admin.tsx fills them from useAdminPendingCounts, the same hook (and,
+ * for Support and Reports, the same cache entry as the screen's list) that
+ * puts the red count on each queue in the left nav, so the alert, the nav
+ * badge and the screen's Pending tab are one number (owner, 2026-10-27).
+ */
+interface PriorityAlertCounts {
+  openReports: number;
+  supportTickets: number;
+  disputedJobs: number;
+}
+
+/** What the Dashboard renders: the loaded stats plus the shared queue counts. */
+export type DashboardStats = Stats & PriorityAlertCounts;
+
 export interface Stats {
-  totalUsers: number; openReports: number;
-  supportTickets: number; activeJobs: number; completedJobs: number;
+  totalUsers: number;
+  activeJobs: number; completedJobs: number;
   totalRevenue: number; totalFees: number;
-  disputedJobs: number; activeSubscriptions: number;
+  activeSubscriptions: number;
   lateCancellationRevenue: number;
   newUsersInRange: number; newUsersPrev: number;
   revenueInRange: number; revenuePrev: number;

@@ -22,6 +22,8 @@ import { isStorageObjectPath } from "@/lib/storagePath";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportReply";
 import { useSupportReplies } from "@/components/admin/useSupportReplies";
+import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
+import { supportQueueKey, type SupportQueueFilter } from "@/components/admin/adminQueueKeys";
 
 type Ticket = {
   id: string;
@@ -210,129 +212,136 @@ const subjectFromReason = (reason: string) => reason.replace(/^\[.*?\]\s*/, "");
 /** PostgREST's "function not found" — the migration hasn't reached this env yet. */
 const isMissingRpc = (error: { code?: string | null } | null | undefined) => error?.code === "PGRST202";
 
-type QueueFilter = "pending" | "resolved" | "all";
+type QueueFilter = SupportQueueFilter;
+const SUPPORT_FILTERS: readonly QueueFilter[] = ["pending", "resolved", "all"];
+
+/** One status tab's tickets, test accounts left out: the list AND its pill count (useFilterCounts) read this. */
+export async function fetchSupportTickets(filter: QueueFilter): Promise<Ticket[]> {
+  /* WHY THE ORDER IS COMPUTED ON THE SERVER.
+   *
+   * This list has no `.limit()`, which makes a client-side sort look safe.
+   * It is not. This project's PostgREST enforces db-max-rows = 1000
+   * (measured on prod 2026-09-01: `notifications` holds 1619 rows and a
+   * bare select returns `content-range: 0-999/1619`). An unbounded select
+   * is therefore a SILENT `LIMIT 1000` applied AFTER the ORDER BY — so a
+   * client sort would only have ordered the newest 1000 tickets, and the
+   * rows it never saw are the OLDEST ones, i.e. exactly the tickets the
+   * anti-starvation rule exists to rescue. The perk would have looked
+   * broken precisely when the queue got busy, which is when it is sold.
+   *
+   * Ordering in SQL means the cap truncates the BOTTOM of the priority
+   * queue — the only correct place to lose rows — and it keeps holding if
+   * this list ever grows a `.range()`.
+   *
+   * The tier also cannot be sorted on from here without the join: it lives
+   * on `profiles`, and `reports.reporter_id` has no FK to it, so there is
+   * no PostgREST embed to order through. The RPC does the join, which also
+   * collapses the old two-round-trip name hydration into one read.
+   */
+  const rpc = await supabase.rpc("admin_support_queue", {
+    p_status: filter,
+    p_priority_tiers: PRIORITY_SUPPORT_TIERS,
+    p_head_start_minutes: PRIORITY_HEAD_START_MINUTES,
+  });
+
+  if (!isMissingRpc(rpc.error)) {
+    // unwrap() rather than `if (error) return []`: swallowing here made an
+    // outage render as "No support tickets — Nobody has written in. That
+    // is the good outcome." on a trust-and-safety queue — the one screen
+    // where a silent empty list is indistinguishable from a healthy one.
+    // Throwing flips React Query's isError, which the ErrorState branch
+    // below renders.
+    const rows = unwrap(rpc) ?? [];
+    const seedIds = await fetchSeedUserIds(rows.map(row => row.reporter_id));
+    return withoutTestRows(rows.map(row => ({
+      id: row.id,
+      reporter_id: row.reporter_id,
+      reason: row.reason,
+      description: row.description,
+      status: row.status,
+      created_at: row.created_at,
+      reporter_name: formatName(row.reporter_name, "Unknown"),
+      reporter_email: row.reporter_email || "",
+      support_tier: toSubscriptionTier(row.support_tier),
+      is_seed: !!row.reporter_id && seedIds.has(row.reporter_id),
+    })));
+  }
+
+  /* Deploy-lag fallback. Migrations land on merge to main via db-deploy.yml,
+   * so between a deploy of this bundle and the migration reaching the DB the
+   * RPC genuinely does not exist. PGRST202 is that window and only that
+   * window — every other error still throws above. The fallback reads the
+   * same two tables the old code did and applies `sortSupportQueue`, the
+   * client twin of the RPC's ORDER BY, so the ordering is correct at any
+   * queue size below the 1000-row cap. */
+  report(rpc.error, { severity: "warning", tags: { source: "AdminSupport.rpcMissing" } });
+
+  let query = supabase
+    .from("reports")
+    .select("*")
+    .eq("reported_type", "support")
+    .order("created_at", { ascending: false });
+  if (filter === "pending") query = query.eq("status", "pending");
+  if (filter === "resolved") query = query.neq("status", "pending");
+  const data = unwrap(await query) ?? [];
+
+  // `reporter_id` is nullable since 20260902051631 (purge_user_data() nulls
+  // it when the reporter deletes their account, keeping the report because
+  // it is a record about the person reported ON). A null must not reach
+  // `.in("user_id", ...)`, which would send `in.(null,...)` to PostgREST;
+  // it falls through to the "Unknown" name below, which is correct.
+  const userIds = [...new Set(data.map(r => r.reporter_id))].filter(
+    (id): id is string => !!id,
+  );
+  let profileMap = new Map<string, { full_name: string | null; email: string | null; subscription_tier: string | null; subscription_expires_at: string | null }>();
+  if (userIds.length > 0) {
+    // Secondary hydration read. Don't drop the error: on failure every row
+    // silently renders the "Unknown" name AND the free tier — which would
+    // look like real data (a queue with no Elite in it) rather than a
+    // failed lookup. Report it, then still render the list; a missing
+    // display name must not blank the whole surface.
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
+      .in("user_id", userIds);
+    if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminSupport.hydrateNames" } });
+    profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
+  }
+
+  const seedIds = await fetchSeedUserIds(userIds);
+
+  return sortSupportQueue(withoutTestRows(data.map(r => {
+    const p = r.reporter_id ? profileMap.get(r.reporter_id) : undefined;
+    return {
+      ...r,
+      reporter_name: formatName(p?.full_name, "Unknown"),
+      reporter_email: p?.email || "",
+      support_tier: resolveSupportTier(p?.subscription_tier, p?.subscription_expires_at),
+      is_seed: !!r.reporter_id && seedIds.has(r.reporter_id),
+    };
+  })));
+}
 
 const AdminSupport = () => {
   const qc = useQueryClient();
   const [filter, setFilter] = useState<QueueFilter>("pending");
   const [updating, setUpdating] = useState<string | null>(null);
 
-  const queryKey = ["admin-support", filter];
+  const queryKey = supportQueueKey(filter);
+  // Owner 2026-10-27: each pill carries the number of tickets it lists.
+  const counts = useFilterCounts(SUPPORT_FILTERS, supportQueueKey, fetchSupportTickets, (rows) => rows.length);
   const { data: tickets, isInitialLoading, isError, refetch } = useInstantQuery<Ticket[]>({
     key: queryKey,
     fallback: [],
-    fetcher: async () => {
-      /* WHY THE ORDER IS COMPUTED ON THE SERVER.
-       *
-       * This list has no `.limit()`, which makes a client-side sort look safe.
-       * It is not. This project's PostgREST enforces db-max-rows = 1000
-       * (measured on prod 2026-09-01: `notifications` holds 1619 rows and a
-       * bare select returns `content-range: 0-999/1619`). An unbounded select
-       * is therefore a SILENT `LIMIT 1000` applied AFTER the ORDER BY — so a
-       * client sort would only have ordered the newest 1000 tickets, and the
-       * rows it never saw are the OLDEST ones, i.e. exactly the tickets the
-       * anti-starvation rule exists to rescue. The perk would have looked
-       * broken precisely when the queue got busy, which is when it is sold.
-       *
-       * Ordering in SQL means the cap truncates the BOTTOM of the priority
-       * queue — the only correct place to lose rows — and it keeps holding if
-       * this list ever grows a `.range()`.
-       *
-       * The tier also cannot be sorted on from here without the join: it lives
-       * on `profiles`, and `reports.reporter_id` has no FK to it, so there is
-       * no PostgREST embed to order through. The RPC does the join, which also
-       * collapses the old two-round-trip name hydration into one read.
-       */
-      const rpc = await supabase.rpc("admin_support_queue", {
-        p_status: filter,
-        p_priority_tiers: PRIORITY_SUPPORT_TIERS,
-        p_head_start_minutes: PRIORITY_HEAD_START_MINUTES,
-      });
-
-      if (!isMissingRpc(rpc.error)) {
-        // unwrap() rather than `if (error) return []`: swallowing here made an
-        // outage render as "No support tickets — Nobody has written in. That
-        // is the good outcome." on a trust-and-safety queue — the one screen
-        // where a silent empty list is indistinguishable from a healthy one.
-        // Throwing flips React Query's isError, which the ErrorState branch
-        // below renders.
-        const rows = unwrap(rpc) ?? [];
-        const seedIds = await fetchSeedUserIds(rows.map(row => row.reporter_id));
-        return withoutTestRows(rows.map(row => ({
-          id: row.id,
-          reporter_id: row.reporter_id,
-          reason: row.reason,
-          description: row.description,
-          status: row.status,
-          created_at: row.created_at,
-          reporter_name: formatName(row.reporter_name, "Unknown"),
-          reporter_email: row.reporter_email || "",
-          support_tier: toSubscriptionTier(row.support_tier),
-          is_seed: !!row.reporter_id && seedIds.has(row.reporter_id),
-        })));
-      }
-
-      /* Deploy-lag fallback. Migrations land on merge to main via db-deploy.yml,
-       * so between a deploy of this bundle and the migration reaching the DB the
-       * RPC genuinely does not exist. PGRST202 is that window and only that
-       * window — every other error still throws above. The fallback reads the
-       * same two tables the old code did and applies `sortSupportQueue`, the
-       * client twin of the RPC's ORDER BY, so the ordering is correct at any
-       * queue size below the 1000-row cap. */
-      report(rpc.error, { severity: "warning", tags: { source: "AdminSupport.rpcMissing" } });
-
-      let query = supabase
-        .from("reports")
-        .select("*")
-        .eq("reported_type", "support")
-        .order("created_at", { ascending: false });
-      if (filter === "pending") query = query.eq("status", "pending");
-      if (filter === "resolved") query = query.neq("status", "pending");
-      const data = unwrap(await query) ?? [];
-
-      // `reporter_id` is nullable since 20260902051631 (purge_user_data() nulls
-      // it when the reporter deletes their account, keeping the report because
-      // it is a record about the person reported ON). A null must not reach
-      // `.in("user_id", ...)`, which would send `in.(null,...)` to PostgREST;
-      // it falls through to the "Unknown" name below, which is correct.
-      const userIds = [...new Set(data.map(r => r.reporter_id))].filter(
-        (id): id is string => !!id,
-      );
-      let profileMap = new Map<string, { full_name: string | null; email: string | null; subscription_tier: string | null; subscription_expires_at: string | null }>();
-      if (userIds.length > 0) {
-        // Secondary hydration read. Don't drop the error: on failure every row
-        // silently renders the "Unknown" name AND the free tier — which would
-        // look like real data (a queue with no Elite in it) rather than a
-        // failed lookup. Report it, then still render the list; a missing
-        // display name must not blank the whole surface.
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("user_id, full_name, email, subscription_tier, subscription_expires_at")
-          .in("user_id", userIds);
-        if (profilesError) report(profilesError, { severity: "warning", tags: { source: "AdminSupport.hydrateNames" } });
-        profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-      }
-
-      const seedIds = await fetchSeedUserIds(userIds);
-
-      return sortSupportQueue(withoutTestRows(data.map(r => {
-        const p = r.reporter_id ? profileMap.get(r.reporter_id) : undefined;
-        return {
-          ...r,
-          reporter_name: formatName(p?.full_name, "Unknown"),
-          reporter_email: p?.email || "",
-          support_tier: resolveSupportTier(p?.subscription_tier, p?.subscription_expires_at),
-          is_seed: !!r.reporter_id && seedIds.has(r.reporter_id),
-        };
-      })));
-    },
+    fetcher: () => fetchSupportTickets(filter),
   });
 
   const ticketIds = (tickets ?? []).map(t => t.id);
   const { replies, repliesFor, repliesPending } = useSupportReplies(ticketIds);
   const afterReply = () => {
     qc.invalidateQueries({ queryKey: ["admin-support-replies"] });
-    qc.invalidateQueries({ queryKey });
+    // Every status tab: their pill counts read the same cache (useFilterCounts).
+    qc.invalidateQueries({ queryKey: ["admin-support"] });
   };
 
   const updateStatus = async (id: string, status: string) => {
@@ -355,7 +364,8 @@ const AdminSupport = () => {
     }
     if (updated) {
       await logAdminAction("support_ticket_status", "report", id, { status });
-      qc.invalidateQueries({ queryKey });
+      // A resolved ticket leaves Pending and joins Resolved: refresh every tab's count.
+      qc.invalidateQueries({ queryKey: ["admin-support"] });
     }
     setUpdating(null);
   };
@@ -381,7 +391,7 @@ const AdminSupport = () => {
             className="shrink-0"
           >
             {Icon && <Icon className="w-3.5 h-3.5 mr-1" />}
-            {label}
+            {pillLabel(label, counts.get(value))}
           </Button>
         ))}
       </AdminFilterStrip>

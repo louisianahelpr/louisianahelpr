@@ -93,7 +93,7 @@ describe("AdminDisputes — Open count and the two empty states", () => {
     await screen.findByText(/Open Queue/);
     expect(openTabText()).toMatch(/Open\s*\(2\)/);
 
-    fireEvent.click(screen.getByRole("radio", { name: ">30d" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^>30d \(\d+\)$/ }));
 
     // Before the fix this stayed "Open (2)" — the tab describing a list the
     // admin could no longer see.
@@ -104,7 +104,7 @@ describe("AdminDisputes — Open count and the two empty states", () => {
     render(<AdminDisputes />);
     await screen.findByText(/Open Queue/);
 
-    fireEvent.click(screen.getByRole("radio", { name: ">30d" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^>30d \(\d+\)$/ }));
 
     await screen.findByText(/No disputes match your filters/);
     // The precise regression: asserting nothing is contested while two open
@@ -116,7 +116,7 @@ describe("AdminDisputes — Open count and the two empty states", () => {
   it("Clear filters restores the full queue", async () => {
     render(<AdminDisputes />);
     await screen.findByText(/Open Queue/);
-    fireEvent.click(screen.getByRole("radio", { name: ">30d" }));
+    fireEvent.click(screen.getByRole("radio", { name: /^>30d \(\d+\)$/ }));
     await screen.findByText(/No disputes match your filters/);
 
     fireEvent.click(screen.getByRole("button", { name: /Clear filters/ }));
@@ -137,4 +137,4 @@ describe("AdminDisputes — Open count and the two empty states", () => {
 });
 
 // The Open tab count describing a list the admin can no longer see.
-// @mutate src/components/admin/AdminDisputes.tsx | ({openFiltered.length}) | ({disputes.length})
+// @mutate src/components/admin/AdminDisputes.tsx | openCount={openFiltered.length} | openCount={disputes.length}

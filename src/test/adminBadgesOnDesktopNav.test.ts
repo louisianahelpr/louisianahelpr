@@ -6,7 +6,7 @@
  * Jobs 4, Referrals 2 at 1440).
  *
  * @mutate src/pages/admin/Admin.tsx | publishAdminBadges(next); | void next;
- * @mutate src/components/DesktopSidebarNav.tsx | {!!adminBadges[id] && ( | {false && (
+ * @mutate src/components/DesktopSidebarNav.tsx | const adminRowBadge = (id: string) => adminBadgeFor(id, adminBadges, pending.data); | const adminRowBadge = (id: string) => adminBadgeFor(id, {}, pending.data);
  * @mutate src/components/admin/adminBadgeStore.ts | listeners.forEach((l) => l()); | void listeners;
  */
 import { readFileSync } from "node:fs";
@@ -32,6 +32,7 @@ describe("admin queue badges reach the desktop nav (AM-011)", () => {
     expect(readFileSync("src/pages/admin/Admin.tsx", "utf8")).toMatch(/publishAdminBadges\(next\);/);
     const nav = readFileSync("src/components/DesktopSidebarNav.tsx", "utf8");
     expect(nav).toMatch(/const adminBadges = useAdminBadges\(\);/);
-    expect(nav).toMatch(/\{!!adminBadges\[id\] && \(/);
+    // Queue rows show their open count; the other rows, Admin's published numbers (owner 2026-10-27).
+    expect(nav).toMatch(/const adminRowBadge = \(id: string\) => adminBadgeFor\(id, adminBadges, pending\.data\);/);
   });
 });

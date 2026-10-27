@@ -15,6 +15,7 @@
  * @mutate src/components/DesktopTopNav.tsx | <div ref={registerDesktopTitleSlot} data-desktop-title-slot="" | <div data-desktop-title-slot=""
  * @mutate src/components/PageHeader.tsx |     <PageTitleBar\n      title={title} |     <PageTitleBarX\n      title={title}
  * @mutate src/components/sections/AppTopBar.tsx |     <PageTitleBar\n      title={title ?? ""} |     <PageTitleBarX\n      title={title ?? ""}
+ * @mutate src/components/admin/AdminSectionHeader.tsx |   <PageTitleBar\n    title={title} |   <PageTitleBarX\n    title={title}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -31,6 +32,7 @@ const HEADER_H1: Record<string, string> = {
   "src/components/PageHeader.tsx": "the sub-screen row's phone form, passed to PageTitleBar as `phone`",
   "src/components/sections/AppTopBar.tsx": "the section row's phone form, passed to PageTitleBar as `phone`",
   "src/pages/home/HomeDashboard.tsx": "Home's greeting's phone form, passed to PageTitleBar as `phone`",
+  "src/components/admin/AdminSectionHeader.tsx": "every admin view's row's phone form, passed to PageTitleBar as `phone` (owner 2026-10-27)",
 };
 
 /** Files with an h1 that is not a signed-in page's header row. EXACT. */
@@ -39,8 +41,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/ForceUpdateGate.tsx": "the update-required screen, outside the router",
   "src/components/JobsSectionSkeleton.tsx": "sr-only heading of a loading skeleton",
   "src/components/LoginRouteSkeleton.tsx": "the sign-in screen's loading skeleton (signed out)",
-  "src/components/admin/AdminSectionHeader.tsx": "admin console (its own shell, no desktop top bar)",
-  "src/components/admin/dashboard/DashboardHome.tsx": "admin console (its own shell, no desktop top bar)",
+  "src/components/admin/dashboard/DashboardHome.tsx": "the admin Dashboard's greeting plate (with its range picker), not a back+title row; every other admin view's row is AdminSectionHeader",
   "src/components/auth/AuthCardHead.tsx": "signed-out auth card",
   "src/components/auth/AuthShell.tsx": "signed-out / account-state card (AuthShell)",
   "src/components/dashboard/BrowseTasksToolbar.tsx": "sr-only heading of the Browse feed's collapsed toolbar",
@@ -75,7 +76,7 @@ describe("ONE header row: every signed-in page header goes through PageTitleBar 
 
   it("the desktop bar registers the slot, and the shared headers render through PageTitleBar", () => {
     expect(code("src/components/DesktopTopNav.tsx")).toMatch(/ref=\{registerDesktopTitleSlot\}/);
-    for (const f of ["src/components/PageHeader.tsx", "src/components/sections/AppTopBar.tsx", "src/pages/home/HomeDashboard.tsx"]) {
+    for (const f of ["src/components/PageHeader.tsx", "src/components/sections/AppTopBar.tsx", "src/pages/home/HomeDashboard.tsx", "src/components/admin/AdminSectionHeader.tsx"]) {
       expect(code(f), f).toMatch(/<PageTitleBar\b[\s\S]*?phone=\{/);
     }
   });

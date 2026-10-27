@@ -2,7 +2,7 @@ import {
   Users, Briefcase, DollarSign, ShieldAlert, AlertTriangle,
   CheckCircle2, Crown, TrendingUp, X,
 } from "lucide-react";
-import { type Stats, type DateRange } from "./types";
+import { type DashboardStats, type DateRange } from "./types";
 import { cn } from "@/lib/utils";
 import { KpiCard, computeTrend } from "./KpiCard";
 import { PriorityAlert } from "./PriorityAlert";
@@ -11,7 +11,7 @@ import { DateRangeBar } from "./DateRangeBar";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 
 interface DashboardHomeProps {
-  stats: Stats;
+  stats: DashboardStats;
   statsLoading: boolean;
   onNavigate: (v: string) => void;
   dateRange: DateRange;

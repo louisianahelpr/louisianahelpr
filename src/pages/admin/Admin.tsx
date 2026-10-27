@@ -47,7 +47,8 @@ type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" |
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { publishAdminBadges } from "@/components/admin/adminBadgeStore";
-import { adminBadgeFor, useOpenQueueCounts, useStalledQueueCount } from "@/components/admin/adminRailBadges";
+import { ADMIN_QUEUE_IDS, adminBadgeFor, useAdminPendingCounts } from "@/components/admin/adminRailBadges";
+import { useQueryClient } from "@tanstack/react-query";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "@/components/admin/giftCardPaidJobIds";
@@ -123,9 +124,9 @@ const Admin = () => {
   const [notifLogsInitialSearch, setNotifLogsInitialSearch] = useState<string>("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [stats, setStats] = useState<Stats>({
-    totalUsers: 0, openReports: 0, supportTickets: 0,
+    totalUsers: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    disputedJobs: 0, activeSubscriptions: 0, lateCancellationRevenue: 0,
+    activeSubscriptions: 0, lateCancellationRevenue: 0,
     newUsersInRange: 0, newUsersPrev: 0, revenueInRange: 0, revenuePrev: 0,
     completedJobsInRange: 0, completedJobsPrev: 0,
     feesThisQuarter: 0,
@@ -143,10 +144,12 @@ const Admin = () => {
   // supplies the shared loading flag (the redundant useAdminAuth redirect
   // hook has been removed).
   const { isLoading: loading } = useCurrentUser();
-  // Q1071 / Q1691: the queue rail counts (src/components/admin/adminRailBadges.ts).
-  const stalledCount = useStalledQueueCount(!loading);
-  const queueCounts = useOpenQueueCounts(!loading);
-  const openQueues = { stalled: stalledCount.data, ...queueCounts.data };
+  // Q1071 / Q1691 / owner 2026-10-27: every queue's open count
+  // (src/components/admin/adminRailBadges.ts). The SAME hook feeds the left
+  // nav's red counts on every page and the Dashboard's Priority Alerts below.
+  const pendingCounts = useAdminPendingCounts(!loading);
+  const openQueues = pendingCounts.data;
+  const qc = useQueryClient();
 
   const loadUnreadCounts = useCallback(async () => {
     // `excludeSeed` marks the sections whose table HAS an is_seed column, which
@@ -164,13 +167,14 @@ const Admin = () => {
     // hides demo jobs from every user-facing surface, these badges would have
     // gone on counting them, so admin would be the last place still showing
     // numbers the rest of the app had stopped believing.
-    const sections: { key: View; table: "profiles" | "jobs" | "reports" | "referrals"; dateCol: string; filter?: Record<string, string | boolean>; notFilter?: Record<string, string>; excludeSeed?: boolean }[] = [
+    const sections: { key: View; table: "profiles" | "jobs" | "referrals"; dateCol: string; filter?: Record<string, string | boolean>; excludeSeed?: boolean }[] = [
       // No "people" entry: it counted approval_status='pending' accounts, a
       // review queue retired in Q193 (owner 2026-09-23).
+      // No disputes / reports / support entries (owner 2026-10-27): a queue's
+      // number is its OPEN count (useAdminPendingCounts), which a visit does
+      // not clear. Their "new since you looked" counts hid a waiting ticket the
+      // moment the screen was opened once.
       { key: "jobs", table: "jobs", dateCol: "created_at", excludeSeed: true },
-      { key: "disputes", table: "jobs", dateCol: "disputed_at", filter: { status: "disputed" }, excludeSeed: true },
-      { key: "reports", table: "reports", dateCol: "created_at", filter: { status: "pending" }, notFilter: { reported_type: "support" } },
-      { key: "support", table: "reports", dateCol: "created_at", filter: { status: "pending", reported_type: "support" } },
       { key: "referrals", table: "referrals", dateCol: "created_at" },
       { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" }, excludeSeed: true },
     ];
@@ -189,9 +193,6 @@ const Admin = () => {
           if (val === "not_null") query = query.not(col, "is", null);
           else query = query.eq(col, val);
         }
-      }
-      if (s.notFilter) {
-        for (const [col, val] of Object.entries(s.notFilter)) query = query.neq(col, val);
       }
       const { count, error } = await query;
       if (error) {
@@ -231,7 +232,7 @@ const Admin = () => {
     const quarterStart = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1).toISOString();
 
     const [
-      profilesRes, reportsRes, supportRes, activeRes, completedRes, disputesRes,
+      profilesRes, activeRes, completedRes,
       paymentsRes, subsRes, lateCancelRes,
       newUsersInRangeRows, newUsersPrevRows,
       revInRangeRows, revPrevRows,
@@ -241,11 +242,8 @@ const Admin = () => {
       giftCardPaidRes,
     ] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_seed", false),
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").neq("reported_type", "support"),
-      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending").eq("reported_type", "support"),
       supabase.from("jobs").select("id", { count: "exact", head: true }).not("status", "in", "(completed,cancelled)").in("payment_status", ["escrow", "payout_pending"]).eq("is_seed", false), // Active = paid + unfinished, as Jobs → Active (isActivePaidJob)
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
-      supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "disputed").eq("is_seed", false),
       supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).neq("status", "cancelled").eq("is_seed", false),
       supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
@@ -283,8 +281,8 @@ const Admin = () => {
     // above must not be indistinguishable from a genuinely healthy
     // platform. The other, successful queries still render normally.
     const namedResults: [string, { error: PostgrestError | null }][] = [
-      ["profiles", profilesRes], ["reports", reportsRes], ["support", supportRes],
-      ["active", activeRes], ["completed", completedRes], ["disputes", disputesRes],
+      ["profiles", profilesRes],
+      ["active", activeRes], ["completed", completedRes],
       ["payments", paymentsRes], ["subs", subsRes], ["lateCancel", lateCancelRes],
       ["newUsersInRange", newUsersInRangeRows], ["newUsersPrev", newUsersPrevRows],
       ["revInRange", revInRangeRows], ["revPrev", revPrevRows],
@@ -337,8 +335,6 @@ const Admin = () => {
 
     setStats({
       totalUsers: profilesRes.count || 0,
-      openReports: reportsRes.count || 0,
-      supportTickets: supportRes.count || 0,
       activeJobs: activeRes.count || 0,
       completedJobs: completedRes.count || 0,
       // Gross, the same way Analytics defines "Payments Collected": what the
@@ -348,7 +344,6 @@ const Admin = () => {
       // visually and the number had not (measured 2026-09-07).
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
       totalFees: paymentRows.reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0),
-      disputedJobs: disputesRes.count || 0,
       activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,
       newUsersInRange: (newUsersInRangeRows.data || []).length,
@@ -408,6 +403,11 @@ const Admin = () => {
         // via the `view === "home"` effect below, so nothing goes stale.
         if (viewRef.current === "home") loadStats(activeWindowDays);
         loadUnreadCounts();
+        // A job or report write can open or close a dispute, report or ticket:
+        // refresh the shared open counts (left nav, Priority Alerts, pills).
+        void qc.invalidateQueries({ queryKey: ["admin-disputes", "open-count"] });
+        void qc.invalidateQueries({ queryKey: ["admin-reports"] });
+        void qc.invalidateQueries({ queryKey: ["admin-support"] });
       }, 500);
     };
     // Deliberately NOT user-scoped: unlike user-facing channels (which MUST be
@@ -459,14 +459,16 @@ const Admin = () => {
   }, [handleViewChange]);
 
   // AM-011: the desktop sidebar (DesktopSidebarNav) shows these same counts.
+  // It reads every queue's open count itself (useAdminPendingCounts, on every
+  // page); what only this page knows is the "new since you looked" numbers.
   useEffect(() => {
     const next: Record<string, number> = {};
     for (const g of adminNavGroups) for (const { id } of g.items) {
-      const n = adminBadgeFor(id, unreadCounts, stats, { stalled: stalledCount.data, ...queueCounts.data });
+      const n = adminBadgeFor(id, unreadCounts, openQueues);
       if (n) next[id] = n;
     }
     publishAdminBadges(next);
-  }, [unreadCounts, stats, stalledCount.data, queueCounts.data]);
+  }, [unreadCounts, openQueues]);
 
   if (loading) {
     return (
@@ -476,13 +478,14 @@ const Admin = () => {
     );
   }
 
-  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, stats, openQueues);
+  const getBadge = (id: string): number | undefined => adminBadgeFor(id, unreadCounts, openQueues);
 
-  const getBadgeColor = (id: string): string => {
-    if (["disputes", "reports"].includes(id)) return "bg-destructive text-destructive-foreground";
-    if (["people", "support"].includes(id)) return "bg-accent text-accent-foreground";
-    return "bg-primary text-primary-foreground";
-  };
+  // Work waiting on a person is red, like the desktop nav's counts (owner
+  // 2026-10-27); a "new since you looked" number keeps the quieter primary.
+  const getBadgeColor = (id: string): string =>
+    (ADMIN_QUEUE_IDS as readonly string[]).includes(id)
+      ? "bg-destructive text-destructive-foreground"
+      : "bg-primary text-primary-foreground";
 
   const viewLabels = VIEW_LABELS;
 
@@ -521,7 +524,14 @@ const Admin = () => {
       case "social": return <AdminSocialPosts />;
       default: return (
         <DashboardHome
-          stats={stats}
+          // The three Priority Alerts are the shared open counts, the same
+          // numbers as the left nav's badges and each screen's Pending tab.
+          stats={{
+            ...stats,
+            disputedJobs: openQueues.disputes ?? 0,
+            openReports: openQueues.reports ?? 0,
+            supportTickets: openQueues.support ?? 0,
+          }}
           statsLoading={statsLoading}
           onNavigate={handleViewChange}
           dateRange={dateRange}
@@ -530,7 +540,7 @@ const Admin = () => {
           setCustomDays={setCustomDays}
           rangeLabel={activeRangeLabel}
           prevLabel={activePrevLabel}
-          dataError={statsLoadError || unreadCountsError || stalledCount.isError || queueCounts.isError}
+          dataError={statsLoadError || unreadCountsError || pendingCounts.isError}
         />
       );
     }

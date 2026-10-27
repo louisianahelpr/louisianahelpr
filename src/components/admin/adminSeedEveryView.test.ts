@@ -145,7 +145,7 @@ describe("Q233: every admin view filters or hides seed rows", () => {
     const statsBody = admin.slice(start, admin.indexOf("setStats(", start));
     // One query = from `supabase.from("jobs"|"profiles")` up to the next `supabase.`.
     const reads = statsBody.split("supabase.").filter((q) => /^from\("(profiles|jobs)"\)/.test(q));
-    expect(reads.length).toBe(15); // exact (2026-10-27, the three test-side reads removed): a new stat read raises this
+    expect(reads.length).toBe(14); // exact (2026-10-27: the three test-side reads removed, then the disputed-jobs count moved to useAdminPendingCounts, the open-disputes count the left nav shows): a new stat read raises this
     for (const r of reads) expect(r, r.slice(0, 120)).toMatch(/\.eq\("is_seed", false\)/);
   });
 });

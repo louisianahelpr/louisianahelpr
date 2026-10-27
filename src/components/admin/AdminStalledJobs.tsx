@@ -32,6 +32,7 @@ import {
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
+import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
 
 /**
  * STUCK JOBS — the human half of the stalled-completion sweep.
@@ -68,68 +69,75 @@ interface QueueState {
 }
 
 const EMPTY_STATE: QueueState = { deployed: true, rows: [], names: {} };
+const stalledQueueKey = (includeResolved: boolean) => ["admin-stalled-job-queue", includeResolved] as const;
+const STALLED_TABS: readonly boolean[] = [false, true];
+
+/** One tab's stuck jobs (open, or including resolved), test jobs left out: the list AND its pill count read this. */
+async function fetchStalledQueue(includeResolved: boolean): Promise<QueueState> {
+  const res = await supabase.rpc("admin_stalled_job_queue", {
+    p_include_resolved: includeResolved,
+  });
+
+  // The ONE failure that is not a failure: the RPC is not deployed yet.
+  // Returned as a state, never as an empty list — a blank "nothing is
+  // stuck" on a screen about held escrow is the lie this codebase keeps
+  // paying for (see the Exception Queue's PGRST200 note).
+  if (res.error && isMissingRpc(res.error)) {
+    return { ...EMPTY_STATE, deployed: false };
+  }
+
+  // Anything else throws, which flips the query to `isError` and renders
+  // ErrorState. Never drop the `error` half (CLAUDE.md).
+  const rows = (unwrap(res) ?? []) as StalledQueueRow[];
+
+  // The RPC returns ids; a human deciding about someone's money needs the
+  // names. No FK to embed on (the RPC is a function, not a view), so this
+  // is a flat second read — the AdminExceptionQueue pattern.
+  const ids = [
+    ...new Set(rows.flatMap((r) => [r.customer_id, r.helper_id]).filter(Boolean) as string[]),
+  ];
+  const names: Record<string, string> = {};
+  if (ids.length > 0) {
+    const { data: profs, error: profsError } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", ids);
+    // A failed name lookup must not blank a queue of held escrow, but it
+    // must not pass silently either: every row would render its fallback
+    // label and look like real data.
+    if (profsError) {
+      report(profsError, {
+        severity: "warning",
+        tags: { source: "AdminStalledJobs.hydrateNames" },
+      });
+    }
+    (profs ?? []).forEach((p: { user_id: string; full_name: string | null }) => {
+      if (p.full_name) names[p.user_id] = p.full_name;
+    });
+  }
+
+  // Q233: a row is seed if EITHER party is — an admin deciding whose
+  // escrow to touch needs to know it's a demo job, not a real one.
+  const seedIds = await fetchSeedUserIds(ids);
+  const seededRows = withoutTestRows(rows.map((r) => ({
+    ...r,
+    is_seed: seedIds.has(r.customer_id ?? "") || seedIds.has(r.helper_id ?? ""),
+  })));
+
+  return { deployed: true, rows: seededRows, names };
+}
 
 const StalledJobsInner = () => {
   const qc = useQueryClient();
   const [includeResolved, setIncludeResolved] = useState(false);
-  const queryKey = ["admin-stalled-job-queue", includeResolved];
+  const queryKey = stalledQueueKey(includeResolved);
+  // Owner 2026-10-27: each pill carries the number of jobs it lists.
+  const counts = useFilterCounts(STALLED_TABS, stalledQueueKey, fetchStalledQueue, (q) => q.rows.length);
 
   const { data, isInitialLoading, isError, refetch } = useInstantQuery<QueueState>({
     key: queryKey,
     fallback: EMPTY_STATE,
-    fetcher: async () => {
-      const res = await supabase.rpc("admin_stalled_job_queue", {
-        p_include_resolved: includeResolved,
-      });
-
-      // The ONE failure that is not a failure: the RPC is not deployed yet.
-      // Returned as a state, never as an empty list — a blank "nothing is
-      // stuck" on a screen about held escrow is the lie this codebase keeps
-      // paying for (see the Exception Queue's PGRST200 note).
-      if (res.error && isMissingRpc(res.error)) {
-        return { ...EMPTY_STATE, deployed: false };
-      }
-
-      // Anything else throws, which flips the query to `isError` and renders
-      // ErrorState. Never drop the `error` half (CLAUDE.md).
-      const rows = (unwrap(res) ?? []) as StalledQueueRow[];
-
-      // The RPC returns ids; a human deciding about someone's money needs the
-      // names. No FK to embed on (the RPC is a function, not a view), so this
-      // is a flat second read — the AdminExceptionQueue pattern.
-      const ids = [
-        ...new Set(rows.flatMap((r) => [r.customer_id, r.helper_id]).filter(Boolean) as string[]),
-      ];
-      const names: Record<string, string> = {};
-      if (ids.length > 0) {
-        const { data: profs, error: profsError } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", ids);
-        // A failed name lookup must not blank a queue of held escrow, but it
-        // must not pass silently either: every row would render its fallback
-        // label and look like real data.
-        if (profsError) {
-          report(profsError, {
-            severity: "warning",
-            tags: { source: "AdminStalledJobs.hydrateNames" },
-          });
-        }
-        (profs ?? []).forEach((p: { user_id: string; full_name: string | null }) => {
-          if (p.full_name) names[p.user_id] = p.full_name;
-        });
-      }
-
-      // Q233: a row is seed if EITHER party is — an admin deciding whose
-      // escrow to touch needs to know it's a demo job, not a real one.
-      const seedIds = await fetchSeedUserIds(ids);
-      const seededRows = withoutTestRows(rows.map((r) => ({
-        ...r,
-        is_seed: seedIds.has(r.customer_id ?? "") || seedIds.has(r.helper_id ?? ""),
-      })));
-
-      return { deployed: true, rows: seededRows, names };
-    },
+    fetcher: () => fetchStalledQueue(includeResolved),
   });
 
   /**
@@ -216,8 +224,8 @@ const StalledJobsInner = () => {
           layout="wrap"
           className="w-fit"
           options={[
-            { value: "open", label: "Awaiting a human" },
-            { value: "all", label: "Including resolved" },
+            { value: "open", label: pillLabel("Awaiting a human", counts.get(false)) },
+            { value: "all", label: pillLabel("Including resolved", counts.get(true)) },
           ]}
           value={includeResolved ? "all" : "open"}
           onChange={(next) => setIncludeResolved(next === "all")}

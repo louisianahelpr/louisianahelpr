@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -17,6 +17,8 @@ import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
 import { useAdminBadges } from "@/components/admin/adminBadgeStore";
+import { ADMIN_QUEUE_IDS, adminBadgeFor, adminPendingTotal, useAdminPendingCounts } from "@/components/admin/adminRailBadges";
+import { safeStorage } from "@/lib/safeStorage";
 import { useSidePanel } from "@/components/sidePanelOpen";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
@@ -47,6 +49,9 @@ import { PreviewPill } from "@/components/sections/PreviewPill";
  * unread/activity counts stay consistent across the two navs.
  */
 
+/** This device's remembered open/closed choice for the Admin group ("0" = the admin collapsed it). */
+const ADMIN_NAV_OPEN_KEY = "helpr_admin_nav_open";
+
 type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockItem["badgeKey"]; comingSoon?: boolean; preview?: boolean; nested?: boolean };
 
 /**
@@ -56,9 +61,12 @@ type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockIt
  * sidebar").
  *
  * Nested rather than flat because admin is not a sixth peer of Home/Posts/Jobs
- * — it is a console with twenty-odd sections of its own. Collapsed by default,
- * so a non-admin's panel and an admin's are the same height and the same shape
- * until the admin opens it.
+ * — it is a console with twenty-odd sections of its own. OPEN by default for an
+ * admin (owner, 2026-10-27: "Maybe for the admin stuff leave it open on the
+ * left panel", after a waiting report and six tickets went unnoticed), and the
+ * admin's own collapse choice is remembered on this device (ADMIN_NAV_OPEN_KEY).
+ * Each queue row carries its open count in red, and the Admin row carries the
+ * total, the way Explore carries its sections' total, so it shows collapsed too.
  *
  * Sections come from `adminNavGroups`, the one list /admin itself renders, so
  * the two can't drift. Each links to `/admin?view=<id>`, a deep link the page
@@ -113,6 +121,11 @@ const DesktopSidebarRail = () => {
   // and no "Post a Job" button: Jobs' "+" is in its top bar. A section switched
   // off for this viewer is listed greyed and says "coming soon".
   const [createOpen, setCreateOpen] = useState(false);
+  // BADGE = TO-DO (owner, 2026-10-20): the counts NeedsYouBridge publishes from Home's list.
+  const todo = useNeedsYouCounts(user?.id);
+  // The SAME shared store MobileNav reads (Q103): one unread query and one
+  // realtime channel per user, however many navs are mounted.
+  const { unreadCount } = useNavUnreadCount(user);
   const messages = rightItems.find((i) => i.path === "/messages")!;
   const navItems: NavRow[] = [
     leftItems[0],
@@ -126,23 +139,6 @@ const DesktopSidebarRail = () => {
     { path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" },
     youItem,
   ];
-  // Admin's own sections, collapsed by default so an admin's panel is the same
-  // shape as everyone else's until they open it. Auto-opens while you are
-  // actually in the console, so the section you are looking at is never hidden.
-  const adminActive = location.pathname === "/admin";
-  const currentAdminView = new URLSearchParams(location.search).get("view") || "home";
-  const [adminOpen, setAdminOpen] = useState(false);
-  useEffect(() => {
-    if (adminActive) setAdminOpen(true);
-  }, [adminActive]);
-  // BADGE = TO-DO (owner, 2026-10-20): the counts NeedsYouBridge publishes from Home's list.
-  const todo = useNeedsYouCounts(user?.id);
-  // The SAME shared store MobileNav reads (Q103): one unread query and one
-  // realtime channel per user, however many navs are mounted.
-  const { unreadCount } = useNavUnreadCount(user);
-  // AM-011: /admin's queue counts (published by Admin.tsx from getBadge).
-  const adminBadges = useAdminBadges();
-  const adminTotal = Object.values(adminBadges).reduce((a, n) => a + n, 0);
 
   if (!isDesktopRailRoute(location.pathname)) return null;
   // The rail is authed app chrome — its destinations are ProtectedRoutes. On a
@@ -274,104 +270,138 @@ const DesktopSidebarRail = () => {
           );
         })}
 
-        {/* ADMIN — one row for admins, its sections nested under it. */}
-        {isAdmin && (
-          <li className="mt-1">
-            <button
-              onClick={() => setAdminOpen((v) => !v)}
-              aria-expanded={adminOpen}
-              aria-controls="side-panel-admin-sections"
-              className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
-              style={{
-                background: adminActive ? "hsl(var(--bark) / 0.08)" : "transparent",
-                color: adminActive ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
-              }}
-            >
-              <span className="relative inline-flex">
-                <ShieldAlert className="h-5 w-5" strokeWidth={adminActive ? 2.3 : 1.8} />
-                {!adminOpen && adminTotal > 0 && (
-                  <span
-                    className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-                    style={{ background: "hsl(var(--alert))", color: "#fff" }}
-                  >
-                    {adminTotal > 9 ? "9+" : adminTotal}
-                  </span>
-                )}
-              </span>
-              <span className="flex-1 text-ds-14 font-semibold">Admin</span>
-              <ChevronDown
-                className={`h-4 w-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
-                strokeWidth={2.25}
-                aria-hidden
-              />
-            </button>
-
-            {adminOpen && (
-              <ul id="side-panel-admin-sections" className="mt-1 space-y-2 pb-1">
-                {adminNavGroups.map((group) => (
-                  <li key={group.title}>
-                    <p
-                      className="px-3 pt-1 pb-0.5 text-ds-10 font-semibold uppercase tracking-[0.08em]"
-                      style={{
-                        // 0.70, not 0.65. These four section headers repeat on
-                        // every admin screen, so a single 0.03 miss became 96
-                        // of the failures the five-leg sweep found — the
-                        // largest cluster in the app by node count and one of
-                        // the smallest by cause. 0.65 measured 4.47:1 against
-                        // 4.5 required at 10px; 0.70 measures 5.18:1.
-                        color: "hsl(var(--olivewood) / 0.7)",
-                      }}
-                    >
-                      {group.title}
-                    </p>
-                    <ul>
-                      {group.items.map(({ id, label, icon: ItemIcon }) => {
-                        const on = adminActive && currentAdminView === id;
-                        return (
-                          <li key={id}>
-                            <button
-                              onClick={() => navigate(`/admin?view=${id}`)}
-                              aria-current={on ? "page" : undefined}
-                              // Indented to the parent's icon column, so the
-                              // nesting reads structurally rather than needing
-                              // a rule or a box.
-                              className="flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
-                              style={{
-                                background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
-                                color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",
-                                fontWeight: on ? 700 : 500,
-                              }}
-                            >
-                              <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
-                              <span className="truncate">{label}</span>
-                              {!!adminBadges[id] && (
-                                <>
-                                  <span
-                                    className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
-                                    style={{ background: "hsl(var(--alert))", color: "#fff" }}
-                                    aria-hidden="true"
-                                  >
-                                    {adminBadges[id] > 99 ? "99+" : adminBadges[id]}
-                                  </span>
-                                  <span className="sr-only">{`${adminBadges[id]} new`}</span>
-                                </>
-                              )}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-        )}
+        {/* ADMIN — one row for admins, its sections nested under it. Its own
+            component, so only an admin's nav mounts the queue-count reads. */}
+        {isAdmin && <AdminNavGroup />}
       </ul>
 
       {/* Mounted only once asked for: the sheet reads whether the member has a shop, and a page load should not. */}
       {createOpen && <CreateSheet open={createOpen} onOpenChange={setCreateOpen} />}
     </nav>
+  );
+};
+
+/** The Admin row and its sections (admins only). */
+const AdminNavGroup = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  // Admin's own sections: open unless this admin collapsed them on this device.
+  const adminActive = location.pathname === "/admin";
+  const currentAdminView = new URLSearchParams(location.search).get("view") || "home";
+  const [adminOpen, setAdminOpenState] = useState(() => safeStorage.getItem(ADMIN_NAV_OPEN_KEY) !== "0");
+  const toggleAdminOpen = () => {
+    const next = !adminOpen;
+    safeStorage.setItem(ADMIN_NAV_OPEN_KEY, next ? "1" : "0");
+    setAdminOpenState(next);
+  };
+  // Every queue's open count, read here on EVERY page (an admin sees a waiting
+  // ticket from Home), from the same hook as the Dashboard's Priority Alerts.
+  // AM-011: /admin also publishes its "new since you looked" numbers (Jobs,
+  // Referrals, Subscriptions), which adminBadgeFor uses for the other rows.
+  const adminBadges = useAdminBadges();
+  const pending = useAdminPendingCounts(true);
+  const adminTotal = adminPendingTotal(pending.data);
+  const adminRowBadge = (id: string) => adminBadgeFor(id, adminBadges, pending.data);
+
+  return (
+    <li className="mt-1">
+      <button
+        onClick={toggleAdminOpen}
+        aria-expanded={adminOpen}
+        aria-controls="side-panel-admin-sections"
+        className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
+        style={{
+          background: adminActive ? "hsl(var(--bark) / 0.08)" : "transparent",
+          color: adminActive ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
+        }}
+      >
+        <span className="relative inline-flex">
+          <ShieldAlert className="h-5 w-5" strokeWidth={adminActive ? 2.3 : 1.8} />
+          {adminTotal > 0 && (
+            <span
+              data-admin-total-badge={adminTotal}
+              aria-hidden="true"
+              className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+              style={{ background: "hsl(var(--alert))", color: "#fff" }}
+            >
+              {adminTotal > 9 ? "9+" : adminTotal}
+            </span>
+          )}
+        </span>
+        <span className="flex-1 text-ds-14 font-semibold">Admin</span>
+        {adminTotal > 0 && <span className="sr-only">{`${adminTotal} waiting`}</span>}
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
+          strokeWidth={2.25}
+          aria-hidden
+        />
+      </button>
+
+      {adminOpen && (
+        <ul id="side-panel-admin-sections" className="mt-1 space-y-2 pb-1">
+          {adminNavGroups.map((group) => (
+            <li key={group.title}>
+              <p
+                className="px-3 pt-1 pb-0.5 text-ds-10 font-semibold uppercase tracking-[0.08em]"
+                style={{
+                  // 0.70, not 0.65. These four section headers repeat on
+                  // every admin screen, so a single 0.03 miss became 96
+                  // of the failures the five-leg sweep found — the
+                  // largest cluster in the app by node count and one of
+                  // the smallest by cause. 0.65 measured 4.47:1 against
+                  // 4.5 required at 10px; 0.70 measures 5.18:1.
+                  color: "hsl(var(--olivewood) / 0.7)",
+                }}
+              >
+                {group.title}
+              </p>
+              <ul>
+                {group.items.map(({ id, label, icon: ItemIcon }) => {
+                  const on = adminActive && currentAdminView === id;
+                  return (
+                    <li key={id}>
+                      <button
+                        onClick={() => navigate(`/admin?view=${id}`)}
+                        aria-current={on ? "page" : undefined}
+                        // Indented to the parent's icon column, so the
+                        // nesting reads structurally rather than needing
+                        // a rule or a box.
+                        className="flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
+                        style={{
+                          background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
+                          color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",
+                          fontWeight: on ? 700 : 500,
+                        }}
+                      >
+                        <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
+                        <span className="truncate">{label}</span>
+                        {(() => {
+                          const n = adminRowBadge(id);
+                          if (!n) return null;
+                          return (
+                            <>
+                              <span
+                                data-admin-badge={id}
+                                className="ml-auto flex h-4 min-w-[16px] shrink-0 items-center justify-center rounded-full px-1 text-ds-10 font-bold"
+                                style={{ background: "hsl(var(--alert))", color: "#fff" }}
+                                aria-hidden="true"
+                              >
+                                {n > 99 ? "99+" : n}
+                              </span>
+                              <span className="sr-only">{`${n} ${(ADMIN_QUEUE_IDS as readonly string[]).includes(id) ? "waiting" : "new"}`}</span>
+                            </>
+                          );
+                        })()}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
   );
 };
 

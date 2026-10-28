@@ -11,7 +11,7 @@ import { Star } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useFeature } from "@/hooks/useFeature";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { fetchProfileReviews, reviewSummary, type ProfileReview } from "@/lib/declutter/profile";
+import { fetchProfileReviews, fetchSellerSoldCount, reviewSummary, type ProfileReview } from "@/lib/declutter/profile";
 import { topReviewTags } from "@/lib/declutter/reviewTags";
 
 const monthYear = (iso: string) => new Date(iso).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "America/Chicago" });
@@ -52,27 +52,40 @@ function ReviewGroup({ title, reviews }: { title: string; reviews: ProfileReview
 export function DeclutterProfileSection({ userId }: { userId: string }) {
   const on = useFeature("declutter");
   const reviews = useQuery({ queryKey: ["declutter", "profile-reviews", userId], queryFn: () => fetchProfileReviews(userId), enabled: on });
+  // Lead 2026-10-28: "N sold" in the heading area, from builder 1's one-number read (hidden at 0).
+  const sold = useQuery({ queryKey: ["declutter", "profile-sold", userId], queryFn: () => fetchSellerSoldCount(userId), enabled: on });
 
-  if (!on || reviews.isLoading) return null;
-  if (reviews.isError) {
+  if (!on || reviews.isLoading || sold.isLoading) return null;
+  if (reviews.isError || sold.isError) {
     return (
       <section aria-label="Declutter reviews" className="rounded-2xl border border-border bg-card p-4" data-profile-declutter="error">
-        <ErrorState variant="inline" title="We couldn't load their Declutter reviews." body={declutterErrorMessage(reviews.error)} onRetry={() => void reviews.refetch()} />
+        <ErrorState
+          variant="inline"
+          title="We couldn't load their Declutter sales and reviews."
+          body={declutterErrorMessage(reviews.error ?? sold.error)}
+          onRetry={() => { void reviews.refetch(); void sold.refetch(); }}
+        />
       </section>
     );
   }
   const all = reviews.data ?? [];
-  if (all.length === 0) return null;
+  const soldCount = sold.data ?? 0;
+  if (all.length === 0 && soldCount === 0) return null;
   return (
     // The same eyebrow and glass surface as its sibling SellingNowRow ("SELLING NOW · 3") right above it.
     <section aria-labelledby={`profile-declutter-${userId}`} className="space-y-2" data-profile-declutter="">
-      <h2 id={`profile-declutter-${userId}`} className="font-sans uppercase tracking-wider text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
-        Declutter reviews · {all.length}
-      </h2>
-      <div className="space-y-4 rounded-2xl liquid-glass p-4">
-        <ReviewGroup title="From buyers" reviews={all.filter((r) => r.reviewer_side === "buyer")} />
-        <ReviewGroup title="From sellers" reviews={all.filter((r) => r.reviewer_side === "seller")} />
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id={`profile-declutter-${userId}`} className="font-sans uppercase tracking-wider text-ds-11 font-semibold" style={{ color: "hsl(var(--olivewood) / 0.75)", letterSpacing: "0.14em" }}>
+          {all.length > 0 ? `Declutter reviews · ${all.length}` : "Declutter"}
+        </h2>
+        {soldCount > 0 && <p className="shrink-0 text-ds-13 font-semibold text-foreground" data-profile-sold="">{soldCount} sold</p>}
       </div>
+      {all.length > 0 && (
+        <div className="space-y-4 rounded-2xl liquid-glass p-4">
+          <ReviewGroup title="From buyers" reviews={all.filter((r) => r.reviewer_side === "buyer")} />
+          <ReviewGroup title="From sellers" reviews={all.filter((r) => r.reviewer_side === "seller")} />
+        </div>
+      )}
     </section>
   );
 }

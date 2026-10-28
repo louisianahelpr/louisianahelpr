@@ -24,15 +24,15 @@
  * @mutate src/pages/post-job/useJobSubmit.ts | await backgroundImport(() => import("@/lib/declutter/setupHelpr"), "declutter-setup-helpr"); | await import("@/lib/declutter/setupHelpr");
  * @mutate src/pages/post-job/usePostJobForm.ts | const noDraft = !!(searchParams.get("haulAway") \|\| searchParams.get("declutterOrder")); | const noDraft = !!searchParams.get("haulAway");
  * @mutate src/pages/post-job/useJobSubmit.ts |           if ((!haulAwayItemIds \|\| haulAwayItemIds.length === 0) && !declutterOrderId) {\n            flushDraft(); |           if (!haulAwayItemIds \|\| haulAwayItemIds.length === 0) {\n            flushDraft();
- * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE id = p_order_id AND buyer_id = v_uid; |    WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261028201659_declutter_setup_helpr_item_details.sql |    WHERE id = p_order_id AND buyer_id = v_uid; |    WHERE id = p_order_id;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |    WHERE j.id = p_job_id AND j.customer_id = v_uid AND j.status = 'open' |    WHERE j.id = p_job_id AND j.status = 'open'
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n | \n
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF COALESCE(v_payment, 'unpaid') NOT IN ('unpaid', 'abandoned', 'failed') THEN |   IF v_payment IN ('escrow', 'payout_pending', 'released') THEN
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |               WHERE l.job_id = p_job_id AND l.order_id = p_order_id\n                FOR SHARE) THEN\n    RETURN true; |               WHERE false) THEN\n    RETURN true;
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |                     AND NOT public.declutter_seller_out(o.seller_id) |                     AND true
- * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |      OR public.declutter_seller_out(o.seller_id) THEN |      OR false THEN
+ * @mutate supabase/migrations/20261028201659_declutter_setup_helpr_item_details.sql |      OR public.declutter_seller_out(o.seller_id) THEN |      OR false THEN
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   v_payment text;\nBEGIN\n  PERFORM public.require_feature('declutter');\n |   v_payment text;\nBEGIN\n
- * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   o public.declutter_orders;\nBEGIN\n  PERFORM public.require_feature('declutter');\n |   o public.declutter_orders;\nBEGIN\n
+ * @mutate supabase/migrations/20261028201659_declutter_setup_helpr_item_details.sql |   o public.declutter_orders;\nBEGIN\n  PERFORM public.require_feature('declutter');\n |   o public.declutter_orders;\nBEGIN\n
  * @mutate scripts/ci/null-arg-validators.sql |   ('declutter_link_setup_job',      'action', |   ('declutter_link_setup_job',      'allow',
  * @mutate scripts/ci/null-arg-validators.sql | links the caller''s own open, not-yet-paid job (any category) | links the caller''s own open assembly/handyman job
  * @mutate src/integrations/supabase/types.ts |       declutter_order_jobs: {\n        Row: {\n          created_at: string\n          job_id: string\n |       declutter_order_jobs: {\n        Row: {\n          created_at: string\n

@@ -15,12 +15,22 @@ export function milesBetween(a: { lat: number; lng: number }, b: { lat: number; 
 }
 
 /**
+ * Past this, a miles figure is not shown (lead walkthrough 2026-10-28: a Baton Rouge item read "1835 mi away"). The
+ * figure was TRUE: the viewer's saved position was Menlo Park, CA (profiles.latitude/longitude, a real past device
+ * fix, which deriveFallbackLocation rightly never second-guesses). But Declutter is pickup-local in Louisiana: Louisiana
+ * is about 380 mi corner to corner, and an item farther than this from the viewer is not one a figure helps them
+ * judge. The card and the item page show the area alone; sorting and the distance filter still use the real miles.
+ */
+export const MAX_SHOWN_MILES = 300;
+
+/**
  * `approximate` = the buyer's end is itself rough (a ZIP or parish centre, or
  * a coarse device fix): the figure then says "About", and never "Less than
  * 1 mi", which a centre point cannot know.
  */
 export function milesLabel(miles: number | null, approximate = false): string | null {
   if (miles === null || !Number.isFinite(miles)) return null;
+  if (miles > MAX_SHOWN_MILES) return null;
   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`;
   if (miles < 1) return "Less than 1 mi away";
   return `${Math.round(miles)} mi away`;

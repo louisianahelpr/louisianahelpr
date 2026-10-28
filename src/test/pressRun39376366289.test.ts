@@ -10,10 +10,10 @@
  * "Connect Google / Apple".
  *
  * @mutate scripts/audit/pressProdSafety.mjs | export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /; | export const NOTIFICATION_OPEN_RX = /^$/;
- * @mutate e2e/readRpc.ts |   "admin_last_activity",\n | \n
+ * @mutate scripts/audit/pressProdSafety.mjs | if (isReadRpcPath(pathname) \|\| isDeclaredReadRpcPath(pathname) \|\| isStorageSignPath | if (isStorageSignPath
  * @mutate scripts/audit/pressProdSafety.mjs |   "stripe-payouts": "reads | "stripe-payouts-x": "reads
- * @mutate scripts/audit/press-every-control.mjs | got it\|unsave\|reverse\|connect (?:google\|apple))\b/i; | got it)\b/i;
- * @mutate scripts/audit/press-every-control.mjs | \|\| isNotificationOpen({ label }) \|\| isAdminWrite | \|\| isAdminWrite
+ * @mutate scripts/audit/press-every-control.mjs | got it\|unsave\|reverse\|connect (?:google\|apple)\|watch\|unwatch)\b/i; | got it\|watch\|unwatch)\b/i;
+ * @mutate scripts/audit/press-every-control.mjs | \|\| isNotificationOpen({ label, chain: entry.chain }) \|\| isAdminWrite | \|\| isAdminWrite
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -46,7 +46,7 @@ describe("press run 39376366289: the gate classes what that run caught", () => {
 
   it("the main loop gates a notification row like any other mutating control", () => {
     const src = blankComments(readFileSync(join(process.cwd(), "scripts/audit/press-every-control.mjs"), "utf8"));
-    expect(src).toMatch(/\|\| isNotificationOpen\(\{ label \}\) \|\| isAdminWrite/);
+    expect(src).toMatch(/\|\| isNotificationOpen\(\{ label, chain: entry\.chain \}\) \|\| isAdminWrite/);
   });
 
   it("walks every read RPC the run caught (floor: 13 on 2026-10-21)", () => {

@@ -3,6 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityCardSkeleton, DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
+import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { EmptyStateSkeleton, useCachedListCount } from "@/components/ui/skeletons/EmptyStateSkeleton";
 import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
@@ -26,20 +27,25 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 function JobsHeaderBones() {
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
-      {/* The Explore header's top row (AppTopBar `section`, phone): `app-top-bar h-12`, the section chips, the bell,
-          the photo. The desktop bar keeps its title + "+" bones (the chips are phone only). */}
-      <div className="app-top-bar flex items-center gap-1 h-12">
-        <Skeleton className="explore-switcher-bone h-12 min-w-0 flex-1 rounded-full" />
-        <Skeleton className="top-bar-title-bone h-8 w-[4.5rem] rounded-ds-md" />
-        {/* The section "+" bone: desktop only, like the "+" itself (phones create from the bottom bar's center "+"). */}
-        <Skeleton className="top-bar-add-bone w-10 h-10 rounded-full" />
-        <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-          <Skeleton className="h-6 w-6 rounded-full" />
-        </span>
-        <span className="h-10 w-10 shrink-0 flex items-center justify-center">
-          <Skeleton className="w-9 h-9 rounded-full" />
-        </span>
-      </div>
+      {/* The Explore header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
+          the global top bar, no back arrow and no "+" (owner 2026-10-28: the loading frame draws exactly the settled
+          header; src/test/sectionLoadingHeaderIsSettled.test.tsx). On a phone (AppTopBar `section`): `app-top-bar
+          h-12`, the section chips, the bell, the photo, as bones. */}
+      <PageTitleBar
+        title="Jobs"
+        desktopGap={false}
+        phone={
+          <div className="app-top-bar flex items-center gap-1 h-12">
+            <Skeleton className="explore-switcher-bone h-12 min-w-0 flex-1 rounded-full" />
+            <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+              <Skeleton className="h-6 w-6 rounded-full" />
+            </span>
+            <span className="h-10 w-10 shrink-0 flex items-center justify-center">
+              <Skeleton className="w-9 h-9 rounded-full" />
+            </span>
+          </div>
+        }
+      />
       {/* SectionTabs: thin underline tabs, 44px. */}
       <Skeleton className="h-11 w-full rounded-ds-md" />
     </div>
@@ -164,10 +170,12 @@ function tabFromUrl(): "browse" | "posted" | "working" {
 /** The /jobs route fallback (and ProtectedRoute's, on the same route). */
 const JobsSectionSkeleton = () => {
   const tab = tabFromUrl();
+  // On the desktop website the real "Jobs" h1 is in the top bar (PageTitleBar above), so this one stays out.
+  const titleInBar = useHeaderInDesktopBar();
   return (
     <div role="status" aria-live="polite" aria-busy="true" data-testid="jobs-route-skeleton">
-      {/* The screen's one <h1> while pending (the title is a bone here). */}
-      <h1 className="sr-only">Jobs</h1>
+      {/* The screen's one <h1> while pending on a phone (the chips row there has no visible title). */}
+      {!titleInBar && <h1 className="sr-only">Jobs</h1>}
       <span className="sr-only">Loading Jobs…</span>
       {tab === "browse" ? (
         <BrowseFrame header={<JobsHeaderBones />} />

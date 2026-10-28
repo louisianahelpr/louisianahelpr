@@ -25,6 +25,14 @@ export interface SmsConsent {
   pending_since: string | null;
 }
 
+/** How long the card keeps re-reading a waiting confirmation (lead 2026-10-28: capped at 10 min; window focus still re-reads after). */
+const SMS_CONFIRM_POLL_CAP_MS = 10 * 60_000;
+
+/** A confirmation text is waiting (not yet YES) and was sent under 10 minutes ago. */
+export function smsConfirmWaitingFresh(c: SmsConsent | undefined, now: number = Date.now()): boolean {
+  return !!c?.pending_phone && !c.sms_opt_in && !!c.pending_since && now - Date.parse(c.pending_since) < SMS_CONFIRM_POLL_CAP_MS;
+}
+
 /** US numbers only, mirroring public.sms_normalize_phone. Null when invalid. */
 export function normalizeUsPhone(input: string): string | null {
   const d = input.replace(/\D/g, "");

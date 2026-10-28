@@ -17,6 +17,7 @@ import {
   formatUsPhone,
   normalizeUsPhone,
   parseSmsConsent,
+  smsConfirmWaitingFresh,
   type SmsConsent,
 } from "@/lib/smsConsent";
 
@@ -50,8 +51,9 @@ export default function SmsAlertsCard() {
     queryFn: async (): Promise<SmsConsent> => parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent"))),
     // While a confirmation text is waiting, re-read every few seconds so the
     // phone's YES flips this card to On (owner 2026-10-28: the card still said
-    // Waiting after YES, and its Cancel then turned the new alerts off).
-    refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false),
+    // Waiting after YES, and its Cancel then turned the new alerts off). Capped
+    // at 10 min after the text was sent; window focus still re-reads after that.
+    refetchInterval: (q) => (smsConfirmWaitingFresh(q.state.data) ? 3000 : false),
   });
 
   const [phone, setPhone] = useState("");

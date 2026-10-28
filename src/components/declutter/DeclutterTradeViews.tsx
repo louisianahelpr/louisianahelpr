@@ -56,6 +56,7 @@ import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
 import { CartHold } from "./DeclutterReserveSheet";
 import { timeLeft } from "@/lib/declutter/timeLeft";
+import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
@@ -259,9 +260,9 @@ export function OffersSection({ side }: { side: "buyer" | "seller" }) {
 }
 
 /** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
-function PayWithBundle({ sellerId, lines, porchOk, onBack }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void }) {
+function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
   const b = useBundleDiscount(sellerId, lines);
-  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} />;
+  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held} />;
 }
 
 /**
@@ -273,8 +274,10 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack }: { sellerId: string;
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1 }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
+  /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
+  held?: boolean;
   /** Q2427: the bundle discount on the paid items (0 when none); totalCents is already after it. */
   discountCents?: number;
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
@@ -438,9 +441,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       <button
         type="button"
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
+        disabled={held || opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
         onClick={async () => {
           setOpening(true);
+          rememberPaying(sellerId);
           try {
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : null, sellerDelivering ? handoff : null,
               sellerDelivering ? sdRate : null);
@@ -467,7 +471,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           }
         }}
       >
-        {opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
+        {held ? "Confirming your payment…" : opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
       </button>
       <p className="text-xs text-muted-foreground">You pay on a secure payment page.</p>
       <AddHelprNote />
@@ -504,6 +508,8 @@ export function FinishSalesView() {
 /** The buyer's cart (rows 13, 20-22, 24, 38, 59): one checkout per seller. */
 export function CartView() {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  // B-1: back from the payment page, the cart is read again until the paid checkout leaves it; its Pay is off meanwhile.
+  const settling = usePaySettling();
   if (cart.isError) {
     return <ErrorState variant="inline" title="We couldn't load your cart." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
   }
@@ -518,6 +524,7 @@ export function CartView() {
   return (
     <section className="space-y-3" aria-label="Your cart">
       <SectionHeading title="Your cart" todo={waiting.length} todoWords="to check out" />
+      <PaySettlingNotice s={settling} />
       {waiting.length === 0 ? (
         <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.</DeclutterNotice>
       ) : (
@@ -548,7 +555,8 @@ export function CartView() {
               {allFree ? (
                 <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
               ) : (
-                <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()} />
+                <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()}
+                  held={settling.settling && (settling.sellerId === null || settling.sellerId === sellerId)} />
               )}
             </section>
           );

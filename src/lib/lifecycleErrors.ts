@@ -592,6 +592,17 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,
   },
+  // Deep audit #2 + #58 (20261028195840): the seller's pickup windows, for a listing or an order.
+  declutter_item_pickup_windows: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
+  declutter_order_pickup_windows: {
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_leave_review: {
     account_restricted: DC.account_restricted,
     already_reviewed: DC.already_reviewed,

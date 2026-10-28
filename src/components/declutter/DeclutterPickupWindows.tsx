@@ -1,0 +1,65 @@
+/**
+ * The seller's pickup times where buyers need them (deep audit #2 + #58, lead 2026-10-28):
+ *  - ItemPickupTimes: "Pickup times: Mon–Fri 5–8 PM" on the item page.
+ *  - PickupSlotPicker: the buyer's booking picker, day chips then time chips, every one inside the seller's
+ *    windows and before the 7-day deadline (src/lib/declutter/pickupSlots.ts, the server's own rule), never a
+ *    free date and 12-hour wheel that the server then refuses.
+ * Both read through SECURITY DEFINER reads (20261028195840); before those are deployed they return null and the
+ * screens keep what they showed before.
+ */
+import { useMemo, useState, type ReactNode } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { fetchItemPickupWindows, fetchOrderPickupWindows } from "@/lib/declutter/handover";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
+import { Chip } from "./DeclutterFilterPanel";
+
+export function ItemPickupTimes({ itemId }: { itemId: string }) {
+  const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });
+  if (q.isError) return <p className="text-xs text-muted-foreground">{declutterErrorMessage(q.error)}</p>;
+  const line = q.data ? windowsSummary(q.data) : "";
+  if (!line) return null;
+  return <p className="text-sm" data-testid="declutter-pickup-times">Pickup times: <span className="font-medium">{line}</span></p>;
+}
+
+/**
+ * Day chips, then that day's time chips. `onPick` gets the slot's ISO start (null while none is chosen).
+ * `fallback` renders when the reads are not deployed yet (the old free picker).
+ */
+export function PickupSlotPicker({ orderId, value, onPick, fallback }: {
+  orderId: string;
+  value: string | null;
+  onPick: (iso: string | null) => void;
+  fallback: ReactNode;
+}) {
+  const q = useQuery({ queryKey: ["declutter", "order-pickup-windows", orderId], queryFn: () => fetchOrderPickupWindows(orderId) });
+  // Slots are worked out once per read: a long-open card keeps the same chips (the server re-checks on Book).
+  const days = useMemo(
+    () => (q.data ? pickupDays(q.data.windows, Date.now(), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null) : []),
+    [q.data],
+  );
+  const [dayPick, setDayPick] = useState<string | null>(null);
+  if (q.isError) return <ErrorState variant="inline" title="We couldn't load the seller's pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
+  if (q.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
+  if (q.data === null) return <>{fallback}</>;
+  if (days.length === 0) {
+    return <p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">No pickup times are open before the pickup deadline. Message the seller to agree a time.</p>;
+  }
+  const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
+  return (
+    <div className="space-y-2" data-testid="declutter-slot-picker">
+      <p className="text-xs text-muted-foreground">The seller's pickup times: {windowsSummary(q.data?.windows ?? [])}</p>
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup day">
+        {days.map((d) => (
+          <Chip key={d.ymd} on={d.ymd === chosenDay.ymd} onClick={() => { setDayPick(d.ymd); onPick(null); }}>{d.label}</Chip>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-2" role="group" aria-label={`Pickup time on ${chosenDay.label}`}>
+        {chosenDay.slots.map((s) => (
+          <Chip key={s.iso} on={s.iso === value} onClick={() => onPick(s.iso)}>{s.label}</Chip>
+        ))}
+      </div>
+    </div>
+  );
+}

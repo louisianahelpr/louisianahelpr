@@ -25,6 +25,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
   feature: true,
+  /** Deep audit #58: the seller's windows the item page reads (declutter_item_pickup_windows); null = not deployed. */
+  itemWindows: null as { weekday: number; starts: string; ends: string }[] | null,
   underAge: false,
   payoutBlock: null as string | null,
   sellerCart: [] as unknown[],
@@ -71,7 +73,8 @@ const setupAllowed = { value: false };
 vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => setupAllowed.value }));
 vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: "setup" }, refetchStatus: () => {} }) }));
 // The Declutter payouts read (the payout prompt counts the money that waits): none sent yet.
-vi.mock("@/lib/declutter/handover", async (orig) => ({ ...(await orig<object>()), fetchMyPayouts: async () => [] }));
+vi.mock("@/lib/declutter/handover", async (orig) => ({ ...(await orig<object>()), fetchMyPayouts: async () => [],
+  fetchItemPickupWindows: async () => state.itemWindows }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,
@@ -188,6 +191,7 @@ async function toStep5() {
 describe("Declutter screens", () => {
   beforeEach(() => {
     state.feature = true;
+    state.itemWindows = null;
     state.underAge = false;
     state.payoutBlock = null;
     state.sellerCart = [];
@@ -301,6 +305,15 @@ describe("Declutter screens", () => {
     // The seller card (owner 2026-10-19): name, stars only with reviews, joined date.
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toMatch(/4\.8 stars from .*12 reviews/);
+  });
+
+  // Deep audit #58: the seller's pickup times on the item page, before anyone buys.
+  // @mutate src/components/declutter/DeclutterItemView.tsx |             <ItemPickupTimes itemId={itemId} /> |
+  it("the item page says when the seller is around: Pickup times: Mon–Fri 5–8 PM (#58)", async () => {
+    state.item = { ...ITEM, seller_id: "u2", status: "live" };
+    state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(await screen.findByTestId("declutter-pickup-times")).toHaveTextContent("Pickup times: Mon–Fri 5–8 PM");
   });
 
   describe("back from Stripe's card page (declutter-card returns to /declutter?card=saved or =cancelled)", () => {

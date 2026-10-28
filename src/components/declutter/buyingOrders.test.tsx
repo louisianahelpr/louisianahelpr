@@ -43,6 +43,7 @@ vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => state.cart }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
+  fetchOrderPickupWindows: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null,
     set_out_photo_path: null, picked_up_at: null, ...state.handovers[orderId] }),
   handoverPhotoUrl: async (path: string) => `https://signed.test/${path}`,

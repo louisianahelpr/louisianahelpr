@@ -16,6 +16,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import type { SellerWindow } from "@/lib/declutter/pickupSlots";
 
 function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
@@ -267,6 +268,24 @@ export async function leaveReview(
     res = await send(base);
   }
   return { id: rpcData(res, (e) => rpcErrorMessage("declutter_leave_review", e)) as string, tagsDropped };
+}
+
+/**
+ * The seller's pickup windows (deep audit #2 + #58; 20261028195840): for a live or reserved listing (any signed-in
+ * member), or for an order (its paid buyer, its seller, its assigned Helpr) with the 7-day pickup deadline. Null
+ * until the reads are deployed (PGRST202), so the screens fall back to what they showed before.
+ */
+export async function fetchItemPickupWindows(itemId: string): Promise<SellerWindow[] | null> {
+  const res = await supabase.rpc("declutter_item_pickup_windows", { p_item_id: itemId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_item_pickup_windows")) return null;
+  return (rpcData(res, (e) => rpcErrorMessage("declutter_item_pickup_windows", e)) ?? []) as SellerWindow[];
+}
+
+export async function fetchOrderPickupWindows(orderId: string): Promise<{ windows: SellerWindow[]; latestPickupAt: string | null } | null> {
+  const res = await supabase.rpc("declutter_order_pickup_windows", { p_order_id: orderId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_order_pickup_windows")) return null;
+  const rows = (rpcData(res, (e) => rpcErrorMessage("declutter_order_pickup_windows", e)) ?? []) as (SellerWindow & { latest_pickup_at: string | null })[];
+  return { windows: rows.map(({ weekday, starts, ends }) => ({ weekday, starts, ends })), latestPickupAt: rows[0]?.latest_pickup_at ?? null };
 }
 
 /** The exact pickup address: the paid buyer and the seller only (rows 27, 98). */

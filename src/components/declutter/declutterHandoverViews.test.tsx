@@ -28,6 +28,8 @@ const state = {
   payouts: [] as unknown[],
   calls: [] as unknown[][],
   handover: null as Record<string, unknown> | null,
+  /** Deep audit #2: the seller's windows for the order (declutter_order_pickup_windows); null = not deployed. */
+  windows: null as { windows: { weekday: number; starts: string; ends: string }[]; latestPickupAt: string | null } | null,
   /** Q2425: the spot frozen on a meetup order (declutter_order_meetups). */
   meetup: null as Record<string, unknown> | null,
   /** Hidden switches on for this test (none by default, as before this mock). */
@@ -53,6 +55,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   fetchMyPayouts: async () => state.payouts,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null, ...state.handover }),
   handoverPhotoUrl: async (path: string) => `https://signed.test/${path}`,
+  fetchOrderPickupWindows: async () => state.windows,
   fetchItemAddress: async (itemId: string) => ({
     pickup_address: itemId === "i2" ? "9 Far Rd, Baton Rouge" : "1234 Example St, Baton Rouge", pickup_lat: 30.45, pickup_lng: -91.15,
   }),
@@ -101,6 +104,7 @@ vi.mock("./SellerDeliveryOrder", () => ({
 }));
 
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
+import { pickupDays } from "@/lib/declutter/pickupSlots";
 
 function show(cart: unknown[]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -160,6 +164,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.calls = [];
     state.handover = null;
     state.porchDays = null;
+    state.windows = null;
     // Boards 159/160: every handover moment is a sheet; a browser confirm() is a failure.
     vi.spyOn(window, "confirm").mockImplementation(() => { throw new Error("window.confirm used"); });
   });
@@ -664,5 +669,70 @@ describe("#51: one Report a problem on a seller-delivery card", () => {
   it("other cards keep the form's own button", async () => {
     show([line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400 })]);
     expect(await screen.findAllByRole("button", { name: "Report a problem" })).toHaveLength(1);
+  });
+});
+
+// Deep audit #2: the buyer booked with a free date and a 12-hour wheel, and the server refused any time outside the
+// seller's pickup times, which were never shown. The buyer now picks a day chip, then a time chip, every one inside
+// the seller's windows and before the deadline (pickupSlots.ts, tested on its own in declutterPickupSlots.test.ts).
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} | <PickupSlotPicker orderId={order.orderId} value={slot} onPick={() => {}}
+describe("#2: the buyer books from the seller's pickup times", () => {
+  const windows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "11:00:00" }));
+  beforeEach(() => {
+    state.bookings = [];
+    state.calls = [];
+    state.handover = null;
+  });
+
+  it("day chips, then that day's time chips; Book sends the chosen slot", async () => {
+    const latestPickupAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    state.windows = { windows, latestPickupAt };
+    show([line()]);
+    const picker = await screen.findByTestId("declutter-slot-picker");
+    expect(picker).toHaveTextContent("The seller's pickup times: Sun–Sat 9–11 AM");
+    expect(screen.queryByLabelText("Pickup time")).toBeNull();
+    const days = pickupDays(windows, Date.now(), Date.parse(latestPickupAt));
+    const dayChips = within(screen.getByRole("group", { name: "Pickup day" })).getAllByRole("button");
+    expect(dayChips.map((b) => b.textContent)).toEqual(days.map((d) => d.label));
+    const book = screen.getByRole("button", { name: "Book" });
+    expect(book).toBeDisabled();
+    fireEvent.click(dayChips[1]);
+    const times = within(screen.getByRole("group", { name: `Pickup time on ${days[1].label}` })).getAllByRole("button");
+    expect(times.map((b) => b.textContent)).toEqual(["9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM"]);
+    fireEvent.click(times[2]);
+    expect(times[2]).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(book);
+    await waitFor(() => expect(state.calls).toContainEqual(["book", "o1", days[1].slots[2].iso]));
+  });
+
+  it("no open slot before the deadline: says so, and nothing can be booked", async () => {
+    state.windows = { windows, latestPickupAt: new Date(Date.now() + 60_000).toISOString() };
+    show([line()]);
+    expect(await screen.findByTestId("declutter-no-pickup-slots")).toHaveTextContent("Message the seller to agree a time.");
+    expect(screen.getByRole("button", { name: "Book" })).toBeDisabled();
+  });
+
+  it("the seller's one move keeps the folded free picker (the server checks only the deadline for the seller)", async () => {
+    state.windows = { windows, latestPickupAt: new Date(Date.now() + 7 * 86_400_000).toISOString() };
+    state.bookings = [slot(-120)];
+    show([line({ my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
+    expect(await screen.findByLabelText("Move it (you can do this once)")).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-slot-picker")).toBeNull();
+  });
+
+  it("the buyer's one move is folded too (#32) and opens the seller's times (#2)", async () => {
+    const latestPickupAt = new Date(Date.now() + 7 * 86_400_000).toISOString();
+    state.windows = { windows, latestPickupAt };
+    state.bookings = [slot(-120)];
+    show([line()]);
+    expect(screen.queryByTestId("declutter-slot-picker")).toBeNull();
+    fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
+    await screen.findByTestId("declutter-slot-picker");
+    const days = pickupDays(windows, Date.now(), Date.parse(latestPickupAt));
+    const times = within(screen.getByRole("group", { name: `Pickup time on ${days[0].label}` })).getAllByRole("button");
+    fireEvent.click(times[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["book", "o1", days[0].slots[0].iso]));
   });
 });

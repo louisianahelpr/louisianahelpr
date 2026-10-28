@@ -474,6 +474,12 @@ export async function removePhoto(photoId: string): Promise<void> {
   await removeObjects(path ? [path as string] : []);
 }
 
+/** A2-8: take a line out of the cart (the buyer's own, still in the cart). The item goes back on sale; no strike. */
+export async function removeCartItem(lineId: string): Promise<"removed" | "already"> {
+  return rpcData(await supabase.rpc("declutter_remove_cart_item", { p_line_id: lineId }),
+    (e) => rpcErrorMessage("declutter_remove_cart_item", e)) as "removed" | "already";
+}
+
 export async function withdrawItem(itemId: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_withdraw_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_withdraw_item", e));
   await removeObjects((paths ?? []) as string[]);
@@ -707,7 +713,7 @@ export interface CartLine {
   /** Null on a settled sale whose seller deleted their account (read with the shared deleted-person label; Q2307). */
   seller_id: string | null;
   price_cents: number;
-  status: "in_cart" | "paid" | "missed" | "cancelled_by_seller";
+  status: "in_cart" | "paid" | "missed" | "cancelled_by_seller" | "removed"; // removed: A2-8, the buyer took it out (20261028221904)
   checkout_by: string;
   order_id: string | null;
   order_status: string | null;

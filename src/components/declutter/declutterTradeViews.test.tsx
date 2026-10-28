@@ -47,6 +47,8 @@ const state = {
   strikes: 0,
   offers: [] as unknown[],
   cart: [] as unknown[],
+  /** A2-8: cart lines the buyer removed (declutter_remove_cart_item). */
+  removed: [] as string[],
   sent: [] as unknown[],
   paid: [] as unknown[],
   opened: [] as string[],
@@ -107,6 +109,7 @@ vi.mock("@/lib/declutter/api", () => ({
     return "l1";
   },
   sellerCancelSale: async () => 1,
+  removeCartItem: async (lineId: string) => { state.removed.push(lineId); return "removed"; },
   startCardSave: async () => "https://checkout.stripe.test/setup",
   startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null) => {
     state.paid.push(handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : { sellerId, handover });
@@ -452,6 +455,27 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     await screen.findByRole("button", { name: /^Pay \$/ });
     expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+  });
+
+  // A2-8 (audit 2 B2-4): a buyer could not take an item out of the cart. Each line has Remove; it asks in the app first.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <RemoveFromCart line={l} />\n |
+  // @mutate src/components/declutter/DeclutterCartRemove.tsx |     mutationFn: () => removeCartItem(line.line_id), |     mutationFn: async () => "removed" as const,
+  it("A2-8: each cart line has Remove; Keep it changes nothing, Remove takes that line out", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    state.removed = [];
+    show(<CartView />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove Rug from your cart" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText(/"Rug" goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Keep it" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.removed).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Remove Rug from your cart" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(state.removed).toEqual(["l2"]));
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   // lh-money-escrow review of Q2352 #5: until the fee answer is in, the total never reads $2 low without saying so.

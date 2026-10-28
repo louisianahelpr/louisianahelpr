@@ -1,14 +1,15 @@
 /**
- * CLASS GUARD (lead walkthrough 2026-10-28): Declutter's money and handover moments ask in an in-app sheet, never
- * the browser's window.confirm (a grey system box with no total, no app styling, and on iOS the page's address as
- * its title). Buy now moved to DeclutterReserveSheet; the handover moments did the same earlier (boards 159/160,
- * DeclutterHandoverSheets.tsx).
+ * CLASS GUARD (lead walkthrough 2026-10-28): Declutter's money, handover and delivery moments ask in an in-app sheet
+ * (DeclutterConfirmSheet, DeclutterReserveSheet, the handover sheets), never the browser's window.confirm (a grey
+ * system box with no total, no app styling, and on iOS the page's address as its title).
  *
  * Inventory from source: every non-test .ts/.tsx file under src/components/declutter and src/pages/declutter,
- * comments blanked. The count is EXACT (two-way): moving another site to a sheet lowers it in the same commit, a new
- * window.confirm raises it and fails. The buy path is held at zero on its own.
+ * comments blanked. ZERO window.confirm in every file except the two the sell-flow builder owns (lead 2026-10-28:
+ * "leave seller-listing ones to the sell-flow builder"), whose count is EXACT (two-way): moving one of them to a sheet
+ * lowers it in the same commit.
  *
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
+ * @mutate src/components/declutter/DeclutterSalesWaiting.tsx |               onClick={() => setAsking(l.item_id)} |               onClick={() => { if (window.confirm("Cancel?") && l.item_id) cancel.mutate(l.item_id); }}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -20,8 +21,11 @@ const ROOT = resolve(__dirname, "../..");
 const files = walkSource([join(ROOT, "src/components/declutter"), join(ROOT, "src/pages/declutter")])
   .filter((f) => !/\.test\.tsx?$/.test(f));
 
-/** Sites still on window.confirm on 2026-10-28 (after Buy now moved to its sheet): sell side, Selling and delivery. */
-const DECLUTTER_BROWSER_CONFIRMS = 7;
+/** The sell-flow builder's files (Selling tab's take-down, the moving sale's end), and how many each still has. */
+const SELL_FLOW_CONFIRMS: Record<string, number> = {
+  "src/components/declutter/DeclutterHomeView.tsx": 1,
+  "src/components/declutter/DeclutterMoveView.tsx": 1,
+};
 
 const sites = () =>
   files.flatMap((f) => {
@@ -32,16 +36,17 @@ const sites = () =>
 describe("Declutter asks in the app, not with window.confirm", () => {
   it("reads a real Declutter source tree", () => {
     expect(files.length).toBeGreaterThan(60);
-    expect(files.some((f) => f.endsWith("DeclutterOfferPanel.tsx"))).toBe(true);
+    for (const f of ["DeclutterOfferPanel.tsx", "DeclutterDeliveryViews.tsx", "SellerDeliveryOrder.tsx", "DeclutterSalesWaiting.tsx", "DeclutterTradeViews.tsx"]) {
+      expect(files.some((x) => x.endsWith(`/${f}`)), f).toBe(true);
+    }
   });
 
-  it("Buy now (the offer panel and its reserve sheet) never uses window.confirm", () => {
-    const buyPath = sites().filter((s) => /DeclutterOfferPanel|DeclutterReserveSheet/.test(s.file));
-    expect(buyPath).toEqual([]);
+  it("no buyer, delivery or sale screen uses window.confirm", () => {
+    expect(sites().filter((s) => !(s.file in SELL_FLOW_CONFIRMS))).toEqual([]);
   });
 
-  it(`exactly ${DECLUTTER_BROWSER_CONFIRMS} window.confirm sites remain (lower this in the same commit as a move to a sheet)`, () => {
-    const total = sites().reduce((sum, s) => sum + s.n, 0);
-    expect(total, JSON.stringify(sites())).toBe(DECLUTTER_BROWSER_CONFIRMS);
+  it("the sell-flow builder's files hold exactly their listed count (lower it when one moves to a sheet)", () => {
+    const left = Object.fromEntries(sites().filter((s) => s.file in SELL_FLOW_CONFIRMS).map((s) => [s.file, s.n]));
+    expect(left).toEqual(SELL_FLOW_CONFIRMS);
   });
 });

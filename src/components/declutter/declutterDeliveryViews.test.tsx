@@ -249,6 +249,19 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(car).toBeDisabled();
   });
 
+  // Deep audit #38: a Helpr whose truck is saved is never told "Large items need a truck".
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         {hasTruck && twoPeople | {false && twoPeople
+  it("the vehicle line says what this Helpr can take", async () => {
+    state.vehicle = { has_car: true, has_truck: true, second_person: true, photo_path: "u1/vehicle/truck.jpg" };
+    const { unmount } = show(<DeliverView />);
+    const line = await waitFor(() => { const el = document.querySelector("[data-vehicle-reach]"); if (!el?.textContent?.includes("every size")) throw new Error("not yet"); return el; });
+    expect(line.textContent).not.toMatch(/need a truck/);
+    unmount();
+    state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
+    show(<DeliverView />);
+    await waitFor(() => expect(document.querySelector("[data-vehicle-reach]")?.textContent).toMatch(/Large and extra large items need a truck/));
+  });
+
   it("a car alone is saved as a car (Q2452)", async () => {
     state.vehicle = null;
     show(<DeliverView />);

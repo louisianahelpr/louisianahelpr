@@ -76,7 +76,7 @@ export function DonationReceipts() {
     <section aria-labelledby="donation-receipts-title" className="space-y-2 rounded-2xl border border-border bg-card p-4" data-donation-receipts="">
       <div className="flex items-center gap-2">
         <HeartHandshake className="h-5 w-5 shrink-0" aria-hidden />
-        <h2 id="donation-receipts-title" className="text-ds-17 font-bold">Donation receipts</h2>
+        <h2 id="donation-receipts-title" className="text-base font-semibold">Donation receipts</h2>
       </div>
       <ul className="divide-y divide-border">
         {receipts.map((d) => (

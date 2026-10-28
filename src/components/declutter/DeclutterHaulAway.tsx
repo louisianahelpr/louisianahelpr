@@ -52,7 +52,7 @@ export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[];
           <Truck className="h-5 w-5" />
         </span>
         <div className="min-w-0">
-          <h2 id="haul-away-title" className="text-ds-17 font-bold">Haul it away</h2>
+          <h2 id="haul-away-title" className="text-base font-semibold">Haul it away</h2>
           <p className="text-ds-13 text-muted-foreground">A Helpr picks up what didn't sell.</p>
         </div>
       </div>

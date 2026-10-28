@@ -81,7 +81,7 @@ describe("Jobs settings", () => {
     expect(settings).toBeLessThan(app.indexOf('<Route path="/jobs/:id" element='));
   });
 
-  it("Jobs settings is a gear in the Jobs header, right of the +, and no card is left at the foot of the list (owner 2026-10-21)", () => {
+  it("Jobs settings is a gear in the Jobs header, and no card is left at the foot of the list (owner 2026-10-21)", () => {
     const jobs = src("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain('const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };');
     // The desktop bar keeps the gear; on a phone it ends the tabs row (the Explore header, owner 2026-10-22).
@@ -90,21 +90,19 @@ describe("Jobs settings", () => {
     expect(src("src/components/job-card/JobListPage.tsx")).not.toMatch(/JobsSettingsRow|Jobs settings/);
   });
 
-  it("the gear sits right of the +, is a 44px control, and opens /jobs/settings", () => {
+  it("the gear is a 44px control (no + beside it since owner 2026-10-28) and opens /jobs/settings", () => {
     function Where() {
       return <output data-testid="where">{useLocation().pathname}</output>;
     }
     render(
       <MemoryRouter initialEntries={["/jobs?tab=posted"]}>
         <Routes>
-          <Route path="*" element={<><AppTopBar title="Jobs" add={{ label: "Post a job", path: "/post-job" }} settings={{ label: "Jobs settings", path: "/jobs/settings" }} /><Where /></>} />
+          <Route path="*" element={<><AppTopBar title="Jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} /><Where /></>} />
         </Routes>
       </MemoryRouter>,
     );
-    const add = screen.getByTestId("section-add");
     const gear = screen.getByRole("button", { name: "Jobs settings" });
-    expect(add.compareDocumentPosition(gear) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(gear.className).toBe(add.className);
+    expect(screen.queryByTestId("section-add")).toBeNull();
     expect(gear.className).toMatch(/\bh-11\b/);
     fireEvent.click(gear);
     expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");

@@ -41,7 +41,7 @@
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
  * @mutate src/components/sections/AppTopBar.tsx |   const phoneExplore = explore && !isWebDesktop; |   const phoneExplore = false;
  * @mutate src/components/sections/AppTopBar.tsx |               <ExploreSwitcher current={section} /> |
- * @mutate src/components/sections/SectionScreen.tsx | <AppTopBar title={title} add={add} explore section={section} /> | <AppTopBar title={title} add={add} explore />
+ * @mutate src/components/sections/SectionScreen.tsx | <AppTopBar title={title} explore section={section} /> | <AppTopBar title={title} explore />
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="sr-only">Explore</h1>
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -300,7 +300,7 @@ describe("Explore", () => {
     // The Explore header (owner, 2026-10-22): the switcher is the top bar's own row, so each screen hands the bar
     // its section and the bar draws the chips.
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
-    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} add={add} explore section={section} />");
+    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} />");
     expect(code("src/components/sections/AppTopBar.tsx")).toContain("<ExploreSwitcher current={section} />");
   });
 });
@@ -331,7 +331,7 @@ describe("a section's phone top bar (mock-up 6)", () => {
   it("reads Explore and carries no +; the bell and avatar stay", async () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
-    renderAt(<AppTopBar title="Declutter" add={{ label: "Sell an item", path: "/declutter/sell" }} explore />, "/declutter");
+    renderAt(<AppTopBar title="Declutter" explore />, "/declutter");
     const bar = screen.getByTestId("app-top-bar");
     expect(bar.querySelector("h1")?.textContent).toBe("Explore");
     expect(bar.querySelector('[data-testid="section-add"]')).toBeNull();
@@ -342,7 +342,7 @@ describe("a section's phone top bar (mock-up 6)", () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
     renderAt(
-      <AppTopBar title="Jobs" add={{ label: "Post a job", path: "/post-job" }} explore section="jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} />,
+      <AppTopBar title="Jobs" explore section="jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} />,
       "/jobs",
     );
     const bar = screen.getByTestId("app-top-bar");

@@ -16,15 +16,15 @@ export interface SectionDef {
   path: string;
   icon: LucideIcon;
   feature: "declutter" | "shops" | "rentals" | null;
-  /** The section's own "+" in its top bar. */
-  /** `cta`: the short words on the desktop website's filled button (owner 2026-10-28: make the + noticeable). */
-  add: { label: string; path: string; cta?: string };
+  /** Where the section's own "add one" leads (Declutter's "Sell an item"). Creating from the header lives in
+   *  the rail's "+ Create" / the bottom bar's center "+" only (owner 2026-10-28: no section "+"). */
+  add: { label: string; path: string };
 }
 
 export const SECTIONS: readonly SectionDef[] = [
   { key: "jobs", label: "Jobs", navLabel: "Jobs", path: "/jobs", icon: Briefcase, feature: null, add: { label: "Post a job", path: "/post-job" } },
   { key: "declutter", label: "Declutter", navLabel: "Declutter", path: "/declutter", icon: Sofa, feature: "declutter", add: { label: "Sell an item", path: "/declutter/sell" } },
-  { key: "shops", label: "Shops", navLabel: "Shops", path: "/shops", icon: Store, feature: "shops", add: { label: "Add an item or open a shop", path: "/shops/mine", cta: "Open a shop" } },
+  { key: "shops", label: "Shops", navLabel: "Shops", path: "/shops", icon: Store, feature: "shops", add: { label: "Add an item or open a shop", path: "/shops/mine" } },
   { key: "homes", label: "Homes", navLabel: "Homes", path: "/rentals", icon: KeyRound, feature: "rentals", add: { label: "Add a property", path: "/rentals?tab=own&add=1" } },
 ];
 

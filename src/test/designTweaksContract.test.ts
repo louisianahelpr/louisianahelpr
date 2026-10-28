@@ -18,7 +18,8 @@
  * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |               {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised |               <button aria-label="Post a new job"><Plus /></button>\n              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
- * @mutate src/pages/jobs/JobsSection.tsx |       <AppTopBar title={section.label} add={section.add} explore section="jobs" |       <AppTopBar title={section.label} explore section="jobs"
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3" onClick={() => navigate("/declutter")}>
+ * @mutate src/components/DesktopSidebarNav.tsx |           data-testid="sidebar-create" |           data-testid="sidebar-made"
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -119,12 +120,13 @@ describe("design tweaks (owner 2026-10-18)", () => {
     expect(nav).toContain('data-testid="dock-create"');
     expect(nav).not.toMatch(/Post a new job/);
     const pills: Array<[string, RegExp]> = [
-      // Declutter's add action is the top bar's "+" (owner final decisions 2026-10-19).
-      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionScreen section="declutter" title="Declutter" add=\{sectionByKey\("declutter"\)\.add\}/],
+      // Declutter's add action is its own pill (no section "+" in the header since owner 2026-10-28).
+      ["src/components/declutter/DeclutterHomeView.tsx", /<SectionActionPill className="mt-3" onClick=\{\(\) => navigate\(sectionByKey\("declutter"\)\.add\.path\)\}>/],
       ["src/components/shops/ShopDashboardView.tsx", /<SectionActionPill[\s\S]{0,200}Open a shop/],
       ["src/components/rentals/RentalsHomeView.tsx", /<SectionActionPill[\s\S]{0,120}?Add a property/],
-      // Jobs & Posts' add action is the top bar's "+" (owner final decisions 2026-10-19).
-      ["src/pages/jobs/JobsSection.tsx", /<AppTopBar title=\{section\.label\} add=\{section\.add\} explore section="jobs"/],
+      // Jobs' add action is the desktop rail's "+ Create" (owner 2026-10-28: "do we need the post a job since the
+      // create is to post"); on a phone the dock's center Create, asserted above.
+      ["src/components/DesktopSidebarNav.tsx", /data-testid="sidebar-create"/],
     ];
     for (const [f, re] of pills) expect(code(f), f).toMatch(re);
     expect(pills.length).toBeGreaterThan(3);

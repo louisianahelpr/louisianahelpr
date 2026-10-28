@@ -574,7 +574,7 @@ export default function DeclutterHome() {
   );
   return (
     // Browse draws its own "Search items" row, so Explore's global search shows only on the other tabs.
-    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={view !== "browse"} tabs={tabs}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "browse"} tabs={tabs}>
       <StrikeCount userId={user.id} />
       {view === "browse" ? <BrowseView userId={user.id} />
         : view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>

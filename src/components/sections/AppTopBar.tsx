@@ -1,37 +1,35 @@
-import { Plus, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { ExploreSwitcher } from "./ExploreSwitcher";
 import type { SectionKey } from "./sectionsConfig";
 
-/** The top bar's icon controls, one size and weight: the section "+" and the bell. */
+/** The top bar's icon controls, one size and weight: the section gear and the bell. */
 const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
 
 /**
- * The phone top bar (owner final decisions, 2026-10-19). Right side, in this
- * order: the section's own "+" (sections only), the NOTIFICATIONS bell, the
- * PROFILE avatar at the far right. Left: the logo on Home, the section title
- * elsewhere. Home has no "+". Messages lives in the bottom nav, not here.
- * On a phone the "+" is a plain icon button the same size and weight as the bell
- * (owner, 2026-10-19: no longer the loudest thing in the bar; it was a filled
- * olive circle). Guard: src/test/topBarAddMatchesBell.test.ts. On the desktop
- * website it is a filled button with words ("+ Post a job"; owner 2026-10-28).
+ * The phone top bar (owner final decisions, 2026-10-19). Right side: the
+ * NOTIFICATIONS bell, then the PROFILE avatar at the far right. Left: the logo
+ * on Home, the section title elsewhere. Messages lives in the bottom nav.
+ *
+ * NO SECTION "+" ANYWHERE (owner, 2026-10-28, desktop: "do we need the post a
+ * job since the create is to post etc?"): creating lives in ONE place, the left
+ * rail's "+ Create" on the desktop website and the bottom bar's center "+" on a
+ * phone. Guard: src/test/topBarAddMatchesBell.test.ts.
  *
  * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
- * bell, and the rail carries Profile, so the bar keeps only the section title
- * and its "+"; on Home (no title, no "+") it draws nothing (Q2221: two logos and
- * two bells at 1440). Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
+ * bell, and the rail carries Profile, so the bar keeps only the section title;
+ * on Home (no title) it draws nothing (Q2221: two logos and two bells at 1440).
+ * Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
  */
 export function AppTopBar({
   title: sectionTitle,
-  add: sectionAdd,
   explore = false,
   section,
   showProfile = true,
@@ -40,13 +38,11 @@ export function AppTopBar({
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
-  add?: { label: string; path: string; cta?: string };
   /**
    * One of Explore's four sections (2026-10-20, mock-up 6 + HELPR-DESIGN-SPEC
    * §3): on a PHONE the bar reads "Explore" (the switcher under it names the
-   * section) and carries no "+", because the bottom bar's center "+" creates.
-   * The desktop website has no center "+", so there it keeps the section's
-   * title and "+". Guard: src/test/centerCreateNav.test.tsx.
+   * section). The desktop website keeps the section's title. Guard:
+   * src/test/centerCreateNav.test.tsx.
    */
   explore?: boolean;
   /**
@@ -58,9 +54,8 @@ export function AppTopBar({
   /** False on You itself (board 18): the bar keeps only the bell, since you are already on your profile. */
   showProfile?: boolean;
   /**
-   * The section's settings, as a GEAR right of the "+" (owner, 2026-10-21: Jobs settings moved from a
-   * card at the foot of Posted / Working into the header). Same 44px control as the "+" and the bell,
-   * on phone and desktop.
+   * The section's settings, as a GEAR (owner, 2026-10-21: Jobs settings moved from a card at the foot
+   * of Posted / Working into the header). Same 44px control as the bell.
    */
   settings?: { label: string; path: string };
   /** False inside PageScaffold's title card (Jobs, Messages), which pads itself. */
@@ -68,50 +63,13 @@ export function AppTopBar({
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
-  const gate = useAgeGate();
   const isWebDesktop = useIsWebDesktop();
   const phoneExplore = explore && !isWebDesktop;
   const chipsRow = phoneExplore && !!section;
   const title = chipsRow ? sectionTitle : phoneExplore ? "Explore" : sectionTitle;
-  const add = phoneExplore ? undefined : sectionAdd;
-  const isPost = add?.path === "/post-job";
-  const go = () => add && navigate(add.path);
-  if (isWebDesktop && !title && !add && !settings) return null;
-  const actions = (add || settings) ? (
+  if (isWebDesktop && !title && !settings) return null;
+  const actions = settings ? (
     <>
-      {add && !isWebDesktop && (
-        // PHONE: the SAME control as the bell beside it: ghost icon Button, 44px,
-        // 22px glyph (NotificationPanel's triggerClassName below).
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={add.label}
-          data-testid="section-add"
-          onClick={isPost ? gate.gate("post", go) : go}
-          {...(isPost ? gate.gatedProps("post") : {})}
-          className={TOP_BAR_ICON_CLASS}
-        >
-          <Plus aria-hidden />
-        </Button>
-      )}
-      {add && isWebDesktop && (
-        // DESKTOP WEBSITE: a filled, labelled button, the one thing in the bar that says "post" (owner
-        // 2026-10-28: "on desktop we need to make the plus sign more noticeable so people will post").
-        <Button
-          type="button"
-          variant="default"
-          size="sm"
-          aria-label={add.label}
-          data-testid="section-add"
-          onClick={isPost ? gate.gate("post", go) : go}
-          {...(isPost ? gate.gatedProps("post") : {})}
-          className="rounded-full px-4 gap-1.5 text-ds-15 font-semibold [&>svg]:w-[18px] [&>svg]:h-[18px]"
-        >
-          <Plus aria-hidden />
-          {add.cta ?? add.label}
-        </Button>
-      )}
       {settings && (
         <Button
           type="button"
@@ -149,7 +107,7 @@ export function AppTopBar({
     </>
   );
   // ONE header row (owner 2026-10-21): on the desktop website the title and the
-  // "+" / gear go into the global top bar beside the bell and photo.
+  // gear go into the global top bar beside the bell and photo.
   return (
     <PageTitleBar
       title={title ?? ""}

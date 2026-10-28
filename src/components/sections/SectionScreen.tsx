@@ -18,7 +18,6 @@ import type { SectionKey } from "./sectionsConfig";
  */
 export function SectionScreen({
   title,
-  add,
   section,
   tabs,
   globalSearch = true,
@@ -28,7 +27,6 @@ export function SectionScreen({
   section?: SectionKey;
   /** Omit on Home: the logo shows instead. */
   title?: string;
-  add?: { label: string; path: string };
   /** The section's tabs (SectionTabs), the header's second row. */
   tabs?: ReactNode;
   /**
@@ -48,13 +46,13 @@ export function SectionScreen({
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            <AppTopBar title={title} add={add} explore section={section} />
+            <AppTopBar title={title} explore section={section} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
           </div>
         )}
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav">
-          {!section && <AppTopBar title={title} add={add} />}
+          {!section && <AppTopBar title={title} />}
           <div className="flex flex-col gap-4 pt-1 pb-6">
             {section && <SectionPreviewBanner section={section} />}
             {children}

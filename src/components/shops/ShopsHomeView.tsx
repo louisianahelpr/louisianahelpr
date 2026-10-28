@@ -24,7 +24,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
-import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
@@ -112,7 +111,7 @@ export default function ShopsHomeView() {
   const tabs = <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />;
   return (
     // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs (owner 2026-10-21).
-    <SectionScreen section="shops" title="Shops" add={sectionByKey("shops").add} tabs={tabs} globalSearch={tab !== "browse"}>
+    <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={tab !== "browse"}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (

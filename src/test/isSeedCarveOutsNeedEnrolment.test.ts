@@ -69,6 +69,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_seller_sold_count: "hides",
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
+  // #36 (20261028214524): a test listing is left out of the answer for a member it is hidden from.
+  declutter_bundle_applies: "hides",
   declutter_claim_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",
   declutter_delivery_on_task_event: "tags",

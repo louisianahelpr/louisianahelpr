@@ -34,7 +34,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within, waitForElementToBeRemoved } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -738,7 +738,8 @@ describe("B-1: the return from the payment page never offers Pay again for what 
 
     // The webhook lands: the next read (polled, no reload) shows the lamp paid, and the notice goes.
     state.cart = [{ ...lamp(), status: "paid", order_id: "ord1", order_status: "paid", handover: "porch", total_cents: 385 }, rug()];
-    await waitFor(() => expect(screen.queryByText("Payment received.")).toBeNull(), { timeout: 5000 });
+    // It was on screen (asserted above), so this waits for the polled read to clear it, never for a first empty paint.
+    await waitForElementToBeRemoved(() => screen.queryByText("Payment received."), { timeout: 5000 });
     expect(screen.queryByRole("button", { name: "Confirming your payment…" })).toBeNull();
     expect(screen.getAllByRole("button", { name: /^Pay / }).length).toBe(1);
   });

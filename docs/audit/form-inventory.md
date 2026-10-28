@@ -192,7 +192,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
 | `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
 | `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
-| `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Search · Close search |
+| `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Close search |
 | `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | textarea×1 |  | 1000 |  |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | textarea×1 |  | 500 |  |

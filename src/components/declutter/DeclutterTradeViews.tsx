@@ -87,6 +87,9 @@ export function StrikeCount({ userId }: { userId: string }) {
   );
 }
 
+/** "3 hours left" -> "3 hours left.", "time is up" -> "Time is up.": a status line is a sentence. */
+const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}.`;
+
 const OFFER_STATUS_WORDS: Record<MyOffer["status"], string> = {
   open: "Waiting",
   accepted: "Accepted",
@@ -154,7 +157,9 @@ function OfferRow({ o }: { o: MyOffer }) {
       {underFloor && <p className="text-xs text-amber-700 dark:text-amber-300">This is under your lowest price ({formatPrice(o.floor_price_cents as number)}). Only you can see that.</p>}
       {o.status === "open" && (
         <p className="text-ds-13 font-semibold text-[hsl(var(--sage-ink))]">
-          {myTurn ? `Your turn to answer · ${timeLeft(o.respond_by)}` : `Waiting for the ${o.my_side === "buyer" ? "seller" : "buyer"} · ${timeLeft(o.respond_by)}`}
+          {/* A plain sentence, never "Your turn to answer · 3 hours left" (lead 2026-10-28). */}
+          {myTurn ? "Your turn to answer. " : `Waiting for the ${o.my_side === "buyer" ? "seller" : "buyer"}. `}
+          {sentence(timeLeft(o.respond_by))}
         </p>
       )}
       {myTurn && o.my_side === "seller" && (

@@ -10,11 +10,11 @@
  * src/test/pglite/declutterSellerOutPaysFee.pglite.mjs. The reason -> policy
  * map itself is pinned in src/test/refundsKeepTheCardFee.test.ts.
  *
- * @mutate supabase/migrations/20261028204431_declutter_paid_notice_next_step.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
- * @mutate supabase/migrations/20261028204431_declutter_paid_notice_next_step.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
  * lh-money-escrow review of 905501cb2 #1: (b) judges seller_out on the items alone, so a buyer's block does not hand the fee to us.
- * @mutate supabase/migrations/20261028204431_declutter_paid_notice_next_step.sql |       v_sale_ok := v_items_ok\n        AND NOT EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_sale_ok := v_items_ok\n        AND NOT EXISTS
- * @mutate supabase/migrations/20261028204431_declutter_paid_notice_next_step.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |       v_sale_ok := v_items_ok\n        AND NOT EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_sale_ok := v_items_ok\n        AND NOT EXISTS
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   IF o.seller_id IS NULL OR v_debt IS NULL OR v_debt <= 0 THEN |   IF true THEN
  */
 import { describe, expect, it } from "vitest";

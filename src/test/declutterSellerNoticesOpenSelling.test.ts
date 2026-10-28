@@ -9,7 +9,7 @@
  * screens (?view=cart, ?tab=buying, ?view=bought). Backend proof of the fix:
  * src/test/pglite/declutterAudit3Server.pglite.mjs.
  */
-// @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | You''re paid when the buyer has it.', '/declutter?tab=selling' | You''re paid when the buyer has it.', '/declutter?view=cart'
+// @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=selling' | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart'
 // @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | you''ll be told the pickup time.', '/declutter?tab=selling' | you''ll be told the pickup time.', '/declutter?view=cart'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

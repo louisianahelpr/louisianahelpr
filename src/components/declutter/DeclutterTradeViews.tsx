@@ -197,24 +197,30 @@ function OfferRow({ o }: { o: MyOffer }) {
       )}
       {myTurn && countering && (
         <form
-          className="flex gap-2"
+          className="space-y-1"
           onSubmit={(e) => {
             e.preventDefault();
             if (counterCents) act.mutate({ action: "counter", cents: counterCents });
           }}
         >
-          <label className="sr-only" htmlFor={`counter-${o.offer_id}`}>Your price</label>
-          <input
-            id={`counter-${o.offer_id}`}
-            inputMode="decimal"
-            className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            value={counter}
-            onChange={(e) => setCounter(e.target.value)}
-            placeholder="Your price, like 30"
-          />
-          <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents}>
-            Send
-          </button>
+          {/* A shown label and a "$" in the field (deep audit #47: no "$" and no label). */}
+          <label className="block text-sm font-semibold" htmlFor={`counter-${o.offer_id}`}>Your price</label>
+          <div className="flex gap-2">
+            <div className="relative min-w-0 flex-1" data-counter-field="">
+              <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>
+              <input
+                id={`counter-${o.offer_id}`}
+                inputMode="decimal"
+                className="w-full min-w-0 rounded-lg border border-input bg-background py-2 pl-6 pr-3 text-sm"
+                value={counter}
+                onChange={(e) => setCounter(e.target.value)}
+                placeholder="30"
+              />
+            </div>
+            <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents}>
+              Send
+            </button>
+          </div>
         </form>
       )}
       {o.status === "open" && o.my_side === "buyer" && (

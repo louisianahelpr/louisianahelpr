@@ -300,6 +300,7 @@ const EMAIL_SENDERS: Record<string, string> = {
   "supabase/functions/_shared/giftCardEmail.ts": "names the donor: its one caller asks giftEmailCrossesSeedBoundary first (Q139, asserted below)",
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts": "own money: the Declutter buyer's own receipt / refund; names no other person",
   "supabase/functions/declutter-money/index.ts": "own money: the Declutter buyer's own refund notice (retried refunds); names no other person",
+  "supabase/functions/_shared/declutterSellerEmail.ts": "own money: the Declutter seller's own sale / payout (\"You sold\", \"Your payout is on its way\"); names the item, no other person",
 };
 
 describe("Q137: a seed subject never notifies a real person", () => {

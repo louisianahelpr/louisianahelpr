@@ -31,11 +31,13 @@
 // stripe-webhook rolls back its dedupe row and Stripe redelivers.
 //
 // Emails only for money events (row 44): the paid receipt and the refund
-// notice, best-effort (a failed email never fails the payment).
+// notice, and the seller's "You sold" email (_shared/declutterSellerEmail.ts),
+// best-effort (a failed email never fails the payment).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
+import { emailSeller } from "../../_shared/declutterSellerEmail.ts";
 import { getAppUrl } from "../../_shared/appUrl.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
@@ -340,9 +342,9 @@ async function settleOrder(
   // this payment is not applied to it (lh-authz-rls review 3b #2: a session
   // made outside our function, e.g. with the test key, naming a real order).
   const { data: orderRow, error: orderErr } = await supabase
-    .from("declutter_orders").select("buyer_id, seller_id, handover").eq("id", orderId).maybeSingle();
+    .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents").eq("id", orderId).maybeSingle();
   if (orderErr) throw new Error(`declutter order read failed: ${orderErr.message}`);
-  const parties = orderRow as { buyer_id?: string | null; seller_id?: string | null; handover?: string } | null;
+  const parties = orderRow as { buyer_id?: string | null; seller_id?: string | null; handover?: string; items_cents?: number | null } | null;
   // Q2307: a party deleted their account after this page opened (the order outlives them with the column NULL). The
   // payment is refunded automatically and never applied (lh-money-escrow review 2026-10-21 #3).
   const partyGone = !!parties && (parties.buyer_id == null || parties.seller_id == null);
@@ -403,6 +405,9 @@ async function settleOrder(
           // Q2425 (20261027204500): a public meeting spot, never the seller's home; the spot is in the app.
           ? "Next: book a time in the app and meet the seller at the safe spot you picked. Tap \"I'm here\" when you arrive."
           : "Next: pick up your items at the time you chose."}`);
+    // Deep audit #57 / audit 2 SH2-3: the seller is emailed too ("You sold ..."), once, on the same 'paid' answer
+    // (a redelivery answers already_paid and sends nothing).
+    await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep);
   }
   if (answer.result === "paid" || answer.result === "already_paid") {
     // Q2352: a sale that stands may owe its buyer the setup fee back, after the receipt (a failed refund throws

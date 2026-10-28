@@ -194,6 +194,42 @@ describe("declutter-money: seller payouts (B53)", () => {
     expect(rpcs("declutter_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_old1", p_succeeded: true });
   });
 
+  // Deep audit #57: "Your payout is on its way", only once the transfer is recorded, with the amount sent and no fee words.
+  // @mutate supabase/functions/declutter-money/index.ts |      await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents, |      if (false) await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |     subject: "Your payout is on its way", |     subject: "Payout update",
+  it("the seller is emailed \"Your payout is on its way\" with the amount sent, once the transfer is recorded", async () => {
+    scenario.rpc.declutter_order_items_named = '"Lamp"';
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],
+      eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ user_id: SELLER, email: "seller@example.test", ban_status: null, auto_suspended_until: null }] } }] };
+    const { status } = await run({ payouts: [payoutRow()] });
+    expect(status).toBe(200);
+    const sent = queuedEmails.filter((e: any) => e.templateName === "declutter_payout_sent") as Array<Record<string, string>>;
+    expect(sent).toHaveLength(1);
+    expect(sent[0].to).toBe("seller@example.test");
+    expect(sent[0].subject).toBe("Your payout is on its way");
+    expect(sent[0].text).toMatch(/^Your \$38\.50 payout for "Lamp" was sent\. It lands in your bank on your usual payout schedule\./);
+    expect(JSON.stringify(sent[0])).not.toMatch(/fee|%/i);
+  });
+  it("a reconciled payout (sent earlier, recorded now) is emailed once; a failed or unrecorded one is not emailed", async () => {
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }],
+      eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ user_id: SELLER, email: "seller@example.test", ban_status: null, auto_suspended_until: null }] } }] };
+    stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_old1", destination: "acct_seller1", reversed: false, metadata: { kind: "declutter_payout", payout_id: PAYOUT } }] });
+    await run({ payouts: [payoutRow({ attempts: 3 })] });
+    expect(queuedEmails.filter((e: any) => e.templateName === "declutter_payout_sent")).toHaveLength(1);
+
+    resetEmailMocks();
+    stripeMock.transfers.list.mockResolvedValue({ data: [] });
+    stripeMock.transfers.create.mockRejectedValue(new Error("insufficient funds"));
+    await run({ payouts: [payoutRow()] });
+    expect(queuedEmails.filter((e: any) => e.templateName === "declutter_payout_sent")).toHaveLength(0);
+
+    resetEmailMocks();
+    stripeMock.transfers.create.mockResolvedValue({ id: "tr_new1", destination: "acct_seller1" });
+    scenario.rpcErrors = { declutter_payout_executed: { message: "db down", code: "57P01" } };
+    await run({ payouts: [payoutRow()] });
+    expect(queuedEmails.filter((e: any) => e.templateName === "declutter_payout_sent")).toHaveLength(0);
+  });
+
   it("a seller on payout hold is not paid (and nothing is recorded as failed)", async () => {
     scenario.reads.payout_holds = { rows: [{ helper_id: SELLER, reason: "under review", held_at: "2026-10-15T00:00:00Z", denied_at: null }] };
     const { status, body } = await run({ payouts: [payoutRow()] });

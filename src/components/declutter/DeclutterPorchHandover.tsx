@@ -3,8 +3,8 @@
  * out). Where a paid pickup stands, for both sides, read from
  * declutter_my_handover (never a code or QR, owner 2026-10-17/18). Started by
  * Builder 3b (wip/builder3b-porch 9a124b08ab), finished here.
- *   - One tracker (spec §3, StepTracker): porch Paid -> Ready -> Picked up ->
- *     Done; door pickup Paid -> Booked -> Picked up -> Done. Each step comes
+ *   - One tracker (OrderSteps, owner 2026-10-28): porch Paid -> Day picked -> On the porch ->
+ *     Picked up; door pickup Paid -> Time booked -> Picked up -> Done. Each step comes
  *     from the real row: set_out_at (the seller's porch photo), the booked
  *     slot, picked_up_at / confirmed_at, and the order's handed_over.
  *   - One line saying where it stands and what is next, by name of side.
@@ -14,48 +14,51 @@
  *     both sides see it (private bucket, a short signed link).
  */
 import { useQuery } from "@tanstack/react-query";
-import { StepTracker } from "@/components/tracker/StepTracker";
-import { fetchMyHandover, handoverPhotoUrl, type MyHandover } from "@/lib/declutter/handover";
+import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { formatPrice } from "@/lib/declutter/distance";
+import { OrderSteps, orderStepAt, type OrderFacts } from "./OrderSteps";
+import { porchDayIsNow, porchDayWords } from "./DeclutterPorchDay";
 
 type Pickup = "porch" | "pickup_home";
 
-const STEPS: Record<Pickup, readonly string[]> = {
-  porch: ["Paid", "Ready", "Picked up", "Done"],
-  pickup_home: ["Paid", "Booked", "Picked up", "Done"],
-};
-
 const time = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-/** The current step (0-based) from the real handover row. */
-function handoverStep(handover: Pickup, h: Pick<MyHandover, "status" | "picked_up_at" | "confirmed_at" | "set_out_at"> | null, booked: boolean): number {
-  if (h?.status === "handed_over") return 3;
-  if (h?.picked_up_at || h?.confirmed_at) return 2;
-  if (handover === "porch" ? !!h?.set_out_at : booked) return 1;
-  return 0;
-}
 
 function useMyHandover(orderId: string) {
   return useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
 }
 
 /**
- * The words for where it stands, per side and step. Names the other side only by role (no pronouns).
- * Plain sentences, never dot-joined fragments (lead 2026-10-28: "Paid · book a pickup…" -> "Paid. Book a pickup time.").
+ * The words for where it stands, per side and step (OrderSteps: porch Paid -> Day picked -> On the porch ->
+ * Picked up; door Paid -> Time booked -> Picked up -> Done). Names the other side only by role (no pronouns).
+ * Plain sentences, never dot-joined fragments (lead 2026-10-28). A porch DAY (owner 2026-10-28): until the
+ * seller's photo the buyer is told NOT to go; once it is in, "Pick it up today". `day` is null for a porch
+ * pickup booked for a time before days existed.
  */
-function standing(handover: Pickup, side: "buyer" | "seller", at: number, free: boolean): string {
+/** "today", "tomorrow", "on Thu, Oct 30". */
+function onDay(day: string): string {
+  const w = porchDayWords(day);
+  return w === "Today" || w === "Tomorrow" ? w.toLowerCase() : `on ${w}`;
+}
+
+function standing(handover: Pickup, side: "buyer" | "seller", at: number, day: string | null, free = false): string {
   // #6: a free claim was never paid; its first step says Claimed.
-  if (free && at === 0) return standing(handover, side, at, false).replace(/^Paid\./, "Claimed.");
-  // The booked time is the booking panel's line, right below; it is not repeated here.
+  if (free && at === 0) return standing(handover, side, at, day).replace(/^Paid\./, "Claimed.");
+  // The booked day or time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
-    if (at === 0) return side === "buyer"
-      ? "Paid. The seller puts it out and posts a photo of where it is."
-      : "Paid. Put it out and take one photo where the buyer will find it.";
-    if (at === 1) return side === "buyer" ? "It's out. Pick it up at your pickup time." : "It's out. The buyer is told and sees your photo.";
-  } else {
-    if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time.";
-    if (at === 1) return "Booked. The pickup time is below.";
+    if (at === 0) return side === "buyer" ? "Paid. Pick a day to collect it from the porch." : "Paid. The buyer picks a pickup day.";
+    if (at === 1) {
+      if (side === "seller") return day ? `Put it out ${onDay(day)} and post the porch photo.` : "Paid. Put it out and take one photo where the buyer will find it.";
+      return "Not out yet. We'll tell you when it's on the porch. Don't go before then.";
+    }
+    if (at === 2) {
+      if (side === "seller") return "It's out. The buyer is told and sees your photo.";
+      if (!day) return "It's out. Pick it up at your pickup time.";
+      return porchDayIsNow(day) ? "It's out. Pick it up today." : `It's out. Pick it up ${onDay(day)}.`;
+    }
+    return "Picked up.";
   }
+  if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time.";
+  if (at === 1) return "Booked. The pickup time is below.";
   return at === 2 ? "Picked up." : "Handed over.";
 }
 
@@ -64,6 +67,7 @@ export function PickupStatus({
   handover,
   side,
   slot,
+  day = null,
   itemsCents,
   totalCents,
 }: {
@@ -72,6 +76,8 @@ export function PickupStatus({
   side: "buyer" | "seller";
   /** The booked pickup time, when there is one. */
   slot: string | null;
+  /** The porch pickup DAY (yyyy-mm-dd), when one is booked. */
+  day?: string | null;
   /** The items' price: what the seller keeps. */
   itemsCents: number;
   /** The order's total charge: what the buyer paid. Null hides the buyer's figure. */
@@ -79,22 +85,29 @@ export function PickupStatus({
 }) {
   const h = useMyHandover(orderId);
   if (h.isError) return null;
-  const at = handoverStep(handover, h.data ?? null, !!slot);
-  const done = at === 3;
-  // #6: a free claim reads Claimed, never "You paid $0" or "You get $0".
+  // #6 / A2-9: a free claim reads Claimed, never "You paid $0" or "You get $0": no money line at all.
   const free = itemsCents === 0;
+  // The one Declutter order tracker (OrderSteps), from the real rows: the booking, the porch photo, the pickup.
+  const facts: OrderFacts = {
+    handover, side, free, booked: !!slot,
+    out: !!h.data?.set_out_at,
+    pickedUp: !!(h.data?.picked_up_at || h.data?.confirmed_at),
+    done: h.data?.status === "handed_over",
+  };
+  const at = orderStepAt(facts);
+  const done = facts.done || at === 3;
   const money = free ? null
     : side === "buyer"
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
       : done
         ? null
         : handover === "porch"
-          ? <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the buyer marks it picked up, or 24 hours after the pickup time once your porch photo is in, unless a problem is reported.</>
+          ? <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the buyer marks it picked up, or 24 hours after the pickup {day ? "day ends" : "time"} once your porch photo is in, unless a problem is reported.</>
           : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the handover is confirmed.</>;
   return (
     <div className="space-y-2" data-pickup-status={at}>
-      <StepTracker steps={free ? ["Claimed", ...STEPS[handover].slice(1)] : STEPS[handover]} at={at} />
-      <p className="text-ds-14">{standing(handover, side, at, free)}</p>
+      <OrderSteps facts={facts} />
+      <p className="text-ds-14">{standing(handover, side, at, day, free)}</p>
       {money && (
         // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
         <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>

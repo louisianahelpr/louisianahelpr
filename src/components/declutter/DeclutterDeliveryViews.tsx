@@ -41,6 +41,7 @@ import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
 import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import {
   acceptTask,
   confirmReceived,
@@ -261,7 +262,7 @@ function VehicleForm({ userId }: { userId: string }) {
           <label htmlFor={photoId} className="block text-xs font-medium">
             {vehicle.data?.photo_path ? "Truck photo saved. Add a new one to replace it." : "Photo of your truck"}
           </label>
-          <input id={photoId} type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+          <PhotoPickButton id={photoId} picked={photo} onPick={setPhoto} />
         </>
       )}
       <button type="button" className={primary}
@@ -435,8 +436,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
           {v.status === "accepted" && (
             <>
               <label htmlFor={pickId} className="block text-xs font-medium">Photo of the item when you pick it up, taken at the pickup address</label>
-              <input id={pickId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) pickedUp.mutate(f); e.target.value = ""; }} />
+              <PhotoPickButton id={pickId} disabled={pickedUp.isPending} onPick={(f) => pickedUp.mutate(f)} />
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} disabled={backOut.isPending}
                   onClick={() => setAsk({ kind: "backOut" })}>
@@ -448,12 +448,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
                   <label htmlFor={awayId} className="block text-xs font-medium">
                     The seller wasn't there: a photo of the door, taken at the pickup address
                   </label>
-                  <input id={awayId} type="file" accept="image/*" capture="environment" disabled={sellerAway.isPending}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      e.target.value = "";
-                      if (f) setAsk({ kind: "away", file: f });
-                    }} />
+                  <PhotoPickButton id={awayId} disabled={sellerAway.isPending} onPick={(f) => setAsk({ kind: "away", file: f })} />
                 </>
               )}
             </>
@@ -461,7 +456,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
           {v.status === "picked_up" && (
             <div className="space-y-2 rounded-xl border border-border p-3">
               <label htmlFor={dropId} className="block text-xs font-medium">Photo at the drop-off address</label>
-              <input id={dropId} type="file" accept="image/*" capture="environment" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
+              <PhotoPickButton id={dropId} picked={dropPhoto} onPick={setDropPhoto} />
               <button type="button" className={primary} disabled={deliver.isPending || !dropPhoto} onClick={() => deliver.mutate()}>
                 Left at the door
               </button>

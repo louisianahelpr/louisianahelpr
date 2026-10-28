@@ -121,7 +121,11 @@ function openCheckouts(cart: CartLine[], now: number): number {
   return new Set(cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).map((l) => l.seller_id)).size;
 }
 
-/** Cart lines that ended unpaid in the last 30 days (the cart's own window): the checkout ran out, or the seller called it off. */
+/**
+ * Cart lines that ended in the last 30 days (the cart's own window): the checkout ran out or the seller called it off
+ * before paying, OR an order closed after it was paid or claimed (declutter_close_paid_order: a no-show, a problem
+ * decided, a seller backing out sets its lines to missed / cancelled_by_seller and the order to refunded).
+ */
 function endedLines(cart: CartLine[]): CartLine[] {
   return cart.filter((l) => l.my_side === "buyer" && (l.status === "missed" || l.status === "cancelled_by_seller"));
 }
@@ -222,13 +226,28 @@ export function BuyerOrderHead({ view, open, onOpen, onClose }: { view: BuyerOrd
 }
 
 /** A checkout that ended unpaid: nothing was charged (offers and checkouts charge only when paid). */
+/**
+ * What an ended line says. Audit 2 A2-4 (B2-1, 2026-10-28, a2-42-buyer-noshow-done-p1-390): after a no-show closed a
+ * free order its card left Buying with no record; the record now kept here must not read like an unpaid checkout
+ * ("The 48 hours to check out ran out. Nothing was charged." on a paid sale that is being refunded would be false).
+ */
+function endedWords(line: Pick<CartLine, "status" | "order_id" | "order_status" | "total_cents">): string {
+  const closedAfterPaying = !!line.order_id && line.order_status === "refunded";
+  if (!closedAfterPaying) {
+    return line.status === "missed" ? "The 48 hours to check out ran out. Nothing was charged." : "The seller called off the sale. Nothing was charged.";
+  }
+  const sellerFault = line.status === "cancelled_by_seller";
+  if ((line.total_cents ?? 0) === 0) {
+    return sellerFault ? "The seller cancelled this free pickup. Nothing was charged." : "This free pickup was cancelled. Nothing was charged.";
+  }
+  return sellerFault ? "The seller cancelled this sale. Your refund is on its way to your card." : "This sale was cancelled. Your refund is on its way to your card.";
+}
+
 export function EndedLine({ line }: { line: CartLine }) {
   return (
     <li className="rounded-[20px] border border-border bg-card p-4" data-ended-line="">
       <p className="truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
-      <p className="text-ds-13 text-muted-foreground">
-        {line.status === "missed" ? "The 48 hours to check out ran out." : "The seller called off the sale."} Nothing was charged.
-      </p>
+      <p className="text-ds-13 text-muted-foreground">{endedWords(line)}</p>
     </li>
   );
 }

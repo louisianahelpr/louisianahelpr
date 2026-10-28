@@ -81,8 +81,9 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {showCart && <CartView />}
       <PaidOrders side="buyer" views={t.views} show={(id) => only === null || t.views.get(id)?.bucket === only} />
       {ended.length > 0 && (
-        <section className="space-y-2" aria-label="Ended before paying">
-          <SectionHeading title="Ended before paying" />
+        <section className="space-y-2" aria-label="Ended">
+          {/* "Ended", not "Ended before paying": an order cancelled after it was paid or claimed is kept here too (A2-4). */}
+          <SectionHeading title="Ended" />
           <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
         </section>
       )}

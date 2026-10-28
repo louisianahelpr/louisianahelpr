@@ -13918,6 +13918,11 @@ export type Database = {
         Args: { p_job_id: string; p_order_id: string }
         Returns: boolean
       }
+      declutter_listing_round_close_offers: {
+        Args: { p_item_id: string; p_seller: string; p_title: string }
+        Returns: number
+      }
+      declutter_listing_rounds_sweep: { Args: never; Returns: Json }
       declutter_lock_buyable_item: {
         Args: { p_buyer: string; p_item_id: string }
         Returns: Record<string, unknown>

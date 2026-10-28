@@ -46,6 +46,14 @@ GRANT ALL ON TABLE public.declutter_pin_secret TO service_role;
 COMMENT ON TABLE public.declutter_pin_secret IS
   'Declutter: the secret salt that moves each Browse map pin off its public area point (declutter_map_pins). '
   'No client privilege. Never rotate it casually: every pin would move.';
+-- Q807: every new public table gets the unconfirmed-email write gate (no client can write here anyway).
+DO $do$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$do$;
 
 INSERT INTO public.declutter_pin_secret (id, salt)
 VALUES (1, encode(sha256(convert_to(gen_random_uuid()::text || gen_random_uuid()::text || gen_random_uuid()::text, 'UTF8')), 'hex'))

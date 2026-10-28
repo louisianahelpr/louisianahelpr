@@ -22,7 +22,7 @@ import { Popover, PopoverAnchor, PopoverContent, PopoverDismissLayer, PopoverPor
  * `modal` keeps the page from scrolling under it and keeps Tab inside it, as
  * Notifications does (anchoredPanel.tsx).
  */
-export const FILTER_DROPDOWN_WIDTH = 380;
+const FILTER_DROPDOWN_WIDTH = 380;
 
 export function FilterDropdown({
   open,

@@ -3802,6 +3802,35 @@ export type Database = {
           },
         ]
       }
+      feature_switch_members: {
+        Row: {
+          created_at: string
+          key: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          key: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          key?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_switch_members_key_fkey"
+            columns: ["key"]
+            isOneToOne: false
+            referencedRelation: "feature_switches"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       feature_switches: {
         Row: {
           audience: string

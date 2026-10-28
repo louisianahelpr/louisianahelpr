@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { formatJobDate } from "@/lib/dateUtils";
-import { jobStartTimeLabel } from "@/lib/jobDate";
+import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "@/components/dashboard/types";
 
 /**
@@ -42,7 +42,10 @@ export function ApplyTimeQuestion({
   disabled?: boolean;
 }) {
   const id = useId();
-  const when = [job.date_needed ? formatJobDate(job.date_needed) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]
+  // A flexible start has no time to ask about: "Does Sat, Oct 31 work for you?", never "… at Flexible …"
+  // (deep audit 2026-10-28, real data: is_flexible_schedule with no start_time).
+  const startLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
+  const when = [job.date_needed ? formatJobDate(job.date_needed) : null, startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel]
     .filter(Boolean)
     .join(" at ");
   // An answer given on another job's sheet is not this job's answer.

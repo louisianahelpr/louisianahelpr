@@ -66,6 +66,14 @@ describe("a Helpr can suggest another day/time; hiring them agrees to it (owner 
     expect(read("src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx")).toMatch(/<ApplicantSuggestedTime app=\{app\}/);
   });
 
+  // Deep audit 2026-10-28 (real data): a flexible job with no start time read "Does Sat, Oct 31 at Flexible work for you?".
+  it("a flexible start asks about the day only, never 'at Flexible'", () => {
+    const flexible = { ...job, start_time: null, is_flexible_schedule: true } as unknown as EnrichedJob;
+    render(<ApplyTimeQuestion job={flexible} value={null} onChange={vi.fn()} />);
+    expect(screen.queryByText(/at Flexible/)).toBeNull();
+    expect(screen.getByText(/work for you\?/).textContent).toMatch(/^Does .+ work for you\?$/);
+  });
+
   it("the apply sheet asks, defaults to yes, and a suggestion is tied to its job", () => {
     const onChange = vi.fn();
     render(<ApplyTimeQuestion job={job} value={null} onChange={onChange} />);

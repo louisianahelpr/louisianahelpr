@@ -11,7 +11,7 @@ import NotFound from "@/pages/info/NotFound";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
 
-export const STATUS_LABEL: Record<DeclutterStatus, string> = {
+const STATUS_LABEL: Record<DeclutterStatus, string> = {
   draft: "Not listed yet",
   pending_review: "Waiting for a review",
   live: "For sale",
@@ -25,6 +25,17 @@ export const STATUS_LABEL: Record<DeclutterStatus, string> = {
   removed: "Removed by Louisiana Helpr",
   sold_elsewhere: "Sold elsewhere",
 };
+
+/**
+ * A seller's own listing's status word. A FREE item is claimed, never sold (deep audit SE-4, 2026-10-28: a claimed
+ * free item read "Sold" before anyone had picked it up): declutter_claim_free reserves it, declutter_checkout_free
+ * moves it to 'sold' with nothing paid, and only the handover makes it 'completed'.
+ */
+export function sellerStatusLabel(item: { status: DeclutterStatus; current_price_cents: number }): string {
+  if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed";
+  if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup";
+  return STATUS_LABEL[item.status];
+}
 
 export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {
   draft: "Finish the listing to put it up for sale.",

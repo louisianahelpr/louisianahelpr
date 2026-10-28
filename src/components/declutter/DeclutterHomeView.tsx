@@ -31,7 +31,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { DeclutterNotice, STATUS_LABEL } from "./declutterUi";
+import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { Boxes, ChevronRight } from "lucide-react";
@@ -114,7 +114,7 @@ const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
 
 function listingStatusLine(item: DeclutterItem): string {
   if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
-  return SELLER_STATUS_LINE[item.status] ?? STATUS_LABEL[item.status];
+  return SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
 }
 
 /** The Browse card's picture, small: the cover photo, or the category icon on its tint (never a blank box). */

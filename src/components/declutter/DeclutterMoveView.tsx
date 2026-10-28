@@ -54,7 +54,7 @@ import {
   toMoveRows,
   type MoveRow,
 } from "@/lib/declutter/moves";
-import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, STATUS_LABEL, TAX_STATEMENTS } from "./declutterUi";
+import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, sellerStatusLabel, TAX_STATEMENTS } from "./declutterUi";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { readMoveDraft, writeMoveDraft } from "@/lib/declutter/moveDraft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
@@ -449,7 +449,7 @@ export default function MoveFlow() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate" title={it.title}>{it.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {itemPriceLabel(it.current_price_cents)} · {isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? photosWord(n) : `${n} of ${photosWord(DECLUTTER_MIN_PHOTOS)}`) : STATUS_LABEL[it.status]}
+                        {itemPriceLabel(it.current_price_cents)} · {isDraft ? (n >= DECLUTTER_MIN_PHOTOS ? photosWord(n) : `${n} of ${photosWord(DECLUTTER_MIN_PHOTOS)}`) : sellerStatusLabel(it)}
                       </p>
                     </div>
                     <Button asChild variant="outline" size="sm" className="shrink-0">

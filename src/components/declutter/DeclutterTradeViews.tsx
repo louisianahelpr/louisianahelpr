@@ -525,8 +525,10 @@ export function CartView() {
           return (
             <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3" aria-label={`Checkout ${i + 1}`}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
-              <h3 className="text-base font-semibold">From one seller · one checkout</h3>
-              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one payment.</p>}
+              {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
+                  one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
+              <h3 className="text-base font-semibold">{lines.length > 1 ? `One checkout for ${lines.length} items` : "Checkout"}</h3>
+              {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p>}
               <ul className="space-y-1">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">

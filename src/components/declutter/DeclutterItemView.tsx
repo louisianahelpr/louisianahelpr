@@ -35,7 +35,7 @@ import {
   DeclutterNotice,
   SIZE_LABEL,
   STATUS_HELP,
-  STATUS_LABEL,
+  sellerStatusLabel,
 } from "./declutterUi";
 import { FreeClaimPanel, isFreeItem } from "./DeclutterFreeClaim";
 import { OfferPanel } from "./DeclutterOfferPanel";
@@ -189,7 +189,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
 
           {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}
           {isSeller && it.status !== "live" && it.status !== "paused" && (
-            <DeclutterNotice title={`Your listing: ${STATUS_LABEL[it.status]}`}>
+            <DeclutterNotice title={`Your listing: ${sellerStatusLabel(it)}`}>
               {STATUS_HELP[it.status] ?? null}
               {it.status === "rejected" && review.data?.review_note ? <p className="mt-1">Reason: {review.data.review_note}</p> : null}
               {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}

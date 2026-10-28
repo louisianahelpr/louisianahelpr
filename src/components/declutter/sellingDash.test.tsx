@@ -14,7 +14,7 @@
  *
  * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
  * @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} | globalSearch={view !== "buying"}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{STATUS_LABEL[item.status]}</p><p data-listing-status={item.status}\n
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                     data-listing-status={item.status}\n |                     data-listing-status={item.status}>{sellerStatusLabel(item)}</p><p data-listing-status={item.status}\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingThumb path={thumb} category={item.category} />\n |
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <div data-seller-empty="" | <div data-plain=""
  * @mutate src/components/declutter/SellItForMe.tsx |     ? "flex min-h-14 w-full items-center | ? "rounded-full flex min-h-14 w-full items-center
@@ -22,9 +22,16 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
+ * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
+ * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
+ * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { readdirSync } from "@/test/helpers/trackedFiles";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -327,5 +334,49 @@ describe("#18: taking a listing down asks in the app", () => {
     await waitFor(() => expect(withdrawSpy).toHaveBeenCalledWith("i7"));
     expect(confirmSpy).not.toHaveBeenCalled();
     confirmSpy.mockRestore();
+  });
+});
+
+/**
+ * Deep audit SE-4 (2026-10-28): a claimed FREE item read "Sold" on Selling before anyone picked it up. A free item is
+ * claimed, never sold: declutter_claim_free reserves it, declutter_checkout_free moves it to 'sold' with nothing paid
+ * (20261027170717), and only the handover makes it 'completed'. Every seller-facing status word comes from
+ * sellerStatusLabel; a paid sale still reads "Sold".
+ */
+describe("Selling tab: a claimed free item is never 'Sold'", () => {
+  beforeEach(() => {
+    state.offers = [];
+    state.cart = [];
+  });
+
+  it("free + reserved reads 'Claimed', free + sold 'Claimed · waiting for pickup', a paid sale 'Sold'", async () => {
+    state.mine = [
+      { ...ITEM, id: "f1", status: "reserved", title: "Free lamp", current_price_cents: 0 },
+      { ...ITEM, id: "f2", status: "sold", title: "Free chair", current_price_cents: 0 },
+      { ...ITEM, id: "p1", status: "sold", title: "Paid desk", current_price_cents: 3200 },
+    ];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Paid desk");
+    const line = (title: string) => {
+      const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent?.includes(title))!;
+      return row.querySelector("[data-listing-status]")!.textContent;
+    };
+    expect(line("Free lamp")).toBe("Claimed");
+    expect(line("Free chair")).toBe("Claimed · waiting for pickup");
+    expect(line("Paid desk")).toBe("Sold");
+  });
+
+  it("no seller screen reads a listing's status word straight from STATUS_LABEL (only sellerStatusLabel does)", () => {
+    const dirs = ["src/components/declutter", "src/pages/declutter"];
+    const files = dirs.flatMap((d) =>
+      (readdirSync(join(process.cwd(), d), { recursive: true }) as string[])
+        .filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f))
+        .map((f) => `${d}/${f}`),
+    );
+    expect(files.length).toBeGreaterThan(40);
+    const offenders = files.filter(
+      (f) => f !== "src/components/declutter/declutterUi.tsx" && /\bSTATUS_LABEL\s*\[/.test(blankComments(readFileSync(join(process.cwd(), f), "utf8"))),
+    );
+    expect(offenders).toEqual([]);
   });
 });

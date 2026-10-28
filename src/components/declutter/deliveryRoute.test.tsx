@@ -108,7 +108,9 @@ describe("My route", () => {
     await waitFor(() => expect(state.calls).toContainEqual(["picked_up", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
     const leave = within(cards[0]).getByRole("button", { name: "Left at the door" });
     expect(leave).toBeDisabled();
-    fireEvent.change(within(cards[0]).getByLabelText("Photo at the drop-off address"), { target: { files: [jpeg()] } });
+    // Deep audit #41: each stop's input names its own stop, so a screen reader can tell three of them apart.
+    // @mutate src/components/declutter/StopActions.tsx | Photo at the drop-off address<span className="sr-only"> ({stop.title}, stop {stop.seq})</span> | Photo at the drop-off address
+    fireEvent.change(within(cards[0]).getByLabelText("Photo at the drop-off address (Blue lamp, stop 1)"), { target: { files: [jpeg()] } });
     fireEvent.click(leave);
     await waitFor(() => expect(state.calls).toContainEqual(["delivered", "t9", "u1/task/t9/photo.jpg", { lat: 30.5, lng: -91.15 }]));
   });

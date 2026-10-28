@@ -98,16 +98,19 @@ export async function deriveFallbackLocation(
   //    this branch for every real row.
   //
   //    A STORED COORDINATE IS NEVER SECOND-GUESSED BY ITS GEOGRAPHY. fecdbf6e7
-  //    added an `isWithinServiceArea` test here, on the theory that the
-  //    account's row (37.4728 / -122.2444, Menlo Park CA, beside a Louisiana
-  //    ZIP) had to be an IP guess. The owner was in Menlo Park. The row is
-  //    correct, and the gate's effect was to replace a real Californian
-  //    position with the Erath parish centroid — telling a user in California
-  //    that they were a few miles from a New Iberia job, and handing that
-  //    invented origin to radius search, applicant proximity and
-  //    get_neighbor_hire_count. Out-of-state is not evidence of a bad fix:
-  //    people travel, relocate, and own Louisiana property from elsewhere.
-  //    The only test left is "is it a number".
+  //    added an `isWithinServiceArea` test here, after an account's row
+  //    (37.4728 / -122.2444, Menlo Park CA, beside a Louisiana ZIP) looked like
+  //    an IP guess. Whether that one row was right is not this function's
+  //    question (on 2026-10-28 the owner said Menlo Park is not their address,
+  //    and that row's coordinates were cleared by hand). The gate's effect was
+  //    to replace ANY out-of-state position with a parish centroid from the
+  //    ZIP: a member who really is in California was told they were a few
+  //    miles from a New Iberia job, and that invented origin fed radius
+  //    search, applicant proximity and get_neighbor_hire_count. Out-of-state
+  //    is not evidence of a bad fix: people travel, relocate, and own
+  //    Louisiana property from elsewhere. A wrong stored coordinate is fixed
+  //    in the data, not guessed around here. The only test left is "is it a
+  //    number".
   const lat = profile.latitude == null ? NaN : Number(profile.latitude);
   const lng = profile.longitude == null ? NaN : Number(profile.longitude);
   if (Number.isFinite(lat) && Number.isFinite(lng)) {

@@ -121,6 +121,9 @@ function migrationColumns(): Map<string, Map<string, string>> {
         }
         for (const action of splitTop(actions)) {
           const a = action.trim();
+          // EXECUTE format('… ADD COLUMN %I …'): the name is computed, not literal (20261028162048 adds the
+          // Declutter notice switches in a loop); the backtracking regex would otherwise read "column" as the name.
+          if (/^add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?%/i.test(a)) continue;
           const add = /^add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?"?(\w+)"?/i.exec(a);
           if (add && !CONSTRAINT_HEAD.test(add[1])) {
             cols.set(add[1].toLowerCase(), file);

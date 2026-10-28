@@ -188,18 +188,26 @@ for (const variant of [
 
     // --- the tabs: Browse leftmost and selected -------------------------
     const tabs = page.getByRole("tablist", { name: "Jobs & Posts" });
-    await expect(tabs.getByRole("tab")).toHaveText(["Browse", "Posted", "Working"]);
+    // Desktop: Browse carries its job count beside its label (owner 2026-10-28: "move the 1 next to browse").
+    await expect(tabs.getByRole("tab")).toHaveText([isDesktopWeb ? /^Browse\d+$/ : "Browse", "Posted", "Working"]);
     await expect(tabs.getByRole("tab", { name: "Browse" })).toHaveAttribute("aria-selected", "true");
     const tabsBox = (await tabs.boundingBox())!;
     expect(tabsBox.y, "the tabs sit under the top bar").toBeGreaterThanOrEqual(barBottom - 1);
 
-    // --- search + Filters: one slim row on phone, the feed strip on desktop ---
+    // --- search + Filters: one slim row on phone; on desktop at the END OF THE TABS ROW (owner 2026-10-28:
+    // "the search filter and map up onto the other line above to save space") ---
+    const tabsRow = (await page.getByTestId("section-tabs").boundingBox())!;
     for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
+      if (isDesktopWeb) {
+        expect(box.y, `action icon ${name} sits in the tabs row`).toBeGreaterThanOrEqual(tabsRow.y - 1);
+        expect(box.y + box.height, `action icon ${name} sits in the tabs row`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
+        expect(box.x, `action icon ${name} sits right of the tabs`).toBeGreaterThan(tabsBox.x);
+        continue;
+      }
       expect(box.y, `action icon ${name} sits below the tabs`).toBeGreaterThan(tabsBox.y + tabsBox.height - 1);
-      if (isDesktopWeb) continue;
       // Phone: INSIDE the search row (owner: "one slim search row with the filter icon inside").
       const row = (await page.getByTestId("browse-compact-search").boundingBox())!;
       expect(box.x, `${name} sits inside the search row`).toBeGreaterThanOrEqual(row.x - 1);

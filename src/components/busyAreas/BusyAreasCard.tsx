@@ -103,6 +103,13 @@ export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveri
           ))}
         </ul>
       )}
+      {/* Lead 2026-10-28, option (c): the counts keep Q2435's jobs + deliveries mix and words; one plain line says
+          where each is, with the deliveries counted on their own (every open delivery the page read, placed or not). */}
+      {top.length > 0 && (
+        <p className="text-ds-13 text-muted-foreground" data-busy-where="">
+          {deliveries.length === 0 ? "No deliveries are waiting right now." : deliveries.length === 1 ? "1 delivery is waiting." : `${deliveries.length} deliveries are waiting.`} Open jobs are on the Jobs tab; deliveries you can take are below.
+        </p>
+      )}
     </section>
   );
 }

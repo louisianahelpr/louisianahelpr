@@ -110,7 +110,7 @@ export const EXPORT_SECTIONS = [
   "declutter_seller_fee_debts",
   "declutter_bookings", "declutter_problems", "declutter_problems_about_me", "declutter_refund_requests", "declutter_payouts", "declutter_reviews",
   "declutter_wanted",
-  "helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "declutter_delivery_dropoffs",
+  "helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "helpr_task_tips", "declutter_delivery_dropoffs",
   "declutter_seller_delivery", "declutter_delivery_windows", "declutter_delivery_days_off", "declutter_item_no_seller_delivery", "declutter_seller_deliveries",
   "job_guarantee_claims",
   "declutter_meetup_choices", "declutter_order_meetups",

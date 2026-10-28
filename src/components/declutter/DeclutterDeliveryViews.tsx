@@ -27,6 +27,8 @@ import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDia
 import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
+import { DeliveryTipPanel } from "./DeliveryTipPanel";
+import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { DateTimeField } from "@/components/DateTimeField";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -180,6 +182,8 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
       <TaskPhotos view={v} />
       {/* Q1929 (row 40): the buyer may raise the pay while no Helpr has it; it also lists their raises. */}
       {side === "buyer" && <DeliveryRaisePanel orderId={orderId} />}
+      {/* Q2453: once it is done, the buyer may tip the Helpr (the job tip's money, 100% to the Helpr). */}
+      {side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel taskId={taskId} helprFirstName={v.helpr_first_name} />}
       {canConfirm && (
         <button type="button" className={primary} disabled={gotIt.isPending}
           onClick={() => { if (window.confirm("Do you have the item? Tapping \"I got it\" pays the Helpr. You can still ask the seller for a refund within 24 hours.")) gotIt.mutate(); }}>
@@ -362,7 +366,7 @@ function DeliveryPayoutHeld({ tasks }: { tasks: MyTask[] }) {
 }
 
 /** One delivery the Helpr took: the addresses and every step. */
-function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
+function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; tipCents?: number }) {
   const active = t.status === "accepted" || t.status === "picked_up" || t.status === "delivered";
   // Exact addresses: never written to the on-device query cache (lh-authz-rls review #6).
   const view = useQuery({ queryKey: ["helpr-tasks", "view", t.task_id], queryFn: () => fetchTaskView(t.task_id), enabled: active, meta: { persist: false } });
@@ -401,6 +405,8 @@ function MyTaskCard({ t, userId }: { t: MyTask; userId: string }) {
             : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
         </p>
       )}
+      {/* Q2453: the buyer's tip, all of it the Helpr's (Stripe sends it straight to their account). */}
+      {tipCents > 0 && <p className="text-sm">The buyer tipped you {formatPrice(tipCents)}.</p>}
       {active && view.isError && <p className="text-sm" role="alert">{declutterErrorMessage(view.error)}</p>}
       {active && v && (
         <>
@@ -487,6 +493,8 @@ export function DeliverView() {
   // Q2452: no car, no deliveries (the server lists, offers and lets take none); the same query VehicleForm reads.
   const vehicle = useQuery({ queryKey: ["helpr-tasks", "vehicle", userId], queryFn: () => fetchMyVehicle(userId), enabled: !!userId });
   const noCar = vehicle.isSuccess && !vehicle.data?.has_car;
+  // Q2453: tips on the Helpr's deliveries (a failed read only hides the tip line).
+  const tips = useQuery({ queryKey: ["helpr-tasks", "tips", userId], queryFn: () => fetchTipsOnMyDeliveries(userId), enabled: !!userId });
   const open = useQuery({ queryKey: ["helpr-tasks", "open", where?.lat ?? null, where?.lng ?? null], queryFn: () => fetchOpenTasks(where), enabled: !!userId });
   const locate = useMutation({
     mutationFn: currentPosition,
@@ -529,7 +537,7 @@ export function DeliverView() {
         ) : (
           <>
             <DeliveryPayoutHeld tasks={myList} />
-            <ul className="space-y-3">{myList.map((t) => <MyTaskCard key={t.task_id} t={t} userId={userId} />)}</ul>
+            <ul className="space-y-3">{myList.map((t) => <MyTaskCard key={t.task_id} t={t} userId={userId} tipCents={tips.data?.get(t.task_id) ?? 0} />)}</ul>
           </>
         )}
       </section>

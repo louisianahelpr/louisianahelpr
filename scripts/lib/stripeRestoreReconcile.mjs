@@ -60,6 +60,8 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_delivery_refunds", column: "stripe_payment_intent_id" },
     // Q1929: a delivery-pay raise is its own charge (20261021185418).
     { table: "declutter_delivery_raises", column: "stripe_payment_intent_id" },
+    // Q2453: a Declutter delivery tip is its own charge (20261028014848; the webhook writes the paid PI).
+    { table: "helpr_task_tips", column: "stripe_payment_intent_id" },
     { table: "shop_orders", column: "stripe_payment_intent_id" },
     { table: "shop_refunds", column: "stripe_payment_intent_id" },
     { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
@@ -82,6 +84,8 @@ export const DB_ID_COLUMNS = {
     { table: "helpr_task_payouts", column: "stripe_transfer_id" },
     // Q1929: the raise part of a Helpr payout, sent from the raise's own charge.
     { table: "declutter_delivery_raises", column: "payout_transfer_id" },
+    // Q2453 (owner #3706): a HELD delivery tip's own transfer, sent with the Helpr's delivery pay (CHECK '^tr_').
+    { table: "helpr_task_tips", column: "payout_transfer_id" },
     { table: "shop_payouts", column: "stripe_transfer_id" },
     // An admin's hand settlement of a held payout or refund (20261019070737, CHECK '^(tr|re|pyr|po)_'):
     // listed under each kind it can hold; collectDbIds skips the other kinds quietly.
@@ -172,6 +176,7 @@ export const NOT_MATCHED = {
   "declutter_delivery_raises.refund_cents": "an amount, not a Stripe id",
   "declutter_delivery_raises.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_delivery_raises.stripe_payment_intent_id",
   "tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through tips.stripe_payment_intent_id",
+  "helpr_task_tips.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through helpr_task_tips.stripe_payment_intent_id",
   "gift_cards.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through gift_cards.stripe_payment_intent_id",
   "recurring_visit_payments.stripe_session_id": "a Checkout Session; its PaymentIntent is matched through recurring_visit_payments.stripe_payment_intent_id",
   "refund_notices.payment_intent_id": "the PaymentIntent a refund notice is about (Q1714), a dedupe record, not a record of that PaymentIntent",

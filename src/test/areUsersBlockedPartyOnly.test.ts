@@ -112,6 +112,9 @@ const EXPECTED_CALLERS = [
   // Helpr, the new task's buyer / seller); neither is necessarily auth.uid()
   // and it gets the real answer through the pg_trigger_depth() > 0 arm.
   "helpr_task_offer_online",
+  // Delivery tips (Q2453, 20261028014848): v_uid := auth.uid() (the delivery's buyer) is one argument,
+  // the delivery's Helpr (t.helpr_id) the other.
+  "helpr_task_tip_start",
   "helpr_task_view",
   "helpr_tasks_open_near",
   // Q713 (20261003183349): the AFTER UPDATE OF status trigger skips a thread

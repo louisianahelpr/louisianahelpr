@@ -14,7 +14,7 @@
  *
  * Registered mutations - each turns this file RED on its own:
  * @mutate supabase/functions/declutter-money/index.ts |               source_transaction: charges[i] as string, |               source_transaction: charges[0] as string,
- * @mutate supabase/functions/declutter-money/index.ts |          && (meta.raise_id ?? "") === (part.raiseId ?? ""); |          ;
+ * @mutate supabase/functions/declutter-money/index.ts |          && (meta.raise_id ?? "") === (part.raiseId ?? "") && (meta.tip_id ?? "") === (part.tipId ?? ""); |          && (meta.tip_id ?? "") === (part.tipId ?? "");
  * @mutate supabase/functions/declutter-money/index.ts |        { idempotencyKey: mine.length === 0 ? `declutter-raise-refund-${x.raise_id}` : `declutter-raise-refund-${x.raise_id}-r${mine.length}` }, |        {},
  * @mutate supabase/functions/declutter-money/index.ts |      const xRefund = adopted ?? await stripe.refunds.create( |      const xRefund = await stripe.refunds.create(
  * @mutate supabase/functions/_shared/helprPayoutParts.ts |  if (raised !== Number(raisedCents ?? 0)) { |  if (false) {
@@ -155,7 +155,7 @@ describe("declutter-money: a raised delivery's payout and its raise refunds", ()
     expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
     const wait = rpcs("payout_payee_wait_seen")[0]?.args as { p_category?: string; p_reason?: string } | undefined;
     expect(wait?.p_category).toBe("needs_reconcile");
-    expect(wait?.p_reason).toMatch(/tr_h_old went; \$20\.00 from raise charges did not/);
+    expect(wait?.p_reason).toMatch(/tr_h_old went; \$20\.00 from raise or tip charges did not/);
     expect(JSON.stringify(body)).toMatch(/partly sent/);
   });
 

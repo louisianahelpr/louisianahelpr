@@ -178,6 +178,8 @@
     "public.declutter_price_alerts.declutter_price_alerts_user_idx",
     "public.helpr_delivery_online.helpr_delivery_online_until_idx",
     "public.declutter_donation_partners.declutter_donation_partners_active_idx",
-    "public.declutter_donations.declutter_donations_job_idx"
+    "public.declutter_donations.declutter_donations_job_idx",
+    "public.helpr_task_tips.helpr_task_tips_helpr_idx",
+    "public.helpr_task_tips.helpr_task_tips_tipper_idx"
   ]
 }

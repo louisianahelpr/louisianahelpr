@@ -378,6 +378,10 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
     // health-check's answer `{ checks: { stripe_mode } }`, not a job_card_holds row (Q2399 gave that table the only stripe_mode column).
     { file: "src/test/pressNeverWritesToLiveStripe.test.ts", keys: ["stripe_mode"] },
+    // useHomeMoney's answer `{ coming, held }` (and the test bodies holding it), not a helpr_task_tips row: delivery
+    // tips (Q2453, 20261028014848) gave helpr_task_tips the only `held` column, so a jobs earnings mock beside it
+    // (`payment_status: "released"`) was graded against the tip table's payment_status CHECK.
+    { file: "src/test/homeMoneyGating.test.tsx", keys: ["coming", "held"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

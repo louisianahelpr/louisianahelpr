@@ -29,7 +29,7 @@
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
  */
-import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { act, within, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -356,15 +356,17 @@ describe("Declutter location ask", () => {
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const sheet = await screen.findByRole("dialog");
     const kitchen = within(sheet).getByRole("button", { name: "Kitchen" });
-    expect(within(sheet).getByRole("button", { name: "Decor" })).toBeInTheDocument();
-    expect(Object.keys(CATEGORY_WORD).filter((k) => within(sheet).queryByRole("button", { name: CATEGORY_WORD[k] })).length).toBeGreaterThan(10);
+    // One category-name map (lead 2026-10-28): the sheet says what Sell and Wanted say.
+    expect(within(sheet).getByRole("button", { name: "Home decor" })).toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Decor" })).toBeNull();
+    expect(Object.keys(CATEGORY_LABEL).filter((k) => within(sheet).queryByRole("button", { name: CATEGORY_LABEL[k] })).length).toBeGreaterThan(10);
     fireEvent.click(kitchen);
     expect(kitchen).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByText("Oak rocking chair")).toBeNull();
     expect(screen.getByText("Stand mixer")).toBeInTheDocument();
-    fireEvent.click(within(sheet).getByRole("button", { name: "Toys" }));
-    expect(screen.getByText("Nothing in Toys right now.")).toBeInTheDocument();
-    const toys = within(sheet).getByRole("button", { name: "Toys" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Toys and games" }));
+    expect(screen.getByText("Nothing in Toys and games right now.")).toBeInTheDocument();
+    const toys = within(sheet).getByRole("button", { name: "Toys and games" });
     fireEvent.click(toys);
     expect(toys).toHaveAttribute("aria-pressed", "false");
     expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();

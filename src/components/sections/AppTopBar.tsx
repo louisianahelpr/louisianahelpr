@@ -14,6 +14,36 @@ import { sectionByKey, type SectionKey } from "./sectionsConfig";
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
+/** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
+ *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
+export function SectionAddButton({ section }: { section: SectionKey }) {
+  const navigate = useNavigate();
+  const gate = useAgeGate();
+  // DESKTOP WEBSITE ONLY: the section's own "+ Post a job" (etc.) beside the bell, in the LIGHTER green, a soft
+  // olive tint, clearly second to the rail's solid "+ Create" (owner 2026-10-28: "add the post a job and post an
+  // item or whatever buttons back on the top nav maybe just make it the lighter green"). A phone keeps the
+  // bottom bar's center "+" and no "+" here. Guard: src/test/topBarAddMatchesBell.test.tsx.
+  const add = sectionByKey(section).add;
+  const isPost = add?.path === "/post-job";
+  const go = () => add && navigate(add.path);
+  if (!add) return null;
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label={add.label}
+      data-testid="section-add"
+      onClick={isPost ? gate.gate("post", go) : go}
+      {...(isPost ? gate.gatedProps("post") : {})}
+      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint [&>svg]:w-[18px] [&>svg]:h-[18px]"
+    >
+      <Plus aria-hidden />
+      {add.cta ?? add.label}
+    </Button>
+  );
+}
+
 /**
  * The phone top bar (owner final decisions, 2026-10-19). Right side: the
  * NOTIFICATIONS bell, then the PROFILE avatar at the far right. Left: the logo
@@ -60,34 +90,12 @@ export function AppTopBar({
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
-  const gate = useAgeGate();
   const isWebDesktop = useIsWebDesktop();
   const phoneExplore = explore && !isWebDesktop;
   const chipsRow = phoneExplore && !!section;
   const title = chipsRow ? sectionTitle : phoneExplore ? "Explore" : sectionTitle;
   if (isWebDesktop && !title) return null;
-  // DESKTOP WEBSITE ONLY: the section's own "+ Post a job" (etc.) beside the bell, in the LIGHTER green, a soft
-  // olive tint, clearly second to the rail's solid "+ Create" (owner 2026-10-28: "add the post a job and post an
-  // item or whatever buttons back on the top nav maybe just make it the lighter green"). A phone keeps the
-  // bottom bar's center "+" and no "+" here. Guard: src/test/topBarAddMatchesBell.test.tsx.
-  const add = isWebDesktop && section ? sectionByKey(section).add : undefined;
-  const isPost = add?.path === "/post-job";
-  const go = () => add && navigate(add.path);
-  const actions = add ? (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      aria-label={add.label}
-      data-testid="section-add"
-      onClick={isPost ? gate.gate("post", go) : go}
-      {...(isPost ? gate.gatedProps("post") : {})}
-      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint [&>svg]:w-[18px] [&>svg]:h-[18px]"
-    >
-      <Plus aria-hidden />
-      {add.cta ?? add.label}
-    </Button>
-  ) : undefined;
+  const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
   // The bell and the photo: the same two controls on every phone bar.
   const personal = (
     <>

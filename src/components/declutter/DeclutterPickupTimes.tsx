@@ -10,6 +10,7 @@
  * "9:00 AM". The windows it hands back are the same {weekday, starts, ends}
  * rows the server already takes (at most 21; it refuses an end before a start).
  */
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Clock, Plus, X } from "lucide-react";
@@ -127,15 +128,13 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
         <p className="text-ds-13 text-muted-foreground" data-no-days="">Pick at least one day buyers can come.</p>
       ) : (
         <>
-          <div className="inline-flex rounded-full border border-border bg-card p-1" role="radiogroup" aria-label="Hours">
-            {[{ v: false, t: "Same hours every day" }, { v: true, t: "Different each day" }].map((o) => (
-              <button key={o.t} type="button" role="radio" aria-checked={perDay === o.v}
-                onClick={() => (o.v ? setPerDay(true) : chooseSameHours())}
-                className={`min-h-9 rounded-full px-3 text-ds-13 font-semibold focus-visible:ring-2 focus-visible:ring-ring ${perDay === o.v ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "text-foreground"}`}>
-                {o.t}
-              </button>
-            ))}
-          </div>
+          {/* The shared glossy control (segmentedControlInvariant), not a hand-painted pair. */}
+          <SegmentedControl
+            ariaLabel="Hours"
+            options={[{ value: "same" as const, label: "Same hours every day" }, { value: "each" as const, label: "Different each day" }]}
+            value={perDay ? "each" : "same"}
+            onChange={(v) => (v === "each" ? setPerDay(true) : chooseSameHours())}
+          />
 
           {!perDay ? (
             <div className="space-y-1" data-same-hours="">

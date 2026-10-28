@@ -67,6 +67,15 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
     expect(flat(MIG)).toContain("BEFORE UPDATE OF porch_ok ON public.declutter_items FOR EACH ROW EXECUTE FUNCTION public.declutter_items_porch_frozen();");
   });
 
+  // The one way back to draft (owner 2026-10-28, Relist): declutter_reopen_listing moves only the seller's own WITHDRAWN
+  // item, which has no order, so a porch change there touches no sale; publishing runs every listing rule again.
+  const REOPEN = "20261028180400_declutter_reopen_taken_down.sql";
+  it("the only way back to draft is reopening a withdrawn listing, which has no order", () => {
+    const sql = flat(blankSqlComments(readFileSync(join(MIG_DIR, REOPEN), "utf8")));
+    expect(sql).toContain("IF v_item.status <> 'withdrawn' THEN RAISE EXCEPTION 'item_not_editable'");
+    expect(sql).toContain("WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;");
+  });
+
   it("porch_ok is frozen once listed because no migration ever moves an item back to draft (lh-money-escrow review nit #4)", () => {
     let updates = 0;
     const back: string[] = [];
@@ -74,7 +83,7 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
       const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
       for (const m of sql.matchAll(/UPDATE\s+public\.declutter_items(?:\s+\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b|;)/gi)) {
         updates++;
-        if (/\bstatus\s*=\s*'draft'/i.test(m[1])) back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
+        if (/\bstatus\s*=\s*'draft'/i.test(m[1]) && f !== REOPEN) back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
       }
     }
     expect(updates).toBeGreaterThan(20);

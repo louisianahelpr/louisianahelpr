@@ -34,6 +34,8 @@ const ALSO_RENDER = ["src/pages/home/HomeDashboard.tsx", "src/components/postjob
 const STEP_TRACKER_OK = [
   "src/components/declutter/DeclutterDeliveryViews.tsx",
   "src/components/declutter/DeclutterPorchHandover.tsx",
+  // A Declutter order's own steps (deep audit #1, 2026-10-28), not a job.
+  "src/components/declutter/OrderSteps.tsx",
 ];
 
 const files = walkSource([join(ROOT, "src")])

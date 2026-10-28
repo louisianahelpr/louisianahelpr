@@ -3,7 +3,6 @@ import AppShell from "@/components/AppShell";
 import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { ExploreSearchEntry } from "./ExploreSearchEntry";
-import { SectionPreviewBanner } from "./SectionPreviewBanner";
 import type { SectionKey } from "./sectionsConfig";
 
 /**
@@ -13,8 +12,9 @@ import type { SectionKey } from "./sectionsConfig";
  * THE EXPLORE HEADER (owner, 2026-10-22): on one of the four sections the header is the section chips (with the
  * bell and the photo), then the section's thin tabs, then the search, and it is STEADY: it sits above the scroll
  * column, so nothing in it hides, shrinks or moves while the list scrolls under it (the Jobs header already sat
- * outside its scroll panel). A section open to the viewer only as a tester opens with the "Coming soon – early
- * preview" banner. Guard: src/test/exploreHeaderSteady.test.ts.
+ * outside its scroll panel). No "early preview" banner over the content (owner, 2026-10-28: "remove coming soon
+ * early preview. the bottom stuff already says that"): the chips' "Coming soon" and Browse's "Opens soon" say it.
+ * Guard: src/test/exploreHeaderSteady.test.ts.
  */
 export function SectionScreen({
   title,
@@ -54,7 +54,6 @@ export function SectionScreen({
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav">
           {!section && <AppTopBar title={title} />}
           <div className="flex flex-col gap-4 pt-1 pb-6">
-            {section && <SectionPreviewBanner section={section} />}
             {children}
           </div>
         </div>

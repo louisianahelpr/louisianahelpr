@@ -61,7 +61,7 @@ export function useSectionPreview(key: SectionKey): boolean {
  * (the Browse/Posted/Working tabs under it are now thin underlines). A section
  * not open to everyone says "Coming soon" under its name, for every viewer: muted and
  * inert when it is closed to them (no toast, no navigation), and still opening for a
- * tester, whose section then carries the "early preview" banner (SectionPreviewBanner).
+ * tester, whose empty Browse then says "Opens soon" (no banner since owner 2026-10-28).
  * Guards: src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts.
  */
 export function ExploreSwitcher({ current }: { current: SectionKey }) {
@@ -103,7 +103,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const options = visible.map((s) => {
     const on = isOn(s);
     // ONE word for a section not open to everyone (owner, 2026-10-22): "Coming soon", for a member (closed: a tap
-    // does nothing) and for a tester alike (open to them; inside, the "early preview" banner says why).
+    // does nothing) and for a tester alike (open to them; inside, an empty Browse says "Opens soon").
     const soon = !on || isPreview(s);
     return {
       value: s.key,

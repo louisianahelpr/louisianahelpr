@@ -16,7 +16,7 @@
  * hidden even from the seller, B42), so nobody but the server knows whether a
  * listing has reached its stop. What IS certain: if the price drops at that
  * run, it drops to no less than the step (dropStepCents). So the page says
- * "could drop as low as $X", never "drops to $X".
+ * "next possible drop: $X", never "drops to $X" or "as low as $X".
  */
 
 /** The cron's minute and hour, in UTC (cron.job 'declutter-price-drops'). */

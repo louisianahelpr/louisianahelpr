@@ -17,7 +17,7 @@ const Money = ({ cents }: { cents: number }) => (
  * Board 80, "What next" after listing, on the shared WhatNextSheet. Opens once on the
  * Selling tab after a publish. Every figure is read back from the item itself: the price,
  * and the next price drop from priceDrop.ts (the cron's real time, offers-only, 12 hours
- * after going live, "could drop as low as"); a listing the drop rule never touches shows no
+ * after going live, "next possible drop"); a listing the drop rule never touches shows no
  * drop step. A listing sent for review says so instead of "live".
  */
 export function ListedWhatNext() {

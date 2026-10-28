@@ -12,6 +12,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { SellerTalks } from "./DeclutterHandoverTalk";
 
 export function SalesWaiting() {
   const qc = useQueryClient();
@@ -36,6 +37,8 @@ export function SalesWaiting() {
   return (
     <section className="space-y-2" aria-label="Sold, waiting for the buyer to pay">
       <h2 className="text-base font-semibold">Sold, waiting for the buyer to pay</h2>
+      {/* Q2462: a buyer who can use none of the ways offered opened a chat to agree one. */}
+      <SellerTalks />
       <ul className="space-y-3">
         {waiting.map((l) => (
           <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">

@@ -2,6 +2,7 @@ import { DeclutterGate } from "@/components/declutter/declutterUi";
 import { DeclutterHomeSkeleton } from "@/components/declutter/DeclutterSkeletons";
 import DeclutterHome from "@/components/declutter/DeclutterHomeView";
 import { FinishSalesView } from "@/components/declutter/DeclutterTradeViews";
+import { HandoverTalkFromLink } from "@/components/declutter/DeclutterHandoverTalk";
 import { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useFeatureStatus } from "@/hooks/useFeature";
@@ -34,6 +35,8 @@ export default function DeclutterPage() {
   return (
     <DeclutterGate skeleton={<DeclutterHomeSkeleton />} agreedSales={<FinishSalesView />}>
       <DeclutterHome />
+      {/* Q2462: the handover chat opens over the page from ?talk=<id> (its notices and the checkout link there). */}
+      <HandoverTalkFromLink />
     </DeclutterGate>
   );
 }

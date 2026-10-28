@@ -31,6 +31,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { useFeature } from "@/hooks/useFeature";
 import { geocodeAddress } from "@/lib/geocode";
 import {
   addPhoto,
@@ -43,7 +44,9 @@ import {
   fetchPhotos,
   publishItem,
   removePhoto,
-  setPorchOk,
+  fetchItemHandovers,
+  setHandovers,
+  type SellerHandover,
   requestAiCheck,
   requestAiDraft,
   requestAiDraftFromPhotos,
@@ -67,6 +70,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel, useSellAiDraft } from "./SellAiDraft";
+import { HANDOVER_CHOICE, SellHandoverChoices, handoverSummary } from "./SellHandoverChoices";
 import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, sellStepProblem, type FormState } from "./sellForm";
 
@@ -91,7 +95,11 @@ export default function SellFlow() {
   // Board 31a-158: which of the 5 steps is on screen.
   const [step, setStep] = useState(1);
   // Row 101: porch pickup is the default; the seller turns it off per item.
-  const [porchOk, setPorchOkChoice] = useState(true);
+  // Owner 2026-10-28: the ways the seller ticks (porch pickup by default; pickup at the door is gone).
+  const [ways, setWays] = useState<SellerHandover[]>(["porch"]);
+  const sellerDeliveryOpen = useFeature("declutter_seller_delivery");
+  // A free item is picked up from the porch only (the free checkout's one way of these four).
+  const savedWays: SellerHandover[] = form.free ? ["porch"] : ways.filter((w) => w !== "seller_delivery" || sellerDeliveryOpen);
   // Photos chosen before the first save (there is no draft to hold them yet).
   const [held, setHeld] = useState<File[]>([]);
   // Where the price hint looks (W12): the pickup address once found, else the
@@ -130,11 +138,20 @@ export default function SellFlow() {
       pickupAddress: priv.data.pickup_address,
     });
     setCoords({ lat: Number(priv.data.pickup_lat), lng: Number(priv.data.pickup_lng), address: priv.data.pickup_address });
-    setPorchOkChoice(it.porch_ok !== false);
+    // Until the saved ways are read: an older draft offered porch (if on) and Helpr delivery.
+    setWays(it.porch_ok !== false ? ["porch", "delivery"] : ["delivery"]);
   }, [itemId, item.data, priv.data]);
 
   // The saved draft's own step (declutter_items.drop_pct); 0 means the seller turned drops off.
   const dropState = useQuery({ queryKey: ["declutter", "drop-state", itemId], queryFn: () => fetchItemDropState(itemId!), enabled: !!itemId });
+  // The draft's saved ways (owner 2026-10-28), once, after the draft itself is in the form.
+  const savedHandovers = useQuery({ queryKey: ["declutter", "handovers", itemId], queryFn: () => fetchItemHandovers(itemId!), enabled: !!itemId });
+  const waysLoadedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!itemId || savedHandovers.data === undefined || loadedFor.current !== itemId || waysLoadedFor.current === itemId) return;
+    waysLoadedFor.current = itemId;
+    if (savedHandovers.data && savedHandovers.data.length > 0) setWays(savedHandovers.data);
+  }, [itemId, savedHandovers.data, form.title]);
   const dropLoadedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!itemId || !dropState.data || loadedFor.current !== itemId || dropLoadedFor.current === itemId) return;
@@ -216,7 +233,8 @@ export default function SellFlow() {
       };
       if (itemId) {
         await updateDraft(itemId, fields);
-        if (porchOk !== (item.data?.porch_ok !== false)) await setPorchOk(itemId, porchOk);
+        // The ways (also sets porch_ok). Owner 2026-10-28.
+        await setHandovers(itemId, savedWays);
         // Only once the saved step was read: a failed read must not overwrite it with the form's 5% default.
         if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
         toast.success("Saved.");
@@ -228,9 +246,10 @@ export default function SellFlow() {
       // The form already holds this draft's step: the drop-state read must not reset it.
       dropLoadedFor.current = id;
       setParams({ item: id }, { replace: true });
-      // A new draft allows porch; only a seller who turned it off needs the second
-      // call. If it fails the draft still exists with porch on, and the next save retries it.
-      if (!porchOk) await setPorchOk(id, false);
+      // The ways the seller ticked (owner 2026-10-28; also sets porch_ok). If it fails the draft still
+      // exists with every way open (an older item's), it is said, and the next save (List it saves again) retries it.
+      waysLoadedFor.current = id;
+      await setHandovers(id, savedWays);
       // The photos chosen first go up now that the draft exists. A photo that
       // fails says so (uploadPhotos) and can simply be added again.
       const waiting = held;
@@ -323,7 +342,9 @@ export default function SellFlow() {
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
   // Step 4 also needs pickup times the server takes (1-21, each ending after it starts).
-  const stepProblem = sellStepProblem(step, form, photoTotal) ?? (step === 4 ? pickupWindowsProblem(windows) : null);
+  const stepProblem = sellStepProblem(step, form, photoTotal)
+    ?? (step === 4 && savedWays.length === 0 ? "Tick at least one way buyers can get it." : null)
+    ?? (step === 4 ? pickupWindowsProblem(windows) : null);
   const next = async () => {
     if (stepProblem) {
       setTriedStep(step);
@@ -472,26 +493,10 @@ export default function SellFlow() {
 
       {step === 4 && (
         <section className="space-y-4" aria-labelledby="sell-step">
-          <StepHead title="How can buyers get it?" sub="Turn on every way that works for you." />
-          <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
-            <li className="flex items-start gap-3 px-4 py-3.5">
-              <label htmlFor="sell-porch" className="min-w-0 flex-1">
-                <span className="block text-ds-15 font-semibold text-foreground">Porch pickup</span>
-                <span className="block text-ds-13 text-muted-foreground">
-                  You leave it out and the buyer picks it up, so you don't have to meet. Turn this off for anything too valuable or too big to leave outside.
-                </span>
-              </label>
-              <Switch id="sell-porch" checked={porchOk} onCheckedChange={(v) => setPorchOkChoice(v === true)} />
-            </li>
-            <li className="px-4 py-3.5">
-              <span className="block text-ds-15 font-semibold text-foreground">Pickup at your door</span>
-              <span className="block text-ds-13 text-muted-foreground">Always on. The buyer gets your address after they pay.</span>
-            </li>
-            <li className="px-4 py-3.5">
-              <span className="block text-ds-15 font-semibold text-foreground">Helpr delivery</span>
-              <span className="block text-ds-13 text-muted-foreground">Always on. A local Helpr can pick it up and bring it to the buyer, who pays for it.</span>
-            </li>
-          </ul>
+          <StepHead title="How can buyers get it?" sub="Choose the ways you're happy with. Buyers only see these." />
+          <SellHandoverChoices ways={ways} setWays={setWays} free={form.free} sellerDeliveryOpen={sellerDeliveryOpen} />
+          {/* Owner 2026-10-28: no "Area buyers see" field; buyers see the town the server works out from this
+              address (declutter_town_for_pickup), and the seller can fill it from where they are. */}
           <div className="space-y-2">
             {label("sell-area", "Area buyers see")}
             <input id="sell-area" className={input} maxLength={80} value={form.areaLabel} onChange={(e) => set("areaLabel", e.target.value)} placeholder="e.g. Mid-City, Baton Rouge" />
@@ -525,9 +530,7 @@ export default function SellFlow() {
               {[CONDITION_LABEL[form.conditionStars], CATEGORY_LABEL[form.category], form.areaLabel.trim()].filter(Boolean).join(" · ")}
             </p>
             <ul className="flex flex-wrap gap-2 pt-1" aria-label="How buyers get it">
-              {porchOk && <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Porch pickup</li>}
-              <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Pickup at your door</li>
-              {!form.free && <li className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">Helpr delivery</li>}
+              {savedWays.map((w) => <li key={w} className="rounded-full border border-border px-3 py-1 text-ds-13 font-medium">{HANDOVER_CHOICE[w].title}</li>)}
             </ul>
           </div>
           <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
@@ -535,12 +538,9 @@ export default function SellFlow() {
               ? <ReviewRow title="Price" body="Free: claimed, never bought. No offers or price drops." onEdit={() => setStep(3)} />
               : <ReviewRow title="Price drops" body={form.drops && priceCents && floorCents && floorCents < priceCents ? `${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below ${formatPrice(floorCents)}` : "Off: it stays at your price"} onEdit={() => setStep(3)} />}
             <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
-            <ReviewRow title="Pickup" body={form.free ? (porchOk ? "Porch pickup or at your door" : "At your door") : porchOk ? "Porch pickup, at your door, Helpr delivery" : "At your door, Helpr delivery"} onEdit={() => setStep(4)} />
-            {/* Owner 2026-10-28 "it also never said how long it will stay open". MEASURED: no rule ends a listing by age
-                (no ends_at for offers listings, B13; relist_count is never written; prod cron jobs checked 2026-10-28),
-                so it says what is true today; a length is the owner's decision (LISTING_LIFETIME). */}
+            <ReviewRow title="How buyers get it" body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
+            {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
             <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} />
-
           </ul>
           <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax">
             <h3 id="sell-tax" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>

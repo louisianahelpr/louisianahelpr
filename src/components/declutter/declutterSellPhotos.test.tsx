@@ -68,6 +68,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItemDropState: async () => null,
   updateDraft: async () => "ok",
   setPorchOk: async () => true,
+  setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
+  fetchItemHandovers: async () => null,
   addPhoto: async (_u: string, id: string, f: File) => { calls.push(`addPhoto:${id}:${f.name}`); return "p"; },
   removePhoto: async () => undefined,
   requestAiDraft: async () => ({}),
@@ -80,6 +82,7 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
+import * as api from "@/lib/declutter/api";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
 function open() {
@@ -248,5 +251,39 @@ describe("photo-first selling", () => {
     aiAnswer.release!();
     await waitFor(() => expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description));
     expect(screen.getByLabelText("Title")).toHaveValue("Grandma's dresser");
+  });
+
+  // Owner 2026-10-28: "pick up at my door. remove that. they need the option to click which they will do, porch pick up,
+  // they deliver, safe meeting spot. whatever other options we have".
+  // @mutate src/components/declutter/DeclutterSellView.tsx |       await setHandovers(id, savedWays); |       void savedWays;
+  // @mutate src/components/declutter/DeclutterSellView.tsx |     ?? (step === 4 && savedWays.length === 0 ? "Tick at least one way buyers can get it." : null) |     ?? null
+  it("step 4: the seller ticks the ways (no door pickup), at least one, and those are what is saved", async () => {
+    vi.mocked(api.setHandovers).mockClear();
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg")] } });
+    await screen.findByText(/^1 of 12/);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Oak rocking chair" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await screen.findByRole("heading", { name: "How can buyers get it?" });
+    const tiles = [...document.querySelectorAll("[data-handover-tile]")].map((t) => t.getAttribute("data-handover-tile"));
+    expect(tiles).toEqual(["porch", "seller_delivery", "meetup", "delivery"]);
+    expect(screen.queryByText(/Pickup at your door/)).toBeNull();
+    expect(screen.getByRole("checkbox", { name: "Porch pickup" })).toHaveAttribute("aria-checked", "true");
+    // None ticked: it will not move on.
+    fireEvent.click(screen.getByRole("checkbox", { name: "Porch pickup" }));
+    fireEvent.change(screen.getByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    expect(screen.getByTestId("sell-form-problem")).toHaveTextContent("Tick at least one way buyers can get it.");
+    expect(calls).toEqual([]);
+    fireEvent.click(screen.getByRole("checkbox", { name: "Safe meeting spot" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Helpr delivery" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["meetup", "delivery"]));
+    expect(await screen.findByText("Safe meeting spot, Helpr delivery")).toBeInTheDocument();
   });
 });

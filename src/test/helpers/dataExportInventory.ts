@@ -172,6 +172,9 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_meetup_choices: { by: ["buyer_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
+  // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
+  declutter_handover_talks: { by: ["buyer_id", "seller_id"] },
+  declutter_handover_talk_messages: { by: ["sender_id"] },
   // Shops slice 1 (20261017061155) and the slice-two item tables (20261017061157), exported
   // by 20261017061157: the member's shop, photos, follows, items, item
   // photos, review state, confirmations, and the home-food year confirmations
@@ -568,6 +571,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "crew_confirm_pending.helper_id": { reason: "20261007011530: transient state of one crew Confirm waiting on payout setup (deleted when it completes or the spot is removed); holds no content, only the job, slot and person ids the export already carries through group_job_helpers" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
+  "declutter_handover_talks.opened_by": { reason: "Q2462 (20261028235249): which side opened the talk; always the buyer or the seller of that row (CHECK opened_by = buyer_id OR seller_id), so the row is already exported to both by buyer_id/seller_id" },
   "declutter_donation_partners.created_by": { reason: "Q2428 (20261027222743): the admin who added a partner charity; staff curation, not member data; each save is also in admin_audit_log" },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
   "category_suggestions.reviewed_by": { reason: "I1: the staff member who approved or declined the suggestion", stripped: true },

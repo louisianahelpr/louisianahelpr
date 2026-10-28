@@ -117,6 +117,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "100 Main Street, Baton Rouge, LA 70802", pickup_lat: 30.45, pickup_lng: -91.15 }),
   updateDraft: async () => "i1",
   setPorchOk: async () => true,
+  setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
+  fetchItemHandovers: async () => null,
   setDropPct: async (_id: string, pct: number) => pct,
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 }),
   fetchMyPickupWindows: async () => [],
@@ -410,14 +412,18 @@ describe("Declutter controls are the shared ones", () => {
     expect(seen).toBeGreaterThan(4);
   });
 
-  it("the tax confirmation is ONE shared Checkbox stating all four facts, and porch pickup the shared Switch, never native inputs", async () => {
+  it("the tax confirmation is ONE shared Checkbox stating all four facts, and the ways buyers get it are shared Checkboxes, never native inputs", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
     at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
     await screen.findByRole("heading", { name: "Show it off" });
     for (let i = 0; i < 3; i++) fireEvent.click(await screen.findByRole("button", { name: "Continue" }));
-    // Row 101: porch pickup is on by default for a listing (board 49: a toggle).
-    expect(await screen.findByRole("switch", { name: /Porch pickup/ })).toHaveAttribute("aria-checked", "true");
+    // Owner 2026-10-28: the seller ticks the ways; an older draft with porch on shows porch + Helpr delivery ticked.
+    const porch = await screen.findByRole("checkbox", { name: "Porch pickup" });
+    expect(porch.tagName).toBe("BUTTON");
+    expect(porch).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("checkbox", { name: "Helpr delivery" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByText(/Pickup at your door/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByRole("heading", { name: "Ready to list?" });
     // Owner 2026-10-28 "make these checks 1": exactly one box.

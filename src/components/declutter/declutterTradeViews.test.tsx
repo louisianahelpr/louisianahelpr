@@ -27,8 +27,8 @@
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={held \|\| opening \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery") ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery") ? [...order, "delivery"] : order;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
@@ -68,6 +68,8 @@ const state = {
   bundleOff: 0,
   bundleRule: null as number | null,
   previewCalls: 0,
+  /** Q2462: who "Message the seller" opened a handover chat with (declutter_open_handover_talk). */
+  talksOpened: [] as string[],
 };
 
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
@@ -118,6 +120,10 @@ vi.mock("@/lib/declutter/api", () => ({
 }));
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
 vi.mock("./DeclutterHandoverViews", () => ({ PaidOrdersSection: () => null }));
+vi.mock("@/lib/declutter/handoverTalk", () => ({
+  openHandoverTalk: async (other: string) => { state.talksOpened.push(other); return "t1"; },
+  fetchMyOpenHandoverTalks: async () => [],
+}));
 vi.mock("@/lib/openExternalUrl", () => ({
   openExternalUrl: async (url: string, onReturn?: () => void) => {
     state.opened.push(url);
@@ -584,6 +590,52 @@ describe("Declutter slice 3 screens", () => {
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+    state.deliveryOn = false;
+  });
+
+  // Owner 2026-10-28: checkout offers only the ways the seller ticked for EVERY item in it (20261028235247;
+  // the server refuses the rest with handover_not_offered).
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]).filter((h) => wayAllowed(ways, h)); |     ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery") ? [...order, "delivery"] : order; |   const ticked: Handover[] = deliveryOpen ? [...order, "delivery"] : order;
+  it("the seller's ticked ways: only those every item allows are offered, and none shared says so", async () => {
+    state.deliveryOn = true;
+    const base = { my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart", checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(),
+      order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+    state.cart = [{ ...base, line_id: "l1", item_id: "i1", item_title: "Lamp", handovers: ["porch", "delivery"] }];
+    const first = show(<CartView />);
+    let radios = await screen.findAllByRole("radio");
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["porch", "delivery"]);
+    first.unmount();
+    // Two items: only the ways both allow.
+    state.cart = [
+      { ...base, line_id: "l1", item_id: "i1", item_title: "Lamp", handovers: ["porch", "delivery"] },
+      { ...base, line_id: "l2", item_id: "i2", item_title: "Rug", handovers: ["delivery"], porch_ok: false },
+    ];
+    const second = show(<CartView />);
+    radios = await screen.findAllByRole("radio");
+    expect(radios.map((r) => (r as HTMLInputElement).value)).toEqual(["delivery"]);
+    second.unmount();
+    // Nothing shared: no fallback to the seller's door (owner 2026-10-28, Q2462 #3730): no way, no Pay, and
+    // "Message the seller" opens the handover chat (?talk=<id>).
+    // @mutate src/lib/declutter/handovers.ts |   return sets.reduce((acc, s) => acc.filter((w) => s.includes(w)));\n} |   const shared = sets.reduce((acc, s) => acc.filter((w) => s.includes(w)));\n  return shared.length > 0 ? shared : null;\n}
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />} |
+    state.cart = [
+      { ...base, line_id: "l1", item_id: "i1", item_title: "Lamp", handovers: ["porch"] },
+      { ...base, line_id: "l2", item_id: "i2", item_title: "Rug", handovers: ["delivery"], porch_ok: false },
+    ];
+    const third = show(<CartView />);
+    fireEvent.click(await screen.findByRole("button", { name: "Message the seller" }));
+    await waitFor(() => expect(state.talksOpened).toEqual(["s2"]));
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(screen.queryByRole("button", { name: /^Pay/ })).toBeDisabled();
+    third.unmount();
+    // Only a way not open to this buyer (a meetup with no spot near) and no porch: the same, never the home.
+    state.talksOpened = [];
+    state.cart = [{ ...base, line_id: "l1", item_id: "i1", item_title: "Lamp", handovers: ["meetup"], porch_ok: false }];
+    show(<CartView />);
+    expect(await screen.findByRole("button", { name: "Message the seller" })).toBeInTheDocument();
+    expect(screen.queryAllByRole("radio")).toHaveLength(0);
+    expect(document.querySelector("[data-home-fallback]")).toBeNull();
     state.deliveryOn = false;
   });
 

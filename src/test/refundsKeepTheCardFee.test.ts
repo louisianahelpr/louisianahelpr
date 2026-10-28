@@ -501,7 +501,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_close_paid_order: "20261027170717_declutter_free_section.sql c507c481a3209303",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
-      declutter_checkout_free: "20261028223036_declutter_notice_links_open_the_right_tab.sql 253226d13b878c2f",
+      // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
+      // added, before any order or page; it still records no refund.
+      declutter_checkout_free: "20261028235247_declutter_handover_choices.sql ffe955f2e18badc6",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale

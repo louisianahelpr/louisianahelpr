@@ -1731,6 +1731,66 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_handover_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string
+          talk_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          talk_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          talk_id?: string
+        }
+        Relationships: []
+      }
+      declutter_handover_talks: {
+        Row: {
+          buyer_id: string
+          buyer_notified_at: string | null
+          closed_at: string | null
+          expires_at: string
+          id: string
+          opened_at: string
+          opened_by: string
+          seller_id: string
+          seller_notified_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          buyer_notified_at?: string | null
+          closed_at?: string | null
+          expires_at: string
+          id?: string
+          opened_at?: string
+          opened_by: string
+          seller_id: string
+          seller_notified_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          buyer_notified_at?: string | null
+          closed_at?: string | null
+          expires_at?: string
+          id?: string
+          opened_at?: string
+          opened_by?: string
+          seller_id?: string
+          seller_notified_at?: string | null
+        }
+        Relationships: []
+      }
       declutter_handovers: {
         Row: {
           set_out_distance_m: number | null
@@ -1980,6 +2040,7 @@ export type Database = {
           current_price_cents: number
           delivery_size: string
           description: string
+          handovers: string[] | null
           drop_pct: number
           ends_at: string | null
           id: string
@@ -2012,6 +2073,7 @@ export type Database = {
           current_price_cents: number
           delivery_size: string
           description?: string
+          handovers?: string[] | null
           drop_pct?: number
           ends_at?: string | null
           id?: string
@@ -2044,6 +2106,7 @@ export type Database = {
           current_price_cents?: number
           delivery_size?: string
           description?: string
+          handovers?: string[] | null
           drop_pct?: number
           ends_at?: string | null
           id?: string
@@ -13542,6 +13605,14 @@ export type Database = {
       }
       client_compat_floor: { Args: never; Returns: number }
       close_moot_backout_notices: { Args: { p_job?: string }; Returns: number }
+      declutter_add_handover: {
+        Args: { p_item_id: string; p_way: string }
+        Returns: string[]
+      }
+      declutter_handover_refused: {
+        Args: { p_handover: string; p_lines: string[] }
+        Returns: boolean
+      }
       declutter_item_link_visible: {
         Args: { p_item_id: string }
         Returns: boolean
@@ -13549,6 +13620,10 @@ export type Database = {
       declutter_item_pickup_windows: {
         Args: { p_item_id: string }
         Returns: { ends: string; starts: string; weekday: number }[]
+      }
+      declutter_open_handover_talk: {
+        Args: { p_other: string }
+        Returns: string
       }
       declutter_order_pickup_windows: {
         Args: { p_order_id: string }
@@ -13560,6 +13635,18 @@ export type Database = {
         }[]
       }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
+      declutter_pair_needs_talk: {
+        Args: { p_buyer: string; p_seller: string }
+        Returns: boolean
+      }
+      declutter_pair_shared_ways: {
+        Args: { p_buyer: string; p_seller: string }
+        Returns: string[]
+      }
+      declutter_pair_talking: {
+        Args: { p_buyer: string; p_seller: string }
+        Returns: boolean
+      }
       declutter_public_photo_path: {
         Args: { p_photo_id: string }
         Returns: string
@@ -14105,6 +14192,7 @@ export type Database = {
           order_id: string | null
           order_status: string | null
           porch_ok: boolean
+          handovers: string[] | null
           premium_cents: number | null
           price_cents: number
           seller_id: string
@@ -14460,6 +14548,10 @@ export type Database = {
       declutter_set_delivery_handoff: { Args: { p_handoff: string; p_order_id: string }; Returns: string }
       declutter_set_delivery_schedule: { Args: { p_days_off: string[]; p_windows: Json }; Returns: Json }
       declutter_set_item_seller_delivery: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_send_handover_message: {
+        Args: { p_body: string; p_talk_id: string }
+        Returns: string
+      }
       declutter_set_bundle_discount: {
         Args: { p_percent: number }
         Returns: number
@@ -14481,6 +14573,10 @@ export type Database = {
       declutter_set_drop_pct: {
         Args: { p_item_id: string; p_pct: number }
         Returns: number
+      }
+      declutter_set_handovers: {
+        Args: { p_handovers: string[]; p_item_id: string }
+        Returns: string[]
       }
       declutter_set_porch_ok: {
         Args: { p_item_id: string; p_porch_ok: boolean }

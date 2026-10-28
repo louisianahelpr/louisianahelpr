@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
- * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
+ * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

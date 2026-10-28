@@ -159,7 +159,10 @@ CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NUL
   condition_stars smallint, delivery_size text, price_cents integer, current_price_cents integer, area_label text,
   area_lat numeric, area_lng numeric,
   -- The share card (Q2426, 20261027194426): declutter_item_link_visible reads the seller-hidden and test flags.
-  seller_hidden boolean NOT NULL DEFAULT false, is_seed boolean NOT NULL DEFAULT false);
+  seller_hidden boolean NOT NULL DEFAULT false, is_seed boolean NOT NULL DEFAULT false,
+  -- The handover chat (Q2462, 20261028235249): declutter_pair_needs_talk reads the ways the seller ticked and porch_ok;
+  -- the class SQL's 'declutter' step offers item I by safe meeting spot only.
+  porch_ok boolean NOT NULL DEFAULT true, handovers text[]);
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid,
@@ -261,6 +264,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "declutter_payout_unsent", "declutter_problem_window_open", "declutter_sale_final",
   // Safe meetup spots (Q2425, 20261027204500).
   "declutter_meetup_spot_near_lines",
+  // Handover chat (Q2462, 20261028235249).
+  "declutter_pair_needs_talk",
   // Shops slice 1 (20261017061155).
   "shop_owner_in_good_standing", "shop_publicly_visible", "shop_visible_to",
   // SH2b public shop page (20261019042744).
@@ -299,7 +304,9 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Board 141: a deny helper the window and final checks call (validated at CREATE).
   "declutter_sale_decided",
   // Q2425: declutter_meetup_spot_near_lines' SQL body calls both (validated at CREATE).
-  "declutter_miles_between", "declutter_meetup_rules"];
+  "declutter_miles_between", "declutter_meetup_rules",
+  // Q2462: declutter_pair_needs_talk's SQL body calls it (validated at CREATE).
+  "declutter_pair_shared_ways"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 const FIRST = ["job_payment_is_funded", "job_payment_is_listed"];
 const ORDER = [...HELPERS, ...FIRST, ...ALLOW.filter((f) => !FIRST.includes(f) && !AFTER_STUBS.includes(f))];

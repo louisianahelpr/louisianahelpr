@@ -115,6 +115,7 @@ export const EXPORT_SECTIONS = [
   "job_guarantee_claims",
   "declutter_meetup_choices", "declutter_order_meetups",
   "declutter_bundle_rules",
+  "declutter_handover_talks", "declutter_handover_talk_messages",
   "shops", "shop_photos", "shop_follows", "shop_items", "shop_item_private", "shop_item_photos",
   "shop_item_attestations", "shop_cottage_confirmations", "shop_cottage_sales",
   "rental_properties", "rental_units", "rental_tenancies", "maintenance_requests", "maintenance_request_photos",

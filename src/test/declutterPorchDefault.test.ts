@@ -9,12 +9,12 @@
  * Behaviour (22 checks, 3x replay, migration skipped = RED, server check
  * planted off = RED, measured 2026-10-16): src/test/pglite/declutterPorchDefault.pglite.mjs.
  *
- * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
+ * @mutate supabase/migrations/20261028235247_declutter_handover_choices.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
- * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN |   IF false THEN
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", | const order: Handover[] = ["pickup_home", "porch",
+ * @mutate supabase/migrations/20261028235249_declutter_handover_talk.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft'\n     AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE) THEN |   IF false THEN
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home", | const order: Handover[] = (["pickup_home", "porch",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -61,9 +61,11 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
     expect(flat(MIG)).toContain("REVOKE ALL ON FUNCTION public.declutter_set_porch_ok(uuid, boolean) FROM PUBLIC, anon;");
   });
 
-  it("the table itself refuses a porch change once the item left draft (lh-authz-rls review nit #3)", () => {
+  // Q2462 (20261028235249): a listed item may GAIN porch pickup (declutter_add_handover, the seller's way out of a
+  // handover chat); turning it off once listed is still refused.
+  it("the table itself refuses turning porch off once the item left draft (lh-authz-rls review nit #3)", () => {
     expect(flat(body("declutter_items_porch_frozen"))).toContain(
-      "IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' THEN RAISE EXCEPTION 'item_not_editable'");
+      "IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft' AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE) THEN RAISE EXCEPTION 'item_not_editable'");
     expect(flat(MIG)).toContain("BEFORE UPDATE OF porch_ok ON public.declutter_items FOR EACH ROW EXECUTE FUNCTION public.declutter_items_porch_frozen();");
   });
 
@@ -93,6 +95,7 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
   it("the cart reports porch per line, and the app offers porch first only when every line allows it", () => {
     expect(flat(body("declutter_my_cart"))).toContain("i.porch_ok");
     // Seller delivery (20261027153244) keeps porch first and adds its choice after pickup at the home.
-    expect(CART_UI).toContain('const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home",');
+    // Owner 2026-10-28: filtered to the ways the seller ticked for every item (wayAllowed).
+    expect(CART_UI).toContain('const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home",');
   });
 });

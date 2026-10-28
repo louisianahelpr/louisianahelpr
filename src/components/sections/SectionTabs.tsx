@@ -63,7 +63,8 @@ export function SectionTabs<T extends string>({
   /** How many results Browse lists, shown quietly beside its label (owner 2026-10-28: "move the 1 next to browse"). */
   browseCount?: number;
 }) {
-  const options = [{ value: BROWSE as string, label: "Browse", quiet: browseCount }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
+  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
+  options[0].quiet = browseCount;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;

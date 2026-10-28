@@ -492,7 +492,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
      * reviewed and re-pinned (lh-money-escrow review of ecf5c93a0, must-fix 1, 3, 4; note 1).
      */
     functions: {
-      declutter_admin_decide_delivery_damage: "20261017055505_declutter_helpr_delivery.sql fe11a9a3460b2a93",
+      // A2-14 (20261028223738): only the "Louisiana Helpr decided" notices added; the refund it records is unchanged.
+      declutter_admin_decide_delivery_damage: "20261028223738_declutter_problem_decision_notices.sql 9bef2e6cfa997eda",
       declutter_card_fee_estimate: "20261014224914_declutter_slice3b_payments.sql c3eec727dc09fe3e",
       // Q2419 (20261027170717), reviewed: a FREE order (paid_with 'free', $0, no payment) closes with the strike rules
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.

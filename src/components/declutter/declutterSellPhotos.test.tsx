@@ -136,7 +136,7 @@ describe("photo-first selling", () => {
     expect(await screen.findByRole("heading", { name: "What's your price?" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
     // Owner 2026-10-28: drops are the seller's own yes/no, OFF until they turn them on, so no lowest price is asked.
-    // @mutate src/components/declutter/DeclutterSellView.tsx |   drops: false,\n  dropPct: DEFAULT_DROP_PCT, |   drops: true,\n  dropPct: DEFAULT_DROP_PCT,
+    // @mutate src/components/declutter/sellForm.ts |   drops: false,\n  dropPct: DEFAULT_DROP_PCT, |   drops: true,\n  dropPct: DEFAULT_DROP_PCT,
     expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "false");
     expect(screen.queryByLabelText("Lowest you'll take")).toBeNull();
     expect(document.querySelector("[data-drop-schedule]")).toBeNull();
@@ -176,7 +176,7 @@ describe("photo-first selling", () => {
     fireEvent.change(await screen.findByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
     fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
-    // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!f.drops) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 5 };
+    // @mutate src/components/declutter/sellForm.ts |   if (!f.drops) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 5 };
     await waitFor(() => expect(drops).toEqual([[NEW_ID, 0]]));
     expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 })]);
     expect(await screen.findByText("Off: it stays at your price")).toBeInTheDocument();

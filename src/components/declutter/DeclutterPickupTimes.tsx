@@ -16,7 +16,7 @@ import type { PickupWindow } from "@/lib/declutter/api";
 import { WEEKDAYS } from "./declutterUi";
 
 /** declutter_set_pickup_windows takes at most this many windows. */
-export const MAX_WINDOWS = 21;
+const MAX_WINDOWS = 21;
 const DEFAULT_RANGE = { starts: "09:00", ends: "12:00" };
 const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 

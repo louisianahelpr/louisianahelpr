@@ -621,10 +621,18 @@ export async function requestAiCheck(itemId: string): Promise<{ checked: boolean
   return (await invokeAi(itemId, "check")) as { checked: boolean; flagged: boolean };
 }
 
-/** Admin queue (row 33, B8). */
+/**
+ * Admin queue (row 33, B8). Test accounts' listings are left out (20261028022715)
+ * unless `includeTest`: the card's "Show test listings" switch, so an admin can
+ * approve a test listing in the UI. `p_include_test` is the server half
+ * (builder 1); the switch is off by default, and off sends exactly the call
+ * this always sent.
+ */
 // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
-export async function fetchPendingForAdmin() {
-  const res = await supabase.rpc("declutter_admin_pending_items");
+export async function fetchPendingForAdmin(includeTest = false) {
+  const res = includeTest
+    ? await supabase.rpc("declutter_admin_pending_items", { p_include_test: true } as never)
+    : await supabase.rpc("declutter_admin_pending_items");
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_pending_items", e) ?? null) ?? [];
 }

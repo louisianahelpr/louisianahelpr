@@ -56,7 +56,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/settings/AdminUserSearchField.tsx` | input×1 | search |  | Clear search |
 | `src/components/admin/settings/CategorySuggestionsCard.tsx` | input×1 | text | 300 |  |
 | `src/components/admin/settings/DeclutterProblemsCard.tsx` | input×2, select×1 | checkbox, text | 1000 |  |
-| `src/components/admin/settings/DeclutterReviewCard.tsx` | input×1 | text | 500 |  |
+| `src/components/admin/settings/DeclutterReviewCard.tsx` | input×1, checkbox/switch/radio×1 | text | 500 | dcl-show-test |
 | `src/components/admin/settings/DonationPartnersCard.tsx` | input×7 | text, checkbox | 60, 80, 200, 300 | East Baton Rouge · Goodwill Mid-City · 30.4515 · -91.1871 |
 | `src/components/admin/settings/HomesListingsCard.tsx` | input×2 | text | 100 | homes-open-listing · Reason (the owner sees it) · homes-taken-down · Why it is lifted (kept in the audit log) · Link code, headline or ZIP |
 | `src/components/admin/settings/MeetupSpotsCard.tsx` | input×7, select×1 | text, checkbox | 60, 80, 200, 300 | East Baton Rouge · BRPD Safe Exchange Zone · 30.4515 · -91.1871 · Lit lot, cameras, open 24 hours |

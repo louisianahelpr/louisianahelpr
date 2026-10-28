@@ -51,9 +51,9 @@
 // @mutate src/pages/profile/Profile.tsx | <div aria-busy="true" className="container mx-auto | <div className="container mx-auto
 // @mutate src/components/declutter/DeclutterHomeView.tsx | useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled) | useArrivalGate(true, true)
 // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (!tabsReady) return <DeclutterHomeSkeleton />;\n |
-// @mutate src/components/declutter/DeclutterHomeView.tsx |   if (listLoading) return <DeclutterBrowseBones />;\n |
-// @mutate src/components/declutter/DeclutterHomeView.tsx |  \|\| origin.status === "pending"; | ;
-// @mutate src/components/declutter/DeclutterHomeView.tsx | drops.isLoading \|\| watching.isLoading \|\| origin | drops.isLoading \|\| origin
+// @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (listLoading) { |   } else if (false) {
+// @mutate src/components/declutter/DeclutterBrowseView.tsx |  \|\| origin.status === "pending"; | ;
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | drops.isLoading \|\| watching.isLoading \|\| origin | drops.isLoading \|\| origin
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { readFileSync, statSync } from "node:fs";
@@ -238,11 +238,12 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
       expect(gate![1]).toContain(`${v![1]}.settled`);
     }
     expect(src).toMatch(/\n {2}if \(!tabsReady\) return <DeclutterHomeSkeleton \/>;/);
-    // Browse: one gate for where-you-are AND the items; no half-painted list.
-    // The cards' hearts (the watchlist read, 2026-10-19) join the same gate.
-    expect(src).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| drops\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
-    expect(src).toMatch(/\n {2}if \(listLoading\) return <DeclutterBrowseBones \/>;/);
-    expect(src).not.toContain("Loading items…");
+    // Browse (its own file since it lays out like Jobs' Browse, owner 2026-10-28): one gate for where-you-are AND
+    // the items; no half-painted list. The cards' hearts (the watchlist read, 2026-10-19) join the same gate.
+    const browse = read("components/declutter/DeclutterBrowseView.tsx");
+    expect(browse).toMatch(/const listLoading = items\.isLoading \|\| photos\.isLoading \|\| drops\.isLoading \|\| watching\.isLoading \|\| origin\.status === "pending";/);
+    expect(browse).toMatch(/\n {2}\} else if \(listLoading\) \{\n[^\n]*\n {4}body = <DeclutterBrowseBones map=\{desktop && mapVisible\} full=\{desktop && !mapVisible\} \/>;/);
+    expect(browse).not.toContain("Loading items…");
   });
 
   it("the security tab waits for its sessions AND two-step reads, then lands once", () => {

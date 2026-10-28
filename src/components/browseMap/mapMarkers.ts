@@ -81,7 +81,8 @@ function wireButtonBehaviour(
  * it ourselves: a bark circle with a cream count, so "7 jobs near New Orleans"
  * reads instantly and tapping (or Entering) it zooms in.
  */
-export function clusterElement(count: number, onActivate?: () => void): HTMLElement {
+/** `noun`: what a pin stands for, [one, many] (Declutter's map says "items"). */
+export function clusterElement(count: number, onActivate?: () => void, noun: readonly [string, string] = ["job", "jobs"]): HTMLElement {
   const size = count >= 10 ? 44 : count >= 5 ? 40 : 36;
   const bark = resolveToken("--bark", "#5E6544");
   const parchment = resolveToken("--parchment", "#FAF8F5");
@@ -108,7 +109,7 @@ export function clusterElement(count: number, onActivate?: () => void): HTMLElem
   // reader nothing about what it is or what activating it does.
   wireButtonBehaviour(
     el,
-    `${count} ${count === 1 ? "job" : "jobs"} in this area — zoom in to see them`,
+    `${count} ${count === 1 ? noun[0] : noun[1]} in this area — zoom in to see them`,
     // A cluster only moves the camera, so pointer and keyboard do the same thing.
     () => onActivate?.(),
   );
@@ -123,6 +124,8 @@ export interface PinOptions {
   title?: string;
   /** Masked "City, State" (or parish), for the accessible name only. */
   where?: string | null;
+  /** The whole accessible name, for a pin that is not a job (Declutter's items). */
+  label?: string;
   /** Called on tap AND on Enter/Space; `fromKeyboard` distinguishes the two. */
   onActivate?: (fromKeyboard: boolean) => void;
 }
@@ -133,6 +136,7 @@ export function pinElement({
   jobId,
   title,
   where,
+  label,
   onActivate,
 }: PinOptions): HTMLElement {
   // One olive for every category (spec v2, audit #17), read from the THEME token so a dark map gets the
@@ -177,7 +181,7 @@ export function pinElement({
       ${head}
     </svg>
   `;
-  const name = [
+  const name = label ?? [
     title || "Open job",
     jobCategoryLabel(category),
     where || null,

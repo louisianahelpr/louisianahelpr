@@ -112,7 +112,7 @@ describe("design tweaks (owner 2026-10-18)", () => {
 
   it("owner 10-19/10-20: Declutter opens on Any distance, the dock's ONE + is the center Create (it opens the sheet, never a post-a-job shortcut), and each section's add action is the shared pill", () => {
     // Any distance unless the URL (a saved search, Q2275) names one.
-    expect(code("src/components/declutter/DeclutterHomeView.tsx")).toMatch(/useState<number \| null>\(start\.maxMiles\)/);
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toMatch(/useState<number \| null>\(start\.maxMiles\)/);
     expect(code("src/lib/declutter/browseFilters.ts")).toMatch(/maxMiles: positive\(p\.get\("mi"\)\),/);
     const nav = code("src/components/MobileNav.tsx");
     // Superseded 2026-10-20 (owner-approved mock-up: center + in the bottom bar): exactly one +, the Create button.

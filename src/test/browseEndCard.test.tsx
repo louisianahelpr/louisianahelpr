@@ -6,7 +6,7 @@
  *
  * @mutate src/components/sections/BrowseEndCard.tsx |         title={onWiden ? "That's everything nearby." : "That's everything for now."} |         title="That's everything nearby."
  * @mutate src/components/shops/ShopsHomeView.tsx | && <BrowseEndCard />} | && null}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |           onWiden={from && maxMiles !== null ? | onWiden={from ?
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |           onWiden={from && maxMiles !== null ? | onWiden={from ?
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -38,7 +38,7 @@ describe("BrowseEndCard", () => {
 describe("each Browse list renders it", () => {
   const FILES: [string, RegExp][] = [
     ["src/components/dashboard/BrowseTasksFeed.tsx", /<BrowseEndCard[\s\S]*?onAlerts=/],
-    ["src/components/declutter/DeclutterHomeView.tsx", /<BrowseEndCard[\s\S]*?onWiden=\{from && maxMiles !== null \?/],
+    ["src/components/declutter/DeclutterBrowseView.tsx", /<BrowseEndCard[\s\S]*?onWiden=\{from && maxMiles !== null \?/],
     ["src/components/shops/ShopsHomeView.tsx", /<BrowseEndCard \/>/],
     ["src/components/rentals/listings/RentBrowse.tsx", /<BrowseEndCard \/>/],
   ];

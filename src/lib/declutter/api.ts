@@ -146,6 +146,29 @@ export async function fetchLiveItems(): Promise<DeclutterItem[]> {
   return (rows ?? []) as DeclutterItem[];
 }
 
+/** A Browse map pin: the item's ROUGH AREA (owner 2026-10-28), never its pickup point. */
+export interface DeclutterMapPin {
+  lat: number;
+  lng: number;
+}
+
+/**
+ * The Browse map's pins, one per listed item (declutter_map_pins, 20261028151144): the item's public area point
+ * (the 2-decimal cell) moved up to 300 m ON THE SERVER by a salted, stable offset; the server never even reads the
+ * pickup point for it, so the seller's house never reaches the browser. The map
+ * plots these and nothing else (never area_lat/area_lng). Before the RPC is deployed: no pins (an empty map), never
+ * a fallback to another point.
+ */
+export async function fetchMapPins(): Promise<Map<string, DeclutterMapPin>> {
+  const res = await supabase.rpc("declutter_map_pins");
+  if (res.error && isMissingRpcNamed(res.error, "declutter_map_pins")) {
+    console.warn("[declutter] declutter_map_pins not deployed yet; the map shows no pins");
+    return new Map();
+  }
+  const rows = rpcData(res, (e) => rpcErrorMessage("declutter_map_pins", e)) ?? [];
+  return new Map(rows.map((r) => [r.item_id, { lat: Number(r.pin_lat), lng: Number(r.pin_lng) }]));
+}
+
 /**
  * The item page's "More from this seller" row: the seller's other live (and
  * reserved) listings, newest first. The same table read as Browse, so RLS and

@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 994,
-    "files": 260,
+    "files": 261,
     "rendering": 844,
     "suppressedByPolicy": 150,
     "byKind": {
@@ -4253,6 +4253,16 @@
       "renders": true
     },
     {
+      "file": "src/components/declutter/DeclutterBrowseView.tsx",
+      "line": 129,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/declutter/DeclutterDeliveryViews.tsx",
       "line": 121,
       "kind": "toast.success",
@@ -4593,17 +4603,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 144,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 327,
+      "line": 148,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4623,7 +4623,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 330,
+      "line": 151,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4633,7 +4633,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 335,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4643,7 +4643,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 343,
+      "line": 164,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4653,7 +4653,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 346,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10236,7 +10236,7 @@
     },
     {
       "file": "src/pages/home/Dashboard.tsx",
-      "line": 621,
+      "line": 596,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

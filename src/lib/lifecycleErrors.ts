@@ -878,6 +878,12 @@ export const RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
   },
+  // The Browse map's pins (20261028151144): a rough area, never the seller's house.
+  declutter_map_pins: {
+    declutter_pin_secret_missing: "We couldn't load the map. Try again in a moment.",
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_create_item: {
     account_restricted: DC.account_restricted,
     area_looks_like_address: DC.area_looks_like_address,

@@ -1,13 +1,17 @@
 /**
- * Browse's ONE compact row (owner, 2026-10-19): a slim search field with the
- * filter button inside its right edge (the shared SectionSearchRow every Browse
- * wears). The filter button opens the slide-up sheet holding the ONE filter
- * panel (DeclutterFilterPanel; board 39 shows the same panel as a column on
- * desktop), with "Clear all" and a live "Show N items" footer. Any distance is
- * the default (owner, 2026-10-19).
+ * Declutter Browse's search and filters, laid out as Jobs' Browse lays out its own (owner 2026-10-28: "declutter
+ * should have the same search filter and map view as jobs"):
+ *   - phone: ONE compact row under the tabs, the shared SectionSearchRow ("Search items" with the filter button
+ *     inside its right edge), as Jobs' "Search jobs" row;
+ *   - desktop website: no row of its own. The search (opens in place, leftward), the Filters square and the map
+ *     toggle ride at the END of the tabs row (DeclutterBrowseView's `end`), beside Browse's count.
+ * Either way the filter button opens the ONE shared FilterSheet (the sheet on a phone, the centred panel on
+ * desktop), holding Declutter's sections (DeclutterFilterPanel) with "Clear all" and a live "Show N items" footer;
+ * on a phone it also holds Jobs' "View" (List / Map) choice. Any distance is the default (owner, 2026-10-19).
  */
-import { useState, type ReactNode } from "react";
-import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
+import type { RefObject } from "react";
+import { FilterSheet, type FilterSheetSection } from "@/components/dashboard/FilterSheet";
+import { BrowseViewToggle } from "@/components/dashboard/browseTasksToolbar/BrowseViewToggle";
 import { SectionSearchRow } from "@/components/sections/SectionSearchRow";
 import type { DeclutterOrigin } from "./useDeclutterOrigin";
 
@@ -20,52 +24,71 @@ export interface OriginAsk {
   askDevice: () => void;
 }
 
+/** The phone's one search row under the tabs. */
 export function DeclutterBrowseBar({
   query,
   onQuery,
   filterCount,
-  panel,
-  shown,
-  onClearAll,
-  columnFilters = false,
+  filtersOpen,
+  onFilters,
+  filtersButtonRef,
 }: {
   query: string;
   onQuery: (q: string) => void;
   filterCount: number;
-  panel: ReactNode;
+  filtersOpen: boolean;
+  onFilters: () => void;
+  filtersButtonRef?: RefObject<HTMLButtonElement>;
+}) {
+  return (
+    <SectionSearchRow
+      testId="declutter-browse-bar"
+      value={query}
+      onChange={onQuery}
+      placeholder="Search items"
+      filterCount={filterCount}
+      filtersOpen={filtersOpen}
+      onFilters={onFilters}
+      filtersButtonRef={filtersButtonRef}
+      filtersLabel={filterCount > 0 ? `Filters, ${filterCount} on` : "Filters"}
+    />
+  );
+}
+
+/** The shared filter sheet with Declutter's sections; `view` adds Jobs' List / Map choice (phone only). */
+export function DeclutterFilterSheet({
+  open,
+  onOpenChange,
+  sections,
+  filterCount,
+  shown,
+  onClearAll,
+  anchorRef,
+  view,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  sections: FilterSheetSection[];
+  filterCount: number;
   shown: number;
   onClearAll: () => void;
-  /**
-   * The filter panel is already open beside the list (desktop column, board 39):
-   * no filter button and no sheet, so the filters live in ONE place (audit #33).
-   */
-  columnFilters?: boolean;
+  anchorRef?: RefObject<HTMLElement | null>;
+  view?: { value: "list" | "map"; set: (v: "list" | "map") => void };
 }) {
-  const [open, setOpen] = useState(false);
+  const all: FilterSheetSection[] = view
+    ? [{ key: "view", title: "View", content: <BrowseViewToggle view={view.value} setView={view.set} onSelect={() => onOpenChange(false)} /> }, ...sections]
+    : sections;
   return (
-    <>
-      <SectionSearchRow
-        testId="declutter-browse-bar"
-        value={query}
-        onChange={onQuery}
-        placeholder="Search items"
-        filterCount={filterCount}
-        filtersOpen={open}
-        onFilters={columnFilters ? undefined : () => setOpen(true)}
-        filtersLabel={filterCount > 0 ? `Filters, ${filterCount} on` : "Filters"}
-      />
-      <Sheet open={open && !columnFilters} onOpenChange={setOpen}>
-        <SheetContent side="bottom" floor className="max-h-[85dvh] overflow-y-auto overscroll-contain bg-premium-page">
-          <SheetHero title="Filters" />
-          <div className="mt-2">{panel}</div>
-          <SheetFooter className="sticky bottom-0 bg-premium-page pt-4 pb-4">
-            <SheetSecondaryAction onClick={onClearAll}>Clear all</SheetSecondaryAction>
-            <SheetPrimaryAction onClick={() => setOpen(false)}>
-              {shown === 1 ? "Show 1 item" : `Show ${shown} items`}
-            </SheetPrimaryAction>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
-    </>
+    <FilterSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      anchorRef={anchorRef}
+      title="Filters"
+      sections={all}
+      activeFilterCount={filterCount}
+      onClearAll={onClearAll}
+      resultCount={shown}
+      resultNoun={["item", "items"]}
+    />
   );
 }

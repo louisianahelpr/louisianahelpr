@@ -14,7 +14,7 @@
  *
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
+ * @mutate supabase/migrations/20261028204431_declutter_paid_notice_next_step.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
@@ -39,12 +39,14 @@ describe("the Declutter Free section", () => {
     // declutter_start_checkout: restated again by Q2425 (20261027204500) with the free_order rule kept (asserted below).
     // declutter_take_item: restated by the notice copy (20261028171944) with the free claim kept (asserted below).
     expect(newestFunction("declutter_take_item").file).toContain("20261028171944_declutter_notice_copy.sql");
-    const names = ["declutter_claim_free", "declutter_checkout_free", "declutter_free_rules",
+    // declutter_checkout_free: restated by #26 (20261028204431) with only its notice line changed (asserted below).
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261028204431_declutter_paid_notice_next_step.sql");
+    const names = ["declutter_claim_free", "declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order", "declutter_complete_handover",
       "declutter_create_item", "declutter_update_draft", "declutter_orders_fee_rule_f1", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(10);
+    expect(names.length).toBeGreaterThan(9);
   });
 
   it("listing a free item never charges the one-time setup fee; a paid listing still does (owner 2026-10-27)", () => {

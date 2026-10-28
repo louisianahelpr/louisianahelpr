@@ -27,6 +27,7 @@ const state = {
   feature: true,
   underAge: false,
   payoutBlock: null as string | null,
+  sellerCart: [] as unknown[],
   mine: [] as unknown[],
   item: null as unknown,
   photos: [] as unknown[],
@@ -69,6 +70,8 @@ vi.mock("@/hooks/useAwardBlockReason", () => ({ useAwardBlockReason: () => state
 const setupAllowed = { value: false };
 vi.mock("@/hooks/usePayoutSetupHireAllowed", () => ({ usePayoutSetupHireAllowed: () => setupAllowed.value }));
 vi.mock("@/hooks/useStripeConnectStatus", () => ({ useStripeConnectStatus: () => ({ payoutPrompt: { kind: "setup" }, refetchStatus: () => {} }) }));
+// The Declutter payouts read (the payout prompt counts the money that waits): none sent yet.
+vi.mock("@/lib/declutter/handover", async (orig) => ({ ...(await orig<object>()), fetchMyPayouts: async () => [] }));
 vi.mock("@/hooks/useUserLocation", () => ({
   useUserLocation: () => ({ status: "idle" }),
   getCachedUserLocation: () => null,
@@ -122,7 +125,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyCard: async () => state.card,
   fetchMyActiveStrikes: async () => 0,
   fetchMyOffers: async () => [],
-  fetchMyCart: async () => [],
+  fetchMyCart: async () => state.sellerCart,
   makeOffer: async () => "o",
   respondOffer: async () => "declined",
   buyNow: async () => "l",
@@ -187,6 +190,7 @@ describe("Declutter screens", () => {
     state.feature = true;
     state.underAge = false;
     state.payoutBlock = null;
+    state.sellerCart = [];
     state.mine = [];
     state.item = null;
     state.photos = [];
@@ -247,17 +251,20 @@ describe("Declutter screens", () => {
     at("/declutter/sell", <DeclutterSellPage />);
     expect(screen.queryByText("Set up payouts before you list.")).toBeNull();
     // List first, set up at first sale: the prompt waits for the server to say money is owed.
-    expect(screen.queryByText("Set up payouts to get paid.")).toBeNull();
+    expect(screen.queryByText(/^Set up payouts to get/)).toBeNull();
     // The form is usable: step 1's photo picker is there.
     expect(document.querySelector("[data-add-photos]")).not.toBeNull();
   });
 
-  it("a seller owed money (a paid sale) whose payouts are not ready is prompted to set up, with the link", () => {
+  it("a seller owed money (a paid sale) whose payouts are not ready is prompted to set up, with the link", async () => {
     state.payoutBlock = "payouts_not_ready";
     setupAllowed.value = true;
+    // Owner 2026-10-28: only Declutter money that really waits (a paid sale) brings the prompt, with its amount.
+    state.sellerCart = [{ line_id: "l1", item_id: "i1", item_title: "Oak rocking chair", my_side: "seller", seller_id: "u1", price_cents: 3200,
+      status: "paid", checkout_by: "2026-10-28", order_id: "o1", order_status: "paid", handover: "porch", premium_cents: null, total_cents: null, porch_ok: true }];
     try {
       at("/declutter/sell", <DeclutterSellPage />);
-      expect(screen.getByText("Set up payouts to get paid.")).toBeInTheDocument();
+      expect(await screen.findByText("Set up payouts to get your $32.")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "Set up payouts" })).toHaveAttribute("href", "/profile?tab=payment");
     } finally {
       setupAllowed.value = false;

@@ -38,6 +38,7 @@ import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { TakenDownSection } from "./DeclutterTakenDown";
+import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 
 const BUYING = ["cart", "offers", "purchases"] as const;
 type BuyingGroup = (typeof BUYING)[number];
@@ -98,6 +99,8 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
       {show("offers") && <OffersSection side="seller" />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting />}
+      {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
+      {show("sold") && <SellerPayoutPrompt />}
       {show("sold") && <PaidOrders side="seller" />}
       {show("taken") && <TakenDownSection items={takenDown} />}
     </div>

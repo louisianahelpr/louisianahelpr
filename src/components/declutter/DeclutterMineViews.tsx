@@ -41,6 +41,7 @@ import { ORDER_BUCKETS } from "./OrderSteps";
 import { usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { TakenDownSection } from "./DeclutterTakenDown";
+import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 
@@ -106,6 +107,9 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
   // marked sold elsewhere (no Relist: it was sold).
   const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");
+  // A2-20: and every sale that ended without a handover (no-show, ran out, called off) from the last 30 days.
+  const ended = useEndedSales();
+  const history = takenDown.length + ended.length;
   const show = (g: SellingGroup) => only === null || only === g;
   return (
     <div className="space-y-6">
@@ -120,7 +124,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
           { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
-          ...(takenDown.length > 0 ? [{ key: "taken" as const, label: "History", count: takenDown.length }] : []),
+          ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
       {show("offers") && <OffersSection side="seller" />}
@@ -129,7 +133,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
       {/* SE-3 + owner 2026-10-28: the payout prompt where the money is, above the sold sales (only while Declutter money waits). */}
       {show("sold") && <SellerPayoutPrompt />}
       {show("sold") && <PaidOrders side="seller" />}
-      {show("taken") && <TakenDownSection items={takenDown} />}
+      {show("taken") && <TakenDownSection items={takenDown} ended={ended} />}
     </div>
   );
 }

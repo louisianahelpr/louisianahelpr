@@ -20,7 +20,7 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     ? "flex min-h-14 w-full items-center | ? "rounded-full flex min-h-14 w-full items-center
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
- * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} />} |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} ended={ended} />} |
  * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
@@ -323,6 +323,72 @@ describe("Selling tab: Taken down, with Relist", () => {
     const listings = screen.getByRole("region", { name: "Your listings" });
     expect(within(listings).queryByText("Brass lamp")).toBeNull();
     expect(within(listings).getByText("Oak rocking chair")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Audit 2, A2-20 (idea 3: a "Cancelled / Sold elsewhere / Deleted" history in Selling): a sale that ended without a
+ * handover left the seller no record (the buyer keeps one on Buying). Every seller line that ended ('missed',
+ * 'cancelled_by_seller'; with or without the order closed as 'refunded') is a row in Selling history saying what
+ * happened, and counts in the History chip; a buyer's own ended line never shows on Selling.
+ * @mutate src/components/declutter/DeclutterEndedSales.tsx | l.my_side === "seller" && (l.status === "missed" \|\| l.status === "cancelled_by_seller") | l.my_side === "seller" && l.status === "missed"
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |   const history = takenDown.length + ended.length; |   const history = takenDown.length;
+ * @mutate src/components/declutter/DeclutterTakenDown.tsx |         <EndedSaleRows lines={ended} />\n |
+ * @mutate src/components/declutter/DeclutterTakenDown.tsx |   if (items.length === 0 && ended.length === 0) return null; |   if (items.length === 0) return null;
+ * @mutate src/components/declutter/DeclutterEndedSales.tsx |   if (l.order_status === "refunded") { |   if (false) {
+ */
+describe("Selling history: sales that ended without a handover (A2-20)", () => {
+  beforeEach(() => {
+    state.offers = [];
+  });
+  const seller = (over: Record<string, unknown>) => ({
+    line_id: `l-${String(over.item_title)}`, item_id: "i1", my_side: "seller", seller_id: "u1", price_cents: 3200, checkout_by: "2026-10-27T12:00:00Z",
+    order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true, ...over,
+  });
+
+  it("each kind of ended sale is a row with its own words; the chip counts them; a buyer's ended line is not here", async () => {
+    state.mine = [ITEM];
+    state.cart = [
+      seller({ item_title: "Ran out", status: "missed" }),
+      seller({ item_title: "Called off", status: "cancelled_by_seller" }),
+      seller({ item_title: "No-show", status: "missed", order_id: "o1", order_status: "refunded" }),
+      seller({ item_title: "Seller cancelled", status: "cancelled_by_seller", order_id: "o2", order_status: "refunded" }),
+      seller({ item_title: "Free no-show", status: "missed", order_id: "o3", order_status: "refunded", price_cents: 0 }),
+      seller({ item_title: "Free cancelled", status: "cancelled_by_seller", order_id: "o4", order_status: "refunded", price_cents: 0 }),
+      seller({ item_title: "Free ran out", status: "missed", price_cents: 0 }),
+      { ...seller({ item_title: "Bought by me", status: "missed" }), my_side: "buyer" },
+    ];
+    const WORDS: Record<string, string> = {
+      "Ran out": "The buyer didn't check out in 48 hours. Nothing was charged.",
+      "Called off": "You called off the sale. Nothing was charged.",
+      "No-show": "Cancelled. The buyer missed the pickup.",
+      "Seller cancelled": "You cancelled this sale after the buyer paid. They were refunded.",
+      "Free no-show": "Cancelled. The buyer missed the pickup.",
+      "Free cancelled": "You cancelled this free pickup.",
+      "Free ran out": "The buyer didn't pick a pickup in 48 hours.",
+    };
+    const { container } = at("/declutter?tab=selling");
+    const group = await screen.findByRole("region", { name: "Selling history" });
+    const rows = Array.from(group.querySelectorAll("[data-ended-sale-row]"));
+    expect(rows.length).toBe(Object.keys(WORDS).length);
+    expect(rows.length).toBeGreaterThan(6);
+    for (const [title, words] of Object.entries(WORDS)) {
+      const row = rows.find((r) => r.textContent?.includes(title))!;
+      expect(row, title).toBeTruthy();
+      expect(row.textContent, title).toContain(words);
+      expect(row.textContent, title).not.toMatch(/fee/i);
+    }
+    expect(group.textContent).not.toContain("Bought by me");
+    expect((container.querySelector('[data-status-box="taken"]') as HTMLElement).textContent).toContain(String(Object.keys(WORDS).length));
+  });
+
+  it("only an ended sale (nothing taken down): the History chip and section still show", async () => {
+    state.mine = [ITEM];
+    state.cart = [seller({ item_title: "Ran out", status: "missed" })];
+    const { container } = at("/declutter?tab=selling");
+    const group = await screen.findByRole("region", { name: "Selling history" });
+    expect(within(group).getByText("Ran out")).toBeInTheDocument();
+    expect(container.querySelector('[data-status-box="taken"]')).not.toBeNull();
   });
 });
 

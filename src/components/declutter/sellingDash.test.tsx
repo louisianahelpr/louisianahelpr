@@ -26,8 +26,12 @@
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={salePrices.data?.get(item.id)} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   return paid ? `${base} · ${paid}` : base; |   return base;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
+ * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;
+ * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -45,9 +49,14 @@ const state = {
   mine: [] as unknown[],
   offers: [] as unknown[],
   cart: [] as unknown[],
-  salePrices: new Map<string, number>(),
+  sales: new Map<string, { cents: number; orderId: string | null }>(),
+  payouts: [] as unknown[],
 };
 
+vi.mock("@/lib/declutter/handover", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/handover")>()),
+  fetchMyPayouts: async () => state.payouts,
+}));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
   fetchBundleRule: async () => null,
@@ -110,7 +119,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
-  fetchMySalePrices: async () => state.salePrices,
+  fetchMySales: async () => state.sales,
   fetchPhotos: async () => [{ id: "p1", item_id: "i1", storage_path: "u1/i1/a.jpg", position: 0 }],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -388,7 +397,7 @@ describe("Selling tab: a claimed free item is never 'Sold'", () => {
 
 /**
  * Deep audit SE-5 (2026-10-28, shot 49b): "Blue enamel mug · Handed over · $40" on a mug that sold for $32. A sold
- * listing's row shows what it sold for (its paid cart line, fetchMySalePrices), and no figure at all while that is
+ * listing's row shows what it sold for (its paid cart line, fetchMySales), and no figure at all while that is
  * unknown, never the list price in its place. An unsold listing keeps its current price.
  */
 describe("Selling tab: a sold listing shows what it sold for", () => {
@@ -408,7 +417,7 @@ describe("Selling tab: a sold listing shows what it sold for", () => {
       { ...ITEM, id: "s2", status: "sold", title: "Oak desk", price_cents: 9000, current_price_cents: 9000 },
       { ...ITEM, id: "s3", status: "live", title: "Floor lamp", price_cents: 2500, current_price_cents: 2000 },
     ];
-    state.salePrices = new Map([["s1", 3200], ["s2", 7500]]);
+    state.sales = new Map([["s1", { cents: 3200, orderId: "o1" }], ["s2", { cents: 7500, orderId: "o2" }]]);
     const { container } = at("/declutter?tab=selling");
     await waitFor(() => expect(price(container, "Blue enamel mug")).toBe("$32"));
     expect(price(container, "Oak desk")).toBe("$75");
@@ -417,11 +426,69 @@ describe("Selling tab: a sold listing shows what it sold for", () => {
 
   it("a sold listing whose sale price is unknown shows no figure, never its list price", async () => {
     state.mine = [{ ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 }];
-    state.salePrices = new Map();
+    state.sales = new Map();
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Blue enamel mug");
     await new Promise((r) => setTimeout(r, 50));
     expect(price(container, "Blue enamel mug")).toBeNull();
     expect(container.querySelector("[data-selling-list]")!.textContent).not.toContain("$40");
+  });
+});
+
+/**
+ * Deep audit #60 (2026-10-28, idea 6: "Show the sold price and payout status in Selling"): a sold listing's ONE status
+ * line also says where its payout stands, from the seller's own payout row matched by the sale's order
+ * (fetchMySales -> order id -> fetchMyPayouts), never a fee figure. A free (claimed) item has no payout words.
+ */
+describe("Selling tab: a sold listing says where its payout stands", () => {
+  beforeEach(() => {
+    state.offers = [];
+    state.cart = [];
+  });
+
+  const statusOf = (container: HTMLElement, title: string) => {
+    const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent?.includes(title))!;
+    return row.querySelector("[data-listing-status]")!.textContent;
+  };
+
+  it("paid out (dated), payout pending, sold before the handover, a handed-over sale with no payout row yet, a free claim", async () => {
+    const PAID_AT = "2026-10-29T15:00:00Z";
+    state.mine = [
+      { ...ITEM, id: "a1", status: "completed", title: "Blue enamel mug" },
+      { ...ITEM, id: "a2", status: "completed", title: "Oak desk" },
+      { ...ITEM, id: "a3", status: "sold", title: "Floor lamp" },
+      { ...ITEM, id: "a4", status: "completed", title: "Rocking chair" },
+      { ...ITEM, id: "a5", status: "sold", title: "Wicker basket", current_price_cents: 0 },
+    ];
+    state.sales = new Map([
+      ["a1", { cents: 3200, orderId: "o1" }], ["a2", { cents: 7500, orderId: "o2" }], ["a3", { cents: 2000, orderId: "o3" }],
+      ["a4", { cents: 5000, orderId: "o4" }], ["a5", { cents: 0, orderId: "o5" }],
+    ]);
+    state.payouts = [
+      { order_id: "o2", items_cents: 7500, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 7500, status: "pending", executed_at: null },
+      { order_id: "o1", items_cents: 3200, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, amount_cents: 3200, status: "succeeded", executed_at: PAID_AT },
+    ];
+    const day = new Date(PAID_AT).toLocaleDateString([], { month: "short", day: "numeric" }).replace(/ /g, "\u00a0");
+    const { container } = at("/declutter?tab=selling");
+    await waitFor(() => expect(statusOf(container, "Blue enamel mug")).toBe(`Handed over · Paid out ${day}`));
+    expect(statusOf(container, "Oak desk")).toBe("Handed over · Payout once the sale is final");
+    expect(statusOf(container, "Floor lamp")).toBe("Sold · Paid 24 hours after the handover");
+    expect(statusOf(container, "Rocking chair")).toBe("Handed over");
+    expect(statusOf(container, "Wicker basket")).toBe("Claimed · waiting for pickup");
+    // Never a fee figure on the line.
+    for (const t of ["Blue enamel mug", "Oak desk", "Floor lamp"]) expect(statusOf(container, t)).not.toMatch(/\$|fee/i);
+  });
+
+  it("every payout status has words; a free item or an unread sale has none", async () => {
+    const { soldPayoutWords } = await import("@/lib/declutter/soldPayout");
+    const day = () => "Oct 29";
+    const statuses = ["succeeded", "pending", "failed", "nothing_due"] as const;
+    expect(statuses.length).toBeGreaterThan(3);
+    for (const st of statuses) expect(soldPayoutWords("completed", 3200, { status: st, executed_at: "2026-10-29T15:00:00Z" }, day), st).toBeTruthy();
+    expect(soldPayoutWords("completed", 3200, { status: "succeeded", executed_at: "2026-10-29T15:00:00Z" }, day)).toBe("Paid out Oct 29");
+    expect(soldPayoutWords("completed", 3200, { status: "failed", executed_at: null }, day)).toBe("Payout didn't go through yet");
+    expect(soldPayoutWords("completed", 0, { status: "nothing_due", executed_at: null }, day)).toBeNull();
+    expect(soldPayoutWords("sold", 0, null, day)).toBeNull();
+    expect(soldPayoutWords("completed", undefined, null, day)).toBeNull();
   });
 });

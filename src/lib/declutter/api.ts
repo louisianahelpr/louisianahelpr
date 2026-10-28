@@ -217,23 +217,30 @@ export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
   return (rows ?? []) as DeclutterItem[];
 }
 
+/** One of the seller's sales: what the item sold for and its order (deep audit #60 reads the order's payout). */
+export interface MySale {
+  cents: number;
+  orderId: string | null;
+}
+
 /**
  * What each of the seller's sold items sold for (deep audit SE-5, 2026-10-28: Selling showed the $40 list price on
- * a mug that sold for $32): the paid cart line's price, item id -> cents; the newest paid line wins. RLS lets each
- * side read its own lines ("declutter cart: the two sides read"). Not declutter_my_cart: it stops at 30 days.
+ * a mug that sold for $32), and its order: the paid cart line's price and order_id, by item id; the newest paid line
+ * wins. RLS lets each side read its own lines ("declutter cart: the two sides read"). Not declutter_my_cart: it stops
+ * at 30 days.
  */
-export async function fetchMySalePrices(userId: string): Promise<Map<string, number>> {
+export async function fetchMySales(userId: string): Promise<Map<string, MySale>> {
   const rows = unwrap(
     await supabase
       .from("declutter_cart_items")
-      .select("item_id, price_cents")
+      .select("item_id, price_cents, order_id")
       .eq("seller_id", userId)
       .eq("status", "paid")
       .order("closed_at", { ascending: false }),
-  ) as { item_id: string | null; price_cents: number }[] | null;
-  const prices = new Map<string, number>();
-  for (const r of rows ?? []) if (r.item_id && !prices.has(r.item_id)) prices.set(r.item_id, r.price_cents);
-  return prices;
+  ) as { item_id: string | null; price_cents: number; order_id: string | null }[] | null;
+  const sales = new Map<string, MySale>();
+  for (const r of rows ?? []) if (r.item_id && !sales.has(r.item_id)) sales.set(r.item_id, { cents: r.price_cents, orderId: r.order_id });
+  return sales;
 }
 
 export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {

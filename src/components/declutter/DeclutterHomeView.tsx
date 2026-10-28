@@ -24,7 +24,7 @@ import { ListedWhatNext } from "./ListedWhatNext";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMyItems,
-  fetchMySalePrices,
+  fetchMySales,
   fetchPhotos,
   fetchDropStates,
   photoPublicUrl,
@@ -32,6 +32,8 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
+import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
+import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { DeclutterNotice, sellerStatusLabel } from "./declutterUi";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
@@ -113,9 +115,12 @@ const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
   rejected: "Not approved. Open it to see why.",
 };
 
-function listingStatusLine(item: DeclutterItem): string {
+function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null): string {
   if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
-  return SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
+  const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
+  // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts).
+  const paid = item.status === "sold" || item.status === "completed" ? soldPayoutWords(item.status, saleCents, payout) : null;
+  return paid ? `${base} · ${paid}` : base;
 }
 
 const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
@@ -158,7 +163,13 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
   // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
   const anySold = (mine.data ?? []).some((i) => SOLD.has(i.status));
-  const salePrices = useQuery({ queryKey: ["declutter", "sale-prices", userId], queryFn: () => fetchMySalePrices(userId), enabled: anySold });
+  const sales = useQuery({ queryKey: ["declutter", "sales", userId], queryFn: () => fetchMySales(userId), enabled: anySold });
+  // #60: and where its payout stands (the same read and key as the sold cards' payout line).
+  const payouts = useQuery({ queryKey: ["declutter", "payouts", userId], queryFn: () => fetchMyPayouts(userId), enabled: anySold });
+  const payoutOf = (itemId: string) => {
+    const orderId = sales.data?.get(itemId)?.orderId;
+    return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null;
+  };
   // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch,
   // read by DeclutterHome so the page lands once (Q?declutter-settle).
   const haul = useQuery({
@@ -275,10 +286,10 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     data-listing-status={item.status}
                     className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
                   >
-                    {drop ? "May drop tonight" : listingStatusLine(item)}
+                    {drop ? "May drop tonight" : listingStatusLine(item, sales.data?.get(item.id)?.cents, payoutOf(item.id))}
                   </p>
                 </div>
-                <ListingPrice item={item} sold={salePrices.data?.get(item.id)} />
+                <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
               </div>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (

@@ -56,6 +56,7 @@ import { fetchMeetupSpotsNear } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
 import { CartHold } from "./DeclutterReserveSheet";
+import { timeLeft } from "@/lib/declutter/timeLeft";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -63,15 +64,6 @@ export function dollarsInputToCents(raw: string): number | null {
   if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
   const cents = Math.round(Number(t) * 100);
   return cents > 0 ? cents : null;
-}
-
-function timeLeft(iso: string, now = Date.now()): string {
-  const ms = new Date(iso).getTime() - now;
-  if (ms <= 0) return "time is up";
-  const h = Math.floor(ms / 3_600_000);
-  if (h >= 1) return `${h} hour${h === 1 ? "" : "s"} left`;
-  const m = Math.max(1, Math.floor(ms / 60_000));
-  return `${m} minute${m === 1 ? "" : "s"} left`;
 }
 
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";

@@ -235,7 +235,14 @@ function VehicleForm({ userId }: { userId: string }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label="Your vehicle">
       <h2 className="text-base font-semibold">Your vehicle</h2>
-      <p className="text-sm text-muted-foreground">You need a car to take deliveries. Large and extra large items need a truck.</p>
+      {/* Deep audit #38: say what THIS Helpr can take, never "need a truck" to someone whose truck is saved. */}
+      <p className="text-sm text-muted-foreground" data-vehicle-reach="">
+        {hasTruck && twoPeople
+          ? "With a truck and a second person you can take every size."
+          : hasTruck
+            ? "With a truck you can take small, medium and large items. Extra large items also need a second person."
+            : "You need a car to take deliveries. Large and extra large items need a truck."}
+      </p>
       {/* The shared Checkbox (lead 2026-10-28: the raw box rendered as an empty square); the label is the 44px tap target. */}
       <div className="flex items-center gap-3 min-h-11">
         <Checkbox id={`helpr-car-${userId}`} checked={hasCar} disabled={hasTruck} onCheckedChange={(v) => setCar(v === true)} />

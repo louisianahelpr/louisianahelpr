@@ -14094,6 +14094,16 @@ export type Database = {
         }[]
       }
       declutter_new_handover_code: { Args: never; Returns: string }
+      declutter_notice_about: { Args: { p_order_id: string }; Returns: undefined }
+      declutter_notice_names_item: {
+        Args: {
+          p_link: string
+          p_message: string
+          p_other: string
+          p_user: string
+        }
+        Returns: string
+      }
       declutter_notice_type: {
         Args: { p_link: string; p_title: string; p_type: string }
         Returns: string

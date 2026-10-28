@@ -1,6 +1,6 @@
 // Quiet-hours window stored here is enforced server-side by the
 // send-push-notification edge function (PR #446).
-import { Fragment, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,7 @@ import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
+import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
@@ -427,76 +428,13 @@ const NotificationPreferences = () => {
   // values first and the real ones later moved every row below it (measured
   // at 375: 82px, CLS 0.055). Until the preferences are in, the tab keeps the
   // placeholder its chunk load already showed; then the real table, once.
-  // One category row: label, App switch, Email switch (or a dash when the kind
-  // has no email). Shared by the main list and the Declutter group.
+  // One category row (notificationPreferences/CategoryRow), shared by the main
+  // list and the Declutter group. Q1585 (owner, 2026-10-12): the "Daily Match
+  // Digest" choice is gone; the server ignores match_digest_mode.
   const renderRow = (item: Row) => (
-        <Fragment key={item.key}>
-        <div
-          className={`flex items-center justify-between px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${
-            prefs.push_enabled || (!item.noEmailSwitch && emailMasterEnabled && shownOn(item.emailKey)) ? "" : "opacity-85"
-          } ${saving ? "opacity-80 cursor-wait" : ""}`}
-          style={{
-            borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-          }}
-        >
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <span
-              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
-              style={{
-                background: "hsl(var(--bark) / 0.10)",
-                color: "hsl(var(--bark))",
-              }}
-            >
-              {item.icon}
-            </span>
-            <Label
-              className="font-sans font-semibold text-ds-14 mb-0"
-              style={{ color: "hsl(var(--ink-deep))" }}
-            >
-              {item.label}
-            </Label>
-          </div>
-          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
-            <SwitchSlot
-              loaded={loaded}
-              savingKey={savingKey}
-              checked={prefs[item.key] === true && prefs.push_enabled}
-              onCheckedChange={() => toggle(item.key)}
-              disabled={locked || !prefs.push_enabled}
-              ariaLabel={`${item.label} push`}
-              savingId={item.key}
-            />
-            {/* Reads and disables exactly the way the App column does: the
-                switch shows category AND master, and the master being off
-                greys the row rather than rewriting it. That symmetry is the
-                whole point — the stored category value is untouched while the
-                master is off, so flipping the master back on brings the user's
-                own choices back rather than a row of `true`s. */}
-            {item.noEmailSwitch ? (
-              <div className="w-[51px] flex justify-center" title={item.noEmailSwitch}>
-                <span className="font-sans text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden>
-                  —
-                </span>
-                <span className="sr-only">{`${item.label}: ${item.noEmailSwitch}`}</span>
-              </div>
-            ) : (
-            <SwitchSlot
-              loaded={loaded}
-              savingKey={savingKey}
-              checked={shownOn(item.emailKey) && emailMasterEnabled}
-              onCheckedChange={() => toggle(item.emailKey)}
-              disabled={locked || !emailMasterEnabled}
-              ariaLabel={`${item.label} email`}
-              savingId={item.emailKey}
-            />
-            )}
-          </div>
-        </div>
-      {/* Q1585 (owner, 2026-10-12): the "Daily Match Digest" choice is gone.
-          Every member is told about each new job, by email too, unless they
-          switch Job Matches (or its email column) off in the row above. The
-          server ignores match_digest_mode and holds it false. */}
-        </Fragment>
+    <CategoryRow key={item.key} item={item} prefs={prefs} emailMasterEnabled={emailMasterEnabled}
+      emailShownOn={shownOn(item.emailKey)} saving={saving} loaded={loaded} savingKey={savingKey}
+      locked={locked} onToggle={toggle} />
   );
 
   if (!loaded) return <ProfileTabBodyReserve tab="notifications" />;

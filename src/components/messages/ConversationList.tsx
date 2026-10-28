@@ -37,6 +37,7 @@ import {
   loadArchives,
 } from "@/lib/archivedConversations";
 import type { Conversation } from "./types";
+import { byLastAtDesc } from "./byLastAtDesc";
 import { serverNow } from "@/lib/messagingLockout";
 import { isThreadAgedOut, THREAD_AGE_OUT_DAYS } from "./threadAgeOut";
 // The Active tab's predicate and its job states (LIVE_JOB_STATUSES) live there.
@@ -101,12 +102,6 @@ interface ConversationListProps {
   sectionEmpty?: SectionEmpty | null;
   /** The All / Unread empty inbox's line (messageSections.mainInboxEmptyBody): names Declutter when it is on. */
   mainEmptyBody?: string;
-}
-
-// Sort comparator (descending by lastAt) — pulled out so the pinned /
-// unpinned partitions both use the exact same ordering rule.
-function byLastAtDesc(a: Conversation, b: Conversation): number {
-  return new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime();
 }
 
 /**

@@ -1,0 +1,29 @@
+import { Map, MapPinned } from "lucide-react";
+
+/**
+ * Show / hide the map column on the desktop website's Browse (Jobs and Declutter, owner 2026-10-28: "declutter
+ * should have the same search filter and map view as jobs"). It sits with search and filters at the end of the
+ * tabs row because it is the same kind of control: it changes how you read the board, not what is on it.
+ *
+ * `disabled` while the feed is showing its load-error card: the map column is suppressed then, so this control
+ * would have nothing to show or hide.
+ */
+export function MapToggleButton({ visible, onToggle, disabled = false }: { visible: boolean; onToggle: () => void; disabled?: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={visible}
+      disabled={disabled}
+      aria-label={visible ? "Hide the map" : "Show the map"}
+      title={visible ? "Hide the map" : "Show the map"}
+      className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
+        visible
+          ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
+          : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
+      }`}
+    >
+      {visible ? <Map className="w-5 h-5" /> : <MapPinned className="w-5 h-5" />}
+    </button>
+  );
+}

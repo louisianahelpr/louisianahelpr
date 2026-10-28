@@ -61,7 +61,7 @@ function insetRegionBottom(
 export function fitToPins(
   mk: MapKitRuntime,
   map: MKMap,
-  jobs: MapJob[],
+  jobs: ReadonlyArray<Pick<MapJob, "latitude" | "longitude">>,
   animate = false,
   /** Height of the pane strip the dock/FAB covers, in CSS px. */
   bottomInsetPx = 0,

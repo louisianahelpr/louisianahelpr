@@ -20,43 +20,30 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
-import { Sofa } from "lucide-react";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { BoughtWhatNext } from "./BoughtWhatNext";
-import { useFeedPhase } from "@/hooks/useFeedPhase";
 import {
-  fetchLiveItems,
   fetchMyItems,
   fetchPhotos,
   fetchDropStates,
-  fetchWatching,
   photoPublicUrl,
-  setWatch,
   withdrawItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { DISTANCE_CHOICES, nearestFirst, itemPriceLabel } from "@/lib/declutter/distance";
-import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
+import { itemPriceLabel } from "@/lib/declutter/distance";
 import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
-import { ItemCard, firstPhotos } from "./DeclutterItemCard";
+import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
-import { DeclutterFilterPanel } from "./DeclutterFilterPanel";
-import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
-import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
-import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
-import { useDeclutterOrigin } from "./useDeclutterOrigin";
+import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SellItForMeEntry } from "./SellItForMe";
-import { DeclutterBrowseBar } from "./DeclutterBrowseBar";
+import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
-import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import {
@@ -73,7 +60,7 @@ import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 // Types only: the predicates (oneTripGroup, haulJobToDelete) come with the lazily loaded haul-away code (Q178).
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { useArrivalGate } from "@/hooks/useArrivalGate";
-import { DECLUTTER_GRID, DeclutterBrowseBones, DeclutterHomeSkeleton } from "./DeclutterSkeletons";
+import { DeclutterHomeSkeleton } from "./DeclutterSkeletons";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => import("@/lib/declutter/haulAway");
@@ -105,172 +92,6 @@ function ListingsSkeleton() {
       ))}
     </ul>
   );
-}
-
-function BrowseView({ userId }: { userId: string }) {
-  // A tester inside Declutter before it opens to everyone: nothing for sale yet "Opens soon" (owner, 2026-10-22).
-  const preview = useSectionPreview("declutter");
-  // Any distance by default (owner, 2026-10-19); the member's own choice holds
-  // for the visit. A saved search (Q2275) opens Browse with its filters in the URL.
-  const [params] = useSearchParams();
-  const [start] = useState(() => browseStateFromParams(params));
-  const [maxMiles, setMaxMiles] = useState<number | null>(start.maxMiles);
-  const wide = useWideScreen();
-  // No location prompt on landing: miles come from what we already know, and
-  // the device is asked only from the "Use my location" button below.
-  const { origin, askDevice, asked, asking, canAskAgain, deviceNote } = useDeclutterOrigin();
-  const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
-  const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
-  const others = useMemo(() => (items.data ?? []).filter((i) => i.seller_id !== userId), [items.data, userId]);
-  const photos = useQuery({
-    queryKey: ["declutter", "photos", others.map((i) => i.id).join(",")],
-    queryFn: () => fetchPhotos(others.map((i) => i.id)),
-    enabled: others.length > 0,
-  });
-  const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
-  // The nightly drop plan per item (board 25's "May drop tonight" tag and the
-  // "Price drops" filter), beside the photos and inside the one loading gate.
-  const drops = useQuery({
-    queryKey: ["declutter", "drop-states", others.map((i) => i.id).join(",")],
-    queryFn: () => fetchDropStates(others.map((i) => i.id)),
-    enabled: others.length > 0,
-  });
-  // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
-  const qc = useQueryClient();
-  const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
-  const toggleWatch = useMutation({
-    mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  const [query, setQuery] = useState(start.query);
-  const [filters, setFilters] = useState<DeclutterFilters>(start.filters);
-  const now = new Date();
-  const outlook = new Map(others.map((i) => [i.id, dropOutlook(i, drops.data?.get(i.id), now)]));
-  const showDrops = [...outlook.values()].some((o) => o.planned);
-  const rows = applyBrowseFilters(nearestFirst(others, from, from ? maxMiles : null), filters, query, drops.data, now);
-  const q = query.trim().toLowerCase();
-  const filterCount = activeFilterCount(filters, from ? maxMiles : null);
-  const clearAll = () => {
-    setFilters(NO_FILTERS);
-    setMaxMiles(null);
-  };
-  // ONE gate for the list and its cover photos, so the cards arrive in one
-  // paint instead of the list first and its photos in a second wave
-  // (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never
-  // loading) when there is nothing to show.
-  const listLoading = items.isLoading || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
-  // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
-  const itemsPhase = useFeedPhase(items);
-
-  if (items.isError) {
-    return <ErrorState variant="inline" title="We couldn't load items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;
-  }
-  // ONE PAINT: the distance row, the origin line and the cards arrive
-  // together. Painting the list's "Loading items…" line before the origin was
-  // known let the distance row land above it later and push it down
-  // (Q?declutter-settle: CLS 0.0322 at 375 on prod).
-  if (listLoading) return <DeclutterBrowseBones />;
-  const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice };
-  const panel = (
-    <DeclutterFilterPanel filters={filters} onChange={setFilters} maxMiles={maxMiles} onMaxMiles={setMaxMiles} ask={ask} showDrops={showDrops} />
-  );
-  return (
-    // Board 39: on desktop the filters are a column on the right, not a sheet.
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8">
-    <div className="min-w-0 space-y-4">
-      <DeclutterBrowseBar query={query} onQuery={setQuery} filterCount={filterCount} panel={panel} shown={rows.length} onClearAll={clearAll} columnFilters={wide} />
-      {/* No chip row under "Search items" (owner 2026-10-21): category, porch
-          pickup and price drops live only in the filter sheet / desktop column
-          (DeclutterFilterPanel). Guard: src/test/browseCategoryGroups.test.tsx. */}
-      {/* Only the filters a saved search keeps (words, category, price, distance); the sheet shows them. */}
-      {(q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null)) && (
-        <SaveSearchButton
-          userId={userId}
-          draft={{ section: "declutter", query, category: filters.category, minDollars: filters.minDollars, maxDollars: filters.maxDollars, radiusMiles: from ? maxMiles : null }}
-        />
-      )}
-      {others.length > 0 && (
-        <p data-results-line="" className="hidden items-baseline justify-between gap-3 text-ds-13 text-muted-foreground lg:flex">
-          <span>
-            {rows.length === 1 ? "1 item" : `${rows.length} items`}
-            {from && maxMiles !== null ? ` within ${maxMiles} mi` : ""}
-          </span>
-          {/* No "Sort: ..." here (audit #33): the column beside it already shows the sort. */}
-        </p>
-      )}
-      {itemsPhase === "offline-empty" ? (
-        <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
-      ) : rows.length === 0 ? (
-        // The shared empty state every Browse wears (owner, 2026-10-19: Homes' style, same place).
-        <EmptyState
-          variant="bare"
-          icon={Sofa}
-          title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
-          body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
-        />
-      ) : (
-        <ul className={DECLUTTER_GRID}>
-          {rows.map(({ item, miles }) => (
-            <li key={item.id} className="min-w-0">
-              <ItemCard item={item} photoPath={cover.get(item.id)} miles={miles} approximate={origin.status === "ready" && origin.approximate}
-                tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
-                save={{
-                  on: watching.data?.has(item.id) ?? false,
-                  toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),
-                  pending: toggleWatch.isPending && toggleWatch.variables?.id === item.id,
-                }}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-      {rows.length > 0 && (
-        <BrowseEndCard
-          // Widen one step (DISTANCE_CHOICES), up to "Any distance"; none when
-          // the distance is already any (lead, 2026-10-19).
-          onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
-          widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
-        />
-      )}
-    </div>
-    {wide && <aside aria-label="Filters" data-filter-column="" className="hidden lg:block">
-      <div className="sticky top-4 space-y-5 rounded-[20px] border border-border bg-card p-5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-ds-17 font-bold text-foreground">Filters</h2>
-          {filterCount > 0 && (
-            <button type="button" onClick={clearAll} className="min-h-11 text-ds-13 font-bold text-[hsl(var(--sage-ink))]">Clear all</button>
-          )}
-        </div>
-        {panel}
-      </div>
-    </aside>}
-    </div>
-  );
-}
-
-/**
- * Whether the screen is at Tailwind's lg (900px, the desktop layout), so the
- * filter column (board 39) mounts only where it shows and never duplicates the
- * phone sheet's controls. Width only, never the platform (CLAUDE.md: one surface).
- */
-function useWideScreen(): boolean {
-  const query = "(min-width: 900px)";
-  const read = () => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(query).matches;
-  const [wide, setWide] = useState(read);
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-    const mq = window.matchMedia(query);
-    const on = () => setWide(mq.matches);
-    mq.addEventListener?.("change", on);
-    return () => mq.removeEventListener?.("change", on);
-  }, []);
-  return wide;
-}
-
-/** The next DISTANCE_CHOICES step above `miles`; null = "Any distance". */
-function widerMiles(miles: number): number | null {
-  return DISTANCE_CHOICES.find((m): m is number => m !== null && m > miles) ?? null;
 }
 
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
@@ -551,9 +372,14 @@ export default function DeclutterHome() {
   }, [fromView, tabsReady, setParams]);
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
-  const tabs = (
+  // Browse adds its count and (desktop) search, filters and map at the row's end, or (phone) its search row under
+  // the tabs: Jobs' layout (owner 2026-10-28, DeclutterBrowseView).
+  const tabsFor = (browse?: DeclutterBrowseHeader) => (
+    <>
     <SectionTabs
       label="Declutter view"
+      browseCount={browse?.count}
+      end={browse?.end}
       value={(view === "buying" || view === "selling" || view === "deliver" || view === "browse" ? view : null) as "buying" | "selling" | "deliver"}
       onChange={(v) =>
         setParams((p) => {
@@ -571,13 +397,16 @@ export default function DeclutterHome() {
         { value: "deliver", label: "Deliver" },
       ]}
     />
+    {browse?.below}
+    </>
   );
+  // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
+  if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
-    // Browse draws its own "Search items" row, so Explore's global search shows only on the other tabs.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "browse"} tabs={tabs}>
+    // Browse (above) draws its own "Search items", so Explore's global search shows only on these tabs.
+    <SectionScreen section="declutter" title="Declutter" globalSearch tabs={tabsFor()}>
       <StrikeCount userId={user.id} />
-      {view === "browse" ? <BrowseView userId={user.id} />
-        : view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
+      {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>
               : <WantedView />}

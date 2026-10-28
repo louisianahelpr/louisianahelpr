@@ -120,7 +120,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     const screens = trackedFiles("src").filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !f.startsWith("src/test/"));
     expect(screens.length).toBeGreaterThan(200);
     expect(screens.filter((f) => /early preview/i.test(code(f)))).toEqual([]);
-    for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
+    for (const f of ["src/components/declutter/DeclutterBrowseView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
       expect({ f, opensSoon: /preview \? "Opens soon"/.test(code(f)) }).toEqual({ f, opensSoon: true });
     }
   });

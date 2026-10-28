@@ -17,51 +17,63 @@
 import AppPage from "@/components/AppPage";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { safeStorage } from "@/lib/safeStorage";
 import { DeclutterNotice } from "./declutterUi";
 
-/** /declutter: the section shell (top bar), the tab row, the search row and the first cards. */
+/** /declutter: the section shell (top bar), the tab row, the phone's search row and the first cards. */
 export function DeclutterHomeSkeleton() {
+  const desktop = useIsWebDesktop();
+  const map = desktop && safeStorage.getItem("helpr.declutterMapVisible") !== "0";
   return (
-    // The Browse silhouette, so no "Search all sections" field: Browse draws its own search row.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={<Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />}>
-      <DeclutterBrowseBones />
+    // The Browse silhouette, so no "Search all sections" field: Browse draws its own search (the row under the
+    // tabs on a phone, the end of the tabs row on desktop).
+    <SectionScreen
+      section="declutter"
+      title="Declutter"
+      globalSearch={false}
+      tabs={
+        <>
+          <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />
+          {!desktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />}
+        </>
+      }
+    >
+      <DeclutterBrowseBones map={map} full={desktop && !map} />
     </SectionScreen>
   );
 }
 
-/**
- * The Browse view's body while it loads: the distance row and the first
- * cards. Shared by the page skeleton above and BrowseView itself, which shows
- * it until where you are AND the items are both in, then paints everything at
- * once (Q?declutter-settle: the distance row used to land above an already
- * painted "Loading items…" line and push it 238px down at 375).
- */
-/** The Browse grid: 2 across on a phone, 3 on a small tablet, 4-5 on a desktop (owner, 2026-10-19 14:55Z). */
-// Board 39: three columns beside the desktop filter column (four on very wide screens).
+/** The Browse grid: 2 across on a phone, 3 on a small tablet, 4 on very wide screens (owner, 2026-10-19 14:55Z). */
 export const DECLUTTER_GRID = "grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 2xl:grid-cols-4";
+/** The same grid across the whole panel (desktop, map hidden): 4 across, 5 on wide screens, so a card stays card-sized. */
+export const DECLUTTER_GRID_FULL = `${DECLUTTER_GRID} lg:grid-cols-4 xl:grid-cols-5`;
 
-export function DeclutterBrowseBones() {
+/**
+ * The Browse view's body while it loads: the first cards, and on desktop with the map shown the map column beside
+ * them (Browse's list | map). Shared by the page skeleton above and Browse itself, which shows it until where you
+ * are AND the items are both in, then paints everything at once (Q?declutter-settle: the distance row used to land
+ * above an already painted "Loading items..." line and push it 238px down at 375).
+ */
+export function DeclutterBrowseBones({ map = false, full = false }: { map?: boolean; full?: boolean }) {
+  const cards = (
+    <ul className={full ? DECLUTTER_GRID_FULL : DECLUTTER_GRID} aria-hidden>
+      {[0, 1, 2, 3].map((i) => (
+        <li key={i} className="min-w-0">
+          <Skeleton className="aspect-square w-full rounded-2xl bg-photo-empty" />
+          <div className="space-y-1.5 px-0.5 pt-2">
+            <Skeleton className="h-4 w-14" />
+            <Skeleton className="h-3.5 w-4/5" />
+            <Skeleton className="h-3 w-3/5" />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
   return (
-    // Same frame as Browse (board 39): the list, and on desktop the filter column beside it.
-    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-8" role="status" aria-label="Loading items">
-    <div className="min-w-0 space-y-4">
-      {/* The one compact search + filter row, then the chip row (phone). */}
-      <Skeleton className="h-10 w-full rounded-full" />
-      <Skeleton className="h-10 w-full rounded-full lg:hidden" />
-      <ul className={DECLUTTER_GRID} aria-hidden>
-        {[0, 1, 2, 3].map((i) => (
-          <li key={i} className="min-w-0">
-            <Skeleton className="aspect-square w-full rounded-2xl bg-photo-empty" />
-            <div className="space-y-1.5 px-0.5 pt-2">
-              <Skeleton className="h-4 w-14" />
-              <Skeleton className="h-3.5 w-4/5" />
-              <Skeleton className="h-3 w-3/5" />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-    <Skeleton className="hidden h-96 rounded-[20px] lg:block" />
+    <div className={map ? "grid grid-cols-[minmax(0,1fr)_48%] gap-6" : undefined} role="status" aria-label="Loading items">
+      <div className="min-w-0">{cards}</div>
+      {map && <Skeleton className="h-[480px] rounded-2xl" />}
     </div>
   );
 }

@@ -96,6 +96,7 @@ vi.mock("@/lib/declutter/haulAway", () => ({
 }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
+  fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
   fetchPhotos: async () => state.photos,
   fetchDropStates: async () => new Map(),

@@ -24,7 +24,7 @@
  * @mutate src/hooks/useUserLocation.ts |   }, [enabled, request, rationale, attempt]); |   }, [enabled, request, rationale, attempt, profile]);
  * @mutate src/hooks/useUserLocation.ts |   return { lat: cached.lat, lng: cached.lng, approximate: cached.approximate }; |   return { lat: cached.lat, lng: cached.lng, approximate: false };
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const away = milesLabel(miles, geo.status === "ready" && geo.approximate); |   const away = milesLabel(miles);
- * @mutate src/components/declutter/DeclutterHomeView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | miles={miles} approximate={origin.status === "ready" && origin.approximate}\n | miles={miles} approximate={false}\n
  * @mutate src/components/declutter/useDeclutterOrigin.ts |     asked && device.status === "error" | false && device.status === "error"
  * @mutate src/pages/declutter/DeclutterItemPage.tsx | skeleton={isItemId(id) ? <DeclutterItemSkeleton /> : <DeclutterItemUnavailable />} | skeleton={<DeclutterItemSkeleton />}
  * @mutate src/hooks/usePermissionRationale.ts | body: "Declutter uses your location to show how far away each item is | body: "We use your location to show jobs near you, how far away each item is
@@ -49,6 +49,12 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatu
 // What Browse lists; empty unless a test puts an item up.
 const watchCalls: unknown[][] = [];
 const live: { items: unknown[] } = { items: [] };
+const pins: { map: Map<string, { lat: number; lng: number }>; reads: number } = { map: new Map(), reads: 0 };
+// The desktop website (900px+, not native) or a phone; jsdom has no matchMedia, so the width is set here.
+const screenWidth = { desktop: false };
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => screenWidth.desktop }));
+// Apple's map script never loads here (its token is an edge call): the map's box and pin read are what is tested.
+vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "loading" }));
 // The nightly drop columns per item (Browse reads them in one call).
 const dropStates: Record<string, { sale_mode: string | null; last_price_drop_on: string | null }> = {};
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -89,6 +95,11 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyCart: async () => [],
   fetchMyOffers: async () => [],
   fetchLiveItems: async () => live.items,
+  // The Browse map's rough-area pins (declutter_map_pins), read only while a map is on screen.
+  fetchMapPins: async () => {
+    pins.reads++;
+    return pins.map;
+  },
   fetchMyItems: async () => [],
   fetchPhotos: async () => [],
   fetchQuestions: async () => [],
@@ -311,7 +322,7 @@ describe("Declutter location ask", () => {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
     }
     // The tag comes from the real rules: the drop plan, or a big item's Helpr delivery; else none.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | tag={outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null} | tag={null}
     const tagOf = (t: string) => screen.getByText(t).closest("a")!.querySelector("[data-card-tag]")?.getAttribute("data-card-tag") ?? null;
     // Whether the next chance is tonight depends on the clock (the rule itself: browseFilters.test.ts).
     expect(tagOf("Oak rocking chair")).toBe(dropOutlook(live.items[0] as never, dropStates.i1).tonight ? "drop" : null);
@@ -327,7 +338,7 @@ describe("Declutter location ask", () => {
   it("categories live ONLY in the filter sheet (owner 2026-10-21: no chip row under Search items); in the sheet a tap shows only that category and marks it, a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
     // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |       <DeclutterBrowseBar query={query} | <div data-chip-row=""><button type="button">Kitchen</button></div>\n      <DeclutterBrowseBar query={query}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className="min-w-0 space-y-4"> | <div className="min-w-0 space-y-4"><div data-chip-row=""><button type="button">Kitchen</button></div>
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -336,7 +347,7 @@ describe("Declutter location ask", () => {
     at("/declutter", <DeclutterPage />);
     await screen.findByText("Oak rocking chair");
     // ONE search on Browse: "Search items" with its filters, never Explore's "Search all sections" above it.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "browse"} | globalSearch={true}
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} tabs={tabs(header)} | globalSearch tabs={tabs(header)}
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     expect(screen.getAllByRole("search")).toHaveLength(1);
     // No chip row on the page: no category, porch-pickup or price-drop chip outside the sheet.
@@ -361,23 +372,86 @@ describe("Declutter location ask", () => {
     live.items = [];
   });
 
-  it("desktop filters live in ONE place (audit #33): with the filter column open, the search row has no filter button and no sheet, and no 'Sort:' line repeats the column", async () => {
-    // @mutate src/components/declutter/DeclutterBrowseBar.tsx |         onFilters={columnFilters ? undefined : () => setOpen(true)} |         onFilters={() => setOpen(true)}
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | onClearAll={clearAll} columnFilters={wide} /> | onClearAll={clearAll} />
-    const { DeclutterBrowseBar } = await import("./DeclutterBrowseBar");
-    const props = { query: "", onQuery: () => {}, filterCount: 0, panel: <p>panel</p>, shown: 3, onClearAll: () => {} };
-    const wide = render(<DeclutterBrowseBar {...props} columnFilters />);
-    expect(within(wide.container).getAllByRole("search")).toHaveLength(1);
-    expect(within(wide.container).queryByRole("button", { name: /Filters/ })).toBeNull();
-    wide.unmount();
-    const phone = render(<DeclutterBrowseBar {...props} />);
-    expect(within(phone.container).getByRole("button", { name: "Filters" })).toBeInTheDocument();
-    phone.unmount();
-    const { readFileSync } = await import("node:fs");
-    const { blankComments } = await import("@/test/helpers/blankNonCode");
-    const view = blankComments(readFileSync(`${__dirname}/DeclutterHomeView.tsx`, "utf8"));
-    expect(view).toMatch(/onClearAll=\{clearAll\} columnFilters=\{wide\} \/>/);
-    expect(view).not.toMatch(/Sort:/);
+  // Owner 2026-10-28: "declutter should have the same search filter and map view as jobs". The old desktop layout
+  // (a full-width search row and a permanent Filters column, board 39 / audit #33) is gone; these pin the new one.
+  const twoItems = () => {
+    const item = (id: string, title: string) => ({
+      id, seller_id: "u2", status: "live", title, category: "furniture", condition_stars: 4, delivery_size: "small",
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+    });
+    live.items = [item("i1", "Oak rocking chair"), item("i2", "Brass lamp")];
+  };
+
+  it("desktop website: Browse's count beside the tab, and search, Filters and the map toggle at the END of the tabs row; no search row, no Filters column; list | map", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |         count: listLoading \|\| items.isError ? undefined : rows.length, |         count: undefined,
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |       end={browse?.end} |
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |     body = desktop && mapVisible ? ( |     body = false ? (
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |       view={desktop ? undefined : { value: phoneView, set: setPhoneView }} |       view={{ value: phoneView, set: setPhoneView }}
+    screenWidth.desktop = true;
+    twoItems();
+    try {
+      const { container } = at("/declutter", <DeclutterPage />);
+      await screen.findByText("Oak rocking chair");
+      const tabs = screen.getByRole("tablist", { name: "Declutter view" }).parentElement as HTMLElement;
+      // The count rides beside "Browse" (SectionTabs browseCount), as Jobs' does.
+      expect(within(tabs).getByTestId("browse-count").textContent).toBe("2");
+      // The controls are IN the tabs row, not a row of their own.
+      const strip = container.querySelector("[data-feed-strip]") as HTMLElement;
+      expect(strip).not.toBeNull();
+      expect(tabs.contains(strip)).toBe(true);
+      expect(within(strip).getByRole("button", { name: "Search items" })).toBeInTheDocument();
+      expect(within(strip).getByRole("button", { name: "Filters" })).toBeInTheDocument();
+      const mapToggle = within(strip).getByRole("button", { name: "Hide the map" });
+      expect(screen.queryByTestId("declutter-browse-bar")).toBeNull();
+      expect(container.querySelector("[data-filter-column]")).toBeNull();
+      // list | map, the map's pins read only now that a map is on screen.
+      expect(container.querySelector("[data-browse-split]")).not.toBeNull();
+      await screen.findByRole("region", { name: "Map of items for sale" });
+      expect(pins.reads).toBeGreaterThan(0);
+      // Filters open the shared FilterSheet; no List / Map choice in it (both are on screen).
+      fireEvent.click(within(strip).getByRole("button", { name: "Filters" }));
+      const sheet = await screen.findByRole("dialog");
+      expect(within(sheet).getByRole("button", { name: "Kitchen" })).toBeInTheDocument();
+      expect(within(sheet).queryByRole("radiogroup", { name: "Feed view" })).toBeNull();
+      fireEvent.keyDown(sheet, { key: "Escape" });
+      // Hiding the map gives the list the width, and the choice is kept.
+      fireEvent.click(mapToggle);
+      expect(container.querySelector("[data-browse-split]")).toBeNull();
+      expect(within(strip).getByRole("button", { name: "Show the map" })).toHaveAttribute("aria-pressed", "false");
+      expect(localStorage.getItem("helpr.declutterMapVisible")).toBe("0");
+    } finally {
+      screenWidth.desktop = false;
+      live.items = [];
+      localStorage.removeItem("helpr.declutterMapVisible");
+    }
+  });
+
+  it("phone: ONE 'Search items' row with the filter button inside, under the tabs; the filter sheet's View switches the list to the map, as Jobs' does", async () => {
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 }); |   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: others.length > 0 });
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |   } else if (!desktop && phoneView === "map") { |   } else if (false) {
+    // @mutate src/components/declutter/DeclutterHomeView.tsx |     {browse?.below} |
+    twoItems();
+    pins.reads = 0;
+    try {
+      const { container } = at("/declutter", <DeclutterPage />);
+      await screen.findByText("Oak rocking chair");
+      const row = screen.getByTestId("declutter-browse-bar");
+      expect(row).toHaveAttribute("role", "search");
+      expect(within(row).getByRole("button", { name: "Filters" })).toBeInTheDocument();
+      expect(container.querySelector("[data-feed-strip]")).toBeNull();
+      expect(container.querySelector("[data-filter-column]")).toBeNull();
+      // The list first; no map and no pin read until the member asks for the map.
+      expect(container.querySelector("[data-declutter-map]")).toBeNull();
+      expect(pins.reads).toBe(0);
+      fireEvent.click(within(row).getByRole("button", { name: "Filters" }));
+      const sheet = await screen.findByRole("dialog");
+      fireEvent.click(within(within(sheet).getByRole("radiogroup", { name: "Feed view" })).getByRole("radio", { name: /Map/ }));
+      await screen.findByRole("region", { name: "Map of items for sale" });
+      expect(pins.reads).toBeGreaterThan(0);
+      expect(screen.queryByText("Oak rocking chair")).toBeNull();
+    } finally {
+      live.items = [];
+    }
   });
 
   it("a card's tile is never blank (audit #32): the category icon sits under every photo, and a photo that fails to load drops out", async () => {
@@ -400,7 +474,7 @@ describe("Declutter location ask", () => {
   });
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {
-    // @mutate src/components/declutter/DeclutterHomeView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
     // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) return card; |   return card;
     live.items = [{
       id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,

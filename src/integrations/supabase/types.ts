@@ -2544,6 +2544,24 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_pin_secret: {
+        Row: {
+          created_at: string
+          id: number
+          salt: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          salt: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          salt?: string
+        }
+        Relationships: []
+      }
       declutter_price_alerts: {
         Row: {
           id: number
@@ -13886,6 +13904,14 @@ export type Database = {
       declutter_make_offer: {
         Args: { p_amount_cents: number; p_item_id: string }
         Returns: string
+      }
+      declutter_map_pins: {
+        Args: never
+        Returns: {
+          item_id: string
+          pin_lat: number
+          pin_lng: number
+        }[]
       }
       declutter_mark_order_paid: {
         Args: {

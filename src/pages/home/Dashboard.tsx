@@ -20,7 +20,7 @@ import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
 import { scrollFeedToTop } from "@/pages/home/scrollFeedToTop";
 import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
-import { Map, MapPinned } from "lucide-react";
+import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
@@ -355,34 +355,9 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
           onToggleSavedOnly={toggleSavedOnly}
           savedCount={filters.savedShownCount ?? 0}
         />
-        {/* Show / hide the map column. It sits with search
-            and filters because it is the same kind of
-            control — it changes how you read the board, not
-            what is on it. */}
-        <button
-          type="button"
-          onClick={toggleMap}
-          aria-pressed={mapVisible}
-          // While the feed is showing the load-error card
-          // the map column is suppressed (see
-          // `feedShowingLoadError`), so this control has
-          // nothing to show or hide. Offering it would be an
-          // affordance that is guaranteed to do nothing.
-          disabled={feedShowingLoadError}
-          aria-label={mapVisible ? "Hide the map" : "Show the map"}
-          title={mapVisible ? "Hide the map" : "Show the map"}
-          className={`h-10 w-10 rounded-ds-md inline-flex items-center justify-center btn-press transition-colors disabled:opacity-40 disabled:pointer-events-none ${
-            mapVisible
-              ? "text-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.10)]"
-              : "text-muted-foreground hover:text-foreground hover:bg-[hsl(var(--bark)/0.06)]"
-          }`}
-        >
-          {mapVisible ? (
-            <Map className="w-5 h-5" />
-          ) : (
-            <MapPinned className="w-5 h-5" />
-          )}
-        </button>
+        {/* Show / hide the map column (shared with Declutter's Browse). Disabled while the feed shows its
+            load-error card: the map column is suppressed then (`feedShowingLoadError`). */}
+        <MapToggleButton visible={mapVisible} onToggle={toggleMap} disabled={feedShowingLoadError} />
       </div>
     </div>
   ) : undefined;

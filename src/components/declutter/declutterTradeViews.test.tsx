@@ -372,6 +372,40 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText(/Offer again/)).toBeNull();
   });
 
+  // Deep audit #30 (2026-10-28, shot 125): "Offers on your items" kept every closed offer (Declined, Taken back,
+  // Accepted) above the live ones. The seller sees the open offers; the closed ones fold under one dated button.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const shown = seller ? mine.filter((o) => o.status === "open") : mine; |   const shown = mine;
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |       ) : shown.length === 0 ? ( |       ) : false ? (
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |           {showClosed && <ul className="space-y-3" data-closed-offers=""> |           {true && <ul className="space-y-3" data-closed-offers="">
+  it("deep audit #30: the seller sees open offers; closed ones fold under one button, and open again on tap", async () => {
+    const CLOSED = ["declined", "withdrawn", "accepted", "expired", "voided"] as const;
+    state.offers = [
+      { ...OFFER, offer_id: "open1", item_title: "Oak desk" },
+      ...CLOSED.map((st, n) => ({ ...OFFER, offer_id: `c${n}`, status: st, item_title: `Closed ${st}` })),
+      // A buyer's own closed offer stays in "Your offers" as before.
+      { ...OFFER, offer_id: "b1", my_side: "buyer", status: "declined", floor_price_cents: null, item_title: "Porch swing" },
+    ];
+    show(<><OffersSection side="seller" /><OffersSection side="buyer" /></>);
+    const selling = await screen.findByRole("region", { name: "Offers on your items" });
+    expect(within(selling).getByText("Oak desk")).toBeInTheDocument();
+    for (const st of CLOSED) expect(within(selling).queryByText(`Closed ${st}`), st).toBeNull();
+    const toggle = within(selling).getByRole("button", { name: `Show ${CLOSED.length} closed offers from the last 30 days` });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(toggle);
+    for (const st of CLOSED) expect(within(selling).getByText(`Closed ${st}`), st).toBeInTheDocument();
+    expect(within(selling).getByRole("button", { name: "Hide closed offers" })).toHaveAttribute("aria-expanded", "true");
+    expect(within(screen.getByRole("region", { name: "Your offers" })).getByText("Porch swing")).toBeInTheDocument();
+  });
+
+  it("deep audit #30: only closed offers left: 'No open offers.' and the fold, never the first-time empty state", async () => {
+    state.offers = [{ ...OFFER, offer_id: "c1", status: "declined", item_title: "Old lamp" }];
+    show(<OffersSection side="seller" />);
+    expect(await screen.findByText("No open offers.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Show 1 closed offer from the last 30 days" })).toBeInTheDocument();
+    expect(screen.queryByText("No offers yet")).toBeNull();
+    expect(screen.queryByText("Old lamp")).toBeNull();
+  });
+
   it("boards 68-70: an offer card's money lines use what accepting really charges, least(offer, price now)", async () => {
     state.offers = [
       // The seller dropped the price to $22 below the buyer's $25 offer: accepting sells for $22.

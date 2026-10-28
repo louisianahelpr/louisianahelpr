@@ -54,7 +54,7 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(read("src/hooks/useDashboardFilters.ts")).toMatch(/useState\(\(\) => param\("q"\)\)/);
     // /browse is the guest feed and /jobs embeds the signed-in feed, both on those filters.
     expect(read("src/pages/home/DashboardGuest.tsx")).toMatch(/useDashboardFilters\(/);
-    expect(read("src/pages/jobs/JobsSection.tsx")).toMatch(/<Dashboard embeddedHeader=\{header\} \/>/);
+    expect(read("src/pages/jobs/JobsSection.tsx")).toMatch(/<Dashboard embeddedHeader=\{makeHeader\} \/>/);
     // Empty search: the plain feed, no empty q; long input is capped.
     expect(heroSearchTargets("   ")).toEqual({ signedIn: "/jobs", signedOut: "/browse" });
     expect(new URLSearchParams(heroSearchTargets("x".repeat(200)).signedOut.split("?")[1]).get("q")?.length).toBe(SEARCH_MAX);

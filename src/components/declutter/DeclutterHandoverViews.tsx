@@ -270,7 +270,8 @@ function PickupAddresses({ lines }: { lines: CartLine[] }) {
     queries: lines.map((l) => ({ queryKey: ["declutter", "address", l.item_id], queryFn: () => (l.item_id ? fetchItemAddress(l.item_id) : Promise.resolve(null)) })),
   });
   const failed = results.find((r) => r.isError);
-  if (failed) return <p className="text-sm" role="alert">{declutterErrorMessage(failed.error)}</p>;
+  // An error with a retry (audit 2026-10-28: the pickup address failing was one line with no way to try again).
+  if (failed) return <ErrorState variant="inline" title="We couldn't load the pickup address." body={declutterErrorMessage(failed.error)} onRetry={() => void failed.refetch()} />;
   const byAddress = new Map<string, string[]>();
   results.forEach((r, i) => {
     const a = r.data?.pickup_address;

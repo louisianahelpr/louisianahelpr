@@ -349,7 +349,10 @@ describe("the photo-first Declutter item page", () => {
     // The dock yields the strip to the bar (fixedBottomBarsClearTheDock, Q1646).
     await waitFor(() => expect(document.documentElement.classList.contains("dock-yield")).toBe(true));
     expect(within(bar).getByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
-    expect(within(bar).getByRole("button", { name: "Make offer" })).toBeInTheDocument();
+    // A3-7: the bar and the panel use the same words for the same button.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx |                   Make an offer\n                </Button>\n              )} |                   Make offer\n                </Button>\n              )}
+    expect(within(bar).getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
+    expect(within(bar).queryByRole("button", { name: "Make offer" })).toBeNull();
   });
   it("More from this seller and Similar items: rows of the Browse card, never the member's own items, an empty row left out", async () => {
     const row = (n: number, extra: object) => ({ ...ITEM, id: `0f0e0d0c-0b0a-4908-8706-0504030201${String(n).padStart(2, "0")}`, title: `Thing ${n}`, ...extra });

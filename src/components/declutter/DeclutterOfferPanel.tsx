@@ -371,8 +371,9 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
                     panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
                 >
-                  {/* Board 4: the short label, so it stays one line at 320. */}
-                  Make offer
+                  {/* The same words as the panel's button (audit 3 A3-7: "Make offer" here, "Make an offer" there).
+                      One line at 320 and 375, measured 2026-10-28. */}
+                  Make an offer
                 </Button>
               )}
               <Button

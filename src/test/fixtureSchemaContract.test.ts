@@ -156,12 +156,14 @@ describe("the constraint reader really read the constraints", () => {
     expect(jobs.get("jobs_budget_range")).toMatchObject({ kind: "range", min: 10, max: 1000 });
 
     // Replacement semantics: notifications.type was defined inline with 7
-    // values and later re-added with 18. Only the newer one may survive.
+    // values, later re-added with 18, and with 25 by 20261028162048 (the
+    // seven declutter_* kinds). Only the newest one may survive.
     const notifType = constraints.get("notifications")!.get("notifications_type_check") as {
       values: string[];
     };
     expect(notifType.values).toContain("admin_alert");
-    expect(notifType.values.length).toBe(18);
+    expect(notifType.values).toContain("declutter_wanted");
+    expect(notifType.values.length).toBe(25);
 
     // Defined inline on a continuation line inside CREATE TABLE, and via
     // `ALTER TABLE … ADD COLUMN … CHECK` respectively — two shapes an earlier

@@ -14,9 +14,9 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND b.slot_start <= now() + interval '60 minutes' |        AND b.slot_start <= now() + interval '6 hours'
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND b.reminded_slot_start IS DISTINCT FROM b.slot_start\n |
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |    VALUES ('error', 'declutter pickup reminder failed for one booking', |    VALUES ('info', 'declutter pickup reminder failed for one booking',
-// @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |   IF EXISTS (SELECT 1 FROM public.profiles o WHERE o.user_id = p_other AND o.is_seed) |   IF false
+// @mutate supabase/migrations/20261028162048_declutter_notice_kinds.sql |   IF EXISTS (SELECT 1 FROM public.profiles o WHERE o.user_id = p_other AND o.is_seed) |   IF false
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |        AND o.status = 'paid'\n |
-// @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'job_updates', 'link', p_link) |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'system_alert', 'link', p_link)
+// @mutate supabase/migrations/20261028162048_declutter_notice_kinds.sql |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'declutter_pickups', 'link', p_link) |       body := jsonb_build_object('user_id', p_user, 'title', p_title, 'message', p_message, 'type', 'system_alert', 'link', p_link)
 // @mutate supabase/migrations/20261027205028_declutter_pickup_reminders.sql |     PERFORM cron.schedule('declutter-pickup-reminders', '4-59/5 * * * *', |     PERFORM cron.schedule('declutter-pickup-reminders', '0 * * * *',
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -45,12 +45,15 @@ describe("Declutter pickup reminders (Q2432)", () => {
     expect(sweep.body.indexOf("SET reminded_slot_start = r.slot_start")).toBeLessThan(sweep.body.indexOf("declutter_pickup_remind(r.buyer_id"));
   });
 
-  it("tells BOTH sides, in the bell (push) and by email under the member's job-updates settings", () => {
+  // Since 20261028162048 the reminder is its own kind, declutter_pickups: the
+  // Declutter "Pickups" switch gates its push and email_declutter_pickups its
+  // email (backfilled from the member's email_job_updates).
+  it("tells BOTH sides, in the bell (push) and by email under the member's Declutter pickups settings", () => {
     expect((sweep.body.match(/declutter_pickup_remind\(r\.buyer_id/g) ?? []).length).toBe(2);
     expect((sweep.body.match(/declutter_pickup_remind\(r\.seller_id/g) ?? []).length).toBe(2);
-    expect(remind.body).toContain("PERFORM public.declutter_notify(p_user, 'job_updates', p_title, p_message, p_link, p_other);");
+    expect(remind.body).toContain("PERFORM public.declutter_notify_strict(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other);");
     expect(remind.body).toContain("/functions/v1/send-notification-email");
-    expect(remind.body).toContain("'type', 'job_updates'");
+    expect(remind.body).toContain("'type', 'declutter_pickups'");
     // A test side never reaches a real member: not in the bell (declutter_notify) and not by email.
     expect(remind.body).toMatch(/IF EXISTS \(SELECT 1 FROM public\.profiles o WHERE o\.user_id = p_other AND o\.is_seed\)\s+AND NOT EXISTS \(SELECT 1 FROM public\.profiles r WHERE r\.user_id = p_user AND r\.is_seed\) THEN\s+RETURN;/);
   });

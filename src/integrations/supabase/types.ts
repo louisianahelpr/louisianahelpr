@@ -7137,6 +7137,20 @@ export type Database = {
       notification_preferences: {
         Row: {
           created_at: string
+          declutter_listings: boolean
+          declutter_offers: boolean
+          declutter_pickups: boolean
+          declutter_price_drops: boolean
+          declutter_refunds: boolean
+          declutter_sales: boolean
+          declutter_wanted: boolean
+          email_declutter_listings: boolean
+          email_declutter_offers: boolean
+          email_declutter_pickups: boolean
+          email_declutter_price_drops: boolean
+          email_declutter_refunds: boolean
+          email_declutter_sales: boolean
+          email_declutter_wanted: boolean
           email_enabled: boolean
           email_financial_alerts: boolean
           email_job_applications: boolean
@@ -7176,6 +7190,20 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          declutter_listings?: boolean
+          declutter_offers?: boolean
+          declutter_pickups?: boolean
+          declutter_price_drops?: boolean
+          declutter_refunds?: boolean
+          declutter_sales?: boolean
+          declutter_wanted?: boolean
+          email_declutter_listings?: boolean
+          email_declutter_offers?: boolean
+          email_declutter_pickups?: boolean
+          email_declutter_price_drops?: boolean
+          email_declutter_refunds?: boolean
+          email_declutter_sales?: boolean
+          email_declutter_wanted?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
@@ -7215,6 +7243,20 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          declutter_listings?: boolean
+          declutter_offers?: boolean
+          declutter_pickups?: boolean
+          declutter_price_drops?: boolean
+          declutter_refunds?: boolean
+          declutter_sales?: boolean
+          declutter_wanted?: boolean
+          email_declutter_listings?: boolean
+          email_declutter_offers?: boolean
+          email_declutter_pickups?: boolean
+          email_declutter_price_drops?: boolean
+          email_declutter_refunds?: boolean
+          email_declutter_sales?: boolean
+          email_declutter_wanted?: boolean
           email_enabled?: boolean
           email_financial_alerts?: boolean
           email_job_applications?: boolean
@@ -14041,7 +14083,22 @@ export type Database = {
         }[]
       }
       declutter_new_handover_code: { Args: never; Returns: string }
+      declutter_notice_type: {
+        Args: { p_link: string; p_title: string; p_type: string }
+        Returns: string
+      }
       declutter_notify: {
+        Args: {
+          p_link: string
+          p_message: string
+          p_other?: string
+          p_title: string
+          p_type: string
+          p_user: string
+        }
+        Returns: undefined
+      }
+      declutter_notify_strict: {
         Args: {
           p_link: string
           p_message: string

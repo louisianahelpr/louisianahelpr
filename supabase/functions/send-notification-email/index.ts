@@ -71,6 +71,15 @@ const TYPE_MAP: Record<string, { prefCol: string; category: string }> = {
   // their EMAIL as `quote_reminder`, so the member's own "Quote reminders"
   // email switch decides it (owner 2026-10-21).
   quote_reminder:    { prefCol: 'email_quote_reminders',  category: 'quote_reminders' },
+  // Declutter (20261028162048): each kind on its own email twin. Only pickup
+  // reminders and price drops send email today; the rest are push + bell.
+  declutter_listings:    { prefCol: 'email_declutter_listings',    category: 'declutter_listings' },
+  declutter_offers:      { prefCol: 'email_declutter_offers',      category: 'declutter_offers' },
+  declutter_sales:       { prefCol: 'email_declutter_sales',       category: 'declutter_sales' },
+  declutter_pickups:     { prefCol: 'email_declutter_pickups',     category: 'declutter_pickups' },
+  declutter_refunds:     { prefCol: 'email_declutter_refunds',     category: 'declutter_refunds' },
+  declutter_price_drops: { prefCol: 'email_declutter_price_drops', category: 'declutter_price_drops' },
+  declutter_wanted:      { prefCol: 'email_declutter_wanted',      category: 'declutter_wanted' },
 }
 
 /**

@@ -38,9 +38,11 @@ import {
   type Handover,
   type MyOffer,
 } from "@/lib/declutter/api";
+import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
+import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { buyNowTotalCents } from "@/lib/declutter/money";
+import { buyNowTotalCents, dollarsInputToCents } from "@/lib/declutter/money";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
@@ -61,13 +63,7 @@ import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 
-/** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
-export function dollarsInputToCents(raw: string): number | null {
-  const t = raw.trim().replace(/^\$/, "");
-  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
-  const cents = Math.round(Number(t) * 100);
-  return cents > 0 ? cents : null;
-}
+export { dollarsInputToCents } from "@/lib/declutter/money";
 
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
 
@@ -285,7 +281,8 @@ export function OffersSection({ side }: { side: "buyer" | "seller" }) {
 /** Q2427: the seller's bundle discount on these lines (useBundleDiscount), then the ordinary checkout panel. */
 function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: string; lines: CartLine[]; porchOk: boolean; onBack: () => void; held: boolean }) {
   const b = useBundleDiscount(sellerId, lines);
-  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held} />;
+  return <PayForSeller sellerId={sellerId} itemsTotalCents={b.itemsCents} discountCents={b.discountCents} totalCents={b.totalCents} porchOk={porchOk} onBack={onBack} itemCount={lines.length} held={held}
+    ways={waysEveryLineAllows(lines)} />;
 }
 
 /**
@@ -297,10 +294,12 @@ function PayWithBundle({ sellerId, lines, porchOk, onBack, held }: { sellerId: s
  * the drop-off address, the SERVER geocodes it and prices the trip ($10 + $2 per
  * road mile + size), and the Pay button carries that price.
  */
-function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false }: {
+function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents, porchOk, onBack, itemCount = 1, held = false, ways = null }: {
   sellerId: string; itemsTotalCents: number; totalCents: number; porchOk: boolean; onBack: () => void;
   /** B-1: this checkout was just paid and the cart has not caught up: Pay stays off. */
   held?: boolean;
+  /** Owner 2026-10-28: the ways every item in this checkout allows (null = older items: every way). */
+  ways?: Handover[] | null;
   /** Q2427: the bundle discount on the paid items (0 when none); totalCents is already after it. */
   discountCents?: number;
   /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
@@ -324,10 +323,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   });
   const spotsNear = meetupSpots.data ?? [];
   // The spec's order: porch / safe place, pickup at the home, the seller delivers, Helpr delivery.
-  const order: Handover[] = [...(porchOk ? ["porch" as const] : []), "pickup_home", ...(spotsNear.length > 0 ? ["meetup" as const] : []),
-    ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])];
-  const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order;
-  const [handover, setHandover] = useState<Handover>(order[0]);
+  // Owner 2026-10-28: only the ways the seller ticked for every item here (the server refuses the rest).
+  const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home", ...(spotsNear.length > 0 ? ["meetup" as const] : []),
+    ...(sdState !== "hidden" ? ["seller_delivery" as const] : [])] as Handover[]).filter((h) => wayAllowed(ways, h));
+  const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery") ? [...order, "delivery"] : order;
+  const offered = ticked; // None open to this buyer: no fallback to the seller's door (Q2462); NoWayWorks opens the chat.
+  const [handover, setHandover] = useState<Handover>(offered[0]);
   // A refetched cart can lose porch (never gain a stale choice): fall back to the first offered.
   const chosen = offered.includes(handover) ? handover : offered[0];
   const [opening, setOpening] = useState(false);
@@ -397,9 +398,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             </span>
           </label>
         ))}
-        {!porchOk && (
+        {!porchOk && ways === null && (
           <p className="text-xs text-muted-foreground">The seller asked buyers to meet at their home for this order, so porch pickup isn't available.</p>
         )}
+        {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
       {meetingUp && <MeetupSpotPicker sellerId={sellerId} spots={spotsNear} onChosen={() => void meetupSpots.refetch()} />}
       {sellerDelivering && (
@@ -471,7 +473,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       <button
         type="button"
         className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
+        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (sellerDelivering && !sdReady) || !meetupReady}
         onClick={async () => {
           setOpening(true);
           rememberPaying(sellerId);
@@ -584,7 +586,7 @@ export function CartView() {
               </ul>
               <CartHold sellerId={sellerId} checkoutBy={soonest} allFree={allFree} timeLeft={timeLeft(soonest)} />
               {allFree ? (
-                <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} onDone={() => void cart.refetch()} />
+                <FreeCheckoutForSeller sellerId={sellerId} porchOk={lines.every((l) => l.porch_ok !== false)} ways={waysEveryLineAllows(lines)} onDone={() => void cart.refetch()} />
               ) : (
                 <PayWithBundle sellerId={sellerId} lines={lines} porchOk={lines.every((l) => l.porch_ok !== false)} onBack={() => void cart.refetch()}
                   held={settling.settling && (settling.sellerId === null || settling.sellerId === sellerId)} />

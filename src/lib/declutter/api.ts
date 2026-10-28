@@ -423,8 +423,33 @@ export async function updateDraft(itemId: string, f: DraftFields): Promise<strin
   return rpcData(await supabase.rpc("declutter_update_draft", { p_item_id: itemId, ...draftArgs(f) }), (e) => rpcErrorMessage("declutter_update_draft", e)) as string;
 }
 
+/** The ways a seller can tick on step 4 (owner 2026-10-28; pickup at the door is no longer one of them). */
+
+export type SellerHandover = "porch" | "seller_delivery" | "meetup" | "delivery";
+
+/**
+ * Owner 2026-10-28: the ways buyers can get this draft (declutter_set_handovers; also sets porch_ok). Before
+ * migration 20261028235247 reaches prod (PGRST202) only porch can be recorded, so it falls back to setPorchOk.
+ */
+export async function setHandovers(itemId: string, ways: SellerHandover[]): Promise<SellerHandover[]> {
+  const res = await supabase.rpc("declutter_set_handovers", { p_item_id: itemId, p_handovers: ways });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_set_handovers")) {
+    await setPorchOk(itemId, ways.includes("porch"));
+    return ways;
+  }
+  return rpcData(res, (e) => rpcErrorMessage("declutter_set_handovers", e)) as SellerHandover[];
+}
+
+/** A draft's saved ways (null = none recorded, an older item). Before 20261028235247 (42703): null. */
+export async function fetchItemHandovers(itemId: string): Promise<SellerHandover[] | null> {
+  const r = await supabase.from("declutter_items").select("handovers").eq("id", itemId).maybeSingle();
+  if (r.error?.code === "42703") return null;
+  const row = unwrap(r) as { handovers: SellerHandover[] | null } | null;
+  return row?.handovers ?? null;
+}
+
 /** Row 101: may buyers pick this draft up from the porch? On by default; the server refuses porch checkout when off. */
-export async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
+async function setPorchOk(itemId: string, porchOk: boolean): Promise<boolean> {
   return rpcData(
     await supabase.rpc("declutter_set_porch_ok", { p_item_id: itemId, p_porch_ok: porchOk }),
     (e) => rpcErrorMessage("declutter_set_porch_ok", e),
@@ -722,6 +747,8 @@ export interface CartLine {
   total_cents: number | null;
   /** Row 101: the item allows porch pickup. */
   porch_ok: boolean;
+  /** Owner 2026-10-28 (20261028235247): the ways the seller ticked; null = an older item (every way). Absent before deploy. */
+  handovers?: Handover[] | null;
   /** Slice 5: the order's frozen Helpr delivery fee (0 for a pickup; kept after a no-Helpr fallback). */
   delivery_cents?: number | null;
   /** Slice 5: the order's Helpr task (read with helpr_task_view), null for a pickup. */

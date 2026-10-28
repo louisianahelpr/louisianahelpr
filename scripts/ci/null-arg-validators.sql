@@ -89,9 +89,12 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('is_series_party',               'allow',    'user is on the recurring series (reads its holds, offers, releases; 20260927012806)'),
   ('is_safe_media_url',             'absent',   'NULL = no URL stored; nothing to render (nullable avatar_url CHECK)'),
   ('are_safe_media_urls',           'absent',   'NULL = no photo list stored (nullable jobs.photos / portfolio_urls CHECK)'),
+  ('declutter_handover_refused',    'deny',     'TRUE refuses this way at checkout (handover_not_offered; Q2462, 20261028235247); both checkouts refuse a NULL way before calling it, and NULL lines match no row (FALSE: nothing ticked to narrow)'),
+  ('declutter_pair_talking',        'deny',     'TRUE holds back the "or you get a strike" checkout reminders while a handover chat is open (Q2462, 20261028235249); a NULL side matches no talk (FALSE: the reminders go out as before)'),
   ('are_users_blocked',             'deny',     'TRUE refuses the interaction'),
   ('declutter_member_out',          'deny',     'TRUE = banned or 3 Declutter strikes: the trade is refused (20261014210518)'),
   ('declutter_seller_hidden',       'deny',     'TRUE hides a seller''s Declutter listings (20261014210518)'),
+  ('declutter_pair_needs_talk',     'allow',    'TRUE = this buyer and seller have an agreed sale whose shared ways leave out every way that always works, so a handover chat may open and the missed-checkout strike waits (Q2462, 20261028235249); a NULL side matches no cart line and COALESCE makes it FALSE'),
   ('declutter_in_agreed_sale',      'allow',    'TRUE = this member is a side of an agreed sale (in a cart or paid) on this item: may read its pickup details (20261015042253)'),
   ('declutter_slot_in_windows',     'allow',    'TRUE = a 30-minute pickup slot at this time fits one of this seller''s windows: the booking is valid (20261015042253)'),
   ('declutter_handover_photo_access', 'allow',  'TRUE = the caller may write (own folder, paid order) or read (a party or an admin) this declutter-handover object (20261017055502)'),
@@ -256,6 +259,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- A posts J, so A (the caller) is a party to it as a series (the poster branch).
   ('is_series_party',               '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101''::uuid'], ARRAY[1]),
   -- B has Declutter item I (seller A) in the cart (the 'declutter' fixture step), so the non-NULL call is TRUE.
+  -- B has item I (seller A) in the cart and A offers it by safe meeting spot only (the 'declutter' step), so the pair needs to talk.
+  ('declutter_pair_needs_talk',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000b''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('declutter_in_agreed_sale',      NULL, ARRAY['''00000000-0000-4000-8140-000000000301''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A's Monday window is 09:00-18:00 Louisiana time; 20:00Z on Monday 2026-10-19 is 15:00 CDT, inside it.
   ('declutter_slot_in_windows',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''2026-10-19 20:00:00+00''::timestamptz'], ARRAY[1,2]),
@@ -388,6 +393,11 @@ BEGIN
                            '00000000-0000-4000-8140-00000000000a', 1000, 'buy', 'in_cart', now() + interval '1 day')$q$;
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    VALUES ('00000000-0000-4000-8140-00000000000a', 1, '09:00', '18:00')$q$;
+          -- Q2462 (20261028235247): A offers item I by a safe meeting spot only, so A and B need to talk the handover through.
+          IF EXISTS (SELECT 1 FROM information_schema.columns
+                      WHERE table_schema = 'public' AND table_name = 'declutter_items' AND column_name = 'handovers') THEN
+            EXECUTE $q$UPDATE public.declutter_items SET handovers = ARRAY['meetup'] WHERE id = '00000000-0000-4000-8140-000000000301'$q$;
+          END IF;
           -- L: D's live item (D is ID-verified), and Declutter on for testers, for declutter_item_link_visible (Q2426).
           EXECUTE $q$INSERT INTO public.declutter_items (id, seller_id, status, title, category, condition_stars, delivery_size,
                                                         price_cents, current_price_cents, area_label, area_lat, area_lng)

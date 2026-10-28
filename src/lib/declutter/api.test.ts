@@ -119,6 +119,7 @@ import {
   requestAiDraft,
   requestAiDraftFromPhotos,
   setDropPct,
+  setHandovers,
   AI_DRAFT_PHOTOS,
   AI_TIMEOUT_MS,
   reviewListing,
@@ -368,6 +369,18 @@ describe("reads", () => {
     await expect(fetchQuestions("i1")).resolves.toEqual([]);
   });
 
+  // Owner 2026-10-28: before 20261028235247 deploys only porch can be recorded (setPorchOk), never a refused save.
+  // @mutate src/lib/declutter/api.ts |     await setPorchOk(itemId, ways.includes("porch")); |     await setPorchOk(itemId, true);
+  it("setHandovers before its RPC is deployed: records porch through setPorchOk", async () => {
+    h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_set_handovers(p_handovers, p_item_id) in the schema cache", hint: null } });
+    h.queue.push(ok(false));
+    await expect(setHandovers("i1", ["meetup"])).resolves.toEqual(["meetup"]);
+    expect(h.rpcs).toEqual([
+      ["declutter_set_handovers", { p_item_id: "i1", p_handovers: ["meetup"] }],
+      ["declutter_set_porch_ok", { p_item_id: "i1", p_porch_ok: false }],
+    ]);
+  });
+
   // Owner 2026-10-28, money review #1: before 20261028160637 deploys, 5% and off are already what the server does; another step is refused in words.
   // @mutate src/lib/declutter/api.ts |     if (pct === 0 \|\| pct === 5) return pct; |     return pct;
   it("setDropPct before its RPC is deployed: 5% and off pass, any other step says it is not ready", async () => {
@@ -524,6 +537,7 @@ describe("RPC writes", () => {
     { label: "reviewListing approve", call: () => reviewListing("i1", true, "looks fine"), rpc: "declutter_admin_review_item", args: [{ p_item_id: "i1", p_approve: true, p_note: "looks fine" }], data: "live", want: "live", code: "review_note_required" },
     { label: "removePhoto", call: () => removePhoto("p1"), rpc: "declutter_remove_item_photo", args: [{ p_photo_id: "p1" }], data: null, want: undefined, code: "photo_not_found" },
     { label: "withdrawItem", call: () => withdrawItem("i1"), rpc: "declutter_withdraw_item", args: [{ p_item_id: "i1" }], data: null, want: undefined, code: "item_not_editable" },
+    { label: "setHandovers", call: () => setHandovers("i1", ["porch", "meetup"]), rpc: "declutter_set_handovers", args: [{ p_item_id: "i1", p_handovers: ["porch", "meetup"] }], data: ["meetup", "porch"], want: ["meetup", "porch"], code: "invalid_handovers" },
     { label: "setDropPct", call: () => setDropPct("i1", 10), rpc: "declutter_set_drop_pct", args: [{ p_item_id: "i1", p_pct: 10 }], data: 10, want: 10, code: "invalid_drop_pct" },
   ];
 

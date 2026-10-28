@@ -11,7 +11,9 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { checkoutFree, claimFree, fetchMyCart, type DeclutterItem } from "@/lib/declutter/api";
+import { checkoutFree, claimFree, fetchMyCart, type DeclutterItem, type Handover } from "@/lib/declutter/api";
+import { wayAllowed } from "@/lib/declutter/handovers";
+import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
@@ -74,9 +76,15 @@ const FREE_HANDOVER: Record<FreeHandover, { title: string; words: string }> = {
  * are not offered for a free order. declutter_checkout_free sets the order at once, and the pickup time is
  * then booked like any paid pickup.
  */
-export function FreeCheckoutForSeller({ sellerId, porchOk, onDone }: { sellerId: string; porchOk: boolean; onDone: () => void }) {
+export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }: {
+  sellerId: string; porchOk: boolean; onDone: () => void;
+  /** Owner 2026-10-28: the ways the giver ticked for every item here (null = older items: as before). */
+  ways?: Handover[] | null;
+}) {
   const qc = useQueryClient();
-  const offered: FreeHandover[] = porchOk ? ["porch", "pickup_home"] : ["pickup_home"];
+  // An item made free on day 12 whose giver ticked only other ways offers nothing here: no fallback to the giver's
+  // door (Q2462); NoWayWorks below opens the chat with them.
+  const offered: FreeHandover[] = (porchOk ? (["porch", "pickup_home"] as FreeHandover[]) : (["pickup_home"] as FreeHandover[])).filter((h) => wayAllowed(ways, h));
   const [handover, setHandover] = useState<FreeHandover>(offered[0]);
   const chosen = offered.includes(handover) ? handover : offered[0];
   const confirm = useMutation({
@@ -102,9 +110,10 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, onDone }: { sellerId:
             </span>
           </label>
         ))}
-        {!porchOk && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
+        {!porchOk && ways === null && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
+        {offered.length === 0 && <NoWayWorks sellerId={sellerId} who="giver" />}
       </fieldset>
-      <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending} onClick={() => confirm.mutate()}>
+      <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending || offered.length === 0} onClick={() => confirm.mutate()}>
         {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
       <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>

@@ -118,6 +118,8 @@ vi.mock("@/lib/declutter/haulAway", () => ({
   cancelHaulAway: async () => "live",
   HAUL_AWAY_CLIENT_ERROR_COPY: { haul_away_job_stuck: "stuck" },
 }));
+// The handover chat (#3730): Selling's "Agree a handover" reads the member's open chats; none here.
+vi.mock("@/lib/declutter/handoverTalk", () => ({ fetchMyOpenHandoverTalks: async () => [], openHandoverTalk: async () => "t1" }));
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
   PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (

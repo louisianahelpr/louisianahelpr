@@ -84,6 +84,18 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   cart_empty: "Nothing from this seller is waiting for checkout.",
   // Row 101 porch default (20261017055504).
   porch_unavailable: "The seller asked to meet at their home for this item, so porch pickup isn't available. Choose pickup at the seller's home.",
+  // 20261028235247 (owner 2026-10-28): the ways the seller ticks for each item.
+  handover_not_offered: "The seller doesn't offer that way for one of these items. Choose another way to get it.",
+  // 20261028235249 (owner 2026-10-28, Q2462): the handover chat when no way the seller offers works.
+  no_agreed_sale: "This chat is only for a buyer and seller with an item waiting in the buyer's cart.",
+  talk_blocked: "You can't message this person.",
+  handover_way_open: "Porch pickup works for these items. Choose it at checkout.",
+  talk_recently_closed: "You already talked about this sale this week. Check out with a way the seller offers.",
+  talk_not_found: "We couldn't find this chat. It may have ended.",
+  talk_closed: "This chat has ended.",
+  invalid_message: "Write a message of up to 1,000 characters.",
+  message_rate_limited: "Slow down a little, then send again.",
+  invalid_handovers: "Tick at least one way buyers can get it. A free item is picked up from your porch.",
   invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
   // declutter_set_drop_pct (owner 2026-10-28).
   invalid_drop_pct: "Pick a price drop of 5, 10, 15 or 20 percent, or turn price drops off.",

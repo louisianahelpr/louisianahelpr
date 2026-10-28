@@ -43,3 +43,11 @@ export function dollarsToCents(v: string): number | null {
 
 /** Cents -> dollars for an input ("38", "38.50"). */
 export const centsToDollars = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
+
+/** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
+export function dollarsInputToCents(raw: string): number | null {
+  const t = raw.trim().replace(/^\$/, "");
+  if (!/^\d+(\.\d{1,2})?$/.test(t)) return null;
+  const cents = Math.round(Number(t) * 100);
+  return cents > 0 ? cents : null;
+}

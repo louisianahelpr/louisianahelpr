@@ -82,7 +82,7 @@ export function AppTopBar({
       data-testid="section-add"
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.18)] [&>svg]:w-[18px] [&>svg]:h-[18px]"
+      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint [&>svg]:w-[18px] [&>svg]:h-[18px]"
     >
       <Plus aria-hidden />
       {add.cta ?? add.label}

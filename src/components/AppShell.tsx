@@ -2,6 +2,7 @@ import { ReactNode, CSSProperties, forwardRef } from "react";
 import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { DESKTOP_BAR_H } from "@/lib/desktopBar";
 
 interface AppShellProps {
   /** Optional fixed header (back button + title, tabs, etc.) */
@@ -66,7 +67,7 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     //
     // `useIsWebDesktop()` is `!isNativePlatform() && >= 900px`, so this is 0 on
     // phone web and 0 in the native app, leaving both byte-identical.
-    const topBarOffset = useIsWebDesktop() ? 56 : 0;
+    const topBarOffset = useIsWebDesktop() ? DESKTOP_BAR_H : 0;
     const topOffset = bannerOffset + topBarOffset;
 
     return (

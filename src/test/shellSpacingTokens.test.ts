@@ -46,7 +46,8 @@ const SHELLS: { file: string; must: string[]; mustNot?: RegExp[] }[] = [
   },
   {
     file: "src/components/ui/PageScaffold.tsx",
-    must: ["pt-[var(--shell-gap)] lg:pt-5", "gap-[var(--shell-gap)] lg:gap-4"],
+    // Desktop under the top bar: 12px (src/test/desktopHeadLevelWithRail.test.ts); with no bar, 20px.
+    must: ['pt-[var(--shell-gap)] ${headerInBar ? "lg:pt-3" : "lg:pt-5"}', "gap-[var(--shell-gap)] lg:gap-4"],
     mustNot: [/pt-3 lg:pt-5/, /gap-3 lg:gap-4/],
   },
   {

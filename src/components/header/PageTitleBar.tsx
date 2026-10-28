@@ -124,8 +124,9 @@ export function PageTitleBar({ title, back, actions, phone, desktopGap = true, m
     return (
       <>
         {createPortal(<DesktopRow title={title} back={back} actions={actions} moment={moment} />, target)}
-        {/* The ONE gap between the bar and a page's first content, every page. */}
-        {desktopGap && <div aria-hidden className="h-5 shrink-0" data-page-title-gap="" />}
+        {/* The ONE gap between the bar and a page's first content, every page: 8px under the 70px bar, so a
+            section's tabs row is level with the rail's Create (src/lib/desktopBar.ts). */}
+        {desktopGap && <div aria-hidden className="h-2 shrink-0" data-page-title-gap="" />}
       </>
     );
   }

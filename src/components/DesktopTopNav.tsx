@@ -6,6 +6,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
 import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
 import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
+import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -59,6 +60,8 @@ const DesktopTopNav = () => {
         // green cast shifting under the nav on the marketing header.
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
+        // The row (h-14) sits 14px down, so its middle is the rail logo's middle (src/lib/desktopBar.ts).
+        paddingTop: DESKTOP_BAR_PAD_TOP,
       }}
     >
       <div className="w-full flex h-14 items-center justify-end gap-2 px-5 lg:px-6 xl:px-6">

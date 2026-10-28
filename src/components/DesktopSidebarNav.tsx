@@ -194,9 +194,11 @@ const DesktopSidebarRail = () => {
         borderRight: "1px solid hsl(var(--border))",
       }}
     >
-      {/* The 40px emblem's middle sits on the global top bar's middle (h-14: 28px), so the page title beside it
-          reads on ONE line with the logo (owner 2026-10-28: "move the job title down so it's even with the H logo"). */}
-      <div className="px-5 pt-2 pb-4 shrink-0">
+      {/* The logo sits 20px down (a 44px box, middle at 42px) and the top bar's row is centred on that same 42px
+          (src/lib/desktopBar.ts), so the page title reads level with the H (owner 2026-10-28: "move the job title
+          down so it's even with the H logo"; the title moves, not the logo). Create's middle (104px) is the section
+          tabs row's. Guard: src/test/desktopHeadLevelWithRail.test.ts. */}
+      <div className="px-5 pt-5 pb-4 shrink-0">
         <HelprMark to="/home" size="md" emblemOnly />
       </div>
       <div className="px-3 pb-3 shrink-0">

@@ -188,3 +188,11 @@
 {"sha":"06697e8c677c063412c394a22bc11bf555380539","reviewer":"lh-money-escrow","verdict":"approve (lead: notice links and copy only; empty cart returns a reason instead of raising)","date":"2026-10-28"}
 {"sha":"51922367b1741b86525928af55938278d9295115","reviewer":"lh-authz-rls","verdict":"approve (lead: one count only; sign-in + switch; test sellers hidden; anon revoked)","date":"2026-10-28"}
 {"sha":"935df8162fc6d84376ee7f4c86adf6087a998af6","reviewer":"code-review","verdict":"approve (lead: confirm sheet swap, same words, no money change)","date":"2026-10-28"}
+{"sha":"3f3137bf39f95d6c601d05b75e18a07a7be97854","reviewer":"lh-money-escrow","verdict":"approve (lead: buyer's own in_cart line FOR UPDATE; refuses while a Stripe page can be paid (35 min); unpaid order superseded so a late payment refunds; item back live; no strike per owner 2026-10-28)","date":"2026-10-28"}
+{"sha":"faa6f3fa8ead91662231e800a674dd1cf9e7b5d9","reviewer":"code-review","verdict":"approve (lead: reads the seller's own payout rows; display only)","date":"2026-10-28"}
+{"sha":"983885971b43be03a0931bf2e34091a155c9e0d0","reviewer":"lh-money-escrow","verdict":"approve (lead: porch pick-a-day; auto-pay waits for the chosen day; restated from effective bodies, no fee words; two member RPCs limited to the order's two sides)","date":"2026-10-28"}
+{"sha":"dc74128ac1aee5c8768af26202e007c2ed59c8cd","reviewer":"lh-money-escrow","verdict":"approve (lead: notices only on admin decisions; admin note never shown)","date":"2026-10-28"}
+{"sha":"6bb9c952931d145f9b7e0163b9da6584d116ecdb","reviewer":"lh-money-escrow","verdict":"approve (lead: link arguments only in 12 restated functions)","date":"2026-10-28"}
+{"sha":"5ac2ac3e7bc6cb1dc742000f1d637f51a242e7c4","reviewer":"lh-authz-rls","verdict":"approve (lead: owner-only FOR UPDATE, ban+feature checks, anon revoked; address kept seller-only like withdraw)","date":"2026-10-28"}
+{"sha":"a6a6ec883d8def10f3b74add20a6e428503d5ec4","reviewer":"lh-authz-rls","verdict":"approve (lead: windows only; order read limited to paid buyer, seller, assigned Helpr)","date":"2026-10-28"}
+{"sha":"a3ca0e7570f3e1c92da0b1119fed73e02fd2691c","reviewer":"lh-authz-rls","verdict":"approve (lead: ids only, one bit per live listing; sign-in + switch; anon revoked)","date":"2026-10-28"}

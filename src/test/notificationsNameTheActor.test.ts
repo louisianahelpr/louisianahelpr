@@ -34,6 +34,10 @@ const ROOT = process.cwd();
 
 /** SQL functions that may write "Someone" for a person. name -> why. Exact and two-way. */
 const SQL_SOMEONE_OK: Record<string, string> = {
+  declutter_claim_free:
+    "HINT 'Someone else got this item first.': the same error as declutter_take_item's, on a free claim; reached by the inventory once it became transitive (20261028162048)",
+  declutter_question_notice:
+    "'Someone asked about ...': who asked a Declutter question is never shown to the seller (Q2278, src/test/declutterQuestionAskerHidden.test.ts; the item page says \"Asked by a neighbor\")",
   declutter_take_item:
     "HINT 'Someone else got this item first.': an error to the member trying to take an item, not a notice; the member who got it first is a stranger the app never names to them",
   declutter_wanted_record_match:
@@ -53,12 +57,18 @@ const producers = sqlProducers(ROOT);
 
 /** Producers, and every function whose body calls one (it composes the words the producer writes). */
 function sqlInventory(): string[] {
+  // Transitive: a function that calls a function that calls a producer feeds it too. Since
+  // 20261028162048 declutter_notify wraps the producer declutter_notify_strict, so the ~70
+  // Declutter RPCs that call declutter_notify are two steps from the insert.
   const set = new Set(producers);
-  const callsProducer = new RegExp(`\\b(?:public\\s*\\.\\s*)?(?:${producers.join("|")})\\s*\\(`, "i");
-  for (const [name, def] of defs) {
-    if (set.has(name)) continue;
-    const body = blankSqlComments(def.stmt).replace(/^[\s\S]*?\bas\s+(\$\w*\$)/i, "");
-    if (callsProducer.test(body)) set.add(name);
+  for (let grew = true; grew; ) {
+    grew = false;
+    const callsProducer = new RegExp(`\\b(?:public\\s*\\.\\s*)?(?:${[...set].join("|")})\\s*\\(`, "i");
+    for (const [name, def] of defs) {
+      if (set.has(name)) continue;
+      const body = blankSqlComments(def.stmt).replace(/^[\s\S]*?\bas\s+(\$\w*\$)/i, "");
+      if (callsProducer.test(body)) { set.add(name); grew = true; }
+    }
   }
   return [...set].sort();
 }

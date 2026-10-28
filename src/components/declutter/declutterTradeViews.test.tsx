@@ -407,6 +407,17 @@ describe("Declutter slice 3 screens", () => {
     state.setupFeeCents = 0;
   });
 
+  // #20: a total that is only the item and the one-time setup fee carries no service-fee words.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const includesServiceFee = payCents > listedCents; |   const includesServiceFee = false;
+  it("#20: the service-fee words show only when the total holds the buyer's fee", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line];
+    show(<CartView />);
+    await screen.findByRole("button", { name: /^Pay \$/ });
+    expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+  });
+
   // lh-money-escrow review of Q2352 #5: until the fee answer is in, the total never reads $2 low without saying so.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {!setupFeeKnown && <span | {false && <span
   it("Q2352: while the setup fee answer is not in, the total says '+ any setup fee'", async () => {
@@ -457,7 +468,8 @@ describe("Declutter slice 3 screens", () => {
     // Board 161: two items, one checkout. Owner 2026-10-25 (issue #3672): the bill is the items and what you pay,
     // never a fee line, name or number.
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         <div><dt>Buyer's fee (5% + 70¢, once)</dt><dd>{formatPrice(totalCents - itemsTotalCents)}</dd></div>{setupFeeCents > 0 && (
-    expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05$/);
+    // #20 (owner 2026-10-28, "Words only"): the total says it holds a service fee, never how much.
+    expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05Includes a small Louisiana Helpr service fee\.$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
     // @mutate src/components/declutter/DeclutterTradeViews.tsx | <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p> | <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one payment.</p>
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
@@ -507,7 +519,7 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/Helpr delivery\$40/);
-    expect(bill.textContent).not.toMatch(/fee|%|¢|\$0\.85/i);
+    expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$0\.85/i);
     expect(bill.textContent).toMatch(/You pay\$43\.85/);
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
@@ -598,8 +610,8 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/Seller delivery\$20/);
-    expect(bill.textContent).toMatch(/^Item\$3Seller delivery\$20You pay\$24\.85$/);
-    expect(bill.textContent).not.toMatch(/fee|%|¢|\$1\.85/i);
+    expect(bill.textContent).toMatch(/^Item\$3Seller delivery\$20You pay\$24\.85Includes a small Louisiana Helpr service fee\.$/);
+    expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$1\.85/i);
     fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
   });

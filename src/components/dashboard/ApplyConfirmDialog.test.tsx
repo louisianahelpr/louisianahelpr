@@ -386,6 +386,13 @@ describe("ApplyConfirmDialog offline toast (Q131)", () => {
     expect(screen.getByRole("button", { name: "Apply now" })).toBeInTheDocument();
   });
 
+  // Deep audit 2026-10-28: with only the "a neighbor" fallback name, the note label read "Say hi to a".
+  it("never says 'Say hi to a' when the poster's name is only the fallback", () => {
+    render(<ApplyConfirmDialog {...makeProps({ confirmApplyJob: makeJob({ posterName: "a neighbor" }) })} />);
+    expect(screen.queryByText(/Say hi to a\b/)).toBeNull();
+    expect(screen.getByText(/Note to the person who posted this job/)).toBeInTheDocument();
+  });
+
   // Board 58 (lead): the sheet takes the initial focus, not the fee breakdown's disclosure.
   it("board 58: opens with focus on the sheet", async () => {
     render(<ApplyConfirmDialog {...makeProps()} />);

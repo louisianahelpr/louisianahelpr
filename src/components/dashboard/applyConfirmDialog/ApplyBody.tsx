@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { POSTER_NAME_FALLBACK } from "@/components/dashboard/JobPosterCard";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -226,7 +227,10 @@ export function ApplyBody({
 
   // Board 58: the button names the job's price, the same number the summary card shows. A crew job
   // is split between Helprs, so it says "Apply now" rather than a price no one Helpr gets.
-  const posterFirst = confirmApplyJob?.posterName?.trim().split(/\s+/)[0] ?? "";
+  // The poster's first name, or nothing when only the "a neighbor" fallback is known: "Say hi to a" read
+  // as broken (deep audit 2026-10-28, real data whenever the poster's name lookup misses).
+  const posterName = confirmApplyJob?.posterName?.trim() ?? "";
+  const posterFirst = posterName && posterName !== POSTER_NAME_FALLBACK ? posterName.split(/\s+/)[0] : "";
   // A crew job (is_group_job) splits the price; helpers_needed alone is never read as a split (helpersNeededSplitIsGroupGated).
   const single = !confirmApplyJob?.is_group_job;
   // Only on the standalone sheet (board 58): inline on the job detail sheet the price chip sits right above.

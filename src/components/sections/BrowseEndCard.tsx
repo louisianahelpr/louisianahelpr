@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Bell, CheckCircle2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -19,12 +20,15 @@ export function BrowseEndCard({
   onWiden,
   widenLabel = "Widen distance",
   onAlerts,
+  footnote,
 }: {
   /** Omit where there is no distance filter, or it is already "Any distance". */
   onWiden?: () => void;
   widenLabel?: string;
   /** Omit where the section has no alert to turn on. */
   onAlerts?: () => void;
+  /** A quiet line under the card's actions, inside the card (Declutter's "Can't find it?" link, owner 2026-10-28). */
+  footnote?: ReactNode;
 }) {
   const body = onWiden
     ? onAlerts
@@ -58,6 +62,7 @@ export function BrowseEndCard({
             </div>
           ) : undefined
         }
+        footnote={footnote}
       />
     </div>
   );

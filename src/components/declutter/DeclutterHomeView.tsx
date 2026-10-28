@@ -10,7 +10,7 @@
  * open the tab that now holds them. Hidden unless the 'declutter' switch is on
  * for the member (DeclutterGate).
  */
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -328,6 +328,26 @@ function MovingOutEntry({ on }: { on: boolean }) {
 }
 
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
+// The Wanted tab, last (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
+const MINE_TABS_WITH_WANTED = [...MINE_TABS, "wanted"] as const;
+
+/**
+ * Five tabs do not fit one line at 375 (Browse's count and two badges): the row scrolls sideways (SectionTabs'
+ * overflow-x-auto), so the selected tab is scrolled into the row's view whenever it changes, never left off-screen.
+ */
+function useSelectedTabInView(view: string) {
+  const ref = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const list = ref.current?.querySelector<HTMLElement>('[role="tablist"]');
+    const tab = list?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]');
+    if (!list || !tab) return;
+    const l = list.getBoundingClientRect();
+    const t = tab.getBoundingClientRect();
+    if (t.right > l.right) list.scrollLeft += t.right - l.right;
+    else if (t.left < l.left) list.scrollLeft -= l.left - t.left;
+  }, [view]);
+  return ref;
+}
 
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
@@ -349,7 +369,7 @@ export default function DeclutterHome() {
   const { todo, settled: todoSettled } = useDeclutterTodo();
   const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled);
   const wantedOn = wanted.on;
-  const [sectionTab] = useSectionTab(MINE_TABS);
+  const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS);
   const asked = params.get("view");
   const legacy = OLD_DECLUTTER_VIEWS.includes(asked as OldDeclutterView) ? (asked as OldDeclutterView) : null;
   // ?view= is the pre-2026-10-19 address (still in sent notifications and
@@ -358,6 +378,7 @@ export default function DeclutterHome() {
   const subView: "deliver" | "wanted" | null = asked === "deliver" ? "deliver" : asked === "wanted" && wantedOn ? "wanted" : null;
   const fromView: DeclutterTab | null = legacy ? oldDeclutterView(legacy, todo) : asked === "buying" || asked === "selling" ? asked : null;
   const view: DeclutterTab = subView ?? fromView ?? sectionTab;
+  const tabRowRef = useSelectedTabInView(tabsReady ? view : "");
   // An old ?view= link is rewritten to ?tab= once the badges' reads are in
   // (they decide which side an offers/cart link meant), keeping its other params.
   useEffect(() => {
@@ -376,11 +397,12 @@ export default function DeclutterHome() {
   // the tabs: Jobs' layout (owner 2026-10-28, DeclutterBrowseView).
   const tabsFor = (browse?: DeclutterBrowseHeader) => (
     <>
+    <div ref={tabRowRef} className="contents">
     <SectionTabs
       label="Declutter view"
       browseCount={browse?.count}
       end={browse?.end}
-      value={(view === "buying" || view === "selling" || view === "deliver" || view === "browse" ? view : null) as "buying" | "selling" | "deliver"}
+      value={view}
       onChange={(v) =>
         setParams((p) => {
           const next = new URLSearchParams(p);
@@ -395,8 +417,10 @@ export default function DeclutterHome() {
         { value: "buying", label: "Buying", count: todo?.buying },
         { value: "selling", label: "Selling", count: todo?.selling },
         { value: "deliver", label: "Deliver" },
+        ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
       ]}
     />
+    </div>
     {browse?.below}
     </>
   );

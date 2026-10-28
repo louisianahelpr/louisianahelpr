@@ -19,7 +19,11 @@
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
  * @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: SellingGroup) => only === null \|\| only === g; |   const show = (_g: SellingGroup) => true;
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
- * @mutate src/components/declutter/DeclutterHomeView.tsx |           { value: "selling", label: "Selling", count: todo?.selling }, |           { value: "selling", label: "Selling", count: todo?.selling },\n          { value: "wanted", label: "Wanted" },
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[],
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[{ value: "wanted" as const, label: "Wanted" }],
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink />} |             footnote={null}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             action={<WantedLink />} |             action={null}
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine") return "selling"; |   if (view === "mine") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
@@ -35,6 +39,8 @@ import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
 const SOON = new Date(Date.now() + 20 * 3_600_000).toISOString();
 
 const state = {
+  live: [] as unknown[],
+  wantedOn: true,
   mine: [] as unknown[],
   offers: [] as unknown[],
   cart: [] as unknown[],
@@ -60,8 +66,9 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => {
 vi.mock("@/hooks/useFeature", () => ({
   // Every switch on except seller delivery, which this suite does not cover (its own tests do:
   // declutterTradeViews.test.tsx, src/test/declutterSellerDelivery.test.ts); with it on, porch reads "Porch or safe place".
-  useFeature: (key: string) => key !== "declutter_seller_delivery",
-  useFeatureStatus: () => ({ on: true, settled: true }),
+  // 'declutter_wanted' follows state.wantedOn (the Wanted tab and Browse's "Can't find it?" link, owner 2026-10-28).
+  useFeature: (key: string) => key !== "declutter_seller_delivery" && (key !== "declutter_wanted" || state.wantedOn),
+  useFeatureStatus: (key: string) => ({ on: key !== "declutter_wanted" || state.wantedOn, settled: true }),
 }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
@@ -115,7 +122,9 @@ vi.mock("./DeclutterHandoverViews", () => ({
 // Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
-  fetchLiveItems: async () => [],
+  fetchLiveItems: async () => state.live,
+  fetchWatching: async () => new Set(),
+  setWatch: async () => "ok",
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
   fetchPhotos: async () => [],
@@ -225,22 +234,56 @@ const tab = (name: RegExp) => screen.getByRole("tab", { name });
 
 describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () => {
   beforeEach(() => {
+    state.live = [];
+    state.wantedOn = true;
     state.mine = [];
     state.offers = [];
     state.cart = [];
     where = "";
   });
 
-  it("owner 10-19 + 10-28: Browse | Buying | Selling | Deliver, one word each, Browse leftmost and the default; Wanted's entry is hidden even with its switch on", async () => {
+  it("owner 10-19 + 10-28: Browse | Buying | Selling | Deliver | Wanted, one word each, Browse leftmost and the default", async () => {
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     const tabs = screen.getAllByRole("tab");
-    // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling).
-    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver"]);
+    // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling); Wanted last (owner 2026-10-28, "Both").
+    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Wanted"]);
     for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByText(/Wanted/)).toBeNull();
     expect(tabs.length).toBeGreaterThan(2);
+  });
+
+  it("owner 10-28: no Wanted tab and no \"Can't find it?\" link while 'declutter_wanted' is off; ?tab=wanted opens Browse", async () => {
+    state.wantedOn = false;
+    at("/declutter?tab=wanted");
+    await screen.findByRole("tablist", { name: "Declutter view" });
+    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver"]);
+    expect(tab(/^Browse/)).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
+    expect(screen.queryByText(/Wanted/)).toBeNull();
+  });
+
+  it("owner 10-28: Browse's \"Can't find it? Post what you're looking for\" opens the Wanted tab, under the list and in the no-results state", async () => {
+    // No results: the link sits in the empty state.
+    const empty = at("/declutter");
+    const inEmpty = await screen.findByTestId("declutter-wanted-link");
+    expect(inEmpty).toHaveTextContent("Can't find it? Post what you're looking for");
+    expect(inEmpty).toHaveAttribute("href", "/declutter?tab=wanted");
+    empty.unmount();
+    // A list: the link closes the end card under the cards.
+    state.live = [{ ...ITEM, id: "i40", seller_id: "s9", title: "Brass floor lamp" }];
+    at("/declutter");
+    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    const link = within(screen.getByTestId("browse-end-card")).getByTestId("declutter-wanted-link");
+    fireEvent.click(link);
+    expect(await screen.findByRole("heading", { name: "Your wanted posts" })).toBeInTheDocument();
+    expect(tab(/^Wanted/)).toHaveAttribute("aria-selected", "true");
+    expect(where).toBe("/declutter?tab=wanted");
+    // The way back: the Browse tab, right there in the same row.
+    fireEvent.click(tab(/^Browse/));
+    expect(await screen.findByText("Brass floor lamp")).toBeInTheDocument();
+    expect(where).toBe("/declutter");
   });
 
   it("owner 10-19: a status box shows only its list (highlighted); tapping it again shows every list", async () => {

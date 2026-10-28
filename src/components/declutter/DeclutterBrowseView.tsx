@@ -12,7 +12,7 @@
  * 2026-10-19); a saved search (Q2275) opens Browse with its filters in the URL.
  */
 import { lazy, Suspense, useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Sofa } from "lucide-react";
@@ -22,6 +22,7 @@ import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
 import { fetchDropStates, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -77,6 +78,28 @@ function useFillHeight() {
     return () => ro.disconnect();
   }, []);
   return { ref, height };
+}
+
+/**
+ * "Can't find it? Post what you're looking for" (owner 2026-10-28: "add a wanted link at the bottom of browse"): a
+ * quiet row under the list and inside the no-results state, to the Wanted tab. Only while 'declutter_wanted' is on
+ * for the viewer, so it is never a link to a view that is not there. Guard: src/components/declutter/declutterTabs.test.tsx.
+ */
+function WantedLink() {
+  const on = useFeature("declutter_wanted");
+  if (!on) return null;
+  return (
+    <p className="flex min-h-11 items-center justify-center text-center">
+      {/* One run of text (it wraps as a sentence at 320); link-standard's ::before gives it the 44px tap height. */}
+      <Link
+        to="/declutter?tab=wanted"
+        data-testid="declutter-wanted-link"
+        className="link-standard text-ds-15 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+      >
+        <span className="font-normal text-muted-foreground">Can't find it?</span> Post what you're looking for
+      </Link>
+    </p>
+  );
 }
 
 export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
@@ -223,6 +246,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
             icon={Sofa}
             title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
             body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
+            action={<WantedLink />}
           />
         ) : (
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>
@@ -246,6 +270,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
             // 2026-10-19).
             onWiden={from && maxMiles !== null ? () => setMaxMiles(widerMiles(maxMiles)) : undefined}
             widenLabel={from && maxMiles !== null ? (widerMiles(maxMiles) === null ? "Any distance" : `Widen to ${widerMiles(maxMiles)} mi`) : undefined}
+            footnote={<WantedLink />}
           />
         )}
       </div>

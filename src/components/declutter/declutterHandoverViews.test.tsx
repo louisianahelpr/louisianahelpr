@@ -109,7 +109,7 @@ describe("Q2425: a safe-spot meetup order", () => {
     state.bookings = [slot(-30)]; // the meeting is in 30 minutes
     show([line({ handover: "meetup" })]);
     expect(await screen.findByText("BRPD Safe Exchange Zone")).toBeInTheDocument();
-    expect(screen.getByText(/Meet at a safe spot · You're buying/)).toBeInTheDocument();
+    expect(document.querySelector("[data-order-head] p + p")?.textContent).toBe("Meet at a safe spot");
     expect(screen.getByRole("link", { name: /Open in Maps/ }).getAttribute("href")).toContain("30.46,-91.14");
     // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />} |           {order.side === "buyer" && <PickupAddresses lines={order.lines} />}
     // Let every read on the card settle before asserting the address is absent.
@@ -153,7 +153,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   it("slice 5: a delivery order shows the delivery card, never a booking, the address or a no-show button", async () => {
     show([line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400 })]);
     expect(await screen.findByText("Delivery card t1 for the buyer")).toBeInTheDocument();
-    expect(screen.getByText(/Helpr delivery · You're buying/)).toBeInTheDocument();
+    expect(document.querySelector("[data-order-head] p + p")?.textContent).toBe("Helpr delivery");
     expect(screen.queryByLabelText("Pick a pickup time")).toBeNull();
     expect(screen.queryByText("1234 Example St, Baton Rouge")).toBeNull();
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
@@ -275,8 +275,8 @@ describe("Declutter slice 4: paid-order cards", () => {
     state.handover = { set_out_at: "2026-10-20T15:00:00Z", set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByRole("list", { name: "Step 2 of 4: Ready" })).toBeInTheDocument();
-    expect(screen.getByText("Ready · it's out. Pick it up at your pickup time.")).toBeInTheDocument();
-    expect(screen.getByText(/You paid/).textContent).toMatch(/You paid \$42\.70 · the seller is paid after you pick it up/);
+    expect(screen.getByText("It's out. Pick it up at your pickup time.")).toBeInTheDocument();
+    expect(screen.getByText(/You paid/).textContent).toMatch(/You paid \$42\.70\. The seller is paid after you pick it up\./);
     expect(await screen.findByAltText("Where the item was left")).toHaveAttribute("src", "https://signed.test/s1/declutter/handover/o1/out.jpg");
   });
 
@@ -287,8 +287,46 @@ describe("Declutter slice 4: paid-order cards", () => {
     show([line({ my_side: "seller", handover: "porch", porch_ok: true })]);
     expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Step 1 of 4: Paid" })).toBeInTheDocument();
-    expect(screen.getByText("Paid · put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
+    expect(screen.getByText("Paid. Put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
     expect(screen.getByText(/You get/).textContent).toMatch(/You get \$40 when the buyer marks it picked up, or 24 hours after the pickup time once your porch photo is in/);
+  });
+
+  // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
+  // ("Paid · book a pickup…"), and a buyer's card no longer repeats "You're buying". The class: every step of every
+  // pickup kind, for both sides, read from the rendered card.
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx |     if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time."; |     if (at === 0) return side === "buyer" ? "Paid · book a pickup time." : "Paid. The buyer books a pickup time.";
+  // @mutate src/components/declutter/DeclutterPorchHandover.tsx | {done ? "." : ". The seller is paid after you pick it up."} | {done ? "." : " · the seller is paid after you pick it up."}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | {order.side === "seller" ? " · You're selling" : ""} | {order.side === "seller" ? " · You're selling" : " · You're buying"}
+  it("lead 10-28: every pickup step reads as plain sentences, and the buyer's card does not say \"You're buying\"", async () => {
+    const STEPS: Record<number, () => void> = {
+      0: () => { state.handover = null; state.bookings = []; },
+      1: () => { state.handover = { set_out_at: "2026-10-20T15:00:00Z", set_out_photo_path: null }; state.bookings = [slot(-120)]; },
+      2: () => { state.handover = { picked_up_at: "2026-10-20T15:00:00Z" }; state.bookings = [slot(30)]; },
+      3: () => { state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" }; state.bookings = [slot(30)]; },
+    };
+    let read = 0;
+    for (const handover of ["porch", "pickup_home"] as const) {
+      for (const side of ["buyer", "seller"] as const) {
+        for (const at of [0, 1, 2, 3]) {
+          STEPS[at]();
+          if (state.handover) state.handover.side = side;
+          const { container, unmount } = show([line({ my_side: side, handover, porch_ok: true, order_status: at === 3 ? "handed_over" : "paid" })]);
+          await waitFor(() => expect(container.querySelector(`[data-pickup-status="${at}"]`)).not.toBeNull());
+          const lines = [...container.querySelectorAll("[data-pickup-status] p")].map((p) => p.textContent ?? "");
+          expect(lines.length).toBeGreaterThan(0);
+          for (const t of lines) {
+            expect(t, `${handover}/${side}/step ${at}`).not.toMatch(/ · /);
+            expect(t, `${handover}/${side}/step ${at}`).toMatch(/[.!?]$/);
+          }
+          const head = container.querySelector("[data-order-head]")?.textContent ?? "";
+          if (side === "buyer") expect(head).not.toMatch(/You're buying/);
+          read += lines.length;
+          unmount();
+        }
+      }
+    }
+    // 2 kinds x 2 sides x 4 steps, each with its standing line (and a money note on most).
+    expect(read).toBeGreaterThan(16);
   });
 
   it("a handed-over pickup reads Done on the tracker", async () => {

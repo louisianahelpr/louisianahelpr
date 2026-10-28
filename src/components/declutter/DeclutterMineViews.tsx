@@ -33,19 +33,43 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { fetchMyItems } from "@/lib/declutter/api";
+import { fetchMyCart, fetchMyItems, fetchMyOffers } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { TakenDownSection } from "./DeclutterTakenDown";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
+import { DeclutterNotice } from "./declutterUi";
 
 const BUYING = ["cart", "offers", "purchases"] as const;
 type BuyingGroup = (typeof BUYING)[number];
 
+/**
+ * Which buying lists hold anything, from the same reads (and keys) the lists use, so this adds no request.
+ * Null while either read is loading or failed: then every list renders and shows its own loading or retry.
+ */
+function useBuyingHas(): Record<BuyingGroup, boolean> | null {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
+  if (!cart.data || !offers.data) return null;
+  const now = Date.now();
+  const mine = cart.data.filter((l) => l.my_side === "buyer");
+  return {
+    // CartView's own rule: a line still inside its 48 hours.
+    cart: mine.some((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now),
+    offers: offers.data.some((o) => o.my_side === "buyer"),
+    // PaidOrders' own rule: a paid line with its order.
+    purchases: mine.some((l) => l.status === "paid" && !!l.order_id),
+  };
+}
+
 export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
   const [only, toggle] = useStatusFilter(BUYING);
-  const show = (g: BuyingGroup) => only === null || only === g;
+  // Calmer Buying (lead 2026-10-28): under "All", an empty list is left out ("Your cart is empty." sat above a
+  // purchase), and when every list is empty the tab says so ONCE. A chosen chip still shows its list, empty or not.
+  const has = useBuyingHas();
+  const show = (g: BuyingGroup) => (only === null ? !has || has[g] : only === g);
+  const nothing = only === null && !!has && !BUYING.some((g) => has[g]);
   return (
     <div className="space-y-6">
       <StatusChips
@@ -59,6 +83,11 @@ export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
           { key: "purchases", label: "To pick up", count: todo?.purchasesOpen ?? 0, hot: true },
         ]}
       />
+      {nothing && (
+        <DeclutterNotice title="Nothing bought yet.">
+          When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.
+        </DeclutterNotice>
+      )}
       {show("cart") && <CartView />}
       {show("offers") && <OffersSection side="buyer" />}
       {show("purchases") && <PaidOrders side="buyer" />}

@@ -13,7 +13,7 @@ import { rpcData } from "@/lib/declutter/api";
 
 /** The distances a wanted post can reach (W5; the Browse choices without "any"). */
 export const WANTED_RADIUS_CHOICES = [5, 10, 25, 50] as const;
-export type WantedRadius = (typeof WANTED_RADIUS_CHOICES)[number];
+type WantedRadius = (typeof WANTED_RADIUS_CHOICES)[number];
 
 export interface WantedPost {
   id: string;

@@ -254,7 +254,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           <Suspense fallback={<HelprSpinner />}>
             <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
           </Suspense>
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
+          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />
         </>
       ) : order.handover === "delivery" ? (
         <>
@@ -511,7 +511,8 @@ const PROBLEM_WORDS: Record<ProblemReason, string> = {
   other: "Something else",
 };
 
-function ProblemForm({ orderId, open: openProp, onOpenChange }: { orderId: string; open?: boolean; onOpenChange?: (open: boolean) => void }) {
+/** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
+function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: { orderId: string; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean }) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   // Controlled from the order card when "Something's not right" opens it (board 159).
@@ -531,7 +532,7 @@ function ProblemForm({ orderId, open: openProp, onOpenChange }: { orderId: strin
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (!open) return <button type="button" className={btn} onClick={() => setOpen(true)}>Report a problem</button>;
+  if (!open) return trigger ? <button type="button" className={btn} onClick={() => setOpen(true)}>Report a problem</button> : null;
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       <label htmlFor={`dcl-reason-${orderId}`} className="block text-xs font-medium">What went wrong?</label>

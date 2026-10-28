@@ -230,6 +230,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
   // declutter-ai-draft room mode (moving-out mode).
   room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
+  // declutter-ai-draft draft mode for a NEW listing (photos in the request, owner 2026-10-28).
+  item_photos_invalid: "Claude couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
   ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",
   // declutter-checkout's delivery_quote (slice 5): the geocoder found no such address.
   address_not_found: "We couldn't find that address. Check the street number, street and town.",

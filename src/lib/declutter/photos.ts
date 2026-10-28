@@ -72,6 +72,19 @@ export async function cleanListingPhoto(file: File, maxDimension = 1920, quality
   return cleaned;
 }
 
+/** A cleaned photo as bare base64 (no data: prefix), for the photo tool's request body. */
+export function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const s = String(r.result ?? "");
+      resolve(s.slice(s.indexOf(",") + 1));
+    };
+    r.onerror = () => reject(r.error);
+    r.readAsDataURL(blob);
+  });
+}
+
 /** Storage path the server accepts: <seller uid>/declutter/<item id>/<file>. */
 export function listingPhotoPath(sellerId: string, itemId: string, nonce: string): string {
   const safe = nonce.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 60) || "photo";

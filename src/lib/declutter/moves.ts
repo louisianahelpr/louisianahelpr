@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
-import { cleanListingPhoto } from "@/lib/declutter/photos";
+import { blobToBase64, cleanListingPhoto } from "@/lib/declutter/photos";
 import { daysBetween, formatMoveDate, louisianaToday } from "@/lib/declutter/moveDates";
 import { attestItem, publishItem, requestAiCheck, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import { setupFeeRefusal } from "@/lib/declutter/setupFee";
@@ -99,18 +99,6 @@ export function chunk<T>(list: T[], size: number): T[][] {
 }
 
 /* ------------------------------------------------------------------------ */
-
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => {
-      const s = String(r.result ?? "");
-      resolve(s.slice(s.indexOf(",") + 1));
-    };
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(blob);
-  });
-}
 
 /**
  * Ask the photo tool what is in a room. The photos are cleaned (no location

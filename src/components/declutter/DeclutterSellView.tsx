@@ -45,6 +45,7 @@ import {
   setPorchOk,
   requestAiCheck,
   requestAiDraft,
+  requestAiDraftFromPhotos,
   setPickupWindows,
   updateDraft,
   type DeliverySize,
@@ -63,6 +64,7 @@ import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellItForMeEntry } from "./SellItForMe";
+import { SellAiDraftPanel, useSellAiDraft } from "./SellAiDraft";
 
 interface FormState {
   title: string;
@@ -121,7 +123,6 @@ export default function SellFlow() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [coords, setCoords] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [saving, setSaving] = useState(false);
-  const [aiBusy, setAiBusy] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
   // One tick for the four tax facts (owner 2026-10-28); attestItem still records all four.
@@ -180,6 +181,14 @@ export default function SellFlow() {
   }, [savedWindows.data]);
 
   const photoCount = (photos.data ?? []).length;
+  // Owner 2026-10-28: Claude writes the listing. A new listing's photos are still on the device, so they
+  // go in the request (never stored) and it runs by itself once the first ones are added; a saved draft
+  // asks from its uploaded photos. Either way "Write it again" asks once more.
+  const aiAsk = useMemo(
+    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId) : null) : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null),
+    [itemId, photoCount, held],
+  );
+  const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0 });
   const problem = useMemo(() => formProblem(form), [form]);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -297,31 +306,6 @@ export default function SellFlow() {
     }
   }
 
-  async function onAiDraft() {
-    if (!itemId) return;
-    setAiBusy(true);
-    try {
-      const d = await requestAiDraft(itemId);
-      setForm((f) => ({
-        ...f,
-        title: d.title,
-        description: d.description,
-        category: d.category,
-        deliverySize: d.deliverySize,
-        conditionStars: d.conditionStars,
-      }));
-      toast.success(
-        d.flagged
-          ? "Filled in. Check every detail. This item may not be allowed, so someone from Louisiana Helpr will look at it before it goes up."
-          : "Filled in. Check every detail, then save.",
-      );
-    } catch (err) {
-      toast.error(declutterErrorMessage(err));
-    } finally {
-      setAiBusy(false);
-    }
-  }
-
   async function onPublish() {
     if (!itemId) return;
     if (!attested) {
@@ -402,7 +386,7 @@ export default function SellFlow() {
             onRemoveUploaded={(photoId) => void onRemovePhoto(photoId)}
             onRemoveHeld={(i) => setHeld((h) => h.filter((_, j) => j !== i))}
             uploading={uploading}
-            ai={itemId && photoCount > 0 ? { busy: aiBusy, run: () => void onAiDraft() } : null}
+            aiPanel={aiAsk || ai.state.status !== "idle" ? <SellAiDraftPanel state={ai.state} onRun={() => void ai.run()} /> : null}
           />
           {/* "Sell it for me" (owner 2026-10-19): a new listing only, never on a draft already started. */}
           {!itemId && <SellItForMeEntry />}

@@ -14,6 +14,10 @@
  *          review should-fix 1). declutter_publish_item sends an unchecked or
  *          flagged listing to an admin (B19); the app runs `check` right
  *          before publishing.
+ *          A NEW listing has no draft yet (owner 2026-10-28): its 1-4 photos
+ *          come in the body instead of an itemId (photosDraft), never stored,
+ *          gated by declutter_assert_can_draft_from_photos as the caller plus
+ *          an hourly cap, like the room scan below.
  *   room   moving-out mode (docs/specs/declutter-moving-out.md): 1-4 photos
  *          of a ROOM, sent in the request body, never stored; the model lists
  *          up to 15 items it sees, each through sanitizeDraft (so each fails
@@ -77,6 +81,13 @@ const ITEM_SCHEMA = {
 };
 
 const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
+
+/** One item's listing from its photos: a saved draft's (mode 'draft') or a new listing's held photos (photosDraft). */
+const ITEM_SYSTEM_PROMPT = `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
+Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
+${BANNED_RULE}`;
+
+const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: ITEM_SCHEMA };
 
 /**
  * One Claude request (owner 2026-10-22: Claude only, Gemini removed) with its
@@ -158,6 +169,10 @@ serve(async (req) => {
 
   try {
     if (body?.mode === "room") return await roomScan(req, anon, admin, authData.user, body);
+    // A NEW listing's photos, still on the device (owner 2026-10-28): draft from the body, store nothing.
+    if (!shopItem && (body?.mode ?? "draft") === "draft" && body?.itemId === undefined && body?.photos !== undefined) {
+      return await photosDraft(req, anon, body);
+    }
     const itemId = typeof body?.itemId === "string" ? body.itemId : "";
     if (!UUID_RE.test(itemId)) return json({ error: "item_not_found" }, 404);
     const mode: "draft" | "check" = body?.mode === "check" ? "check" : "draft";
@@ -203,9 +218,7 @@ serve(async (req) => {
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
-    const systemPrompt = shopItem ? SHOP_ITEM_SYSTEM_PROMPT : `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
-Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
-${BANNED_RULE}`;
+    const systemPrompt = shopItem ? SHOP_ITEM_SYSTEM_PROMPT : ITEM_SYSTEM_PROMPT;
 
     const answer = await askModel(
       ANTHROPIC_API_KEY,
@@ -221,7 +234,7 @@ ${BANNED_RULE}`;
       images,
       shopItem
         ? SHOP_ITEM_TOOL.function
-        : { name: "draft_listing", description: "A draft listing for one used household item", parameters: ITEM_SCHEMA },
+        : ITEM_TOOL,
     );
     if (!answer.ok) {
       console.error("[declutter-ai-draft] model error:", answer.status, answer.detail);
@@ -297,8 +310,8 @@ ${BANNED_RULE}`;
 // createClient<any>: the bare ReturnType<typeof createClient> resolves its generics to never, which deno check refuses (PR #3294).
 type Client = ReturnType<typeof createClient<any>>;
 
-/** Gate codes declutter_assert_can_scan_room raises; anything else is ai_unavailable. */
-const ROOM_GATE_CODES = ["feature_disabled", "account_restricted", "declutter_strikes_blocked", "under_18", "not_authenticated"];
+/** Gate codes declutter_assert_can_scan_room and declutter_assert_can_draft_from_photos raise; anything else is ai_unavailable. */
+const MEMBER_GATE_CODES = ["feature_disabled", "account_restricted", "declutter_strikes_blocked", "under_18", "not_authenticated"];
 
 /** Mode 'room': list the items in 1-4 room photos. Saves nothing, stores no photo. */
 async function roomScan(req: Request, anon: Client, admin: Client, user: Parameters<typeof requireFeature>[2], body: Record<string, unknown>): Promise<Response> {
@@ -307,7 +320,7 @@ async function roomScan(req: Request, anon: Client, admin: Client, user: Paramet
   // The selling gates (ban, 3 strikes, under 18), as the caller.
   const { error: gateErr } = await anon.rpc("declutter_assert_can_scan_room");
   if (gateErr) {
-    const code = ROOM_GATE_CODES.find((c) => gateErr.message?.includes(c));
+    const code = MEMBER_GATE_CODES.find((c) => gateErr.message?.includes(c));
     if (!code) console.error("[declutter-ai-draft] room gate failed:", gateErr.message);
     return json({ error: code ?? "ai_unavailable" }, code ? 403 : 500);
   }
@@ -360,5 +373,51 @@ ${BANNED_RULE}`;
       conditionStars: d.conditionStars,
       flagged: d.flagged,
     })),
+  });
+}
+
+/**
+ * Mode 'draft' for a NEW listing (owner 2026-10-28): 1-4 of the item's photos,
+ * still on the seller's device, sent in the request body like the room scan.
+ * Never stored; nothing is saved. There is no draft yet, so the owner check is
+ * the selling gates themselves (declutter_assert_can_draft_from_photos, with the
+ * CALLER's token), and an hourly cap sits on top of the per-minute one.
+ */
+async function photosDraft(req: Request, anon: Client, body: Record<string, unknown>): Promise<Response> {
+  const { error: gateErr } = await anon.rpc("declutter_assert_can_draft_from_photos");
+  if (gateErr) {
+    // Includes the gate not deployed yet (PGRST202): fail closed, spend nothing.
+    const code = MEMBER_GATE_CODES.find((c) => gateErr.message?.includes(c));
+    if (!code) console.error("[declutter-ai-draft] photos-draft gate failed:", gateErr.message);
+    return json({ error: code ?? "ai_unavailable" }, code ? 403 : 500);
+  }
+  // Counted after the gates, so a refused caller spends nothing.
+  const hourly = await checkRateLimit(req, { windowMs: 3_600_000, maxRequests: 30, keyPrefix: "declutter-ai-photos" });
+  if (!hourly.allowed) return rateLimitResponse(hourly.retryAfter!, corsHeaders);
+  const photos = roomPhotosFromBody(body.photos);
+  if (!photos) return json({ error: "item_photos_invalid" }, 400);
+
+  const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
+  const answer = await askModel(
+    ANTHROPIC_API_KEY,
+    ITEM_SYSTEM_PROMPT,
+    "Draft the listing for this item.",
+    photos.map((p) => ({ mediaType: "image/jpeg", base64: p })),
+    ITEM_TOOL,
+  );
+  if (!answer.ok) {
+    console.error("[declutter-ai-draft] photos-draft model error:", answer.status, answer.detail);
+    return json({ error: "ai_unavailable" }, answer.status === 429 ? 429 : 502);
+  }
+  const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
+  if (!draft) return json({ error: "ai_unavailable" }, 502);
+  return json({
+    title: draft.title,
+    description: draft.description,
+    category: draft.category,
+    deliverySize: draft.deliverySize,
+    conditionStars: draft.conditionStars,
+    flagged: draft.flagged,
   });
 }

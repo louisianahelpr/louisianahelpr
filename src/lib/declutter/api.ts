@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
+import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
@@ -537,7 +537,11 @@ export interface AiDraft {
 export const AI_TIMEOUT_MS = 60_000;
 
 async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknown> {
-  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body: { itemId, mode }, timeout: AI_TIMEOUT_MS });
+  return invokeAiBody({ itemId, mode });
+}
+
+async function invokeAiBody(body: Record<string, unknown>): Promise<unknown> {
+  const { data, error } = await supabase.functions.invoke("declutter-ai-draft", { body, timeout: AI_TIMEOUT_MS });
   if (error) {
     // The client timeout aborted the request: before the answer's headers
     // (FunctionsFetchError around an AbortError) or while its body was read
@@ -562,6 +566,23 @@ async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknow
 /** Suggestions from the photos for the seller to edit (row 32). Saves nothing. */
 export async function requestAiDraft(itemId: string): Promise<AiDraft> {
   return (await invokeAi(itemId, "draft")) as AiDraft;
+}
+
+/** How many of a new listing's photos Claude looks at (the edge function's draft mode reads 4 too). */
+export const AI_DRAFT_PHOTOS = 4;
+
+/**
+ * Owner 2026-10-28: Claude writes a NEW listing from the photos still on the
+ * device (no draft exists before step 4). Each photo is cleaned (no location
+ * data) and sent once, smaller, in the request; it is never uploaded or kept.
+ * Saves nothing.
+ */
+export async function requestAiDraftFromPhotos(files: File[]): Promise<AiDraft> {
+  const list = files.slice(0, AI_DRAFT_PHOTOS);
+  if (list.length === 0) throw new Error("ai_photos_required");
+  const photos: string[] = [];
+  for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75)));
+  return (await invokeAiBody({ mode: "draft", photos })) as AiDraft;
 }
 
 /**

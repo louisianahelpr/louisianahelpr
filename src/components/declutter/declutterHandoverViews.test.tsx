@@ -178,6 +178,20 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByTestId("declutter-no-show-warning")).toBeNull();
   });
 
+  // Deep audit #25: each side moves a booked time once; after that the Move control is gone and the card says so.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const movedAlready = !!booked && | const movedAlready = false &&
+  it("after a side has moved the pickup once, it is no longer offered Move", async () => {
+    state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 1, seller_reschedules: 0 }];
+    const { unmount } = show([line()]);
+    expect(await screen.findByTestId("declutter-move-used")).toHaveTextContent("You've already moved this pickup once.");
+    expect(screen.queryByRole("button", { name: "Move" })).toBeNull();
+    unmount();
+    state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 0, seller_reschedules: 0 }];
+    show([line()]);
+    expect(await screen.findByText("Move it (you can do this once)")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
+  });
+
   it("a multi-item order lists every item's pickup address, not only the first item's (authz review 2.7)", async () => {
     show([line(), line({ line_id: "l2", item_id: "i2", item_title: "Rug" }), line({ line_id: "l3", item_id: "i3", item_title: "Lamp" })]);
     expect(await screen.findByText("9 Far Rd, Baton Rouge")).toBeInTheDocument();

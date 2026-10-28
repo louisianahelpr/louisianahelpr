@@ -36,6 +36,9 @@ export interface MyBooking {
   slot_end: string | null;
   porch_mode: "all_day" | "until" | null;
   porch_until: string | null;
+  /** Each side may move a booked time once (CHECK 0-1, row 52). Older rows read as 0. */
+  buyer_reschedules?: number;
+  seller_reschedules?: number;
 }
 
 export interface MyPayout {
@@ -54,7 +57,7 @@ export interface MyPayout {
 export async function fetchMyBookings(orderIds: string[]): Promise<MyBooking[]> {
   if (orderIds.length === 0) return [];
   const rows = unwrap(
-    await supabase.from("declutter_bookings").select("order_id, slot_start, slot_end, porch_mode, porch_until").in("order_id", orderIds),
+    await supabase.from("declutter_bookings").select("order_id, slot_start, slot_end, porch_mode, porch_until, buyer_reschedules, seller_reschedules").in("order_id", orderIds),
   );
   return (rows ?? []) as MyBooking[];
 }

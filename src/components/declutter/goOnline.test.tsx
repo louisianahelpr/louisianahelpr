@@ -4,7 +4,7 @@
  * offer are proven in SQL (src/test/pglite/helprGoOnline.pglite.mjs); this pins what the screen sends
  * and shows.
  *
- * @mutate src/components/declutter/GoOnlineCard.tsx |     mutationFn: (on: boolean) => setOnline(on, on ? { hours, radiusMiles: radius, where } : {}), |     mutationFn: (on: boolean) => setOnline(true, { hours, radiusMiles: radius, where }),
+ * @mutate src/components/declutter/GoOnlineCard.tsx |       if (!on) return setOnline(false, {}); |       if (!on) return setOnline(true, { hours, radiusMiles: radius, where });
  * @mutate src/lib/helprTasks/online.ts |   return !!s?.online_until && new Date(s.online_until).getTime() > now; |   return !!s?.online_until;
  * @mutate src/components/declutter/DeliveryOnlinePill.tsx |   if (!online) return null; |   if (false) return null;
  */

@@ -32,65 +32,61 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 }
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { fetchMyCart, fetchMyItems, fetchMyOffers } from "@/lib/declutter/api";
+import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
+import { fetchMyItems, fetchMyOffers } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
-import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
+import { CartView, OffersSection, PaidOrders, SectionHeading } from "./DeclutterTradeViews";
+import { bucketChips, EndedLine, useBuyingTracker } from "./BuyingOrders";
+import { ORDER_BUCKETS } from "./OrderSteps";
+import { usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { TakenDownSection } from "./DeclutterTakenDown";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 
-const BUYING = ["cart", "offers", "purchases"] as const;
-type BuyingGroup = (typeof BUYING)[number];
+const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
-/**
- * Which buying lists hold anything, from the same reads (and keys) the lists use, so this adds no request.
- * Null while either read is loading or failed: then every list renders and shows its own loading or retry.
- */
-function useBuyingHas(): Record<BuyingGroup, boolean> | null {
-  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+/** Whether the buyer has any offer (the offers are their own group, under the orders; the same read and key as OffersSection). */
+function useHasBuyerOffers(): boolean | null {
   const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers });
-  if (!cart.data || !offers.data) return null;
-  const now = Date.now();
-  const mine = cart.data.filter((l) => l.my_side === "buyer");
-  return {
-    // CartView's own rule: a line still inside its 48 hours.
-    cart: mine.some((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now),
-    offers: offers.data.some((o) => o.my_side === "buyer"),
-    // PaidOrders' own rule: a paid line with its order.
-    purchases: mine.some((l) => l.status === "paid" && !!l.order_id),
-  };
+  return offers.data ? offers.data.some((o) => o.my_side === "buyer") : offers.isError ? true : null;
 }
 
-export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
-  const [only, toggle] = useStatusFilter(BUYING);
-  // Calmer Buying (lead 2026-10-28): under "All", an empty list is left out ("Your cart is empty." sat above a
-  // purchase), and when every list is empty the tab says so ONCE. A chosen chip still shows its list, empty or not.
-  const has = useBuyingHas();
-  const show = (g: BuyingGroup) => (only === null ? !has || has[g] : only === g);
-  const nothing = only === null && !!has && !BUYING.some((g) => has[g]);
+/**
+ * Buying = an order tracker, mirroring Jobs > Posted (owner 2026-10-28: "buyers and sellers need a very organized way
+ * to keep track of all their purchases"): one chip per ORDER_BUCKETS group that holds orders, with its count; each
+ * order card shows its steps and ONE next action (BuyingOrders.tsx). A checkout still in the cart is the buyer's to
+ * pay, so it sits under Needs you. Offers are grouped on their own below the orders. With nothing at all the tab says
+ * so once.
+ */
+export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
+  const [asked, toggle] = useStatusFilter(BUCKET_KEYS);
+  const t = useBuyingTracker();
+  const chips = bucketChips(t.counts);
+  // A chip with nothing in it is not shown, so a stale ?status= for an empty group shows every order.
+  const only = asked && t.counts[asked] > 0 ? asked : null;
+  const offers = useHasBuyerOffers();
+  const settling = usePaySettling();
+  const orders = chips.length > 0;
+  const showCart = t.ready && (only === null || only === "needs_you") && (t.checkouts > 0 || settling.settling);
+  const ended = only === null || only === "cancelled" ? t.ended : [];
   return (
     <div className="space-y-6">
-      <StatusChips
-        value={only}
-        onPick={(k) => (k === null ? only && toggle(only) : toggle(k))}
-        chips={[
-          { key: "cart", label: "To pay", count: todo?.toPay ?? 0, hot: true },
-          // D2 (Cowork audit 2026-10-20): it counts the offers waiting for YOUR answer, so it says so (it read
-          // "Offers 0" above a listed offer waiting on the seller). Same verbs as To pay / Pick up.
-          { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true },
-          { key: "purchases", label: "To pick up", count: todo?.purchasesOpen ?? 0, hot: true },
-        ]}
-      />
-      {nothing && (
+      {orders && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
+      {t.ready && !orders && offers === false && !settling.settling && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. You then have 48 hours to check out.
         </DeclutterNotice>
       )}
-      {show("cart") && <CartView />}
-      {show("offers") && <OffersSection side="buyer" />}
-      {show("purchases") && <PaidOrders side="buyer" />}
+      {showCart && <CartView />}
+      <PaidOrders side="buyer" views={t.views} show={(id) => only === null || t.views.get(id)?.bucket === only} />
+      {ended.length > 0 && (
+        <section className="space-y-2" aria-label="Ended before paying">
+          <SectionHeading title="Ended before paying" />
+          <ul className="space-y-3">{ended.map((l) => <EndedLine key={l.line_id} line={l} />)}</ul>
+        </section>
+      )}
+      {offers && <OffersSection side="buyer" />}
     </div>
   );
 }

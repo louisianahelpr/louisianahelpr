@@ -1,0 +1,225 @@
+/**
+ * The Buying tab as an order tracker (owner 2026-10-28: "buyers and sellers need a very organized way to keep track
+ * of all their purchases"), mirroring Jobs > Posted: one chip row from ORDER_BUCKETS (Needs you · Waiting · Upcoming ·
+ * Done · Cancelled, only the chips that hold orders, each with its count), and each order card shows <OrderSteps> and
+ * its ONE next action as the button. Offers are their own group under the orders, never mixed into the chips.
+ *
+ * Every fact comes from the real rows the order's own panels read (and with their query keys, so nothing is read
+ * twice): the order status and handover kind (declutter_my_cart), the booked time (declutter_bookings), the handover row
+ * (declutter_my_handover: the porch photo, the pickup, the "I got it"), the seller-delivery booking and the Helpr task.
+ * A checkout still in the cart is the buyer's to pay, so it counts under Needs you. A read that has not answered yet
+ * leaves its fact unknown (false): an order is never filed further along than its rows show.
+ */
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
+import { fetchMyBookings, fetchMyHandover, type MyHandover } from "@/lib/declutter/handover";
+import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
+import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
+import { formatPrice } from "@/lib/declutter/distance";
+import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
+
+/** One paid order on the buyer's side, as the tracker files it. */
+export type BuyerOrderView = {
+  orderId: string;
+  facts: OrderFacts;
+  bucket: OrderBucket;
+  /** The one next move, when it is the buyer's ("Pick a pickup day", "I got it"); null when nothing is asked. */
+  action: string | null;
+  /** Where it stands, one plain sentence. */
+  standing: string;
+  /** "You paid $34.30." / "Free." */
+  money: string | null;
+};
+
+const KINDS: readonly OrderHandover[] = ["porch", "pickup_home", "meetup", "delivery", "seller_delivery"];
+const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[]).includes(h ?? "") ? (h as OrderHandover) : "pickup_home";
+
+/** What the order's rows say, per handover kind. Pure: the rule is tested apart from the screen. */
+export function buyerOrderFacts(
+  order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents">[] },
+  rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
+    sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at"> | null;
+    task?: Pick<TaskView, "accepted_at" | "picked_up_at" | "delivered_at"> | null },
+): OrderFacts {
+  const handover = kindOf(order.handover);
+  const base: OrderFacts = {
+    handover,
+    side: "buyer",
+    free: order.lines.length > 0 && order.lines.every((l) => l.price_cents === 0),
+    booked: false,
+    done: order.status === "handed_over",
+    // A paid order that was refunded in full (declutter_orders.status 'refunded') did not go ahead.
+    cancelled: order.status === "refunded",
+  };
+  const h = rows.handover;
+  const tookIt = !!(h?.picked_up_at || h?.confirmed_at);
+  switch (handover) {
+    case "porch":
+      return { ...base, booked: !!rows.slotStart, out: !!h?.set_out_at, pickedUp: tookIt };
+    case "seller_delivery": {
+      const sd = rows.sellerDelivery;
+      return { ...base, booked: sd?.status === "booked" && !!sd.slot_start, delivered: !!sd?.delivered_at };
+    }
+    case "delivery": {
+      const t = rows.task;
+      return { ...base, booked: !!t?.accepted_at, pickedUp: !!t?.picked_up_at, delivered: !!t?.delivered_at };
+    }
+    default:
+      return { ...base, booked: !!rows.slotStart, pickedUp: tookIt };
+  }
+}
+
+/** The buyer's one next move, named as the control that does it. Null when the order does not wait on the buyer. */
+export function buyerNextAction(f: OrderFacts): string | null {
+  if (!orderWaitsOnYou(f)) return null;
+  if (f.handover === "porch") return f.booked ? "I got it" : "Pick a pickup day";
+  if (f.handover === "pickup_home") return "Book a pickup time";
+  if (f.handover === "meetup") return "Book a time to meet";
+  return "I got it";
+}
+
+/** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
+export function buyerStanding(f: OrderFacts, when: string | null): string {
+  if (f.cancelled) return "Cancelled and refunded to your card.";
+  if (f.done) return "Handed over. It's yours.";
+  const at = orderStepAt(f);
+  switch (f.handover) {
+    case "porch":
+      return at === 0 ? "Pick the day you'll come for it."
+        : at === 1 ? `The seller puts it out ${when ? `for ${when}` : "on your day"} and posts a photo.`
+          : at === 2 ? "It's out on the porch. Pick it up, then tap I got it."
+            : "Picked up.";
+    case "pickup_home":
+      return at === 0 ? "Book a time to pick it up." : at === 1 ? `Pickup booked${when ? ` for ${when}` : ""}.` : "Picked up.";
+    case "meetup":
+      return at === 0 ? "Book a time to meet at the safe spot." : at === 1 ? `Meeting booked${when ? ` for ${when}` : ""}.` : "Met.";
+    case "seller_delivery":
+      return at === 0 ? "The delivery time isn't set yet." : at === 1 ? `Delivery booked${when ? ` for ${when}` : ""}.` : "Delivered. Tap I got it once you have it.";
+    case "delivery":
+      return at === 0 ? "Finding a Helpr to bring it." : at === 1 ? "A Helpr is on the way to pick it up." : at === 2 ? "Picked up. On its way to you." : "Delivered. Tap I got it once you have it.";
+  }
+}
+
+const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
+/** The buyer's paid orders in cart order (the same order, and so the same bookings key, as PaidOrdersSection). */
+export function buyerPaidOrders(cart: CartLine[]) {
+  const by = new Map<string, { orderId: string; handover: string | null; status: string | null; lines: CartLine[]; taskId: string | null }>();
+  for (const l of cart) {
+    if (l.my_side !== "buyer" || l.status !== "paid" || !l.order_id) continue;
+    const o = by.get(l.order_id) ?? { orderId: l.order_id, handover: l.handover, status: l.order_status, lines: [], taskId: l.delivery_task_id ?? null };
+    o.lines.push(l);
+    by.set(l.order_id, o);
+  }
+  return [...by.values()];
+}
+
+/** A checkout still waiting in the cart (one per seller, CartView's own rule: inside its 48 hours). */
+function openCheckouts(cart: CartLine[], now: number): number {
+  return new Set(cart.filter((l) => l.my_side === "buyer" && l.status === "in_cart" && new Date(l.checkout_by).getTime() > now).map((l) => l.seller_id)).size;
+}
+
+/** Cart lines that ended unpaid in the last 30 days (the cart's own window): the checkout ran out, or the seller called it off. */
+export function endedLines(cart: CartLine[]): CartLine[] {
+  return cart.filter((l) => l.my_side === "buyer" && (l.status === "missed" || l.status === "cancelled_by_seller"));
+}
+
+export type BuyingTracker = {
+  /** Null until the cart has answered. */
+  ready: boolean;
+  views: Map<string, BuyerOrderView>;
+  checkouts: number;
+  ended: CartLine[];
+  counts: Record<OrderBucket, number>;
+};
+
+export function useBuyingTracker(): BuyingTracker {
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
+  const lines = cart.data ?? [];
+  const orders = buyerPaidOrders(lines);
+  const live = orders.filter((o) => o.status === "paid");
+  const ids = orders.map((o) => o.orderId);
+  // The same keys as the order card's panels, so a card that opens reads nothing again.
+  const bookings = useQuery({ queryKey: ["declutter", "bookings", ids.join(",")], queryFn: () => fetchMyBookings(ids), enabled: ids.length > 0 });
+  const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
+  const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
+  const sd = live.filter((o) => o.handover === "seller_delivery");
+  const sdRows = useQueries({ queries: sd.map((o) => ({ queryKey: ["declutter", "seller-delivery-booking", o.orderId], queryFn: () => fetchSellerDeliveryBooking(o.orderId) })) });
+  const helpr = live.filter((o) => o.handover === "delivery" && o.taskId);
+  const tasks = useQueries({
+    queries: helpr.map((o) => ({ queryKey: ["helpr-tasks", "view", o.taskId], queryFn: () => fetchTaskView(o.taskId as string), meta: { persist: false } })),
+  });
+  const views = new Map<string, BuyerOrderView>();
+  const counts: Record<OrderBucket, number> = { needs_you: 0, waiting: 0, upcoming: 0, done: 0, cancelled: 0 };
+  for (const o of orders) {
+    const slot = (bookings.data ?? []).find((b) => b.order_id === o.orderId)?.slot_start ?? null;
+    const sdRow = sdRows[sd.indexOf(o)]?.data ?? null;
+    const facts = buyerOrderFacts(o, {
+      slotStart: slot,
+      handover: handovers[pickups.indexOf(o)]?.data ?? null,
+      sellerDelivery: sdRow,
+      task: tasks[helpr.indexOf(o)]?.data ?? null,
+    });
+    const bucket = orderBucket(facts);
+    counts[bucket]++;
+    const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null : slot;
+    const when = whenIso ? (o.handover === "seller_delivery" ? slotLabel(whenIso) : whenWords(whenIso)) : null;
+    const total = o.lines[0]?.total_cents ?? null;
+    views.set(o.orderId, {
+      orderId: o.orderId,
+      facts,
+      bucket,
+      action: buyerNextAction(facts),
+      standing: buyerStanding(facts, when),
+      // #6: a free item never reads like a paid order ("You paid $0").
+      money: facts.free ? "Free." : total != null && !facts.cancelled ? `You paid ${formatPrice(total)}.` : null,
+    });
+  }
+  const checkouts = openCheckouts(lines, Date.now());
+  counts.needs_you += checkouts;
+  const ended = endedLines(lines);
+  counts.cancelled += ended.length;
+  return { ready: !!cart.data, views, checkouts, ended, counts };
+}
+
+/** The chips that hold orders, in ORDER_BUCKETS order. */
+export function bucketChips(counts: Record<OrderBucket, number>) {
+  return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map((b) => ({ key: b.key, label: b.label, count: counts[b.key] }));
+}
+
+/**
+ * The top of a buyer's order card: the tracker, where it stands, what was paid, and the ONE next action. The rest of
+ * the card (the pickup panel, the address, reporting a problem, the review) opens under "Details", and the next
+ * action opens it at that control.
+ */
+export function BuyerOrderHead({ view, open, onOpen, onClose }: { view: BuyerOrderView; open: boolean; onOpen: () => void; onClose: () => void }) {
+  return (
+    <div className="space-y-2" data-buyer-order={view.bucket}>
+      <OrderSteps facts={view.facts} />
+      <p className="text-ds-14">{view.standing}</p>
+      {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        {view.action && !open && (
+          <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold" onClick={onOpen} data-next-action="">
+            {view.action}
+          </button>
+        )}
+        <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" aria-expanded={open} onClick={open ? onClose : onOpen}>
+          {open ? "Hide details" : "Details"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** A checkout that ended unpaid: nothing was charged (offers and checkouts charge only when paid). */
+export function EndedLine({ line }: { line: CartLine }) {
+  return (
+    <li className="rounded-[20px] border border-border bg-card p-4" data-ended-line="">
+      <p className="truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
+      <p className="text-ds-13 text-muted-foreground">
+        {line.status === "missed" ? "The 48 hours to check out ran out." : "The seller called off the sale."} Nothing was charged.
+      </p>
+    </li>
+  );
+}

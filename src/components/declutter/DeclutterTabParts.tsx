@@ -11,6 +11,7 @@ import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
+import type { BuyerOrderView } from "./BuyingOrders";
 
 /**
  * What needs the member on each side (the Buying / Selling badges), from the
@@ -66,12 +67,14 @@ export function NoSellerOffers() {
  * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
  * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
  */
-export function PaidOrders({ side }: { side: "buyer" | "seller" }) {
+export function PaidOrders({ side, views, show }: { side: "buyer" | "seller"; views?: Map<string, BuyerOrderView>; show?: (orderId: string) => boolean }) {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const lines = (cart.data ?? []).filter((l) => l.my_side === side);
   const todo = declutterTodo(lines, []);
   // CartView / SalesWaiting on the same tab show this read's loading and error.
   if (!cart.data) return null;
+  // Buying's tracker says "Nothing bought yet." once for the whole tab, and a chip shows only its own orders.
+  if (views && !lines.some((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id)))) return null;
   if (!lines.some((l) => l.status === "paid" && l.order_id)) {
     const buyer = side === "buyer";
     return (
@@ -90,10 +93,12 @@ export function PaidOrders({ side }: { side: "buyer" | "seller" }) {
   return (
     <PaidOrdersSection
       cart={lines}
+      views={views}
+      show={show}
       label={side === "buyer" ? "Purchases" : "Sold: pickup and payout"}
       heading={
         side === "buyer"
-          ? <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
+          ? views ? <SectionHeading title="Your orders" /> : <SectionHeading title="Purchases" todo={todo.purchasesOpen} todoWords="to pick up" />
           : <SectionHeading title="Sold: pickup and payout" todo={todo.salesOpen} todoWords="to hand over" />
       }
     />

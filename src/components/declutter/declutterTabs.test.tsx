@@ -13,7 +13,7 @@
  * and are stood in for here by one marker per order, so this file checks only
  * which tab each order lands on.
  *
- * @mutate src/components/declutter/DeclutterMineViews.tsx |           { key: "offers", label: "To answer", count: todo?.buyerOffers ?? 0, hot: true }, |           { key: "offers", label: "Offers", count: todo?.buyerOffers ?? 0, hot: true },
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |   const only = asked && t.counts[asked] > 0 ? asked : null; |   const only = asked;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3 hidden" aria-hidden onClick={() => navigate(sectionByKey("declutter").add.path)}>
  * @mutate src/components/declutter/DeclutterHomeView.tsx | {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></> | {view === "buying" ? <WantedView />
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <OffersSection side="seller" />} |       {show("offers") && null}
@@ -47,6 +47,7 @@ const state = {
   mine: [] as unknown[],
   offers: [] as unknown[],
   cart: [] as unknown[],
+  bookings: [] as unknown[],
 };
 
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
@@ -119,12 +120,18 @@ vi.mock("@/lib/declutter/haulAway", () => ({
 }));
 // One marker per paid order: which tab it lands on is what this file checks.
 vi.mock("./DeclutterHandoverViews", () => ({
-  PaidOrdersSection: ({ cart, heading }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode }) => (
+  PaidOrdersSection: ({ cart, heading, show }: { cart: { status: string; order_id: string | null; my_side: string }[]; heading?: React.ReactNode; show?: (id: string) => boolean }) => (
     <section>
       {heading}
-      {cart.filter((l) => l.status === "paid" && l.order_id).map((l) => <p key={l.order_id}>{`paid order ${l.order_id} as ${l.my_side}`}</p>)}
+      {cart.filter((l) => l.status === "paid" && l.order_id && (!show || show(l.order_id))).map((l) => <p key={l.order_id} data-paid-marker="">{`paid order ${l.order_id} as ${l.my_side}`}</p>)}
     </section>
   ),
+}));
+// Buying's tracker (BuyingOrders.tsx) reads each paid order's booking and handover row: none booked, nothing handed over.
+vi.mock("@/lib/declutter/handover", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/handover")>()),
+  fetchMyBookings: async () => state.bookings,
+  fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null, set_out_photo_path: null, picked_up_at: null }),
 }));
 // Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
 vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
@@ -247,6 +254,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.mine = [];
     state.offers = [];
     state.cart = [];
+    state.bookings = [];
     where = "";
   });
 
@@ -378,11 +386,12 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Lead 2026-10-28 (Buying, calmer; shot round2/buying-paid-375-light.png): "Your cart is empty." and "You haven't
   // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
   // ONCE; a chosen chip still shows its own list's empty state.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: BuyingGroup) => (only === null ? !has \|\| has[g] : only === g); |   const show = (g: BuyingGroup) => only === null \|\| only === g;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {nothing && ( |       {false && (
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = t.ready && (only === null \|\| only === "needs_you") && (t.checkouts > 0 \|\| settling.settling); |   const showCart = t.ready;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers === false && !settling.settling && ( |       {false && (
   it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
     state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
-    const first = at("/declutter?tab=buying");
+    // ?status=done with nothing done (a group that just emptied): every order shows, never a blank tab.
+    const first = at("/declutter?tab=buying&status=done");
     expect(await screen.findByText("paid order ord-bought as buyer")).toBeInTheDocument();
     expect(screen.queryByText("Your cart is empty.")).toBeNull();
     expect(screen.queryByRole("region", { name: "Your cart" })).toBeNull();
@@ -400,10 +409,60 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.getAllByText(/^Nothing bought yet\.$|cart is empty|haven't made any offers|^Nothing bought yet\. After/).length).toBe(1);
     second.unmount();
 
-    // A chosen chip shows its own list, empty or not.
+    // Owner 10-28 tracker: a chip shows only when it holds orders, so an old or stale ?status= (the retired "cart" chip,
+    // or a group that just emptied) shows the one empty state, never a blank tab.
     at("/declutter?tab=buying&status=cart");
-    expect(await screen.findByText("Your cart is empty.")).toBeInTheDocument();
-    expect(screen.queryByText("Nothing bought yet.")).toBeNull();
+    expect(await screen.findByText("Nothing bought yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Your cart is empty.")).toBeNull();
+  });
+
+  // Owner 2026-10-28: "buyers and sellers need a very organized way to keep track of all their purchases". Buying is an
+  // order tracker like Jobs > Posted. The class: the chips are exactly the ORDER_BUCKETS groups that hold orders, in
+  // that order, and each chip's count is exactly how many orders (a checkout, a paid order, one that ended) it shows.
+  // Offers are their own group and never a chip.
+  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.needs_you += checkouts; |   counts.needs_you += 0;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   counts.cancelled += ended.length; |   counts.cancelled += 0;
+  // @mutate src/components/declutter/BuyingOrders.tsx |   return ORDER_BUCKETS.filter((b) => counts[b.key] > 0).map( |   return ORDER_BUCKETS.map(
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       <PaidOrders side="buyer" views={t.views} show={(id) => only === null \|\| t.views.get(id)?.bucket === only} /> |       <PaidOrders side="buyer" views={t.views} />
+  it("owner 10-28: Buying is an order tracker: one chip per group that holds orders, each count = the orders it shows", async () => {
+    const LATER = new Date(Date.now() + 48 * 3_600_000).toISOString();
+    state.offers = [{ ...OFFER, my_side: "buyer", awaiting: "seller", item_id: "i7", item_title: "Rug" }];
+    state.cart = [
+      LINE, // a checkout to pay: Needs you
+      { ...LINE, line_id: "p1", item_id: "p1", item_title: "Porch lamp", status: "paid", order_id: "o-porch", order_status: "paid", handover: "porch" }, // pick a day: Needs you
+      { ...LINE, line_id: "p2", item_id: "p2", item_title: "Desk", status: "paid", order_id: "o-booked", order_status: "paid", handover: "pickup_home" }, // booked: Upcoming
+      { ...LINE, line_id: "p3", item_id: "p3", item_title: "Sofa", status: "paid", order_id: "o-helpr", order_status: "paid", handover: "delivery" }, // finding a Helpr: Waiting
+      { ...LINE, line_id: "p4", item_id: "p4", item_title: "Mug", status: "paid", order_id: "o-done", order_status: "handed_over", handover: "porch" }, // Done
+      { ...LINE, line_id: "p5", item_id: "p5", item_title: "Vase", status: "paid", order_id: "o-refunded", order_status: "refunded", handover: "pickup_home" }, // Cancelled
+      { ...LINE, line_id: "p6", item_id: "p6", item_title: "Rake", status: "missed" }, // ended unpaid: Cancelled
+      { ...LINE, line_id: "s1", item_id: "s1", item_title: "Shelf", my_side: "seller", seller_id: "u1", status: "paid", order_id: "ord-sold", order_status: "paid", handover: "porch" },
+    ];
+    state.bookings = [{ order_id: "o-booked", slot_start: LATER, slot_end: LATER, porch_mode: null, porch_until: null }];
+    const { container } = at("/declutter?tab=buying");
+    await screen.findByText("paid order o-porch as buyer");
+    const want: [string, string, number][] = [["needs_you", "Needs you", 2], ["waiting", "Waiting", 1], ["upcoming", "Upcoming", 1], ["done", "Done", 1], ["cancelled", "Cancelled", 2]];
+    await vi.waitFor(() => {
+      const boxes = Array.from(container.querySelectorAll("[data-status-box]")) as HTMLElement[];
+      expect(boxes.map((b) => [b.getAttribute("data-status-box"), b.querySelector("[data-chip-label]")?.textContent, Number(b.getAttribute("data-count"))])).toEqual(want);
+    });
+    expect(container.querySelector("[data-status-all]")?.getAttribute("data-count")).toBe("7");
+    // Offers are their own group, never a chip.
+    expect(screen.getByRole("region", { name: "Your offers" })).toBeInTheDocument();
+    const shown = () =>
+      container.querySelectorAll("[data-paid-marker]").length + container.querySelectorAll('section[aria-label^="Checkout"]').length + container.querySelectorAll("[data-ended-line]").length;
+    expect(shown()).toBe(7);
+    expect(screen.queryByText("paid order ord-sold as seller")).toBeNull();
+    let checked = 0;
+    for (const [key, , n] of want) {
+      fireEvent.click(container.querySelector(`[data-status-box="${key}"]`) as HTMLElement);
+      await vi.waitFor(() => expect(where).toContain(`status=${key}`));
+      await vi.waitFor(() => expect(shown(), key).toBe(n));
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(4);
+    // Cancelled shows the refunded order and the checkout that ran out, and says nothing was charged for it.
+    expect(screen.getByText("paid order o-refunded as buyer")).toBeInTheDocument();
+    expect(screen.getByText(/The 48 hours to check out ran out\. Nothing was charged\./)).toBeInTheDocument();
   });
 
   it("Selling: your listings, the offers on your items, sales waiting to be paid and paid sales, every old action still there", async () => {
@@ -480,8 +539,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // offer (it counted only offers waiting for the buyer's answer). The class:
   // a status box either counts exactly the rows its list shows, or its label
   // says it counts what needs you (To pay / To answer / Pick up / Hand over / To be paid).
+  // Buying's chips are the order tracker's (owner 10-28): its count rule is the tracker test above.
   it.each([
-    ["buying", "Your offers", { ...OFFER, my_side: "buyer", awaiting: "seller" }],
     ["selling", "Offers on your items", { ...OFFER, my_side: "seller", awaiting: "buyer" }],
   ] as const)("D2: %s: a box never shows a count its list contradicts", async (side, region, offer) => {
     state.offers = [offer];

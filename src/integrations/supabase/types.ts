@@ -13586,7 +13586,7 @@ export type Database = {
         Returns: Json
       }
       declutter_admin_pending_items: {
-        Args: never
+        Args: { p_include_test?: boolean }
         Returns: {
           ai_checked_at: string
           ai_flag_reason: string

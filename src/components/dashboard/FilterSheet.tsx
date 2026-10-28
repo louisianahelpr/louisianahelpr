@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { FilterSheetFooter } from "@/components/dashboard/filterSheet/FilterSheetFooter";
+import { FilterDropdown } from "@/components/dashboard/filterSheet/FilterDropdown";
 
 /**
  * FilterSheet — the ONE filter presentation used across the app.
@@ -136,17 +137,33 @@ export function FilterSheet({
   resultNoun = ["result", "results"],
 }: FilterSheetProps) {
   const webDesktop = useIsWebDesktop();
-  const hero = <SheetHero title={title} />;
+  const footerBar = (compact: boolean) => (
+    <FilterSheetFooter
+      activeFilterCount={activeFilterCount}
+      onClearAll={onClearAll}
+      onDone={() => onOpenChange(false)}
+      resultCount={resultCount}
+      resultNoun={resultNoun}
+      compact={compact}
+    />
+  );
+  // Desktop website: a small drop-down under the Filters button, over the page
+  // as it is (owner 2026-10-28, like Notifications). Phone and native: the sheet.
+  if (webDesktop) {
+    return (
+      <FilterDropdown open={open} onOpenChange={onOpenChange} anchorRef={anchorRef} label={title} footer={footerBar(true)}>
+        <FilterBody sections={sections} footer={footer} />
+      </FilterDropdown>
+    );
+  }
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="bottom"
         // Phone + native: the slide-up sheet glued to the bottom edge with a
-        // grab handle (owner 2026-10-18, tweak 6). Desktop web: the centred
-        // modal, 520px wide (lead review of board 24, 2026-10-20: the old
-        // dropdown off the Filters button opened ~1070px wide over the list
-        // and half the map).
-        floor={!webDesktop}
+        // grab handle (owner 2026-10-18, tweak 6). The desktop website opens
+        // FilterDropdown above instead.
+        floor
         // The Filters button that opened this is outside the sheet, so Radix
         // has no trigger to hand focus back to; return it there ourselves.
         onCloseAutoFocus={(event) => {
@@ -161,25 +178,17 @@ export function FilterSheet({
         // X up under the rounded top edge. Now the sheet is a fixed column:
         // title row, then ONE scrolling body, then the footer.
         // Guard: src/test/browseCategoryGroups.test.tsx.
-        className={`max-h-[85dvh] flex flex-col overflow-hidden p-0 sm:p-0 gap-0 bg-premium-page ${webDesktop ? "sm:max-w-[520px]" : ""}`}
+        className="max-h-[85dvh] flex flex-col overflow-hidden p-0 sm:p-0 gap-0 bg-premium-page"
       >
         {/* Title only: no eyebrow, no subtitle. The active-filter count shows
             as a badge on the Filters button, and the footer carries Clear all. */}
-        {/* The floor sheet pads its hero in index.css (.sheet-floor.p-0); the
-            desktop modal drops the sheet's own padding for the sticky footer, so
-            it pads the hero here. */}
-        {webDesktop ? <div className="px-5 pt-5 pb-1">{hero}</div> : hero}
+        {/* The floor sheet pads its hero in index.css (.sheet-floor.p-0). */}
+        <SheetHero title={title} />
 
         <div data-filter-sheet-body="" className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
           <FilterBody sections={sections} footer={footer} />
         </div>
-        <FilterSheetFooter
-          activeFilterCount={activeFilterCount}
-          onClearAll={onClearAll}
-          onDone={() => onOpenChange(false)}
-          resultCount={resultCount}
-          resultNoun={resultNoun}
-        />
+        {footerBar(false)}
       </SheetContent>
     </Sheet>
   );

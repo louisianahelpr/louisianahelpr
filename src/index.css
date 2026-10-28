@@ -4963,3 +4963,8 @@ html.page-scrolled .page-title-card:has(.explore-header),
 .range-dual input[type="range"]:focus-visible { outline: none; }
 .range-dual input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 2px hsl(var(--ring)); }
 .range-dual input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 2px hsl(var(--ring)); }
+
+/* The desktop filter drop-down (FilterDropdown.tsx; owner 2026-10-28: "filters should be a small drop down like
+   this"): smaller chips than the phone sheet, which keeps its 40px touch chips. Mouse only: the drop-down never
+   opens on a phone or in the app. */
+[data-filter-dropdown] button[aria-pressed] { height: auto; min-height: 2rem; padding-left: 0.75rem; padding-right: 0.75rem; }

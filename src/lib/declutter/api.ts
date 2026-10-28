@@ -217,6 +217,25 @@ export async function fetchMyItems(userId: string): Promise<DeclutterItem[]> {
   return (rows ?? []) as DeclutterItem[];
 }
 
+/**
+ * What each of the seller's sold items sold for (deep audit SE-5, 2026-10-28: Selling showed the $40 list price on
+ * a mug that sold for $32): the paid cart line's price, item id -> cents; the newest paid line wins. RLS lets each
+ * side read its own lines ("declutter cart: the two sides read"). Not declutter_my_cart: it stops at 30 days.
+ */
+export async function fetchMySalePrices(userId: string): Promise<Map<string, number>> {
+  const rows = unwrap(
+    await supabase
+      .from("declutter_cart_items")
+      .select("item_id, price_cents")
+      .eq("seller_id", userId)
+      .eq("status", "paid")
+      .order("closed_at", { ascending: false }),
+  ) as { item_id: string | null; price_cents: number }[] | null;
+  const prices = new Map<string, number>();
+  for (const r of rows ?? []) if (r.item_id && !prices.has(r.item_id)) prices.set(r.item_id, r.price_cents);
+  return prices;
+}
+
 export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {
   const row = await readItems((cols) => supabase.from("declutter_items").select(cols).eq("id", itemId).maybeSingle());
   return (row ?? null) as DeclutterItem | null;

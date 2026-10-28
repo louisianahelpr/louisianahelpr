@@ -7,6 +7,8 @@
  * The Supabase client is a recording fake: each query, rpc, storage call and
  * function invoke is logged, and results are handed out from a queue.
  *
+ * @mutate src/lib/declutter/api.ts |       .eq("status", "paid")\n      .order("closed_at", { ascending: false }), |       .order("closed_at", { ascending: false }),
+ * @mutate src/lib/declutter/api.ts | if (r.item_id && !prices.has(r.item_id)) prices.set | if (r.item_id) prices.set
  * @mutate src/lib/declutter/api.ts |       p_not_a_frequent_seller: true, |       p_not_a_frequent_seller: false,
  * @mutate src/lib/declutter/api.ts |       .limit(500), |       .limit(5000),
  * @mutate src/lib/declutter/api.ts |       .in("status", ["live", "reserved"])\n      .order( |       .in("status", ["live"])\n      .order(
@@ -99,6 +101,7 @@ import {
   fetchMyItemPrivate,
   fetchMyItemReview,
   fetchMyItems,
+  fetchMySalePrices,
   fetchMyPickupWindows,
   fetchPendingForAdmin,
   fetchPhotos,
@@ -277,6 +280,30 @@ describe("reads", () => {
     });
     h.queue.push(ok(null));
     await expect(fetchMyItems("u1")).resolves.toEqual([]);
+  });
+
+  it("fetchMySalePrices: the seller's PAID lines, newest first; the newest line per item wins; a refusal throws (SE-5)", async () => {
+    h.queue.push(ok([
+      { item_id: "i1", price_cents: 3200 },
+      { item_id: null, price_cents: 999 },
+      { item_id: "i1", price_cents: 4000 },
+      { item_id: "i2", price_cents: 0 },
+    ]));
+    const prices = await fetchMySalePrices("u1");
+    expect([...prices.entries()]).toEqual([["i1", 3200], ["i2", 0]]);
+    expect(h.queries[0]).toEqual({
+      table: "declutter_cart_items",
+      ops: [
+        ["select", ["item_id, price_cents"]],
+        ["eq", ["seller_id", "u1"]],
+        ["eq", ["status", "paid"]],
+        ["order", ["closed_at", { ascending: false }]],
+      ],
+    });
+    h.queue.push(ok(null));
+    expect((await fetchMySalePrices("u1")).size).toBe(0);
+    h.queue.push(refused("permission denied", { code: "42501" }));
+    await expect(fetchMySalePrices("u1")).rejects.toBeTruthy();
   });
 
   it("fetchItem reads one row by id, and null when there is none", async () => {

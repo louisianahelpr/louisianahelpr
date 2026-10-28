@@ -43,7 +43,9 @@ function useMyHandover(orderId: string) {
  * The words for where it stands, per side and step. Names the other side only by role (no pronouns).
  * Plain sentences, never dot-joined fragments (lead 2026-10-28: "Paid · book a pickup…" -> "Paid. Book a pickup time.").
  */
-function standing(handover: Pickup, side: "buyer" | "seller", at: number): string {
+function standing(handover: Pickup, side: "buyer" | "seller", at: number, free: boolean): string {
+  // #6: a free claim was never paid; its first step says Claimed.
+  if (free && at === 0) return standing(handover, side, at, false).replace(/^Paid\./, "Claimed.");
   // The booked time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     if (at === 0) return side === "buyer"
@@ -79,8 +81,10 @@ export function PickupStatus({
   if (h.isError) return null;
   const at = handoverStep(handover, h.data ?? null, !!slot);
   const done = at === 3;
-  const money =
-    side === "buyer"
+  // #6: a free claim reads Claimed, never "You paid $0" or "You get $0".
+  const free = itemsCents === 0;
+  const money = free ? null
+    : side === "buyer"
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
       : done
         ? null
@@ -89,8 +93,8 @@ export function PickupStatus({
           : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the handover is confirmed.</>;
   return (
     <div className="space-y-2" data-pickup-status={at}>
-      <StepTracker steps={STEPS[handover]} at={at} />
-      <p className="text-ds-14">{standing(handover, side, at)}</p>
+      <StepTracker steps={free ? ["Claimed", ...STEPS[handover].slice(1)] : STEPS[handover]} at={at} />
+      <p className="text-ds-14">{standing(handover, side, at, free)}</p>
       {money && (
         // Rust on the amount only (lead, board 65 note): the sentence is ink on the money tint.
         <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground [&_strong]:text-[hsl(var(--sienna-ink))]" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>

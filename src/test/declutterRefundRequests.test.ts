@@ -42,7 +42,7 @@
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
  * @mutate supabase/migrations/20261028171944_declutter_notice_copy.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && ( |           {true && (
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets {refundDollars(v.full_refund_cents)} back | then gets {refundDollars(v.items_cents + 130)} back
  */
 import { describe, expect, it } from "vitest";
@@ -153,7 +153,8 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
 
   it("8. the app shows the panel only behind the switch, with the server's amounts", () => {
     expect(VIEWS).toMatch(/useFeature\("declutter_refund_requests"\)/);
-    expect(VIEWS).toMatch(/\{refundRequests && \(/);
+    // #6: never on a free claim (nothing was paid, nothing to refund).
+    expect(VIEWS).toMatch(/\{refundRequests && items > 0 && \(/);
     expect(PANEL).toMatch(/then gets \{refundDollars\(v\.full_refund_cents\)\} back/);
     expect(PANEL, "no refund arithmetic on screen").not.toMatch(/items_cents\s*[+*-]|full_refund_cents\s*[+*-]/);
   });

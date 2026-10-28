@@ -124,6 +124,7 @@ export function GotItSheet({
   onOpenChange,
   orderId,
   porch,
+  free = false,
   who,
   pending,
   onConfirm,
@@ -133,6 +134,8 @@ export function GotItSheet({
   onOpenChange: (open: boolean) => void;
   orderId: string;
   porch: boolean;
+  /** #6: a free claim: no refund window, nobody is paid. */
+  free?: boolean;
   /** The seller's first name, or "the seller". */
   who: string;
   pending: boolean;
@@ -145,7 +148,9 @@ export function GotItSheet({
         <SheetHero title="Do you have it?" />
         {porch && <PorchPhotoThumb orderId={orderId} />}
         <div className="mt-3">
-          <Note>After you tap I got it, you still have 24 hours to ask {who} for a refund if something is wrong. Then the sale is final and {who} is paid.</Note>
+          <Note>{free
+            ? `Tap I got it once you have it. If something is wrong, tap Something's not right first.`
+            : <>After you tap I got it, you still have 24 hours to ask {who} for a refund if something is wrong. Then the sale is final and {who} is paid.</>}</Note>
         </div>
         <SheetFooter>
           <SheetSecondaryAction onClick={onProblem} disabled={pending}>Something's not right</SheetSecondaryAction>
@@ -160,6 +165,7 @@ export function PickedUpSheet({
   open,
   onOpenChange,
   who,
+  free = false,
   pending,
   onConfirm,
 }: {
@@ -167,6 +173,8 @@ export function PickedUpSheet({
   onOpenChange: (open: boolean) => void;
   /** The buyer's first name, or "the buyer". */
   who: string;
+  /** #6: a free claim: no refund window, no payout. */
+  free?: boolean;
   pending: boolean;
   onConfirm: () => void;
 }) {
@@ -174,7 +182,7 @@ export function PickedUpSheet({
     <Sheet open={open} onOpenChange={(o) => { if (!pending) onOpenChange(o); }}>
       <SheetContent side="bottom" floor onOpenAutoFocus={(e) => e.preventDefault()} data-picked-up-sheet="">
         <SheetHero title={`Did ${who} take it?`} />
-        <Note>Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that.</Note>
+        <Note>{free ? `Tap Picked up once ${who} has it. That finishes the free pickup.` : "Tapping Picked up gives the buyer 24 hours to ask for a refund. Your payout goes after that."}</Note>
         <SheetFooter>
           <SheetSecondaryAction onClick={() => onOpenChange(false)} disabled={pending}>Not yet</SheetSecondaryAction>
           <SheetPrimaryAction onClick={onConfirm} disabled={pending}>Picked up</SheetPrimaryAction>

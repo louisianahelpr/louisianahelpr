@@ -85,7 +85,7 @@
     "declutter_listing_manage_state(uuid)": "client",
     "declutter_pause_listing(uuid)": "client",
     "declutter_relist_listing(uuid)": "client",
-    "declutter_reopen_listing(uuid)": "reviewed 2026-10-28 (security-review, Relist): the seller's own WITHDRAWN listing back to draft (seller_id = auth.uid() FOR UPDATE; any other status item_not_editable); publishing runs every listing rule again",
+    "declutter_reopen_listing(uuid)": "client",
     "declutter_auto_free_state(uuid)": "client",
     "declutter_set_auto_free(uuid, boolean)": "client",
     "declutter_set_listing_drops(uuid, boolean)": "client",

@@ -57,7 +57,7 @@ import {
 } from "@/lib/declutter/api";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
-import { ChipGroup, DropSchedule, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
+import { ChipGroup, DropSchedule, LISTING_LIFETIME, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -598,6 +598,11 @@ export default function SellFlow() {
               : <ReviewRow title="Price drops" body={form.drops && priceCents && floorCents && floorCents < priceCents ? `${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below ${formatPrice(floorCents)}` : "Off: it stays at your price"} onEdit={() => setStep(3)} />}
             <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
             <ReviewRow title="Pickup" body={form.free ? (porchOk ? "Porch pickup or at your door" : "At your door") : porchOk ? "Porch pickup, at your door, Helpr delivery" : "At your door, Helpr delivery"} onEdit={() => setStep(4)} />
+            {/* Owner 2026-10-28 "it also never said how long it will stay open". MEASURED: no rule ends a listing by age
+                (no ends_at for offers listings, B13; relist_count is never written; prod cron jobs checked 2026-10-28),
+                so it says what is true today; a length is the owner's decision (LISTING_LIFETIME). */}
+            <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} />
+
           </ul>
           <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax">
             <h3 id="sell-tax" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>

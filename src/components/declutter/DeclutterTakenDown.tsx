@@ -10,10 +10,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
-import { reopenListing, type DeclutterItem } from "@/lib/declutter/api";
+import { reopenListing, type CartLine, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { SectionHeading } from "./DeclutterTabParts";
+import { EndedSaleRows } from "./DeclutterEndedSales";
 
 /** Relist a taken-down listing: back to a draft, then the sell flow on it (photos first: they were deleted). */
 function useReopenListing() {
@@ -41,10 +42,11 @@ export function ReopenListingButton({ itemId }: { itemId: string }) {
 
 /**
  * The Selling tab's history: every listing taken down (withdrawn, with Relist) or marked sold elsewhere (A2-5,
- * 'sold_elsewhere': kept as a record, no Relist), newest first.
+ * 'sold_elsewhere': kept as a record, no Relist), newest first; then (A2-20) the sales that ended without a
+ * handover, from the last 30 days (DeclutterEndedSales).
  */
-export function TakenDownSection({ items }: { items: DeclutterItem[] }) {
-  if (items.length === 0) return null;
+export function TakenDownSection({ items, ended = [] }: { items: DeclutterItem[]; ended?: CartLine[] }) {
+  if (items.length === 0 && ended.length === 0) return null;
   return (
     <section className="space-y-2" aria-label="Selling history" data-taken-down="">
       <SectionHeading title="Selling history" />
@@ -69,6 +71,7 @@ export function TakenDownSection({ items }: { items: DeclutterItem[] }) {
             )}
           </li>
         ))}
+        <EndedSaleRows lines={ended} />
       </ul>
     </section>
   );

@@ -38,6 +38,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
+import { DeliverExplainer } from "./DeclutterDeliverExplainer";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   acceptTask,
@@ -503,11 +504,8 @@ export function DeliverView() {
   });
   if (!userId) return null;
   const myList = mine.data ?? [];
-  const intro = (
-    <p className="text-sm text-muted-foreground">
-      Deliver Declutter items near you. You pick the item up at the seller's, take a photo there, and leave it at the buyer's door with a photo. Each delivery shows what you take home before you take it.
-    </p>
-  );
+  // What Deliver is and what a driver earns, from the real pay rule (owner 2026-10-28: "just explain it better").
+  const intro = <DeliverExplainer />;
   // Q2351: who may deliver is a designed answer (helpr_task_assert_helpr), never an error screen.
   const notYet = deliverNotYet(open.error) ?? deliverNotYet(mine.error);
   if (notYet) {

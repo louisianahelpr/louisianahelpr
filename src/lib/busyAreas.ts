@@ -70,17 +70,6 @@ export function busyAreas(
   return { areas, elsewhere };
 }
 
-/**
- * The map frame around the busy parishes: their centroids plus about 40 miles
- * each way, so a single parish still shows its neighbours. Null when nothing
- * is waiting (the caller keeps its Louisiana frame).
- */
-export function busyAreasBounds(areas: ReadonlyArray<Pick<BusyArea, "center">>): [[number, number], [number, number]] | null {
-  if (areas.length === 0) return null;
-  const lats = areas.map((a) => a.center.lat);
-  const lngs = areas.map((a) => a.center.lng);
-  return [[Math.min(...lats) - 0.6, Math.min(...lngs) - 0.7], [Math.max(...lats) + 0.6, Math.max(...lngs) + 0.7]];
-}
 
 /** Circle size on the map: 5 km for one, up to 20 km for the busiest parish. */
 export function busyCircleRadiusMeters(total: number, maxTotal: number): number {

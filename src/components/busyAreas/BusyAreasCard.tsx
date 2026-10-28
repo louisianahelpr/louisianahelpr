@@ -2,9 +2,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Flame } from "lucide-react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { report } from "@/lib/errorLogger";
-import { busyAreaLabel, busyAreas, busyAreasBounds } from "@/lib/busyAreas";
+import { busyAreaLabel, busyAreas } from "@/lib/busyAreas";
 import { colorSchemeFor, getMapKit, regionFromBounds, type MKMap } from "@/components/browseMap/mapkitRuntime";
-import { LA_BOUNDS, readIsDark } from "@/components/browseMap/config";
+import { readIsDark } from "@/components/browseMap/config";
+
+/**
+ * The map always frames Louisiana's land (lead walkthrough 2026-10-28, shot 09: with one busy parish on the coast,
+ * Vermilion, the map zoomed to it and showed Houston, Gulfport and mostly Gulf water). The shared LA_BOUNDS reach
+ * 28.5 N, deep in the Gulf, for the jobs map's own reasons; this card frames the state itself, and the busy
+ * parishes (all in Louisiana) are shaded inside it. Guard: src/test/deliverTabExplains.test.tsx.
+ */
+export const LOUISIANA_LAND: [[number, number], [number, number]] = [
+  [29.0, -94.05], // SW: Sabine Pass
+  [33.02, -88.8], // NE: the Arkansas line, the Pearl River
+];
 import { useMapJobs } from "@/components/browseMap/useMapJobs";
 import { drawBusyAreas } from "./busyAreaOverlays";
 
@@ -33,7 +44,7 @@ export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveri
     if (!mk) return;
     try {
       mapRef.current = new mk.Map(el, {
-        region: regionFromBounds(mk, LA_BOUNDS, 1.02),
+        region: regionFromBounds(mk, LOUISIANA_LAND, 1.02),
         colorScheme: colorSchemeFor(mk, readIsDark()),
         showsCompass: mk.FeatureVisibility?.Hidden ?? "hidden",
         showsScale: mk.FeatureVisibility?.Hidden ?? "hidden",
@@ -54,9 +65,6 @@ export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveri
     if (!mk || !map || !mapOk) return;
     try {
       overlaysRef.current = drawBusyAreas(mk, map, summary.areas, overlaysRef.current);
-      // Frame the busy parishes (with room around them), not the whole Gulf coast.
-      const bounds = busyAreasBounds(summary.areas);
-      if (bounds) map.setRegionAnimated(regionFromBounds(mk, bounds, 1), false);
     } catch (e) {
       report(e instanceof Error ? e : new Error("busy-area shading failed"), { tags: { source: "BusyAreasCard.shading" } });
     }
@@ -76,7 +84,9 @@ export function BusyAreasCard({ userId, deliveries }: { userId: string; deliveri
         <h2 id="busy-areas-title" className="text-base font-semibold">Busy right now</h2>
       </div>
       {!mapUnusable && (
-        <div ref={setEl} className="h-44 w-full overflow-hidden rounded-xl bg-muted" aria-hidden data-testid="busy-areas-map" />
+        // Taller, and no wider than the state's own shape needs: a 4:1 strip fitted to Louisiana's height showed Texas
+        // to Florida.
+        <div ref={setEl} className="aspect-[4/3] max-h-72 w-full max-w-md overflow-hidden rounded-xl bg-muted" aria-hidden data-testid="busy-areas-map" />
       )}
       {loadError ? (
         <p className="text-sm text-muted-foreground">We couldn't load open jobs just now, so this shows deliveries only.</p>

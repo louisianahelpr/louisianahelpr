@@ -11,7 +11,6 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 import {
   busyAreaLabel,
   busyAreas,
-  busyAreasBounds,
   busyCircleOpacity,
   busyCircleRadiusMeters,
   parishForAreaLabel,
@@ -57,13 +56,6 @@ describe("busy areas (Q2435)", () => {
     expect(busyCircleRadiusMeters(4, 4)).toBe(20000);
     expect(busyCircleRadiusMeters(0, 4)).toBe(0);
     expect(busyCircleOpacity(1, 4)).toBeLessThan(busyCircleOpacity(4, 4));
-  });
-
-  it("frames the busy parishes, or keeps the Louisiana frame when nothing waits", () => {
-    expect(busyAreasBounds([])).toBeNull();
-    const b = busyAreasBounds([{ center: { lat: 30.2, lng: -92 } }])!;
-    expect(b[0][0]).toBeLessThan(30.2);
-    expect(b[1][0]).toBeGreaterThan(30.2);
   });
 
   it("labels say counts only, never an address", () => {

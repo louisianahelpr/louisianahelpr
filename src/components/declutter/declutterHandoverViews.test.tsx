@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!booked && order.side === "seller") { |   if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (l.status !== "paid" \|\| !l.order_id) continue; |     if (!l.order_id) continue;
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
+ * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |             <DateTimeField id={`dcl-out-${order.orderId}`} label="Out until" value={until} onChange={setUntil} /> |             <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
@@ -367,7 +367,7 @@ describe("Declutter slice 4: paid-order cards", () => {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx | if (f) { if (order.side === "seller") setPreview(f); else photo.mutate({ file: f }); } | if (f) photo.mutate({ file: f });
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |         onProblem={() => { setAsking(false); onProblem(); }} |         onProblem={() => setAsking(false)}
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li> | <li>{who} gets one more day.</li>
- * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | <li>The sale is cancelled and you get everything back.</li> | <li>The sale is cancelled.</li>
+ * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | : "The sale is cancelled and you get everything back."}</li> | : "The sale is cancelled."}</li>
  * @mutate src/components/declutter/DeclutterHandoverSheets.tsx | onClick={() => file && onSend(file, note.trim())} | onClick={() => file && onSend(file, "")}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx | {h.data.set_out_note && <p | {false && <p
  */

@@ -204,6 +204,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     feature_disabled: DC.feature_disabled,
     not_admin: DC.not_admin,
   },
+  // The admin problem card's one read (A2-13): DeclutterProblemsCard via src/lib/declutter/handover.ts.
+  declutter_admin_open_problems: { not_admin: DC.not_admin },
   declutter_admin_review_item: {
     account_restricted: DC.account_restricted,
     feature_disabled: DC.feature_disabled,

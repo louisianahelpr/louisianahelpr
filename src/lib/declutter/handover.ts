@@ -331,14 +331,14 @@ type AdminProblemRow = Omit<AdminProblemDetail, "item_titles" | "item_photo_path
 };
 
 export async function fetchOpenProblemsWithDetail(): Promise<AdminProblem[]> {
-  const res = await supabase.rpc("declutter_admin_open_problems" as never);
+  const res = await supabase.rpc("declutter_admin_open_problems");
   if (res.error && isMissingRpcNamed(res.error, "declutter_admin_open_problems")) {
     const rows = (await fetchOpenProblemsForAdmin()) as Omit<AdminProblem, "detail">[];
     return rows.map((r) => ({ ...r, detail: null }));
   }
-  // No admin copy entry yet: the copy guards accept one only once the function is in a migration
-  // (builder 1). Until then a refusal shows the card's generic error line.
-  const rows = (rpcData(res, () => null) ?? []) as unknown as AdminProblemRow[];
+  // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
+  const admin = res.error ? await loadAdminRpcErrorCopy() : null;
+  const rows = (rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_open_problems", e) ?? null) ?? []) as unknown as AdminProblemRow[];
   return rows.map(({ problem_id, problem_photo_paths, reported_at, order_id, reporter_side, reason, note, item_titles, item_photo_paths, ...d }) => ({
     id: problem_id, order_id, reporter_side, reason, note, photo_paths: problem_photo_paths, created_at: reported_at,
     detail: { ...d, item_titles: item_titles ?? [], item_photo_paths: item_photo_paths ?? [] },

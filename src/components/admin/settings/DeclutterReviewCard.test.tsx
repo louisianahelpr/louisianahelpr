@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
  * p_include_test: true.
  */
 // @mutate src/components/admin/settings/DeclutterReviewCard.tsx | useState(false);\n  const pending | useState(true);\n  const pending
-// @mutate src/lib/declutter/api.ts | { p_include_test: true } as never | { p_include_test: false } as never
+// @mutate src/lib/declutter/api.ts | { p_include_test: includeTest } | { p_include_test: false }
 // @mutate src/components/admin/settings/DeclutterReviewCard.tsx | queryFn: async () => (await fetchPendingForAdmin(showTest)) | queryFn: async () => (await fetchPendingForAdmin())
 
 const rpc = vi.fn(async (fn: string, args?: { p_include_test?: boolean; p_keys?: string[] }) => {
@@ -39,14 +39,14 @@ describe("Declutter review card: Show test listings", () => {
   beforeEach(() => rpc.mockClear());
   afterEach(cleanup);
 
-  it("is off by default and asks with no arguments, so test listings stay hidden", async () => {
+  it("is off by default and asks without test listings, so they stay hidden", async () => {
     renderCard();
     expect(await screen.findByText(/Oak dresser/)).toBeTruthy();
     const toggle = screen.getByRole("switch", { name: /show test listings/i });
     expect(toggle.getAttribute("aria-checked")).toBe("false");
     const calls = rpc.mock.calls.filter(([fn]) => fn === "declutter_admin_pending_items");
     expect(calls.length).toBeGreaterThan(0);
-    for (const [, args] of calls) expect(args).toBeUndefined();
+    for (const [, args] of calls) expect(args).toEqual({ p_include_test: false });
     expect(screen.queryByText(/E2E-PRODAUDIT/)).toBeNull();
   });
 

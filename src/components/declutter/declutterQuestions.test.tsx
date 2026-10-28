@@ -6,7 +6,7 @@
  * "Message".
  *
  * @mutate src/components/declutter/DeclutterQuestions.tsx | `waiting for ${sellerName ?? "the seller"}` | `waiting for the seller`
- * @mutate src/components/declutter/DeclutterQuestions.tsx | Contact info is hidden. Want to make a deal? Make an offer. | Contact info is hidden. Want to make a deal? Message or Make offer.
+ * @mutate src/components/declutter/DeclutterQuestions.tsx | " Want to make a deal? Make an offer." | " Want to make a deal? Message or Make offer."
  * @mutate src/components/declutter/DeclutterQuestions.tsx | answerQuestion(args.id, args.text) | answerQuestion(args.id, "")
  * @mutate src/components/declutter/DeclutterQuestions.tsx |   if (days === 1) return "yesterday"; |   if (days === 1) return "today";
  */

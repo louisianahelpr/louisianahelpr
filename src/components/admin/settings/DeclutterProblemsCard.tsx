@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
+import { endSentence } from "@/lib/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -84,7 +86,7 @@ function ProblemDetail({ d }: { d: AdminProblemDetail }) {
             <p className="text-sm">Paid {formatPrice(d.total_cents)}{money ? <span className="text-muted-foreground"> ({money})</span> : null}</p>
           )}
           <p className="text-sm text-muted-foreground">
-            Buyer: {d.buyer_name ?? "Deleted account"}. Seller: {d.seller_name ?? "Deleted account"}.
+            Buyer: {endSentence(d.buyer_name ?? ADMIN_DELETED_ACCOUNT_LABEL)} Seller: {endSentence(d.seller_name ?? ADMIN_DELETED_ACCOUNT_LABEL)}
           </p>
         </div>
       </div>

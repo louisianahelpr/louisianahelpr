@@ -318,7 +318,7 @@ describe("Declutter location ask", () => {
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
     // #45 (deep audit 2026-10-28): the town truncates, the distance never does (it sits beside it, shrink-0).
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-area className="block truncate">{item.area_label}</span> | <span data-card-area className="block">{item.area_label}</span>
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-area className="block truncate" title={item.area_label}> | <span data-card-area className="block" title={item.area_label}>
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-away className="shrink-0 whitespace-nowrap"> | <span data-card-away className="truncate">
     expect(first.querySelector("[data-card-area]")!.className).toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);

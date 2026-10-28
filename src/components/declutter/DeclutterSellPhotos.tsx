@@ -4,11 +4,11 @@
  * saved draft, so before the first save the chosen photos wait on the device
  * (shown from local previews, never uploaded) and go up the moment the details
  * are saved (DeclutterSellView's saveDetails). After that, photos upload as
- * they are added, as before. "Fill in from my photos" needs uploaded photos.
+ * they are added, as before. Claude's listing panel (SellAiDraft.tsx) sits
+ * under the photos and works from either kind (owner 2026-10-28).
  */
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import { Camera, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 
@@ -41,7 +41,7 @@ export function SellPhotos({
   onRemoveUploaded,
   onRemoveHeld,
   uploading,
-  ai,
+  aiPanel,
 }: {
   uploaded: DeclutterPhoto[];
   /** Photos chosen before the first save: on the device only. */
@@ -50,8 +50,8 @@ export function SellPhotos({
   onRemoveUploaded: (photoId: string) => void;
   onRemoveHeld: (index: number) => void;
   uploading: number;
-  /** "Fill in from my photos": only once photos are on a saved draft. */
-  ai: { busy: boolean; run: () => void } | null;
+  /** Claude's listing panel (SellAiDraftPanel), once there is a photo. */
+  aiPanel: ReactNode;
 }) {
   const previews = useMemo(() => held.map((f) => URL.createObjectURL(f)), [held]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
@@ -96,20 +96,13 @@ export function SellPhotos({
         {count} of {MAX_PHOTOS}{count < MIN_PHOTOS ? `, at least ${MIN_PHOTOS}` : ""}
         {held.length > 0 ? " · these go up when you save on step 4" : ""}
       </p>
+      {aiPanel}
       <div className="rounded-[20px] border border-border bg-card p-4">
         <p className="text-ds-15 font-semibold text-foreground">Photos that sell</p>
         <p className="mt-1 text-ds-14 text-muted-foreground">
           Daylight, a plain background, and one close-up of any wear. Take your own. Location data is removed from every photo before it's uploaded.
         </p>
       </div>
-      {ai && (
-        <>
-          <Button type="button" variant="outline" size="sm" disabled={ai.busy} onClick={ai.run}>
-            {ai.busy ? "Looking at your photos…" : "Fill in from my photos"}
-          </Button>
-          <p className="text-xs text-muted-foreground">The photo tool fills in the name, description, category, size and condition. You can change anything on the next steps.</p>
-        </>
-      )}
     </div>
   );
 }

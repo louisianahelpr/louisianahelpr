@@ -20,7 +20,9 @@
  * @mutate src/lib/declutter/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |   if (first.error?.code === "42703" && first.error.message.includes("porch_ok")) { |   if (first.error) {
- * @mutate src/lib/declutter/api.ts | { body: { itemId, mode }, timeout: AI_TIMEOUT_MS } | { body: { itemId, mode } }
+ * @mutate src/lib/declutter/api.ts | { body, timeout: AI_TIMEOUT_MS } | { body }
+ * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
+ * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;
  * @mutate src/lib/declutter/api.ts | (error as { context?: { name?: unknown } }).context?.name === "AbortError"; | false;
  * @mutate src/lib/declutter/api.ts | const aborted = (error as { name?: unknown }).name === "AbortError" \|\| | const aborted =
  * @mutate src/lib/declutter/api.ts |   return rpcData(await supabase.rpc("declutter_publish_item", { p_item_id: itemId }), |   return rpcData(await supabase.rpc("declutter_publish_items", { p_item_id: itemId }),
@@ -111,6 +113,8 @@ import {
   removePhoto,
   requestAiCheck,
   requestAiDraft,
+  requestAiDraftFromPhotos,
+  AI_DRAFT_PHOTOS,
   AI_TIMEOUT_MS,
   reviewListing,
   setPickupWindows,
@@ -714,6 +718,25 @@ describe("the AI helpers", () => {
     // Aborted while the body was read: the AbortError itself comes back.
     h.queue.push({ data: null, error: new DOMException("signal is aborted without reason", "AbortError") });
     expect((await rejection(requestAiCheck("i1"))).message).toBe("ai_timed_out");
+  });
+
+  // Owner 2026-10-28: a NEW listing has no draft, so its held photos go in the body (cleaned, never uploaded).
+  it("requestAiDraftFromPhotos cleans up to 4 held photos and sends them in the body, uploading nothing", async () => {
+    h.clean.mockImplementation(async (f: File) => new File([`clean-${f.name}`], f.name, { type: "image/jpeg" }));
+    const draft = { title: "Oak desk", description: "d", category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false };
+    h.queue.push(ok(draft));
+    const files = ["a", "b", "c", "d", "e"].map((n) => new File([n], `${n}.jpg`, { type: "image/jpeg" }));
+    await expect(requestAiDraftFromPhotos(files)).resolves.toEqual(draft);
+    expect(AI_DRAFT_PHOTOS).toBe(4);
+    expect(h.clean).toHaveBeenCalledTimes(4);
+    for (const call of h.clean.mock.calls) expect(call.slice(1)).toEqual([1280, 0.75]);
+    expect(h.invokes).toEqual([["declutter-ai-draft", {
+      body: { mode: "draft", photos: ["a", "b", "c", "d"].map((n) => btoa(`clean-${n}.jpg`)) },
+      timeout: AI_TIMEOUT_MS,
+    }]]);
+    expect(h.store).toHaveLength(0);
+    expect(h.rpcs).toHaveLength(0);
+    await expect(requestAiDraftFromPhotos([])).rejects.toThrow("ai_photos_required");
   });
 
   it("requestAiCheck invokes the same function in check mode", async () => {

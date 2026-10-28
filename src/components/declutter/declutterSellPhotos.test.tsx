@@ -18,6 +18,20 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const NEW_ID = "0f0e0d0c-0b0a-4908-8706-0504030201ff";
 const calls: string[] = [];
+const aiCalls: string[][] = [];
+const DRAFT = {
+  title: "Mid-century walnut dresser", description: "Six drawers, solid walnut, light scratches on top.",
+  category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false,
+};
+/** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
+const aiAnswer = {
+  hold: false,
+  release: null as null | (() => void),
+  next(): Promise<typeof DRAFT> {
+    if (!this.hold) return Promise.resolve(DRAFT);
+    return new Promise((res) => { this.release = () => res(DRAFT); });
+  },
+};
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
@@ -53,6 +67,8 @@ vi.mock("@/lib/declutter/api", () => ({
   addPhoto: async (_u: string, id: string, f: File) => { calls.push(`addPhoto:${id}:${f.name}`); return "p"; },
   removePhoto: async () => undefined,
   requestAiDraft: async () => ({}),
+  // Owner 2026-10-28: a new listing's held photos go to Claude by themselves (SellAiDraft.tsx).
+  requestAiDraftFromPhotos: (files: File[]) => { aiCalls.push(files.map((f) => f.name)); return aiAnswer.next(); },
   requestAiCheck: async () => ({ checked: true, flagged: false }),
   setPickupWindows: async () => 1,
   attestItem: async () => undefined,
@@ -81,6 +97,9 @@ const jpg = (name: string) => new File(["x"], name, { type: "image/jpeg" });
 describe("photo-first selling", () => {
   beforeEach(() => {
     calls.length = 0;
+    aiCalls.length = 0;
+    aiAnswer.hold = false;
+    aiAnswer.release = null;
     let n = 0;
     URL.createObjectURL = vi.fn(() => `blob:preview-${++n}`);
     URL.revokeObjectURL = vi.fn();
@@ -145,5 +164,52 @@ describe("photo-first selling", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Remove photo 1" }));
     expect(document.querySelectorAll("[data-held-photo]")).toHaveLength(1);
     expect(screen.getByText(/^1 of 12/)).toBeInTheDocument();
+  });
+
+  // Owner 2026-10-28: "claude did not help with the listing so idk how to get it to do the listing for me".
+  // @mutate src/components/declutter/DeclutterSellView.tsx | autoStart: !itemId && held.length > 0 | autoStart: false
+  // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null), | : null),
+  // @mutate src/components/declutter/SellAiDraft.tsx |       setForm((f) => mergeAiDraft(f, atStart, d)); |       void atStart;
+  it("a NEW listing: Claude writes it by itself once the first photos are added, shows it, and can write it again", async () => {
+    aiAnswer.hold = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    // Before any photo there is nothing for Claude to read.
+    expect(document.querySelector("[data-ai-draft]")).toBeNull();
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg"), jpg("b.jpg")] } });
+    // It runs by itself, with the photos still on the device, and says so.
+    expect(await screen.findByText("Claude is writing your listing…")).toBeInTheDocument();
+    expect(aiCalls).toEqual([["a.jpg", "b.jpg"]]);
+    expect(calls).toEqual([]); // nothing created or uploaded for it
+    aiAnswer.release!();
+    expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
+    expect(document.querySelector("[data-ai-title]")).toHaveTextContent(DRAFT.title);
+    // Adding more photos does not run it again by itself...
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("c.jpg")] } });
+    await screen.findByText(/^3 of 12/);
+    expect(aiCalls).toHaveLength(1);
+    // ...but "Write it again" does, from every photo now held.
+    aiAnswer.hold = false;
+    fireEvent.click(screen.getByRole("button", { name: "Write it again" }));
+    await waitFor(() => expect(aiCalls).toEqual([["a.jpg", "b.jpg"], ["a.jpg", "b.jpg", "c.jpg"]]));
+    // What Claude wrote is the seller's form to edit on step 2.
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByLabelText("Title")).toHaveValue(DRAFT.title);
+    expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
+    expect(screen.getByRole("radio", { name: "Furniture" })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("radio", { name: "Lightly used" })).toHaveAttribute("aria-checked", "true");
+  });
+
+  it("what the seller typed while Claude was writing is kept", async () => {
+    aiAnswer.hold = true;
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg")] } });
+    await screen.findByText("Claude is writing your listing…");
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Grandma's dresser" } });
+    aiAnswer.release!();
+    await waitFor(() => expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description));
+    expect(screen.getByLabelText("Title")).toHaveValue("Grandma's dresser");
   });
 });

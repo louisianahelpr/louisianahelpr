@@ -26,6 +26,8 @@
  * @mutate src/pages/messages/useMessageSections.tsx |     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" }, |     { value: "unread", label: `Unread · ${unread}` },
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
+ * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
+ * @mutate src/components/messages/ConversationList.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -160,6 +162,18 @@ describe("the hook", () => {
     expect(declutter.result.current.sectionEmpty).toBeNull();
   });
 
+  // Owner 2026-10-28 via the lead: the All empty state talked only about jobs
+  // (~/.lh-shots/declutter-walk-1028/45-messages-all-empty-jobs-only.png).
+  it("the empty All inbox names Declutter while Declutter is on for the member, and only then", () => {
+    featureOn.declutter = true;
+    const on = renderHook(() => useMessageSections([], []), { wrapper: wrap("/messages") });
+    expect(on.result.current.mainEmptyBody).toMatch(/Declutter/);
+    expect(on.result.current.mainEmptyBody).toMatch(/job/);
+    featureOn.declutter = false;
+    const off = renderHook(() => useMessageSections([], []), { wrapper: wrap("/messages") });
+    expect(off.result.current.mainEmptyBody).not.toMatch(/Declutter/);
+  });
+
   it("a hidden section has no chip, and its URL falls back to All", () => {
     prefs.hidden = ["homes"];
     const { result } = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=homes") });
@@ -168,7 +182,7 @@ describe("the hook", () => {
 });
 
 describe("the screen", () => {
-  const renderList = (sectionEmpty: Parameters<typeof ConversationList>[0]["sectionEmpty"]) =>
+  const renderList = (sectionEmpty: Parameters<typeof ConversationList>[0]["sectionEmpty"], mainEmptyBody?: string) =>
     render(
       <MemoryRouter>
         <ConversationList
@@ -183,6 +197,7 @@ describe("the screen", () => {
           onBatchArchive={vi.fn()}
           sectionTabs={<div>SECTION STRIP</div>}
           sectionEmpty={sectionEmpty}
+          mainEmptyBody={mainEmptyBody}
         />
       </MemoryRouter>,
     );
@@ -202,6 +217,13 @@ describe("the screen", () => {
     expect(screen.getByText("No messages yet")).toBeInTheDocument();
     // Phone (Q2231): Active / All are reachable from the search row's more menu.
     expect(screen.getByRole("button", { name: "Inbox views and options" })).toBeTruthy();
+  });
+
+  it("the empty All inbox shows the line it is handed", () => {
+    renderList(null, "Apply to a job, accept a Helpr's offer, or buy or sell on Declutter. Your conversations show up here.");
+    expect(screen.getByText(/buy or sell on Declutter/)).toBeInTheDocument();
+    const src = blankComments(readFileSync(join(process.cwd(), "src/pages/messages/Messages.tsx"), "utf8"));
+    expect(src).toMatch(/mainEmptyBody=\{inbox\.mainEmptyBody\}/);
   });
 
   it("Messages.tsx hands the list the tab's threads, never the raw inbox", () => {

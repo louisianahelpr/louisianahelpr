@@ -21,7 +21,7 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           { value: "selling", label: "Selling", count: todo?.selling }, |           { value: "selling", label: "Selling", count: todo?.selling },\n          { value: "wanted", label: "Wanted" },
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
- * @mutate src/lib/declutter/tabs.ts |   if (view === "mine") return "selling"; |   if (view === "mine") return "buying";
+ * @mutate src/lib/declutter/tabs.ts |   if (view === "mine" \|\| view === "sales") return "selling"; |   if (view === "mine" \|\| view === "sales") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
  * @mutate src/lib/declutter/tabs.ts |     selling: sellerOffers + salesOpen, |     selling: sellerOffers,
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     if (!fromView \|\| !tabsReady) return; |     return;

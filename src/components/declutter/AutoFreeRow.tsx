@@ -35,6 +35,8 @@ export function AutoFreeRow({ itemId, rowClassName }: { itemId: string; rowClass
       <span className="flex-1 min-w-0">
         <span id={`auto-free-${itemId}`} className="block text-ds-15 font-semibold">Free on day 12</span>
         <span className="block text-ds-13 text-muted-foreground">If it hasn't sold by day 12, make it free: one last chance before haul-away. Already past day 12? It becomes free tonight.</span>
+        {/* Audit 2 SE2-3: both switches could be on with no word that day 12 wins (declutter_auto_free_due clears the stop). */}
+        {on && <span className="block text-ds-13 text-muted-foreground" data-auto-free-wins="">This wins over a stopped price: on day 12 it's free.</span>}
       </span>
       <Switch aria-labelledby={`auto-free-${itemId}`} checked={on} disabled={state.isLoading || flip.isPending} onCheckedChange={(v) => flip.mutate(v)} />
     </li>

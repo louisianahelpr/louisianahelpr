@@ -84,6 +84,19 @@ describe("Manage a listing (board 158)", () => {
     expect(screen.getByText("Delete listing")).toBeTruthy();
   });
 
+  // Audit 2 SE2-3 (A2-10): with day 12 on, the row says it wins over a stopped price; off, it says nothing of it.
+  // @mutate src/components/declutter/AutoFreeRow.tsx |         {on && <span | {false && <span
+  it("Free on day 12 on: says it wins over a stopped price", async () => {
+    autoFree = true;
+    const first = sheet();
+    expect(await screen.findByText("This wins over a stopped price: on day 12 it's free.")).toBeInTheDocument();
+    first.unmount();
+    autoFree = false;
+    sheet();
+    await screen.findByRole("switch", { name: "Free on day 12" });
+    expect(screen.queryByText(/wins over a stopped price/)).toBeNull();
+  });
+
   it("Free on day 12: the switch sends the seller's choice; hidden before the migration is on prod (Q2430)", async () => {
     autoFree = false;
     const a = sheet();

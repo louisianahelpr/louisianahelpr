@@ -11,6 +11,7 @@ import { DECLUTTER_ERROR_COPY as DC, declutterErrorMessage } from "./errors";
 /** Server codes only the bundle RPCs raise. */
 export const BUNDLE_ERROR_COPY: Record<string, string> = {
   invalid_bundle_percent: "Pick from 5% to 50% off.",
+  invalid_request: "Ask about at most 200 items at a time.",
 };
 
 /** Each bundle RPC's codes and their words (the rpcErrorCopyCoverage rule). */
@@ -25,6 +26,12 @@ export const BUNDLE_RPC_ERROR_COPY = {
   },
   declutter_bundle_rule: {
     feature_disabled: DC.feature_disabled,
+  },
+  // Deep audit #36 (20261028214524): which listings the seller's bundle discount can apply to.
+  declutter_bundle_applies: {
+    feature_disabled: DC.feature_disabled,
+    invalid_request: BUNDLE_ERROR_COPY.invalid_request,
+    not_authenticated: DC.not_authenticated,
   },
   declutter_bundle_preview: {
     not_authenticated: DC.not_authenticated,

@@ -178,3 +178,6 @@
 {"sha":"f1ee17e9d318ecf10db7d5cf7d5b7a162ddee777","reviewer":"lh-authz-rls","verdict":"approve (lead: has_role admin first statement, 42501; short display names only, no address/email/phone; test orders only on request; anon revoked; search_path pinned)","date":"2026-10-28"}
 {"sha":"f5ca96862e0eba31a39a6d42a5ff0f94cd07af75","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only list; p_include_test default false keeps no-arg behaviour; old overload dropped)","date":"2026-10-28"}
 {"sha":"28bfe80fbb0d0dd4f6a49810d18433c45000dbd8","reviewer":"lh-authz-rls","verdict":"approve (lead: returns one count only; sign-in + declutter switch; test sellers hidden like elsewhere; anon revoked)","date":"2026-10-28"}
+{"sha":"4734df905189ea77bfb50dd0c0b9b335bfd0b425","reviewer":"lh-authz-rls","verdict":"approve (lead: additive: category and size per item on the buyer's own order read; same gates and grants)","date":"2026-10-28"}
+{"sha":"be70b1fb732f23287f9be3201a70e9ecd5c9938e","reviewer":"lh-authz-rls","verdict":"approve (lead: has_role admin first statement; short names only; test orders on request; anon revoked)","date":"2026-10-28"}
+{"sha":"6b51468688b3e5ce23fba0fe3e0004ef1fa366df","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only; p_include_test default false)","date":"2026-10-28"}

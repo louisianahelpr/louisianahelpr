@@ -8,9 +8,11 @@
  * through a canvas, BUT it hands the ORIGINAL file back in three cases: a
  * HEIC file, a canvas with no 2D context, and a toBlob that yields nothing.
  * Each of those keeps the GPS tag. So this path does not trust it: the result
- * must be a NEW image/jpeg file, and its bytes are scanned for an EXIF (APP1)
- * or XMP block before it may be uploaded. A photo that fails is refused with
- * plain words, never uploaded as it is.
+ * must be a NEW image/jpeg file; every APP1-APP15 segment (EXIF, XMP, IPTC)
+ * the encoder wrote is stripped from it (stripJpegAppSegments), and the
+ * result is scanned once more for an EXIF (APP1) or XMP block before it may be
+ * uploaded. A photo that fails is refused with plain words, never uploaded as
+ * it is.
  */
 import { compressImage } from "@/lib/imageCompression";
 import { ListingPhotoError } from "./errors";
@@ -68,8 +70,46 @@ export async function cleanListingPhoto(file: File, maxDimension = 1920, quality
   }
   // compressImage returns the original on HEIC / no canvas / empty blob.
   if (cleaned === file || cleaned.type !== "image/jpeg") throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
-  if (jpegHasMetadata(await fileBytes(cleaned))) throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
-  return cleaned;
+  // Apple's JPEG encoder (iOS Safari / WKWebView, WebKit) writes its OWN APP1 and APP13 segments into a canvas
+  // re-encode (measured 2026-10-28: markers e0, e1:76, ed:56, ...), so refusing any APP1 refused every photo on
+  // an iPhone. The re-encode holds pixels only (the source file's EXIF/GPS never reaches the canvas), and every
+  // APPn but APP0 (JFIF) and every comment is stripped here anyway; a header that cannot be walked is refused.
+  const stripped = stripJpegAppSegments(await fileBytes(cleaned));
+  if (!stripped || jpegHasMetadata(stripped)) throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE);
+  return new File([stripped as unknown as BlobPart], cleaned.name, { type: "image/jpeg", lastModified: cleaned.lastModified });
+}
+
+/**
+ * The JPEG with every APP1-APP15 segment (EXIF, XMP, Photoshop/IPTC, ...) and every comment removed from its
+ * header; APP0 (JFIF), the tables, the frame and the image data are kept byte for byte. null when the header
+ * cannot be walked from the start-of-image to the start-of-scan (then the caller refuses the photo).
+ */
+export function stripJpegAppSegments(bytes: Uint8Array): Uint8Array | null {
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) return null;
+  const keep: Uint8Array[] = [bytes.subarray(0, 2)];
+  let i = 2;
+  while (i + 4 <= bytes.length) {
+    if (bytes[i] !== 0xff) return null;
+    const marker = bytes[i + 1];
+    if (marker === 0xda) {
+      keep.push(bytes.subarray(i));
+      const out = new Uint8Array(keep.reduce((n, k) => n + k.length, 0));
+      let at = 0;
+      for (const k of keep) {
+        out.set(k, at);
+        at += k.length;
+      }
+      return out;
+    }
+    // End of image, a restart or a standalone marker before any scan: not a header we understand.
+    if (marker === 0xd9 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd8) || marker === 0xff) return null;
+    const len = (bytes[i + 2] << 8) | bytes[i + 3];
+    if (len < 2 || i + 2 + len > bytes.length) return null;
+    const metadata = (marker >= 0xe1 && marker <= 0xef) || marker === 0xfe;
+    if (!metadata) keep.push(bytes.subarray(i, i + 2 + len));
+    i += 2 + len;
+  }
+  return null;
 }
 
 /** A cleaned photo as bare base64 (no data: prefix), for the photo tool's request body. */

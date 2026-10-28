@@ -88,6 +88,14 @@ vi.mock("./DeclutterDeliveryViews", () => ({
     <p>{tipOnly ? `Tip panel ${taskId}` : `Delivery card ${taskId}`} for the {side}</p>,
 }));
 
+// Seller delivery's own panel has its own test (sellerDeliveryOrder.test.tsx); this stub keeps its one
+// "Report a problem" button, which opens the card's problem form (#51).
+vi.mock("./SellerDeliveryOrder", () => ({
+  SellerDeliveryOrderPanel: ({ onProblem }: { onProblem: () => void }) => (
+    <div><p>Seller delivery panel</p><button type="button" onClick={onProblem}>Report a problem</button></div>
+  ),
+}));
+
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
 
 function show(cart: unknown[]) {
@@ -565,5 +573,26 @@ describe("#6: a free claim never reads like a paid order", () => {
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText("Refund panel")).toBeInTheDocument();
     expect(screen.getByText(/We send it once the sale is final/)).toBeInTheDocument();
+  });
+});
+
+// #51 (audit 2026-10-28): a seller-delivery card showed "Report a problem" twice, the panel's own button and the
+// problem form's. One button; it opens the one form.
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | onOpenChange={setProblemOpen} trigger={false} /> | onOpenChange={setProblemOpen} />
+describe("#51: one Report a problem on a seller-delivery card", () => {
+  it("the card has one Report a problem button, and it opens the form", async () => {
+    for (const side of ["buyer", "seller"] as const) {
+      const { unmount } = show([line({ handover: "seller_delivery", my_side: side, delivery_cents: 1500 })]);
+      await screen.findByText("Seller delivery panel");
+      expect(screen.getAllByRole("button", { name: "Report a problem" })).toHaveLength(1);
+      fireEvent.click(screen.getByRole("button", { name: "Report a problem" }));
+      expect(await screen.findByLabelText("What went wrong?")).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it("other cards keep the form's own button", async () => {
+    show([line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400 })]);
+    expect(await screen.findAllByRole("button", { name: "Report a problem" })).toHaveLength(1);
   });
 });

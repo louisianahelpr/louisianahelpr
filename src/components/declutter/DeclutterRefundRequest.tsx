@@ -36,6 +36,14 @@ export const REFUND_REASON_WORDS: Record<RefundReason, string> = {
   not_received: "Never got it",
 };
 
+/**
+ * Deep audit 2026-10-28 B-5 (#5): a "full refund" of $33.01 on a $34.30 payment, never explained. The server's full
+ * refund (declutter_full_refund_cents) is the payment less what the card network kept for it (Stripe does not return
+ * it), and less a delivery a Helpr already made. Members never see a fee name or number (owner 2026-10-25), so the
+ * gap is said in plain words, with no figure, wherever the full-refund amount is shown to the buyer.
+ */
+const FULL_REFUND_WHY = "That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.";
+
 /** "the seller" at the start of a sentence. */
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -129,7 +137,8 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
         <textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         <p className="text-ds-12 text-muted-foreground">
           {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(v.full_refund_cents)} back to your card
-          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}. For a full refund you give the item back first; it is sent once {who} confirms they have it.
+          {v.delivery_kept_cents > 0 ? " (the delivery stays paid: the Helpr made the trip)" : ""}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund
+          you give the item back first; it is sent once {who} confirms they have it.
         </p>
         <div className="flex flex-wrap gap-2">
           <button type="button" className={primary} disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</button>
@@ -163,7 +172,8 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
       return (
         <div className="space-y-2" data-refund-returning="">
           <p className="text-sm">
-            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. Give the item back; arrange it in Messages. Your refund is sent as soon as {who} confirms they have it.
+            {cap(who)} agreed to refund you {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> Give the item back;
+            arrange it in Messages. Your refund is sent as soon as {who} confirms they have it.
           </p>
           {r.return_by && <p className="text-ds-12 text-muted-foreground">If {who} hasn't confirmed by {at(r.return_by)}, Louisiana Helpr decides.</p>}
         </div>

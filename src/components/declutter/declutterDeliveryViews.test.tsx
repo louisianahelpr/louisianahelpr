@@ -41,7 +41,13 @@ vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({
 }));
 // Q2435: the Busy right now card reads the Browse map's jobs and loads MapKit; not what this file tests.
 vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => null }));
-vi.mock("@/lib/declutter/position", () => ({ currentPosition: async () => ({ lat: 30.5, lng: -91.15 }) }));
+const position = { off: false };
+vi.mock("@/lib/declutter/position", () => ({
+  currentPosition: async () => {
+    if (position.off) throw new Error("location_required");
+    return { lat: 30.5, lng: -91.15 };
+  },
+}));
 vi.mock("@/hooks/usePayoutSetupPaused", () => ({
   usePayoutSetupPaused: () => state.setupPaused,
   usePayoutSetupBlock: () => (state.setupPaused ? "needs_hire" : null),
@@ -97,6 +103,7 @@ const VIEW = {
 const jpeg = () => new File([new Uint8Array([1])], "p.jpg", { type: "image/jpeg" });
 
 beforeEach(() => {
+  position.off = false;
   state.view = null;
   state.open = [];
   state.mine = [];
@@ -260,6 +267,16 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
     show(<DeliverView />);
     await waitFor(() => expect(document.querySelector("[data-vehicle-reach]")?.textContent).toMatch(/Large and extra large items need a truck/));
+  });
+
+  // Audit 3 (A3-2): with location off, "Nearest first" said "...confirm you're at the pickup address".
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | "Turn on location to see the nearest deliveries first." | declutterErrorMessage(err)
+  it("Nearest first with location off asks for location to sort, not about a pickup address", async () => {
+    position.off = true;
+    const { toast } = await import("sonner");
+    show(<DeliverView />);
+    fireEvent.click(await screen.findByRole("button", { name: "Nearest first" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Turn on location to see the nearest deliveries first."));
   });
 
   it("a car alone is saved as a car (Q2452)", async () => {

@@ -44,6 +44,15 @@ const ALLOWED_TYPES = new Set([
   "financial_alerts",
   "verified",
   "message",
+  // Declutter (20261028162048): one per switch in the Declutter group. Written
+  // server-side by declutter_notify; listed because the set must match the CHECK.
+  "declutter_listings",
+  "declutter_offers",
+  "declutter_sales",
+  "declutter_pickups",
+  "declutter_refunds",
+  "declutter_price_drops",
+  "declutter_wanted",
 ]);
 
 // Same-origin path check: link must be a server-relative path (starts with `/`,

@@ -75,6 +75,11 @@ const startingRow = (): Record<string, unknown> => ({
  * The subject of this file is the preferences screen, not the auth bootstrap,
  * so the hook is stubbed at a resolved, signed-in state.
  */
+// The Declutter group reads its hidden switches through React Query; this
+// file is about the jobs-and-master switches, so Declutter is off here (its
+// group has its own test in notificationPrefsScreen.test.tsx).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),
 }));

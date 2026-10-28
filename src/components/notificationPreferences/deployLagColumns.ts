@@ -10,28 +10,39 @@
  * Each column below defaults to present (a new member with no row must still
  * be able to opt in); only a LOADED row that lacks it proves we are mid-gap,
  * and then the key is stripped from writes. For `email_enabled` the screen also
- * keeps the old derived master reading meanwhile.
+ * keeps the old derived master reading meanwhile, and the Declutter group stays
+ * hidden until its columns are there.
  *
  *   email_enabled              migration 20260907032218
  *   saved_helper_availability  migration 20260915202026
  *   email_quote_reminders      migration 20261023120308 (Q2120)
+ *   declutter_* and email_declutter_*  migration 20261028162048 (14 columns)
  */
-const DEPLOY_LAG_COLUMNS = ["email_enabled", "saved_helper_availability", "email_quote_reminders"] as const;
+const DECLUTTER_KINDS = [
+  "declutter_listings", "declutter_offers", "declutter_sales", "declutter_pickups",
+  "declutter_refunds", "declutter_price_drops", "declutter_wanted",
+] as const;
 
-export type ColumnPresence = Record<(typeof DEPLOY_LAG_COLUMNS)[number], boolean>;
+const DEPLOY_LAG_COLUMNS = [
+  "email_enabled", "saved_helper_availability", "email_quote_reminders",
+  ...DECLUTTER_KINDS,
+  ...DECLUTTER_KINDS.map((k) => `email_${k}` as const),
+] as const;
 
-export const ALL_PRESENT: ColumnPresence = {
-  email_enabled: true,
-  saved_helper_availability: true,
-  email_quote_reminders: true,
-};
+type LagColumn = (typeof DEPLOY_LAG_COLUMNS)[number];
+export type ColumnPresence = Record<LagColumn, boolean>;
+
+export const ALL_PRESENT: ColumnPresence = Object.fromEntries(
+  DEPLOY_LAG_COLUMNS.map((c) => [c, true]),
+) as ColumnPresence;
 
 /** Which of the deploy-lag columns the loaded row actually carries. */
-export const columnsPresentIn = (row: Record<string, unknown>): ColumnPresence => ({
-  email_enabled: "email_enabled" in row,
-  saved_helper_availability: "saved_helper_availability" in row,
-  email_quote_reminders: "email_quote_reminders" in row,
-});
+export const columnsPresentIn = (row: Record<string, unknown>): ColumnPresence =>
+  Object.fromEntries(DEPLOY_LAG_COLUMNS.map((c) => [c, c in row])) as ColumnPresence;
+
+/** Every Declutter switch column is deployed (the group is shown only then). */
+export const declutterColumnsPresent = (present: ColumnPresence): boolean =>
+  DECLUTTER_KINDS.every((k) => present[k] && present[`email_${k}`]);
 
 /** Drops every key whose column is not deployed yet, so the upsert cannot PGRST204. */
 export function stripMissingColumns(payload: object, present: ColumnPresence): void {

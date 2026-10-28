@@ -9,9 +9,9 @@
  *   - the evening sweep no longer sends its own notice (no double alert).
  * Backend proof, seven planted defects each RED: src/test/pglite/declutterPriceDropAlerts.pglite.mjs.
  *
- * @mutate supabase/migrations/20261027204745_declutter_price_drop_alerts.sql |        AND wl.user_id IS DISTINCT FROM NEW.seller_id\n |        AND true\n
- * @mutate supabase/migrations/20261027204745_declutter_price_drop_alerts.sql | a.sent_at > now() - interval '3 days')) | a.sent_at > now() - interval '3 seconds'))
- * @mutate supabase/migrations/20261027204745_declutter_price_drop_alerts.sql |        AND NOT public.are_users_blocked(wl.user_id, NEW.seller_id)\n |        AND true\n
+ * @mutate supabase/migrations/20261028162048_declutter_notice_kinds.sql |        AND wl.user_id IS DISTINCT FROM NEW.seller_id\n |        AND true\n
+ * @mutate supabase/migrations/20261028162048_declutter_notice_kinds.sql | a.sent_at > now() - interval '3 days')) | a.sent_at > now() - interval '3 seconds'))
+ * @mutate supabase/migrations/20261028162048_declutter_notice_kinds.sql |        AND NOT public.are_users_blocked(wl.user_id, NEW.seller_id)\n |        AND true\n
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

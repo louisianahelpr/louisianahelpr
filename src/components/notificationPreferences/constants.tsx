@@ -1,6 +1,7 @@
 import {
   Briefcase, MessageSquare, DollarSign, Star, Megaphone,
   Navigation, CheckCircle2, Users, RefreshCw, Receipt, ShieldAlert, Sparkles,
+  Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search,
 } from "lucide-react";
 import type { Prefs, Row } from "./types";
 
@@ -20,6 +21,13 @@ export const defaultPrefs: Prefs = {
   work_status: true, email_work_status: true,
   financial_alerts: true, email_financial_alerts: true,
   job_matches: true, email_job_matches: true,
+  declutter_listings: true, email_declutter_listings: true,
+  declutter_offers: true, email_declutter_offers: true,
+  declutter_sales: true, email_declutter_sales: true,
+  declutter_pickups: true, email_declutter_pickups: true,
+  declutter_refunds: true, email_declutter_refunds: true,
+  declutter_price_drops: true, email_declutter_price_drops: true,
+  declutter_wanted: true, email_declutter_wanted: true,
   email_quote_reminders: true,
   match_digest_mode: false,
   // Saved-helper availability nudges are opt-in (owner, 2026-09-15) — off
@@ -89,4 +97,23 @@ export const rows: Row[] = [
   { key: "reviews", emailKey: "email_reviews", label: "Reviews", icon: <Star className="w-3.5 h-3.5" /> },
   { key: "system_alerts", emailKey: "email_system_alerts", label: "System alerts", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
   { key: "promotions", emailKey: "email_promotions", label: "Promotions", icon: <Megaphone className="w-3.5 h-3.5" /> },
+];
+
+// ── The "Declutter" group (owner 2026-10-28, via the lead: "Yes, build them") ──
+// One row per declutter_* notification type (20261028162048). Shown only while
+// Declutter is on for the member; Wanted matches only while Wanted is.
+// Labels are one or two short words, inside the 375px budget described above.
+// Pickups and price drops are the only kinds that send a notice email, so the
+// other rows show a dash in the Email column rather than a switch that does
+// nothing. (A Declutter refund's receipt email, declutter-money's
+// tellBuyerRefunded, is a receipt and always goes; the Refunds dash says so.)
+const NO_EMAIL = "In the app only, no email for this";
+export const declutterRows: Row[] = [
+  { key: "declutter_listings", emailKey: "email_declutter_listings", label: "Listings", icon: <Tag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_offers", emailKey: "email_declutter_offers", label: "Offers", icon: <HandCoins className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_sales", emailKey: "email_declutter_sales", label: "Sales", icon: <ShoppingBag className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
+  { key: "declutter_pickups", emailKey: "email_declutter_pickups", label: "Pickups", icon: <CalendarClock className="w-3.5 h-3.5" /> },
+  { key: "declutter_refunds", emailKey: "email_declutter_refunds", label: "Refunds", icon: <Undo2 className="w-3.5 h-3.5" />, noEmailSwitch: "Refund receipts are always emailed" },
+  { key: "declutter_price_drops", emailKey: "email_declutter_price_drops", label: "Price drops", icon: <TrendingDown className="w-3.5 h-3.5" /> },
+  { key: "declutter_wanted", emailKey: "email_declutter_wanted", label: "Wanted matches", icon: <Search className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
 ];

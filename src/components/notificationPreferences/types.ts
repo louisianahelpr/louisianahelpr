@@ -48,6 +48,25 @@ export interface Prefs {
       producers fired. Defaults true — nobody loses matches silently. */
   job_matches: boolean;
   email_job_matches: boolean;
+  /** Declutter (20261028162048), one push column and its email twin per
+      kind, shown as the "Declutter" group. All default true; price drops and
+      Wanted matches were backfilled from `new_offers`, the switch that used to
+      gate them. Only pickups and price drops send email today, so the other
+      five rows show no Email switch (`noEmailSwitch` in constants.tsx). */
+  declutter_listings: boolean;
+  email_declutter_listings: boolean;
+  declutter_offers: boolean;
+  email_declutter_offers: boolean;
+  declutter_sales: boolean;
+  email_declutter_sales: boolean;
+  declutter_pickups: boolean;
+  email_declutter_pickups: boolean;
+  declutter_refunds: boolean;
+  email_declutter_refunds: boolean;
+  declutter_price_drops: boolean;
+  email_declutter_price_drops: boolean;
+  declutter_wanted: boolean;
+  email_declutter_wanted: boolean;
   /** Email-only (Q2120, 20261023120308): quote reminders and the "Quotes are
       closed" notice, send-notification-email type `quote_reminder`. Their
       in-app row and push ride `new_offers`. Default true. Standalone like
@@ -86,4 +105,8 @@ export interface Row {
   emailKey: BoolPrefKey;
   label: string;
   icon: React.ReactNode;
+  /** Set when this kind has no email to switch: the row shows a dash in the
+      Email column (this text is its tooltip and screen-reader label) instead of
+      a switch that would do nothing. */
+  noEmailSwitch?: string;
 }

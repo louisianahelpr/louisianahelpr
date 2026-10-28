@@ -126,7 +126,7 @@ const Admin = () => {
   const [stats, setStats] = useState<Stats>({
     totalUsers: 0,
     activeJobs: 0, completedJobs: 0, totalRevenue: 0, totalFees: 0,
-    activeSubscriptions: 0, lateCancellationRevenue: 0,
+    lateCancellationRevenue: 0,
     newUsersInRange: 0, newUsersPrev: 0, revenueInRange: 0, revenuePrev: 0,
     completedJobsInRange: 0, completedJobsPrev: 0,
     feesThisQuarter: 0,
@@ -233,7 +233,7 @@ const Admin = () => {
 
     const [
       profilesRes, activeRes, completedRes,
-      paymentsRes, subsRes, lateCancelRes,
+      paymentsRes, lateCancelRes,
       newUsersInRangeRows, newUsersPrevRows,
       revInRangeRows, revPrevRows,
       completedInRangeRows, completedPrevRows,
@@ -245,7 +245,6 @@ const Admin = () => {
       supabase.from("jobs").select("id", { count: "exact", head: true }).not("status", "in", "(completed,cancelled)").in("payment_status", ["escrow", "payout_pending"]).eq("is_seed", false), // Active = paid + unfinished, as Jobs → Active (isActivePaidJob)
       supabase.from("jobs").select("id", { count: "exact", head: true }).eq("status", "completed").eq("is_seed", false),
       supabase.from("jobs").select("id, payment_status, stripe_payment_intent_id, budget, platform_fee_amount, customer_fee_amount").in("payment_status", [...CAPTURED_PAYMENT_STATUSES]).neq("status", "cancelled").eq("is_seed", false),
-      supabase.from("profiles").select("id", { count: "exact", head: true }).not("subscription_tier", "is", null).eq("is_seed", false),
       supabase.from("jobs").select("budget, platform_fee_amount, customer_fee_amount, cancellation_fee").eq("status", "cancelled").in("payment_status", ["refunded", "cancelled", "escrow", "payout_pending", "released"]).eq("is_seed", false),
       // New users by created_at — rows so we can bucket into a sparkline.
       supabase.from("profiles").select("created_at").gte("created_at", dStart).eq("is_seed", false),
@@ -283,7 +282,7 @@ const Admin = () => {
     const namedResults: [string, { error: PostgrestError | null }][] = [
       ["profiles", profilesRes],
       ["active", activeRes], ["completed", completedRes],
-      ["payments", paymentsRes], ["subs", subsRes], ["lateCancel", lateCancelRes],
+      ["payments", paymentsRes], ["lateCancel", lateCancelRes],
       ["newUsersInRange", newUsersInRangeRows], ["newUsersPrev", newUsersPrevRows],
       ["revInRange", revInRangeRows], ["revPrev", revPrevRows],
       ["completedInRange", completedInRangeRows], ["completedPrev", completedPrevRows],
@@ -344,7 +343,6 @@ const Admin = () => {
       // visually and the number had not (measured 2026-09-07).
       totalRevenue: paymentRows.reduce((s, j) => s + (j.budget || 0) + (j.customer_fee_amount || 0), 0),
       totalFees: paymentRows.reduce((s, j) => s + (j.platform_fee_amount || 0) + (j.customer_fee_amount || 0), 0),
-      activeSubscriptions: subsRes.count || 0,
       lateCancellationRevenue,
       newUsersInRange: (newUsersInRangeRows.data || []).length,
       newUsersPrev: (newUsersPrevRows.data || []).length,

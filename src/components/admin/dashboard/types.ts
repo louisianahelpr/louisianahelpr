@@ -18,7 +18,6 @@ export interface Stats {
   totalUsers: number;
   activeJobs: number; completedJobs: number;
   totalRevenue: number; totalFees: number;
-  activeSubscriptions: number;
   lateCancellationRevenue: number;
   newUsersInRange: number; newUsersPrev: number;
   revenueInRange: number; revenuePrev: number;

@@ -17,6 +17,7 @@ import {
   type MeetupSpotNear,
 } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 const KIND_WORDS: Record<MeetupSpotNear["kind"], string> = {
   police: "Police safe exchange spot",
@@ -72,7 +73,8 @@ export function MeetupPanel({ orderId, side, slotStart }: { orderId: string; sid
     },
     onError: (err) => toast.error(meetupErrorMessage(err)),
   });
-  if (meetup.isError) return <p className="text-sm text-muted-foreground" role="alert">The meeting spot couldn't load. Pull to refresh.</p>;
+  // An error with a retry (audit 2026-10-28: "Pull to refresh" with no button, and a desktop page cannot be pulled).
+  if (meetup.isError) return <ErrorState variant="inline" title="We couldn't load the meeting spot." body={meetupErrorMessage(meetup.error)} onRetry={() => void meetup.refetch()} />;
   const m = meetup.data;
   if (!m) return null;
   const mine = side === "buyer" ? m.buyer_here_at : m.seller_here_at;

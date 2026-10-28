@@ -191,7 +191,7 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
   });
   if (times.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading open times…</p>;
-  if (times.isError) return <p className="text-sm text-muted-foreground" role="status">{sellerDeliveryErrorMessage(times.error)}</p>;
+  if (times.isError) return <ErrorState variant="inline" title="We couldn't load the open times." body={sellerDeliveryErrorMessage(times.error)} onRetry={() => void times.refetch()} />;
   if (!shown) return <p className="text-sm text-muted-foreground" role="status">No other delivery times are open in the next two weeks.</p>;
   return (
     <div className="space-y-2 rounded-xl border border-border p-3">

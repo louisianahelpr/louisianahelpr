@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { chooseDonation, donatePostJobPath, fetchDonationPartnersNear, fetchMyDonations } from "@/lib/declutter/donate";
 import { haulAwayErrorMessage } from "@/lib/declutter/haulAwayErrors";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
+import { ErrorState } from "@/components/ui/ErrorState";
 
 /** The charity choice for the items on the card, and the way to post the donation job. Nothing when none is near. */
 export function DonatePicker({ itemIds }: { itemIds: string[] }) {
@@ -67,7 +68,8 @@ export function DonatePicker({ itemIds }: { itemIds: string[] }) {
 /** The seller's donation receipts. Nothing until there is one. */
 export function DonationReceipts() {
   const mine = useQuery({ queryKey: ["declutter", "my-donations"], queryFn: () => fetchMyDonations() });
-  if (mine.isError) return <p className="text-ds-13 text-muted-foreground" role="alert">Your donation receipts couldn't load. Pull to refresh.</p>;
+  // An error with a retry (audit 2026-10-28: "Pull to refresh" with no button, and a desktop page cannot be pulled).
+  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your donation receipts." body={haulAwayErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   const receipts = (mine.data ?? []).filter((d) => d.receipt && d.donated_at);
   if (receipts.length === 0) return null;
   return (

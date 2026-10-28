@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
-import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { SORT_LABEL, type DeclutterFilters, type DeclutterSort } from "@/lib/declutter/browseFilters";
 import { CONDITION_LABEL } from "./declutterUi";
 import type { OriginAsk } from "./DeclutterBrowseBar";
@@ -175,9 +175,9 @@ export function declutterFilterSections({
       content: (
         <Row>
           <Chip on={!filters.category} onClick={() => onChange({ ...filters, category: null })}>All</Chip>
-          {Object.keys(CATEGORY_WORD).map((key) => (
+          {Object.keys(CATEGORY_LABEL).map((key) => (
             <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}>
-              {CATEGORY_WORD[key]}
+              {CATEGORY_LABEL[key]}
             </Chip>
           ))}
         </Row>

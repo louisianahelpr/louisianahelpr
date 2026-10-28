@@ -17,7 +17,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 // activityConstants from a src/lib module pulled that 16.7 KB module into app-shared, on every page's boot path
 // (/login 284 -> 286 KB gz, over the Q178 budget; TRAIN A, 2026-10-21).
 import { JOB_CATEGORY_LABELS } from "@/lib/jobCategories";
-import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 
 /** The sections a member can save a search in today (Shops and Homes open later). */
 export type SavedSearchSection = "jobs" | "declutter";
@@ -55,7 +55,7 @@ const COLUMNS =
   "id,name,section,query,category,min_budget,max_budget,radius_miles,parish,location_keyword,notify_enabled,notify_email,last_seen_at,created_at";
 
 function categoryWord(section: string, category: string): string {
-  if (section === "declutter") return CATEGORY_WORD[category] ?? category;
+  if (section === "declutter") return CATEGORY_LABEL[category] ?? category;
   return (JOB_CATEGORY_LABELS as Record<string, string>)[category] ?? category;
 }
 

@@ -29,7 +29,7 @@ import { fetchDropStates, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatchi
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, dropOutlook, type DeclutterFilters } from "@/lib/declutter/browseFilters";
-import { CATEGORY_WORD } from "@/lib/declutter/categoryIcons";
+import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { SectionScreen } from "@/components/sections/SectionScreen";
@@ -248,7 +248,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           <EmptyState
             variant="bare"
             icon={Sofa}
-            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : "Nothing for sale this close."}
+            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_LABEL[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : "Nothing for sale this close."}
             // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
             // (owner 2026-10-21); the Clear button below is the way back to everything.
             body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "Check back soon, or sell something of your own." : "Try a bigger distance."}

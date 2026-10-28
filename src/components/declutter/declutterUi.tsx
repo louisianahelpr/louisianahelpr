@@ -39,21 +39,8 @@ export const SIZE_LABEL: Record<DeliverySize, string> = {
   xl: "Extra large: truck and two people",
 };
 
-export const CATEGORY_LABEL: Record<string, string> = {
-  furniture: "Furniture",
-  appliances: "Appliances",
-  electronics: "Electronics",
-  kitchen: "Kitchen",
-  home_decor: "Home decor",
-  tools: "Tools",
-  outdoor_garden: "Outdoor and garden",
-  sports_outdoors: "Sports",
-  toys_games: "Toys and games",
-  baby_kids: "Baby and kids",
-  clothing: "Clothing",
-  books_media: "Books and media",
-  other: "Other",
-};
+// The one category-name map (src/lib/declutter/categoryIcons.ts), re-exported for the screens that import it here.
+export { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 
 export const CONDITION_LABEL: Record<number, string> = {
   5: "Like new",

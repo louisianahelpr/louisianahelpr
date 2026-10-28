@@ -41,22 +41,25 @@ export function categoryIcon(category: string | null | undefined): LucideIcon {
 }
 
 /**
- * One word per category for Browse's category tiles (lead, 2026-10-19: icon
- * plus one word). The full names (CATEGORY_LABEL in declutterUi.tsx) stay on
- * the item page and in the sell form.
+ * THE category names, one per category, everywhere in Declutter: Browse's filters and empty states, saved searches,
+ * the sell form, Wanted, the item page (lead walkthrough 2026-10-28, shots 11 and 21: Browse said "Decor", "Garden",
+ * "Toys", "Baby", "Books" while Sell and Wanted said "Home decor", "Outdoor and garden", ...). Browse's one-word
+ * tile names (2026-10-19) went with the tiles (the categories live in the filter sheet since 2026-10-21). Lives here,
+ * with no React, so saved searches can read it without loading a screen. declutterUi.tsx re-exports it.
+ * Guard: src/test/declutterOneCategoryNameMap.test.ts.
  */
-export const CATEGORY_WORD: Record<string, string> = {
+export const CATEGORY_LABEL: Record<string, string> = {
   furniture: "Furniture",
   appliances: "Appliances",
   electronics: "Electronics",
   kitchen: "Kitchen",
-  home_decor: "Decor",
+  home_decor: "Home decor",
   tools: "Tools",
-  outdoor_garden: "Garden",
+  outdoor_garden: "Outdoor and garden",
   sports_outdoors: "Sports",
-  toys_games: "Toys",
-  baby_kids: "Baby",
+  toys_games: "Toys and games",
+  baby_kids: "Baby and kids",
   clothing: "Clothing",
-  books_media: "Books",
+  books_media: "Books and media",
   other: "Other",
 };

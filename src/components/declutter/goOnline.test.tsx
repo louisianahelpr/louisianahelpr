@@ -45,7 +45,14 @@ describe("Go online for deliveries", () => {
     const sw = await screen.findByRole("switch", { name: "Online for deliveries" });
     await waitFor(() => expect(sw).not.toBeDisabled());
     expect(sw).toHaveAttribute("aria-checked", "false");
-    fireEvent.change(screen.getByLabelText(/For/), { target: { value: "8" } });
+    // 44px chips like Browse's (lead 2026-10-28), not native selects.
+    // @mutate src/components/declutter/GoOnlineCard.tsx |               {HOURS.map((h) => <Chip key={h} on={hours === h} onClick={() => setHours(h)}>{`${h} hours`}</Chip>)} |               {HOURS.map((h) => <Chip key={h} on={hours === h} onClick={() => setHours(4)}>{`${h} hours`}</Chip>)}
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByRole("group", { name: "For" }).querySelectorAll("button")).toHaveLength(3);
+    expect(screen.getByRole("button", { name: "4 hours" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "8 hours" }));
+    expect(screen.getByRole("button", { name: "8 hours" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("group", { name: "Within" })).toHaveTextContent("15 miles");
     fireEvent.click(sw);
     await waitFor(() => expect(state.calls).toContainEqual(["helpr_go_online", { p_on: true, p_hours: 8, p_lat: 30.4512, p_lng: -91.1512, p_radius_miles: 15 }]));
     expect(screen.getByText(/Near the location you shared on this screen/)).toBeInTheDocument();

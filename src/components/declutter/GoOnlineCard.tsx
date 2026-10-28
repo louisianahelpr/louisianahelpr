@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOnlineStatus, isOnline, setOnline } from "@/lib/helprTasks/online";
+import { Chip } from "./DeclutterFilterPanel";
 
 const HOURS = [2, 4, 8] as const;
 const MILES = [5, 10, 15, 25] as const;
@@ -51,20 +52,21 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
           <span aria-hidden className={`absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${online ? "translate-x-7" : "translate-x-1"}`} />
         </button>
       </div>
+      {/* Browse's 44px chips, not two native selects (lead 2026-10-28: in WebKit they drew about 30px tall). */}
       {!online && (
-        <div className="flex flex-wrap gap-3">
-          <label className="flex items-center gap-2 text-ds-13">
-            For
-            <select className="min-h-11 rounded-lg border border-border bg-background px-2" value={hours} onChange={(e) => setHours(Number(e.target.value))}>
-              {HOURS.map((h) => <option key={h} value={h}>{h} hours</option>)}
-            </select>
-          </label>
-          <label className="flex items-center gap-2 text-ds-13">
-            Within
-            <select className="min-h-11 rounded-lg border border-border bg-background px-2" value={radius} onChange={(e) => setMiles(Number(e.target.value))}>
-              {[...new Set([...MILES, radius])].sort((x, y) => x - y).map((m) => <option key={m} value={m}>{m} miles</option>)}
-            </select>
-          </label>
+        <div className="space-y-3" data-go-online-choices="">
+          <div className="space-y-1.5">
+            <p id={`${id}-for`} className="text-ds-13 font-semibold">For</p>
+            <div role="group" aria-labelledby={`${id}-for`} className="flex flex-wrap gap-2">
+              {HOURS.map((h) => <Chip key={h} on={hours === h} onClick={() => setHours(h)}>{`${h} hours`}</Chip>)}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <p id={`${id}-within`} className="text-ds-13 font-semibold">Within</p>
+            <div role="group" aria-labelledby={`${id}-within`} className="flex flex-wrap gap-2">
+              {[...new Set([...MILES, radius])].sort((x, y) => x - y).map((m) => <Chip key={m} on={radius === m} onClick={() => setMiles(m)}>{`${m} miles`}</Chip>)}
+            </div>
+          </div>
         </div>
       )}
       <p className="text-ds-12 text-muted-foreground">

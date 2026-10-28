@@ -81,11 +81,17 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag }: { i
           )}
         </span>
         <span data-card-title className="mt-0.5 block truncate text-sm font-semibold leading-snug" title={item.title}>{item.title}</span>
-        <span data-card-place className="block truncate text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
-          {item.area_label}
-          {away ? ` · ${away}` : ""}
-          {/* Board 39: desktop cards also say how you get it. */}
-          {item.porch_ok && <span className="hidden lg:inline"> · Porch pickup</span>}
+        {/* Deep audit 2026-10-28 #45: at 390 the one truncating line cut the distance off ("Mid City, Baton Ro…").
+            The town has its own line and may truncate; the distance sits on the next line and always shows whole. */}
+        <span data-card-place className="block min-w-0 text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
+          <span data-card-area className="block truncate">{item.area_label}</span>
+          {(away || item.porch_ok) && (
+            <span className={`min-w-0 ${away ? "flex" : "hidden lg:flex"}`}>
+              {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
+              {/* Board 39: desktop cards also say how you get it (this part gives way first). */}
+              {item.porch_ok && <span className="hidden min-w-0 truncate whitespace-pre lg:inline">{away ? " · " : ""}Porch pickup</span>}
+            </span>
+          )}
         </span>
       </span>
     </Link>

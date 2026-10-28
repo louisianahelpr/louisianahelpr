@@ -12,6 +12,11 @@
  * @mutate src/components/declutter/DeclutterReviewForm.tsx |       if ((err as { message?: unknown })?.message === "already_reviewed") { |       if (false) {
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | {REVIEW_TAGS[side].map(([tag, label]) => { | {REVIEW_TAGS.buyer.map(([tag, label]) => {
  * @mutate src/components/declutter/DeclutterReviewForm.tsx | onClick={() => send.mutate({ stars, comment: comment.trim() \|\| null, tags })} | onClick={() => send.mutate({ stars, comment: comment.trim() \|\| null, tags: [] })}
+ * Deep audit 2026-10-28 SH-4 (#16): a review sent (or refused as already_reviewed) is remembered for the order, so
+ * after a reload or a second visit "Leave a review" does not come back to fail with 409.
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |   const [sent, setSent] = useState(() => rememberedReviewed(orderId, side)); |   const [sent, setSent] = useState(false);
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |     onSuccess: (r) => {\n      rememberReviewed(orderId, side); |     onSuccess: (r) => {
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx |         rememberReviewed(orderId, side);\n        setSent(true); |         setSent(true);
  * @mutate src/lib/declutter/reviews.ts |   if (row.buyer_id === myId) return row.seller_id ?? null; |   if (row.buyer_id === myId) return row.buyer_id ?? null;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -67,6 +72,7 @@ beforeEach(() => {
   state.fail = null;
   state.dropTags = false;
   toasts.success.mockClear();
+  localStorage.clear();
 });
 
 describe("board 163: reviews after a sale", () => {
@@ -123,6 +129,33 @@ describe("board 163: reviews after a sale", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Friendly" }));
     fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
     await waitFor(() => expect(toasts.success).toHaveBeenCalledWith(expect.stringContaining("Your tags couldn't be saved yet.")));
+  });
+
+  it("#16: once sent, the card never offers it again, even after a reload (a new mount)", async () => {
+    const first = renderIt("buyer");
+    const sheet = await openSheet();
+    fireEvent.click(within(sheet).getByRole("radio", { name: "5 stars" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
+    expect(await screen.findByText(/Review sent\./)).toBeInTheDocument();
+    first.unmount();
+    renderIt("buyer");
+    expect(screen.getByText(/Review sent\./)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
+    // The other side of the same order and another order are their own.
+    renderIt("seller");
+    expect(screen.getByRole("button", { name: "Leave a review" })).toBeInTheDocument();
+  });
+
+  it("#16: refused as already reviewed, the card stays gone after a reload too", async () => {
+    state.fail = "already_reviewed";
+    const first = renderIt("buyer");
+    const sheet = await openSheet();
+    fireEvent.click(within(sheet).getByRole("radio", { name: "5 stars" }));
+    fireEvent.click(within(sheet).getByRole("button", { name: "Send review" }));
+    expect(await screen.findByText(/Review sent\./)).toBeInTheDocument();
+    first.unmount();
+    renderIt("buyer");
+    expect(screen.queryByRole("button", { name: "Leave a review" })).toBeNull();
   });
 
   it("already reviewed elsewhere: the card stops offering it", async () => {

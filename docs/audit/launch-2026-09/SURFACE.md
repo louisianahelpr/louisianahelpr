@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 51 |
+| Routes (non-redirect) | route | 52 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 33 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 194 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 973 (across 249 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 30 |
+| Toast messages | **call site** | 981 (across 254 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 23 |
-| Back/next navigation only | flow | 52 |
-| Forms (submittable) | form | 78 |
+| Back/next navigation only | flow | 54 |
+| Forms (submittable) | form | 81 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 158 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **646** |
-| **Copy surfaces** (strings a person may read) | mixed | **1013** |
-| **Total auditable surface** | mixed | **1659** |
+| **Navigable surfaces** (places a person can stand) | mixed | **653** |
+| **Copy surfaces** (strings a person may read) | mixed | **1021** |
+| **Total auditable surface** | mixed | **1674** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 51 | 34 | agree |
+| Real routes | 52 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 194 | 130 | agree within method (script counts every menu instance) |
-| Forms | 78 | ~38 | agree |
-| Confirmed multi-step flows | 30 | 9 | agree; the agent excluded section routers this script still counts |
+| Forms | 81 | ~38 | agree |
+| Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -125,6 +125,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/terms/full`
 - [ ] `/privacy/full`
 - [ ] `/search`
+- [ ] `/helprs`
 - [ ] `/jobs/settings`
 - [ ] `/jobs/:id`
 - [ ] `/browse`
@@ -404,6 +405,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/admin/Admin.tsx` | switch |
 | `src/pages/auth/Signup.tsx` | compare, nav-handler |
 | `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
+| `src/pages/helprs/FindHelprs.tsx` | compare, nav-handler |
 | `src/pages/home/DashboardGuest.tsx` | compare |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | switch, union-state |
 | `src/pages/jobs/appliedJobCard/CrewMemberSection.tsx` | compare |
@@ -456,6 +458,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/admin/AdminSectionHeader.tsx` | nav-handler |
 | `src/components/AppPage.tsx` | nav-handler |
 | `src/components/declutter/DeclutterTradeViews.tsx` | nav-handler |
+| `src/components/declutter/DeliveryRouteMap.tsx` | nav-handler |
 | `src/components/header/PageTitleBar.tsx` | nav-handler |
 | `src/components/messages/ChatHeader.tsx` | nav-handler |
 | `src/components/messages/ChatView.tsx` | nav-handler |
@@ -483,6 +486,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
 | `src/hooks/useDeleteAccount.ts` | nav-handler |
+| `src/lib/declutter/route.ts` | nav-handler |
 | `src/pages/admin/AdminFrame.tsx` | nav-handler |
 | `src/pages/info/Legal.tsx` | nav-handler |
 | `src/pages/post-job/CheckoutStepView.tsx` | nav-handler |
@@ -526,6 +530,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/RestrictApplicationsDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/AutoFreeRow.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterOfferPanel.tsx` (form tag)
@@ -536,6 +541,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/SellerDeliverySettings.tsx` (form tag)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)
+- [ ] `src/components/guarantee/HelprGuaranteePanel.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
 - [ ] `src/components/landing/HeroSection.tsx` (form tag)
 - [ ] `src/components/notificationPreferences/SmsAlertsCard.tsx` (dialog/mutation)
@@ -574,6 +580,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/pages/auth/ForgotPassword.tsx` (form tag)
 - [ ] `src/pages/auth/Login.tsx` (form tag)
 - [ ] `src/pages/auth/ResetPassword.tsx` (form tag)
+- [ ] `src/pages/helprs/FindHelprs.tsx` (form tag)
 - [ ] `src/pages/info/Support.tsx` (form tag)
 - [ ] `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` (dialog/mutation)
 - [ ] `src/pages/jobs/appliedJobCard/DisputedSection.tsx` (dialog/mutation)

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchPendingForAdmin, photoPublicUrl, reviewListing } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -16,6 +17,11 @@ import { AdminCard } from "../AdminViewShell";
  * an admin's own listing, and approving a seller who cannot sell right now
  * (declutter_admin_review_item). Shown only while the 'declutter' switch is
  * on for this admin; it lives beside that switch (B23).
+ *
+ * Test accounts' listings are hidden (owner: "i should never see test stuff in
+ * my admin panel", 20261028022715). "Show test listings" (off by default, not
+ * remembered) brings them back for one look, so a test listing can be approved
+ * in the UI instead of by SQL.
  */
 interface PendingRow {
   item_id: string;
@@ -78,14 +84,27 @@ function PendingItem({ row }: { row: PendingRow }) {
 
 export function DeclutterReviewCard() {
   const on = useFeature("declutter");
+  const [showTest, setShowTest] = useState(false);
   const pending = useQuery({
-    queryKey: ["declutter", "admin-pending"],
-    queryFn: async () => (await fetchPendingForAdmin()) as PendingRow[],
+    // ["declutter", "admin-pending"] stays the prefix PendingItem invalidates after a decision.
+    queryKey: ["declutter", "admin-pending", showTest ? "with-test" : "real-only"],
+    queryFn: async () => (await fetchPendingForAdmin(showTest)) as PendingRow[],
     enabled: on,
   });
   if (!on) return null;
   return (
-    <AdminCard title="Declutter: listings to review" subtitle="New sellers' first 3 listings and anything the photo check flagged.">
+    <AdminCard
+      title="Declutter: listings to review"
+      subtitle={showTest
+        ? "Test accounts' listings are included."
+        : "New sellers' first 3 listings and anything the photo check flagged."}
+      action={
+        <label htmlFor="dcl-show-test" className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+          Show test listings
+          <Switch id="dcl-show-test" checked={showTest} onCheckedChange={setShowTest} />
+        </label>
+      }
+    >
       {pending.isError ? (
         <p className="text-sm" role="alert">{declutterErrorMessage(pending.error)}</p>
       ) : pending.isLoading ? (

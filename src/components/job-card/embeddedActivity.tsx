@@ -5,8 +5,14 @@ import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 
-/** The four status boxes over Jobs & Posts > Posted / Working (owner, 2026-10-19). */
-export const BOX_BUCKETS = ["needs_you", "waiting", "scheduled", "done"] as const;
+/**
+ * The status chips over Jobs & Posts > Posted / Working (owner, 2026-10-19), after "All": every bucket, in the job's
+ * own order. "Cancelled" joined them on 2026-10-28 (owner: "are we missing a button for cancelled?"); it wears each
+ * tab's own word for that bucket (Posted "Cancelled", Working "Not picked"), and its count shows only when there is
+ * one, like Done's. The collapsed Cancelled row at the foot of All stays, as Done's does: All is the overview, the
+ * chip is the filter. Guard: src/test/activityOpensOnFirstBucketWithItems.test.ts.
+ */
+export const BOX_BUCKETS = ["needs_you", "waiting", "scheduled", "done", "cancelled"] as const;
 
 /**
  * The status filters with the SAME words the status boxes show (H4, Cowork

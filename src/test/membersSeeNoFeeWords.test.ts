@@ -38,7 +38,7 @@
  * never reached the allowlist. They are fee words now, in every quote form a source holds them in (', ’,
  * &apos; and SQL's ''), and Declutter has no allowlist entry left but three ops-ledger lines.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | You see one total before you pay. The seller keeps the whole price. | At checkout you pay the price plus a buyer's fee of 5% + 70¢ (once per seller). The seller keeps the whole price.
- * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | Each delivery shows what you take home before you take it. | You keep the delivery fee minus 5% + 70¢.
+ * @mutate src/components/declutter/DeclutterDeliverExplainer.tsx | your pay before you take it, and tips are all yours. | your pay before you take it: the delivery fee minus 5% + 70¢.
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts | the raise comes back with what you paid for delivery.` | the raise comes back with your delivery fee.`
  * @mutate supabase/migrations/20261027172503_declutter_notices_name_no_fee.sql | $q$'Amount owed'$q$ | $q$'Card fee owed'$q$
  * @mutate supabase/migrations/20261027172503_declutter_notices_name_no_fee.sql | $q$is coming back to your card.$q$, 'g'), | $q$is coming back to your card. Your buyer''s fee is not refunded.$q$, 'g'),

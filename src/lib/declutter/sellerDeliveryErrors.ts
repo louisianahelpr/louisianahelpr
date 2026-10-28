@@ -83,7 +83,6 @@ export const SELLER_DELIVERY_RPC_ERROR_COPY = {
   },
   declutter_seller_delivery_offer: {
     account_restricted: DC.account_restricted,
-    cart_empty: DC.cart_empty,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,

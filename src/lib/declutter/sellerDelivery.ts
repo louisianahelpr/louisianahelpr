@@ -77,6 +77,8 @@ export type MySellerDelivery = {
 };
 
 type SellerDeliveryUnavailable =
+  /** Nothing from this seller is waiting for checkout (20261028200440: an answer, no longer an error). */
+  | "cart_empty"
   | "seller_not_delivering"
   | "item_not_deliverable"
   | "address_needed"

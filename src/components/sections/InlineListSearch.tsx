@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Search, X } from "lucide-react";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "./searchPill";
 
 /**
  * THE SEARCH OPENS WHERE IT IS (owner, 2026-10-27, /jobs at 1440: "search should just open where its
@@ -17,6 +19,7 @@ import { Search, X } from "lucide-react";
 export function InlineListSearch({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
   // Open on arrival when the address already carries words (?q=), so a filtered list always shows its field.
   const [open, setOpen] = useState(() => value.trim().length > 0);
+  const desktop = useIsWebDesktop();
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const reopenFocus = useRef(false);
@@ -67,7 +70,12 @@ export function InlineListSearch({ value, onChange, label }: { value: string; on
       data-jobs-search=""
       data-open=""
       onSubmit={(e) => e.preventDefault()}
-      className="h-10 w-[clamp(200px,55vw,320px)] shrink-0 flex items-center gap-1.5 pl-3 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring"
+      className={
+        desktop
+          ? // The desktop pill (owner 2026-10-28, the mock-up's "Today" row; searchPill.ts).
+            `${DESKTOP_SEARCH_PILL_SURFACE} ${DESKTOP_SEARCH_PILL_WIDTH} min-w-0 shrink flex items-center gap-2 pl-3.5 pr-1 focus-within:border-[hsl(var(--bark)/0.55)]`
+          : "h-10 w-[clamp(200px,55vw,320px)] shrink-0 flex items-center gap-1.5 pl-3 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring"
+      }
     >
       <Search className="w-[18px] h-[18px] shrink-0 text-muted-foreground" aria-hidden />
       <input
@@ -81,17 +89,19 @@ export function InlineListSearch({ value, onChange, label }: { value: string; on
           if (e.currentTarget.form?.contains(e.relatedTarget as Node | null)) return;
           if (!value.trim()) close(false, false);
         }}
-        // The words fit the field at 375 (about 130px of room); the field's name is the full label.
-        placeholder="Search"
+        // Phone: the words fit the field at 375 (about 130px of room); the field's name is the full label.
+        // Desktop: the pill has room for the label ("Search jobs…", the mock-up's words).
+        placeholder={desktop ? `${label}…` : "Search"}
         aria-label={label}
         enterKeyHint="search"
-        className="flex-1 min-w-0 bg-transparent text-ds-16 text-foreground outline-none focus:outline-none focus-visible:outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+        className={`flex-1 min-w-0 bg-transparent ${desktop ? "text-ds-15" : "text-ds-16"} text-foreground outline-none focus:outline-none focus-visible:outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden`}
       />
       <button
         type="button"
         aria-label="Close search"
         onClick={() => close(true, true)}
-        className="ctl-exit ctl-tint w-8 h-8 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground"
+        // Desktop: a 32px X inside the 42px pill (index.css's 44px tap floor would poke out of it; a mouse needs no 44).
+        className={`ctl-exit ctl-tint w-8 h-8 shrink-0 flex items-center justify-center text-muted-foreground hover:text-foreground ${desktop ? "!min-h-0 !min-w-0" : ""}`}
       >
         <X className="w-4 h-4" aria-hidden />
       </button>

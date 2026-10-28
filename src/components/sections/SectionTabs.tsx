@@ -52,6 +52,7 @@ export function SectionTabs<T extends string>({
   value,
   onChange,
   end,
+  browseCount,
 }: {
   label: string;
   tabs: readonly SectionTabDef<T>[];
@@ -59,8 +60,10 @@ export function SectionTabs<T extends string>({
   onChange: (v: string) => void;
   /** A control at the row's right end (Jobs settings' gear on a phone). */
   end?: ReactNode;
+  /** How many results Browse lists, shown quietly beside its label (owner 2026-10-28: "move the 1 next to browse"). */
+  browseCount?: number;
 }) {
-  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number }>;
+  const options = [{ value: BROWSE as string, label: "Browse", quiet: browseCount }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -96,6 +99,9 @@ export function SectionTabs<T extends string>({
               )}
             >
               {o.label}
+              {o.quiet !== undefined && (
+                <span data-testid="browse-count" className="tabular-nums text-ds-13 font-medium text-muted-foreground">{o.quiet}</span>
+              )}
               {o.count !== undefined && o.count > 0 && (
                 <span className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{o.count}</span>
               )}

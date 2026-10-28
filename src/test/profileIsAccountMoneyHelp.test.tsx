@@ -19,7 +19,7 @@
  * @mutate src/components/profile/profileLanding/jobsSettingsGroups.tsx |       { key: "credentials", label: TAB_TITLES.credentials, |       { key: "credentials-x", label: TAB_TITLES.credentials,
  * @mutate src/pages/jobs/JobsSection.tsx | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" }; | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs" };
  * @mutate src/pages/jobs/JobsSection.tsx |  settings={JOBS_SETTINGS} desktopGap={false} | desktopGap={false}
- * @mutate src/pages/jobs/JobsSection.tsx | end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />} | end={undefined}
+ * @mutate src/pages/jobs/JobsSection.tsx | end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />} | end={undefined}
  * @mutate src/components/sections/AppTopBar.tsx |             onClick={() => navigate(settings.path)} |             onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
@@ -86,7 +86,7 @@ describe("Jobs settings", () => {
     expect(jobs).toContain('const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };');
     // The desktop bar keeps the gear; on a phone it ends the tabs row (the Explore header, owner 2026-10-22).
     expect(jobs).toContain('explore section="jobs" settings={JOBS_SETTINGS}');
-    expect(jobs).toContain("end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />}");
+    expect(jobs).toContain("end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />}");
     expect(src("src/components/job-card/JobListPage.tsx")).not.toMatch(/JobsSettingsRow|Jobs settings/);
   });
 

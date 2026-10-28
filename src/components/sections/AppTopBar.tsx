@@ -19,9 +19,10 @@ const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
  * order: the section's own "+" (sections only), the NOTIFICATIONS bell, the
  * PROFILE avatar at the far right. Left: the logo on Home, the section title
  * elsewhere. Home has no "+". Messages lives in the bottom nav, not here.
- * The "+" is a plain icon button the same size and weight as the bell (owner,
- * 2026-10-19: no longer the loudest thing in the bar; it was a filled olive
- * circle). Guard: src/test/topBarAddMatchesBell.test.ts.
+ * On a phone the "+" is a plain icon button the same size and weight as the bell
+ * (owner, 2026-10-19: no longer the loudest thing in the bar; it was a filled
+ * olive circle). Guard: src/test/topBarAddMatchesBell.test.ts. On the desktop
+ * website it is a filled button with words ("+ Post a job"; owner 2026-10-28).
  *
  * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
  * bell, and the rail carries Profile, so the bar keeps only the section title
@@ -39,7 +40,7 @@ export function AppTopBar({
 }: {
   /** Omit on Home: the logo shows instead. */
   title?: string;
-  add?: { label: string; path: string };
+  add?: { label: string; path: string; cta?: string };
   /**
    * One of Explore's four sections (2026-10-20, mock-up 6 + HELPR-DESIGN-SPEC
    * §3): on a PHONE the bar reads "Explore" (the switcher under it names the
@@ -78,8 +79,8 @@ export function AppTopBar({
   if (isWebDesktop && !title && !add && !settings) return null;
   const actions = (add || settings) ? (
     <>
-      {add && (
-        // The SAME control as the bell beside it: ghost icon Button, 44px,
+      {add && !isWebDesktop && (
+        // PHONE: the SAME control as the bell beside it: ghost icon Button, 44px,
         // 22px glyph (NotificationPanel's triggerClassName below).
         <Button
           type="button"
@@ -92,6 +93,23 @@ export function AppTopBar({
           className={TOP_BAR_ICON_CLASS}
         >
           <Plus aria-hidden />
+        </Button>
+      )}
+      {add && isWebDesktop && (
+        // DESKTOP WEBSITE: a filled, labelled button, the one thing in the bar that says "post" (owner
+        // 2026-10-28: "on desktop we need to make the plus sign more noticeable so people will post").
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          aria-label={add.label}
+          data-testid="section-add"
+          onClick={isPost ? gate.gate("post", go) : go}
+          {...(isPost ? gate.gatedProps("post") : {})}
+          className="rounded-full px-4 gap-1.5 text-ds-15 font-semibold [&>svg]:w-[18px] [&>svg]:h-[18px]"
+        >
+          <Plus aria-hidden />
+          {add.cta ?? add.label}
         </Button>
       )}
       {settings && (

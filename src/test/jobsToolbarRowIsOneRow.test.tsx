@@ -10,6 +10,9 @@
  *     the list column only (273-867 at 1440), Posted's chip row 46px with no inset and its hairline across the
  *     panel (272-1415); at 375 Browse's row was 40px, Posted's 46px. Every tab now draws the same row box
  *     (jobsToolbar.ts) and, on the desktop website, the same hairline box across the whole panel.
+ * Then (owner, 2026-10-28, /jobs at 1440): "move the 1 next to browse and the search filter and map up onto the
+ * other line above to save space": on the desktop website Browse has NO row of its own; its count sits beside
+ * "Browse" and its search, filters and map at the tabs row's end.
  * Measured before/after with getBoundingClientRect at 375 and 1440: ~/.lh-shots/jobs-search-inline-1027/.
  *
  * @mutate src/components/sections/InlineListSearch.tsx |         onClick={() => setOpen(true)} |         onClick={() => {}}
@@ -18,7 +21,7 @@
  * @mutate src/components/sections/InlineListSearch.tsx |           if (!value.trim()) close(false, false); |           void value;
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
- * @mutate src/pages/home/Dashboard.tsx |                   className={JOBS_TOOLBAR_LINE_CLASS}\n                  style={JOBS_TOOLBAR_LINE_STYLE} |                   className="shrink-0 flex items-center gap-2 px-4 py-2"\n                  style={JOBS_TOOLBAR_LINE_STYLE}
+ * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: headerCount } : undefined) | embeddedHeader(undefined)
  * @mutate src/pages/home/Dashboard.tsx | <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow | <div data-jobs-toolbar="" className="flex">\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} | end={<InlineListSearch value="" onChange={() => {}}
@@ -132,31 +135,24 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
     expect(cls.filter((c) => /^(p|px|pl|pr)-/.test(c))).toEqual([]);
   });
 
-  it("every tab's row is that row (inventory: Browse desktop, Browse phone, Posted / Working)", () => {
+  it("every tab's row is that row (inventory: Browse phone, Posted / Working)", () => {
     const sites = [dash, head].join("\n").match(/data-jobs-toolbar="" className=\{JOBS_TOOLBAR_ROW\}/g) ?? [];
-    expect(sites.length).toBeGreaterThan(2);
-    expect(sites.length).toBe(3);
-    expect(dash.match(/data-jobs-toolbar=""/g)?.length).toBe(2);
+    expect(sites.length).toBe(2);
+    expect(dash.match(/data-jobs-toolbar=""/g)?.length).toBe(1);
     expect(head.match(/data-jobs-toolbar=""/g)?.length).toBe(1);
   });
 
-  it("desktop: Browse's strip and Posted / Working's header box are the same hairline box", () => {
-    // Browse: the feed strip wears the shared line class and style.
-    expect(dash).toMatch(/data-feed-strip\s+className=\{JOBS_TOOLBAR_LINE_CLASS\}\s+style=\{JOBS_TOOLBAR_LINE_STYLE\}/);
-    // Posted / Working: the literal box (jobsTabsStayPut reads it) is the same class and the same line.
+  it("desktop: Browse draws no row of its own; count beside Browse, controls at the tabs row's end", () => {
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: headerCount } : undefined)");
+    expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
+    const jobs = read("src/pages/jobs/JobsSection.tsx");
+    expect(jobs).toContain("browseCount={browse?.count}");
+    expect(jobs).toContain("end={isWebDesktop ? browse?.end");
+    // Posted / Working keep their chip row: the literal box (jobsTabsStayPut reads it) wears the shared line.
     const at = list.indexOf("{isWebDesktop && (");
     const box = /className="([^"]*)"\s+style=\{\{ borderBottom: "([^"]*)" \}\}/.exec(list.slice(at, at + 400));
     expect(box, "JobListPage's desktop header box").not.toBeNull();
     expect(box![1]).toBe(JOBS_TOOLBAR_LINE_CLASS);
     expect(box![2]).toBe(JOBS_TOOLBAR_LINE_STYLE.borderBottom);
-  });
-
-  it("desktop: Browse's strip spans the panel (list AND map), not the list column", () => {
-    const boundary = dash.indexOf('<SectionBoundary label="the job feed">');
-    const strip = dash.indexOf("data-feed-strip", boundary);
-    const columns = dash.indexOf('<div className="flex flex-1 min-h-0 overflow-hidden">', boundary);
-    expect(boundary).toBeGreaterThan(-1);
-    expect(strip).toBeGreaterThan(boundary);
-    expect(columns, "the list | map columns").toBeGreaterThan(strip);
   });
 });

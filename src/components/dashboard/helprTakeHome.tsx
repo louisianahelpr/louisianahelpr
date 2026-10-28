@@ -36,8 +36,13 @@ function useHelprTakeHome(job: TakeHomeJob): { net: number; helpers: number } {
  * job sheet screenshot: "this should never show job price. only what they take
  * home"): a Helpr sees one figure, theirs. Guard: src/test/takeHomeOnlyNoJobPrice.test.ts.
  */
-export function JobPriceTakeHome({ job, className = "", after = "", fallback = null }: {
+export function JobPriceTakeHome({ job, className = "", after = "", fallback = null, bare = false }: {
   job: TakeHomeJob;
+  /**
+   * The figure alone, large (owner 2026-10-28, job sheet: "remove you take home. it should also be more
+   * prominent so they can see it"). The words stay for a screen reader.
+   */
+  bare?: boolean;
   className?: string;
   /** Words after the figure ("…, paid once it's confirmed done"). */
   after?: string;
@@ -46,6 +51,13 @@ export function JobPriceTakeHome({ job, className = "", after = "", fallback = n
 }) {
   const { net } = useHelprTakeHome(job);
   if (!(net > 0)) return fallback ? <>{fallback}</> : null;
+  if (bare) {
+    return (
+      <span data-job-price-take-home="" className={`font-display text-ds-28 font-bold leading-none tabular-nums text-[hsl(var(--accent-ink))] ${className}`}>
+        <span className="sr-only">You take home </span>${formatPriceFloor(net)}
+      </span>
+    );
+  }
   return (
     <span data-job-price-take-home="" className={className}>
       You take home <span className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">${formatPriceFloor(net)}</span>

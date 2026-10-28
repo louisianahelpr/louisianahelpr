@@ -13,7 +13,7 @@
 // ?tab=, any of those params means the link was written for My Jobs, so it
 // lands on Working; a plain /jobs opens on Browse. /posts?... arrives here as
 // /jobs?tab=posted&... (App.tsx redirect), so it lands on Posted.
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import JobListPage from "@/components/job-card/JobListPage";
@@ -83,10 +83,11 @@ const JobsSection = () => {
   // THE EXPLORE HEADER (owner, 2026-10-22): the section chips with the bell and the photo, the thin tabs (the
   // Jobs settings gear at their end on a phone), then the search. It sits in the scaffold's title card, above the
   // scrolling list, and never changes while the list scrolls (exploreHeaderSteady).
-  const header = (
+  /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
+  const makeHeader = (browse?: { end?: ReactNode; count?: number }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
       <AppTopBar title={section.label} add={section.add} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
-      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} end={isWebDesktop ? undefined : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
+      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
           the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search
           ICON at the end of their status chip row that opens IN PLACE, leftward, and filters that tab's list
@@ -96,9 +97,11 @@ const JobsSection = () => {
   );
 
   // Board 141: the refund_requests switch, read once for every job card in the list.
+  const header = makeHeader();
+
   if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={header} /></RefundsSwitchProvider>;
   if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={header} /></RefundsSwitchProvider>;
-  return <Dashboard embeddedHeader={header} />;
+  return <Dashboard embeddedHeader={makeHeader} />;
 };
 
 export default JobsSection;

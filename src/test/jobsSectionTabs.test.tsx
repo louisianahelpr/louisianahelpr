@@ -24,7 +24,7 @@ import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/pages/home/Dashboard", () => ({
-  default: ({ embeddedHeader }: { embeddedHeader?: ReactNode }) => <div data-testid="feed">{embeddedHeader}</div>,
+  default: ({ embeddedHeader }: { embeddedHeader: () => ReactNode }) => <div data-testid="feed">{embeddedHeader()}</div>,
 }));
 vi.mock("@/components/job-card/JobListPage", async (orig) => {
   const real = await orig<typeof import("@/components/job-card/JobListPage")>();

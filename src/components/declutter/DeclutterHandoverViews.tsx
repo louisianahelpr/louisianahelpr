@@ -26,7 +26,7 @@
  */
 import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -35,7 +35,6 @@ import type { CartLine } from "@/lib/declutter/api";
 import {
   bookPickup,
   confirmHandover,
-  fetchItemAddress,
   fetchMyBookings,
   fetchMyPayouts,
   porchNote,
@@ -55,6 +54,7 @@ import { MeetupPanel } from "./DeclutterMeetup";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
@@ -282,41 +282,6 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
   );
 }
 
-/**
- * The exact address is stored per ITEM, so a multi-item order can have more
- * than one (authz review 2.7): every line's address is read, and each distinct
- * address is listed with the items picked up there.
- */
-function PickupAddresses({ lines }: { lines: CartLine[] }) {
-  const results = useQueries({
-    // A line whose listing is gone (its seller deleted their account, Q2307) has no address to read.
-    queries: lines.map((l) => ({ queryKey: ["declutter", "address", l.item_id], queryFn: () => (l.item_id ? fetchItemAddress(l.item_id) : Promise.resolve(null)) })),
-  });
-  const failed = results.find((r) => r.isError);
-  // An error with a retry (audit 2026-10-28: the pickup address failing was one line with no way to try again).
-  if (failed) return <ErrorState variant="inline" title="We couldn't load the pickup address." body={declutterErrorMessage(failed.error)} onRetry={() => void failed.refetch()} />;
-  const byAddress = new Map<string, string[]>();
-  results.forEach((r, i) => {
-    const a = r.data?.pickup_address;
-    if (a) byAddress.set(a, [...(byAddress.get(a) ?? []), lines[i].item_title]);
-  });
-  if (byAddress.size === 0) return null;
-  if (byAddress.size === 1) {
-    const [only] = byAddress.keys();
-    return <p className="text-sm">Pickup address: <span className="font-medium">{only}</span></p>;
-  }
-  return (
-    <div className="text-sm">
-      <p>These items are picked up at different addresses:</p>
-      <ul className="mt-1 list-disc space-y-1 pl-5">
-        {[...byAddress.entries()].map(([a, titles]) => (
-          <li key={a}><span className="font-medium">{a}</span> ({titles.join(", ")})</li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking | null }) {
   const qc = useQueryClient();
   const [value, setValue] = useState("");
@@ -363,21 +328,6 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
       </div>
       </>
       )}
-    </div>
-  );
-}
-
-/** A pickup at the door (big items): short safety tips for both sides (owner 2026-10-18). */
-function DoorPickupTips({ side }: { side: "buyer" | "seller" }) {
-  return (
-    <div className="rounded-xl border border-border p-3 text-xs text-muted-foreground">
-      <p className="font-medium text-foreground">Pickup at the door</p>
-      <ul className="mt-1 list-disc space-y-0.5 pl-4">
-        <li>Pick a daytime slot.</li>
-        <li>Bring someone with you{side === "seller" ? ", or have someone home" : ""}.</li>
-        <li>Meet at the door; nobody needs to go inside.</li>
-        {side === "buyer" && <li>Too big to carry? Add a Helpr below.</li>}
-      </ul>
     </div>
   );
 }

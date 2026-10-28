@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql |   IF v_side <> 'buyer' THEN | IF false THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
- * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
+ * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
@@ -26,16 +26,16 @@
  * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
- * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
+ * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
  * @mutate supabase/migrations/20261021074131_id_badge_reads_stripe_identity_only.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
- * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
+ * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon, authenticated;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role; | REVOKE ALL ON TABLE public.declutter_handovers FROM PUBLIC, anon;\nGRANT ALL ON TABLE public.declutter_handovers TO service_role, authenticated;
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |   IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d |   o := public.declutter_lock_order(p_order_id);\n  v_side := public.declutter_order_side(o.buyer_id, o.seller_id, v_uid);\n  IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  IF o.status = 'handed_over' THEN\n    -- 141d
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |    WHERE id = p_refund_id AND stripe_refund_ref = p_stripe_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts; |    WHERE id = p_refund_id AND status = 'succeeded'\n  RETURNING attempts INTO v_attempts;
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END; |   RETURN 'reopened';
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id AND payment_livemode IS NULL; |   UPDATE public.declutter_refunds SET payment_livemode = p_livemode WHERE id = p_refund_id;
- * @mutate supabase/migrations/20261017055502_declutter_handover_private_bucket.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
+ * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |   SELECT min(round(2 * 6371000 | SELECT max(round(2 * 6371000
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -142,8 +142,9 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
 
   it("owner 2026-10-18: porch auto-pay needs the set-out photo; door pickups end by the seller's \"Picked up\"; no NEW 'code' anywhere; Helpr delivery has no code", () => {
     const sw = flat(body("declutter_handover_sweep"));
-    // Restated by seller delivery (20261027153244), then #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql: the seller's link only), porch rule unchanged.
-    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261028223036_declutter_notice_links_open_the_right_tab.sql");
+    // Restated by seller delivery (20261027153244), #37 (20261028223036: the seller's link), then the porch DAY
+    // (20261028225038: the auto-pay waits for the end of a porch day), the porch-photo rule unchanged throughout.
+    expect(DEFS.get("declutter_handover_sweep")?.file).toBe("20261028225038_declutter_porch_pick_a_day.sql");
     // porch: both the query and the re-check under the lock
     expect(sw.split("(o2.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o2.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
     expect(sw.split("(o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL))").length - 1).toBe(1);
@@ -181,9 +182,10 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(st).toContain("SELECT t.user_id, dr.stars::integer, false");
   });
 
+  // A porch DAY (owner 2026-10-28, 20261028225038) waits for the END of the day instead: declutterPorchPickADay.test.ts.
   it("row 94: \"They didn't show\" opens 15 minutes after the booked time; the auto-pay waits 24 h", () => {
-    expect(flat(body("declutter_report_no_show"))).toContain("v_from := b.slot_start + interval '15 minutes';");
-    expect(flat(body("declutter_handover_sweep"))).toContain("b.slot_start + interval '24 hours' <= now()");
+    expect(flat(body("declutter_report_no_show"))).toContain("ELSE b.slot_start + interval '15 minutes' END;");
+    expect(flat(body("declutter_handover_sweep"))).toContain("public.declutter_pickup_anchor(b.slot_start, b.pickup_day) + interval '24 hours' <= now()");
     expect(MIG).toContain("cron.schedule('declutter-handovers'");
     expect(MIG).toContain("('declutter-handovers', interval");
   });

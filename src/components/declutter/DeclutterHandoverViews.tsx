@@ -51,6 +51,7 @@ import {
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
+import { noShowFrom, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -228,6 +229,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           handover={order.handover}
           side={order.side}
           slot={booking?.slot_start ?? null}
+          day={booking?.pickup_day ?? null}
           itemsCents={items}
           totalCents={order.lines[0]?.total_cents ?? null}
         />
@@ -268,13 +270,16 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
         <>
           {/* Q2425: a safe-spot meetup shows the public place, never the seller's home address. */}
           {order.side === "buyer" && order.handover !== "meetup" && <PickupAddresses lines={order.lines} />}
-          <BookingPanel order={order} booking={booking} />
+          {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
+          {order.handover === "porch"
+            ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />} />
+            : <BookingPanel order={order} booking={booking} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} who={who} onProblem={() => setProblemOpen(true)} />}
-          {booking?.slot_start && <NoShowButton order={order} slotStart={booking.slot_start} who={who} />}
+          {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} />
         </>
       )}
@@ -443,7 +448,8 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
   const fileId = `dcl-porch-${order.orderId}`;
   return (
     <div className="space-y-2">
-      {order.side === "seller" && (
+      {/* A porch DAY is out all that day: no "out until" (owner 2026-10-28). A time booked before keeps it. */}
+      {order.side === "seller" && !booking.pickup_day && (
         <>
           <p className="text-sm">
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}

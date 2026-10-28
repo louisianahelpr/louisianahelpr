@@ -1163,6 +1163,7 @@ export type Database = {
           created_at: string
           is_seed: boolean
           order_id: string
+          pickup_day: string | null
           porch_mode: string | null
           porch_until: string | null
           reminded_slot_start: string | null
@@ -1180,6 +1181,7 @@ export type Database = {
           created_at?: string
           is_seed?: boolean
           order_id: string
+          pickup_day?: string | null
           porch_mode?: string | null
           porch_until?: string | null
           reminded_slot_start?: string | null
@@ -1197,6 +1199,7 @@ export type Database = {
           created_at?: string
           is_seed?: boolean
           order_id?: string
+          pickup_day?: string | null
           porch_mode?: string | null
           porch_until?: string | null
           reminded_slot_start?: string | null
@@ -13705,6 +13708,10 @@ export type Database = {
         Returns: string
       }
       declutter_book_pickup: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
+      declutter_book_porch_day: {
+        Args: { p_day: string; p_order_id: string }
+        Returns: Json
+      }
       declutter_bundle_applies: {
         Args: { p_item_ids: string[] }
         Returns: string[]
@@ -14224,6 +14231,7 @@ export type Database = {
         Returns: undefined
       }
       declutter_pickup_reminder_sweep: { Args: never; Returns: number }
+      declutter_porch_days: { Args: { p_order_id: string }; Returns: string[] }
       declutter_porch_note: {
         Args: { p_note: string; p_order_id: string }
         Returns: string

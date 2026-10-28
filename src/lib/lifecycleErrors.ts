@@ -555,6 +555,23 @@ export const RPC_ERROR_COPY = {
     problem_open: DC.problem_open,
     reschedule_used: DC.reschedule_used,
   },
+  // Porch pickup day (20261028225038, owner 2026-10-28).
+  declutter_book_porch_day: {
+    account_restricted: DC.account_restricted,
+    invalid_day: DC.invalid_day,
+    item_not_found: DC.item_not_found,
+    not_a_porch_pickup: DC.not_a_porch_pickup,
+    not_authenticated: DC.not_authenticated,
+    not_booked_yet: DC.not_booked_yet,
+    order_not_paid: DC.order_not_paid,
+    problem_open: DC.problem_open,
+    reschedule_used: DC.reschedule_used,
+    seller_set_out: DC.seller_set_out,
+  },
+  declutter_porch_days: {
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+  },
   declutter_confirm_handover: {
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,

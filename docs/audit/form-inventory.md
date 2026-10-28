@@ -102,6 +102,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterDeliveryViews.tsx` | input×1, checkbox/switch/radio×3, date/calendar×1 | datetime-local |  | What happened · Your vehicle · Route · Your deliveries · Deliveries near you |
 | `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
+| `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
 | `src/components/declutter/DeclutterHandoverViews.tsx` | input×3, textarea×1, select×1, date/calendar×1 | datetime-local, file | 1000 | declutter-no-show-warning · declutter-move-used |
 | `src/components/declutter/DeclutterMeetup.tsx` | input×1 | radio |  | Meeting spot |
@@ -114,7 +115,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/SellerDeliveryChoice.tsx` | input×1 | text | 300 | Delivery day · Delivery time · When the seller arrives |
 | `src/components/declutter/SellerDeliveryOrder.tsx` | input×1 | file |  | When the seller arrives · New delivery day · New delivery time |
 | `src/components/declutter/SellerDeliverySettings.tsx` | input×3, checkbox/switch/radio×3, date/calendar×1 | text, date |  | Your delivery · sd-enabled · sd-price-label · sd-rate · Delivery price in dollars · sd-rate-help · sd-free-over-on · sd-free-over |
-| `src/components/declutter/StopActions.tsx` | input×2 | file |  |  |
 
 ## /declutter, /declutter/item/:id
 

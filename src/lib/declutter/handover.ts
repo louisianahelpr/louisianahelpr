@@ -39,6 +39,8 @@ export interface MyBooking {
   /** Each side may move a booked time once (CHECK 0-1, row 52). Older rows read as 0. */
   buyer_reschedules?: number;
   seller_reschedules?: number;
+  /** Porch pickup DAY (yyyy-mm-dd, owner 2026-10-28; 20261028225038). Absent before that migration reaches prod. */
+  pickup_day?: string | null;
 }
 
 export interface MyPayout {
@@ -57,7 +59,8 @@ export interface MyPayout {
 export async function fetchMyBookings(orderIds: string[]): Promise<MyBooking[]> {
   if (orderIds.length === 0) return [];
   const rows = unwrap(
-    await supabase.from("declutter_bookings").select("order_id, slot_start, slot_end, porch_mode, porch_until, buyer_reschedules, seller_reschedules").in("order_id", orderIds),
+    // "*": pickup_day (20261028225038) is read when it exists, and the read never fails before that migration is live.
+    await supabase.from("declutter_bookings").select("*").in("order_id", orderIds),
   );
   return (rows ?? []) as MyBooking[];
 }
@@ -78,6 +81,27 @@ export async function bookPickup(orderId: string, slotStartIso: string): Promise
   return rpcData(
     await supabase.rpc("declutter_book_pickup", { p_order_id: orderId, p_slot_start: slotStartIso }),
     (e) => rpcErrorMessage("declutter_book_pickup", e),
+  ) as unknown as { result: string };
+}
+
+/**
+ * The porch DAYS the buyer may pick (owner 2026-10-28: "make porch just pick a day"): today until the
+ * 7-day pickup deadline, on the seller's pickup weekdays (declutter_porch_days, 20261028225038). Null while
+ * that migration has not reached prod: the screen then books a time as before.
+ */
+export async function fetchPorchDays(orderId: string): Promise<string[] | null> {
+  const res = await supabase.rpc("declutter_porch_days", { p_order_id: orderId });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_porch_days")) return null;
+  const rows = rpcData(res, (e) => rpcErrorMessage("declutter_porch_days", e)) as unknown;
+  // A SETOF date comes back as plain "yyyy-mm-dd" strings.
+  return Array.isArray(rows) ? rows.map((r) => String(r)) : [];
+}
+
+/** Book or move the porch day (declutter_book_porch_day): the item is out all that day once the seller posts the photo. */
+export async function bookPorchDay(orderId: string, day: string): Promise<{ result: string }> {
+  return rpcData(
+    await supabase.rpc("declutter_book_porch_day", { p_order_id: orderId, p_day: day }),
+    (e) => rpcErrorMessage("declutter_book_porch_day", e),
   ) as unknown as { result: string };
 }
 

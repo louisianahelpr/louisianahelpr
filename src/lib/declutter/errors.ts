@@ -93,6 +93,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   already_paid_out: "The seller was already paid for this sale.",
   invalid_slot: "Pick a time inside the seller's pickup times, before your 7-day pickup deadline.",
   reschedule_used: "You already moved this pickup once.",
+  // Porch pickup day (20261028225038).
+  invalid_day: "Pick one of the seller's pickup days, before your 7-day pickup deadline.",
   not_booked_yet: "The pickup time isn't booked yet. The buyer books it first.",
   not_a_porch_pickup: "This sale isn't a porch pickup.",
   photo_first: "Take the porch photo first, then add where it is.",
@@ -119,7 +121,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   not_at_pickup: "Take the photo at the pickup address.",
   already_picked_up: "The buyer already picked up this item.",
   seller_set_out: "The seller set the item out. If it isn't there, report a problem.",
-  too_early: "You can report a no-show 15 minutes after the booked time.",
+  too_early: "You can report a no-show 15 minutes after the booked time, or for a porch pickup day, once that day is over.",
   // 141d (20261026155251): a handed-over sale is final once its 24-hour window is over.
   sale_final: "The time to report a problem is over, so this sale is final.",
   invalid_reason: "Pick what went wrong.",

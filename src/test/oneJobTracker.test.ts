@@ -33,8 +33,8 @@ const ALSO_RENDER = ["src/pages/home/HomeDashboard.tsx", "src/components/postjob
 /** StepTracker users, none of them a job's progress (Declutter delivery and porch handover): jobs draw JobStepBar. */
 const STEP_TRACKER_OK = [
   "src/components/declutter/DeclutterDeliveryViews.tsx",
-  "src/components/declutter/DeclutterPorchHandover.tsx",
-  // A Declutter order's own steps (deep audit #1, 2026-10-28), not a job.
+  // A Declutter order's own steps (deep audit #1, 2026-10-28), not a job. The porch handover card draws them
+  // through OrderSteps since the porch DAY (20261028225038), so it no longer uses StepTracker itself.
   "src/components/declutter/OrderSteps.tsx",
 ];
 

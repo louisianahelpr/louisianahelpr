@@ -184,7 +184,8 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // declutter_complete_handover, which 20261027172503 had rewritten in place, from its effective body.
     // (2026-10-28: 27.) 20261028223036 (#37, notices open the recipient's tab) re-created
     // declutter_handover_sweep the same way.
-    expect(rewritten.length).toBe(27);
+    // (2026-10-28: 26.) 20261028225038 (the porch DAY) re-created declutter_report_no_show the same way.
+    expect(rewritten.length).toBe(26);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

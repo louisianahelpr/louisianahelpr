@@ -32,7 +32,7 @@
  *   NEW_MIGRATION=skip node src/test/pglite/under18CannotApplyOrPost.pglite.mjs  (17 FAIL)
  *
  * @mutate src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx |   const { gate, gatedProps } = useAgeGate(); |   const gate = (_k: string, go: () => void) => go; const gatedProps = (_k: string) => ({});
- * @mutate src/components/sections/AppTopBar.tsx |   const gate = useAgeGate(); |   const gate = { gate: (_k: string, f: () => void) => f, gatedProps: (_k: string) => ({}) };
+ * @mutate src/components/create/CreateSheet.tsx |   const gate = useAgeGate(); |   const gate = { gate: (_k: string, f: () => void) => f, gatedProps: (_k: string) => ({}) };
  * @mutate src/pages/post-job/useJobSubmit.ts |           : isUnder18Refusal(error) |           : false
  * @mutate src/lib/seriesDates.ts | ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null) | ?? null
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
@@ -79,9 +79,9 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/components/mobileNav/mobileNavHelpers.ts": "which routes are signed-in pages",
   "src/lib/cppRouting.ts": "App Store custom-product-page landing map; lands on the gated form",
   "src/lib/nativeLaunchRoute.ts": "cold-launch route restore; lands on the gated form",
-  "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock has no + since 2026-10-19; the entry is AppTopBar's +, which is gated",
+  "src/components/MobileNav.tsx": "idle chunk prefetch only: the dock's center + opens CreateSheet, whose Post a job reads useAgeGate and greys it",
   "src/lib/declutter/sellForMe.ts": "data only: Sell it for me's Post a job path; the buttons that open it (SellItForMe.tsx) read useAgeGate and grey it",
-  "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's + path; the entry a member taps is AppTopBar, which reads useAgeGate and greys it",
+  "src/components/sections/sectionsConfig.ts": "data only: the Jobs section's add path, which no header draws since 2026-10-28 (no section +); posting starts at CreateSheet (rail's Create, dock's center +), which reads useAgeGate and greys it",
   "src/components/landing/HowItWorksSection.tsx": "the landing page's Post a job (I need help side): signed out it goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",
   "src/pages/post-job/EntryChoice.tsx": "a step INSIDE /post-job; the form it opens is gated",
   "src/pages/post-job/OfferToSavedHelpr.tsx": "a step INSIDE /post-job; the form it opens is gated",

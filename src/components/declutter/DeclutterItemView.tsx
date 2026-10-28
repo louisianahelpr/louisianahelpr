@@ -167,7 +167,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
               <ConditionChip stars={it.condition_stars} />
             </div>
             {drop && !(isSeller && sellerDrops.data && sellerDrops.data !== "not_deployed" && sellerDrops.data.drops_stopped) && (
-              <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} mine={isSeller} />
+              <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}
             {/* The title once (audit #47): the desktop page header already prints it. The condition is said once too:
                 the chip beside the price (board D5), not again as a Details row. */}

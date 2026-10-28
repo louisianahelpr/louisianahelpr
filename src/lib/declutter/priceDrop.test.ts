@@ -3,12 +3,15 @@
  * the server may not keep. The rule is pg_cron 'declutter-price-drops'
  * ('7 23 * * *', measured live 2026-10-20) running declutter_price_drop_sweep():
  * live + sale_mode 'offers' + live >= 12 h + not dropped that Louisiana day,
- * new price >= floor(current * 0.95). These pin nextPriceDrop to that rule and
- * to the cron schedule in the migration.
+ * new price >= the step: current less the seller's drop_pct (0 = off; 5 when
+ * absent), down to a whole dollar (20261028160637, owner 2026-10-28). These pin
+ * nextPriceDrop to that rule and to the cron schedule in the migration.
  *
  * @mutate src/lib/declutter/priceDrop.ts | export const PRICE_DROP_RUN_UTC = { hour: 23, minute: 7 } as const; | export const PRICE_DROP_RUN_UTC = { hour: 19, minute: 0 } as const;
  * @mutate src/lib/declutter/priceDrop.ts |   if (item.status !== "live" \|\| item.sale_mode !== "offers" \|\| !item.live_at) return null; |   if (item.status !== "live" \|\| !item.live_at) return null;
- * @mutate src/lib/declutter/priceDrop.ts |   const lowestCents = Math.floor(item.current_price_cents * 0.95); |   const lowestCents = Math.floor(item.current_price_cents * 0.9);
+ * @mutate src/lib/declutter/priceDrop.ts |   return Math.floor((currentCents * (100 - pct)) / 10000) * 100; |   return Math.floor((currentCents * (100 - pct)) / 100);
+ * @mutate src/lib/declutter/priceDrop.ts |   if (pct <= 0) return null; |   if (false) return null;
+ * @mutate src/lib/declutter/priceDrop.ts |   return typeof item.drop_pct === "number" ? item.drop_pct : DEFAULT_DROP_PCT; |   return DEFAULT_DROP_PCT;
  * @mutate src/lib/declutter/priceDrop.ts |     const oldEnough = liveAt <= run.getTime() - MIN_LIVE_MS; |     const oldEnough = true;
  * @mutate src/lib/declutter/priceDrop.ts |     const notToday = !item.last_price_drop_on \|\| item.last_price_drop_on < chicagoDay(run); |     const notToday = true;
  * @mutate src/lib/declutter/priceDrop.ts |   if (eligibleAtLastRun && (!item.last_price_drop_on \|\| item.last_price_drop_on < chicagoDay(lastRun))) return null; |   void eligibleAtLastRun;
@@ -17,18 +20,33 @@ import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
-import { PRICE_DROP_RUN_UTC, dropWhenLabel, nextPriceDrop } from "./priceDrop";
+import { DROP_PCT_CHOICES, PRICE_DROP_RUN_UTC, dropStepCents, dropWhenLabel, nextPriceDrop } from "./priceDrop";
 
 const LIVE = { status: "live", sale_mode: "offers", current_price_cents: 3800, live_at: "2026-10-10T12:00:00Z", last_price_drop_on: "2026-10-19" };
 // 2026-10-20 04:00Z = 2026-10-19 11 PM in Louisiana (CDT).
 const NOW = new Date("2026-10-20T15:00:00Z"); // 10 AM CDT on the 20th
 
 describe("nextPriceDrop follows declutter_price_drop_sweep", () => {
-  it("the next 23:07 UTC run, at no less than floor(current * 0.95)", () => {
+  it("the next 23:07 UTC run, at no less than the step, in whole dollars ($38 at 5% is $36, never $36.10)", () => {
     const d = nextPriceDrop(LIVE, NOW);
     expect(d?.at.toISOString()).toBe("2026-10-20T23:07:00.000Z");
-    expect(d?.lowestCents).toBe(3610);
+    expect(d?.lowestCents).toBe(3600);
+    expect(d?.pct).toBe(5);
     expect(dropWhenLabel(d!.at, NOW)).toBe("this evening at 6:07 PM");
+  });
+
+  it("the seller's own step (owner 2026-10-28), and none at all when they turned drops off", () => {
+    expect(nextPriceDrop({ ...LIVE, drop_pct: 10 }, NOW)?.lowestCents).toBe(3400);
+    expect(nextPriceDrop({ ...LIVE, drop_pct: 20 }, NOW)?.lowestCents).toBe(3000);
+    expect(nextPriceDrop({ ...LIVE, drop_pct: 20 }, NOW)?.pct).toBe(20);
+    expect(nextPriceDrop({ ...LIVE, drop_pct: 0 }, NOW)).toBeNull();
+    // Not left to the rounding: off at $18.50 never says "as low as $18" (money review 2026-10-28 #4).
+    expect(nextPriceDrop({ ...LIVE, current_price_cents: 1850, drop_pct: 0 }, NOW)).toBeNull();
+    // A row read before the column reached prod keeps the old 5% step.
+    expect(nextPriceDrop({ ...LIVE, drop_pct: null }, NOW)?.pct).toBe(5);
+    expect(DROP_PCT_CHOICES).toEqual([5, 10, 15, 20]);
+    expect(dropStepCents(1900, 5)).toBe(1800);
+    expect(dropStepCents(10000, 15)).toBe(8500);
   });
 
   it("already dropped this Louisiana day: tomorrow's run", () => {
@@ -81,7 +99,9 @@ describe("nextPriceDrop follows declutter_price_drop_sweep", () => {
       if (body) sweep = body[2];
     }
     expect(schedule).toBe(`${PRICE_DROP_RUN_UTC.minute} ${PRICE_DROP_RUN_UTC.hour} * * *`);
-    expect(sweep).toMatch(/floor\(i\.current_price_cents \* 0\.95\)/);
+    // The same step as dropStepCents, and the off switch (20261028160637).
+    expect(sweep).toContain("(floor(i.current_price_cents * (100 - i.drop_pct) / 10000.0) * 100)::integer");
+    expect(sweep).toContain("AND i.drop_pct > 0");
     expect(sweep).toMatch(/i\.sale_mode = 'offers'/);
     expect(sweep).toMatch(/i\.live_at <= now\(\) - interval '12 hours'/);
     expect(sweep).toMatch(/America\/Chicago/);

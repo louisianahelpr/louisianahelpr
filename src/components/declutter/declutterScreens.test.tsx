@@ -111,6 +111,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyItemPrivate: async () => ({ floor_price_cents: 3000, pickup_address: "100 Main Street, Baton Rouge, LA 70802", pickup_lat: 30.45, pickup_lng: -91.15 }),
   updateDraft: async () => "i1",
   setPorchOk: async () => true,
+  setDropPct: async (_id: string, pct: number) => pct,
+  fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 }),
   fetchMyPickupWindows: async () => [],
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   withdrawItem: async () => undefined,
@@ -431,7 +433,7 @@ describe("Declutter controls are the shared ones", () => {
 });
 
 describe("Sell form checks mirror the server", () => {
-  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large" as const, price: "40", floor: "20", free: false, areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" };
+  const ok = { title: "Oak chair", description: "", category: "furniture", conditionStars: 4, deliverySize: "large" as const, price: "40", floor: "20", drops: true, dropPct: 5, free: false, areaLabel: "Mid-City", pickupAddress: "1234 Example St, Baton Rouge" };
   it("accepts a complete form and converts dollars to cents", () => {
     expect(formProblem(ok)).toBeNull();
     // Q2419: a free item needs no price or lowest price.
@@ -441,6 +443,12 @@ describe("Sell form checks mirror the server", () => {
   });
   it("refuses a floor above the price, a street address as the area, and a missing name", () => {
     expect(formProblem({ ...ok, floor: "50" })).toMatch(/lowest price/);
+    // Owner 2026-10-28: with drops on, the lowest price must be under the price and the step one of the choices;
+    // with drops off no lowest price is asked at all.
+    expect(formProblem({ ...ok, floor: "40" })).toMatch(/below your price/);
+    expect(formProblem({ ...ok, dropPct: 7 })).toMatch(/how much the price drops/);
+    expect(formProblem({ ...ok, drops: false, floor: "" })).toBeNull();
+    expect(formProblem({ ...ok, drops: false, floor: "50" })).toBeNull();
     expect(formProblem({ ...ok, areaLabel: "1234 Example St" })).toMatch(/not a street address/);
     expect(formProblem({ ...ok, areaLabel: "70005 Metairie" })).toBeNull();
     expect(formProblem({ ...ok, title: "ab" })).toMatch(/name/);

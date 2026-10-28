@@ -23,6 +23,7 @@ const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
 let autoFree: boolean | "not_deployed" = false;
 const stateReads = vi.hoisted(() => ({ n: 0 }));
+const dropPct = vi.hoisted(() => ({ value: 5 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("@/lib/declutter/api", () => ({
@@ -34,6 +35,7 @@ vi.mock("@/lib/declutter/api", () => ({
   relistListing: async (...a: unknown[]) => { calls.push(["relist", ...a]); return "live"; },
   withdrawItem: async (...a: unknown[]) => { calls.push(["withdraw", ...a]); },
   fetchAutoFree: async () => autoFree,
+  fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: dropPct.value }),
   setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
 }));
 
@@ -55,6 +57,7 @@ beforeEach(() => {
   calls.length = 0;
   manage.drops_stopped = false;
   deployed = true;
+  dropPct.value = 5;
 });
 
 describe("Manage a listing (board 158)", () => {
@@ -103,6 +106,17 @@ describe("Manage a listing (board 158)", () => {
     await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(sw);
     await waitFor(() => expect(calls).toContainEqual(["drops", "i1", false]));
+  });
+
+  // Owner 2026-10-28 (money review #3): listed with drops off (drop_pct 0) reads as off, and cannot be "turned back on" here.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx |   const stopped = (manage?.drops_stopped ?? false) \|\| listedOff; |   const stopped = manage?.drops_stopped ?? false;
+  it("a listing put up without price drops shows them off and the switch is not offered", async () => {
+    dropPct.value = 0;
+    sheet();
+    expect(await screen.findByText("Off: you listed it without price drops")).toBeTruthy();
+    const sw = screen.getByRole("switch", { name: "Stop price drops" });
+    expect(sw).toHaveAttribute("aria-checked", "true");
+    expect((sw as HTMLButtonElement).disabled).toBe(true);
   });
 
   it("pause calls pause; a paused listing offers Relist instead", async () => {

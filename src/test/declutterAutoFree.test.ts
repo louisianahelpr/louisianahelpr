@@ -10,7 +10,7 @@
  *
  * @mutate supabase/migrations/20261027205327_declutter_auto_free_day12.sql |      WHERE p.auto_free_day12\n       AND i.status = 'live' |      WHERE i.status = 'live'
  * @mutate supabase/migrations/20261027205327_declutter_auto_free_day12.sql |        AND COALESCE(i.live_at, i.submitted_at, i.created_at) + interval '12 days' <= now() |        AND true
- * @mutate supabase/migrations/20261027205327_declutter_auto_free_day12.sql |   v_n := v_n + public.declutter_auto_free_due();\n |
+ * @mutate supabase/migrations/20261028160637_declutter_seller_drop_percent.sql |   v_n := v_n + public.declutter_auto_free_due();\n |
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";

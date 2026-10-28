@@ -39,6 +39,7 @@ import {
   fetchItem,
   fetchMyItemPrivate,
   fetchMyPickupWindows,
+  fetchItemDropState,
   fetchPhotos,
   publishItem,
   removePhoto,
@@ -46,6 +47,7 @@ import {
   requestAiCheck,
   requestAiDraft,
   requestAiDraftFromPhotos,
+  setDropPct,
   setPickupWindows,
   updateDraft,
   type DeliverySize,
@@ -65,6 +67,17 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { SellItForMeEntry } from "./SellItForMe";
 import { SellAiDraftPanel, useSellAiDraft } from "./SellAiDraft";
+import { DEFAULT_DROP_PCT, DROP_PCT_CHOICES, dropPctOf } from "@/lib/declutter/priceDrop";
+
+/** What the server stores for the form's price choice: off saves the lowest price as the price and step 0. */
+function priceChoiceToSave(f: Pick<FormState, "free" | "price" | "floor" | "drops" | "dropPct">): { floorCents: number; dropPct: number } | null {
+  if (f.free) return { floorCents: 0, dropPct: 0 };
+  const price = dollarsToCents(f.price);
+  if (price === null) return null;
+  if (!f.drops) return { floorCents: price, dropPct: 0 };
+  const floor = dollarsToCents(f.floor);
+  return floor === null ? null : { floorCents: floor, dropPct: f.dropPct };
+}
 
 interface FormState {
   title: string;
@@ -74,6 +87,13 @@ interface FormState {
   deliverySize: DeliverySize;
   price: string;
   floor: string;
+  /**
+   * Owner 2026-10-28: "Lower the price if it doesn't sell?" is the seller's own yes/no, OFF until
+   * they turn it on (a lowest price never turns drops on by itself), and the step is theirs too.
+   * Off saves the lowest price as the price and drop_pct 0.
+   */
+  drops: boolean;
+  dropPct: number;
   /** The Free section (20261027170717): given away, price and lowest price $0, no offers or drops. */
   free: boolean;
   areaLabel: string;
@@ -88,6 +108,8 @@ const EMPTY: FormState = {
   deliverySize: "small",
   price: "",
   floor: "",
+  drops: false,
+  dropPct: DEFAULT_DROP_PCT,
   free: false,
   areaLabel: "",
   pickupAddress: "",
@@ -103,9 +125,10 @@ export function formProblem(f: FormState): string | null {
   const price = dollarsToCents(f.price);
   const floor = dollarsToCents(f.floor);
   if (!f.free && (price === null || price < 100 || price > 100_000)) return "Set a price between $1 and $1,000.";
-  if (!f.free && (price === null || floor === null || floor < 100 || floor > price)) {
-    return "Set your lowest price: at least $1 and no more than your price.";
+  if (!f.free && f.drops && (price === null || floor === null || floor < 100 || floor >= price)) {
+    return "Set your lowest price: at least $1 and below your price. Or turn price drops off.";
   }
+  if (!f.free && f.drops && !(DROP_PCT_CHOICES as readonly number[]).includes(f.dropPct)) return "Pick how much the price drops each evening.";
   if (f.areaLabel.trim().length < 2) return "Add your neighborhood or town.";
   if (AREA_ADDRESS_RE.test(f.areaLabel)) return "Use your neighborhood or town for the area, not a street address.";
   if (f.pickupAddress.trim().length < 5) return "Add the pickup address. Buyers only see it after they pay.";
@@ -165,6 +188,9 @@ export default function SellFlow() {
       deliverySize: it.delivery_size,
       price: it.price_cents === 0 ? "" : centsToDollars(it.price_cents),
       floor: it.price_cents === 0 ? "" : centsToDollars(priv.data.floor_price_cents),
+      // A lowest price under the price is a draft that drops; its step comes from the drop-state read below.
+      drops: it.price_cents > 0 && priv.data.floor_price_cents < it.price_cents,
+      dropPct: DEFAULT_DROP_PCT,
       free: it.price_cents === 0,
       areaLabel: it.area_label,
       pickupAddress: priv.data.pickup_address,
@@ -172,6 +198,16 @@ export default function SellFlow() {
     setCoords({ lat: Number(priv.data.pickup_lat), lng: Number(priv.data.pickup_lng), address: priv.data.pickup_address });
     setPorchOkChoice(it.porch_ok !== false);
   }, [itemId, item.data, priv.data]);
+
+  // The saved draft's own step (declutter_items.drop_pct); 0 means the seller turned drops off.
+  const dropState = useQuery({ queryKey: ["declutter", "drop-state", itemId], queryFn: () => fetchItemDropState(itemId!), enabled: !!itemId });
+  const dropLoadedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!itemId || !dropState.data || loadedFor.current !== itemId || dropLoadedFor.current === itemId) return;
+    dropLoadedFor.current = itemId;
+    const pct = dropPctOf(dropState.data);
+    setForm((f) => (pct > 0 ? { ...f, dropPct: pct } : { ...f, drops: false }));
+  }, [itemId, dropState.data, form.title]);
 
   useEffect(() => {
     const rows = savedWindows.data ?? [];
@@ -217,6 +253,11 @@ export default function SellFlow() {
       toast.error(problem);
       return null;
     }
+    const choice = priceChoiceToSave(form);
+    if (!choice) {
+      toast.error("Set a price between $1 and $1,000.");
+      return null;
+    }
     setSaving(true);
     try {
       let c = coords;
@@ -233,7 +274,7 @@ export default function SellFlow() {
         conditionStars: form.conditionStars,
         deliverySize: form.deliverySize,
         priceCents: form.free ? 0 : dollarsToCents(form.price)!,
-        floorPriceCents: form.free ? 0 : dollarsToCents(form.floor)!,
+        floorPriceCents: choice.floorCents,
         areaLabel: form.areaLabel.trim(),
         pickupAddress: form.pickupAddress.trim(),
         pickupLat: c.lat,
@@ -242,12 +283,16 @@ export default function SellFlow() {
       if (itemId) {
         await updateDraft(itemId, fields);
         if (porchOk !== (item.data?.porch_ok !== false)) await setPorchOk(itemId, porchOk);
+        // Only once the saved step was read: a failed read must not overwrite it with the form's 5% default.
+        if (!form.free && dropLoadedFor.current === itemId) await setDropPct(itemId, choice.dropPct);
         toast.success("Saved.");
         void qc.invalidateQueries({ queryKey: ["declutter"] });
         return itemId;
       }
       const id = await createDraft(fields);
       loadedFor.current = id;
+      // The form already holds this draft's step: the drop-state read must not reset it.
+      dropLoadedFor.current = id;
       setParams({ item: id }, { replace: true });
       // A new draft allows porch; only a seller who turned it off needs the second
       // call. If it fails the draft still exists with porch on, and the next save retries it.
@@ -257,6 +302,10 @@ export default function SellFlow() {
       const waiting = held;
       setHeld([]);
       const added = await uploadPhotos(id, waiting);
+      // The seller's step (a new draft starts at 5%), after the photos so a refusal never leaves a draft
+      // without them; it is said, and the next save (List it saves again) retries it. With drops off the
+      // lowest price is the price, so it never drops whatever the step.
+      if (!form.free) await setDropPct(id, choice.dropPct);
       toast.success(added > 0 ? "Saved with your photos." : "Saved. Now add photos.");
       return id;
     } catch (err) {
@@ -440,18 +489,31 @@ export default function SellFlow() {
             </div>
             <StepperButton label="Raise the price by $1" disabled={(priceCents ?? 0) >= 100_000} onClick={() => set("price", centsToDollars(Math.min(100_000, (priceCents ?? 0) + 100)))}>+</StepperButton>
           </div>
-          <div className="space-y-2">
-            {label("sell-floor", "Lowest you'll take")}
-            <div className="flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-card px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
-              <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
-              <input id="sell-floor" inputMode="decimal" value={form.floor} onChange={(e) => set("floor", e.target.value.replace(/[^0-9.]/g, ""))} placeholder="e.g. 30"
-                className="w-full bg-transparent text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:font-normal placeholder:text-muted-foreground" />
+          {/* Owner 2026-10-28: the seller turns drops on and picks the step; a lowest price never turns them on. */}
+          <div className="space-y-4 rounded-[20px] border border-border bg-card p-4" data-sell-drops={form.drops ? "on" : "off"}>
+            <div className="flex items-start gap-3">
+              <label htmlFor="sell-drops" className="min-w-0 flex-1">
+                <span className="block text-ds-15 font-semibold text-foreground">Lower the price if it doesn't sell?</span>
+                <span className="block text-ds-13 text-muted-foreground">
+                  {form.drops ? `It drops ${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below your lowest price.` : "Off. It stays at your price until you change it."}
+                </span>
+              </label>
+              <Switch id="sell-drops" checked={form.drops} onCheckedChange={(v) => setForm((f) => ({ ...f, drops: v === true }))} />
             </div>
-            <p className="text-ds-13 text-muted-foreground">
-              Only you see this.{priceCents ? ` Set it to ${formatPrice(priceCents)} for no drops.` : " Set it the same as your price for no drops."}
-            </p>
+            {form.drops && (<>
+              <ChipGroup label="How much each evening" options={DROP_PCT_CHOICES.map((p) => ({ value: String(p), label: `${p}%` }))} value={String(form.dropPct)} onChange={(v) => set("dropPct", Number(v))} />
+              <div className="space-y-2">
+                {label("sell-floor", "Lowest you'll take")}
+                <div className="flex h-[52px] items-center gap-1 rounded-[14px] border border-border bg-background px-4 focus-within:border-primary focus-within:ring-2 focus-within:ring-ring">
+                  <span className="text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))]" aria-hidden>$</span>
+                  <input id="sell-floor" inputMode="decimal" value={form.floor} onChange={(e) => set("floor", e.target.value.replace(/[^0-9.]/g, ""))} placeholder="e.g. 30"
+                    className="w-full bg-transparent text-ds-15 font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:font-normal placeholder:text-muted-foreground" />
+                </div>
+                <p className="text-ds-13 text-muted-foreground">Only you see this. The drops stop here.</p>
+              </div>
+              <DropSchedule priceCents={priceCents} floorCents={floorCents} pct={form.dropPct} />
+            </>)}
           </div>
-          <DropSchedule priceCents={priceCents} floorCents={floorCents} />
           </>)}
           {!form.free && <PriceHint
             category={form.category}
@@ -533,7 +595,7 @@ export default function SellFlow() {
           <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
             {form.free
               ? <ReviewRow title="Price" body="Free: claimed, never bought. No offers or price drops." onEdit={() => setStep(3)} />
-              : <ReviewRow title="Price drops" body={priceCents && floorCents && floorCents < priceCents ? `5% each evening at ${dropRunTime()}, never below ${formatPrice(floorCents)}` : "Off: your lowest price is your price"} onEdit={() => setStep(3)} />}
+              : <ReviewRow title="Price drops" body={form.drops && priceCents && floorCents && floorCents < priceCents ? `${form.dropPct}% each evening at ${dropRunTime()}, to a whole dollar, never below ${formatPrice(floorCents)}` : "Off: it stays at your price"} onEdit={() => setStep(3)} />}
             <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
             <ReviewRow title="Pickup" body={form.free ? (porchOk ? "Porch pickup or at your door" : "At your door") : porchOk ? "Porch pickup, at your door, Helpr delivery" : "At your door, Helpr delivery"} onEdit={() => setStep(4)} />
           </ul>

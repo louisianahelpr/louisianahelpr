@@ -25,7 +25,7 @@
  * @mutate src/components/declutter/DeclutterItemRows.tsx |       {moreRows.length > 0 && <Row |       {<Row
  * @mutate src/components/declutter/DeclutterItemView.tsx |       {!isSeller && (\n        <div className="mt-8"> |       {(\n        <div className="mt-8">
  * @mutate src/components/declutter/DeclutterItemView.tsx |             {drop && !(isSeller | {false && !(isSeller
- * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} />
+ * @mutate src/components/declutter/DeclutterItemView.tsx | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} /> | lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} />
  * @mutate src/components/declutter/DeclutterItemView.tsx | sellerDrops.data.drops_stopped) && ( | false) && (
  * @mutate src/components/declutter/DeclutterItemView.tsx |   const drop = dropState.data ? nextPriceDrop({ ...it, ...dropState.data }) : null; |   const drop = { at: new Date(), lowestCents: it.current_price_cents - 200 };
  * @mutate src/components/declutter/DeclutterBundleRow.tsx | (r) => r.status === "live" && r.seller_id !== viewerId | (r) => r.seller_id !== viewerId
@@ -365,10 +365,24 @@ describe("the photo-first Declutter item page", () => {
     state.item = { ...ITEM, current_price_cents: 3800, live_at: new Date(Date.now() - 60_000).toISOString() };
     state.drop = { sale_mode: "offers", last_price_drop_on: null };
     const first = open();
-    const banner = await screen.findByText(/Could drop as low as \$36\.10 (this evening|tomorrow) at \d{1,2}:07 PM/);
+    // A row from before 20261028160637 (no drop_pct) keeps 5%, now to a whole dollar: $38 -> $36.
+    const banner = await screen.findByText(/Could drop as low as \$36 (this evening|tomorrow) at \d{1,2}:07 PM/);
     expect(banner.closest("[data-price-drop]")).not.toBeNull();
     expect(screen.queryByText(/Drops to/)).toBeNull();
+    expect(screen.getByText(/can drop 5%, rounded down to a whole dollar/)).toBeInTheDocument();
     first.unmount();
+    // Owner 2026-10-28: the seller's own step is what the buyer is told.
+    state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 20 };
+    const twenty = open();
+    expect(await screen.findByText(/Could drop as low as \$30 (this evening|tomorrow)/)).toBeInTheDocument();
+    expect(screen.getByText(/can drop 20%, rounded down/)).toBeInTheDocument();
+    twenty.unmount();
+    // Drops off: no line at all.
+    state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 0 };
+    const offOpen = open();
+    await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });
+    expect(document.querySelector("[data-price-drop]")).toBeNull();
+    offOpen.unmount();
     state.drop = { sale_mode: "fixed", last_price_drop_on: null };
     open();
     await screen.findByRole("heading", { name: "Oak rocking chair", level: 2 });

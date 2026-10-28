@@ -61,7 +61,7 @@ import { ChipGroup, DropSchedule, LISTING_LIFETIME, ReviewRow, StepHead, Stepper
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { PickupTimesEditor } from "./DeclutterPickupTimes";
+import { PickupTimesEditor, pickupWindowsProblem } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
@@ -322,7 +322,8 @@ export default function SellFlow() {
   const photoTotal = photoCount + held.length;
   const priceCents = form.free ? null : dollarsToCents(form.price);
   const floorCents = form.free ? null : dollarsToCents(form.floor);
-  const stepProblem = sellStepProblem(step, form, photoTotal);
+  // Step 4 also needs pickup times the server takes (1-21, each ending after it starts).
+  const stepProblem = sellStepProblem(step, form, photoTotal) ?? (step === 4 ? pickupWindowsProblem(windows) : null);
   const next = async () => {
     if (stepProblem) {
       setTriedStep(step);

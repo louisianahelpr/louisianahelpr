@@ -227,6 +227,20 @@ describe("the photo-first Declutter item page", () => {
     expect(document.querySelector("[data-item-delivered]")).toBeNull();
   });
 
+  // Deep audit #23: a free item is claimed, never offered on; its page must not end with "Make an offer".
+  // @mutate src/components/declutter/DeclutterItemView.tsx | canAsk={canAct && !!user} free={free} /> | canAsk={canAct && !!user} />
+  it("a free item's page never says 'Make an offer'; a priced one keeps the line", async () => {
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
+    const free = open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(await screen.findByText(/Everyone can see questions and answers/)).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/Make an offer/);
+    free.unmount();
+    state.item = { ...ITEM };
+    open();
+    expect(await screen.findByText(/Want to make a deal\? Make an offer\./)).toBeInTheDocument();
+  });
+
   it("one filled button on a buyer's item page: Buy now (Ask is an outline beside its question box)", async () => {
     // @mutate src/components/declutter/DeclutterQuestions.tsx | <Button type="submit" variant="outline" className="h-auto shrink-0" | <Button type="submit" className="h-auto shrink-0"
     // Counted by the filled class inside the page (jsdom draws no CSS; the 375/1440 WebKit shots measured the same:

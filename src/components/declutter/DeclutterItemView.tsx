@@ -225,7 +225,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>
           </section>
 
-          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} />
+          <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={canAct && !!user} free={free} />
         </div>
       </div>
       {!isSeller && (

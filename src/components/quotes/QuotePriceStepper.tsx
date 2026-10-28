@@ -44,7 +44,8 @@ export function QuotePriceStepper({
         <button type="button" className={btn} aria-label={`$${STEP} less`} disabled={valid && n <= min} onClick={() => step(-STEP)}>
           <Minus className="h-5 w-5" aria-hidden />
         </button>
-        <span className="inline-flex items-baseline text-[hsl(var(--burnt-sienna))]">
+        {/* text-ds-40 here too: a phone's input floor is max(16px, 1em) of THIS size (deep audit #43). */}
+        <span className="inline-flex items-baseline text-ds-40 text-[hsl(var(--burnt-sienna))]">
           <span className="text-ds-32 font-bold" aria-hidden>$</span>
           <input
             id="quote-price"

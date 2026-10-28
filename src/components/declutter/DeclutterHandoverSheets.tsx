@@ -191,12 +191,15 @@ export function NoShowSheet({
   who,
   pending,
   onConfirm,
+  free = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   side: "buyer" | "seller";
   /** The other person's first name, or their role. */
   who: string;
+  /** A free item: nothing was paid, so no money words (deep audit part 2, B2-2). */
+  free?: boolean;
   pending: boolean;
   onConfirm: () => void;
 }) {
@@ -207,12 +210,12 @@ export function NoShowSheet({
         {side === "seller" ? (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="seller">
             <li>The first missed pickup: {who} can book one new time before the 7-day pickup deadline.</li>
-            <li>A second miss cancels the sale. {who === "the buyer" ? "The buyer" : who} gets the item price back, and your item goes back on sale.</li>
+            <li>{free ? "A second miss cancels the claim, and your item goes back on sale." : <>A second miss cancels the sale. {who === "the buyer" ? "The buyer" : who} gets the item price back, and your item goes back on sale.</>}</li>
             <li className="text-ds-13 text-muted-foreground">Missed pickups count against the buyer, not you.</li>
           </ul>
         ) : (
           <ul className="space-y-2 text-ds-14" data-no-show-rules="buyer">
-            <li>The sale is cancelled and you get everything back.</li>
+            <li>{free ? "Your claim is cancelled. Nothing was charged." : "The sale is cancelled and you get everything back."}</li>
             <li className="text-ds-13 text-muted-foreground">A no-show counts against the seller, not you.</li>
           </ul>
         )}

@@ -433,4 +433,15 @@ describe("boards 159 + 160: handover sheets", () => {
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
     expect(state.calls).toEqual([]);
   });
+
+  // Deep audit part 2 (B2-2): a free item's no-show sheet promised "the item price back" on $0.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | free={order.lines.every((l) => l.price_cents === 0)} | free={false}
+  it("a free item's no-show sheet has no money words", async () => {
+    state.bookings = [slot(16)];
+    show([line({ my_side: "seller", price_cents: 0, premium_cents: 0, total_cents: 0 })]);
+    fireEvent.click(await screen.findByRole("button", { name: "They didn't show" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("A second miss cancels the claim, and your item goes back on sale.")).toBeInTheDocument();
+    expect(sheet.textContent).not.toMatch(/price back|everything back|\$/);
+  });
 });

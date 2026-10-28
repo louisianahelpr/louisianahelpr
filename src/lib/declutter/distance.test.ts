@@ -4,9 +4,10 @@
  * @mutate src/lib/declutter/distance.ts |   if (approximate) return `About ${Math.max(1, Math.round(miles))} mi away`; |   if (false) return `About ${Math.max(1, Math.round(miles))} mi away`;
  * @mutate src/lib/declutter/distance.ts |     .sort((x, y) => (x.miles as number) - (y.miles as number)); |     ;
  * @mutate src/lib/declutter/distance.ts |     .filter((r) => maxMiles === null \|\| (r.miles as number) <= maxMiles) |     .filter(() => true)
+ * @mutate src/lib/declutter/distance.ts |   if (miles > MAX_SHOWN_MILES) return null; |   if (miles > 1e9) return null;
  */
 import { describe, expect, it } from "vitest";
-import { formatPrice, milesBetween, milesLabel, nearestFirst } from "./distance";
+import { MAX_SHOWN_MILES, formatPrice, milesBetween, milesLabel, nearestFirst } from "./distance";
 
 // Baton Rouge (30.45, -91.15), New Orleans (29.95, -90.07), Lafayette (30.22, -92.02).
 const items = [
@@ -42,6 +43,24 @@ describe("Declutter nearest first (rows 5, 27)", () => {
     expect(milesLabel(0.4, true)).toBe("About 1 mi away");
     expect(milesLabel(12.6, true)).toBe("About 13 mi away");
     expect(milesLabel(null, true)).toBeNull();
+    expect(formatPrice(4000)).toBe("$40");
+    expect(formatPrice(1999)).toBe("$19.99");
+  });
+
+  it("lead 2026-10-28: no \"1835 mi away\" — a figure past MAX_SHOWN_MILES is not shown, from a real far-away position", () => {
+    // The walkthrough's numbers: an item at Downtown, Baton Rouge (30.46, -91.19), the viewer's saved position Menlo Park, CA.
+    const far = milesBetween({ lat: 37.4728, lng: -122.2444 }, { lat: 30.46, lng: -91.19 });
+    expect(Math.round(far)).toBe(1835);
+    expect(milesLabel(far)).toBeNull();
+    expect(milesLabel(far, true)).toBeNull();
+    // Inside Louisiana every figure still shows: Shreveport to New Orleans is the long way round (~280 mi).
+    const span = milesBetween({ lat: 32.52, lng: -93.75 }, { lat: 29.95, lng: -90.07 });
+    expect(span).toBeLessThan(MAX_SHOWN_MILES);
+    expect(milesLabel(span)).toMatch(/^\d+ mi away$/);
+    expect(MAX_SHOWN_MILES).toBeGreaterThan(250);
+  });
+
+  it("formats prices", () => {
     expect(formatPrice(4000)).toBe("$40");
     expect(formatPrice(1999)).toBe("$19.99");
   });

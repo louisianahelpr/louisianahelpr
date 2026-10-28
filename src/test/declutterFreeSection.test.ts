@@ -37,8 +37,10 @@ const FILE = "20261027170717";
 describe("the Declutter Free section", () => {
   it("reads the newest definitions (floor)", () => {
     // declutter_start_checkout: restated again by Q2425 (20261027204500) with the free_order rule kept (asserted below).
+    // declutter_take_item: restated by the notice copy (20261028171944) with the free claim kept (asserted below).
+    expect(newestFunction("declutter_take_item").file).toContain("20261028171944_declutter_notice_copy.sql");
     const names = ["declutter_claim_free", "declutter_checkout_free", "declutter_free_rules",
-      "declutter_buy_now", "declutter_take_item", "declutter_close_paid_order", "declutter_complete_handover",
+      "declutter_buy_now", "declutter_close_paid_order", "declutter_complete_handover",
       "declutter_create_item", "declutter_update_draft", "declutter_orders_fee_rule_f1", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);

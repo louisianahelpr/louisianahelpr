@@ -40,6 +40,15 @@ export interface DeclutterTodo {
   salesOpen: number;
   /** Seller: accepted sales waiting for the buyer to pay. Nothing to do (not in `selling`), but it is the seller's. */
   salesAwaitingPayment: number;
+  /**
+   * Paid Helpr-delivery orders not handed over yet, per side. Nothing for the
+   * member to do (not in `buying` / `selling`; the Helpr does the handover), but
+   * they say which side an old ?view=cart link meant: the seller's "A Helpr will
+   * pick it up", "Helpr pickup booked", "Picked up" (audit 2026-10-28 #37, SE2-4)
+   * and the buyer's "Your item is on its way" all link there.
+   */
+  purchasesDelivering: number;
+  salesDelivering: number;
   buying: number;
   selling: number;
 }
@@ -49,11 +58,11 @@ export interface DeclutterTodo {
  * A Helpr delivery is left out: the Helpr does the handover, the order card
  * only shows its progress.
  */
-function openPickupOrders(cart: readonly CartLine[], side: "buyer" | "seller"): number {
+function openPickupOrders(cart: readonly CartLine[], side: "buyer" | "seller", helprDelivery = false): number {
   const orders = new Set<string>();
   for (const l of cart) {
     if (l.my_side !== side || l.status !== "paid" || !l.order_id) continue;
-    if (l.order_status !== "paid" || l.handover === "delivery") continue;
+    if (l.order_status !== "paid" || (l.handover === "delivery") !== helprDelivery) continue;
     orders.add(l.order_id);
   }
   return orders.size;
@@ -74,6 +83,8 @@ export function declutterTodo(cart: readonly CartLine[], offers: readonly MyOffe
     sellerOffers,
     salesOpen,
     salesAwaitingPayment,
+    purchasesDelivering: openPickupOrders(cart, "buyer", true),
+    salesDelivering: openPickupOrders(cart, "seller", true),
     buying: toPay + buyerOffers + purchasesOpen,
     selling: sellerOffers + salesOpen,
   };
@@ -92,7 +103,7 @@ export function oldDeclutterView(view: OldDeclutterView, todo: DeclutterTodo | n
   if (view === "offers") {
     return todo && todo.buyerOffers > 0 && todo.sellerOffers === 0 ? "buying" : "selling";
   }
-  const buyerWaiting = todo ? todo.toPay + todo.purchasesOpen : 0;
-  const sellerWaiting = todo ? todo.salesOpen + todo.salesAwaitingPayment : 0;
+  const buyerWaiting = todo ? todo.toPay + todo.purchasesOpen + todo.purchasesDelivering : 0;
+  const sellerWaiting = todo ? todo.salesOpen + todo.salesAwaitingPayment + todo.salesDelivering : 0;
   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying";
 }

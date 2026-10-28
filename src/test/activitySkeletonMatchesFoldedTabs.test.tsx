@@ -10,14 +10,16 @@
  *   - the frame matches the tab the URL will open on (Browse: the search row;
  *     Posted / Working: the four status boxes; /posts lands on Posted; an old
  *     My Jobs link such as /jobs?filter= lands on Working);
- *   - the header is the loaded header's shape: top bar with its three
- *     controls (+, bell, profile), then the tab toggle;
+ *   - the header is the loaded header's shape: on a phone the chips row with
+ *     the bell and the profile (no "+" since owner 2026-10-28), then the tab
+ *     toggle; on the desktop website the real title in the bar
+ *     (src/test/sectionLoadingHeaderIsSettled.test.tsx);
  *   - ONE h1 while pending.
  *
  * @mutate src/components/JobsSectionSkeleton.tsx |   if (window.location.pathname.startsWith("/posts")) return "posted"; |
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
  * @mutate src/components/JobsSectionSkeleton.tsx | {!isWebDesktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />} | {null}
- * @mutate src/components/JobsSectionSkeleton.tsx |       <h1 className="sr-only">Jobs</h1>\n |
+ * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
@@ -67,16 +69,14 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted"])("%s: the Explore header's top row (chips, bell, photo; title and + on desktop), the tabs row, and a single h1", (url) => {
+  it.each(["/jobs", "/jobs?tab=posted"])("%s: the phone Explore header's top row (chips, bell, photo), the tabs row, and a single h1", (url) => {
     // The Explore header (owner, 2026-10-22): on a phone the top row is the section chips with the bell and the
-    // photo, 48px; the desktop bar keeps its title and "+" (their bones are hidden on a phone by CSS, and the
-    // chips' bone on desktop). Then the thin underline tabs, 44px.
+    // photo, 48px (no "+", owner 2026-10-28). Then the thin underline tabs, 44px.
     const { container } = at(url);
     const bar = container.querySelector(".app-top-bar.h-12");
     expect(bar, "the top row's own h-12 box").not.toBeNull();
     expect(bar!.querySelectorAll(".explore-switcher-bone"), "the chips' bone").toHaveLength(1);
-    expect(bar!.querySelectorAll(".top-bar-title-bone"), "the desktop title's bone").toHaveLength(1);
-    expect(bar!.querySelectorAll(".top-bar-add-bone"), "the desktop +'s bone").toHaveLength(1);
+    expect(bar!.querySelectorAll(".top-bar-add-bone, .top-bar-title-bone"), "no + or title bone (phone)").toHaveLength(0);
     expect(bar!.querySelectorAll(":scope > span"), "the bell and the photo").toHaveLength(2);
     expect(container.querySelectorAll(".h-11.w-full"), "the 44px tabs row").toHaveLength(1);
     expect(container.querySelectorAll("h1")).toHaveLength(1);

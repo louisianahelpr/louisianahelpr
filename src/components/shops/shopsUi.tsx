@@ -110,13 +110,15 @@ export function ShopsNotice({ title, children, tone = "info" }: { title: string;
  * Rentals/Quotes loading-frame pattern); a settled "off" is the 404, exactly
  * as if the route did not exist. Never the protection: every RPC refuses too.
  */
-export function ShopsGate({ children, title, backTo }: { children: ReactNode; title: string; backTo?: string }) {
+export function ShopsGate({ children, title, backTo, skeleton }: { children: ReactNode; title: string; backTo?: string; skeleton?: ReactNode }) {
   const enabled = useFeature("shops");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
   const settled = isReady && (!user || featureSwitchSettled(qc, "shops", user.id));
   if (settled) return <NotFound />;
+  // A section's own root (/shops) passes its section frame: a sub-screen's AppPage draws a back arrow there.
+  if (skeleton) return <>{skeleton}</>;
   return (
     <AppPage title={title} backTo={backTo}>
       <p className="sr-only" role="status">Loading</p>

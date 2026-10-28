@@ -39,7 +39,7 @@
 // @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "messages", file: "src/components/messages/ConversationList.tsx", | name: "messages", file: "src/components/messages/ConversationList.ts",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLEAR,\n    maxWidth: 899,\n  },\n  {\n    name: "declutter-browse-row" | close: CLEAR,\n  },\n  {\n    name: "declutter-browse-row"
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.ts",
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";

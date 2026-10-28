@@ -5,12 +5,20 @@
  *   "polish these cards, kind of a lot of spacing" -> the Posted / Working card face is no looser than Browse's card
  *     (JOB_CARD_BODY: 14px sides), with a 44px thumb and 8px between face, tracker and button.
  *
+ * JOBS > BROWSE ON A PHONE (owner 2026-10-28, ~900px window in phone mode: "search and filter should be next to
+ * gear"): the separate "Search jobs" row is gone; a search ICON and Filters sit at the end of the tabs row before
+ * the gear (the desktop's order), and the search opens in place, leftward, in that row (InlineListSearch). The
+ * map stays reachable in the filter sheet's View choice (hideViewToggle is desktop-only).
+ *
  * THE CLASS: every search control on the Jobs tabs (header + list header) is an icon, and the "mine" card face's
  * padding, thumb and gaps stay within Browse's measures. Red on 25fc6a8ef9: JobsSection drew the "Search all
  * sections" field under the tabs, and MineJobFace was p-4 with a 56px thumb.
  *
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} />} | end={null}
  * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
+ * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} /> |       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />\n      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />
+ * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd }) | : undefined)
+ * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
@@ -29,7 +37,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 vi.mock("@/pages/home/Dashboard", () => ({
-  default: ({ embeddedHeader }: { embeddedHeader?: ReactNode }) => <div data-testid="feed">{embeddedHeader}</div>,
+  default: ({ embeddedHeader }: { embeddedHeader: (b?: { end?: ReactNode }) => ReactNode }) => <div data-testid="feed">{embeddedHeader()}</div>,
 }));
 vi.mock("@/components/job-card/JobListPage", () => ({
   default: ({ defaultTab, embeddedHeader }: { defaultTab: string; embeddedHeader?: ReactNode }) => (
@@ -122,6 +130,31 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
 
 // ── Card spacing: the mine card face is no looser than Browse's card ──────────────────────────────────────────
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
+
+describe("Jobs > Browse on a phone: search and filters end the tabs row, before the gear (owner 2026-10-28)", () => {
+  const dash = read("pages/home/Dashboard.tsx");
+  const phoneEnd = dash.slice(dash.indexOf("const phoneBrowseEnd = isWebDesktop ? undefined : ("), dash.indexOf("const embeddedTitle = ("));
+
+  it("Dashboard hands the tabs row, on a phone, the search ICON (opens in place) then Filters", () => {
+    expect(phoneEnd.length).toBeGreaterThan(100);
+    const search = phoneEnd.indexOf('<InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />');
+    const filtersAt = phoneEnd.indexOf("<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />");
+    expect(search, "the search icon").toBeGreaterThan(-1);
+    expect(filtersAt, "the Filters button").toBeGreaterThan(search);
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd })");
+    // JobsSection puts whatever Browse hands it BEFORE the gear (profileIsAccountMoneyHelp renders the order).
+    expect(read("pages/jobs/JobsSection.tsx")).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
+  });
+
+  it("no separate 'Search jobs' row and no always-open field on Browse", () => {
+    expect(dash).not.toMatch(/SectionSearchRow|BrowseCompactSearchRow|data-jobs-toolbar/);
+    expect(phoneEnd).not.toMatch(/<input|placeholder=/);
+  });
+
+  it("the map stays one tap away on a phone: the filter sheet's View choice is hidden on the desktop website only", () => {
+    expect(dash).toContain("hideViewToggle={isWebDesktop}");
+  });
+});
 /** Tailwind spacing token -> px (4px per unit; "3.5" -> 14). */
 const px = (unit: string) => Number(unit) * 4;
 function padOf(cls: string[], axis: "x" | "y"): number {

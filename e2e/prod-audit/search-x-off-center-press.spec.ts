@@ -73,12 +73,14 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
   // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
   // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
   // so the field is the trigger and the ✕ clears. Pressed in each section.
+  // Jobs > Browse on a phone (owner 2026-10-28: "search and filter should be next to gear"): a search icon at
+  // the tabs row's end that opens in place (InlineListSearch), like Posted / Working's.
   {
-    name: "jobs-browse-row", file: "src/components/sections/SectionSearchRow.tsx",
+    name: "jobs-browse-phone", file: "src/components/sections/InlineListSearch.tsx",
     url: "/jobs",
-    trigger: 'input[aria-label="Search jobs"]',
-    field: 'input[aria-label="Search jobs"]',
-    close: CLEAR,
+    trigger: '[data-browse-phone-controls] button[aria-label="Search jobs"]',
+    field: '[data-browse-phone-controls] input[aria-label="Search jobs"]',
+    close: `[data-browse-phone-controls] ${CLOSE}`,
     maxWidth: 899,
   },
   {

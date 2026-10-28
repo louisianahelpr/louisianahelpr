@@ -36,8 +36,7 @@ test.beforeAll(async ({ request }) => {
 /** Every OPENING search (a field that appears on a press) whose screen carries a page title. */
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number }[] = [
   // jobs (/jobs, My Jobs), posts (/posts, My Posts) and browse-phone (/home) left 2026-10-19 (Q2205) with the old
-  // screens. Jobs > Browse's phone search is a permanent row (BrowseCompactSearchRow): nothing opens over the
-  // title, so it is not an opening search (src/test/searchFieldsAllChecked.test.ts keeps it off this list).
+  // screens. Jobs > Browse's phone search opens in place in the tabs row since owner 2026-10-28 (jobs-browse-phone).
   { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]' },
   {
     name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
@@ -46,6 +45,13 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
   },
   { name: "legal", file: "src/pages/info/Legal.tsx", url: "/legal", trigger: 'button[aria-label="Search all policies"]', field: 'input[aria-label="Search all policies"]' },
+  {
+    name: "jobs-browse-phone", file: "src/components/sections/InlineListSearch.tsx",
+    url: "/jobs",
+    trigger: '[data-browse-phone-controls] button[aria-label="Search jobs"]',
+    field: '[data-browse-phone-controls] input[aria-label="Search jobs"]',
+    maxWidth: 899,
+  },
   // Jobs > Posted / Working: the search opens in place in the status chip row (owner 2026-10-27, InlineListSearch).
   {
     name: "jobs-posted-search", file: "src/components/sections/InlineListSearch.tsx",

@@ -87,7 +87,7 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     file: "e2e/prod-audit/search-x-off-center-press.spec.ts",
     match: "does not render at",
     verdict: "justified",
-    why: "the Jobs > Browse search is two different renders: the desktop feed strip's BrowseSearchBar only at >=900px and the phone compact row (BrowseCompactSearchRow) only at <=899px; each surface declares that width and the other width has no such ✕ to press (src/test/searchFieldsAllChecked.test.ts holds the exact PHONE_ONLY / DESKTOP_ONLY lists)",
+    why: "the Jobs > Browse search is two different renders: the desktop feed strip's BrowseSearchBar only at >=900px and the phone tabs row's in-place search (InlineListSearch, jobs-browse-phone) only at <=899px; each surface declares that width and the other width has no such ✕ to press (src/test/searchFieldsAllChecked.test.ts holds the exact PHONE_ONLY / DESKTOP_ONLY lists)",
   },
   {
     file: "e2e/prod-audit/search-keeps-title.spec.ts",

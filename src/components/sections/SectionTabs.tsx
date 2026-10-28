@@ -80,7 +80,10 @@ export function SectionTabs<T extends string>({
   };
   return (
     <div data-testid="section-tabs" className="flex items-end gap-1 border-b border-border/60">
-      <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className="flex min-w-0 flex-1 items-end gap-5 overflow-x-auto no-scrollbar">
+      {/* A row that also carries controls at its end (Jobs: search, filters, gear; owner 2026-10-28) packs its tabs
+          10px apart below 420px, so "Browse Posted Working" and three 44px controls fit a 375 phone without the last
+          tab scrolling out of sight (measured: 218px of tabs in a 191px track at 375 with 20px gaps). */}
+      <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2.5 min-[420px]:gap-5" : "gap-5")}>
         {options.map((o, i) => {
           const active = o.value === value;
           return (

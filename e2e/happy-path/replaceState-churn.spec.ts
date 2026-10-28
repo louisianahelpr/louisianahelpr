@@ -83,8 +83,8 @@ async function churnSearchInput(page: Page, count: number, prefix: string): Prom
   // useDashboardFilters); Posted / Working have status boxes and no search box.
   const openSearch = page.getByRole("button", { name: "Search jobs" });
   if (await openSearch.count()) await openSearch.click();
-  // The phone's compact search row (the one input a 375 viewport shows).
-  const input = page.getByTestId("browse-compact-search").locator('input[type="search"]');
+  // The phone's search icon opens its field in place, in the tabs row (owner 2026-10-28).
+  const input = page.locator('[data-browse-phone-controls] input[type="search"][aria-label="Search jobs"]');
   await expect(input).toBeVisible();
 
   await input.evaluate(

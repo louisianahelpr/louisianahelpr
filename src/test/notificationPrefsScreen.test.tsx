@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import { rows } from "@/components/notificationPreferences/constants";
+import { rows, declutterRows } from "@/components/notificationPreferences/constants";
 import NotificationPreferences from "@/components/NotificationPreferences";
 
 let PREFS_ROW: Record<string, unknown> = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
@@ -26,6 +26,11 @@ let PREFS_ROW: Record<string, unknown> = { user_id: "u1", push_enabled: true, qu
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),
 }));
+
+// Declutter's hidden switches (useFeature reads them through React Query).
+// FEATURES says which are on for the member in each test; off by default.
+let FEATURES: Record<string, boolean> = {};
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => FEATURES[key] === true }));
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
@@ -98,3 +103,60 @@ describe("prefs screen renders a control for every row", () => {
 
 // Proof the absence check can fail: a switch labelled as the digest again.
 // @mutate src/components/NotificationPreferences.tsx | ariaLabel="Saved Helpr availability nudges" | ariaLabel="Daily match digest"
+
+// ── The Declutter group (owner 2026-10-28, via the lead; migration 20261028162048) ──
+// The walkthrough that day found no Declutter group in notification settings
+// (~/.lh-shots/declutter-walk-1028/47-notification-settings-no-declutter.png).
+describe("the Declutter group", () => {
+  const withDeclutterColumns = () => ({
+    user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null,
+    ...Object.fromEntries(declutterRows.flatMap((r) => [[r.key, true], [r.emailKey, true]])),
+  });
+
+  it("shows one App switch per Declutter kind to a member who has Declutter", async () => {
+    FEATURES = { declutter: true, declutter_wanted: true };
+    PREFS_ROW = withDeclutterColumns();
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByTestId("declutter-notification-group")).toBeTruthy());
+    expect(declutterRows.length).toBe(7);
+    for (const r of declutterRows) {
+      expect(screen.getByLabelText(`${r.label} push`), `${r.key} push`).toBeTruthy();
+      // Email: a switch only where that kind is emailed; elsewhere a dash that says why.
+      if (r.noEmailSwitch) {
+        expect(screen.queryByLabelText(`${r.label} email`), `${r.key} has no email switch`).toBeNull();
+        expect(screen.getByText(`${r.label}: ${r.noEmailSwitch}`)).toBeTruthy();
+      } else {
+        expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
+      }
+    }
+    expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_pickups", "declutter_price_drops"]);
+  });
+
+  it("hides Wanted matches while Wanted is off for the member", async () => {
+    FEATURES = { declutter: true };
+    PREFS_ROW = withDeclutterColumns();
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByTestId("declutter-notification-group")).toBeTruthy());
+    expect(screen.queryByLabelText("Wanted matches push")).toBeNull();
+    expect(screen.getByLabelText("Offers push")).toBeTruthy();
+  });
+
+  it("is not shown to a member without Declutter", async () => {
+    FEATURES = {};
+    PREFS_ROW = withDeclutterColumns();
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
+    expect(screen.queryByTestId("declutter-notification-group")).toBeNull();
+  });
+
+  it("waits for its columns: a loaded row without them shows no Declutter switch that could not save", async () => {
+    FEATURES = { declutter: true, declutter_wanted: true };
+    PREFS_ROW = { user_id: "u1", push_enabled: true, quiet_start: null, quiet_end: null };
+    render(<NotificationPreferences />);
+    await waitFor(() => expect(screen.getByLabelText("Job offers push")).toBeTruthy());
+    expect(screen.queryByTestId("declutter-notification-group")).toBeNull();
+  });
+});
+
+// Proof the group test can fail: the group renders nothing.
+// @mutate src/components/notificationPreferences/DeclutterNotificationGroup.tsx |   if (!declutterOn) return null; |   return null;

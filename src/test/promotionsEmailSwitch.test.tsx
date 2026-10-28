@@ -31,6 +31,11 @@ let loadError: { message: string } | null;
 let consent: boolean;
 let writes: Record<string, unknown>[];
 
+// The Declutter group reads its hidden switches through React Query; this
+// file is about the jobs-and-master switches, so Declutter is off here (its
+// group has its own test in notificationPrefsScreen.test.tsx).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+
 vi.mock("@/hooks/useAuthReady", () => ({
   useAuthReady: () => ({ user: { id: "u1" }, isReady: true }),
 }));

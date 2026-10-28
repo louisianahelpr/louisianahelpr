@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { rows } from "@/components/notificationPreferences/constants";
+import { rows as mainRows, declutterRows } from "@/components/notificationPreferences/constants";
+
+// Every switch on the screen: the main list and the Declutter group (20261028162048).
+const rows = [...mainRows, ...declutterRows];
 import { typeIcons } from "@/components/notificationPanel/notificationPanelHelpers";
 
 /**

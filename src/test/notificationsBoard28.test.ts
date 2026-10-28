@@ -7,7 +7,7 @@
  * @mutate src/components/NotificationPanel.tsx |                                   style={{ background: "hsl(var(--bark))" }} |                                   style={{ background: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/NotificationPanel.tsx |                       color: "hsl(var(--muted-foreground))",\n |                       color: "hsl(var(--burnt-sienna))",\n
  * @mutate src/components/NotificationPanel.tsx |                 Mark all read\n |                 <CheckCheck />\n
- * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx | new Set(["payment", "financial_alerts"]) | new Set(["payment", "financial_alerts", "application"])
+ * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]) | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds", "application"])
  * @mutate src/components/NotificationPanel.tsx | className="min-w-0 flex-1 font-sans font-bold | className="min-w-0 flex-1 font-display font-bold
  */
 import { describe, it, expect } from "vitest";
@@ -29,7 +29,7 @@ describe("the notifications sheet matches board 28", () => {
   });
 
   it("rust only on money: muted day label, olive unread dot, no rust wash, money tint only for money kinds", () => {
-    expect([...MONEY_TYPES].sort()).toEqual(["financial_alerts", "payment"]);
+    expect([...MONEY_TYPES].sort()).toEqual(["declutter_refunds", "declutter_sales", "financial_alerts", "payment"]);
     const rows = src.slice(src.indexOf("groupedNotifications.map"));
     const sienna = (rows.match(/--burnt-sienna/g) ?? []).length;
     // Exactly the two money-tint declarations (background + colour) in the row list.

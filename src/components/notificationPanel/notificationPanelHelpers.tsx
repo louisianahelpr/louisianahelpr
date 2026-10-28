@@ -1,4 +1,4 @@
-import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone } from "lucide-react";
+import { Check, Info, AlertTriangle, DollarSign, Users, Star, MessageCircle, Truck, Wrench, Sparkles, ShieldCheck, ShieldAlert, Megaphone, Tag, HandCoins, ShoppingBag, CalendarClock, Undo2, TrendingDown, Search } from "lucide-react";
 import type { Notification } from "./types";
 
 // Icons take their colour from the circle they sit in (board 28: olive, or the money tint for money kinds).
@@ -23,6 +23,14 @@ export const typeIcons: Record<string, React.ReactNode> = {
   // Operator mail — only admins ever receive it, but it renders in the same
   // notification centre as everything else, so it needs its own glyph.
   admin_alert: <ShieldAlert className="w-4 h-4" />,
+  // Declutter (20261028162048): the same glyphs as their switches in settings.
+  declutter_listings: <Tag className="w-4 h-4" />,
+  declutter_offers: <HandCoins className="w-4 h-4" />,
+  declutter_sales: <ShoppingBag className="w-4 h-4" />,
+  declutter_pickups: <CalendarClock className="w-4 h-4" />,
+  declutter_refunds: <Undo2 className="w-4 h-4" />,
+  declutter_price_drops: <TrendingDown className="w-4 h-4" />,
+  declutter_wanted: <Search className="w-4 h-4" />,
 };
 
 const startOfDay = (d: Date) => {
@@ -69,4 +77,6 @@ export const timeAgo = (date: string) => {
 };
 
 /** Board 28 (2026-10-20): the notice kinds about money wear the money tint (rust = money only). */
-export const MONEY_TYPES: ReadonlySet<string> = new Set(["payment", "financial_alerts"]);
+// Declutter sales and refunds (payment received, buyer paid, refund on its way)
+// were typed 'payment' until 20261028162048 and keep the tint they had.
+export const MONEY_TYPES: ReadonlySet<string> = new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]);

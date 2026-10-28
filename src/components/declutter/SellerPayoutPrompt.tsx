@@ -1,28 +1,75 @@
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { usePayoutSetupHireAllowed } from "@/hooks/usePayoutSetupHireAllowed";
 import { usePayoutSetupBlock } from "@/hooks/usePayoutSetupPaused";
 import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
+import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
+import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
+import { formatPrice } from "@/lib/declutter/distance";
 import { DeclutterNotice } from "./declutterUi";
 
 /**
- * The one payout prompt on the Sell and Move screens (owner 2026-10-27: list
- * first, set up at first sale). Shown only when ALL of these hold:
- *   - the server says money is owed to this member
- *     (payout_setup_hire_allowed_for_me: a paid sale, a delivery, or a hire);
+ * The Declutter money that really waits for this seller (owner 2026-10-28, shots 12 + 19: the banner said "You have
+ * money waiting" on a first listing with nothing sold, because it asked only payout_setup_hire_allowed_for_me, which
+ * is also true for a Helpr on a funded JOB). Counted from the seller's own Declutter rows: each paid sale (a paid cart
+ * line on a paid or handed-over order, never a free claim) whose payout is not sent yet: its payout's amount while
+ * that is pending or failed, or the sale's price while no payout row exists yet. A payout sent (succeeded) or with
+ * nothing due counts nothing.
+ */
+export function declutterMoneyWaiting(cart: CartLine[], payouts: MyPayout[]): { cents: number; firstTitle: string | null } {
+  const payoutBy = new Map(payouts.map((p) => [p.order_id, p]));
+  const sales = new Map<string, { cents: number; title: string }>();
+  for (const l of cart) {
+    if (l.my_side !== "seller" || l.status !== "paid" || !l.order_id || l.price_cents <= 0) continue;
+    if (l.order_status !== "paid" && l.order_status !== "handed_over") continue;
+    const s = sales.get(l.order_id) ?? { cents: 0, title: l.item_title };
+    s.cents += l.price_cents;
+    sales.set(l.order_id, s);
+  }
+  let cents = 0;
+  let firstTitle: string | null = null;
+  for (const [orderId, s] of sales) {
+    const p = payoutBy.get(orderId);
+    const owed = !p ? s.cents : p.status === "pending" || p.status === "failed" ? p.amount_cents : 0;
+    if (owed <= 0) continue;
+    cents += owed;
+    firstTitle ??= s.title;
+  }
+  return { cents, firstTitle };
+}
+
+/**
+ * The one payout prompt for Declutter sellers: the Sell and Move screens and the Selling tab's sold group (owner
+ * 2026-10-27: list first, set up at first sale; 2026-10-28: make the first-sale moment clear). Shown only when ALL
+ * of these hold:
+ *   - the server lets this member set up payouts (payout_setup_hire_allowed_for_me: money is owed to them);
+ *   - Declutter money really waits for them (declutterMoneyWaiting: a paid sale not paid out yet);
  *   - Stripe says their payouts are not ready (useStripeConnectStatus "setup");
- * then the paused notice while setup is paused for everyone, else the prompt.
- * A member who is owed nothing sees nothing (and Stripe is not even asked):
- * listing never waits on payouts. The words name the money waiting, not a
- * sale, because a hire also counts.
+ * then the paused notice while setup is paused for everyone, else the prompt with the sale and its amount.
+ * A member who is owed nothing on Declutter sees nothing (and Stripe is not even asked): listing never waits on
+ * payouts. No fee numbers (owner rule): the amount is the sale money itself.
  */
 export function SellerPayoutPrompt() {
   const owed = usePayoutSetupHireAllowed();
   if (!owed) return null;
-  return <OwedPayoutPrompt />;
+  return <DeclutterMoneyPrompt />;
 }
 
-function OwedPayoutPrompt() {
+function DeclutterMoneyPrompt() {
+  const { user } = useCurrentUser();
+  const userId = user?.id ?? "";
+  // The same reads (and keys) the Selling tab uses, so the prompt adds no request there.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: !!userId });
+  const payouts = useQuery({ queryKey: ["declutter", "payouts", userId], queryFn: () => fetchMyPayouts(userId), enabled: !!userId });
+  if (!cart.data || !payouts.data) return null;
+  const waiting = declutterMoneyWaiting(cart.data, payouts.data);
+  if (waiting.cents <= 0) return null;
+  return <OwedPayoutPrompt cents={waiting.cents} title={waiting.firstTitle} />;
+}
+
+function OwedPayoutPrompt({ cents, title }: { cents: number; title: string | null }) {
   // The one reader every payout-setup entry point uses (payoutSetupPausedEntryPoints guard). Money is owed
   // here, so its only possible "no" is the pause for everyone.
   const paused = usePayoutSetupBlock() === "paused";
@@ -30,9 +77,11 @@ function OwedPayoutPrompt() {
   if (payoutPrompt.kind !== "setup") return null;
   if (paused) return <PayoutSetupPausedNotice />;
   return (
-    <DeclutterNotice tone="warn" title="Set up payouts to get paid.">
-      You have money waiting. It is held safely until payouts are set up, one short step.{" "}
-      <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
-    </DeclutterNotice>
+    <div data-declutter-payout-prompt="">
+      <DeclutterNotice tone="warn" title={`Set up payouts to get your ${formatPrice(cents)}.`}>
+        {title ? `You sold ${title}. ` : ""}The money is held safely until payouts are set up, one short step.{" "}
+        <Link to="/profile?tab=payment" className="underline font-semibold">Set up payouts</Link>
+      </DeclutterNotice>
+    </div>
   );
 }

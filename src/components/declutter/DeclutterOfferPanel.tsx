@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
-import { buyNow, fetchMyCard, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
+import { buyNow, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { buyNowTotalCents, minOfferCents } from "@/lib/declutter/money";
@@ -22,6 +22,7 @@ import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/l
 import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
 import { ReserveSheet, type ReserveStep } from "./DeclutterReserveSheet";
+import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
 import { dollarsInputToCents, invalidateTrades } from "./DeclutterTradeViews";
 
 /**
@@ -144,6 +145,12 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     queryFn: () => fetchMyCard(userId),
     refetchInterval: resume ? CARD_POLL_MS : false,
   });
+  // Deep audit #3/#4: the buyer's own hold or open offer on this item changes what the panel says. The same reads
+  // (and keys) as Buying, so they are usually already in.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
+  const offers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: fetchMyOffers, enabled: item.status === "live" });
+  const myHold = myHoldOn(cart.data, item.id);
+  const myOffer = myOpenOfferOn(offers.data, item.id);
   const minCents = minOfferCents(item.current_price_cents);
   const cents = dollarsInputToCents(amount);
   const offerProblem =
@@ -226,6 +233,11 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
 
   const showCardStep = !!needCard && !resume && !card.isError;
 
+  // Until the cart read is in, say nothing yet: "Someone is buying" would flash before "Reserved for you".
+  if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;
+  if (item.status === "reserved" && myHold) {
+    return <ReservedForYou line={myHold} free={false} />;
+  }
   if (item.status === "reserved") {
     return <DeclutterNotice title="Someone is buying this item.">If they don't check out in time, it goes back up for sale.</DeclutterNotice>;
   }
@@ -235,7 +247,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
   return (
     <section ref={panel} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label="Buy or make an offer">
       {/* Full width and stacked on a phone (a long price never squeezes them); side by side from sm. */}
-      <div ref={buttons} className="grid gap-2 sm:grid-cols-2">
+      <div ref={buttons} className={myOffer ? "grid gap-2" : "grid gap-2 sm:grid-cols-2"}>
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
             and Buy now steps back to an outline. */}
         <Button
@@ -249,18 +261,21 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
         >
           <BuyNowLabel priceCents={item.current_price_cents} />
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="wrap"
-          className="w-full rounded-full"
-          aria-expanded={open}
-          disabled={card.isLoading}
-          onClick={() => (open ? setOpen(false) : tap("offer"))}
-        >
-          Make an offer
-        </Button>
+        {!myOffer && (
+          <Button
+            type="button"
+            variant="outline"
+            size="wrap"
+            className="w-full rounded-full"
+            aria-expanded={open}
+            disabled={card.isLoading || offers.isLoading}
+            onClick={() => (open ? setOpen(false) : tap("offer"))}
+          >
+            Make an offer
+          </Button>
+        )}
       </div>
+      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
       {/* The card step says it itself; once is enough. */}
       {!showCardStep && <p className="text-xs text-muted-foreground">You're only charged when you buy.</p>}
       {card.isError && (
@@ -334,20 +349,32 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           // Flush on the bottom edge while the dock yields (useDockYield), as on Marketplace's item page.
           <div data-declutter-buybar="" data-rail-inset="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
             <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="wrap"
-                className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
-                disabled={card.isLoading}
-                onClick={() => {
-                  tap("offer");
-                  panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-              >
-                {/* Board 4: the short label, so it stays one line at 320. */}
-                Make offer
-              </Button>
+              {myOffer ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="wrap"
+                  className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
+                  onClick={() => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                >
+                  Your offer
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="wrap"
+                  className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
+                  disabled={card.isLoading || offers.isLoading}
+                  onClick={() => {
+                    tap("offer");
+                    panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                >
+                  {/* Board 4: the short label, so it stays one line at 320. */}
+                  Make offer
+                </Button>
+              )}
               <Button
                 type="button"
                 size="wrap"

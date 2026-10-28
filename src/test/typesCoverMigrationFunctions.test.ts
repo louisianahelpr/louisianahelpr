@@ -97,3 +97,40 @@ describe("types.ts declares every public function the migrations create", () => 
     expect(missing, `run npm run db:types (or add them to types.ts) in the same commit:\n${missing.join("\n")}`).toEqual([]);
   });
 });
+
+// The LIVE check (scripts/check-types-fresh.mjs) compares the committed and the freshly
+// generated Functions keys. The generator writes an overloaded function as `name:` plus a
+// `| { Args ... }` union; a key regex that wanted `name: {` dropped every overload from the
+// fresh side, so db-deploy 40636247431 called helpr_set_vehicle "gone from prod" after
+// its second overload shipped. This runs the script's own functionNames on that shape.
+// @mutate scripts/check-types-fresh.mjs | const f = line.match(/^ {6}(\w+):(?: \{\|$)/); | const f = line.match(/^ {6}(\w+): \{/);
+describe("check-types-fresh reads overloaded functions", () => {
+  it("functionNames keeps a `name:` + union entry as well as `name: {`", () => {
+    const src = readFileSync(resolve(ROOT, "scripts/check-types-fresh.mjs"), "utf8");
+    const start = src.indexOf("function functionNames(source) {");
+    const end = src.indexOf("\n}\n", start);
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    const functionNames = new Function(`${src.slice(start, end + 2)}\nreturn functionNames;`)() as (s: string) => Set<string>;
+    // Shape copied from a real generated file (types.ts before ece9849d84: claim_idv_attempt).
+    const generated = [
+      "    Functions: {",
+      "      claim_idv_attempt:",
+      "        | {",
+      "            Args: { p_max_attempts?: number; p_user_id: string }",
+      "            Returns: Json",
+      "          }",
+      "        | {",
+      "            Args: { p_max_attempts?: number; p_skip_fee_gate?: boolean; p_user_id: string }",
+      "            Returns: Json",
+      "          }",
+      "      claim_marketing_content: {",
+      "        Args: { p_limit?: number }",
+      "        Returns: Json",
+      "      }",
+      "    }",
+      "",
+    ].join("\n");
+    expect([...functionNames(generated)].sort()).toEqual(["claim_idv_attempt", "claim_marketing_content"]);
+  });
+});

@@ -283,6 +283,68 @@ export async function adminDecideDeliveryDamage(problemId: string, note: string 
   return rpcData(res, (e) => admin?.rpcErrorMessage("declutter_admin_decide_delivery_damage", e) ?? null) as unknown as Record<string, unknown>;
 }
 
+/**
+ * A2-13 (audit2 SH2-4, 2026-10-28): what the admin needs to decide a problem
+ * without opening the database: the item, what was paid, both people and the
+ * handover photos with their time and place. RLS gives an admin
+ * declutter_problems and profiles but not the order, its items or the
+ * handover, so these come from the admin-only declutter_admin_open_problems
+ * (builder 1). Until it is on prod the card shows what it always showed.
+ */
+export interface AdminProblemDetail {
+  handover: string | null;
+  items_cents: number | null;
+  bundle_discount_cents: number | null;
+  delivery_cents: number | null;
+  premium_cents: number | null;
+  tax_cents: number | null;
+  total_cents: number | null;
+  paid_at: string | null;
+  item_titles: string[];
+  item_photo_paths: string[];
+  buyer_name: string | null;
+  seller_name: string | null;
+  set_out_photo_path: string | null;
+  set_out_at: string | null;
+  picked_up_photo_path: string | null;
+  picked_up_at: string | null;
+  picked_up_distance_m: number | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  /** True when a Helpr carries this order: only then is "Damaged in delivery" a decision (audit2 SH2-4). */
+  helpr_delivery: boolean | null;
+}
+export interface AdminProblem {
+  id: string;
+  order_id: string;
+  reporter_side: "buyer" | "seller" | "helpr";
+  reason: string;
+  note: string;
+  photo_paths: string[] | null;
+  created_at: string;
+  /** null while declutter_admin_open_problems is not on prod. */
+  detail: AdminProblemDetail | null;
+}
+type AdminProblemRow = Omit<AdminProblemDetail, "item_titles" | "item_photo_paths"> & {
+  problem_id: string; order_id: string; reporter_side: AdminProblem["reporter_side"]; reason: string; note: string;
+  problem_photo_paths: string[] | null; reported_at: string; item_titles: string[] | null; item_photo_paths: string[] | null;
+};
+
+export async function fetchOpenProblemsWithDetail(): Promise<AdminProblem[]> {
+  const res = await supabase.rpc("declutter_admin_open_problems" as never);
+  if (res.error && isMissingRpcNamed(res.error, "declutter_admin_open_problems")) {
+    const rows = (await fetchOpenProblemsForAdmin()) as Omit<AdminProblem, "detail">[];
+    return rows.map((r) => ({ ...r, detail: null }));
+  }
+  // No admin copy entry yet: the copy guards accept one only once the function is in a migration
+  // (builder 1). Until then a refusal shows the card's generic error line.
+  const rows = (rpcData(res, () => null) ?? []) as unknown as AdminProblemRow[];
+  return rows.map(({ problem_id, problem_photo_paths, reported_at, order_id, reporter_side, reason, note, item_titles, item_photo_paths, ...d }) => ({
+    id: problem_id, order_id, reporter_side, reason, note, photo_paths: problem_photo_paths, created_at: reported_at,
+    detail: { ...d, item_titles: item_titles ?? [], item_photo_paths: item_photo_paths ?? [] },
+  }));
+}
+
 /** Open problems for the admin card (RLS: admins read every problem). */
 export async function fetchOpenProblemsForAdmin() {
   const rows = unwrap(

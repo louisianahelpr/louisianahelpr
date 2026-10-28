@@ -3,7 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsForAdmin } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { photoPublicUrl } from "@/lib/declutter/api";
+import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { taskPhotoUrl } from "@/lib/helprTasks/photoUrl";
 import { AdminCard } from "../AdminViewShell";
@@ -26,15 +28,7 @@ import { AdminCard } from "../AdminViewShell";
  * pays the Helpr for the trip (B69). A Helpr's "the seller wasn't there"
  * report arrives here too, reported by the Helpr.
  */
-interface ProblemRow {
-  id: string;
-  order_id: string;
-  reporter_side: "buyer" | "seller" | "helpr";
-  reason: string;
-  note: string;
-  photo_paths?: string[] | null;
-  created_at: string;
-}
+type ProblemRow = AdminProblem;
 
 /** The Helpr's photo at the pickup (private helpr-tasks bucket, signed URL; admins may read it). */
 function HelprPhoto({ path }: { path: string }) {
@@ -43,6 +37,88 @@ function HelprPhoto({ path }: { path: string }) {
   if (!url.data) return null;
   return <img src={url.data} alt="The Helpr's photo at the pickup address" className="h-32 w-32 rounded-lg object-cover" loading="lazy" />;
 }
+
+/** A handover photo (private declutter-handover bucket, signed URL; admins may read it). */
+function HandoverPhoto({ path, alt }: { path: string; alt: string }) {
+  const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
+  if (url.isError || url.data === null) return <p className="text-xs" role="alert">This photo couldn't load.</p>;
+  if (!url.data) return <div className="aspect-square w-full rounded-lg bg-muted" aria-hidden />;
+  return <img src={url.data} alt={alt} className="aspect-square w-full rounded-lg object-cover" loading="lazy" />;
+}
+
+const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString() : null);
+
+/**
+ * A2-13 (audit2 SH2-4): the item, the money, both people and the handover
+ * photos, so the admin decides from the card. Absent until
+ * declutter_admin_open_problems is on prod (detail is null then).
+ */
+function ProblemDetail({ d }: { d: AdminProblemDetail }) {
+  const title = d.item_titles[0] ?? "Item";
+  const more = d.item_titles.length - 1;
+  const money = [
+    d.items_cents != null && `items ${formatPrice(d.items_cents)}`,
+    d.bundle_discount_cents ? `bundle discount -${formatPrice(d.bundle_discount_cents)}` : null,
+    d.delivery_cents ? `delivery ${formatPrice(d.delivery_cents)}` : null,
+    d.premium_cents != null && `buyer fee ${formatPrice(d.premium_cents)}`,
+    d.tax_cents ? `tax ${formatPrice(d.tax_cents)}` : null,
+  ].filter(Boolean).join(", ");
+  const photos = [
+    d.set_out_photo_path && { path: d.set_out_photo_path, label: "Seller set it out", at: when(d.set_out_at), extra: null },
+    d.picked_up_photo_path && {
+      path: d.picked_up_photo_path,
+      label: "Buyer picked it up",
+      at: when(d.picked_up_at),
+      extra: d.picked_up_distance_m != null ? `${d.picked_up_distance_m} m from the pickup address` : null,
+    },
+  ].filter(Boolean) as { path: string; label: string; at: string | null; extra: string | null }[];
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-3">
+        {d.item_photo_paths[0] ? (
+          <img src={photoPublicUrl(d.item_photo_paths[0])} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover bg-muted" />
+        ) : null}
+        <div className="min-w-0 space-y-0.5">
+          <p className="font-semibold [overflow-wrap:anywhere]">{title}{more > 0 ? ` and ${more} more` : ""}</p>
+          {d.total_cents != null && (
+            <p className="text-sm">Paid {formatPrice(d.total_cents)}{money ? <span className="text-muted-foreground"> ({money})</span> : null}</p>
+          )}
+          <p className="text-sm text-muted-foreground">
+            Buyer: {d.buyer_name ?? "Deleted account"}. Seller: {d.seller_name ?? "Deleted account"}.
+          </p>
+        </div>
+      </div>
+      {photos.length > 0 ? (
+        <div className="grid max-w-md grid-cols-2 gap-3">
+          {photos.map((ph) => (
+            <figure key={ph.path} className="space-y-1">
+              <HandoverPhoto path={ph.path} alt={ph.label} />
+              <figcaption className="text-xs">
+                <span className="font-medium">{ph.label}</span>
+                {ph.at ? <span className="block text-muted-foreground">{ph.at}</span> : null}
+                {ph.extra ? <span className="block text-muted-foreground">{ph.extra}</span> : null}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">No handover photos.</p>
+      )}
+      {d.confirmed_at ? (
+        <p className="text-xs text-muted-foreground">Handover confirmed {when(d.confirmed_at)}{d.confirmed_by ? ` (${CONFIRMED_BY_WORDS[d.confirmed_by] ?? d.confirmed_by})` : ""}.</p>
+      ) : null}
+    </div>
+  );
+}
+
+const CONFIRMED_BY_WORDS: Record<string, string> = {
+  scan: "the seller scanned the buyer's code",
+  code: "the seller typed the buyer's code",
+  buyer: "the buyer said they got it",
+  porch: "porch photos",
+  auto: "automatically, nobody objected in time",
+  admin: "by an admin",
+};
 
 const REASON_WORDS: Record<string, string> = {
   not_as_described: "Not as described",
@@ -74,13 +150,16 @@ function ProblemItem({ row }: { row: ProblemRow }) {
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const deliveryReason = row.reason === "damaged" || row.reason === "not_received";
+  // "Damaged in delivery" is for an order a Helpr carries; audit2 SH2-4 saw it offered on a seller delivery.
+  // Without the detail (server not updated) it stays offered, as before.
+  const deliveryReason = (row.reason === "damaged" || row.reason === "not_received") && row.detail?.helpr_delivery !== false;
   const id = (k: string) => `dcl-prob-${k}-${row.id}`;
   return (
     <li className="rounded-xl border border-border p-3 space-y-2">
       <p className="font-semibold">{REASON_WORDS[row.reason] ?? row.reason} · reported by the {row.reporter_side === "helpr" ? "Helpr" : row.reporter_side}</p>
       <p className="text-xs text-muted-foreground">Order {row.order_id.slice(0, 8)} · {new Date(row.created_at).toLocaleString()}</p>
-      <p className="text-sm whitespace-pre-line">{row.note}</p>
+      <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
+      {row.detail ? <ProblemDetail d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
       <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={fault}
@@ -123,7 +202,7 @@ export function DeclutterProblemsCard() {
   const on = useFeature("declutter");
   const open = useQuery({
     queryKey: ["declutter", "admin-problems"],
-    queryFn: async () => (await fetchOpenProblemsForAdmin()) as ProblemRow[],
+    queryFn: fetchOpenProblemsWithDetail,
   });
   // Row 62: paid sales (and their problems) carry on with the switch off, so an open problem always shows
   // (lh-authz-rls review 4.1); with the switch off and nothing open, the card stays hidden.

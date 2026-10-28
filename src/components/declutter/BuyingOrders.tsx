@@ -79,7 +79,7 @@ export function buyerNextAction(f: OrderFacts): string | null {
 }
 
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
-export function buyerStanding(f: OrderFacts, when: string | null): string {
+function buyerStanding(f: OrderFacts, when: string | null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
   if (f.done) return "Handed over. It's yours.";
   const at = orderStepAt(f);
@@ -103,7 +103,7 @@ export function buyerStanding(f: OrderFacts, when: string | null): string {
 const whenWords = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The buyer's paid orders in cart order (the same order, and so the same bookings key, as PaidOrdersSection). */
-export function buyerPaidOrders(cart: CartLine[]) {
+function buyerPaidOrders(cart: CartLine[]) {
   const by = new Map<string, { orderId: string; handover: string | null; status: string | null; lines: CartLine[]; taskId: string | null }>();
   for (const l of cart) {
     if (l.my_side !== "buyer" || l.status !== "paid" || !l.order_id) continue;
@@ -120,7 +120,7 @@ function openCheckouts(cart: CartLine[], now: number): number {
 }
 
 /** Cart lines that ended unpaid in the last 30 days (the cart's own window): the checkout ran out, or the seller called it off. */
-export function endedLines(cart: CartLine[]): CartLine[] {
+function endedLines(cart: CartLine[]): CartLine[] {
   return cart.filter((l) => l.my_side === "buyer" && (l.status === "missed" || l.status === "cancelled_by_seller"));
 }
 

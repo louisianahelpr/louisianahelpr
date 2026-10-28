@@ -81,7 +81,7 @@ export function DeclutterProfileSection({ userId }: { userId: string }) {
         {soldCount > 0 && <p className="shrink-0 text-ds-13 font-semibold text-foreground" data-profile-sold="">{soldCount} sold</p>}
       </div>
       {all.length > 0 && (
-        <div className="space-y-4 rounded-2xl liquid-glass p-4">
+        <div className="space-y-4 rounded-2xl liquid-glass p-card">
           <ReviewGroup title="From buyers" reviews={all.filter((r) => r.reviewer_side === "buyer")} />
           <ReviewGroup title="From sellers" reviews={all.filter((r) => r.reviewer_side === "seller")} />
         </div>

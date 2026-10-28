@@ -66,6 +66,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // Admin review card leaves out test sellers' listings (owner rule, 2026-10-28).
   declutter_admin_open_problems: "hides",
   declutter_admin_pending_items: "hides",
+  declutter_seller_sold_count: "hides",
   declutter_apply_seller_fault: "alerts",
   declutter_ask_question: "hides",
   declutter_claim_free: "hides",

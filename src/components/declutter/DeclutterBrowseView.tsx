@@ -20,6 +20,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
@@ -164,6 +165,9 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
     setFilters(NO_FILTERS);
     setMaxMiles(null);
   };
+  // A search or a filter that found nothing is never "Opens soon" (lead walkthrough 2026-10-28, shot 04): it says
+  // nothing matched, with a way to clear it and the Wanted link.
+  const searched = q !== "" || filterCount > 0;
   // ONE gate for the list and its cover photos, so the cards arrive in one paint instead of the list first and its
   // photos in a second wave (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never loading) when
   // there is nothing to show.
@@ -244,9 +248,20 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
           <EmptyState
             variant="bare"
             icon={Sofa}
-            title={others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : "Nothing for sale this close."}
-            body={others.length === 0 ? "Check back soon, or sell something of your own." : q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category, or tap it again to see everything." : filterCount > 0 ? "Try fewer filters." : "Try a bigger distance."}
-            action={<WantedLink />}
+            title={q ? "Nothing matches that search." : filters.freeOnly && filterCount === 1 ? "Nothing free right now." : filters.category && filterCount === 1 ? `Nothing in ${CATEGORY_WORD[filters.category] ?? "this category"} right now.` : filterCount > 0 ? "Nothing matches these filters." : others.length === 0 ? (preview ? "Opens soon" : "Nothing for sale yet.") : "Nothing for sale this close."}
+            // The category line no longer says "tap it again": the category chips left Browse for the filter sheet
+            // (owner 2026-10-21); the Clear button below is the way back to everything.
+            body={q ? "Try another word." : filters.freeOnly && filterCount === 1 ? "Check back soon, or give something away yourself." : filters.category && filterCount === 1 ? "Try another category." : filterCount > 0 ? "Try fewer filters." : others.length === 0 ? "Check back soon, or sell something of your own." : "Try a bigger distance."}
+            action={
+              <div className="flex flex-col items-center gap-2">
+                {searched && (
+                  <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>
+                    {filterCount === 0 ? "Clear search" : "Clear filters"}
+                  </Button>
+                )}
+                <WantedLink />
+              </div>
+            }
           />
         ) : (
           <ul className={desktop && !mapVisible ? DECLUTTER_GRID_FULL : DECLUTTER_GRID}>

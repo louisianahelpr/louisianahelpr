@@ -23,7 +23,9 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []), |         ...[{ value: "wanted" as const, label: "Wanted" }],
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |             footnote={<WantedLink />} |             footnote={null}
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |   if (!on) return null; |   if (on === undefined) return null;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |             action={<WantedLink />} |             action={null}
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 <WantedLink />\n              </div> |                 {null}\n              </div>
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |             title={q ? "Nothing matches that search." : |             title={others.length === 0 ? "Opens soon" : q ? "Nothing matches that search." :
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx |                 {searched && ( |                 {false && (
  * @mutate src/components/declutter/DeclutterTabParts.tsx |   const lines = (cart.data ?? []).filter((l) => l.my_side === side); |   const lines = cart.data ?? [];
  * @mutate src/lib/declutter/tabs.ts |   if (view === "mine") return "selling"; |   if (view === "mine") return "buying";
  * @mutate src/lib/declutter/tabs.ts |   return sellerWaiting > 0 && buyerWaiting === 0 ? "selling" : "buying"; |   return "buying";
@@ -262,6 +264,20 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
     expect(screen.queryByText(/Wanted/)).toBeNull();
+  });
+
+  it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Clear search and the Wanted link", async () => {
+    // Nothing listed at all (an early-preview section) AND a search in the address: the search's answer wins.
+    at("/declutter?q=sofa");
+    expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
+    expect(screen.queryByText("Opens soon")).toBeNull();
+    expect(screen.queryByText("Nothing for sale yet.")).toBeNull();
+    expect(screen.getByTestId("declutter-wanted-link")).toBeInTheDocument();
+    const clear = screen.getByTestId("declutter-clear-search");
+    expect(clear).toHaveTextContent("Clear search");
+    fireEvent.click(clear);
+    expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
+    expect(screen.queryByTestId("declutter-clear-search")).toBeNull();
   });
 
   it("owner 10-28: Browse's \"Can't find it? Post what you're looking for\" opens the Wanted tab, under the list and in the no-results state", async () => {

@@ -49,6 +49,8 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     invalid_vehicle: DC.invalid_vehicle,
     not_authenticated: DC.not_authenticated,
     vehicle_photo_required: DC.vehicle_photo_required,
+    // Q2452 (20261028012406): a held delivery must still fit the vehicle saved.
+    vehicle_in_use: "You have a delivery that needs this vehicle. Finish it or back out of it first.",
   },
   helpr_task_accept: {
     too_many_taken: DC.too_many_taken,
@@ -77,6 +79,8 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     under_18: DC.under_18,
     unknown_task_source: DC.unknown_task_source,
     vehicle_too_small: DC.vehicle_too_small,
+    // Q2452 (20261028012406): every delivery needs a car.
+    vehicle_needs_car: "Add your car under Your vehicle to take deliveries.",
   },
   helpr_task_customer_confirm: {
     account_restricted: DC.account_restricted,

@@ -36,6 +36,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   acceptTask,
   confirmReceived,
@@ -189,19 +190,24 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
   );
 }
 
-/** Row 41: "I have a truck" (+ "I can bring a second person") with a vehicle photo. */
+/**
+ * Row 41: "I have a car" (every delivery needs one, owner 2026-10-28, Q2452), "I have a truck"
+ * (+ "I can bring a second person") with a vehicle photo. A truck is a car.
+ */
 function VehicleForm({ userId }: { userId: string }) {
   const qc = useQueryClient();
   const vehicle = useQuery({ queryKey: ["helpr-tasks", "vehicle", userId], queryFn: () => fetchMyVehicle(userId) });
+  const [car, setCar] = useState<boolean | null>(null);
   const [truck, setTruck] = useState<boolean | null>(null);
   const [second, setSecond] = useState<boolean | null>(null);
   const [photo, setPhoto] = useState<File | null>(null);
   const hasTruck = truck ?? vehicle.data?.has_truck ?? false;
+  const hasCar = hasTruck || (car ?? vehicle.data?.has_car ?? false);
   const twoPeople = hasTruck && (second ?? vehicle.data?.second_person ?? false);
   const save = useMutation({
     mutationFn: async () => {
       const path = hasTruck ? (photo ? await uploadVehiclePhoto(userId, photo) : vehicle.data?.photo_path ?? null) : null;
-      await saveVehicle(hasTruck, twoPeople, path);
+      await saveVehicle(hasCar, hasTruck, twoPeople, path);
     },
     onSuccess: () => {
       toast.success("Saved.");
@@ -217,17 +223,22 @@ function VehicleForm({ userId }: { userId: string }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-4 space-y-2" aria-label="Your vehicle">
       <h2 className="text-base font-semibold">Your vehicle</h2>
-      <p className="text-sm text-muted-foreground">Small items fit in any car. Large and extra large items need a truck.</p>
-      <label className="flex items-center gap-2 text-sm min-h-11">
-        <input type="checkbox" checked={hasTruck} onChange={(e) => setTruck(e.target.checked)} style={{ accentColor: "hsl(var(--primary))" }} />
-        I have a truck
-      </label>
+      <p className="text-sm text-muted-foreground">You need a car to take deliveries. Large and extra large items need a truck.</p>
+      {/* The shared Checkbox (lead 2026-10-28: the raw box rendered as an empty square); the label is the 44px tap target. */}
+      <div className="flex items-center gap-3 min-h-11">
+        <Checkbox id={`helpr-car-${userId}`} checked={hasCar} disabled={hasTruck} onCheckedChange={(v) => setCar(v === true)} />
+        <label htmlFor={`helpr-car-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a car</label>
+      </div>
+      <div className="flex items-center gap-3 min-h-11">
+        <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} onCheckedChange={(v) => setTruck(v === true)} />
+        <label htmlFor={`helpr-truck-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I have a truck</label>
+      </div>
       {hasTruck && (
         <>
-          <label className="flex items-center gap-2 text-sm min-h-11">
-            <input type="checkbox" checked={twoPeople} onChange={(e) => setSecond(e.target.checked)} style={{ accentColor: "hsl(var(--primary))" }} />
-            I can bring a second person (for extra large items)
-          </label>
+          <div className="flex items-center gap-3 min-h-11">
+            <Checkbox id={`helpr-second-${userId}`} checked={twoPeople} onCheckedChange={(v) => setSecond(v === true)} />
+            <label htmlFor={`helpr-second-${userId}`} className="flex min-h-11 flex-1 items-center text-sm">I can bring a second person (for extra large items)</label>
+          </div>
           <label htmlFor={photoId} className="block text-xs font-medium">
             {vehicle.data?.photo_path ? "Truck photo saved. Add a new one to replace it." : "Photo of your truck"}
           </label>
@@ -473,6 +484,9 @@ export function DeliverView() {
   const userId = user?.id ?? "";
   const [where, setWhere] = useState<{ lat: number; lng: number } | null>(null);
   const mine = useQuery({ queryKey: ["helpr-tasks", "mine"], queryFn: fetchMyTasks, enabled: !!userId });
+  // Q2452: no car, no deliveries (the server lists, offers and lets take none); the same query VehicleForm reads.
+  const vehicle = useQuery({ queryKey: ["helpr-tasks", "vehicle", userId], queryFn: () => fetchMyVehicle(userId), enabled: !!userId });
+  const noCar = vehicle.isSuccess && !vehicle.data?.has_car;
   const open = useQuery({ queryKey: ["helpr-tasks", "open", where?.lat ?? null, where?.lng ?? null], queryFn: () => fetchOpenTasks(where), enabled: !!userId });
   const locate = useMutation({
     mutationFn: currentPosition,
@@ -526,7 +540,9 @@ export function DeliverView() {
             {where ? "Update my location" : "Nearest first"}
           </button>
         </div>
-        {open.isError ? (
+        {noCar ? (
+          <p className="text-sm text-muted-foreground" role="status">Add your car under Your vehicle to take deliveries.</p>
+        ) : open.isError ? (
           <ErrorState variant="inline" title="We couldn't load deliveries." body={declutterErrorMessage(open.error)} onRetry={() => void open.refetch()} />
         ) : open.isLoading ? (
           <p className="text-sm text-muted-foreground" role="status">Loading deliveries…</p>

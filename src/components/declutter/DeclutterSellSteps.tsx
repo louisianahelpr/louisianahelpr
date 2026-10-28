@@ -43,19 +43,30 @@ export function StepperButton({ label, disabled, onClick, children }: { label: s
   );
 }
 
-export function ReviewRow({ title, body, onEdit }: { title: string; body: string; onEdit: () => void }) {
+export function ReviewRow({ title, body, onEdit }: { title: string; body: string; onEdit?: () => void }) {
   return (
-    <li className="flex items-center gap-3 px-4 py-3.5">
+    <li className="flex items-center gap-3 px-4 py-3.5" data-review-row={title}>
       <span className="min-w-0 flex-1">
         <span className="block text-ds-15 font-semibold text-foreground">{title}</span>
         <span className="block text-ds-13 text-muted-foreground">{body}</span>
       </span>
-      <button type="button" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`} className="min-h-11 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
-        Edit
-      </button>
+      {onEdit && (
+        <button type="button" onClick={onEdit} aria-label={`Edit ${title.toLowerCase()}`} className="min-h-11 px-2 text-ds-14 font-bold text-[hsl(var(--sage-ink))]">
+          Edit
+        </button>
+      )}
     </li>
   );
 }
+
+/**
+ * How long a listing stays up, as the code runs today (owner 2026-10-28, item 6). Measured 2026-10-28:
+ * offers-mode listings have no end time (ends_at NULL, spec B13), relist_count is never written (row 47's
+ * "relist up to 3 times" is an auction rule kept for when bidding opens), and no prod cron ends a live
+ * listing by age (cron.job declutter-*: deadlines, handovers, money, pickup reminders, price drops, refund
+ * requests, seller hidden, wanted, haul-away). A set length is an owner decision, never invented here.
+ */
+export const LISTING_LIFETIME = "Until it sells or you take it down. There's no end date.";
 
 /** The real nightly run (priceDrop.ts PRICE_DROP_RUN_UTC) in Louisiana time: "6:07 PM" (CDT) or "5:07 PM" (CST). */
 export function dropRunTime(now: Date = new Date()): string {

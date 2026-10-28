@@ -419,6 +419,22 @@ describe("Declutter controls are the shared ones", () => {
     await waitFor(() => expect(api.publishItem).toHaveBeenCalledWith("i1"));
   });
 
+  // Owner 2026-10-28: "it also never said how long it will stay open". The review step says what the code does
+  // (no end date: no rule ends a listing by age), never an invented length.
+  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} /> |
+  // @mutate src/components/declutter/DeclutterSellSteps.tsx | export const LISTING_LIFETIME = "Until it sells or you take it down. There's no end date."; | export const LISTING_LIFETIME = "Stays up for 30 days.";
+  it("the review step says how long the listing stays up, as the server runs it", async () => {
+    state.item = { ...ITEM, status: "draft" };
+    state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
+    at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
+    await toStep5();
+    const row = document.querySelector('[data-review-row="How long it stays up"]');
+    expect(row).not.toBeNull();
+    expect(row!.textContent).toContain("Until it sells or you take it down. There's no end date.");
+    // Not editable: the seller has no length to choose today.
+    expect(row!.querySelector("button")).toBeNull();
+  });
+
   it("a long unbroken question, answer or description can wrap inside its card", async () => {
     const word = "Supercalifragilistic".repeat(6);
     state.item = { ...ITEM, status: "live", description: word };

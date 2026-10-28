@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-28T05:49:18.527Z",
-  "guards": 2470,
-  "registered": 2460,
+  "generated": "2026-10-28T22:11:38.860Z",
+  "guards": 2529,
+  "registered": 2519,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
@@ -16,7 +16,10 @@
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/admin/adminTestRows.test.ts"
+    "src/components/admin/adminTestRows.test.ts",
+    "src/test/declutterOneSectionHeading.test.ts",
+    "src/test/declutterPriceDropsOptIn.test.ts",
+    "src/test/disabledPrimaryLooksDisabled.test.ts"
   ],
   "classD_selfReferential": [
     {

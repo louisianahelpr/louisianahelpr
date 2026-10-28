@@ -281,7 +281,12 @@ describe("Declutter slice 3 screens", () => {
     state.card = { brand: "visa", last4: "4242" };
     expect(await screen.findByText("Reserve it for 48 hours", {}, { timeout: 4_000 })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
-    await waitFor(() => expect(screen.queryByText("Reserve it for 48 hours")).toBeNull());
+    // The sheet that WAS open goes, and the Buy now it covered is usable again (a positive check in the same wait,
+    // so it is never satisfied by a first paint: waitForEmptyIsVacuous).
+    await waitFor(() => {
+      expect(screen.queryByText("Reserve it for 48 hours")).toBeNull();
+      expect(screen.getAllByRole("button", { name: /^Buy now/ })[0]).toBeEnabled();
+    });
     expect(state.bought).toBe(0);
     expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByText("Checking for your card…")).toBeNull();

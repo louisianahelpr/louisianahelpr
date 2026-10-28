@@ -1,12 +1,15 @@
 import { useEffect, useRef } from "react";
+import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 
 /**
  * The deep links whose pre-fill already picks the job's category. They open Post a job at Details (4 of 7), never
  * at the category groups (2 of 7) with nothing chosen on screen (audit 3, A3-3, 2026-10-28: "Put it together"
  * opened "What do you need done?" while the preview already read "Assembly · Put together Oak side table").
  * `declutterOrder`: Declutter "Add a Helpr" (useJobFormEffects' declutterSetupPrefill sets the category).
+ * `sellForMe`: Declutter "Sell it for me" -> Hire a local Helpr (deep audit #34: it opened the same empty "2 of 7";
+ * buildSellForMePrefill sets Declutter help).
  */
-export const PREFILL_OPENS_DETAILS = ["declutterOrder"] as const;
+export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM] as const;
 
 /** Is this Post a job link one whose pre-fill picks the category (usePostJobForm hands FormStep the answer)? */
 export function prefillOpensDetails(searchParams: URLSearchParams): boolean {

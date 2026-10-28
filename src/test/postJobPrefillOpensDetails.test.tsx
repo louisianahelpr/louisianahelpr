@@ -9,7 +9,8 @@
  * @mutate src/pages/post-job/usePostJobForm.ts |     prefillOpensDetails: prefillOpensDetails(searchParams), |     prefillOpensDetails: false,
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts |     if (done.current \|\| !deepLink \|\| !category \|\| blocked) return; |     if (!deepLink \|\| !category \|\| blocked) return;
  * @mutate src/pages/post-job/usePrefillOpensDetails.ts |     if (done.current \|\| !deepLink \|\| !category \|\| blocked) return; |     if (done.current \|\| !deepLink \|\| !category) return;
- * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder"] as const; | export const PREFILL_OPENS_DETAILS = ["rebook"] as const;
+ * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM] as const; | export const PREFILL_OPENS_DETAILS = ["rebook", SELL_FOR_ME_PARAM] as const;
+ * @mutate src/pages/post-job/usePrefillOpensDetails.ts | export const PREFILL_OPENS_DETAILS = ["declutterOrder", SELL_FOR_ME_PARAM] as const; | export const PREFILL_OPENS_DETAILS = ["declutterOrder"] as const;
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -28,9 +29,11 @@ const link = (q: string) => prefillOpensDetails(new URLSearchParams(q));
 const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 
 describe("a pre-filled category opens Post a job at Details (A3-3)", () => {
-  it("the links whose pre-fill picks the category: Add a Helpr; never an ordinary post, an offer or a rebook", () => {
+  it("the links whose pre-fill picks the category: Add a Helpr, Sell it for me; never an ordinary post, an offer or a rebook", () => {
     expect(PREFILL_OPENS_DETAILS.length).toBeGreaterThan(0);
     expect(link("declutterOrder=o1&help=assemble")).toBe(true);
+    // Deep audit #34 (shot 108): "Sell it for me" -> Hire a local Helpr opened the same empty "2 of 7".
+    expect(link("sellForMe=1")).toBe(true);
     for (const q of ["", "offerTo=h1", "rebook=j1", "start=ai"]) expect(link(q), q).toBe(false);
   });
 

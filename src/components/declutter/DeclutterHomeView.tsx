@@ -31,7 +31,12 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { DeclutterNotice, STATUS_HELP, STATUS_LABEL } from "./declutterUi";
+import { DeclutterNotice, STATUS_LABEL } from "./declutterUi";
+import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
+import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { Boxes, ChevronRight } from "lucide-react";
+import { PickupTimesCard } from "./DeclutterPickupTimes";
+import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { dropOutlook } from "@/lib/declutter/browseFilters";
@@ -91,6 +96,32 @@ function ListingsSkeleton() {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * A listing row's ONE status line (owner 2026-10-28: "Not listed yet" + "Finish the listing to put it up for sale."
+ * read as two statuses). Where the old help line said what to do, its few words ride on the same line.
+ */
+const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
+  draft: "Not listed yet. Finish it to sell it.",
+  pending_review: "Waiting for a review. We'll send you a notice.",
+  paused: "Paused. Hidden from buyers.",
+  rejected: "Not approved. Open it to see why.",
+};
+
+function listingStatusLine(item: DeclutterItem): string {
+  if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
+  return SELLER_STATUS_LINE[item.status] ?? STATUS_LABEL[item.status];
+}
+
+/** The Browse card's picture, small: the cover photo, or the category icon on its tint (never a blank box). */
+function ListingThumb({ path, category }: { path: string | undefined; category: string }) {
+  return (
+    <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl bg-photo-empty" data-listing-thumb="">
+      <PhotoPlaceholder icon={categoryIcon(category)} seed={category} className="absolute inset-0 h-full w-full" iconClassName="h-6 w-6" />
+      {path && <img src={photoPublicUrl(path)} alt="" loading="lazy" className="relative h-full w-full object-cover" />}
+    </span>
   );
 }
 
@@ -199,70 +230,69 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     {haulOn && haul.isError && (
       <ErrorState variant="inline" title="We couldn't check your haul-aways." body={declutterErrorMessage(haul.error)} onRetry={() => void haul.refetch()} />
     )}
-      {/* Board 26: one card of rows; each row = thumb, title, ONE status line, the price in money ink. */}
+      {/* Board 26: one card of rows; each row = thumb (the Browse card's photo or category icon), title, ONE status
+          line, the price in money ink; the actions sit at the row's right end from sm up (owner 2026-10-28). */}
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card" data-selling-list="">
         {list.map((item) => {
           const drop = item.status === "live" && dropOutlook(item, myDrops.data?.get(item.id)).tonight;
           const thumb = myCover.get(item.id);
           return (
-          <li key={item.id} className="space-y-2 px-4 py-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-                {thumb && <img src={photoPublicUrl(thumb)} alt="" loading="lazy" className="h-full w-full object-cover" />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-ds-15 font-semibold">{item.title}</p>
-                {drop ? (
-                  <p className="text-ds-13 font-medium text-[hsl(var(--sienna-ink))]">May drop tonight</p>
-                ) : (
-                  <p className="text-ds-13 text-muted-foreground" data-status={item.status}>
-                    {item.status === "live" && item.porch_ok ? "For sale · Porch pickup" : STATUS_LABEL[item.status]}
+          <li key={item.id} className="space-y-2 px-4 py-3" data-listing-row="">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <ListingThumb path={thumb} category={item.category} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-ds-15 font-semibold" title={item.title}>{item.title}</p>
+                  <p
+                    data-listing-status={item.status}
+                    className={`line-clamp-2 text-ds-13 ${drop ? "font-medium text-[hsl(var(--sienna-ink))]" : "text-muted-foreground"}`}
+                  >
+                    {drop ? "May drop tonight" : listingStatusLine(item)}
                   </p>
+                </div>
+                <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
+                {item.status === "draft" ? (
+                  <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
+                    Finish listing
+                  </Button>
+                ) : (
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/declutter/item/${item.id}`}>View</Link>
+                  </Button>
+                )}
+                {(item.status === "live" || item.status === "paused") && (
+                  <Button type="button" variant="outline" size="sm" onClick={() => setManagingId(item.id)}>
+                    Manage
+                  </Button>
+                )}
+                {(item.status === "draft" || item.status === "pending_review") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={takeDown.isPending}
+                    onClick={() => {
+                      if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
+                        takeDown.mutate(item.id);
+                      }
+                    }}
+                  >
+                    {item.status === "draft" ? "Delete" : "Take down"}
+                  </Button>
+                )}
+                {haulOn && (
+                  <HaulAwayItemActions
+                    row={haulById.get(item.id)}
+                    onFinishBooking={(row) => finishBooking.mutate(row)}
+                    onPutBack={(row) => putBack.mutate(row)}
+                    pending={putBack.isPending || finishBooking.isPending}
+                  />
                 )}
               </div>
-              <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
             </div>
-            {STATUS_HELP[item.status] && <p className="text-xs text-muted-foreground">{STATUS_HELP[item.status]}</p>}
             {haulOn && <HaulAwayItemLine row={haulById.get(item.id)} itemStatus={item.status} />}
-            <div className="flex flex-wrap gap-2">
-              {item.status === "draft" ? (
-                <Button type="button" size="sm" onClick={() => navigate(`/declutter/sell?item=${item.id}`)}>
-                  Finish listing
-                </Button>
-              ) : (
-                <Button asChild variant="outline" size="sm">
-                  <Link to={`/declutter/item/${item.id}`}>View</Link>
-                </Button>
-              )}
-              {(item.status === "live" || item.status === "paused") && (
-                <Button type="button" variant="outline" size="sm" onClick={() => setManagingId(item.id)}>
-                  Manage
-                </Button>
-              )}
-              {(item.status === "draft" || item.status === "pending_review") && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={takeDown.isPending}
-                  onClick={() => {
-                    if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
-                      takeDown.mutate(item.id);
-                    }
-                  }}
-                >
-                  {item.status === "draft" ? "Delete" : "Take down"}
-                </Button>
-              )}
-              {haulOn && (
-                <HaulAwayItemActions
-                  row={haulById.get(item.id)}
-                  onFinishBooking={(row) => finishBooking.mutate(row)}
-                  onPutBack={(row) => putBack.mutate(row)}
-                  pending={putBack.isPending || finishBooking.isPending}
-                />
-              )}
-            </div>
           </li>
           );
         })}
@@ -296,33 +326,50 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
         todo={todo}
         userId={userId}
         listings={
-          <div className="space-y-3">
+          <div className="space-y-6">
             <MyListingsView userId={userId} haulOn={haulOn} />
-            {/* Board 26: the extra ways to sell, as chips under the list (each only while open to the member). */}
-            <div className="flex flex-wrap gap-2" data-sell-more="">
-              <SellItForMeEntry compact />
-              <MovingOutEntry on={movingOutOn} />
-            </div>
+            {/* Owner 2026-10-28: the extra ways to sell as proper rows in one card, not loose grey pills. */}
+            <section className="space-y-2" aria-label="More ways to sell" data-sell-more="">
+              <SectionHeading title="More ways to sell" />
+              <div className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+                <SellItForMeEntry grouped />
+                <MovingOutEntry on={movingOutOn} />
+              </div>
+            </section>
           </div>
         }
       />
-      <SellerDeliveryCard />
-      <BundleDiscountCard />
+      {/* Owner 2026-10-28: the seller's settings in ONE area under the lists, never an accordion among them.
+          Each setting keeps its own row (and its own save); the group draws the one card around them, so a row drops
+          its own card look (the cards' shadow and transparent edge are !important in index.css T2). */}
+      <section className="space-y-2" aria-label="Selling settings" data-selling-settings="">
+        <SectionHeading title="Selling settings" />
+        <div className="overflow-hidden rounded-[20px] border border-border bg-card [&>section]:!rounded-none [&>section]:!shadow-none [&>section+section]:!border-t [&>section+section]:!border-t-[hsl(var(--border))]">
+          <SellerDeliveryCard />
+          <PickupTimesCard userId={userId} />
+          <BundleDiscountCard />
+        </div>
+      </section>
       <DeliverEntry />
     </div>
   );
 }
 
-/** Moving-out mode's way in (docs/specs/declutter-moving-out.md), only while its switch is on. */
+/** Moving-out mode's way in (docs/specs/declutter-moving-out.md), only while its switch is on: a row in "More ways to sell". */
 function MovingOutEntry({ on }: { on: boolean }) {
   if (!on) return null;
   return (
     <Link
       to="/declutter/move"
       aria-label="Moving out sale: photograph each room and list everything at once"
-      className="flex min-h-10 items-center rounded-full bg-[hsl(var(--sand))] px-4 text-ds-13 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="flex min-h-14 items-center gap-3 px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
-      Moving out sale
+      <Boxes className="h-5 w-5 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold">Moving out sale</span>
+        <span className="block text-xs text-muted-foreground">Photograph each room and list everything at once</span>
+      </span>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
     </Link>
   );
 }
@@ -427,10 +474,10 @@ export default function DeclutterHome() {
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
-    // Browse (above) draws its own "Search items", so Explore's global search shows only on these tabs. Not on Buying
-    // (lead walkthrough 2026-10-28, shot 05): a buyer's cart, offers and purchases are not what "Search all sections"
-    // finds, so the row was a grey bar between the tabs and the buyer's own lists.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying"} tabs={tabsFor()}>
+    // Browse (above) draws its own "Search items", so Explore's global search shows only on Deliver and Wanted. Not on
+    // Buying (lead walkthrough 2026-10-28, shot 05) or Selling (owner 2026-10-28): a member's own cart, offers,
+    // listings and sales are not what "Search all sections" finds.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()}>
       <StrikeCount userId={user.id} />
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />

@@ -47,7 +47,7 @@ import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors
 import { SellerDeliveryPicker, sellerDeliveryPriceWords, sellerDeliveryState } from "./SellerDeliveryChoice";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { DeclutterNotice } from "./declutterUi";
-import { PaidOrders, SectionHeading } from "./DeclutterTabParts";
+import { NoSellerOffers, PaidOrders, SectionHeading } from "./DeclutterTabParts";
 import { FreeCheckoutForSeller } from "./DeclutterFreeClaim";
 import { MeetupSpotPicker } from "./DeclutterMeetup";
 import { HANDOVER_TITLE, HANDOVER_WORDS, PORCH_OR_SAFE_PLACE } from "./handoverCopy";
@@ -245,9 +245,7 @@ export function OffersSection({ side }: { side: "buyer" | "seller" }) {
     <section className="space-y-2" aria-label={title}>
       <SectionHeading title={title} todo={toAnswer} todoWords="to answer" />
       {mine.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          {seller ? "No offers yet. Buyers can offer at least half your price; you have 48 hours to answer each one." : "You haven't made any offers."}
-        </p>
+        seller ? <NoSellerOffers /> : <p className="text-sm text-muted-foreground">You haven&apos;t made any offers.</p>
       ) : (
         <ul className="space-y-3">{mine.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
       )}

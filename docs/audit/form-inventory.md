@@ -152,7 +152,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/declutter/DeclutterPickupTimes.tsx` | input×2, select×1, date/calendar×2 | time |  |  |
+| `src/components/declutter/DeclutterPickupTimes.tsx` | select×1 |  |  | Hours |
 
 ## /forgot-password
 

@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 984,
-    "files": 255,
-    "rendering": 835,
+    "calls": 979,
+    "files": 253,
+    "rendering": 830,
     "suppressedByPolicy": 149,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 68,
-      "toast.error": 698,
+      "toast": 66,
+      "toast.error": 695,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 445,
+      "literal": 444,
       "template": 103,
-      "dynamic": 486,
+      "dynamic": 482,
       "jsx": 0
     }
   },
@@ -3779,7 +3779,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 80,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3789,7 +3789,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 85,
+      "line": 84,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3854,51 +3854,6 @@
           {
             "form": "dynamic",
             "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/settings/MeetupSpotsCard.tsx",
-      "line": 37,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "d.id ? \"Spot saved.\" : \"Spot added.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Spot saved."
-          },
-          {
-            "form": "literal",
-            "text": "Spot added."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/admin/settings/MeetupSpotsCard.tsx",
-      "line": 41,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "meetupErrorMessage(err)",
-        "from": "src/lib/declutter/meetupErrors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "MEETUP_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
           }
         ]
       },
@@ -4290,7 +4245,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 302,
+      "line": 299,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4310,7 +4265,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 306,
+      "line": 303,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4320,7 +4275,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 360,
+      "line": 357,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4330,7 +4285,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 364,
+      "line": 361,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4340,7 +4295,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 369,
+      "line": 366,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4350,7 +4305,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 374,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4360,7 +4315,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 435,
+      "line": 431,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4370,7 +4325,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 436,
+      "line": 432,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4380,7 +4335,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 460,
+      "line": 456,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4400,7 +4355,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 461,
+      "line": 457,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4410,7 +4365,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 462,
+      "line": 458,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4420,7 +4375,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 465,
+      "line": 461,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4430,7 +4385,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 516,
+      "line": 512,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4440,7 +4395,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 517,
+      "line": 513,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4450,7 +4405,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 553,
+      "line": 549,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4460,7 +4415,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHandoverViews.tsx",
-      "line": 558,
+      "line": 554,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4565,66 +4520,6 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 31,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "meetupErrorMessage(err)",
-        "from": "src/lib/declutter/meetupErrors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "MEETUP_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 70,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Checked in. We told the other person you're here."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterMeetup.tsx",
-      "line": 73,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "meetupErrorMessage(err)",
-        "from": "src/lib/declutter/meetupErrors.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "e.userMessage"
-          },
-          {
-            "form": "dynamic",
-            "text": "MEETUP_ERROR_COPY[message]"
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
-          }
-        ]
       },
       "renders": true
     },
@@ -5236,7 +5131,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 114,
+      "line": 111,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5286,7 +5181,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 122,
+      "line": 119,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5296,7 +5191,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 265,
+      "line": 262,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -5306,7 +5201,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 268,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5316,7 +5211,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 349,
+      "line": 338,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5326,7 +5221,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 477,
+      "line": 463,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5336,7 +5231,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 486,
+      "line": 472,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5361,36 +5256,11 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 493,
+      "line": 479,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err)",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "meetupErrorMessage(err)",
-            "from": "src/lib/declutter/meetupErrors.ts",
-            "branches": [
-              {
-                "form": "dynamic",
-                "text": "e.userMessage"
-              },
-              {
-                "form": "dynamic",
-                "text": "MEETUP_ERROR_COPY[message]"
-              },
-              {
-                "form": "dynamic",
-                "text": "declutterErrorMessage(err)"
-              }
-            ]
-          },
-          {
-            "form": "dynamic",
-            "text": "declutterErrorMessage(err)"
-          }
-        ]
+        "text": "declutterErrorMessage(err)"
       },
       "renders": true
     },

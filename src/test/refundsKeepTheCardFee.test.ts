@@ -498,7 +498,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // and records NO refund; every card order runs the unchanged body below it. declutter_checkout_free records none.
       declutter_close_paid_order: "20261027170717_declutter_free_section.sql c507c481a3209303",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
-      declutter_checkout_free: "20261028204431_declutter_paid_notice_next_step.sql c0d31007c120e50c",
+      // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
+      declutter_checkout_free: "20261028223036_declutter_notice_links_open_the_right_tab.sql 253226d13b878c2f",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale

@@ -11,12 +11,12 @@
  * It refuses to run (exit 2) when supabase/migrations holds a file on neither
  * origin/main nor the Declutter stack (shown with a planted file, 2026-10-17).
  *
- * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |   PERFORM public.require_feature('declutter_haul_away');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT COALESCE | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT COALESCE
- * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |      WHERE i.id = v_id AND i.seller_id = v_uid FOR UPDATE; |      WHERE i.id = v_id AND i.seller_id = v_uid;
+ * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   PERFORM public.require_feature('declutter_haul_away');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT COALESCE | IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT COALESCE
+ * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |      WHERE i.id = v_id AND i.seller_id = v_uid FOR UPDATE; |      WHERE i.id = v_id AND i.seller_id = v_uid;
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |   RETURN 'booked';\nEND; |   RETURN 'none';\nEND;
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |                  THEN CASE WHEN j.stripe_session_id IS NOT NULL AND COALESCE(j.payment_status, 'unpaid') <> 'abandoned' THEN 'paying' |                  THEN CASE WHEN false THEN 'paying'
- * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |     RETURN cardinality(v_ids);\n  END IF;\n\n  -- The caller's own OPEN |     NULL;\n  END IF;\n\n  -- The caller's own OPEN
- * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |            WHERE h.item_id = ANY (v_ids) AND h.job_id = p_job_id) = cardinality(v_ids) |            WHERE h.item_id = ANY (v_ids)) = cardinality(v_ids)
+ * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |     RETURN cardinality(v_ids);\n  END IF;\n\n  -- The caller's own OPEN |     NULL;\n  END IF;\n\n  -- The caller's own OPEN
+ * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |            WHERE h.item_id = ANY (v_ids) AND h.job_id = p_job_id) = cardinality(v_ids) |            WHERE h.item_id = ANY (v_ids)) = cardinality(v_ids)
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |                 WHEN v_pay = 'failed' THEN 'job_stuck'\n |
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |                            WHEN j.payment_status = 'failed' THEN 'job_stuck'\n |
  * @mutate src/test/pglite/declutterHaulAway.pglite.mjs | if (foreign.length > 0) { | if (false) {
@@ -28,7 +28,7 @@
  * @mutate src/lib/declutter/errors.ts |   // Haul-away (20261017070827): its words |   haul_away_too_many: "One haul-away can take up to 10 items.",\n  // Haul-away (20261017070827): its words
  * @mutate docs/OPEN.md |  CONDITION FOR GOING LIVE: the declutter_haul_away switch stays testers-only until the put-back-on-sale sweep below is live on prod |
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_link_haul_away(uuid[], uuid) FROM PUBLIC;
- * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |       IF COALESCE(v_item.live_at, v_item.submitted_at, v_item.created_at) + interval '14 days' > now() THEN | IF false THEN
+ * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |       IF COALESCE(v_item.live_at, v_item.submitted_at, v_item.created_at) + interval '14 days' > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql | VALUES ('declutter_haul_away', 'testers', | VALUES ('declutter_haul_away', 'everyone',
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |   WHEN (NEW.payment_status = 'refunded' AND NEW.status IN ('completed', 'disputed', 'cancelled') |   WHEN (NEW.payment_status = 'chargeback' AND NEW.status IN ('completed', 'disputed', 'cancelled')
  * @mutate supabase/migrations/20261017070827_declutter_haul_away.sql |   EXCEPTION WHEN OTHERS THEN\n    -- The refund must land |   EXCEPTION WHEN division_by_zero THEN\n    -- The refund must land

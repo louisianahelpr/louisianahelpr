@@ -11,9 +11,11 @@ import { useMemo, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchItemPickupWindows, fetchOrderPickupWindows } from "@/lib/declutter/handover";
+import { fetchTaskPickupWindows } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { pickupDays, windowsSummary } from "@/lib/declutter/pickupSlots";
 import { Chip } from "./DeclutterFilterPanel";
+import { DateTimeField } from "@/components/DateTimeField";
 
 export function ItemPickupTimes({ itemId }: { itemId: string }) {
   const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });
@@ -26,14 +28,19 @@ export function ItemPickupTimes({ itemId }: { itemId: string }) {
 /**
  * Day chips, then that day's time chips. `onPick` gets the slot's ISO start (null while none is chosen).
  * `fallback` renders when the reads are not deployed yet (the old free picker).
+ * An order (the buyer booking) or an OPEN delivery task (the Helpr accepting it: helpr_task_pickup_windows,
+ * 20261028232930, the same chips and the same rule).
  */
-export function PickupSlotPicker({ orderId, value, onPick, fallback }: {
-  orderId: string;
+export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback }: {
+  orderId?: string;
+  taskId?: string;
   value: string | null;
   onPick: (iso: string | null) => void;
   fallback: ReactNode;
 }) {
-  const q = useQuery({ queryKey: ["declutter", "order-pickup-windows", orderId], queryFn: () => fetchOrderPickupWindows(orderId) });
+  const q = useQuery(taskId
+    ? { queryKey: ["helpr-tasks", "task-pickup-windows", taskId], queryFn: () => fetchTaskPickupWindows(taskId) }
+    : { queryKey: ["declutter", "order-pickup-windows", orderId], queryFn: () => fetchOrderPickupWindows(orderId ?? "") });
   // Slots are worked out once per read: a long-open card keeps the same chips (the server re-checks on Book).
   const days = useMemo(
     () => (q.data ? pickupDays(q.data.windows, Date.now(), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null) : []),
@@ -44,7 +51,9 @@ export function PickupSlotPicker({ orderId, value, onPick, fallback }: {
   if (q.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the seller's pickup times…</p>;
   if (q.data === null) return <>{fallback}</>;
   if (days.length === 0) {
-    return <p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">No pickup times are open before the pickup deadline. Message the seller to agree a time.</p>;
+    return <p className="text-sm text-muted-foreground" data-testid="declutter-no-pickup-slots">{taskId
+      ? "None of the seller's pickup times are open before this delivery's deadline."
+      : "No pickup times are open before the pickup deadline. Message the seller to agree a time."}</p>;
   }
   const chosenDay = days.find((d) => d.ymd === dayPick) ?? days.find((d) => d.slots.some((s) => s.iso === value)) ?? days[0];
   return (
@@ -61,5 +70,28 @@ export function PickupSlotPicker({ orderId, value, onPick, fallback }: {
         ))}
       </div>
     </div>
+  );
+}
+
+/** `<input type="datetime-local">` value -> ISO (the device's own time zone). */
+function localInputToIso(v: string): string | null {
+  if (!v) return null;
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/**
+ * The Helpr's "Accept delivery" time (lead 2026-10-28): the buyer's day + time chips over the seller's windows for
+ * this OPEN delivery (helpr_task_pickup_windows, 20261028232930), so every time offered is one helpr_task_accept
+ * takes. Before that read is deployed, the old free field. `onPick` gets the ISO start (null while none is chosen).
+ */
+export function TaskPickupTime({ taskId, by, value, onPick }: { taskId: string; by: string; value: string | null; onPick: (iso: string | null) => void }) {
+  const [free, setFree] = useState("");
+  const id = `helpr-slot-${taskId}`;
+  return (
+    <PickupSlotPicker taskId={taskId} value={value} onPick={onPick} fallback={<>
+      <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {by})</label>
+      <DateTimeField id={id} label="Pickup time" value={free} onChange={(v) => { setFree(v); onPick(localInputToIso(v)); }} />
+    </>} />
   );
 }

@@ -15782,6 +15782,15 @@ export type Database = {
       helpr_task_payouts_due: { Args: { p_limit: number }; Returns: unknown }
       helpr_task_photo_access: { Args: { p_name: string; p_write: boolean }; Returns: boolean }
       helpr_task_photo_ok: { Args: { p_path: string; p_task: string; p_uid: string }; Returns: boolean }
+      helpr_task_pickup_windows: {
+        Args: { p_task_id: string }
+        Returns: {
+          ends: string
+          latest_pickup_at: string
+          starts: string
+          weekday: number
+        }[]
+      }
       helpr_task_picked_up: { Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }; Returns: Json }
       helpr_task_pickup_no_show: {
         Args: { p_lat: number; p_lng: number; p_photo_path: string; p_task_id: string }

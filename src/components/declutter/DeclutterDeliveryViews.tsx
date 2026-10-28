@@ -30,7 +30,7 @@ import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { DeliveryTipPanel } from "./DeliveryTipPanel";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
-import { DateTimeField } from "@/components/DateTimeField";
+import { TaskPickupTime } from "./DeclutterPickupWindows";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -76,14 +76,6 @@ const DELIVERY_STEP: Partial<Record<TaskView["status"], number>> = { accepted: 0
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
-
-/** `<input type="datetime-local">` value -> ISO (the device's own time zone). */
-function localInputToIso(v: string): string | null {
-  if (!v) return null;
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
-
 
 /** A private task photo through a short-lived signed URL. */
 function TaskPhoto({ path, label }: { path: string; label: string }) {
@@ -293,19 +285,19 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
   // Q2416 (owner 2026-10-27): taking a delivery needs no payout account; right after it, a Helpr
   // without one is asked to set it up, the same prompt as a hired Helpr (pay held until then).
   const hiredPayout = useHiredPayoutPrompt();
-  const [slot, setSlot] = useState("");
+  // The seller's pickup times as day + time chips (TaskPickupTime, 20261028232930).
+  const [chosen, setChosen] = useState<string | null>(null);
   const [showWay, setShowWay] = useState(false);
   const take = useMutation({
     mutationFn: (iso: string) => acceptTask(t.task_id, iso),
     onSuccess: () => {
       toast.success("It's yours. The seller and the buyer are told your pickup time.");
-      setSlot("");
+      setChosen(null);
       invalidateTasks(qc);
       if (user?.id) void hiredPayout.offer(user.id);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  const id = `helpr-slot-${t.task_id}`;
   const miles = (n: number) => `about ${n} ${n === 1 ? "mile" : "miles"}`;
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-4">
@@ -348,10 +340,10 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
       </div>
       <p className="text-ds-12 text-muted-foreground">Exact addresses unlock when you accept.</p>
       <div className="space-y-2">
-        <label htmlFor={id} className="block text-ds-13 font-semibold">Pickup time (inside the seller's pickup times, by {when(t.latest_pickup_at)})</label>
-        <DateTimeField id={id} label="Pickup time" value={slot} onChange={setSlot} />
-        <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !localInputToIso(slot)}
-          onClick={() => { const iso = localInputToIso(slot); if (iso) take.mutate(iso); }}>
+        <p className="block text-ds-13 font-semibold">Pickup time</p>
+        <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} />
+        <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !chosen}
+          onClick={() => { if (chosen) take.mutate(chosen); }}>
           Accept delivery
         </button>
       </div>

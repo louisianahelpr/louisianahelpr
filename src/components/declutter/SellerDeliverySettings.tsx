@@ -94,8 +94,37 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
   const rateOk = rateIsValid(rateCents, rules) && (priceMode === "free" || rateCents > 0);
   const freeOverOk = freeOverIsValid(freeOverCents, rateCents, rules);
   const formOk = rateOk && freeOverOk;
+  const min = rules.rate_min_cents / 100;
+  const max = rules.rate_max_cents / 100;
+  // Audit #35 (2026-10-28): Save sat disabled with nothing saying why. With delivery on, the one thing
+  // still missing is said beside the button; with it off there is nothing to fill in.
+  const missing = !enabled || formOk
+    ? null
+    : !rateOk
+      ? (rate.trim() ? `Your delivery price must be whole dollars, $${min} to $${max}.` : "Enter your delivery price to save, or choose Free.")
+      : freeOver.trim()
+        ? `The free-delivery amount must be whole dollars, $${rules.free_over_min_cents / 100} or more.`
+        : "Enter the order amount for free delivery, or turn \"Free on bigger orders\" off.";
+  /**
+   * Turning delivery OFF saves only that. The server still checks the price it is sent
+   * (declutter_set_seller_delivery), so an off save keeps what you typed when it is valid,
+   * else the price you had saved, else free; the schedule (hidden while off) is left as it was.
+   */
+  const offTerms = (): { rate: number; freeOver: number | null } => {
+    if (formOk) return { rate: rateCents, freeOver: freeOverCents };
+    const saved = current.rate_cents;
+    if (saved != null && rateIsValid(saved, rules)) {
+      const fo = current.free_over_cents ?? null;
+      return { rate: saved, freeOver: freeOverIsValid(fo, saved, rules) ? fo : null };
+    }
+    return { rate: rules.free_rate_cents, freeOver: null };
+  };
   const save = useMutation({
     mutationFn: async () => {
+      if (!enabled) {
+        const t = offTerms();
+        return saveSellerDelivery(false, t.rate, radius, t.freeOver);
+      }
       await saveDeliverySchedule(windows, daysOff);
       return saveSellerDelivery(enabled, rateCents, radius, freeOverCents);
     },
@@ -106,14 +135,16 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
     },
     onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
   });
-  const min = rules.rate_min_cents / 100;
-  const max = rules.rate_max_cents / 100;
+  const canSave = !enabled || formOk;
   return (
-    <form className="space-y-5 border-t border-border px-4 py-4" onSubmit={(e) => { e.preventDefault(); if (formOk) save.mutate(); }}>
+    <form className="space-y-5 border-t border-border px-4 py-4" onSubmit={(e) => { e.preventDefault(); if (canSave) save.mutate(); }}>
       <div className="flex items-center justify-between gap-3">
         <label htmlFor="sd-enabled" className="text-sm font-medium">Offer delivery to buyers</label>
         <Switch id="sd-enabled" checked={enabled} onCheckedChange={setEnabled} />
       </div>
+      {/* Audit #35: the price, distance and times appear once delivery is switched on. */}
+      {enabled ? (
+      <>
       <div className="space-y-2">
         <p className="text-sm font-medium" id="sd-price-label">Your delivery price, per order</p>
         <div role="radiogroup" aria-labelledby="sd-price-label" className="flex flex-wrap gap-2">
@@ -199,8 +230,15 @@ function SellerDeliveryForm({ current, onDone }: { current: MySellerDelivery; on
         You see the buyer's address after they pay. They choose "Leave it at my door" (take a photo when you leave it) or
         "Hand it to me". You're paid with the item, when the buyer has it.
       </p>
+      </>
+      ) : (
+        <p className="text-xs text-muted-foreground" data-sd-off-hint="">
+          Turn it on to set your price, how far you'll go and when you can deliver. Buyers near you can then pick a time at checkout.
+        </p>
+      )}
+      {missing && <p className="text-xs text-destructive-ink" role="status" data-sd-missing="">{missing}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="submit" disabled={!formOk || save.isPending}>{save.isPending ? "Saving…" : "Save delivery"}</Button>
+        <Button type="submit" disabled={!canSave || save.isPending}>{save.isPending ? "Saving…" : "Save delivery"}</Button>
         <Button type="button" variant="outline" onClick={onDone} disabled={save.isPending}>Cancel</Button>
       </div>
     </form>

@@ -27,7 +27,7 @@ describe("one take-home computation for the job page, the quick view and Applica
   });
 
   it("the quick view and Application sent both render the shared pair", () => {
-    expect(read("src/components/dashboard/JobDetailDialog.tsx")).toContain("<JobPriceTakeHome job={job} />");
+    expect(read("src/components/dashboard/JobDetailDialog.tsx")).toContain("<JobPriceTakeHome job={job} bare />");
     expect(read("src/components/dashboard/ApplicationSentDialog.tsx")).toContain("<JobPriceTakeHome job={job} after=");
   });
 });

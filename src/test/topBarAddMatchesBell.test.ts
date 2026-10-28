@@ -2,7 +2,8 @@
  * The section "+" in the top bar is NOT the loudest thing in it (owner,
  * 2026-10-19: it was a big filled olive circle). It is the same control as the
  * bell beside it, the same size and weight, in every section: a ghost icon
- * Button wearing the bar's one icon class, with no fill.
+ * Button wearing the bar's one icon class, with no fill. ON A PHONE: the desktop
+ * website's + is a filled, labelled button (owner 2026-10-28), declared after it.
  *
  * @mutate src/components/sections/AppTopBar.tsx |           data-testid="section-add"\n          onClick={isPost ? gate.gate("post", go) : go}\n          {...(isPost ? gate.gatedProps("post") : {})}\n          className={TOP_BAR_ICON_CLASS}\n |           data-testid="section-add"\n          onClick={isPost ? gate.gate("post", go) : go}\n          {...(isPost ? gate.gatedProps("post") : {})}\n          className="btn-press w-10 h-10 rounded-full btn-grad-primary flex items-center justify-center"\n
  * @mutate src/components/sections/AppTopBar.tsx |           variant="ghost"\n          size="icon"\n          aria-label={add.label} |           variant="default"\n          size="icon"\n          aria-label={add.label}

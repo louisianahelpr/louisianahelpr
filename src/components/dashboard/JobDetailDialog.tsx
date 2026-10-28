@@ -576,8 +576,8 @@ const JobDetailDialog = ({
         {/* #62 (audit 2026-10-21): the job page's own take-home (useHelprTakeHome).
             Only the take-home, never the job price beside it (owner 2026-10-25). */}
         {viewerUserId && viewerUserId !== job.customer_id && (
-          <p className="text-ds-14 text-foreground">
-            <JobPriceTakeHome job={job} />
+          <p>
+            <JobPriceTakeHome job={job} bare />
           </p>
         )}
 

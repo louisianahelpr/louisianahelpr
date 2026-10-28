@@ -17,13 +17,14 @@ export interface SectionDef {
   icon: LucideIcon;
   feature: "declutter" | "shops" | "rentals" | null;
   /** The section's own "+" in its top bar. */
-  add: { label: string; path: string };
+  /** `cta`: the short words on the desktop website's filled button (owner 2026-10-28: make the + noticeable). */
+  add: { label: string; path: string; cta?: string };
 }
 
 export const SECTIONS: readonly SectionDef[] = [
   { key: "jobs", label: "Jobs", navLabel: "Jobs", path: "/jobs", icon: Briefcase, feature: null, add: { label: "Post a job", path: "/post-job" } },
   { key: "declutter", label: "Declutter", navLabel: "Declutter", path: "/declutter", icon: Sofa, feature: "declutter", add: { label: "Sell an item", path: "/declutter/sell" } },
-  { key: "shops", label: "Shops", navLabel: "Shops", path: "/shops", icon: Store, feature: "shops", add: { label: "Add an item or open a shop", path: "/shops/mine" } },
+  { key: "shops", label: "Shops", navLabel: "Shops", path: "/shops", icon: Store, feature: "shops", add: { label: "Add an item or open a shop", path: "/shops/mine", cta: "Open a shop" } },
   { key: "homes", label: "Homes", navLabel: "Homes", path: "/rentals", icon: KeyRound, feature: "rentals", add: { label: "Add a property", path: "/rentals?tab=own&add=1" } },
 ];
 

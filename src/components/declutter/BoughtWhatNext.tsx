@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { WhatNextSheet, type WhatNextStep } from "@/components/whatNext/WhatNextSheet";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
+import { usePaySettling } from "./DeclutterPaySettling";
 
 /**
  * The one order a ?paid=1 return is about, or null when that is not certain. The checkout
@@ -27,7 +29,13 @@ export function BoughtWhatNext() {
   const params = new URLSearchParams(location.search);
   const paid = params.get("paid") === "1";
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: paid });
-  const order = paid && cart.data ? justPaidOrder(cart.data) : null;
+  // B-1: never from the saved cache or before the payment settles (it named an older order); when the checkout just
+  // paid is known, only its seller's lines.
+  const settling = usePaySettling();
+  const [since] = useState(() => Date.now());
+  const fresh = !!cart.data && cart.dataUpdatedAt >= since && !settling.settling;
+  const lines = fresh ? cart.data.filter((l) => settling.sellerId === null || l.seller_id === settling.sellerId) : null;
+  const order = paid && lines ? justPaidOrder(lines) : null;
   if (!order) return null;
   const close = () => { params.delete("paid"); navigate({ pathname: location.pathname, search: params.toString() }, { replace: true }); };
   const first = order[0];

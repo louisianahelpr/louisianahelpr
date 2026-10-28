@@ -39,6 +39,7 @@ import { PickupTimesCard } from "./DeclutterPickupTimes";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
 import { OrdersUpdating } from "./OrdersUpdating";
@@ -126,12 +127,15 @@ function ListingThumb({ path, category }: { path: string | undefined; category: 
   );
 }
 
+/** Listings that are history, not for sale: taken down, or sold elsewhere (A2-5). They live in Selling history. */
+const PAST: ReadonlySet<DeclutterItem["status"]> = new Set(["withdrawn", "sold_elsewhere"]);
+
 function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
   // Board 26's thumbs and "May drop tonight" line: the same batched reads Browse uses.
-  const mineIds = (mine.data ?? []).filter((i) => i.status !== "withdrawn").map((i) => i.id);
+  const mineIds = (mine.data ?? []).filter((i) => !PAST.has(i.status)).map((i) => i.id);
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
@@ -190,8 +194,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   // An id, not a snapshot (money review 5): the sheet always shows the freshly read listing.
   const [managingId, setManagingId] = useState<string | null>(null);
   const managing = (mine.data ?? []).find((i) => i.id === managingId) ?? null;
+  // #18: "Take this item off sale?" asks in the app (ConfirmSheet), never window.confirm.
+  const [asking, setAsking] = useState<DeclutterItem | null>(null);
   const takeDown = useMutation({
     mutationFn: (itemId: string) => withdrawItem(itemId),
+    onSettled: () => setAsking(null),
     onSuccess: () => {
       toast.success("Taken down.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -203,7 +210,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
     return <ErrorState variant="inline" title="We couldn't load your listings." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   }
   if (mine.isLoading) return <ListingsSkeleton />;
-  const list = (mine.data ?? []).filter((i) => i.status !== "withdrawn");
+  const list = (mine.data ?? []).filter((i) => !PAST.has(i.status));
   if (list.length === 0) {
     return (
       <section className="space-y-2" aria-label="Your listings">
@@ -274,11 +281,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     variant="outline"
                     size="sm"
                     disabled={takeDown.isPending}
-                    onClick={() => {
-                      if (window.confirm(item.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?")) {
-                        takeDown.mutate(item.id);
-                      }
-                    }}
+                    onClick={() => setAsking(item)}
                   >
                     {item.status === "draft" ? "Delete" : "Take down"}
                   </Button>
@@ -298,6 +301,11 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
           );
         })}
       </ul>
+      <ConfirmSheet open={!!asking} title={asking?.status === "draft" ? "Delete this unfinished listing?" : "Take this item off sale?"}
+        confirmLabel={asking?.status === "draft" ? "Delete" : "Take down"} pending={takeDown.isPending} testId="declutter-take-down"
+        onConfirm={() => asking && takeDown.mutate(asking.id)} onClose={() => setAsking(null)}>
+        {asking?.status === "draft" ? "Its photos are removed and it moves to your selling history." : "Buyers can't see it any more. Nothing is charged, and you can relist it from your selling history."}
+      </ConfirmSheet>
       {managing && (
         <ManageListingSheet
           key={managing.id}

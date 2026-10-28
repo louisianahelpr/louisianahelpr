@@ -39,12 +39,15 @@ export function ReopenListingButton({ itemId }: { itemId: string }) {
   );
 }
 
-/** The Selling tab's "Taken down" group: every withdrawn listing, newest first, each with Relist. */
+/**
+ * The Selling tab's history: every listing taken down (withdrawn, with Relist) or marked sold elsewhere (A2-5,
+ * 'sold_elsewhere': kept as a record, no Relist), newest first.
+ */
 export function TakenDownSection({ items }: { items: DeclutterItem[] }) {
   if (items.length === 0) return null;
   return (
-    <section className="space-y-2" aria-label="Taken down" data-taken-down="">
-      <SectionHeading title="Taken down" />
+    <section className="space-y-2" aria-label="Selling history" data-taken-down="">
+      <SectionHeading title="Selling history" />
       <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
         {items.map((item) => (
           <li key={item.id} className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center" data-taken-down-row="">
@@ -53,13 +56,17 @@ export function TakenDownSection({ items }: { items: DeclutterItem[] }) {
               <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="h-16 w-16 shrink-0 rounded-2xl" iconClassName="h-6 w-6" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-ds-15 font-semibold text-muted-foreground" title={item.title}>{item.title}</p>
-                <p className="line-clamp-2 text-ds-13 text-muted-foreground">Taken down. Buyers can&apos;t see it.</p>
+                <p className="line-clamp-2 text-ds-13 text-muted-foreground">
+                  {item.status === "sold_elsewhere" ? "Sold elsewhere." : "Taken down. Buyers can't see it."}
+                </p>
               </div>
               <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(item.current_price_cents)}</span>
             </div>
-            <div className="flex sm:shrink-0 sm:justify-end">
-              <ReopenListingButton itemId={item.id} />
-            </div>
+            {item.status === "withdrawn" && (
+              <div className="flex sm:shrink-0 sm:justify-end">
+                <ReopenListingButton itemId={item.id} />
+              </div>
+            )}
           </li>
         ))}
       </ul>

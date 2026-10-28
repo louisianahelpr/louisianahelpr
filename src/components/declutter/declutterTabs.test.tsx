@@ -359,8 +359,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=buying");
     expect(await screen.findByRole("heading", { name: /^Your cart/ })).toBeInTheDocument();
-    // Lead 2026-10-28 (shot 05): no "Search all sections" row on a buyer's own lists; Selling keeps it.
-    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying"} tabs={tabsFor()} | globalSearch tabs={tabsFor()}
+    // Lead 2026-10-28 (shot 05): no "Search all sections" row on a buyer's own lists (nor on Selling: sellingDash.test.tsx).
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()} | globalSearch={view !== "selling"} tabs={tabsFor()}
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     for (const a of BEFORE_ACTIONS.buying) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const sent = screen.getByRole("region", { name: "Your offers" });
@@ -379,7 +379,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=selling");
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
-    expect(screen.getByTestId("explore-search-entry")).toBeInTheDocument();
+    // Owner 2026-10-28 (Selling polish): no "Search all sections" row on Selling either.
+    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     for (const a of BEFORE_ACTIONS.selling) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const onMine = screen.getByRole("region", { name: "Offers on your items" });
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();

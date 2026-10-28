@@ -1980,11 +1980,13 @@ export type Database = {
           is_seed: boolean
           last_price_drop_on: string | null
           live_at: string | null
+          listed_until: string | null
           in_moving_sale: boolean
           porch_ok: boolean
           price_cents: number
           price_dropped_at: string | null
           relist_count: number
+          round_nudged: number | null
           sale_mode: string
           seller_hidden: boolean
           seller_id: string
@@ -2010,11 +2012,13 @@ export type Database = {
           is_seed?: boolean
           last_price_drop_on?: string | null
           live_at?: string | null
+          listed_until?: string | null
           in_moving_sale?: boolean
           porch_ok?: boolean
           price_cents: number
           price_dropped_at?: string | null
           relist_count?: number
+          round_nudged?: number | null
           sale_mode?: string
           seller_hidden?: boolean
           seller_id: string
@@ -2040,11 +2044,13 @@ export type Database = {
           is_seed?: boolean
           last_price_drop_on?: string | null
           live_at?: string | null
+          listed_until?: string | null
           in_moving_sale?: boolean
           porch_ok?: boolean
           price_cents?: number
           price_dropped_at?: string | null
           relist_count?: number
+          round_nudged?: number | null
           sale_mode?: string
           seller_hidden?: boolean
           seller_id?: string

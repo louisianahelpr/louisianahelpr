@@ -60,13 +60,14 @@ export function ReviewRow({ title, body, onEdit }: { title: string; body: string
 }
 
 /**
- * How long a listing stays up, as the code runs today (owner 2026-10-28, item 6). Measured 2026-10-28:
- * offers-mode listings have no end time (ends_at NULL, spec B13), relist_count is never written (row 47's
- * "relist up to 3 times" is an auction rule kept for when bidding opens), and no prod cron ends a live
- * listing by age (cron.job declutter-*: deadlines, handovers, money, pickup reminders, price drops, refund
- * requests, seller hidden, wanted, haul-away). A set length is an owner decision, never invented here.
+ * How long a listing stays up: the owner's rule (2026-10-28, Q2461 / #3728, "30 days per round"), as the
+ * server runs it (migration 20261028164424): a 30-day round starts when it goes live
+ * (trg_declutter_items_listing_round); the hourly cron declutter-listing-rounds tells the seller 3 days
+ * before a round ends, puts an unsold listing back up for another 30 days up to 3 times (relist_count),
+ * then takes it off sale and offers a Helpr haul to donation (spec row 73).
  */
-export const LISTING_LIFETIME = "Until it sells or you take it down. There's no end date.";
+export const LISTING_LIFETIME =
+  "30 days. If it hasn't sold, it goes back up by itself up to 3 more times (about 4 months). We'll remind you before each round ends.";
 
 /** The real nightly run (priceDrop.ts PRICE_DROP_RUN_UTC) in Louisiana time: "6:07 PM" (CDT) or "5:07 PM" (CST). */
 export function dropRunTime(now: Date = new Date()): string {

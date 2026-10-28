@@ -14,7 +14,10 @@ import { categoryIcon } from "@/lib/declutter/categoryIcons";
 
 const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
 // Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
-const ASPECT = { item: "aspect-square sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
+// The item photo is square on a phone but never taller than about half the screen, so the price and title start
+// above the dock on a short or wide phone window (lead walkthrough 2026-10-28, shot 33: at 500x700 the + covered the
+// title). object-cover crops the overflow; the full photo is a tap away in the viewer.
+const ASPECT = { item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
 
 /** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
 export function DeclutterGallery({ urls, category, title, icon, shape = "item" }: { urls: string[]; category: string; title: string; icon?: LucideIcon; shape?: keyof typeof ASPECT }) {

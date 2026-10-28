@@ -18,9 +18,11 @@ import { SORT_LABEL, type DeclutterFilters, type DeclutterSort } from "@/lib/dec
 import { CONDITION_LABEL } from "./declutterUi";
 import type { OriginAsk } from "./DeclutterBrowseBar";
 
-const CHIP = "flex h-10 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+// 44px tall, the tap floor (was h-10, 40px: Declutter audit 2026-10-28).
+const CHIP = "flex h-11 min-h-11 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
-function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+/** Declutter's one choice chip: the filter sheet's, and Wanted's "Within" (the same distances, the same look). */
+export function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
     // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
     <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>

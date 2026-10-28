@@ -62,8 +62,18 @@ describe("board 116: Post a Wanted", () => {
     fireEvent.change(screen.getByLabelText("I'm looking for"), { target: { value: "Kids bike, 16 inch" } });
     fireEvent.change(price, { target: { value: "30" } });
     fireEvent.change(screen.getByLabelText("Category"), { target: { value: "baby_kids" } });
+    // "Within" wears Browse's distance chips (lead 2026-10-28, shot 39), one pressed at a time, 10 mi by default.
+    // @mutate src/components/declutter/DeclutterWantedViews.tsx |             <Chip key={m} on={form.radius === m} onClick={() => setForm((f) => ({ ...f, radius: m }))}>{`${m} mi`}</Chip> |             <button key={m} type="button" className="text-ds-11" onClick={() => setForm((f) => ({ ...f, radius: m }))}>{`${m} mi`}</button>
+    const within = screen.getByRole("group", { name: "Within" });
+    const chips = within.querySelectorAll("button");
+    expect([...chips].map((c) => c.textContent)).toEqual(["5 mi", "10 mi", "25 mi", "50 mi"]);
+    expect(screen.getByRole("button", { name: "10 mi" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "25 mi" }));
+    expect(screen.getByRole("button", { name: "25 mi" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "10 mi" })).toHaveAttribute("aria-pressed", "false");
+    for (const c of chips) expect(c.className).toMatch(/\btext-ds-13\b/);
     fireEvent.click(screen.getByRole("button", { name: "Post wanted" }));
     await waitFor(() => expect(posted).toHaveLength(1));
-    expect(posted[0]).toEqual([expect.objectContaining({ what: "Kids bike, 16 inch", maxPrice: "30", category: "baby_kids" }), { lat: 30, lng: -92 }]);
+    expect(posted[0]).toEqual([expect.objectContaining({ what: "Kids bike, 16 inch", maxPrice: "30", category: "baby_kids", radius: 25 }), { lat: 30, lng: -92 }]);
   });
 });

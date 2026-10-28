@@ -30,7 +30,13 @@ const state = {
   handover: null as Record<string, unknown> | null,
   /** Q2425: the spot frozen on a meetup order (declutter_order_meetups). */
   meetup: null as Record<string, unknown> | null,
+  /** Hidden switches on for this test (none by default, as before this mock). */
+  features: [] as string[],
 };
+
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.features.includes(key) }));
+// Board 141's refund panel has its own test; here a stub says whether the card offers it.
+vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => <p>Refund panel</p> }));
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
 vi.mock("@/components/DateTimeField", () => ({
@@ -486,5 +492,78 @@ describe("boards 159 + 160: handover sheets", () => {
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("A second miss cancels the claim, and your item goes back on sale.")).toBeInTheDocument();
     expect(sheet.textContent).not.toMatch(/price back|everything back|\$/);
+  });
+});
+
+// Deep audit #6 (B-6): a free claim read like a paid order ("Paid · $0 · You paid $0 · the seller is paid after you
+// pick it up"), and the handover words promised a refund window and a payout on $0.
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const money = free ? null |   const money = false ? null
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx | steps={free ? ["Claimed", ...STEPS[handover].slice(1)] : STEPS[handover]} | steps={STEPS[handover]}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | {free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "} | {"You're paid 24 hours after the handover, unless the buyer asks for a refund. "}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |         porch={order.handover === "porch"} free={free} |         porch={order.handover === "porch"}
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | who={who} free={free} pending | who={who} pending
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {refundRequests && (
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && payout && items > 0 && ( |           {order.side === "seller" && payout && (
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | you have it${free ? "." : "; they're paid 24 hours later."} | you have it${"; they're paid 24 hours later."}
+// @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (free && at === 0) return |   if (false && at === 0) return
+describe("#6: a free claim never reads like a paid order", () => {
+  // No leading \b: textContent runs the step labels together ("DonePaid").
+  const MONEY = /paid\b|refund|payout|order total|\$\d/i;
+  const free = (over: Record<string, unknown> = {}) => line({ price_cents: 0, premium_cents: 0, total_cents: 0, ...over });
+  beforeEach(() => {
+    state.bookings = [];
+    state.payouts = [];
+    state.calls = [];
+    state.handover = null;
+    state.features = ["declutter_refund_requests"];
+  });
+
+  it("each side, each pickup kind and step: the card and its sheets have no money words, and the first step says Claimed", async () => {
+    let read = 0;
+    for (const handover of ["porch", "pickup_home"] as const) {
+      for (const side of ["buyer", "seller"] as const) {
+        // slot(m) is m minutes AGO: none, 30 minutes ago (pickup time passed), in an hour.
+        for (const at of [null, 30, -60] as const) {
+          state.bookings = at === null ? [] : [{ ...slot(at), porch_mode: handover === "porch" ? "all_day" : null }];
+          const { container, unmount } = show([free({ handover, my_side: side })]);
+          const card = (await screen.findByText("Claimed")).closest("article")!;
+          // Wait for the booking read: a booked door pickup moves to its second step.
+          if (at !== null && handover === "pickup_home") await within(card).findByText("Booked. The pickup time is below.");
+          const name = side === "buyer" ? "I got it" : "Picked up";
+          const acts = side === "buyer" ? at !== null : handover === "pickup_home" && at === 30;
+          const action = acts ? await within(card).findByRole("button", { name }) : null;
+          expect(card.textContent, `${handover} ${side} ${at}`).not.toMatch(MONEY);
+          expect(within(card).getAllByText(/Claimed/).length).toBeGreaterThan(0);
+          expect(container.querySelector("article")).toBe(card);
+          if (action) {
+            fireEvent.click(action);
+            const sheet = await screen.findByRole("dialog");
+            expect(sheet.textContent, `${handover} ${side} ${at} sheet`).not.toMatch(MONEY);
+            read++;
+          }
+          read++;
+          unmount();
+        }
+      }
+    }
+    // 2 kinds x 2 sides x 3 steps, plus the sheets that open (buyer I got it, seller door Picked up).
+    expect(read).toBeGreaterThan(13);
+  });
+
+  it("handed over: no refund panel and no payout line on a free claim; a paid order keeps both", async () => {
+    state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
+    state.payouts = [{ order_id: "o1", amount_cents: 0, items_cents: 0, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "nothing_due" }];
+    const a = show([free({ order_status: "handed_over" })]);
+    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(screen.queryByText("Refund panel")).toBeNull();
+    a.unmount();
+    const b = show([free({ order_status: "handed_over", my_side: "seller" })]);
+    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(b.container.querySelector("article")?.textContent).not.toMatch(MONEY);
+    b.unmount();
+    state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];
+    show([line({ order_status: "handed_over", my_side: "seller" })]);
+    expect(await screen.findByText("Refund panel")).toBeInTheDocument();
+    expect(screen.getByText(/We send it once the sale is final/)).toBeInTheDocument();
   });
 });

@@ -235,13 +235,13 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
       {done ? (
         <>
           {(order.handover === "delivery" || order.handover === "seller_delivery") && <p className="text-sm font-medium">Handed over.</p>}
-          {order.side === "seller" && payout && (
+          {order.side === "seller" && payout && items > 0 && (
             <p className="text-sm">
               {formatPrice(payout.amount_cents)}
               {payoutBreakdown(payout)}. {PAYOUT_WORDS[payout.status]}
             </p>
           )}
-          {refundRequests && (
+          {refundRequests && items > 0 && (
             <Suspense fallback={null}>
               <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} />} />
             </Suspense>
@@ -334,6 +334,9 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
 
 function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: PaidOrder; userId: string; slotStart: string; who: string; onProblem: () => void }) {
   const qc = useQueryClient();
+  // #6: a free claim has no payment, payout or refund to speak of.
+  const free = order.lines.every((l) => l.price_cents === 0);
+  const rule = (how: string) => <p className="text-sm text-muted-foreground">{free ? "" : "You're paid 24 hours after the handover, unless the buyer asks for a refund. "}The handover is when {how}.</p>;
   const [photo, setPhoto] = useState<File | null>(null);
   const [asking, setAsking] = useState(false);
   const confirm = useMutation({
@@ -348,7 +351,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
   const pickedUp = useMutation({
     mutationFn: async () => sellerPickedUp(order.orderId, photo ? await uploadHandoverPhoto(userId, order.orderId, photo) : null),
     onSuccess: () => {
-      toast.success("Picked up. You're paid in 24 hours, unless the buyer asks for a refund.");
+      toast.success(free ? "Picked up." : "Picked up. You're paid in 24 hours, unless the buyer asks for a refund.");
       setPhoto(null);
       setAsking(false);
       invalidate(qc, order.orderId);
@@ -358,33 +361,23 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
   if (order.side === "seller") {
     // Q2425: at a safe meeting spot the seller hands it over as at the door ("Picked up").
     if (order.handover !== "pickup_home" && order.handover !== "meetup") {
-      return (
-        <p className="text-sm text-muted-foreground">
-          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported.
-        </p>
-      );
+      return rule('the buyer taps "I got it" or takes their pickup photo, or 24 hours after the pickup time if you posted the porch photo and no problem is reported');
     }
     const fileId = `dcl-door-${order.orderId}`;
     // From the booked time only (the server checks again: before_pickup_time).
     if (Date.now() < new Date(slotStart).getTime()) {
-      return (
-        <p className="text-sm text-muted-foreground">
-          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it", or you tap "Picked up" from the pickup time, or 24 hours after the pickup time unless a problem is reported.
-        </p>
-      );
+      return rule('the buyer taps "I got it", or you tap "Picked up" from the pickup time, or 24 hours after the pickup time unless a problem is reported');
     }
     return (
       <div className="space-y-2">
-        <p className="text-sm text-muted-foreground">
-          You're paid 24 hours after the handover, unless the buyer asks for a refund. The handover is when the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported.
-        </p>
+        {rule('the buyer taps "I got it" or you tap "Picked up", or 24 hours after the pickup time unless a problem is reported')}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional)</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" disabled={pickedUp.isPending}
           onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
         <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
           Picked up
         </button>
-        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
+        <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} />
       </div>
     );
   }
@@ -397,7 +390,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
         open={asking}
         onOpenChange={setAsking}
         orderId={order.orderId}
-        porch={order.handover === "porch"}
+        porch={order.handover === "porch"} free={free}
         who={who}
         pending={confirm.isPending}
         onConfirm={() => confirm.mutate()}
@@ -409,6 +402,7 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
 
 function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId: string; booking: MyBooking; who: string }) {
   const qc = useQueryClient();
+  const free = order.lines.every((l) => l.price_cents === 0); // #6: no pay words on a free claim
   // Board 159: the seller checks the porch photo in "Put it out" before sending it.
   const [preview, setPreview] = useState<File | null>(null);
   const timing = useMutation({
@@ -439,6 +433,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
     onSuccess: (r) => {
       setPreview(null);
       if (r.result === "set_out") toast.success(r.noteProblem ? `Left on porch. The buyer is told. ${r.noteProblem}` : "Left on porch. The buyer is told.");
+      else if (free) toast.success("Picked up. Enjoy it.");
       else if (r.paid === false) toast.success("Picked up. A problem report is open, so Louisiana Helpr decides before anyone is paid.");
       else toast.success("Picked up. If something is wrong, you can ask for a refund within 24 hours.");
       invalidate(qc, order.orderId);
@@ -461,7 +456,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         </>
       )}
       <label htmlFor={fileId} className="sr-only">
-        {order.side === "seller" ? "Photo of the item on your porch (\"Left on porch\": needed before you can be paid automatically)" : "Photo when you pick it up, taken at the address (\"Picked up\": this pays the seller 24 hours later)"}
+        {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${free ? ")" : ": needed before you can be paid automatically)"}` : `Photo when you pick it up, taken at the address ("Picked up"${free ? ")" : ": this pays the seller 24 hours later)"}`}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
@@ -471,7 +466,7 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
         {photo.isPending ? "Saving…" : order.side === "seller" ? "Take the porch photo" : "Take your pickup photo"}
       </button>
       <p className="text-ds-12 text-muted-foreground">
-        {order.side === "seller" ? "One photo where the buyer will find it. You need it before you can be paid automatically." : "Taken at the address. It tells the seller you have it; they're paid 24 hours later."}
+        {order.side === "seller" ? `One photo where the buyer will find it.${free ? "" : " You need it before you can be paid automatically."}` : `Taken at the address. It tells the seller you have it${free ? "." : "; they're paid 24 hours later."}`}
       </p>
       {order.side === "seller" && (
         <PutItOutSheet

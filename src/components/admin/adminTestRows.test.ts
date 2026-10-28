@@ -31,7 +31,7 @@ describe("admin never shows test rows", () => {
   it("home tiles show the real count alone, with no test side read", () => {
     const home = read("src/components/admin/dashboard/DashboardHome.tsx");
     expect(home).not.toMatch(/\(\+.*test\)|withTestCount|stats\.test/);
-    for (const k of ["activeJobs", "disputedJobs", "activeSubscriptions"]) {
+    for (const k of ["activeJobs", "disputedJobs"]) {
       expect(home).toContain(`stats.${k}.toLocaleString()`);
     }
     expect(read("src/pages/admin/Admin.tsx")).not.toMatch(/\.eq\("is_seed", true\)/);

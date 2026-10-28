@@ -1,6 +1,6 @@
 import {
   Users, Briefcase, DollarSign, ShieldAlert, AlertTriangle,
-  CheckCircle2, Crown, TrendingUp, X,
+  CheckCircle2, TrendingUp, X,
 } from "lucide-react";
 import { type DashboardStats, type DateRange } from "./types";
 import { cn } from "@/lib/utils";
@@ -222,7 +222,6 @@ export const DashboardHome = ({
             accent="primary"
             onClick={() => onNavigate("analytics")}
           />
-          <KpiCard label="Active Subscriptions" value={v(stats.activeSubscriptions.toLocaleString())} icon={Crown} accent="accent" onClick={() => onNavigate("subscriptions")} />
           <KpiCard
             label={`Completed Jobs (${rangeLabel})`}
             value={v(stats.completedJobsInRange)}

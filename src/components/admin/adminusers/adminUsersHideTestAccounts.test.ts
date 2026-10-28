@@ -109,9 +109,9 @@ describe("every admin count of profiles says what it does with test accounts", (
   }
 
   it("finds the counts it guards (inventory floor)", () => {
-    // Admin.tsx loadStats: Total Users and subscribers (the test-subscriber
-    // count went 2026-10-27: admin shows no test side).
-    expect(chains.length).toBe(2);
+    // Admin.tsx loadStats: Total Users (the test-subscriber count went 2026-10-27: admin shows no
+    // test side; the subscribers count went 2026-10-28: owner "we don't use subscriptions anymore").
+    expect(chains.length).toBe(1);
   });
 
   it("each one filters on is_seed", () => {

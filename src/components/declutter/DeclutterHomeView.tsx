@@ -489,11 +489,11 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
   );
 }
 
-/** Deliver (Helprs who carry items for pay) left the tab row; its view stays at ?view=deliver. */
+/** Deliver for pay, also reachable from Selling (the Deliver tab is ?tab=deliver; old ?view=deliver links still open it). */
 function DeliverEntry() {
   return (
     <Link
-      to="/declutter?view=deliver"
+      to="/declutter?tab=deliver"
       className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Truck className="h-5 w-5 shrink-0" aria-hidden />
@@ -520,7 +520,7 @@ function MovingOutEntry({ on }: { on: boolean }) {
   );
 }
 
-const MINE_TABS = ["buying", "selling"] as const;
+const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 
 export default function DeclutterHome() {
   const { user } = useCurrentUser();
@@ -546,9 +546,8 @@ export default function DeclutterHome() {
   const asked = params.get("view");
   const legacy = OLD_DECLUTTER_VIEWS.includes(asked as OldDeclutterView) ? (asked as OldDeclutterView) : null;
   // ?view= is the pre-2026-10-19 address (still in sent notifications and
-  // emails): mine|offers|cart open the tab that holds them, buying|selling
-  // their tab. deliver and wanted stay sub-views at ?view= (Wanted only while
-  // its switch is on; its tab is hidden for now, owner 2026-10-19).
+  // emails): mine|offers|cart open their tab; deliver and wanted stay sub-views
+  // (Wanted only while its switch is on; its tab is hidden, owner 2026-10-19).
   const subView: "deliver" | "wanted" | null = asked === "deliver" ? "deliver" : asked === "wanted" && wantedOn ? "wanted" : null;
   const fromView: DeclutterTab | null = legacy ? oldDeclutterView(legacy, todo) : asked === "buying" || asked === "selling" ? asked : null;
   const view: DeclutterTab = subView ?? fromView ?? sectionTab;
@@ -569,7 +568,7 @@ export default function DeclutterHome() {
   const tabs = (
     <SectionTabs
       label="Declutter view"
-      value={(view === "buying" || view === "selling" || view === "browse" ? view : null) as "buying" | "selling"}
+      value={(view === "buying" || view === "selling" || view === "deliver" || view === "browse" ? view : null) as "buying" | "selling" | "deliver"}
       onChange={(v) =>
         setParams((p) => {
           const next = new URLSearchParams(p);
@@ -583,6 +582,7 @@ export default function DeclutterHome() {
       tabs={[
         { value: "buying", label: "Buying", count: todo?.buying },
         { value: "selling", label: "Selling", count: todo?.selling },
+        { value: "deliver", label: "Deliver" },
       ]}
     />
   );

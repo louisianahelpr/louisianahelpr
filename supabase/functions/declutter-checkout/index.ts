@@ -419,6 +419,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     {
       mode: "payment",
       payment_method_types: ["card"],
+      // Link hidden (audit 2026-10-28 #22): card-only still pre-ticked Link and asked for a phone.
+      wallet_options: { link: { display: "never" } },
       line_items: lineItems,
       ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
       client_reference_id: order.order_id,
@@ -580,6 +582,7 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     {
       mode: "payment",
       payment_method_types: ["card"],
+      wallet_options: { link: { display: "never" } },
       // One line, the raise and its card cost together (owner 2026-10-25, issue #3672: no fee
       // line a member reads); the cents are the raise row's own and the total check is unchanged.
       line_items: [

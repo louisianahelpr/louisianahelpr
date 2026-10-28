@@ -8,6 +8,7 @@ import {
   coerceInboxFilter,
   messageSectionTabs,
   SECTION_INBOX_EMPTY,
+  mainInboxEmptyBody,
   threadSection,
   threadsForFilter,
   type InboxFilter,
@@ -92,5 +93,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
   }
 
-  return { section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty };
+  return {
+    section, strip, conversations: shown, allConversations: shownAll, sectionEmpty: empty,
+    mainEmptyBody: mainInboxEmptyBody(live.declutter),
+  };
 }

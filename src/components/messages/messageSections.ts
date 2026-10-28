@@ -47,6 +47,17 @@ export const SECTION_INBOX_EMPTY: Record<Exclude<SectionKey, "jobs">, { noun: st
   homes: { noun: "Homes", body: "Chats with landlords and renters will show up here.", browse: "Browse Homes" },
 };
 
+/**
+ * The All / Unread empty inbox's line. It named only jobs; a member who has
+ * Declutter is told their buying and selling chats land here too (owner
+ * 2026-10-28 via the lead; walkthrough shot 45-messages-all-empty-jobs-only).
+ */
+export function mainInboxEmptyBody(declutterOn: boolean): string {
+  return declutterOn
+    ? "Apply to a job, accept a Helpr's offer, or buy or sell on Declutter. Your conversations show up here."
+    : "Apply to a job or accept a Helpr's offer — conversations appear here once they start.";
+}
+
 /** The chips: All, Unread, then the sections (in Customize order). */
 export type InboxFilter = "all" | "unread" | SectionKey;
 

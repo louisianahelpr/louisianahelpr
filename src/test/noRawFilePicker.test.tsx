@@ -9,6 +9,7 @@
  *
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | <PhotoPickButton id={dropId} picked={dropPhoto} onPick={setDropPhoto} /> | <input id={dropId} type="file" accept="image/*" capture="environment" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
  * @mutate src/components/ui/PhotoPickButton.tsx |         className="peer sr-only" |         className="peer"
+ * @mutate src/components/declutter/StopActions.tsx |       <PhotoPickButton id={`${id}-drop`} picked={dropPhoto} onPick={setDropPhoto} /> |       <input id={`${id}-drop`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -22,13 +23,11 @@ const ROOT = resolve(__dirname, "../..");
 
 /**
  * Raw file pickers not yet on PhotoPickButton. Countdown list: never add.
- * StopActions: the train in flight on 2026-10-28 (#3747/#3748) rewrites the label line above each input.
  * DeclutterHandoverViews, SellerDeliveryOrder: other lanes own these files on 2026-10-28.
  * MaintenanceRequestForm (Homes rentals): several photos at once, not a camera step; outside #49.
  */
 // @two-way src/test/noRawFilePicker.test.tsx:the legacy list only shrinks
 const LEGACY = new Set([
-  "src/components/declutter/StopActions.tsx",
   "src/components/declutter/DeclutterHandoverViews.tsx",
   "src/components/declutter/SellerDeliveryOrder.tsx",
   "src/components/rentals/MaintenanceRequestForm.tsx",

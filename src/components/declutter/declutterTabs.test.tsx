@@ -87,10 +87,12 @@ vi.mock("@/hooks/useUserLocation", () => ({
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/components/sections/SectionScreen", () => ({
   // The section's tabs are the Explore header's second row (SectionScreen `tabs`, owner 2026-10-22).
-  SectionScreen: ({ title, children, tabs }: { title: string; children: React.ReactNode; tabs?: React.ReactNode }) => (
+  // Honours globalSearch like the real one (default on).
+  SectionScreen: ({ title, children, tabs, globalSearch = true }: { title: string; children: React.ReactNode; tabs?: React.ReactNode; globalSearch?: boolean }) => (
     <main>
       <h1>{title}</h1>
       {tabs}
+      {globalSearch && <div role="search" data-testid="explore-search-entry" />}
       {children}
     </main>
   ),
@@ -324,6 +326,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=buying");
     expect(await screen.findByRole("heading", { name: /^Your cart/ })).toBeInTheDocument();
+    // Lead 2026-10-28 (shot 05): no "Search all sections" row on a buyer's own lists; Selling keeps it.
+    // @mutate src/components/declutter/DeclutterHomeView.tsx | globalSearch={view !== "buying"} tabs={tabsFor()} | globalSearch tabs={tabsFor()}
+    expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     for (const a of BEFORE_ACTIONS.buying) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const sent = screen.getByRole("region", { name: "Your offers" });
     // A seller's counter waits on the buyer: Accept / Answer with a price / Say no, here.
@@ -341,6 +346,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     everything();
     at("/declutter?view=selling");
     expect(await screen.findByRole("heading", { name: /^Your listings/ })).toBeInTheDocument();
+    expect(screen.getByTestId("explore-search-entry")).toBeInTheDocument();
     for (const a of BEFORE_ACTIONS.selling) expect(screen.getAllByRole(a.role, { name: a.name }).length).toBeGreaterThan(0);
     const onMine = screen.getByRole("region", { name: "Offers on your items" });
     expect(within(onMine).getByRole("button", { name: "Accept" })).toBeInTheDocument();

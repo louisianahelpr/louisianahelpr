@@ -40,26 +40,18 @@ const ROW = "flex w-full items-center gap-3 rounded-2xl border border-border bg-
  * The way in: on Declutter's Selling tab (with the listings, so it shows on
  * the empty state too) and on the Sell an item page. Opens the sheet.
  */
-export function SellItForMeEntry({ compact = false }: { compact?: boolean }) {
+export function SellItForMeEntry({ grouped = false }: { grouped?: boolean }) {
   const declutterOn = useFeature("declutter");
   const [open, setOpen] = useState(false);
   if (!declutterOn) return null;
-  if (compact) {
-    // Board 26: a chip under the Selling list.
-    return (
-      <>
-        <button type="button" onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry" aria-label="Sell it for me: get help photographing and listing your stuff"
-          className="flex min-h-10 items-center rounded-full bg-[hsl(var(--sand))] px-4 text-ds-13 font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          Sell it for me
-        </button>
-        <SellItForMeSheet open={open} onOpenChange={setOpen} />
-      </>
-    );
-  }
+  // grouped: a row inside the Selling tab's "More ways to sell" card (owner 2026-10-28: rows, not loose grey pills),
+  // so the card draws the border and this row only its own padding.
+  const rowClass = grouped
+    ? "flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+    : ROW;
   return (
     <>
-      <button type="button" className={ROW} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">
+      <button type="button" className={rowClass} onClick={() => setOpen(true)} data-testid="sell-it-for-me-entry">
         <HandHelping className="h-5 w-5 shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">
           <span className="block font-semibold text-sm">Sell it for me</span>

@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/DeclutterSellView.tsx |   if (underAge) { |   if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |   if (enabled) return <>{children}</>; |   return <>{children}</>;
- * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   pending_review: "Waiting for a review. We'll send you a notice.", |   pending_review: "pending_review",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
  * @mutate src/components/declutter/DeclutterSellView.tsx | <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} /> | <input type="checkbox" id="sell-tax" className="mt-0.5" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
@@ -226,8 +226,9 @@ describe("Declutter screens", () => {
   it("My listings shows each status in plain words, incl. waiting for a review", async () => {
     state.mine = [ITEM, { ...ITEM, id: "i2", status: "draft", title: "Lamp" }];
     at("/declutter?view=mine", <DeclutterPage />);
-    expect(await screen.findByText("Waiting for a review")).toBeInTheDocument();
-    expect(screen.getByText("Not listed yet")).toBeInTheDocument();
+    // One status line per row (owner 2026-10-28): the status first, then what happens next.
+    expect(await screen.findByText(/^Waiting for a review\./)).toBeInTheDocument();
+    expect(screen.getByText(/^Not listed yet\./)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Finish listing" })).toBeInTheDocument();
     expect(screen.queryByText("pending_review")).toBeNull();
   });

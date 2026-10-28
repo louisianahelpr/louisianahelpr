@@ -13540,6 +13540,19 @@ export type Database = {
         Args: { p_item_id: string }
         Returns: boolean
       }
+      declutter_item_pickup_windows: {
+        Args: { p_item_id: string }
+        Returns: { ends: string; starts: string; weekday: number }[]
+      }
+      declutter_order_pickup_windows: {
+        Args: { p_order_id: string }
+        Returns: {
+          ends: string
+          latest_pickup_at: string
+          starts: string
+          weekday: number
+        }[]
+      }
       declutter_public_item_card: { Args: { p_item_id: string }; Returns: Json }
       declutter_public_photo_path: {
         Args: { p_photo_id: string }

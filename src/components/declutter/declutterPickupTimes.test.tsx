@@ -25,7 +25,7 @@ const day = (name: string) => screen.getByRole("button", { name });
 describe("the pickup times picker (owner 2026-10-28)", () => {
   it("half-hour steps 6 AM to 10 PM, labelled like a clock", () => {
     expect(TIME_STEPS[0]).toBe("06:00");
-    expect(TIME_STEPS.at(-1)).toBe("22:00");
+    expect(TIME_STEPS[TIME_STEPS.length - 1]).toBe("22:00");
     expect(TIME_STEPS).toHaveLength(33);
     expect(timeLabel("09:00")).toBe("9:00 AM");
     expect(timeLabel("12:30")).toBe("12:30 PM");

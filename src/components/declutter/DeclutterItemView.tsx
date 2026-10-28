@@ -45,6 +45,7 @@ import { DeclutterSellerCard } from "./DeclutterSellerCard";
 import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
+import { ItemPickupTimes } from "./DeclutterPickupWindows";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
@@ -219,6 +220,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <h2 id="declutter-pickup" className="text-base font-semibold">Pickup</h2>
             {/* The miles sit once, under the title (board 4). */}
             <p className="text-sm">Pickup in {it.area_label}</p>
+            {/* Deep audit #58: when the seller is around, before anyone buys. */}
+            <ItemPickupTimes itemId={itemId} />
             <p className="text-sm" data-testid="declutter-porch-line">
               {it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}
             </p>

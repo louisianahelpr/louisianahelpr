@@ -64,6 +64,7 @@ import { currentPosition } from "@/lib/declutter/position";
 import { PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
 import { FoldedTimePicker } from "./DeclutterFoldedTime";
+import { PickupSlotPicker } from "./DeclutterPickupWindows";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
@@ -292,11 +293,16 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
 function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking | null }) {
   const qc = useQueryClient();
   const [value, setValue] = useState("");
+  // Deep audit #2: the buyer picks from the seller's own times (day + time chips); the seller's one move stays free.
+  const [slot, setSlot] = useState<string | null>(null);
+  const [moving, setMoving] = useState(false);
   const book = useMutation({
     mutationFn: (iso: string) => bookPickup(order.orderId, iso),
     onSuccess: (r) => {
       toast.success(r.result === "booked" ? "Pickup booked." : "Pickup time changed.");
       setValue("");
+      setSlot(null);
+      setMoving(false);
       invalidate(qc, order.orderId);
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -319,17 +325,24 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
       {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
       {movedAlready ? (
         <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
-      ) : booked ? (
+      ) : booked && order.side === "seller" ? (
         // Deep audit #32: folded behind one button, so a booked card is not two full pickers deep at 390.
         <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
           confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
+      ) : booked && !moving ? (
+        // The buyer's move folds the same way (#32), and opens the seller's own times (#2).
+        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>Move the pickup</button>
       ) : (
       <>
-      <label htmlFor={id} className="block text-xs font-medium">Pick a pickup time</label>
+      <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
-        <DateTimeField id={id} label="Pickup time" value={value} onChange={setValue} />
-        <button type="button" className={primary} disabled={book.isPending || !localInputToIso(value)}
-          onClick={() => { const iso = localInputToIso(value); if (iso) book.mutate(iso); }}>Book</button>
+        <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot}
+          fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}
+            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</button>
+          {booked && <button type="button" className={btn} onClick={() => { setMoving(false); setSlot(null); }}>Cancel</button>}
+        </div>
       </div>
       </>
       )}

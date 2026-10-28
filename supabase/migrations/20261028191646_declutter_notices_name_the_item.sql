@@ -22,6 +22,8 @@
 --      text.
 --   4. declutter_notify_strict (restated from 20261028171944, its newest definition): the message passes
 --      through (3) before the price rule. Everything else (seed rule, kind routing, the INSERT) is verbatim.
+--   5. trg_declutter_orders_a_notice_about: inserting or updating an order records it as (1) does, for the
+--      paths that write the order without locking it (paid, free checkout, the delivery triggers).
 -- Notices only; no money path changes.
 -- Proof: src/test/pglite/declutterNoticesNameTheItem.pglite.mjs (applied 3x; red without this migration).
 -- REPLAY-SAFETY: CREATE OR REPLACE throughout; every object exists on prod and in every earlier world.
@@ -133,3 +135,27 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_notify_strict(uuid, text, text, text, text, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_notify_strict(uuid, text, text, text, text, uuid) TO service_role;
+
+-- 5. A write to an order records it too (lead 2026-10-28, follow-up): the paths that notify without locking
+--    the order (declutter_mark_order_paid's "Buyer paid" / "Payment received", declutter_checkout_free's "It's
+--    yours" / "Free item claimed", and the seller-delivery and Helpr-delivery triggers that fire on the order's
+--    status) update or insert the order row first. AFTER row triggers fire in name order, so this one ("a_")
+--    runs before trg_declutter_orders_delivery_task and trg_declutter_orders_seller_delivery. The party check
+--    in (3) still decides whether the item is named.
+CREATE OR REPLACE FUNCTION public.declutter_orders_notice_about()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  -- Definer: a write by any role records the order; it never fails the write for lack of a grant.
+  PERFORM public.declutter_notice_about(NEW.id);
+  RETURN NULL;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_orders_notice_about() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS trg_declutter_orders_a_notice_about ON public.declutter_orders;
+CREATE TRIGGER trg_declutter_orders_a_notice_about
+  AFTER INSERT OR UPDATE ON public.declutter_orders
+  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about();

@@ -18,16 +18,34 @@
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), true); |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), false);
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |      AND ((o.buyer_id = p_user AND o.seller_id = p_other) OR (o.seller_id = p_user AND o.buyer_id = p_other)); | ;
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, p_link, p_message)), p_link); |           public.declutter_price_words(p_message), p_link);
+// @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   AFTER INSERT OR UPDATE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about(); |   AFTER DELETE ON public.declutter_orders\n  FOR EACH ROW EXECUTE FUNCTION public.declutter_orders_notice_about();
+// @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql | CREATE TRIGGER trg_declutter_orders_a_notice_about | CREATE TRIGGER trg_declutter_orders_z_notice_about
 import { describe, it, expect } from "vitest";
+import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DEFS = effectiveDefs(resolve(__dirname, "../../supabase/migrations"));
 const flat = (fn: string) => blankSqlComments(DEFS.get(fn)?.stmt ?? "").replace(/\s+/g, " ");
+const MIG_DIR = resolve(__dirname, "../../supabase/migrations");
+
+/** The AFTER row triggers the migrations leave on public.declutter_orders: name -> its event text. */
+function orderAfterTriggers(): Map<string, string> {
+  const live = new Map<string, string>();
+  for (const f of readdirSync(MIG_DIR).filter((x) => x.endsWith(".sql")).sort()) {
+    const sql = blankSqlComments(readFileSync(resolve(MIG_DIR, f), "utf8")).replace(/\s+/g, " ");
+    for (const m of sql.matchAll(/DROP TRIGGER IF EXISTS (\w+) ON public\.declutter_orders|CREATE TRIGGER (\w+) (AFTER [^;]*?) ON public\.declutter_orders/g)) {
+      if (m[1]) live.delete(m[1]);
+      else live.set(m[2], m[3]);
+    }
+  }
+  return live;
+}
 
 describe("Declutter notices name the item, and only the right one", () => {
   const fns = ["declutter_lock_order", "declutter_notice_about", "declutter_notice_names_item", "declutter_notify_strict"];
+  // (declutter_orders_notice_about, the trigger function, is read in its own test below.)
 
   it("reads the four definitions (floor)", () => {
     const read = fns.filter((f) => flat(f).length > 100);
@@ -47,6 +65,16 @@ describe("Declutter notices name the item, and only the right one", () => {
     expect(b).toMatch(/p_other IS NULL OR p_link IS NULL OR p_link NOT LIKE '\/declutter%'/);
     // Never twice: a message that already names the item is left alone.
     expect(b).toContain("position(v_first IN COALESCE(p_message, '')) > 0 THEN RETURN p_message;");
+  });
+
+  it("a write to an order records it, before any other AFTER trigger on the order can notify", () => {
+    const trg = orderAfterTriggers();
+    expect(trg.size).toBeGreaterThan(2);
+    expect(trg.get("trg_declutter_orders_a_notice_about")).toBe("AFTER INSERT OR UPDATE");
+    expect(flat("declutter_orders_notice_about")).toContain("PERFORM public.declutter_notice_about(NEW.id);");
+    // Postgres fires same-event row triggers in name order: ours must come first.
+    const before = [...trg.keys()].filter((n) => n !== "trg_declutter_orders_a_notice_about" && n < "trg_declutter_orders_a_notice_about");
+    expect(before).toEqual([]);
   });
 
   it("the one writer passes every message through it", () => {

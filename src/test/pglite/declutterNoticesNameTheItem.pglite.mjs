@@ -29,6 +29,8 @@ const SETUP_FEE_FILE = "20261026154738_declutter_setup_fee_once.sql";
 const REFUND_141D_FILE = "20261026155251_declutter_refund_requests.sql";
 const SELLER_DELIVERY_FILE = "20261027153244_declutter_seller_delivery.sql";
 const REMINDERS_FILE = "20261027205028_declutter_pickup_reminders.sql";
+const OWED_FILE = "20261027163240_payout_setup_only_when_owed.sql";
+const FREE_FILE = "20261027170717_declutter_free_section.sql";
 const BEFORE = [
   "20261017055500_declutter_refund_hand_settle.sql",
   "20261017055502_declutter_handover_private_bucket.sql",
@@ -42,7 +44,7 @@ const BEFORE = [
 ];
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
-const { SELLER, SELLER2, BUYER, BUYER2, OUTSIDER } = USERS;
+const { SELLER, SELLER2, NOPAYOUT, BUYER, BUYER2, BUYER3, OUTSIDER } = USERS;
 const skip = process.env.NEW_MIGRATION === "skip";
 if (skip) console.log("NEW_MIGRATION=skip: running WITHOUT the new migration (expect FAILs)");
 
@@ -109,6 +111,37 @@ for (const sql of stmts) await db.exec(sql);
 await db.exec(`UPDATE public.profiles SET onboarding_fee_paid = true`);
 await db.exec(CARDS_SQL);
 await db.exec(readFileSync(`${MIG_DIR}${SELLER_DELIVERY_FILE}`, "utf8"));
+// The free section (claims, declutter_checkout_free) on its own base, as declutterFreeSection.pglite.mjs builds it:
+// 20261027163240's Declutter listing bodies, with the tables its payout gate reads stubbed in prod's shape.
+{
+  const owed = readFileSync(`${MIG_DIR}${OWED_FILE}`, "utf8");
+  const fnSql = (name) => {
+    const m = [...owed.matchAll(new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${name}\\s*\\(`, "gi"))].at(-1);
+    const open = /\bAS\s+(\$\w*\$)/i.exec(owed.slice(m.index));
+    const close = owed.indexOf(open[1], m.index + open.index + open[0].length);
+    return owed.slice(m.index, owed.indexOf(";", close) + 1);
+  };
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), helper_id uuid, payment_status text);
+    CREATE TABLE IF NOT EXISTS public.group_job_helpers (job_id uuid, helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.job_accept_pending (job_id uuid, helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.cancellation_fee_transfers (helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.crew_cancellation_fee_shares (helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.crew_block_fees (helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.payout_transfers (helper_id uuid);
+    CREATE TABLE IF NOT EXISTS public.shop_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, status text, captured_at timestamptz);
+    CREATE TABLE IF NOT EXISTS public.shop_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid);
+    CREATE OR REPLACE FUNCTION public.job_payment_is_funded(s text) RETURNS boolean LANGUAGE sql IMMUTABLE
+      AS $$ SELECT s IN ('escrow', 'payout_pending') $$;`);
+  for (const n of ["declutter_publish_item", "declutter_relist_listing", "payout_setup_hire_allowed"]) await db.exec(fnSql(n));
+}
+// The free checkout names the taker to the giver with member_display_name (20261021131322, on prod).
+await db.exec(newestBefore("member_display_name", NEW_FILE));
+await db.exec(readFileSync(`${MIG_DIR}${FREE_FILE}`, "utf8"));
+// Prod has seed_hidden_for (20261007033530; it reads the launch switch); the chain lacks it: stubbed "nobody hidden",
+// as declutterFreeSection.pglite.mjs does.
+await db.exec(`CREATE OR REPLACE FUNCTION public.seed_hidden_for(p_user_id uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
+  REVOKE ALL ON FUNCTION public.seed_hidden_for(uuid) FROM PUBLIC, anon, authenticated;`);
 await db.exec(`CREATE SCHEMA IF NOT EXISTS net; CREATE SCHEMA IF NOT EXISTS vault;
   CREATE TABLE IF NOT EXISTS net.calls (id serial PRIMARY KEY, url text, body jsonb);
   CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb DEFAULT '{}', body jsonb DEFAULT '{}', timeout_milliseconds integer DEFAULT 5000)
@@ -162,10 +195,10 @@ async function paidOrder(tag, buyer, seller, items, handover = "pickup_home") {
   await svc(`SELECT public.declutter_mark_order_paid('${o?.order_id}', 'pi_ni_${tag}', ${o?.total_cents}, now(), 150)`);
   return o?.order_id;
 }
-const msgs = async (uid, title) => (await svc(`SELECT message FROM public.notifications WHERE user_id = '${uid}' AND title = '${title}'
-                                                ORDER BY created_at, id`)).map((r) => r.message);
+const msgs = async (uid, title) => (await svc(`SELECT message FROM public.notifications WHERE user_id = '${uid}' AND title = '${title.replace(/'/g, "''")}'
+                                                ORDER BY created_at, id`)).map?.((r) => r.message) ?? [];
 const suppressed = async (uid, title) => Number(one(await svc(`SELECT count(*) FROM public.notification_dedupe_suppressions
-                                                                 WHERE user_id = '${uid}' AND title = '${title}'`)));
+                                                                 WHERE user_id = '${uid}' AND title = '${title.replace(/'/g, "''")}'`)));
 const tomorrowNoon = `(((now() AT TIME ZONE 'America/Chicago')::date + 1 + time '12:00') AT TIME ZONE 'America/Chicago')`;
 
 // ---------------------------------------------------------------------------
@@ -238,6 +271,47 @@ ok(await last(BUYER, "Probe two items") === "Red kettle and 1 more: Same words e
 await svc(`UPDATE public.declutter_cart_items SET item_id = NULL WHERE order_id = '${A}'`);
 await tx(`PERFORM public.declutter_lock_order('${A}'); ${note(BUYER, "Probe deleted item", "/declutter?tab=buying", SELLER)}`);
 ok(await last(BUYER, "Probe deleted item") === "Same words every time.", "the item was deleted: unchanged");
+
+// G. Paths that never lock the order: the order row's own write records it (trg_declutter_orders_a_notice_about).
+// G1. declutter_mark_order_paid (the webhook): A and B were paid above, between the same two people.
+const buyerPaid = await msgs(SELLER, "Buyer paid");
+ok(buyerPaid.length === 2 && buyerPaid.some((m) => m.startsWith("Brass lamp: The buyer paid")) && buyerPaid.some((m) => m.startsWith("Oak chair: The buyer paid")),
+  `"Buyer paid" names each order's item (${JSON.stringify(buyerPaid)})`);
+const received = await msgs(BUYER, "Payment received");
+ok(received.length >= 2 && received.some((m) => m.startsWith("Brass lamp: You paid")) && received.some((m) => m.startsWith("Oak chair: You paid")),
+  `"Payment received" too (${JSON.stringify(received)})`);
+// G2. declutter_checkout_free: two free claims from the same giver, checked out one after the other.
+await db.exec(`INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
+  SELECT '${NOPAYOUT}'::uuid, d, '00:00', '23:59' FROM generate_series(0, 6) d ON CONFLICT DO NOTHING;`);
+for (const [n, title] of [[11, "Free stool"], [12, "Free shelf"]]) {
+  await db.exec(liveItemSql({ id: I(n), seller: NOPAYOUT, title, price: 0, floor: 0 }));
+  const c = await me(BUYER3, `SELECT public.declutter_claim_free('${I(n)}') AS id`);
+  const f = await me(BUYER3, `SELECT public.declutter_checkout_free('${NOPAYOUT}', 'pickup_home') AS id`);
+  ok(Array.isArray(c) && Array.isArray(f), `setup: "${title}" claimed and checked out${Array.isArray(f) ? "" : `: ${f?.error ?? c?.error}`}`);
+}
+const yours = await msgs(BUYER3, "It's yours");
+ok(yours.length === 2 && yours[0]?.startsWith("Free stool: ") && yours[1]?.startsWith("Free shelf: "),
+  `both "It's yours" arrive, each naming its item (${JSON.stringify(yours)})`);
+const claimed = await msgs(NOPAYOUT, "Free item claimed");
+ok(claimed.length === 2 && claimed[0]?.startsWith("Free stool: ") && claimed[1]?.startsWith("Free shelf: "),
+  `both "Free item claimed" arrive, each naming its item (${JSON.stringify(claimed)})`);
+// G3. The seller-delivery trigger (fires on the order's status): "Delivery booked" names the item.
+await me(SELLER2, `SELECT public.declutter_set_seller_delivery(true, 2000, 10)`);
+const windows = JSON.stringify([0, 1, 2, 3, 4, 5, 6].map((d) => ({ weekday: d, starts: "09:00", ends: "17:00" })));
+await me(SELLER2, `SELECT public.declutter_set_delivery_schedule('${windows}'::jsonb, NULL)`);
+await db.exec(liveItemSql({ id: I(21), seller: SELLER2, title: "Walnut desk", price: 5000, floor: 100 }));
+await me(BUYER3, `SELECT public.declutter_buy_now('${I(21)}', 5000)`);
+await svc(`SELECT public.declutter_set_delivery_dropoff('${BUYER3}', '${SELLER2}', '500 Drop Rd, Baton Rouge, LA 70805', 'North Baton Rouge', 30.496234, -91.154321)`);
+const sdOffer = one(await me(BUYER3, `SELECT public.declutter_seller_delivery_offer('${SELLER2}')`));
+const sdOrder = (await me(BUYER3, `SELECT * FROM public.declutter_start_checkout('${SELLER2}', 'seller_delivery', '${sdOffer?.slots?.[0]}', 'leave')`))?.[0];
+await svc(`SELECT public.declutter_mark_order_paid('${sdOrder?.order_id}', 'pi_ni_sd', ${sdOrder?.total_cents}, now(), 150)`);
+const sdSeller = await msgs(SELLER2, "Delivery booked");
+const sdBuyer = await msgs(BUYER3, "Delivery booked");
+ok(sdSeller.length === 1 && sdSeller[0].startsWith("Walnut desk: Deliver to ") && sdBuyer.length === 1 && sdBuyer[0].startsWith("Walnut desk: The seller delivers"),
+  `the seller-delivery trigger's "Delivery booked" names the item, both sides (${JSON.stringify([sdSeller, sdBuyer, sdOffer?.available ?? sdOffer])})`);
+// G4. A member write to an order (if one were ever allowed) is never failed by the recording.
+ok(one(await svc(`SELECT prosecdef FROM pg_proc WHERE proname = 'declutter_orders_notice_about'`)) === true,
+  "the order trigger's function is a definer (it never fails a write for lack of a grant)");
 
 // F. Grants: the helpers are internal.
 for (const fn of ["declutter_notice_about(uuid)", "declutter_notice_names_item(uuid, uuid, text, text)"]) {

@@ -10,11 +10,13 @@
  * A checkout still in the cart is the buyer's to pay, so it counts under Needs you. A read that has not answered yet
  * leaves its fact unknown (false): an order is never filed further along than its rows show.
  */
+import { useEffect } from "react";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyBookings, fetchMyHandover, type MyHandover } from "@/lib/declutter/handover";
 import { fetchSellerDeliveryBooking, slotLabel, type SellerDeliveryBooking } from "@/lib/declutter/sellerDelivery";
 import { fetchTaskView, type TaskView } from "@/lib/helprTasks/api";
+import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice } from "@/lib/declutter/distance";
 import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
@@ -149,6 +151,13 @@ export function useBuyingTracker(): BuyingTracker {
   const tasks = useQueries({
     queries: helpr.map((o) => ({ queryKey: ["helpr-tasks", "view", o.taskId], queryFn: () => fetchTaskView(o.taskId as string), meta: { persist: false } })),
   });
+  // A2-7: "Raise the pay" waited for Details, then for the delivery card's code, then for its own read. Both start
+  // here, with the list, so opening Details finds them ready.
+  useQueries({ queries: helpr.map((o) => deliveryRaiseQuery(o.orderId)) });
+  const hasHelpr = helpr.length > 0;
+  useEffect(() => {
+    if (hasHelpr) void import("./DeclutterDeliveryViews");
+  }, [hasHelpr]);
   const views = new Map<string, BuyerOrderView>();
   const counts: Record<OrderBucket, number> = { needs_you: 0, waiting: 0, upcoming: 0, done: 0, cancelled: 0 };
   for (const o of orders) {

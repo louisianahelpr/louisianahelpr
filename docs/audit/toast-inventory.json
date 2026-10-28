@@ -948,7 +948,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 234,
+      "line": 235,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -958,7 +958,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 257,
+      "line": 258,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -968,7 +968,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 352,
+      "line": 353,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -978,7 +978,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 388,
+      "line": 389,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -988,7 +988,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 390,
+      "line": 391,
       "kind": "toast.warning",
       "title": {
         "form": "template",
@@ -998,7 +998,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 392,
+      "line": 393,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1008,7 +1008,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 399,
+      "line": 400,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6600,7 +6600,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 565,
+      "line": 560,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6610,7 +6610,7 @@
     },
     {
       "file": "src/components/messages/ConversationList.tsx",
-      "line": 571,
+      "line": 566,
       "kind": "toast",
       "title": {
         "form": "template",

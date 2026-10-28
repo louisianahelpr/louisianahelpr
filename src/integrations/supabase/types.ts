@@ -14525,6 +14525,7 @@ export type Database = {
       }
       declutter_pause_listing: { Args: { p_item_id: string }; Returns: string }
       declutter_relist_listing: { Args: { p_item_id: string }; Returns: string }
+      declutter_reopen_listing: { Args: { p_item_id: string }; Returns: string }
       declutter_set_auto_free: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }

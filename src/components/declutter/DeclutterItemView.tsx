@@ -49,6 +49,7 @@ import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
 import { shareListing } from "./DeclutterShareCard";
+import { ReopenListingButton } from "./DeclutterTakenDown";
 
 /** One label / value row of the details list. */
 function Detail({ label, children }: { label: string; children: ReactNode }) {
@@ -190,6 +191,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <DeclutterNotice title={`Your listing: ${STATUS_LABEL[it.status]}`}>
               {STATUS_HELP[it.status] ?? null}
               {it.status === "rejected" && review.data?.review_note ? <p className="mt-1">Reason: {review.data.review_note}</p> : null}
+              {/* SE-1 (deep audit 2026-10-28): a taken-down listing can come back, from its own page too. */}
+              {it.status === "withdrawn" && <div className="mt-3"><ReopenListingButton itemId={it.id} /></div>}
             </DeclutterNotice>
           )}
 

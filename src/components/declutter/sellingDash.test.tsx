@@ -20,12 +20,16 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     ? "flex min-h-14 w-full items-center | ? "rounded-full flex min-h-14 w-full items-center
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} />} |
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn") | (i) => i.status === "never")
+ * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
+const reopenSpy = vi.hoisted(() => vi.fn(async (_id: string) => "draft"));
 const state = {
   mine: [] as unknown[],
   offers: [] as unknown[],
@@ -102,6 +106,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyCart: async () => state.cart,
   fetchMyPickupWindows: async () => [{ weekday: 6, starts_local: "09:00:00", ends_local: "12:00:00" }],
   setPickupWindows: async () => 1,
+  reopenListing: (id: string) => reopenSpy(id),
   respondOffer: async () => "declined",
   sellerCancelSale: async () => 1,
   startCheckoutPayment: async () => ({ url: "https://checkout.stripe.test/pay", paid: false }),
@@ -120,6 +125,7 @@ function at(path: string) {
       <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/declutter" element={<DeclutterPage />} />
+          <Route path="/declutter/sell" element={<p>Sell page</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -229,5 +235,50 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
       const list = screen.getByRole("region", { name });
       expect(list.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
+  });
+});
+
+/**
+ * Taken down (owner 2026-10-28, shots 48-49; deep audit SE-1): a listing the seller took down never vanishes with no
+ * history. Every status a seller's listing can sit in shows somewhere on Selling (none silently filtered out), and a
+ * taken-down one carries Relist (declutter_reopen_listing, 20261028180400; PGlite proof
+ * src/test/pglite/declutterReopenListing.pglite.mjs).
+ */
+describe("Selling tab: Taken down, with Relist", () => {
+  const TAKEN = { ...ITEM, id: "i9", status: "withdrawn", title: "Old radio", current_price_cents: 3500 };
+  beforeEach(() => {
+    state.offers = [];
+    state.cart = [];
+    reopenSpy.mockClear();
+  });
+
+  it("a taken-down listing shows under its own 'Taken down' chip and group, and Relist reopens it in the sell flow", async () => {
+    state.mine = [ITEM, TAKEN];
+    const { container } = at("/declutter?tab=selling");
+    const group = await screen.findByRole("region", { name: "Taken down" });
+    expect(within(group).getByText("Old radio")).toBeInTheDocument();
+    const chip = container.querySelector('[data-status-box="taken"]') as HTMLElement;
+    expect(chip).not.toBeNull();
+    expect(chip.textContent).toContain("1");
+    fireEvent.click(within(group).getByRole("button", { name: "Relist" }));
+    await waitFor(() => expect(reopenSpy).toHaveBeenCalledWith("i9"));
+    expect(await screen.findByText("Sell page")).toBeInTheDocument();
+  });
+
+  it("every status a seller's own listing can hold is shown on Selling (nothing vanishes)", async () => {
+    // The statuses a seller's listing can sit in without a sale (sold / completed show as orders under Sold).
+    const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "withdrawn"] as const;
+    state.mine = statuses.map((s, n) => ({ ...ITEM, id: `s${n}`, status: s, title: `Item ${s}` }));
+    at("/declutter?tab=selling");
+    expect(statuses.length).toBeGreaterThan(5);
+    for (const s of statuses) expect(await screen.findByText(`Item ${s}`)).toBeInTheDocument();
+  });
+
+  it("no 'Taken down' chip or group while nothing is taken down", async () => {
+    state.mine = [ITEM];
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Oak rocking chair");
+    expect(container.querySelector('[data-status-box="taken"]')).toBeNull();
+    expect(screen.queryByRole("region", { name: "Taken down" })).toBeNull();
   });
 });

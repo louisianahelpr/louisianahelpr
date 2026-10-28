@@ -31,6 +31,7 @@ export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {
     "Someone from Louisiana Helpr checks a new seller's first 3 listings, and any listing the photo check flags. You'll get a notice when it's done.",
   rejected: "This listing wasn't approved. The reason is below.",
   paused: "Hidden from buyers. Relist it any time.",
+  withdrawn: "Buyers can't see it. Relist it to put it up again with new photos.",
 };
 
 export const SIZE_LABEL: Record<DeliverySize, string> = {

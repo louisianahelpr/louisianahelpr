@@ -502,6 +502,11 @@ export async function relistListing(itemId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_relist_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_relist_listing", e)) as string;
 }
 
+/** A taken-down listing back to a draft (20261028180400): its words and price are kept, its photos were deleted at take-down. */
+export async function reopenListing(itemId: string): Promise<string> {
+  return rpcData(await supabase.rpc("declutter_reopen_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_reopen_listing", e)) as string;
+}
+
 export async function attestItem(itemId: string): Promise<void> {
   rpcData(
     await supabase.rpc("declutter_attest_item", {

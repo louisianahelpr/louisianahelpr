@@ -51,7 +51,7 @@ export function QuotePriceStepper({
             inputMode="numeric"
             autoComplete="off"
             aria-label="Your price in whole dollars"
-            className="w-[4.5ch] bg-transparent text-center text-ds-40 font-bold tabular-nums text-[hsl(var(--burnt-sienna))] outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-sm"
+            className="w-[4.5ch] bg-transparent text-center text-ds-40 font-bold tabular-nums text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-sm"
             placeholder="0"
             value={value}
             onChange={(e) => onChange(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}

@@ -18,7 +18,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const state = { on: true, fail: "" as string, jobs: [] as unknown[], fetches: 0, underAge: false, explained: [] as string[] };
+const state = { on: true, fail: "" as string, jobs: [] as unknown[], details: undefined as unknown, fetches: 0, underAge: false, explained: [] as string[] };
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.on }));
 // The real hook reads the signed-in birthday; the panel only uses its three outputs.
@@ -37,7 +37,7 @@ vi.mock("@/lib/declutter/setupHelpr", async (orig) => {
       state.fetches++;
       if (state.fail === "closed") throw Object.assign(new Error("item_not_found"), { userMessage: "This item isn't available." });
       if (state.fail === "down") throw Object.assign(new Error("Failed to fetch"), { userMessage: "We couldn't reach Louisiana Helpr. Try again." });
-      return { order_id: orderId, status: "paid", handover: "pickup_home", items: ["Oak bookshelf"], pickup_at: null, jobs: state.jobs };
+      return { order_id: orderId, status: "paid", handover: "pickup_home", items: ["Oak bookshelf"], item_details: state.details, pickup_at: null, jobs: state.jobs };
     },
   };
 });
@@ -71,6 +71,7 @@ function showRouted() {
 
 describe("Declutter Add a Helpr panel", () => {
   beforeEach(() => {
+    state.details = undefined;
     state.on = true;
     state.fail = "";
     state.jobs = [];
@@ -109,6 +110,22 @@ describe("Declutter Add a Helpr panel", () => {
     await new Promise((r) => setTimeout(r, 20));
     expect(container.textContent).toBe("");
     expect(state.fetches).toBe(0);
+  });
+
+  // Audit #27: "Put it together" was offered on a mug. Only the choices the items can need show.
+  // @mutate src/components/declutter/DeclutterAddHelpr.tsx | const kinds = setupKindsFor(info.data.item_details); | const kinds = setupKindsFor(undefined);
+  it("a mug gets no Helpr panel; a bookshelf gets put together and hang, not set up", async () => {
+    state.details = [{ title: "Blue mug", category: "kitchen", delivery_size: "small" }];
+    const mug = show();
+    await waitFor(() => expect(state.fetches).toBeGreaterThan(0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByRole("region", { name: "Add a Helpr" })).toBeNull();
+    mug.unmount();
+    state.details = [{ title: "Oak bookshelf", category: "furniture", delivery_size: "large" }];
+    show();
+    expect(await screen.findByRole("link", { name: "Put it together" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Hang it on the wall" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Set it up" })).toBeNull();
   });
 
   it("offers three one-tap choices, each opening Post a job for this order", async () => {

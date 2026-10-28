@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { JOB_STATUS_LABELS, type JobStatus } from "@/lib/statusLabels";
-import { fetchSetupHelpr, isBookedSetupJob, SETUP_KIND_INFO, SETUP_KINDS } from "@/lib/declutter/setupHelpr";
+import { fetchSetupHelpr, isBookedSetupJob, SETUP_KIND_INFO, setupKindsFor } from "@/lib/declutter/setupHelpr";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ErrorState } from "@/components/ui/ErrorState";
 
@@ -35,6 +35,9 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
   }
   if (!info.data) return null;
   const booked = info.data.jobs.filter(isBookedSetupJob);
+  // Only the choices these items can need (audit #27: "Put it together" on a mug); none and nothing booked = no panel.
+  const kinds = setupKindsFor(info.data.item_details);
+  if (kinds.length === 0 && booked.length === 0) return null;
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" aria-label="Add a Helpr">
       <p className="text-sm font-semibold">Need a hand with it?</p>
@@ -48,22 +51,26 @@ export function AddHelprPanel({ orderId }: { orderId: string }) {
           ))}
         </ul>
       )}
-      <p className="text-sm text-muted-foreground">
-        Book a Helpr to come to your place. You set the price and pay like any job.
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {SETUP_KINDS.map((k) => (
-          <Link
-            key={k}
-            to={`/post-job?declutterOrder=${encodeURIComponent(orderId)}&help=${k}`}
-            className={btn}
-            {...gatedProps("post")}
-            onClick={(e) => { if (underAge) { e.preventDefault(); explain("post"); } }}
-          >
-            {SETUP_KIND_INFO[k].button}
-          </Link>
-        ))}
-      </div>
+      {kinds.length > 0 && (
+        <>
+        <p className="text-sm text-muted-foreground">
+          Book a Helpr to come to your place. You set the price and pay like any job.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {kinds.map((k) => (
+            <Link
+              key={k}
+              to={`/post-job?declutterOrder=${encodeURIComponent(orderId)}&help=${k}`}
+              className={btn}
+              {...gatedProps("post")}
+              onClick={(e) => { if (underAge) { e.preventDefault(); explain("post"); } }}
+            >
+              {SETUP_KIND_INFO[k].button}
+            </Link>
+          ))}
+        </div>
+        </>
+      )}
     </section>
   );
 }

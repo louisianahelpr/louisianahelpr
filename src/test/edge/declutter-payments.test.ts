@@ -92,7 +92,7 @@ beforeEach(() => {
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
-  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string> } = {}) {
+  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string>; sellerEmail?: string } = {}) {
     env();
     const fn = await loadEdgeFunction("stripe-webhook");
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -110,7 +110,8 @@ describe("stripe-webhook: Declutter order paid", () => {
       id: "pi_dc", latest_charge: { created: opts.chargedAt, balance_transaction: { fee: opts.fee === undefined ? 163 : opts.fee } },
     });
     scenario.rpc.declutter_mark_order_paid = answer;
-    scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }] };
+    scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }],
+      ...(opts.sellerEmail ? { eqOverrides: [{ column: "user_id", value: SELLER, result: { rows: [{ email: opts.sellerEmail, user_id: SELLER }] } }] } : {}) };
     scenario.reads.declutter_orders = { rows: [opts.orderRow ?? { buyer_id: BUYER, seller_id: SELLER }] };
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     return res;
@@ -204,6 +205,35 @@ describe("stripe-webhook: Declutter order paid", () => {
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
     expect(queuedEmails.map((e) => e.templateName)).toEqual(["declutter_receipt"]);
     expect(queuedEmails[0].to).toBe("buyer@test.dev");
+  });
+
+  // Deep audit #57 / audit 2 SH2-3 (A2-3): the seller is emailed when the buyer pays, once, with no fee words.
+  // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep); |
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       subject: `You sold ${items}`, |       subject: "You sold an item",
+  // @mutate supabase/functions/_shared/declutterSellerEmail.ts |       html: `<p>${escapeHtml(body)}</p><p><a href="${link}">Open Selling</a></p>`, |       html: `<p>${body}</p><p><a href="${link}">Open Selling</a></p>`,
+  it("the seller is emailed \"You sold ...\" when the buyer pays, at the seller's own address, naming the item and price", async () => {
+    scenario.rpc.declutter_order_items_named = '"Lamp <b>"';
+    const res = await deliver({ result: "paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });
+    expect(res.status).toBe(200);
+    expect(queuedEmails.map((e) => e.templateName)).toEqual(["declutter_receipt", "declutter_sold"]);
+    const sold = queuedEmails[1] as Record<string, string>;
+    expect(sold.to).toBe("seller@test.dev");
+    expect(sold.subject).toBe('You sold "Lamp <b>"');
+    expect(sold.text).toMatch(/^You sold "Lamp <b>" for \$30\.00\. The buyer has paid\..*you get paid after the handover\./);
+    expect(sold.html).toContain("&quot;Lamp &lt;b&gt;&quot;");
+    expect(sold.html).not.toContain("<b>");
+    expect(rpcs("declutter_order_items_named")[0]?.args).toEqual({ p_order_id: ORDER });
+    expect(JSON.stringify(sold)).not.toMatch(/fee|%/i);
+  });
+  it("a redelivered payment (already_paid) emails the seller nothing", async () => {
+    await deliver({ result: "already_paid" }, { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });
+    expect(queuedEmails.filter((e) => e.templateName === "declutter_sold")).toHaveLength(0);
+  });
+  it("a payment that is refunded (the sale did not stand) emails the seller nothing", async () => {
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_x", status: "succeeded" });
+    await deliver({ result: "refund", refund_id: "rf-1", reason: "order_closed", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending" },
+      { orderRow: { buyer_id: BUYER, seller_id: SELLER, items_cents: 3000 }, sellerEmail: "seller@test.dev" });
+    expect(queuedEmails.filter((e) => e.templateName === "declutter_sold")).toHaveLength(0);
   });
 
   it("an unreadable card fee is sent as null (the SQL estimates it), never as a guess", async () => {

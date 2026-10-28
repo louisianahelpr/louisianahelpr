@@ -22,6 +22,7 @@
  *      sent with stripe.transfers.create to the seller's Connect account,
  *      funded by the order's own charge (source_transaction), idempotency key
  *      `declutter-payout-<row id>`, and recorded with declutter_payout_executed.
+ *      The seller is then emailed "Your payout is on its way" (_shared/declutterSellerEmail.ts).
  *   3. HELPR PAYOUTS (slice 5, Helpr delivery; rows 42-43)
  *      helpr_task_payouts_due(): a Helpr's pay for a confirmed delivery (the
  *      delivery fee minus jobs' flat 5% + 70c, computed in SQL). Same shape as
@@ -101,6 +102,7 @@ import { syncConnectGate } from "../_shared/connectGateSync.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { queueEmail } from "../_shared/resend.ts";
+import { emailSeller } from "../_shared/declutterSellerEmail.ts";
 import { getAppUrl } from "../_shared/appUrl.ts";
 import { createStripeModeResolver, isPartyRefusal, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
 
@@ -1066,6 +1068,10 @@ serve(async (req) => {
       if (existing) out.payouts_reconciled++;
       else out.payouts_sent++;
       await clearWait("declutter", p.payout_id);
+      // Deep audit #57: "Your payout is on its way", once the transfer is RECORDED (a reconciled row was never
+      // recorded, so never emailed; a recorded row is not offered again).
+      await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
+        (step, detail) => console.log(JSON.stringify({ event: "declutter_seller_email", step, ...detail })));
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;

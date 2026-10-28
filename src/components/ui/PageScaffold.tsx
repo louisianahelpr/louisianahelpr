@@ -181,7 +181,10 @@ export function PageScaffold({
         (className ? ` ${className}` : "")
       }
     >
-      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pt-[var(--shell-gap)] lg:pt-5 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* Under the desktop bar the gap is the bar's 8px plus the 4px a SectionScreen header puts over its tabs, 12px
+          (src/lib/desktopBar.ts: Jobs' tabs row level with the rail's Create, like the other sections'); with no
+          bar (a signed-out desktop page) it keeps its 20px. */}
+      <div className={`container mx-auto px-5 lg:px-6 xl:px-6 pt-[var(--shell-gap)] ${headerInBar ? "lg:pt-3" : "lg:pt-5"} pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         <div
           className={`w-full ${columnWidth} mx-auto flex-1 min-h-0 flex flex-col gap-[var(--shell-gap)] lg:gap-4 overflow-hidden`}
         >

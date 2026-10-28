@@ -1776,7 +1776,7 @@ html.web-desktop {
      therefore the bar — is actually showing, so a page without them is not
      left with a phantom 3.5rem of dead space at the top. */
   html.web-desktop.desktop-rail:not(.app-shell) #root {
-    padding-top: 3.5rem;
+    padding-top: var(--desktop-bar-h);
   }
 }
 
@@ -2039,6 +2039,9 @@ body[data-scroll-locked] .offline-banner {
    (rendered gaps, every catalog route) + src/test/shellSpacingTokens.test.ts. */
 :root {
   --shell-gap: 0.75rem;
+  /* The desktop website's top bar (DesktopTopNav): 14px + its 56px row, so its row is level with the rail logo.
+     MUST equal DESKTOP_BAR_H in src/lib/desktopBar.ts (src/test/desktopHeadLevelWithRail.test.ts). */
+  --desktop-bar-h: 70px;
   --public-nav-h: 3.5rem;
 }
 @media (min-width: 1024px) {

@@ -11,7 +11,7 @@
  * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx |         {/* No category rail: |         <span className={JOB_CARD_RAIL} />\n        {/* No category rail:
  * @mutate src/components/job/JobCategoryTab.tsx | className={`job-cat-label inline-flex | className={`job-cat-label bg-primary inline-flex
  * @mutate src/main.tsx | installLargeTitles();\n |
- * @mutate src/components/dashboard/FilterSheet.tsx |         floor={!webDesktop} |         floor={false}
+ * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>} |       {renderHeading && <h1 className="sr-only">{headingTitle}</h1>}<CategoryChipRow selectedCategory={null} setSelectedCategory={() => {}} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (mine.isLoading) return <ListingsSkeleton />; |   if (mine.isLoading) return <p role="status">Loading your listings…</p>;
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
@@ -78,8 +78,8 @@ describe("design tweaks (owner 2026-10-18)", () => {
   });
 
   it("T6: Filters opens as a slide-up sheet with a grab handle below desktop web", () => {
-    // Desktop web: the centred 520px modal (lead review of board 24, 2026-10-20), not the floor sheet.
-    expect(code("src/components/dashboard/FilterSheet.tsx")).toMatch(/side="bottom"\s+floor=\{!webDesktop\}/);
+    // Desktop web: the small drop-down under the Filters button (owner 2026-10-28; filterDropdownOnDesktop.test.tsx).
+    expect(code("src/components/dashboard/FilterSheet.tsx")).toMatch(/side="bottom"\s+floor\s/);
     expect(code("src/components/ui/sheet.tsx")).toMatch(/isFloor && <div aria-hidden className="sheet-grab-handle" \/>/);
     expect(rule(".sheet-floor")).toMatch(/bottom:\s*0/);
   });

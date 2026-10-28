@@ -26,17 +26,25 @@ export function FilterSheetFooter({
   onDone,
   resultCount,
   resultNoun,
+  compact = false,
 }: {
   activeFilterCount: number;
   onClearAll?: () => void;
   onDone: () => void;
   resultCount?: number | null;
   resultNoun: readonly [string, string];
+  /** The desktop drop-down's slim footer: a small "Show N" on the right, on
+   *  the panel's own card tone (FilterDropdown). */
+  compact?: boolean;
 }) {
   return (
     <div
       data-testid="filter-sheet-footer"
-      className="sticky bottom-0 z-10 shrink-0 flex items-center justify-between gap-4 px-5 pt-3 pb-[max(0.75rem,var(--safe-area-bottom,0px))] border-t border-[hsl(var(--bark)/0.12)] bg-premium-page"
+      className={
+        compact
+          ? "sticky bottom-0 z-10 shrink-0 flex items-center justify-between gap-3 px-4 py-2.5 border-t border-[hsl(var(--bark)/0.10)] bg-[hsl(var(--popover))]"
+          : "sticky bottom-0 z-10 shrink-0 flex items-center justify-between gap-4 px-5 pt-3 pb-[max(0.75rem,var(--safe-area-bottom,0px))] border-t border-[hsl(var(--bark)/0.12)] bg-premium-page"
+      }
     >
       {onClearAll ? (
         <button
@@ -46,7 +54,7 @@ export function FilterSheetFooter({
             hapticLight();
             onClearAll();
           }}
-          className="min-h-11 px-1 text-ds-14 font-bold btn-press disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-md"
+          className={`${compact ? "min-h-9 text-ds-13" : "min-h-11 text-ds-14"} px-1 font-bold btn-press disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-md`}
           style={{ color: "hsl(var(--bark))" }}
         >
           Clear all
@@ -57,7 +65,8 @@ export function FilterSheetFooter({
       <Button
         type="button"
         variant="primary"
-        className="flex-1 max-w-xs"
+        size={compact ? "sm" : undefined}
+        className={compact ? "px-4 text-ds-13" : "flex-1 max-w-xs"}
         aria-live="polite"
         onClick={() => {
           hapticLight();

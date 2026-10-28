@@ -11,21 +11,24 @@
  *      Helpr's amount is the tip, charge - fee = tip, and the fee covers
  *      Stripe's card-rate cost on the whole charge.
  *   2. Every edge tip charge (inventory: each Stripe create call whose
- *      metadata says `type: "tip"`) takes its amount, line items and
+ *      metadata says `type: "tip"`, or a `kind` ending in `_tip`: the
+ *      Declutter delivery tip, Q2453) takes its amount, line items and
  *      application fee from one `tipChargeBreakdown` result, and computes no
  *      fee of its own.
- *   3. Every client tip surface (inventory: each `action: "tip"` request, plus
- *      the Auto-tip settings page) quotes through TipCostBreakdown, which
+ *   3. Every client tip surface (inventory: each `action: "tip"` request, each
+ *      startDeliveryTip call (Q2453), plus the Auto-tip settings page) quotes through TipCostBreakdown, which
  *      imports the edge module the server charges with.
  *
  *   4. Every client surface that reads tip rows (inventory: each src file whose
- *      code queries `from("tips")` or names a tip sum) shows the Helpr the tip
+ *      code queries `from("tips")` or `from("helpr_task_tips")`, or names a tip sum) shows the Helpr the tip
  *      amount itself, through `sumHelperTipDollars`, and never subtracts a card
  *      fee from a tip (the Earnings tab did, after the policy changed).
  *
  * @mutate src/lib/helperEarnings.ts | sum + (Number.isFinite(t.amount) ? t.amount : 0) | sum + (Number.isFinite(t.amount) ? t.amount - 0.88 : 0)
  * @mutate supabase/functions/auto-tip-charge/index.ts | amount: tipQuote.chargeCents, | amount: tipCents,
  * @mutate supabase/functions/_shared/tipFees.ts | helperCents: tip }; | helperCents: tip - feeCents };
+ * @mutate supabase/functions/declutter-checkout/index.ts | application_fee_amount: q.feeCents }), | application_fee_amount: 0 }),
+ * @mutate src/components/declutter/DeliveryTipPanel.tsx | import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBreakdownCopy";
  * @mutate src/components/TipDialog.tsx | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown"; | import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdownCopy";
  */
 import { readFileSync, statSync } from "node:fs";
@@ -85,7 +88,7 @@ const tipCalls = edgeFiles.flatMap((file) => {
   const out: { file: string; code: string; call: string; kind: "checkout" | "paymentIntent" }[] = [];
   for (const m of code.matchAll(/stripe\.(checkout\.sessions|paymentIntents)\.create\(/g)) {
     const call = balanced(code, m.index! + m[0].length - 1);
-    if (/type:\s*"tip"/.test(call)) {
+    if (/type:\s*"tip"|kind:\s*"\w+_tip"/.test(call)) {
       out.push({ file: relative(ROOT, file), code, call, kind: m[1] === "paymentIntents" ? "paymentIntent" : "checkout" });
     }
   }
@@ -93,11 +96,12 @@ const tipCalls = edgeFiles.flatMap((file) => {
 });
 
 describe("every edge tip charge takes its money fields from one tipChargeBreakdown", () => {
-  it("the inventory is real (create-payment tip + auto-tip-charge)", () => {
-    expect(tipCalls.length).toBeGreaterThan(1);
+  it("the inventory is real (create-payment tip + auto-tip-charge + the Declutter delivery tip)", () => {
+    expect(tipCalls.length).toBeGreaterThan(2);
     expect(tipCalls.map((c) => c.file).sort()).toEqual([
       "supabase/functions/auto-tip-charge/index.ts",
       "supabase/functions/create-payment/index.ts",
+      "supabase/functions/declutter-checkout/index.ts",
     ]);
   });
 
@@ -131,13 +135,17 @@ describe("every edge tip charge takes its money fields from one tipChargeBreakdo
 // ── Client: every place a tip is quoted ───────────────────────────────────────
 const srcFiles = walk(join(ROOT, "src"), (n) => /\.tsx?$/.test(n) && !/\.test\./.test(n));
 const tipSurfaces = srcFiles
-  .filter((f) => /body:\s*\{[^{}]*action:\s*"tip"/.test(blankComments(readFileSync(f, "utf8"))) || f.endsWith("src/pages/profile/AutoTip.tsx"))
+  .filter((f) => {
+    const code = blankComments(readFileSync(f, "utf8"));
+    return /body:\s*\{[^{}]*action:\s*"tip"/.test(code) || /(?<!function )\bstartDeliveryTip\(/.test(code) || f.endsWith("src/pages/profile/AutoTip.tsx");
+  })
   .map((f) => relative(ROOT, f))
   .sort();
 
 describe("every client tip quote uses the server's definition", () => {
-  it("the inventory is real (TipDialog, CompletionPrompts, AutoTip)", () => {
-    expect(tipSurfaces.length).toBeGreaterThan(2);
+  it("the inventory is real (TipDialog, CompletionPrompts, AutoTip, DeliveryTipPanel)", () => {
+    expect(tipSurfaces.length).toBeGreaterThan(3);
+    expect(tipSurfaces).toContain("src/components/declutter/DeliveryTipPanel.tsx");
   });
 
   it("TipCostBreakdown quotes from the edge module the server charges with", () => {
@@ -157,7 +165,7 @@ describe("every client tip quote uses the server's definition", () => {
 
 // ── Client: every place a Helpr is shown what tips paid them ─────────────────
 const tipReaders = srcFiles
-  .filter((f) => /from\(\s*"tips"\s*\)|\b(tipTotal|rangeTips|tipsTotal|totalTips)\b/.test(blankComments(readFileSync(f, "utf8"))))
+  .filter((f) => /from\(\s*"(?:helpr_task_)?tips"\s*\)|\b(tipTotal|rangeTips|tipsTotal|totalTips)\b/.test(blankComments(readFileSync(f, "utf8"))))
   .map((f) => relative(ROOT, f))
   .sort();
 

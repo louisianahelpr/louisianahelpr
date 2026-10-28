@@ -155,6 +155,8 @@ const CLASSIFIED: Record<string, string> = {
   // Owner 2026-10-25: "Finish payout setup" (the hired prompt and the job card) opens stripe-connect's onboard link.
   "hooks/useStartPayoutSetup.ts::data.url": STRIPE_EDGE_URL,
   "components/declutter/DeliveryRaisePanel.tsx::res.url": STRIPE_EDGE_URL, // Q1929: declutter-checkout raise_pay's Stripe page
+  // Q2453: startDeliveryTip() returns declutter-checkout delivery_tip's Stripe page url (server-built).
+  "components/declutter/DeliveryTipPanel.tsx::url": STRIPE_EDGE_URL,
   "components/identity/IdentityCheckSheet.tsx::data.url": STRIPE_EDGE_URL,
   "components/CompletionPrompts.tsx::data.url": STRIPE_EDGE_URL,
   "components/JobBoostDialog.tsx::data.url": STRIPE_EDGE_URL,

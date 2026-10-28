@@ -115,7 +115,7 @@ const partyWhy = (e: StripeModeRefused, what: string): string =>
     : `a party on ${what} looks like a test account but is not enrolled`;
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
-import { helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
+import { heldTipParts, helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
 
 const FN = "declutter-money";
 const BATCH = 25;
@@ -166,6 +166,8 @@ type HelprPayoutDue = {
   /** Q1929: how much of the pay came from paid raises, and each raise's own charge (20261021185418). */
   raised_cents?: number | null;
   raise_parts?: unknown;
+  /** Owner #3706: each held delivery tip of this payout, paid and not yet sent (20261028014848). */
+  tip_parts?: unknown;
 };
 type ShopPayoutDue = {
   payout_id: string;
@@ -300,7 +302,7 @@ serve(async (req) => {
   const out = {
     refunds_sent: 0, refunds_reconciled: 0, refunds_failed: 0, refunds_gave_up: 0,
     payouts_sent: 0, payouts_reconciled: 0, payouts_failed: 0,
-    helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0,
+    helpr_payouts_sent: 0, helpr_payouts_reconciled: 0, helpr_payouts_failed: 0, held_tips_stranded: 0,
     delivery_refunds_sent: 0, delivery_refunds_reconciled: 0, delivery_refunds_failed: 0,
     raise_refunds_sent: 0, raise_refunds_reconciled: 0, raise_refunds_failed: 0,
     held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
@@ -878,6 +880,23 @@ serve(async (req) => {
   const gaveUp = await admin.rpc("declutter_refund_gave_up_check", {});
   if (gaveUp.error) defects.record(`declutter_refund_gave_up_check failed: ${gaveUp.error.message}`);
   else out.refunds_gave_up = Number(gaveUp.data ?? 0);
+  // Held delivery tips nothing will send (owner #3706; lh-money-escrow review must-fix 1): the delivery
+  //     payout went without them, gave up, or was settled by hand. Staff pay exactly the tip by hand.
+  {
+    const stranded = await admin.rpc("helpr_task_tips_stranded", {});
+    if (stranded.error && (stranded.error as { code?: string }).code !== "PGRST202") {
+      defects.record(`helpr_task_tips_stranded failed: ${stranded.error.message}`.slice(0, 200));
+    }
+    for (const x of ((stranded.data ?? []) as Array<{ tip_id: string; task_id: string; helpr_id: string | null; tip_cents: number; payment_intent_id: string | null; payout_status: string | null }>)) {
+      out.held_tips_stranded++;
+      await postSlackOpsAlert({
+        kind: "money_at_risk", severity: "critical", oncePerDayKey: `delivery-tip-stranded-${x.tip_id}`,
+        title: "A held delivery tip will not be sent automatically",
+        message: `Held tip ${x.tip_id} (${dollars(x.tip_cents)}, task ${x.task_id}) is on the platform and its delivery payout is ${x.payout_status ?? "missing"}, so declutter-money will not send it. Pay the Helpr exactly the tip by hand from its own charge and record the transfer on the tip.`,
+        fields: { "Payment intent": x.payment_intent_id ?? "?", Helpr: x.helpr_id ?? "deleted" },
+      });
+    }
+  }
   if (refunds.length === 0 && payouts.length === 0 && helprPayouts.length === 0 && deliveryRefunds.length === 0 && raiseRefunds.length === 0) {
     return cronResult(FN, out, defects.defects);
   }
@@ -1116,7 +1135,8 @@ serve(async (req) => {
     // raise's own charge (a transfer may not exceed its source charge). No raise = one part, as before.
     let parts: PayoutPart[];
     try {
-      parts = helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts);
+      // Owner #3706: each held delivery tip is one more part, exactly the tip, from the tip's own charge.
+      parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
     } catch (e) {
       defects.record(`helpr payout ${h.payout_id}: ${caughtMessage(e, "raise parts unreadable")}`.slice(0, 200));
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", caughtMessage(e, "raise parts unreadable"));
@@ -1133,7 +1153,7 @@ serve(async (req) => {
       const sent = parts.map((part) => listed.data.find((t) => {
         const meta = (t.metadata ?? {}) as Record<string, string>;
         return meta.kind === "helpr_task_payout" && meta.payout_id === h.payout_id && !t.reversed
-          && (meta.raise_id ?? "") === (part.raiseId ?? "");
+          && (meta.raise_id ?? "") === (part.raiseId ?? "") && (meta.tip_id ?? "") === (part.tipId ?? "");
       }));
       const existing = sent.every((t) => !!t);
       if (!existing && sent.some((t) => !!t)) {
@@ -1144,15 +1164,39 @@ serve(async (req) => {
         const left = parts.filter((_, i) => !sent[i]).reduce((sum, p) => sum + p.amountCents, 0);
         defects.record(`helpr payout ${h.payout_id}: partly sent (${went.join(", ")}); ${left}c not sent`.slice(0, 200));
         await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "needs_reconcile",
-          `partly sent: transfers ${went.join(", ")} went; ${dollars(left)} from raise charges did not. Send only the rest.`);
+          `partly sent: transfers ${went.join(", ")} went; ${dollars(left)} from raise or tip charges did not. Send only the rest.`);
         continue;
       }
       if (!existing) {
         // The charges first (a refunded or disputed one fails loudly), then the payee's readiness.
         if (await unpayableNow("helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id, h.amount_cents, mode)) continue;
         const charges: (string | null)[] = [];
+        const dropTip = new Set<number>();
         for (const [i, part] of parts.entries()) {
-          charges[i] = sent[i] ? null : await wholeCharge(stripe, part.paymentIntentId, part.raiseId ? 0 : h.refunds_recorded_cents);
+          if (sent[i]) {
+            charges[i] = null;
+            continue;
+          }
+          try {
+            charges[i] = await wholeCharge(stripe, part.paymentIntentId, part.raiseId || part.tipId ? 0 : h.refunds_recorded_cents);
+          } catch (e) {
+            // A held tip whose own charge was refunded or disputed never holds up the delivery pay (lh-money-escrow
+            // review, should-fix 2): it is left out of this send (unsent, so it pages as stranded) and staff are told.
+            if (!part.tipId || isTransientStripeError(e)) throw e;
+            dropTip.add(i);
+            await postSlackOpsAlert({
+              kind: "money_at_risk", severity: "critical", oncePerDayKey: `delivery-tip-charge-not-whole-${part.tipId}`,
+              title: "A held delivery tip's charge is not whole",
+              message: `Held tip ${part.tipId} (${dollars(part.amountCents)}) for payout ${h.payout_id} was not sent with the delivery pay: ${caughtMessage(e, "its charge was refunded or disputed").slice(0, 200)}. Decide it by hand; the delivery pay goes on.`,
+              fields: { "Payment intent": part.paymentIntentId, Payout: h.payout_id },
+            });
+          }
+        }
+        if (dropTip.size > 0) {
+          parts = parts.filter((_, i) => !dropTip.has(i));
+          const keep = (_: unknown, i: number) => !dropTip.has(i);
+          sent.splice(0, sent.length, ...sent.filter(keep));
+          charges.splice(0, charges.length, ...charges.filter(keep));
         }
         if (!(await payeeReadyNow(stripe, mode, "helpr_task", h.payout_id, h.helpr_id, h.stripe_account_id as string, h.amount_cents))) continue;
         if (!(await stillPayableNow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
@@ -1170,9 +1214,13 @@ serve(async (req) => {
               metadata: {
                 kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id,
                 ...(part.raiseId ? { raise_id: part.raiseId } : {}),
+                ...(part.tipId ? { tip_id: part.tipId } : {}),
               },
             },
-            { idempotencyKey: part.raiseId ? `helpr-task-payout-${h.payout_id}-raise-${part.raiseId}` : `helpr-task-payout-${h.payout_id}` },
+            {
+              idempotencyKey: part.raiseId ? `helpr-task-payout-${h.payout_id}-raise-${part.raiseId}`
+                : part.tipId ? `helpr-task-payout-${h.payout_id}-tip-${part.tipId}` : `helpr-task-payout-${h.payout_id}`,
+            },
           );
         }
       }
@@ -1180,6 +1228,17 @@ serve(async (req) => {
       // the row records its first part's transfer (the order's, when it funds any).
       let partsRecorded = true;
       for (const [i, part] of parts.entries()) {
+        if (part.tipId) {
+          // Owner #3706: the held tip's own transfer is recorded on the tip (and the Helpr told).
+          const { data: tipRec, error: tipErr } = await admin.rpc("helpr_task_tip_payout_sent", {
+            p_tip_id: part.tipId, p_transfer_id: (sent[i] as Stripe.Transfer).id,
+          });
+          if (tipErr || (tipRec !== "recorded" && tipRec !== "already")) {
+            partsRecorded = false;
+            defects.record(`helpr payout ${h.payout_id}: tip transfer ${(sent[i] as Stripe.Transfer).id} not recorded: ${tipErr?.message ?? String(tipRec)}`.slice(0, 200));
+          }
+          continue;
+        }
         if (!part.raiseId) continue;
         const { error: partErr } = await admin.rpc("declutter_delivery_raise_payout_sent", {
           p_raise_id: part.raiseId, p_transfer_id: (sent[i] as Stripe.Transfer).id,
@@ -1191,7 +1250,7 @@ serve(async (req) => {
       }
       if (!partsRecorded) {
         // Every transfer exists; recording one failed. Reconciled (never re-sent) next time.
-        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "record_failed", "a raise transfer not recorded");
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 15, "record_failed", "a raise or tip transfer not recorded");
         continue;
       }
       const hTransfer = sent[0] as Stripe.Transfer;

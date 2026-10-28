@@ -22,6 +22,9 @@
 //   declutter_raise (declutter-checkout raise_pay, mode=payment) the buyer
 //                   paid a raise of a delivery's Helpr pay (Q1929, row 40):
 //                   settleRaise below; only a PAID page changes anything.
+//   declutter_delivery_tip (declutter-checkout delivery_tip, mode=payment) the
+//                   buyer tipped the delivery Helpr (Q2453): settleDeliveryTip
+//                   below records it; Stripe already paid the Helpr.
 //
 // Idempotent: a replayed event finds 'already_paid' or the same refund row,
 // and a refund already 'succeeded' is not sent again. Any failure THROWS, so
@@ -35,8 +38,10 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
 import { getAppUrl } from "../../_shared/appUrl.ts";
 import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
+import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
+import { checkPayoutHold } from "../../_shared/payoutHold.ts";
 
-const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order", "declutter_raise"]);
+const DECLUTTER_KINDS = new Set(["declutter_card", "declutter_order", "declutter_raise", "declutter_delivery_tip"]);
 
 /** True for a Checkout Session Declutter created. */
 export function isDeclutterSession(session: { metadata?: unknown } | null | undefined): boolean {
@@ -64,6 +69,102 @@ export async function settleDeclutterSession(
   if (meta.kind === "declutter_card") return saveCard(event, session, meta, ctx);
   if (meta.kind === "declutter_order") return settleOrder(event, session, meta, ctx);
   if (meta.kind === "declutter_raise") return settleRaise(event, session, meta, ctx);
+  if (meta.kind === "declutter_delivery_tip") return settleDeliveryTip(session, meta, ctx);
+}
+
+type TipPaidAnswer = { result: "paid" | "already" | "unknown" | "session_mismatch"; tip_id?: string; helpr_id?: string; tip_cents?: number; held?: boolean; attached?: boolean };
+
+/**
+ * Q2453: the buyer paid a tip for a delivery Helpr (declutter-checkout delivery_tip). A tip is a
+ * DESTINATION charge, as a job tip: Stripe has already moved the whole tip to the Helpr's account
+ * and kept only the card fee (application_fee_amount, _shared/tipFees.ts). helpr_task_tip_paid
+ * marks the row paid ONCE (a replay answers 'already') and tells the Helpr once. Tips are final
+ * (Q781). What is never quiet: a page we cannot tie to its row, a charge that is not the tip's
+ * own total, and a tip that reached a Helpr placed on a payout hold after the page opened (a job
+ * tip is pulled back then, Q1222; a delivery tip is paged to staff, critical, to reverse by hand:
+ * tip_hold_redrives only knows job tips). The hold is read on EVERY delivery, the paid one and any
+ * replay ('already'), so a failed read that makes Stripe redeliver still pages (lh-money-escrow
+ * review #1). Any failure THROWS, so Stripe redelivers.
+ */
+async function settleDeliveryTip(
+  session: Stripe.Checkout.Session,
+  meta: Record<string, string>,
+  ctx: WebhookContext,
+): Promise<void> {
+  const { supabase, logStep } = ctx;
+  if (session.mode !== "payment" || !meta.tip_id) {
+    logStep("Declutter delivery tip session ignored (shape)", { id: session.id, mode: session.mode });
+    return;
+  }
+  if (session.payment_status !== "paid") {
+    logStep("Declutter delivery tip session completed unpaid", { id: session.id, payment_status: session.payment_status });
+    return;
+  }
+  const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+  const amount = session.amount_total;
+  if (!paymentIntentId || typeof amount !== "number") {
+    throw new Error(`declutter delivery tip session ${session.id} paid without a PaymentIntent or amount`);
+  }
+  const { data, error } = await supabase.rpc("helpr_task_tip_paid", {
+    p_tip_id: meta.tip_id,
+    p_session_id: session.id,
+    p_payment_intent_id: paymentIntentId,
+    p_charged_cents: amount,
+  });
+  if (error) throw new Error(`helpr_task_tip_paid failed: ${error.message}`);
+  const answer = data as TipPaidAnswer | null;
+  if (!answer || typeof answer !== "object" || !("result" in answer)) {
+    throw new Error(`helpr_task_tip_paid gave no answer for tip ${meta.tip_id}`);
+  }
+  logStep("Declutter delivery tip settled", { tip: meta.tip_id, result: answer.result });
+  if (answer.result === "unknown" || answer.result === "session_mismatch") {
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: "critical",
+      title: "Declutter delivery tip paid but not recorded",
+      message: `Session ${session.id} was paid (${dollars(amount)}) as a tip, but ${answer.result === "unknown" ? "no tip row has its id" : "its tip row belongs to another page"}. Stripe already sent the tip to the Helpr; check and record it by hand.`,
+      fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id },
+    });
+    return;
+  }
+  // The charge is the tip's own total (tipChargeBreakdown, the number the page was made with).
+  const expected = tipChargeBreakdown(Number(meta.tip_cents)).chargeCents;
+  if (answer.result === "paid" && (!(expected > 0) || amount !== expected || Number(answer.tip_cents) !== Number(meta.tip_cents))) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      title: "Declutter delivery tip charged a different amount than its tip",
+      message: `Session ${session.id} charged ${dollars(amount)} for a ${dollars(Number(answer.tip_cents ?? 0))} tip; the tip's own total is ${dollars(expected)}. Check the application fee and the Helpr's transfer.`,
+      fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id },
+    });
+  }
+  // Owner #3706: a HELD tip stays on the platform and is paid with the delivery pay (declutter-money runs
+  // every payout gate before that transfer). One whose delivery pay no longer waits is staff's to pay.
+  if (answer.held === true && answer.attached === false) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "critical",
+      oncePerDayKey: `delivery-tip-unattached-${meta.tip_id}`,
+      title: "A held delivery tip has no delivery pay to go with",
+      message: `A ${dollars(Number(answer.tip_cents ?? 0))} delivery tip (session ${session.id}) was charged on the platform for a Helpr with no payout account, but that delivery's pay is no longer waiting, so nothing will send it. Pay the Helpr exactly the tip by hand from this charge, then record the transfer on the tip.`,
+      fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id ?? "?" },
+    });
+  }
+  if (answer.helpr_id && answer.held !== true) {
+    const hold = await checkPayoutHold(supabase, answer.helpr_id);
+    if (hold.kind === "error") throw new Error(`payout hold read failed for ${answer.helpr_id}: ${hold.message}`);
+    if (hold.kind === "held") {
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "critical",
+        // One page per tip, however often Stripe redelivers.
+        oncePerDayKey: `delivery-tip-held-${meta.tip_id}`,
+        title: "A delivery tip reached a Helpr on a payout hold",
+        message: `A ${dollars(Number(answer.tip_cents ?? 0))} delivery tip (session ${session.id}) was paid while its Helpr is on a payout hold. Stripe already sent it to their account. A job tip is pulled back here automatically (Q1222); this one is not: reverse the transfer by hand and pay it again when the hold lifts.`,
+        fields: { "Payment intent": paymentIntentId, Tip: meta.tip_id, Helpr: answer.helpr_id },
+      });
+    }
+  }
 }
 
 type RaisePaidAnswer = {

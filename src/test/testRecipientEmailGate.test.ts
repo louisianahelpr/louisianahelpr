@@ -19,7 +19,7 @@
 // @mutate supabase/functions/notify-email-change/index.ts |     if (await isTestRecipient(supabase, oldEmail)) { |     if (false) {
 // @mutate supabase/functions/send-marketing-blast/index.ts |         if (isTestRecipientIn(seedAddresses, r.email)) { |         if (false) {
 // @mutate supabase/functions/_shared/testRecipient.ts |       if (typeof email === 'string') seeds.add(email.trim().toLowerCase()) |       if (false) seeds.add(email)
-// @mutate supabase/functions/process-email-queue/index.ts |           const { error: ttlLogError } = await supabase.from('email_send_log').insert({ |           await supabase.from('email_send_log').insert({
+// @mutate supabase/functions/_shared/emailSendLog.ts |   const { error: insertError } = await supabase.from("email_send_log").insert({ |   await supabase.from("email_send_log").insert({
 // @mutate supabase/functions/send-notification-email/index.ts |       const { error: skipLogError } = await supabase.rpc('log_notification', { |       await supabase.rpc('log_notification', {
 // @mutate supabase/functions/send-account-status-email/index.ts |     const { error: pendingLogError } = await supabaseAdmin.from('email_send_log').insert({ |     await supabaseAdmin.from('email_send_log').insert({
 // @mutate supabase/migrations/20260926040523_seed_flag_derived_at_birth.sql |         OR lower(btrim(p_email)) LIKE '%@helpr.test'\n | 

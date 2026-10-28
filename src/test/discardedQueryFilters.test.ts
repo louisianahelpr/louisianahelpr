@@ -74,7 +74,7 @@ describe("discarded-builder guard — red on origin/main (d492446), green on the
   it("the whole repo is clean — src/, supabase/functions/, scripts/", () => {
     const hits: Hit[] = guard.scan();
     expect(hits.map((h) => `${h.file}:${h.line} ${h.text}`)).toEqual([]);
-  });
+  }, 60_000); // it walks every file in src/, supabase/functions/ and scripts/ (timed out at 20 s on a loaded runner, run 40619496319, 2026-10-28).
 });
 
 // The walk runs over a live tree: vacuityGate.test.ts creates and deletes real

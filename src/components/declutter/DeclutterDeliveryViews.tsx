@@ -114,8 +114,12 @@ function TaskPhotos({ view }: { view: TaskView }) {
   );
 }
 
-/** What the buyer or the seller reads about a paid delivery order. */
-export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; side: "buyer" | "seller"; orderId: string }) {
+/**
+ * What the buyer or the seller reads about a paid delivery order. `tipOnly`: the handed-over
+ * order card (after "I got it" the order is handed_over and the card no longer shows this
+ * panel) shows just the buyer's tip, so the Helpr can still be tipped (audit 2026-10-28 A3-1).
+ */
+export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
   // "I got it" asks in the app, never window.confirm (lead 2026-10-28; DeclutterConfirmSheet).
@@ -133,8 +137,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
   if (task.isError) {
     return <ErrorState variant="inline" title="We couldn't load this delivery." body={declutterErrorMessage(task.error)} onRetry={() => void task.refetch()} />;
   }
-  if (task.isLoading || !task.data) return <p className="text-sm text-muted-foreground" role="status">Loading the delivery…</p>;
+  if (task.isLoading || !task.data) return tipOnly ? null : <p className="text-sm text-muted-foreground" role="status">Loading the delivery…</p>;
   const v = task.data;
+  if (tipOnly) return side === "buyer" && v.status === "confirmed" ? <DeliveryTipPanel taskId={taskId} helprFirstName={v.helpr_first_name} /> : null;
   const who = v.helpr_first_name ?? "Your Helpr";
   let line: string;
   if (v.status === "open") {

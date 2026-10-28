@@ -210,6 +210,26 @@ describe("OrderDeliveryPanel: a tip for the delivery Helpr (Q2453)", () => {
     expect(screen.queryByText(/Add a tip/)).toBeNull();
   });
 
+  // Audit 2026-10-28 A3-1: the handed-over order card shows only the tip (the card already says "Handed over.").
+  // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   if (tipOnly) return side === "buyer" && v.status === "confirmed" ? |   if (false) return side === "buyer" && v.status === "confirmed" ?
+  it("tipOnly (the handed-over card): just the tip once confirmed, nothing before or for the seller (A3-1)", async () => {
+    state.view = done;
+    const a = show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" tipOnly />);
+    expect(await screen.findByText("Add a tip for Hank?")).toBeInTheDocument();
+    expect(screen.queryByText("Delivered.")).toBeNull();
+    expect(screen.queryByRole("list", { name: "What happened" })).toBeNull();
+    a.unmount();
+    state.view = { ...done, status: "delivered", confirmed_at: null, confirmed_by: null };
+    const b = show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" tipOnly />);
+    await waitFor(() => expect(state.calls).toEqual([]));
+    expect(b.container.textContent).toBe("");
+    b.unmount();
+    state.view = done;
+    const c = show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" tipOnly />);
+    await waitFor(() => expect(c.container.textContent).toBe(""));
+    expect(screen.queryByText(/Add a tip/)).toBeNull();
+  });
+
   it("a tip already paid is thanked, not offered again", async () => {
     state.view = done;
     state.tips = [{ id: "tip1", tip_cents: 1500, payment_status: "paid", paid_at: "2026-10-17T22:00:00Z" }];

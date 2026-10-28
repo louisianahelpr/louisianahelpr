@@ -219,6 +219,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
+      {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
         <PickupStatus

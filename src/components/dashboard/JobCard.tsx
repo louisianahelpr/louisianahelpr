@@ -415,12 +415,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <span className="font-sans uppercase tracking-[0.14em] whitespace-nowrap">Just in</span>
             </span>
           ) : recommended ? (
-            /* INSIDE THE CARD'S TOP ROW, on the category line (owner 2026-10-28: it sat on the card's top edge
-               beside the category, a tab hanging off the border, from the days the category was a corner tab too).
-               A small rounded label, bottom-aligned with the category label (which sits 12px down), so its middle
-               is the category line's. Same words, same colours. Guard: src/test/recommendedTagSitsInTheRow.test.ts. */
-            <span
-              data-recommended-tag=""
+            /* Inside the top row, bottom-aligned on the category line (owner 2026-10-28). Guard: recommendedTagSitsInTheRow. */
+            <span data-recommended-tag=""
               className="inline-flex items-center gap-1 shrink-0 self-end ml-1 px-1.5 py-0.5 rounded-full text-ds-10 font-semibold leading-none pointer-events-none"
               style={{
                 background: "hsl(var(--burnt-sienna) / 0.12)",

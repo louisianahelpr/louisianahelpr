@@ -28,17 +28,20 @@
  * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
  * @mutate src/components/messages/ConversationList.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
+ * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""
+ * @mutate src/index.css | .chip-row[data-more] { | .chip-row, .chip-row[data-more] {
+ * @mutate src/index.css | html.web-desktop .chip-row {\n  flex-wrap: wrap !important; | html.web-desktop .chip-row {\n  flex-wrap: nowrap !important;
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, renderHook, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { Sofa } from "lucide-react";
 import type { Conversation } from "@/components/messages/types";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
-import { blankComments } from "./helpers/blankNonCode";
+import { blankComments, blankCssComments } from "./helpers/blankNonCode";
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/pinnedConversations", async (io) =>
@@ -178,6 +181,61 @@ describe("the hook", () => {
     prefs.hidden = ["homes"];
     const { result } = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=homes") });
     expect(result.current.section).toBe("all");
+  });
+});
+
+// #3 (Declutter walk 2026-10-28, shot 46; measured ~/.lh-shots/b3-1028/s3: 502px of chips in a 327px list pane at
+// 1440): the fade on the row's right edge was ALWAYS on, so the last chip that fit ("Declutter") read as cut off and
+// Shops / Homes sat out of sight in a row a mouse can't swipe. The fade marks only a row that really continues past
+// its right edge, and on the desktop website the chips wrap instead of scrolling.
+describe("the chip row fits", () => {
+  const box = { scrollWidth: 0, clientWidth: 0, scrollLeft: 0 };
+  const isRow = (el: Element) => el.getAttribute("data-testid") === "messages-filter-chips";
+  const restore: Array<() => void> = [];
+  for (const k of ["scrollWidth", "clientWidth", "scrollLeft"] as const) {
+    const real = Object.getOwnPropertyDescriptor(Element.prototype, k)!;
+    restore.push(() => Object.defineProperty(Element.prototype, k, real));
+  }
+  const fake = () => {
+    for (const k of ["scrollWidth", "clientWidth", "scrollLeft"] as const) {
+      const real = Object.getOwnPropertyDescriptor(Element.prototype, k)!;
+      Object.defineProperty(Element.prototype, k, {
+        configurable: true,
+        get(this: Element) { return isRow(this) ? box[k] : real.get!.call(this); },
+        set(this: Element, v: number) { if (isRow(this)) box[k] = v; else real.set?.call(this, v); },
+      });
+    }
+  };
+  afterEach(() => restore.forEach((r) => r()));
+  function Strip() {
+    return useMessageSections([JOB, TEAM], [JOB, TEAM]).strip;
+  }
+
+  it("the fade shows only while chips continue past the right edge", () => {
+    fake();
+    Object.assign(box, { scrollWidth: 502, clientWidth: 335, scrollLeft: 0 });
+    render(<MemoryRouter><Strip /></MemoryRouter>);
+    const row = screen.getByTestId("messages-filter-chips");
+    expect(row).toHaveAttribute("data-more");
+    box.scrollLeft = 167; // swiped to the end: the last chip is in full view, unfaded
+    fireEvent.scroll(row);
+    expect(row).not.toHaveAttribute("data-more");
+    cleanup();
+    Object.assign(box, { scrollWidth: 327, clientWidth: 327, scrollLeft: 0 }); // every chip fits
+    render(<MemoryRouter><Strip /></MemoryRouter>);
+    expect(screen.getByTestId("messages-filter-chips")).not.toHaveAttribute("data-more");
+  });
+
+  it("index.css: the fade rule needs data-more, and the desktop website wraps the chips", () => {
+    const css = blankCssComments(readFileSync(join(process.cwd(), "src/index.css"), "utf8"));
+    const rules = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] }));
+    const chipRules = rules.filter((r) => r.sel.split(",").some((s) => /\.chip-row(?![\w-])/.test(s)));
+    expect(chipRules.length).toBeGreaterThan(3);
+    const faded = chipRules.filter((r) => /mask-image/.test(r.body));
+    expect(faded.length).toBeGreaterThan(0);
+    for (const r of faded) for (const s of r.sel.split(",")) expect(s.trim(), r.sel).toMatch(/\.chip-row\[data-more\]/);
+    const desk = chipRules.filter((r) => r.sel.split(",").some((s) => /html\.web-desktop\s+\.chip-row\s*$/.test(s.trim())));
+    expect(desk.some((r) => /flex-wrap:\s*wrap\s*!important/.test(r.body))).toBe(true);
   });
 });
 

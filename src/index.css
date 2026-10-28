@@ -4741,8 +4741,16 @@ html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin
 .chip-row {
   display: flex !important; flex-wrap: nowrap !important; gap: 0.5rem !important;
   overflow-x: auto !important; scrollbar-width: none;
+}
+/* The fade says "more this way", so only a row that really continues past its right edge wears it (#3, 2026-10-28:
+   the always-on fade cut the last chip that fit). useMessageSections sets data-more. */
+.chip-row[data-more] {
   -webkit-mask-image: linear-gradient(to right, #000 88%, transparent);
   mask-image: linear-gradient(to right, #000 88%, transparent);
+}
+/* The desktop website's list pane is ~330px and a mouse can't swipe a row sideways: the chips wrap instead. */
+html.web-desktop .chip-row {
+  flex-wrap: wrap !important; overflow-x: visible !important;
 }
 .category-chip-row { border-bottom: 0 !important; padding-top: 0.25rem !important; padding-bottom: 0.5rem !important; }
 .chip-row { background: transparent !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; }

@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SECTIONS, sectionByKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
@@ -69,8 +69,28 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" },
     ...tabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
   ];
+  // #3 (Declutter walk 2026-10-28, shot 46): the row's right edge was faded ALWAYS, so at 1440 the last chip that
+  // fit ("Declutter") read as cut off, and the rest (Shops, Homes) sat out of sight in a row a mouse can't swipe
+  // (measured: 502px of chips in a 327px list pane). On the desktop website the chips wrap onto a second line
+  // (index.css), and anywhere the fade marks only a row that really continues past its right edge.
+  const rowRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  const chipCount = chips.length;
+  useEffect(() => {
+    const row = rowRef.current;
+    if (!row) return;
+    const update = () => setMore(row.scrollWidth - row.clientWidth - row.scrollLeft > 2);
+    update();
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update);
+    ro?.observe(row);
+    row.addEventListener("scroll", update, { passive: true });
+    return () => {
+      ro?.disconnect();
+      row.removeEventListener("scroll", update);
+    };
+  }, [chipCount]);
   const strip = (
-    <div className="chip-row" role="group" aria-label="Filter messages" data-testid="messages-filter-chips">
+    <div ref={rowRef} className="chip-row" data-more={more ? "" : undefined} role="group" aria-label="Filter messages" data-testid="messages-filter-chips">
       {chips.map((c) => (
         <button
           key={c.value}

@@ -13692,6 +13692,10 @@ export type Database = {
         Returns: string
       }
       declutter_book_pickup: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
+      declutter_bundle_applies: {
+        Args: { p_item_ids: string[] }
+        Returns: string[]
+      }
       declutter_bundle_preview: {
         Args: { p_seller_id: string }
         Returns: number

@@ -439,6 +439,7 @@
     "declutter_set_bundle_discount(integer)": "client",
     "declutter_bundle_rule(uuid)": "client",
     "declutter_bundle_preview(uuid)": "client",
+    "declutter_bundle_applies(uuid[])": "reviewed 2026-10-28 (Q2427): deep audit #36, builder 1 (20261028214524); refuses a NULL caller (not_authenticated) and the Declutter switch off (require_feature), then tells a signed-in member which of up to 200 asked ids are LIVE listings whose bundle discount can apply (current price above GREATEST($1, the private floor), checkout's own bound). Returns ids only, never a price or floor; test listings follow seed_hidden_for(auth.uid()). One bit per listing about its floor, by design (the bundle badge). Becomes \"client\" when the item screens call it.",
     "declutter_set_meetup_spot(uuid, uuid)": "client",
     "declutter_meetup_here(uuid)": "client",
     "admin_declutter_save_meetup_spot(uuid, text, text, text, numeric, numeric, text, text, boolean)": "client",

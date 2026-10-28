@@ -33,6 +33,7 @@ import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 import { isReadRpcPath } from "../../e2e/readRpc";
+import { isDeclaredReadRpcPath } from "../../scripts/audit/declaredReadRpcs.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
@@ -151,8 +152,10 @@ describe("the press sweep's network gate aborts every write an ungated press set
       if (kind("POST", `/functions/v1/${fn}`, "{}") === "read" && !(fn in safety.PRESS_READ_FUNCTIONS)) leaks.push(`invoke ${fn}`);
     }
     for (const name of rpcs) {
-      // A read-named RPC is a read by the convention src/test/readNamedRpcsAreNotVolatile.test.ts holds to pg_proc.
-      if (!isReadRpcPath(`/rest/v1/rpc/${name}`) && kind("POST", `/rest/v1/rpc/${name}`) === "read") leaks.push(`rpc ${name}`);
+      // A read-named RPC is a read by the convention src/test/readNamedRpcsAreNotVolatile.test.ts holds to pg_proc;
+      // one every migration declares STABLE / IMMUTABLE is a read by what Postgres enforces
+      // (scripts/audit/declaredReadRpcs.mjs, src/test/pressGateReadsDeclaredStableRpcs.test.ts).
+      if (!isReadRpcPath(`/rest/v1/rpc/${name}`) && !isDeclaredReadRpcPath(`/rest/v1/rpc/${name}`) && kind("POST", `/rest/v1/rpc/${name}`) === "read") leaks.push(`rpc ${name}`);
     }
     expect(leaks).toEqual([]);
   });

@@ -20,13 +20,14 @@
  * press reported it correctly and nothing here excuses it (asserted below).
  *
  * @mutate scripts/audit/press-every-control.mjs |  && isForeignSweepFixture(chain); | ;
- * @mutate scripts/audit/press-every-control.mjs |   if (rpc) return !READ_RPC_RX.test(rpc[1]); |   if (rpc) return false;
+ * @mutate scripts/audit/press-every-control.mjs |   if (rpc) return !(READ_RPC_RX.test(rpc[1]) \|\| isDeclaredReadRpcPath(path)); |   if (rpc) return false;
  * @mutate scripts/audit/press-every-control.mjs |             if (meta.rowText) mutatedRows.add(meta.rowText); |
  * @mutate scripts/audit/press-every-control.mjs |     if (!(ttl > 0)) return false; |
  * @mutate scripts/audit/press-every-control.mjs |       ctx.__requestMeterSkip = (req) => !!objectCache.hit(req.method(), req.url()); |
  * @mutate e2e/requestMeter.mjs |       if (context.__requestMeterSkip?.(req)) return; |
  */
 import { describe, expect, it } from "vitest";
+import { isDeclaredReadRpcPath } from "../../scripts/audit/declaredReadRpcs.mjs";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
@@ -111,8 +112,9 @@ describe("a press that wrote consumed its own record (the request is the fact)",
     expect(writes).toContain("ack_backout_notice");
     expect(writes.length).toBeGreaterThan(30);
     expect(reads.length).toBeGreaterThan(30);
-    // A read-named RPC is never a write.
-    for (const n of reads) expect(harness.READ_RPC_RX.test(n), n).toBe(true);
+    // A read is read-named, or declared STABLE / IMMUTABLE in every migration
+    // (scripts/audit/declaredReadRpcs.mjs); nothing else is let through.
+    for (const n of reads) expect(harness.READ_RPC_RX.test(n) || isDeclaredReadRpcPath(`/rest/v1/rpc/${n}`), n).toBe(true);
   });
 
   it("the harness feeds a press's writes into the same proof as a gated press", () => {

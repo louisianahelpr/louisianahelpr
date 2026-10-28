@@ -404,7 +404,7 @@ describe("the photo-first Declutter item page", () => {
     state.drop = { sale_mode: "offers", last_price_drop_on: null };
     const first = open();
     // A row from before 20261028160637 (no drop_pct) keeps 5%, now to a whole dollar: $38 -> $36.
-    const banner = await screen.findByText(/Could drop as low as \$36 (this evening|tomorrow) at \d{1,2}:07 PM/);
+    const banner = await screen.findByText(/Next possible drop: \$36, (this evening|tomorrow) at \d{1,2}:07 PM/);
     expect(banner.closest("[data-price-drop]")).not.toBeNull();
     expect(screen.queryByText(/Drops to/)).toBeNull();
     expect(screen.getByText(/can drop 5%, rounded down to a whole dollar/)).toBeInTheDocument();
@@ -412,7 +412,7 @@ describe("the photo-first Declutter item page", () => {
     // Owner 2026-10-28: the seller's own step is what the buyer is told.
     state.drop = { sale_mode: "offers", last_price_drop_on: null, drop_pct: 20 };
     const twenty = open();
-    expect(await screen.findByText(/Could drop as low as \$30 (this evening|tomorrow)/)).toBeInTheDocument();
+    expect(await screen.findByText(/Next possible drop: \$30, (this evening|tomorrow)/)).toBeInTheDocument();
     expect(screen.getByText(/can drop 20%, rounded down/)).toBeInTheDocument();
     twenty.unmount();
     // Drops off: no line at all.

@@ -24,13 +24,13 @@ reports coverage against THIS file, not against the route list.
 | Multi-step flows — confirmed | flow | 31 |
 | Multi-step flows — probable | flow | 23 |
 | Back/next navigation only | flow | 54 |
-| Forms (submittable) | form | 81 |
+| Forms (submittable) | form | 82 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 160 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 18 |
-| **Navigable surfaces** (places a person can stand) | mixed | **655** |
+| **Navigable surfaces** (places a person can stand) | mixed | **656** |
 | **Copy surfaces** (strings a person may read) | mixed | **1033** |
-| **Total auditable surface** | mixed | **1688** |
+| **Total auditable surface** | mixed | **1689** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 194 | 130 | agree within method (script counts every menu instance) |
-| Forms | 81 | ~38 | agree |
+| Forms | 82 | ~38 | agree |
 | Confirmed multi-step flows | 31 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -531,6 +531,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/AutoFreeRow.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/DeclutterDeliveryViews.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterManageListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterMoveView.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterOfferPanel.tsx` (form tag)

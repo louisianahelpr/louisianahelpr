@@ -78,6 +78,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_donation_job_completed: "alerts",
   declutter_items_seed_from_seller: "tags",
   declutter_lock_buyable_item: "hides",
+  declutter_map_pins: "hides", // Browse map pins (20261028151144): test listings hidden from real members, as Browse's list
   declutter_money_rows_seed: "tags",
   declutter_notify: "hides",
   declutter_order_rows_seed: "tags",

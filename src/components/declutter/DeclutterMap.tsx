@@ -212,8 +212,8 @@ export default function DeclutterMap({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(selected.item.current_price_cents)}</span>
-                <span className="block truncate text-ds-15 font-semibold text-foreground">{selected.item.title}</span>
-                <span className="block truncate text-ds-12 text-muted-foreground">
+                <span className="block truncate text-ds-15 font-semibold text-foreground" title={selected.item.title}>{selected.item.title}</span>
+                <span className="block truncate text-ds-12 text-muted-foreground" title={[selected.item.area_label, milesLabel(selected.miles, approximate)].filter(Boolean).join(" · ")}>
                   {[selected.item.area_label, milesLabel(selected.miles, approximate)].filter(Boolean).join(" · ")}
                 </span>
               </span>

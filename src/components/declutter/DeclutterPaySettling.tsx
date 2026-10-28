@@ -21,9 +21,9 @@ import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 
 const KEY = "declutter:paying-seller";
 /** How often the cart is read while the payment settles. */
-export const SETTLE_POLL_MS = 2_000;
+const SETTLE_POLL_MS = 2_000;
 /** After this, an unknown checkout stops holding every Pay, and the notice says it is slow. */
-export const SETTLE_SLOW_MS = 60_000;
+const SETTLE_SLOW_MS = 60_000;
 
 /** Called on the Pay tap, just before the payment page opens. */
 export function rememberPaying(sellerId: string) {

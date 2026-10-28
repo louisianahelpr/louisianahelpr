@@ -2,6 +2,7 @@
 import { useId, useState } from "react";
 import type { RouteStop } from "@/lib/helprTasks/api";
 import { useTaskSteps } from "./useTaskSteps";
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
@@ -14,8 +15,7 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
     return (
       <div className="space-y-1">
         <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
-        <input id={`${id}-pick`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" disabled={pickedUp.isPending}
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) pickedUp.mutate(f); e.target.value = ""; }} />
+        <PhotoPickButton id={`${id}-pick`} disabled={pickedUp.isPending} onPick={(f) => pickedUp.mutate(f)} />
       </div>
     );
   }
@@ -24,7 +24,7 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
     <div className="space-y-2">
       {/* Deep audit #41: on a route every stop had the same label; the hidden words tell a screen reader which stop. */}
       <label htmlFor={`${id}-drop`} className="block text-ds-13 font-semibold">Photo at the drop-off address<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
-      <input id={`${id}-drop`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
+      <PhotoPickButton id={`${id}-drop`} picked={dropPhoto} onPick={setDropPhoto} />
       <button type="button" className={`${primary} disabled:opacity-50`} disabled={delivered.isPending || !dropPhoto} onClick={() => delivered.mutate(dropPhoto)}>
         Left at the door
       </button>

@@ -15,7 +15,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Switch } from "@/components/ui/switch";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -31,9 +30,9 @@ import {
   wantedFormProblem,
   type WantedForm,
   type WantedPost,
-  type WantedRadius,
 } from "@/lib/declutter/wanted";
 import { CATEGORY_LABEL, DeclutterNotice } from "./declutterUi";
+import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 
 // Q2267: "Let sellers near me reply" starts ON in the form (owner 2026-10-21); the server default stays off.
@@ -104,14 +103,14 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
         </div>
       </div>
       <div className="space-y-1">
-        <p className="text-ds-15 font-semibold">Within</p>
-        <SegmentedControl
-          ariaLabel="Within"
-          layout="wrap"
-          value={String(form.radius)}
-          onChange={(v) => setForm((f) => ({ ...f, radius: Number(v) as WantedRadius }))}
-          options={WANTED_RADIUS_CHOICES.map((m) => ({ value: String(m), label: `${m} mi` }))}
-        />
+        <p id="wanted-within" className="text-ds-15 font-semibold">Within</p>
+        {/* Browse's distance chips (DeclutterFilterPanel's Chip), not an 11px segmented control (lead walkthrough
+            2026-10-28, shot 39: "Within" read tiny beside the 15px fields). */}
+        <div role="group" aria-labelledby="wanted-within" className="flex flex-wrap gap-2" data-wanted-within="">
+          {WANTED_RADIUS_CHOICES.map((m) => (
+            <Chip key={m} on={form.radius === m} onClick={() => setForm((f) => ({ ...f, radius: m }))}>{`${m} mi`}</Chip>
+          ))}
+        </div>
       </div>
       {/* Q2267 (owner 2026-10-21): on by default, in plain view, with what sellers see. */}
       <div className="flex items-start justify-between gap-3 rounded-2xl border border-border px-4 py-3">

@@ -85,6 +85,8 @@ CREATE OR REPLACE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $$
 CREATE TYPE public.app_role AS ENUM ('admin', 'moderator', 'user');
 CREATE TYPE public.job_category AS ENUM ('cleaning', 'other');
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE,
+  -- A3-8 / A2-18 (20261028210552): declutter_delivery_tip_open reads the Helpr's payout account; the 'tip' step sets it.
+  stripe_account_id text,
   subscription_tier text, subscription_expires_at timestamptz, ban_status text, auto_suspended_until timestamptz,
   is_seed boolean DEFAULT false,
   -- is_identity_verified (20261019051407) reads the two identity verdict columns.
@@ -147,13 +149,17 @@ CREATE TABLE public.rental_listing_photos (id uuid PRIMARY KEY DEFAULT gen_rando
 -- Homes Buy (20261019061241): rentals_listing_visible reads the sale-listing fee for a sale listing.
 CREATE TABLE IF NOT EXISTS public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), homes_sale_listing_fee_cents integer);
 CREATE TABLE public.feature_switches (key text PRIMARY KEY, audience text NOT NULL, description text NOT NULL);
+-- 20261028151647: the newest feature_enabled_for_user (a loaded allow function) also lets a switch's own members in.
+CREATE TABLE public.feature_switch_members (key text NOT NULL, user_id uuid NOT NULL, note text, PRIMARY KEY (key, user_id));
 -- job_announceable_to (newest body) also reads Q1401's cutoff (loaded verbatim as a HELPER below) and Q1411's ban
 -- review queue (created below as live).
 -- Declutter (20261015042253's two allow checks read the cart and the pickup windows; the class SQL's
 -- 'declutter' fixture step inserts an item, a cart line and a window).
 CREATE TABLE public.declutter_items (id uuid PRIMARY KEY, seller_id uuid NOT NULL, status text, title text, category text,
   condition_stars smallint, delivery_size text, price_cents integer, current_price_cents integer, area_label text,
-  area_lat numeric, area_lng numeric);
+  area_lat numeric, area_lng numeric,
+  -- The share card (Q2426, 20261027194426): declutter_item_link_visible reads the seller-hidden and test flags.
+  seller_hidden boolean NOT NULL DEFAULT false, is_seed boolean NOT NULL DEFAULT false);
 CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid NOT NULL, buyer_id uuid NOT NULL,
   seller_id uuid NOT NULL, price_cents integer, source text, status text NOT NULL DEFAULT 'in_cart', checkout_by timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id uuid, seller_id uuid,
@@ -162,7 +168,9 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
   handover text, paid_at timestamptz, items_cents integer, premium_cents integer, tax_cents integer, delivery_cents integer,
   total_cents integer, stripe_payment_intent_id text,
   -- Board 141 (20261026155251): the sale-final / window checks read the handover time; the 'handed_over' step writes them.
-  handed_over_at timestamptz, closed_at timestamptz, close_reason text);
+  handed_over_at timestamptz, closed_at timestamptz, close_reason text,
+  -- The Free section (20261027170717): the newest window / final checks read how the order was paid.
+  paid_with text);
 -- Board 141 (20261026155251): what declutter_payout_unsent / declutter_sale_decided / declutter_sale_final read, with
 -- the columns the class SQL's 'handed_over' fixture step writes.
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
@@ -172,16 +180,26 @@ CREATE TABLE public.declutter_handovers (order_id uuid PRIMARY KEY, confirmed_by
 CREATE TABLE public.declutter_refund_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, status text,
   declined_at timestamptz);
 -- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261017055505.
-CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid);
+CREATE TABLE public.declutter_order_deliveries (order_id uuid PRIMARY KEY, task_id uuid,
+  -- A3-8 / A2-18: the columns the class SQL's 'tip' step writes.
+  dropoff_address text, dropoff_area text, dropoff_lat numeric, dropoff_lng numeric, road_miles integer, size text, delivery_cents integer);
 -- Slice 5, Helpr delivery (20261017055505): the photo access, vehicle and task checks read these.
 CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text, helpr_id uuid, customer_id uuid,
   pickup_contact_id uuid, source_kind text, source_id uuid,
   -- Q1929 (20261021185418): declutter_delivery_raise_open reads the task's window end.
-  open_until timestamptz);
+  open_until timestamptz,
+  -- A3-8 / A2-18 (20261028210552): the columns the class SQL's 'tip' step writes.
+  size text, title text, pickup_area text, dropoff_area text, pickup_address text, pickup_lat numeric, pickup_lng numeric,
+  dropoff_address text, dropoff_lat numeric, dropoff_lng numeric, trip_miles integer, pay_cents integer, fee_cents integer,
+  latest_pickup_at timestamptz, pickup_slot_start timestamptz, dropoff_code text, confirmed_at timestamptz, confirmed_by text);
+-- A3-8 / A2-18: declutter_delivery_tip_open reads whether a Helpr with no payout account still has pay waiting.
+CREATE TABLE public.helpr_task_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid UNIQUE, helpr_id uuid, status text);
 -- Q1929: helpr_task_source_held (a deny helper the raise check calls) reads open problem reports.
 CREATE TABLE public.declutter_problems (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, status text);
 CREATE TABLE public.helpr_vehicles (user_id uuid PRIMARY KEY, has_truck boolean NOT NULL DEFAULT false,
-  second_person boolean NOT NULL DEFAULT false, photo_path text);
+  second_person boolean NOT NULL DEFAULT false, photo_path text,
+  -- Q2452 (20261028012406): helpr_task_vehicle_fits reads has_car; the class SQL's 'delivery' step writes it.
+  has_car boolean NOT NULL DEFAULT false);
 -- Q2450 Helpr Guarantee (20261027200455): job_messaging_closes_at (a HELPER) keeps the chat open while a request is
 -- open and for 24 h after it closes, so its newest body reads the requests.
 CREATE TABLE public.job_guarantee_claims (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text, closed_at timestamptz);
@@ -191,6 +209,8 @@ CREATE TABLE public.declutter_meetup_spots (id uuid PRIMARY KEY, parish text, na
 CREATE TABLE public.declutter_pickup_windows (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid NOT NULL,
   weekday smallint NOT NULL, starts_local time NOT NULL, ends_local time NOT NULL);
 INSERT INTO public.feature_switches VALUES ('switch_canary', 'testers', 'canary');
+-- Declutter is on (as on prod): declutter_item_link_visible (Q2426) reads the switch.
+INSERT INTO public.feature_switches VALUES ('declutter', 'testers', 'Declutter');
 -- Q1784: read by the newest job_announceable_to (shape as live, 2026-10-14,
 -- information_schema.columns: the two columns it reads plus the NOT NULL rest).
 CREATE TABLE public.ban_settlement_queue (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
@@ -208,6 +228,8 @@ CREATE FUNCTION public.declutter_active_strike_count(p_user_id uuid) RETURNS int
 CREATE FUNCTION public.shop_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- Shops M1/M2: the columns shop_handover_photo_access (20261018211820) reads; no order row (an admin reads without one).
 CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, status text NOT NULL, captured_at timestamptz);
+-- 20261027163240 (payout setup only when owed): payout_setup_hire_allowed also reads a shop's payouts.
+CREATE TABLE public.shop_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid);
 CREATE SCHEMA IF NOT EXISTS storage;
 CREATE TABLE storage.buckets (id text PRIMARY KEY, name text);
 CREATE TABLE storage.objects (id bigserial PRIMARY KEY, bucket_id text, name text, owner uuid, UNIQUE (bucket_id, name));
@@ -260,11 +282,15 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.
   "job_payment_is_listed",
   // Declutter share card (Q2426), 2026-10-27.
-  "declutter_item_link_visible"];
+  "declutter_item_link_visible",
+  // A3-8 / A2-18 (20261028210552): the tip line's check; after are_users_blocked (a HELPER), which its SQL body calls.
+  "declutter_delivery_tip_open"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
-const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable"];
+// declutter_item_link_visible (Q2426) calls seed_hidden_in_discovery(), a stubbed noarg, so it loads after the stubs too.
+const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable",
+  "declutter_item_link_visible"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job",
@@ -338,6 +364,13 @@ if (!MODE) {
   for (let i = 1; i <= 3; i++) {
     try { await db.exec(fix); check(`20260923123701 applies (pass ${i}/3)`, true); }
     catch (e) { check(`20260923123701 applies (pass ${i}/3)`, false, e.message); }
+  }
+  // The fix restates functions a LATER migration restated again (identity_is_verified, 20261021081258): on a real
+  // replay the later one wins, so reload each newer definition after the replays (else the twin probes the
+  // September body and reports a NULL-allows the live function does not have).
+  for (const m of fix.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+(?:public\.)?([a-z_0-9]+)\s*\(/gi)) {
+    const def = newest(m[1]);
+    if (def.file > FIX) { await db.exec(def.sql); console.log(`reloaded the newer definition after the fix: ${m[1]}@${def.file.slice(0, 14)}`); }
   }
 }
 

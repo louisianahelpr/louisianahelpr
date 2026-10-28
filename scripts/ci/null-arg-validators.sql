@@ -59,6 +59,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_sale_final',          'allow',    'may this sale''s seller payout be offered to the payout run (board 141, 20261026155251)'),
   ('declutter_sale_decided',        'deny',     'TRUE ends the buyer''s refund and problem window (an admin decided, or a request settled; board 141, 20261026155251)'),
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
+  ('declutter_delivery_tip_open',   'allow',    'A3-8 / A2-18 (20261028210552): TRUE = the buyer of this order can tip its delivery Helpr now, so "Enjoy your item" says so (the notice only; helpr_task_tip_start checks again)'),
   ('declutter_meetup_spot_near_lines','allow', 'is this meetup spot near every one of these cart lines (Q2425, 20261027204500): TRUE lets checkout freeze the spot'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
@@ -280,6 +281,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- Board 141: H is handed over now with an untouched payout, so a refund may still rebook it and the buyer may still
   -- report; O is still 'paid' (not handed over), so its sale counts as final for the payout queue.
   ('declutter_payout_unsent',       NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
+  -- T (the 'tip' step): B's handed-over delivery from A, its task confirmed, Helpr D with a payout account.
+  ('declutter_delivery_tip_open',   NULL, ARRAY['''00000000-0000-4000-8140-000000000503''::uuid'], ARRAY[1]),
   ('declutter_problem_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000502''::uuid'], ARRAY[1]),
   ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
   -- Q2425: spot S (the 'meetup' step) is active and beside item I, whose line is in B's cart (the 'declutter' step).
@@ -330,7 +333,7 @@ BEGIN
       RAISE NOTICE 'q140: triggers stay on for % (%)', step, SQLERRM;
     END;
   END LOOP;
-  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'rentals', 'bucket', 'objects', 'shop']) LOOP
+  FOR step IN SELECT unnest(ARRAY['users', 'profiles', 'role', 'jobs', 'application', 'roster', 'detail_change', 'declutter', 'meetup', 'delivery', 'handed_over', 'tip', 'rentals', 'bucket', 'objects', 'shop']) LOOP
     BEGIN
       CASE step
       WHEN 'users' THEN
@@ -424,6 +427,32 @@ BEGIN
                            now(), now(), now(), 'handed_over', 'pi_q140_h')$q$;
           EXECUTE $q$INSERT INTO public.declutter_payouts (order_id, seller_id, items_cents, debt_cents, amount_cents, status)
                    VALUES ('00000000-0000-4000-8140-000000000502', '00000000-0000-4000-8140-00000000000a', 1000, 0, 1000, 'pending')$q$;
+        END IF;
+      WHEN 'tip' THEN
+        -- A3-8 / A2-18 (20261028210552): order T, B's handed-over Helpr delivery from seller A; its task (Helpr D,
+        -- not the buyer, not blocked) is confirmed and D has a payout account, so declutter_delivery_tip_open is
+        -- TRUE (to_regclass: before 20261017055505 there is no delivery table).
+        IF to_regclass('public.declutter_order_deliveries') IS NOT NULL AND to_regprocedure('public.declutter_delivery_tip_open(uuid)') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.declutter_orders (id, buyer_id, seller_id, status, handover, items_cents, premium_cents,
+                                                         tax_cents, delivery_cents, total_cents, paid_at, handed_over_at,
+                                                         closed_at, close_reason, stripe_payment_intent_id)
+                   VALUES ('00000000-0000-4000-8140-000000000503', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 'handed_over', 'delivery', 1000, 120, 0, 1200, 2320,
+                           now(), now(), now(), 'handed_over', 'pi_q140_t')$q$;
+          EXECUTE $q$INSERT INTO public.helpr_tasks (id, source_kind, source_id, status, size, title, pickup_area, dropoff_area,
+                                                    pickup_address, pickup_lat, pickup_lng, dropoff_address, dropoff_lat, dropoff_lng,
+                                                    trip_miles, pay_cents, fee_cents, customer_id, pickup_contact_id, helpr_id,
+                                                    open_until, latest_pickup_at, pickup_slot_start, dropoff_code, confirmed_at, confirmed_by)
+                   VALUES ('00000000-0000-4000-8140-000000000601', 'declutter_delivery', '00000000-0000-4000-8140-000000000503',
+                           'confirmed', 'small', '[q140] tip', 'Lafayette', 'Lafayette', '1 Pickup St', 30.2, -92.0,
+                           '2 Dropoff St', 30.21, -92.01, 5, 1200, 0, '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-00000000000d',
+                           now() + interval '1 day', now() + interval '1 day', now() - interval '1 hour', '1234', now(), 'customer')$q$;
+          EXECUTE $q$INSERT INTO public.declutter_order_deliveries (order_id, dropoff_address, dropoff_area, dropoff_lat, dropoff_lng,
+                                                                    road_miles, size, delivery_cents, task_id)
+                   VALUES ('00000000-0000-4000-8140-000000000503', '2 Dropoff St', 'Lafayette', 30.21, -92.01, 5, 'small', 1200,
+                           '00000000-0000-4000-8140-000000000601')$q$;
+          EXECUTE $q$UPDATE public.profiles SET stripe_account_id = 'acct_q140_d' WHERE user_id = '00000000-0000-4000-8140-00000000000d'$q$;
         END IF;
       WHEN 'rentals' THEN
         -- Rentals S1: property P (owner D), unit, and A's active tenancy (to_regclass: before 20261017205605 there is no table).

@@ -25,6 +25,8 @@ const state = {
   profile: undefined as undefined | Record<string, unknown>,
   offered: [] as string[],
   tips: [] as unknown[],
+  /** helpr_task_pickup_windows (20261028232930): null = not deployed (the free field). */
+  taskWindows: null as null | { windows: { weekday: number; starts: string; ends: string }[]; latestPickupAt: string | null },
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -61,6 +63,7 @@ vi.mock("@/lib/helprTasks/api", () => ({
   // "On your way" has its own test (routeSuggestions.test.tsx).
   fetchRouteSuggestions: async () => ({ suggestions: [], reason: "none_near" }),
   fetchMyVehicle: async () => state.vehicle,
+  fetchTaskPickupWindows: async () => state.taskWindows,
   taskPhotoUrl: async (p: string) => { if (p.includes("broken")) throw new Error("photo_unavailable"); return `https://signed.test/${p}`; },
   acceptTask: async (...a: unknown[]) => { state.calls.push(["accept", ...a]); },
   releaseTask: async (...a: unknown[]) => { state.calls.push(["release", ...a]); return { result: "released", strike: false }; },
@@ -115,6 +118,7 @@ beforeEach(() => {
   state.profile = undefined;
   state.offered = [];
   state.tips = [];
+  state.taskWindows = null;
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
@@ -321,10 +325,48 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(screen.getByText("Exact addresses unlock when you accept.")).toBeInTheDocument();
     const take = screen.getByRole("button", { name: "Accept delivery" });
     expect(take).toBeDisabled();
-    fireEvent.change(screen.getByLabelText(/Pickup time/), { target: { value: "2026-10-20T10:00" } });
+    // Before helpr_task_pickup_windows is live (null), the free field stays, once that read answers.
+    fireEvent.change((await screen.findAllByLabelText(/Pickup time/))[0], { target: { value: "2026-10-20T10:00" } });
     fireEvent.click(take);
     await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
     expect(state.calls[0]?.[1]).toBe("t9");
+  });
+
+  // Lead 2026-10-28: the Helpr picks from the seller's pickup times, the buyer's day + time chips
+  // (helpr_task_pickup_windows, 20261028232930), never a free time the accept then refuses.
+  // @mutate src/components/declutter/DeclutterPickupWindows.tsx | <PickupSlotPicker taskId={taskId} value={value} onPick={onPick} | <PickupSlotPicker taskId={taskId} value={value} onPick={() => onPick(null)}
+  // @mutate src/components/declutter/DeclutterPickupWindows.tsx |   const q = useQuery(taskId |   const q = useQuery(false
+  it("an open delivery is taken from the seller's pickup times: a day chip, then a time chip", async () => {
+    const all = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "17:00:00" }));
+    state.taskWindows = { windows: all, latestPickupAt: new Date(Date.now() + 5 * 864e5).toISOString() };
+    state.open = [{ task_id: "t9", source_kind: "declutter_delivery", size: "small", title: "Lamp", pickup_area: "Mid-City",
+      dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2099-10-18T15:00:00Z",
+      latest_pickup_at: "2099-10-23T15:00:00Z" }];
+    show(<DeliverView />);
+    const picker = await screen.findByTestId("declutter-slot-picker");
+    expect(picker).toHaveTextContent("The seller's pickup times:");
+    expect(screen.queryByLabelText(/Pickup time \(inside/)).toBeNull();
+    const take = screen.getByRole("button", { name: "Accept delivery" });
+    expect(take).toBeDisabled();
+    const times = within(screen.getByRole("group", { name: /^Pickup time on / })).getAllByRole("button");
+    expect(times.length).toBeGreaterThan(0);
+    fireEvent.click(times[0]);
+    expect(take).toBeEnabled();
+    fireEvent.click(take);
+    await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
+    expect(state.calls[0]?.[1]).toBe("t9");
+    const iso = String(state.calls[0]?.[2]);
+    expect(new Date(iso).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("an open delivery whose seller has no pickup time left before its deadline says so and cannot be taken", async () => {
+    state.taskWindows = { windows: [], latestPickupAt: new Date(Date.now() + 5 * 864e5).toISOString() };
+    state.open = [{ task_id: "t9", source_kind: "declutter_delivery", size: "small", title: "Lamp", pickup_area: "Mid-City",
+      dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2099-10-18T15:00:00Z",
+      latest_pickup_at: "2099-10-23T15:00:00Z" }];
+    show(<DeliverView />);
+    expect(await screen.findByTestId("declutter-no-pickup-slots")).toHaveTextContent("None of the seller's pickup times are open before this delivery's deadline.");
+    expect(screen.getByRole("button", { name: "Accept delivery" })).toBeDisabled();
   });
 
   it("my delivery, taken: the pickup address, the \"Picked up\" photo, and backing out", async () => {

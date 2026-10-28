@@ -17,6 +17,8 @@ import { unwrap } from "@/lib/supabaseResult";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { rpcErrorMessage } from "./errorCopy";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
+import type { SellerWindow } from "@/lib/declutter/pickupSlots";
 
 export type TaskSize = "small" | "large" | "xl";
 type TaskStatus = "open" | "accepted" | "picked_up" | "delivered" | "confirmed" | "unfilled" | "cancelled" | "failed";
@@ -204,6 +206,18 @@ export async function fetchMyVehicle(userId: string): Promise<MyVehicle | null> 
 
 export async function saveVehicle(hasCar: boolean, hasTruck: boolean, secondPerson: boolean, photoPath: string | null): Promise<void> {
   data(await supabase.rpc("helpr_set_vehicle", { p_has_car: hasCar, p_has_truck: hasTruck, p_second_person: secondPerson, p_photo_path: photoPath as string }), (e) => rpcErrorMessage("helpr_set_vehicle", e));
+}
+
+/**
+ * The seller's pickup windows for an OPEN delivery the caller may take (helpr_task_pickup_windows, 20261028232930),
+ * and the latest a pickup may end: both bounds helpr_task_accept checks. Null before the read is deployed (the
+ * accept card keeps its free time field then).
+ */
+export async function fetchTaskPickupWindows(taskId: string): Promise<{ windows: SellerWindow[]; latestPickupAt: string | null } | null> {
+  const res = await supabase.rpc("helpr_task_pickup_windows", { p_task_id: taskId });
+  if (res.error && isMissingRpcNamed(res.error, "helpr_task_pickup_windows")) return null;
+  const rows = (data<(SellerWindow & { latest_pickup_at: string | null })[] | null>(res, (e) => rpcErrorMessage("helpr_task_pickup_windows", e)) ?? []);
+  return { windows: rows.map(({ weekday, starts, ends }) => ({ weekday, starts, ends })), latestPickupAt: rows[0]?.latest_pickup_at ?? null };
 }
 
 /** Take a task with a 30-minute pickup time (inside the source's pickup times). */

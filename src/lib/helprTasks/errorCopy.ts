@@ -118,6 +118,16 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
     unknown_task_source: DC.unknown_task_source,
   },
+  // The seller's pickup windows for an open delivery (20261028232930): helpr_task_assert_helpr's refusals and the task.
+  helpr_task_pickup_windows: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    payout_setup_incomplete: DC.payout_setup_incomplete,
+    task_not_found: DC.task_not_found,
+    under_18: DC.under_18,
+  },
   helpr_task_picked_up: {
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,

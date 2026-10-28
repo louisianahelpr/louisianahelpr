@@ -27,7 +27,7 @@ export function OrdersUpdating() {
   return createPortal(
     // A full-width strip so data-rail-inset centres the pill in the page column at 1440 (index.css); on a phone it
     // sits where toasts sit, just above the dock, never over the tabs.
-    <div data-rail-inset="" className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] z-50 flex justify-center md:bottom-6">
+    <div data-rail-inset="" className="pointer-events-none fixed inset-x-0 bottom-safe-nav z-50 flex justify-center md:bottom-6">
       <p
         role="status"
         aria-live="polite"

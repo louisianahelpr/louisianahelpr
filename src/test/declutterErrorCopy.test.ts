@@ -77,6 +77,7 @@ const DECLUTTER_FILES = [
   "20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql",
   // #36: which items a bundle discount can apply to (invalid_request; its copy is in bundleErrors.ts).
   "20261028214524_declutter_bundle_applies.sql",
+  "20261028221904_declutter_remove_cart_item.sql",
   // Porch pickup is a DAY (owner 2026-10-28): invalid_day.
   "20261028225038_declutter_porch_pick_a_day.sql",
 ];
@@ -105,7 +106,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(30); // 30: + porch pickup day (20261028225038, owner 2026-10-28); 29: + which items a bundle discount can apply to (20261028214524, #36); 28: + a seller delivery's "I got it" waits for its day (20261028202844, #7); 27: + the seller's price-drop step (20261028160637, owner 2026-10-28); 26: + tips on deliveries (20261028014848, Q2453); 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(31); // 31: + a buyer removes a cart line (20261028221904, A2-8); 30: + porch pickup day (20261028225038, owner 2026-10-28); 29: + which items a bundle discount can apply to (20261028214524, #36); 28: + a seller delivery's "I got it" waits for its day (20261028202844, #7); 27: + the seller's price-drop step (20261028160637, owner 2026-10-28); 26: + tips on deliveries (20261028014848, Q2453); 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
     expect(codes.size).toBeGreaterThan(25);
   });
 

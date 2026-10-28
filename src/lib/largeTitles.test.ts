@@ -9,7 +9,7 @@
  * @mutate src/lib/largeTitles.ts |     if (t.scrollHeight <= t.clientHeight + 1 && t.scrollWidth > t.clientWidth + 1) return; |     if (t.scrollHeight <= t.clientHeight + 1) return;
  * @mutate src/pages/post-job/PostJob.tsx |     resetLargeTitles();\n  }, [form.step |     void 0;\n  }, [form.step
  * @mutate src/lib/largeTitles.ts |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 24); |     doc.documentElement.classList.toggle("page-scrolled", t.scrollTop > 0);
- * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56); |       b.classList.toggle("on", t.scrollTop > 24);
+ * @mutate src/lib/largeTitles.ts |       b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop); |       b.classList.toggle("on", t.scrollTop > 24 && title !== "" && !desktop);
  * @mutate src/lib/largeTitles.ts |     bar?.remove(); |     void bar;
  */
 import { readFileSync } from "node:fs";

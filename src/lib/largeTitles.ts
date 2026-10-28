@@ -44,8 +44,14 @@ export function installLargeTitles(doc: Document = document): () => void {
     if (t.matches("[data-app-page-scroll]")) {
       const h1 = t.querySelector("h1.text-page-title");
       const b = ensureBar();
-      b.textContent = h1?.textContent ?? "";
-      b.classList.toggle("on", t.scrollTop > 56);
+      const title = (h1?.textContent ?? "").trim();
+      b.textContent = title;
+      // THE BLANK BAND (Declutter walk 2026-10-28, shots 03/07/16/22): on Declutter the page's title lives in the
+      // header (no h1.text-page-title in the scroller), so the bar came on EMPTY: a 44px opaque strip across the top
+      // that, on the desktop website, also covered the rail's logo and the top bar. The bar shows only with a title
+      // to show, and never on the desktop website, whose top bar already holds the page's title.
+      const desktop = doc.documentElement.classList.contains("web-desktop");
+      b.classList.toggle("on", t.scrollTop > 56 && title !== "" && !desktop);
     }
   };
   doc.addEventListener("scroll", onScroll, { capture: true, passive: true });

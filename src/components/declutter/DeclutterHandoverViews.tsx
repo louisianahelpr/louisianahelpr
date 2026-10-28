@@ -330,6 +330,7 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
   const booked = booking?.slot_start;
+  const movedAlready = !!booked && ((order.side === "buyer" ? booking?.buyer_reschedules : booking?.seller_reschedules) ?? 0) >= 1;
   if (!booked && order.side === "seller") {
     return <p className="text-sm text-muted-foreground">Waiting for the buyer to book a pickup time (within 7 days of paying).</p>;
   }
@@ -343,7 +344,12 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
           We'll remind you 1 hour before. If you miss it, the seller can report a no-show: you get one new time, and a second miss cancels the sale with a strike.
         </p>
       )}
-      <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (once each)" : "Pick a pickup time"}</label>
+      {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
+      {movedAlready ? (
+        <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
+      ) : (
+      <>
+      <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
       <div className="space-y-2">
         <DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />
         <button
@@ -355,6 +361,8 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
           {booked ? "Move" : "Book"}
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }

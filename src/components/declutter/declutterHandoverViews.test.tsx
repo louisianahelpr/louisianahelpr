@@ -369,7 +369,9 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect((await screen.findAllByText(/^Pickup:/)).length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Step 2 of 4: Day picked" })).toBeInTheDocument();
     expect(screen.getByText("Paid. Put it out and take one photo where the buyer will find it.")).toBeInTheDocument();
-    expect(screen.getByText(/You get/).textContent).toMatch(/You get \$40 when the buyer marks it picked up, or 24 hours after the pickup time once your porch photo is in/);
+    // Deep audit #31: one payout rule, the live one (24 hours after the handover), never "when the buyer marks it".
+    // @mutate src/components/declutter/DeclutterPorchHandover.tsx | once the sale is final: 24 hours after the handover, unless the buyer asks for a refund. | when the buyer marks it picked up.
+    expect(screen.getByText(/You get/).textContent).toBe("You get $40 once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.");
   });
 
   // Lead 2026-10-28 (Buying, calmer): where a pickup stands is said in plain sentences, never dot-joined fragments
@@ -465,7 +467,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(await screen.findByText("Put it out tomorrow and post the porch photo.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Out all day" })).toBeNull();
     expect(screen.queryByLabelText("Out until")).toBeNull();
-    expect(screen.getByText(/24 hours after the pickup day ends/)).toBeInTheDocument();
+    expect(screen.getByText(/once the sale is final: 24 hours after the handover/)).toBeInTheDocument();
   });
 
   it("owner 10-28: before the porch-day migration is live (no days read), the porch card keeps the time picker", async () => {

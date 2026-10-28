@@ -101,9 +101,9 @@ export function PickupStatus({
       ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
       : done
         ? null
-        : handover === "porch"
-          ? <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the buyer marks it picked up, or 24 hours after the pickup {day ? "day ends" : "time"} once your porch photo is in, unless a problem is reported.</>
-          : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> when the handover is confirmed.</>;
+        // Deep audit #31: one payout rule, the live one (declutter_payouts_due waits for declutter_sale_final: 24 hours
+        // after the handover, with no refund request open; 20261026155251). It holds for every pickup kind.
+        : <>You get <strong className="tabular-nums">{formatPrice(itemsCents)}</strong> once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.</>;
   return (
     <div className="space-y-2" data-pickup-status={at}>
       <OrderSteps facts={facts} />

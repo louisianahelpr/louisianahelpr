@@ -15,6 +15,10 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {!showCardStep && <p className="text-xs | {true && <p className="text-xs
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   if (underAge) { |   if (false) {
+ * Buy now asks in an in-app sheet, never window.confirm (lead 2026-10-28), and says "Reserved for you, not paid yet".
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setReserve("reserved"); |       setReserve(null);
+ * @mutate src/components/declutter/DeclutterReserveSheet.tsx |               <SheetPrimaryAction onClick={onReserve} disabled={pending}>Reserve it</SheetPrimaryAction> |               <SheetPrimaryAction onClick={onClose} disabled={pending}>Reserve it</SheetPrimaryAction>
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents; | o.floor_price_cents !== null;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
@@ -220,8 +224,20 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
-    await waitFor(() => expect(window.confirm).toHaveBeenCalledWith(expect.stringMatching(/^Buy "Oak rocking chair" for \$42\.70\? Delivery, if you choose it, is added at checkout\./)));
+    // The in-app sheet, never a browser confirm (lead 2026-10-28): the hold, the pickup total, "Not paid yet".
+    const ask = await screen.findByRole("dialog");
+    expect(ask).toHaveTextContent("Reserve it for 48 hours");
+    expect(ask).toHaveTextContent("Oak rocking chair");
+    expect(ask.querySelector("[data-reserve-bill]")?.textContent).toMatch(/Total with pickup\$42\.70/);
+    expect(ask).toHaveTextContent("You pay at checkout. Not paid yet.");
+    expect(ask.textContent).not.toMatch(/fee|%|¢/i);
+    expect(state.bought).toBe(0);
+    fireEvent.click(screen.getByRole("button", { name: "Reserve it" }));
     await waitFor(() => expect(state.bought).toBe(1));
+    expect(await screen.findByText("Reserved for you")).toBeInTheDocument();
+    expect(screen.getByRole("dialog")).toHaveTextContent(/Not paid yet\..*Check out within 48 hours/);
+    expect(screen.getByRole("button", { name: "Go to checkout" })).toBeInTheDocument();
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
   });
 
@@ -263,8 +279,11 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
     expect(screen.queryByText("Add a card to finish.")).toBeNull();
     state.card = { brand: "visa", last4: "4242" };
-    await waitFor(() => expect(window.confirm).toHaveBeenCalledTimes(1), { timeout: 4_000 });
-    await waitFor(() => expect(state.bought).toBe(1));
+    expect(await screen.findByText("Reserve it for 48 hours", {}, { timeout: 4_000 })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByText("Reserve it for 48 hours")).toBeNull());
+    expect(state.bought).toBe(0);
+    expect(window.confirm).not.toHaveBeenCalled();
     expect(screen.queryByText("Checking for your card…")).toBeNull();
   });
 
@@ -394,6 +413,24 @@ describe("Declutter slice 3 screens", () => {
     expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$[0-9.]+\+ any setup fee/);
     state.setupFeeKnown = true;
+  });
+
+  it("lead 2026-10-28: a reserved line says \"Reserved for you, not paid yet\" with the time left; the bundle hint only when the seller has one", async () => {
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         <span>{allFree ? "Reserved for you" : "Reserved for you, not paid yet"}</span> |         <span>{allFree ? "Reserved for you" : "Reserved for you"}</span>
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx |         {!allFree && rule.data ? |         {!allFree ?
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20.5 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line];
+    const first = show(<CartView />);
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")).not.toBeNull());
+    const hold = document.querySelector("[data-cart-hold]") as HTMLElement;
+    expect(hold.textContent).toMatch(/^Reserved for you, not paid yet20 hours left/);
+    expect(hold.textContent).toMatch(/Check out by .+\. If you don't, you get a strike and the item goes back up for sale\.$/);
+    expect(hold.textContent).not.toMatch(/bundle/i);
+    first.unmount();
+    state.bundleRule = 10;
+    show(<CartView />);
+    await waitFor(() => expect(document.querySelector("[data-cart-hold]")?.textContent).toMatch(/Add more from this seller first to save with their bundle discount\.$/));
   });
 
   it("cart: one checkout per seller, the items and what you pay with no fee line (F1 total, issue #3672), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {

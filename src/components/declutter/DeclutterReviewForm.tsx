@@ -83,7 +83,8 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
   if (sent) return <p className="text-sm text-muted-foreground" data-review-sent="">Review sent. {REVIEW_SHOWS}</p>;
   return (
     <>
-      <Button type="button" className="w-full" onClick={() => setOpen(true)}>
+      {/* Full width on a phone; from sm it sizes to its words like the card's other buttons (deep audit #51: a ~1100px bar at 1440). */}
+      <Button type="button" className="w-full sm:w-auto" onClick={() => setOpen(true)}>
         Leave a review
       </Button>
       <Sheet open={open} onOpenChange={setOpen}>

@@ -273,13 +273,13 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(state.calls).toEqual([]);
     fireEvent.click(within(sheet).getByRole("button", { name: "Accept" }));
     await vi.waitFor(() => expect(state.calls).toEqual([["respond", "o1", "accept", null]]));
-    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await vi.waitFor(() => { expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByRole("button", { name: "Cancel sale" })).toBeEnabled(); });
     fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
     sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Cancel this sale?");
     expect(sheet).toHaveTextContent("You'll get a Declutter strike");
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep the sale" }));
-    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await vi.waitFor(() => { expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByRole("button", { name: "Cancel sale" })).toBeEnabled(); });
     expect(state.calls).toHaveLength(1);
     fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel sale" }));

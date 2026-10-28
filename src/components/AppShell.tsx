@@ -73,6 +73,11 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     return (
       <div
         className={cn(
+          // overflow-hidden is only the FALLBACK (iOS 15 WebKit, the app's floor, has no `overflow: clip`). Where clip
+          // exists, index.css makes this frame `overflow: clip` (Declutter walk 2026-10-28): a `hidden` box is still a
+          // scroll container, so a scrollIntoView() inside the page scrolled THE FRAME itself (measured scrollTop 105
+          // at 1440 on Selling's "I can deliver"), sliding the header up and leaving a blank band at the bottom.
+          // Guard: src/test/appShellFrameNeverScrolls.test.ts.
           "app-shell-frame fixed inset-x-0 bottom-0 flex flex-col bg-background overflow-hidden",
           className,
         )}

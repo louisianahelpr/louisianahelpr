@@ -14,6 +14,9 @@
 export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // The Free section (20261027170717).
   free_item_claim_it: "This item is free. Tap Get it free.",
+  // A2-8 (20261028221904): taking an item out of the cart.
+  checkout_open: "You opened checkout for this. Close the payment page, then try again in a few minutes.",
+  not_in_cart: "This item isn't in your cart any more.",
   not_free: "This item isn't free any more. Check its price.",
   free_claim_limit: "You have 3 free items waiting. Pick those up first.",
   free_order: "These items are free. Choose a pickup and tap Confirm and pick a time.",

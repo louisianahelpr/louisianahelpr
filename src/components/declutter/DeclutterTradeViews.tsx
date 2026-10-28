@@ -59,6 +59,7 @@ import { timeLeft } from "@/lib/declutter/timeLeft";
 import { PaySettlingNotice, rememberPaying, usePaySettling } from "./DeclutterPaySettling";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { RemoveFromCart } from "./DeclutterCartRemove";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -570,13 +571,14 @@ export function CartView() {
               {lines.length > 1 && <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p>}
               <ul className="space-y-1">
                 {lines.map((l) => (
-                  <li key={l.line_id} className="flex justify-between gap-3 text-sm min-w-0">
+                  <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0">
                     {l.item_id ? (
                       <Link to={`/declutter/item/${l.item_id}`} className="truncate" title={l.item_title}>{l.item_title}</Link>
                     ) : (
                       <span className="truncate" title={l.item_title}>{l.item_title}</span>
                     )}
-                    <span className="shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(l.price_cents)}</span>
+                    <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(l.price_cents)}</span>
+                    <RemoveFromCart line={l} />
                   </li>
                 ))}
               </ul>

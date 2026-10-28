@@ -1043,6 +1043,14 @@ export const RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   // 20261028180400: a taken-down listing back to a draft (owner 2026-10-28).
+  // A2-8 (20261028221904): the buyer takes an item out of their cart.
+  declutter_remove_cart_item: {
+    checkout_open: DC.checkout_open,
+    feature_disabled: DC.feature_disabled,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    not_in_cart: DC.not_in_cart,
+  },
   declutter_reopen_listing: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

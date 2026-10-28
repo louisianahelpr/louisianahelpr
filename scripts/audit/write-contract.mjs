@@ -435,7 +435,11 @@ export function checkWrite(w, snapshot, pending = pendingDefinitions(snapshot)) 
       });
       if (!fits) {
         const sigs = overloads.map((o) => `(${o.args.join(", ")})`).join(" | ");
-        reject("rpc_signature", `args {${sent.join(", ")}} match no overload of ${w.target}${sigs}`);
+        // A migration prod has not applied yet re-creates the function (new arguments): the same pending rule as a
+        // function that does not exist yet, a warning until the snapshot's weekly refresh.
+        const reCreatedBy = pending.functions.get(w.target);
+        if (reCreatedBy) warn("rpc_pending", `args {${sent.join(", ")}} fit ${w.target} as ${reCreatedBy} re-creates it; prod had not applied it when the snapshot was read`);
+        else reject("rpc_signature", `args {${sent.join(", ")}} match no overload of ${w.target}${sigs}`);
       }
     }
     return problems;

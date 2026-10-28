@@ -23,7 +23,6 @@ import { clusterElement, pinElement, PIN_HEIGHT } from "@/components/browseMap/m
 import { fitToPins, laRegion } from "@/components/browseMap/MapLayers";
 import { colorSchemeFor, getMapKit, regionFromBounds, type MKAnnotation, type MKMap } from "@/components/browseMap/mapkitRuntime";
 import { useMapFollowsTheme } from "@/components/browseMap/useMapLayersSync";
-import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 const ITEM_NOUN = ["item", "items"] as const;
 
@@ -166,8 +165,6 @@ export default function DeclutterMap({
         <ReportErrorScreen source="DeclutterMap.pins" title="We couldn't load the map." />
         <MapPinOff className="h-6 w-6 text-muted-foreground" aria-hidden />
         <p className="text-ds-15 font-semibold text-foreground">We couldn't load the map.</p>
-        {/* Seen by a member, so it reports like every error screen (errorSurfacesReport.test.tsx). */}
-        <ReportErrorScreen source="DeclutterMap" title="We couldn't load the map." />
         <button type="button" onClick={onRetry} className="min-h-11 rounded-full px-4 text-ds-13 font-bold text-[hsl(var(--sage-ink))]">Try again</button>
       </div>
     );

@@ -192,25 +192,22 @@ for (const variant of [
     const tabsBox = (await tabs.boundingBox())!;
     expect(tabsBox.y, "the tabs sit under the top bar").toBeGreaterThanOrEqual(barBottom - 1);
 
-    // --- search + Filters: one slim row on phone; on desktop at the END OF THE TABS ROW (owner 2026-10-28:
-    // "the search filter and map up onto the other line above to save space") ---
+    // --- search + Filters at the END OF THE TABS ROW on every width, then the gear (owner 2026-10-28, desktop: "the
+    // search filter and map up onto the other line above to save space"; phone: "search and filter should be next to
+    // gear"). No separate "Search jobs" row: the search is an icon that opens in place. ---
     const tabsRow = (await page.getByTestId("section-tabs").boundingBox())!;
+    await expect(page.getByTestId("browse-compact-search"), `no search row @ ${variant.tag}`).toHaveCount(0);
+    const searchIcon = page.getByTestId("section-tabs").getByRole("button", { name: "Search jobs" });
+    await expect(searchIcon, `the search icon @ ${variant.tag}`).toBeVisible();
+    const order: number[] = [(await searchIcon.boundingBox())!.x];
     for (const name of ACTION_ICON_NAMES) {
       const icon = page.getByRole("button", { name }).first();
       await expect(icon, `action icon ${name} @ ${variant.tag}`).toBeVisible();
       const box = (await icon.boundingBox())!;
-      if (isDesktopWeb) {
-        expect(box.y, `action icon ${name} sits in the tabs row`).toBeGreaterThanOrEqual(tabsRow.y - 1);
-        expect(box.y + box.height, `action icon ${name} sits in the tabs row`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
-        expect(box.x, `action icon ${name} sits right of the tabs`).toBeGreaterThan(tabsBox.x);
-        continue;
-      }
-      expect(box.y, `action icon ${name} sits below the tabs`).toBeGreaterThan(tabsBox.y + tabsBox.height - 1);
-      // Phone: INSIDE the search row (owner: "one slim search row with the filter icon inside").
-      const row = (await page.getByTestId("browse-compact-search").boundingBox())!;
-      expect(box.x, `${name} sits inside the search row`).toBeGreaterThanOrEqual(row.x - 1);
-      expect(box.x + box.width, `${name} sits inside the search row`).toBeLessThanOrEqual(row.x + row.width + 1);
-      expect(Math.abs(box.y + box.height / 2 - (row.y + row.height / 2)), `${name} is centred in the search row`).toBeLessThan(4);
+      expect(box.y, `action icon ${name} sits in the tabs row`).toBeGreaterThanOrEqual(tabsRow.y - 1);
+      expect(box.y + box.height, `action icon ${name} sits in the tabs row`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
+      expect(box.x, `action icon ${name} sits right of the tabs`).toBeGreaterThan(tabsBox.x);
+      order.push(box.x);
     }
     // The Jobs settings gear is the LAST control at the tabs row's right end, on every width, never in the top bar
     // (owner 2026-10-28, desktop: "move gear down with the other icons").
@@ -221,13 +218,18 @@ for (const variant of [
     expect(gearBox.y, `the gear sits in the tabs row @ ${variant.tag}`).toBeGreaterThanOrEqual(tabsRow.y - 1);
     expect(gearBox.y + gearBox.height, `the gear sits in the tabs row @ ${variant.tag}`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
     expect(gearBox.x + gearBox.width, `the gear ends the tabs row @ ${variant.tag}`).toBeGreaterThan(tabsRow.x + tabsRow.width - 2);
-    for (const name of ACTION_ICON_NAMES) {
-      const box = (await page.getByRole("button", { name }).first().boundingBox())!;
-      if (isDesktopWeb) expect(box.x, `${name} sits left of the gear @ ${variant.tag}`).toBeLessThan(gearBox.x);
-    }
-    if (!isDesktopWeb) {
-      await expect(page.getByRole("searchbox", { name: "Search jobs" }).or(page.locator('input[aria-label="Search jobs"]')).first()).toBeVisible();
-    }
+    order.push(gearBox.x);
+    // Every tab fits beside them, none scrolled out of sight (375: 218px of tabs in a 191px track before the
+    // tighter phone gap, "Working" cut to "Work").
+    expect(await tabs.evaluate((el) => el.scrollWidth - el.clientWidth), `every tab fits @ ${variant.tag}`).toBeLessThanOrEqual(0);
+    expect(order, `search, Filters, then the gear, left to right @ ${variant.tag}`).toEqual([...order].sort((x, y) => x - y));
+    // The search opens IN PLACE, in the tabs row (owner 2026-10-27: "search should just open where its at").
+    await searchIcon.click();
+    const field = page.getByTestId("section-tabs").locator('input[aria-label="Search jobs"]');
+    await expect(field, `the field opens in the tabs row @ ${variant.tag}`).toBeVisible();
+    const fieldBox = (await field.boundingBox())!;
+    expect(fieldBox.y + fieldBox.height, `the field stays in the tabs row @ ${variant.tag}`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
+    await page.keyboard.press("Escape");
     for (const name of MOVED_OUT_OF_ROW) {
       await expect(
         page.getByRole("button", { name }),

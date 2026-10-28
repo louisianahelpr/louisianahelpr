@@ -120,20 +120,15 @@ export function JobsListLoadingFrame({ header, tab }: { header: ReactNode; tab: 
   );
 }
 
-/** Browse loading frame: mirrors Dashboard.tsx's own `loading` branch (search row on phone, feed strip on desktop). */
+/** Browse loading frame: mirrors Dashboard.tsx's own `loading` branch (no search row on a phone since owner 2026-10-28). */
 function BrowseFrame({ header }: { header: ReactNode }) {
   const isWebDesktop = useIsWebDesktop();
   return (
     <PageScaffold
       animate
       panelElevation="raised"
-      titleCard={
-        <div className="flex flex-col gap-4">
-          {header}
-          {/* BrowseCompactSearchRow: one `h-10` pill. */}
-          {!isWebDesktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />}
-        </div>
-      }
+      // No search row under the tabs on any width (owner 2026-10-28): Browse's search is an icon in the tabs row.
+      titleCard={header}
       titleCardClassName=""
     >
       {isWebDesktop ? (

@@ -12,7 +12,9 @@
  *     (jobsToolbar.ts) and, on the desktop website, the same hairline box across the whole panel.
  * Then (owner, 2026-10-28, /jobs at 1440): "move the 1 next to browse and the search filter and map up onto the
  * other line above to save space": on the desktop website Browse has NO row of its own; its count sits beside
- * "Browse" and its search, filters and map at the tabs row's end.
+ * "Browse" and its search, filters and map at the tabs row's end. And on a PHONE (owner, 2026-10-28, ~900px window:
+ * "search and filter should be next to gear"): no "Search jobs" row either; a search icon and Filters end the tabs
+ * row before the gear (src/test/jobsSearchIsAnIcon.test.tsx).
  * Measured before/after with getBoundingClientRect at 375 and 1440: ~/.lh-shots/jobs-search-inline-1027/.
  *
  * @mutate src/components/sections/InlineListSearch.tsx |         onClick={() => setOpen(true)} |         onClick={() => {}}
@@ -21,8 +23,8 @@
  * @mutate src/components/sections/InlineListSearch.tsx |           if (!value.trim()) close(false, false); |           void value;
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
- * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : undefined) | embeddedHeader(undefined)
- * @mutate src/pages/home/Dashboard.tsx | <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow | <div data-jobs-toolbar="" className="flex">\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow
+ * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd }) | embeddedHeader(isWebDesktop ? undefined : { end: phoneBrowseEnd })
+ * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd })}\n    </div> | : { end: phoneBrowseEnd })}\n      {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>search</div>}\n    </div>
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} | end={<InlineListSearch value="" onChange={() => {}}
  */
@@ -135,15 +137,15 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
     expect(cls.filter((c) => /^(p|px|pl|pr)-/.test(c))).toEqual([]);
   });
 
-  it("every tab's row is that row (inventory: Browse phone, Posted / Working)", () => {
+  it("Posted / Working draw that row; Browse draws no row of its own on any width (inventory)", () => {
     const sites = [dash, head].join("\n").match(/data-jobs-toolbar="" className=\{JOBS_TOOLBAR_ROW\}/g) ?? [];
-    expect(sites.length).toBe(2);
-    expect(dash.match(/data-jobs-toolbar=""/g)?.length).toBe(1);
+    expect(sites.length).toBe(1);
+    expect(dash.match(/data-jobs-toolbar=""/g) ?? []).toHaveLength(0);
     expect(head.match(/data-jobs-toolbar=""/g)?.length).toBe(1);
   });
 
   it("desktop: Browse draws no row of its own; count beside Browse, controls at the tabs row's end", () => {
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : undefined)");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : { end: phoneBrowseEnd })");
     expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
     const jobs = read("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain("browseCount={browse?.count}");

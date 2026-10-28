@@ -438,9 +438,9 @@ export const FORMS: FormSpec[] = [
     prepare: async (page) => { await pressIfPresent(page, /start from scratch/i); await pressIfPresent(page, /^home/i); await pressIfPresent(page, /^cleaning$/i); },
     covers: ["src/components/postjob/detailsSection/TitleField.tsx", "src/components/postjob/detailsSection/DescriptionField.tsx"],
   },
-  // The feed moved to Jobs > Browse (2026-10-19, Q2205): at phone width its search is the permanent compact row.
-  // posts-search / jobs-search left with the My Posts / My Jobs headers (Posted / Working carry no search).
-  { name: "dashboard-search", url: "/jobs", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/dashboard/browseTasksToolbar/BrowseCompactSearchRow.tsx"] },
+  // dashboard-search left 2026-10-28: Jobs > Browse's phone search became an icon at the tabs row's end that opens
+  // in place (owner: "search and filter should be next to gear"), InlineListSearch, a decided gap below (it writes
+  // nothing: it filters the loaded feed).
   { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
   // Board 89: /search, the one search across the sections (its field is always open).
   { name: "search-page", url: "/search", as: "helper", prepare: openSearch, covers: ["src/pages/search/SearchPage.tsx"] },
@@ -871,7 +871,7 @@ export const GAPS: Record<string, string> = {
   // Admin "Helpr at fault" (J4, 2026-10-19): a no-show/backed-out radio and one note, in the admin refund dialog and the dispute card.
   "src/components/admin/helprFault/HelprFaultFields.tsx": "admin-only, needs a paid job with a booked Helpr and a full refund (journeys never pay on live Stripe); the kind is a two-value radio (admin_rule_helpr_fault refuses anything else: invalid_kind) and the note is space-trimmed (btrim) and refused empty or over 1000 characters (note_required; job_helpr_fault_rulings CHECK); FORMS sweep owed with a seeded paid job",
   // Q2205 (2026-10-19): the feed's phone search left /home with the old Home feed.
-  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop-only since Q2205 (the /jobs feed strip, >=900px); this sweep runs at 375, where the same filters.setSearchQuery is typed through BrowseCompactSearchRow (dashboard-search); its field and ✕ are driven at 1440 by search-x-off-center-press and expanding-search-geometry",
+  "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop-only since Q2205 (the /jobs feed strip, >=900px); this sweep runs at 375, where the same filters.setSearchQuery is typed through the tabs row's InlineListSearch (a decided gap: it writes nothing); its field and ✕ are driven at 1440 by search-x-off-center-press and expanding-search-geometry",
   // The section dashboards (2026-10-19): Home's Customize sheet.
   "src/components/sections/CustomizeSheet.tsx": "holds no typed text: one show/hide switch per section and reorder buttons; nothing to type messy input into",
   // Admin "End series" (Q417 (c), 2026-10-17): one reason textarea on a recurring job in the admin job dialog.

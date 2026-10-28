@@ -145,22 +145,32 @@ export function BrowseTasksActions({
         <Search className="w-5 h-5" />
       </Button>
       )}
-      <Button
-        ref={filtersButtonRef}
-        variant="ghost"
-        size="icon"
-        onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
-        className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
-        aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
-        aria-expanded={filters.filtersOpen}
-      >
-        <SlidersHorizontal className="w-5 h-5" />
-        {filters.activeFilterCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
-            {filters.activeFilterCount}
-          </span>
-        )}
-      </Button>
+      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
     </>
+  );
+}
+
+/**
+ * Browse's Filters button, alone: the desktop cluster above and, on a phone, the end of the Jobs tabs row (owner
+ * 2026-10-28: "search and filter should be next to gear"). Opening the sheet closes an open search, as before.
+ */
+export function BrowseFiltersButton({ filters, filtersButtonRef }: Pick<BrowseTasksActionsProps, "filters" | "filtersButtonRef">) {
+  return (
+    <Button
+      ref={filtersButtonRef}
+      variant="ghost"
+      size="icon"
+      onClick={() => { filters.setFiltersOpen(!filters.filtersOpen); if (filters.searchOpen) filters.setSearchOpen(false); }}
+      className={`h-10 w-10 rounded-ds-md btn-press relative focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] ${filters.filtersOpen || filters.activeFilterCount > 0 ? "bg-[hsl(var(--bark)/0.12)] hover:!bg-[hsl(var(--bark)/0.16)] text-[hsl(var(--bark))] ring-1 ring-inset ring-[hsl(var(--bark)/0.40)]" : "text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)]"}`}
+      aria-label={filters.activeFilterCount > 0 ? `Filters (${filters.activeFilterCount} active)` : "Filters"}
+      aria-expanded={filters.filtersOpen}
+    >
+      <SlidersHorizontal className="w-5 h-5" />
+      {filters.activeFilterCount > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-primary text-primary-foreground text-ds-9 font-bold flex items-center justify-center">
+          {filters.activeFilterCount}
+        </span>
+      )}
+    </Button>
   );
 }

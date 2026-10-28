@@ -7,7 +7,8 @@
  * no card jumped when the data landed (owner, 2026-09-25; VN-32). Those
  * screens became Jobs > Posted / Working, and the /jobs route fallback is now
  * the Jobs-section silhouette (JobsSectionSkeleton). Same promise, new rows:
- *   - the frame matches the tab the URL will open on (Browse: the search row;
+ *   - the frame matches the tab the URL will open on (Browse: no search row
+ *     since owner 2026-10-28, its search is an icon in the tabs row;
  *     Posted / Working: the four status boxes; /posts lands on Posted; an old
  *     My Jobs link such as /jobs?filter= lands on Working);
  *   - the header is the loaded header's shape: on a phone the chips row with
@@ -18,7 +19,7 @@
  *
  * @mutate src/components/JobsSectionSkeleton.tsx |   if (window.location.pathname.startsWith("/posts")) return "posted"; |
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
- * @mutate src/components/JobsSectionSkeleton.tsx | {!isWebDesktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />} | {null}
+ * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
  * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -48,7 +49,7 @@ function at(url: string) {
 
 /** The four status-box bones (StatusBoxBones: a 4-column grid of h-16 bones). */
 const statusBoxes = (c: HTMLElement) => c.querySelectorAll(".grid.grid-cols-4 > .h-16").length;
-/** BrowseCompactSearchRow's one h-10 pill. */
+/** The old phone "Search jobs" row's h-10 pill (gone since owner 2026-10-28): no frame draws it. */
 const searchRow = (c: HTMLElement) => c.querySelectorAll(".h-10.w-full.rounded-full").length;
 
 describe("the /jobs placeholder draws the tab the URL opens on", () => {
@@ -64,7 +65,7 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
   ] as const)("%s -> %s frame", (url, frame) => {
     const { container } = at(url);
     expect(statusBoxes(container), "status boxes").toBe(frame === "list" ? 4 : 0);
-    expect(searchRow(container), "Browse search row").toBe(frame === "browse" ? 1 : 0);
+    expect(searchRow(container), "no Browse search row").toBe(0);
   });
 });
 

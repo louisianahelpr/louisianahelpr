@@ -3,7 +3,7 @@
  *
  * THE CLASS. suppress_exact_duplicate_notification drops a notice word-for-word equal to one sent to the same
  * member in the last 10 minutes. A Declutter notice that does not name its item reads the same for every
- * order, so a second order's "You missed your pickup", "Pickup booked" or "Enjoy your item" was dropped (5 rows
+ * order, so a second order's "You missed your pickup", "Pickup booked" or "Enjoy your item" was dropped (5 rows on 2026-10-28
  * in notification_dedupe_suppressions in the audit run). The one writer, declutter_notify_strict, now puts the
  * item's name in front of the message when the transaction has locked an order (declutter_lock_order records
  * it, transaction-local) whose two people are exactly the notice's user and counterpart; otherwise the text is

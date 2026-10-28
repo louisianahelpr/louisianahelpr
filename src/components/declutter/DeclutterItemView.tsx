@@ -28,6 +28,7 @@ import {
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesBetween, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
+import { fromDeliveredCents } from "@/lib/declutter/delivery";
 import {
   CATEGORY_LABEL,
   ConditionChip,
@@ -175,6 +176,13 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>
+            {/* Helpr delivery is offered on every bought item while Declutter is open (the cart's own rule); a free item is
+                claimed, never bought. The figure is the least it can cost in all (fromDeliveredCents), so "from". */}
+            {canAct && !free && (
+              <p data-item-delivered="" className="text-sm text-muted-foreground">
+                Or from <span className="font-semibold tabular-nums text-foreground">{formatPrice(fromDeliveredCents(it.current_price_cents, it.delivery_size))}</span> delivered by a local Helpr
+              </p>
+            )}
           </section>
 
           {isSeller && (it.status === "live" || it.status === "paused") && <SellerListingPanel item={it} coverUrl={urls[0] ?? null} />}

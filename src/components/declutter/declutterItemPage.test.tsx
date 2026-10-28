@@ -203,6 +203,30 @@ describe("the photo-first Declutter item page", () => {
     expect(q.className.split(/\s+/)).not.toContain("uppercase");
   });
 
+  it("lead 2026-10-28: \"Or from $X delivered\", the least a Helpr delivery can cost in all; never on a free item or your own", async () => {
+    // @mutate src/lib/declutter/delivery.ts |   return buyNowTotalCents(priceCents) + deliveryPriceCents(1, [size]); |   return buyNowTotalCents(priceCents);
+    // @mutate src/components/declutter/DeclutterItemView.tsx |             {canAct && !free && ( |             {canAct && (
+    // $40 large: Buy now's $42.70 (price + 5% + 70c) + delivery's floor $10 + $2 x 1 mile + $20 large = $74.70.
+    const first = open();
+    const line = await waitFor(() => {
+      const el = document.querySelector("[data-item-delivered]");
+      expect(el).not.toBeNull();
+      return el as HTMLElement;
+    });
+    expect(line.textContent).toBe("Or from $74.70 delivered by a local Helpr");
+    expect(line.textContent).not.toMatch(/fee|%|¢/i);
+    first.unmount();
+    state.item = { ...ITEM, price_cents: 0, current_price_cents: 0 };
+    const second = open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(document.querySelector("[data-item-delivered]")).toBeNull();
+    second.unmount();
+    state.item = { ...ITEM, seller_id: "u1" };
+    open();
+    await screen.findByRole("region", { name: "Price and condition" });
+    expect(document.querySelector("[data-item-delivered]")).toBeNull();
+  });
+
   it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {
     open();
     const block = await screen.findByRole("region", { name: "Price and condition" });

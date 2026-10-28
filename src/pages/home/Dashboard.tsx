@@ -55,7 +55,6 @@ import { useDetailJob } from "./useDetailJob";
 import { useLoadMoreSentinel } from "./useLoadMoreSentinel";
 import { useSavedOnlyPaging } from "./useSavedOnlyPaging";
 
-
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
  *  no route rendered it once /home became the Home dashboard (Q2205). */
@@ -361,19 +360,11 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
     </div>
   ) : undefined;
 
-  /* ON A PHONE Browse's search and filters sit at the END OF THE TABS ROW too, before the gear, in the desktop's
-     order (owner 2026-10-28, phone layout: "search and filter should be next to gear"); there is no separate "Search
-     jobs" row. The search is an icon that opens IN PLACE, leftward, in that row (InlineListSearch, as Posted /
-     Working's; owner 2026-10-25 "i prefer the search not expanded", 2026-10-27 "search should just open where its
-     at"). List or map stays in the filter sheet's View choice. Guard: src/test/jobsSearchIsAnIcon.test.tsx. */
-  const phoneBrowseEnd = isWebDesktop ? undefined : (
-    // gap-0 / -ml-1: each control is already a 44px box around a 20px glyph (index.css's tap floor), so they need
-    // no gap of their own, and the row's 4px goes to the tabs (Working fits at 375).
-    <div data-browse-phone-controls="" className="flex items-center gap-0 -ml-1 shrink-0 self-center">
+  /* Phone: search + filters end the tabs row, before the gear (owner 2026-10-28). Guard: jobsSearchIsAnIcon.test.tsx */
+  const phoneBrowseEnd = isWebDesktop ? undefined : (<div data-browse-phone-controls="" className="flex items-center gap-0 -ml-1 shrink-0 self-center">
       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" />
       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
-    </div>
-  );
+    </div>);
 
   const embeddedTitle = (
     <div className="flex flex-col gap-4">

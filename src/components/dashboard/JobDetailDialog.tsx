@@ -560,11 +560,8 @@ const JobDetailDialog = ({
               </div>
             )}
           </div>
-          {/* #62 (audit 2026-10-21): the job page's own take-home (useHelprTakeHome), only the take-home, never
-              the job price (owner 2026-10-25). It sits RIGHT OF THE TITLE, top-aligned with its first line, like
-              the feed card's price (owner 2026-10-28: "move the pay to the right of the title like on the right
-              side of the card"): a long title wraps beside it, the figure never moves or shrinks.
-              Guard: src/test/jobSheetPayBesideTitle.test.ts. */}
+          {/* #62: only the take-home (owner 2026-10-25), RIGHT OF THE TITLE like the feed card's price (owner
+              2026-10-28); a long title wraps beside it. Guard: src/test/jobSheetPayBesideTitle.test.ts. */}
           {viewerUserId && viewerUserId !== job.customer_id && (
             <div className="shrink-0 self-start pt-0.5" data-job-sheet-pay="">
               <JobPriceTakeHome job={job} bare />

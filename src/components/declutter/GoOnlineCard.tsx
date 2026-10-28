@@ -10,6 +10,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOnlineStatus, isOnline, setOnline } from "@/lib/helprTasks/online";
+import { currentPosition } from "@/lib/declutter/position";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { Chip } from "./DeclutterFilterPanel";
 
 const HOURS = [2, 4, 8] as const;
@@ -25,13 +27,26 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
   const [miles, setMiles] = useState<number | null>(null);
   const online = isOnline(status.data);
   const radius = miles ?? status.data?.radius_miles ?? 15;
+  // Deep audit #39: with no shared position and no area saved in the profile, the server refused
+  // (location_needed) only AFTER the press. Now the card says so first, and the press asks for the
+  // device's location once and sends it.
+  const { profile } = useCurrentUser();
+  const hasArea = profile?.latitude != null && profile?.longitude != null;
+  const needsLocation = !where && !hasArea;
   const flip = useMutation({
-    mutationFn: (on: boolean) => setOnline(on, on ? { hours, radiusMiles: radius, where } : {}),
+    mutationFn: async (on: boolean) => {
+      if (!on) return setOnline(false, {});
+      const point = where ?? (hasArea ? null : await currentPosition());
+      return setOnline(true, { hours, radiusMiles: radius, where: point });
+    },
     onSuccess: (_r, on) => {
       toast.success(on ? "You're online. New deliveries near you are sent to you." : "You're offline.");
       void qc.invalidateQueries({ queryKey: ["helpr-tasks", "online"] });
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) =>
+      toast.error((err as { message?: unknown })?.message === "location_required"
+        ? "Turn on location, or add your area in your profile, to go online."
+        : declutterErrorMessage(err)),
   });
   const id = `go-online-${userId}`;
   return (
@@ -70,7 +85,12 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
         </div>
       )}
       <p className="text-ds-12 text-muted-foreground">
-        {where ? "Near the location you shared on this screen." : "Near the area in your profile."} We don't track you in the background. It turns off by itself.
+        {where
+          ? "Near the location you shared on this screen."
+          : needsLocation
+            ? "No area in your profile yet, so going online asks for your location once."
+            : "Near the area in your profile."}{" "}
+        We don't track you in the background. It turns off by itself.
       </p>
     </section>
   );

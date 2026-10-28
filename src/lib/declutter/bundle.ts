@@ -33,6 +33,16 @@ export async function fetchBundleRule(sellerId: string): Promise<number | null> 
   return typeof v === "number" ? v : null;
 }
 
+/** Deep audit #36: the ids among `itemIds` the bundle discount can apply to (above their lowest price), or null
+ *  before the read is deployed (then the offer shows as before). */
+export async function fetchBundleApplies(itemIds: string[]): Promise<Set<string> | null> {
+  if (itemIds.length === 0) return new Set();
+  const res = await supabase.rpc("declutter_bundle_applies", { p_item_ids: itemIds.slice(0, 200) });
+  if (res.error && isMissingRpcNamed(res.error, "declutter_bundle_applies")) return null;
+  const ids = rpcData(res, (e) => rpcErrorMessage("declutter_bundle_applies", e)) as unknown as string[] | null;
+  return new Set(ids ?? []);
+}
+
 /** The seller sets their percent (5-50) or removes it (null). */
 export async function setBundleDiscount(percent: number | null): Promise<number | null> {
   return rpcData(

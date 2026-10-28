@@ -139,7 +139,8 @@ export interface RouteStop {
   address_shows_at: string | null;
   lat: number | null;
   lng: number | null;
-  place: "porch" | "door";
+  /** A pickup is "seller" (porch or door, not chosen; 20261028231116); "porch" / "door" from the server before it. */
+  place: "porch" | "door" | "seller";
   items: { title: string; photo_path: string | null }[];
   slot_start: string | null;
   slot_end: string | null;

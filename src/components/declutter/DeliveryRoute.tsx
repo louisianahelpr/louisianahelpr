@@ -25,8 +25,9 @@ const day = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "sh
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 const PLACE_WORDS = {
-  pickup: { porch: "On the seller's porch", door: "At the seller's door" },
-  dropoff: { porch: "Leave it at the buyer's door", door: "Leave it at the buyer's door" },
+  // A2-12: the seller never chooses porch or door for a Helpr pickup, so the route says both ("seller").
+  pickup: { porch: "On the seller's porch", door: "At the seller's door", seller: "At the seller's door, or on the porch if they leave it out" },
+  dropoff: { porch: "Leave it at the buyer's door", door: "Leave it at the buyer's door", seller: "Leave it at the buyer's door" },
 } as const;
 
 function StopCard({ stop, userId }: { stop: RouteStop; userId: string }) {

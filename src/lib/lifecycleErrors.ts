@@ -565,6 +565,8 @@ export const RPC_ERROR_COPY = {
     item_not_found: DC.item_not_found,
     no_delivery_fee: DC.no_delivery_fee,
     not_authenticated: DC.not_authenticated,
+    // A seller delivery before it was marked delivered or its day (20261028202844, #7).
+    not_delivered_yet: DC.not_delivered_yet,
     order_not_paid: DC.order_not_paid,
     problem_open: DC.problem_open,
     wrong_side: DC.wrong_side,

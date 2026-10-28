@@ -13,6 +13,7 @@ import { chooseDonation, donatePostJobPath, fetchDonationPartnersNear, fetchMyDo
 import { haulAwayErrorMessage } from "@/lib/declutter/haulAwayErrors";
 import { haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { RadioCardList } from "@/components/ui/RadioCardList";
 
 /** The charity choice for the items on the card, and the way to post the donation job. Nothing when none is near. */
 export function DonatePicker({ itemIds }: { itemIds: string[] }) {
@@ -34,28 +35,27 @@ export function DonatePicker({ itemIds }: { itemIds: string[] }) {
         Pick a charity near you. The Helpr drops {itemIds.length === 1 ? "it" : "them"} there, and you get a receipt here
         (the item, the date and the charity).
       </p>
-      <div className="space-y-2" role="radiogroup" aria-label="Charity">
-        {rows.map((p) => (
-          <label key={p.id} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border px-3 py-2">
-            <input
-              type="radio"
-              name="donate-partner"
-              className="mt-1 h-4 w-4 min-h-0 min-w-0"
-              style={{ accentColor: "hsl(var(--primary))" }}
-              checked={p.chosen}
-              disabled={choose.isPending}
-              onChange={() => choose.mutate(p.id)}
-            />
-            <span className="min-w-0">
-              <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.name}</span>
-              <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">
+      {/* The shared choice cards (deep audit #53: the bare radios read as bullets). A pick saves at once; a second
+          tap while it saves is ignored. */}
+      <RadioCardList
+        label="Charity"
+        value={chosen?.id ?? ""}
+        onChange={(id) => {
+          if (!choose.isPending && id !== chosen?.id) choose.mutate(id);
+        }}
+        options={rows.map((p) => ({
+          value: p.id,
+          label: <span className="[overflow-wrap:anywhere]">{p.name}</span>,
+          sub: (
+            <>
+              <span className="block [overflow-wrap:anywhere]">
                 {p.address} · about {p.miles} {p.miles === 1 ? "mile" : "miles"}
               </span>
-              {p.takes && <span className="block text-ds-13 text-muted-foreground [overflow-wrap:anywhere]">Takes: {p.takes}</span>}
-            </span>
-          </label>
-        ))}
-      </div>
+              {p.takes && <span className="block [overflow-wrap:anywhere]">Takes: {p.takes}</span>}
+            </>
+          ),
+        }))}
+      />
       {chosen && (
         <Button asChild variant="outline" className="w-full sm:w-auto">
           <Link to={donatePostJobPath(haulAwayPostJobPath(itemIds))}>Post a donation job</Link>

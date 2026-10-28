@@ -21,7 +21,7 @@
  * @mutate src/components/sections/InlineListSearch.tsx |           if (!value.trim()) close(false, false); |           void value;
  * @mutate src/components/sections/InlineListSearch.tsx |     if (clear && value) onChange(""); |     void clear;
  * @mutate src/components/sections/jobsToolbar.ts | export const JOBS_TOOLBAR_ROW = "flex min-h-[46px] min-w-0 items-center gap-2"; | export const JOBS_TOOLBAR_ROW = "flex min-h-[40px] min-w-0 items-center gap-2 px-4";
- * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: headerCount } : undefined) | embeddedHeader(undefined)
+ * @mutate src/pages/home/Dashboard.tsx | embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : undefined) | embeddedHeader(undefined)
  * @mutate src/pages/home/Dashboard.tsx | <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow | <div data-jobs-toolbar="" className="flex">\n        <div className="min-w-0 flex-1"><BrowseCompactSearchRow
  * @mutate src/components/job-card/embeddedActivity.tsx |       <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}> |       <div data-jobs-toolbar="" className="flex">
  * @mutate src/components/job-card/embeddedActivity.tsx | end={<InlineListSearch value={search} onChange={onSearch} | end={<InlineListSearch value="" onChange={() => {}}
@@ -143,7 +143,7 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
   });
 
   it("desktop: Browse draws no row of its own; count beside Browse, controls at the tabs row's end", () => {
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: headerCount } : undefined)");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : undefined)");
     expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
     const jobs = read("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain("browseCount={browse?.count}");

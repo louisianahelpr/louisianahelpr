@@ -16,19 +16,3 @@ export function WantsQuotesSlot({ active, onShowAllJobs, children }: {
     </Suspense>
   );
 }
-
-/** The Jobs header's count line, or the Wants Quotes title while that lens is on. */
-export function JobsHeaderCount({ wantsQuotes, count, hasFilters }: {
-  wantsQuotes: boolean;
-  count: number;
-  hasFilters: boolean;
-}) {
-  if (wantsQuotes) return <>Jobs that want quotes</>;
-  return (
-    <>
-      {count}
-      {count === 1 ? " job" : " jobs"}
-      {hasFilters ? " match your filters" : ""}
-    </>
-  );
-}

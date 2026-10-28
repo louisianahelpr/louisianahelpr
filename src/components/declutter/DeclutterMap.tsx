@@ -222,7 +222,7 @@ export default function DeclutterMap({
               type="button"
               aria-label="Close preview"
               onClick={() => setSelectedId(null)}
-              className="absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:text-foreground"
+              className="ctl-exit ctl-tint absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center"
             >
               <X className="h-4 w-4" aria-hidden />
             </button>

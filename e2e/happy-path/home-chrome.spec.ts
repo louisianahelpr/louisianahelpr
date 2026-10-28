@@ -212,6 +212,19 @@ for (const variant of [
       expect(box.x + box.width, `${name} sits inside the search row`).toBeLessThanOrEqual(row.x + row.width + 1);
       expect(Math.abs(box.y + box.height / 2 - (row.y + row.height / 2)), `${name} is centred in the search row`).toBeLessThan(4);
     }
+    // The Jobs settings gear is the LAST control at the tabs row's right end, on every width, never in the top bar
+    // (owner 2026-10-28, desktop: "move gear down with the other icons").
+    const gear = page.getByRole("button", { name: "Jobs settings" });
+    await expect(gear, `one gear @ ${variant.tag}`).toHaveCount(1);
+    await expect(bar.getByRole("button", { name: "Jobs settings" }), `no gear in the top bar @ ${variant.tag}`).toHaveCount(0);
+    const gearBox = (await gear.boundingBox())!;
+    expect(gearBox.y, `the gear sits in the tabs row @ ${variant.tag}`).toBeGreaterThanOrEqual(tabsRow.y - 1);
+    expect(gearBox.y + gearBox.height, `the gear sits in the tabs row @ ${variant.tag}`).toBeLessThanOrEqual(tabsRow.y + tabsRow.height + 1);
+    expect(gearBox.x + gearBox.width, `the gear ends the tabs row @ ${variant.tag}`).toBeGreaterThan(tabsRow.x + tabsRow.width - 2);
+    for (const name of ACTION_ICON_NAMES) {
+      const box = (await page.getByRole("button", { name }).first().boundingBox())!;
+      if (isDesktopWeb) expect(box.x, `${name} sits left of the gear @ ${variant.tag}`).toBeLessThan(gearBox.x);
+    }
     if (!isDesktopWeb) {
       await expect(page.getByRole("searchbox", { name: "Search jobs" }).or(page.locator('input[aria-label="Search jobs"]')).first()).toBeVisible();
     }

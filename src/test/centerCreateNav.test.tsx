@@ -342,7 +342,7 @@ describe("a section's phone top bar (mock-up 6)", () => {
     vi.doMock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
     const { AppTopBar } = await import("@/components/sections/AppTopBar");
     renderAt(
-      <AppTopBar title="Jobs" explore section="jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} />,
+      <AppTopBar title="Jobs" explore section="jobs" />,
       "/jobs",
     );
     const bar = screen.getByTestId("app-top-bar");

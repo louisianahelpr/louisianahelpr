@@ -18,9 +18,9 @@
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |       title: "Help", |       title: "Legal",
  * @mutate src/components/profile/profileLanding/jobsSettingsGroups.tsx |       { key: "credentials", label: TAB_TITLES.credentials, |       { key: "credentials-x", label: TAB_TITLES.credentials,
  * @mutate src/pages/jobs/JobsSection.tsx | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" }; | const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs" };
- * @mutate src/pages/jobs/JobsSection.tsx |  settings={JOBS_SETTINGS} desktopGap={false} | desktopGap={false}
- * @mutate src/pages/jobs/JobsSection.tsx | end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />} | end={undefined}
- * @mutate src/components/sections/AppTopBar.tsx |             onClick={() => navigate(settings.path)} |             onClick={() => navigate("/profile")}
+ * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={browse?.end}
+ * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={<><SectionSettingsButton settings={JOBS_SETTINGS} />{browse?.end}</>}
+ * @mutate src/components/sections/AppTopBar.tsx |       onClick={() => navigate(settings.path, { replace: false })} |       onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full min-h-11 inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground | className="w-full rounded-ds-lg py-3.5 border inline-flex items-center justify-center text-ds-13 font-semibold text-muted-foreground
  */
@@ -29,19 +29,26 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: null, isAdmin: true }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+const desktop = { on: false };
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
+// Jobs' tab bodies: only the header JobsSection hands them is under test. Browse hands its controls to the tabs row's end.
+vi.mock("@/pages/home/Dashboard", () => ({ default: ({ embeddedHeader }: { embeddedHeader: (b?: { end?: React.ReactNode }) => React.ReactNode }) => <>{embeddedHeader({ end: <button type="button" aria-label="Show the map" /> })}</> }));
+vi.mock("@/components/job-card/JobListPage", () => ({ default: ({ embeddedHeader }: { embeddedHeader: React.ReactNode }) => <>{embeddedHeader}</> }));
+vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null, useSectionsOpen: () => ({ open: null, settled: false }) }));
 
 import { useProfileLandingDerived } from "@/components/profile/profileLanding/useProfileLandingDerived";
 import { JOBS_SETTINGS_GROUPS } from "@/components/profile/profileLanding/jobsSettingsGroups";
-import { AppTopBar } from "@/components/sections/AppTopBar";
+import JobsSection from "@/pages/jobs/JobsSection";
 
 vi.mock("@/components/NotificationPanel", () => ({ default: () => <button type="button" aria-label="Notifications" /> }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ gate: (_k: string, f: () => void) => f, gatedProps: () => ({}) }) }));
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); desktop.on = false; });
 const src = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
 
 const jobsKeys = JOBS_SETTINGS_GROUPS.flatMap((g) => g.items.map((i) => i.key));
@@ -84,26 +91,41 @@ describe("Jobs settings", () => {
   it("Jobs settings is a gear in the Jobs header, and no card is left at the foot of the list (owner 2026-10-21)", () => {
     const jobs = src("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain('const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };');
-    // The desktop bar keeps the gear; on a phone it ends the tabs row (the Explore header, owner 2026-10-22).
-    expect(jobs).toContain('explore section="jobs" settings={JOBS_SETTINGS}');
-    expect(jobs).toContain("end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />}");
+    // Never in the top bar any more (owner 2026-10-28): AppTopBar takes no settings at all.
+    const bar = src("src/components/sections/AppTopBar.tsx");
+    const topBar = bar.slice(bar.indexOf("export function AppTopBar("), bar.indexOf("export function SectionSettingsButton("));
+    expect(topBar.length).toBeGreaterThan(200);
+    expect(topBar).not.toMatch(/\bsettings\b/);
     expect(src("src/components/job-card/JobListPage.tsx")).not.toMatch(/JobsSettingsRow|Jobs settings/);
   });
 
-  it("the gear is a 44px control (no + beside it since owner 2026-10-28) and opens /jobs/settings", () => {
+  // Owner 2026-10-28, desktop /jobs: "move gear down with the other icons"; on Posted / Working it sits in the same
+  // place, so it never jumps between tabs. On a phone it already ended the tabs row (owner 2026-10-22).
+  it.each([
+    ["phone", "/jobs", false], ["phone", "/jobs?tab=posted", false], ["phone", "/jobs?tab=working", false],
+    ["desktop", "/jobs", true], ["desktop", "/jobs?tab=posted", true], ["desktop", "/jobs?tab=working", true],
+  ] as const)("%s, %s: the gear is the LAST control at the tabs row's right end, never in the top bar, and opens /jobs/settings", (_w, url, onDesktop) => {
+    desktop.on = onDesktop;
     function Where() {
       return <output data-testid="where">{useLocation().pathname}</output>;
     }
     render(
-      <MemoryRouter initialEntries={["/jobs?tab=posted"]}>
-        <Routes>
-          <Route path="*" element={<><AppTopBar title="Jobs" settings={{ label: "Jobs settings", path: "/jobs/settings" }} /><Where /></>} />
-        </Routes>
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } })}>
+        <MemoryRouter initialEntries={[url]}>
+          <Routes>
+            <Route path="*" element={<><JobsSection /><Where /></>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     const gear = screen.getByRole("button", { name: "Jobs settings" });
+    const row = screen.getByTestId("section-tabs");
+    const controls = Array.from(row.querySelectorAll("button:not([role='tab'])"));
+    expect(controls.length).toBeGreaterThan(0);
+    expect(controls[controls.length - 1]).toBe(gear);
+    if (url === "/jobs") expect(controls.map((b) => b.getAttribute("aria-label"))).toEqual(["Show the map", "Jobs settings"]);
+    expect(screen.queryByTestId("app-top-bar")?.contains(gear) ?? false).toBe(false);
     expect(screen.queryByTestId("section-add")).toBeNull();
-    expect(gear.className).toMatch(/\bh-11\b/);
     fireEvent.click(gear);
     expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");
   });

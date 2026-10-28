@@ -7,9 +7,9 @@
  *
  * The class, from source: AppTopBar draws no create control at all (no `section-add`, no `add` prop),
  * and no section header in the app (every `<AppTopBar` / `<SectionScreen` call site under src/, listed
- * from git) hands it one. The bar's icon controls that remain (the gear, the bell) keep one size.
+ * from git) hands it one. The bell keeps its 44px size.
  *
- * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title && !settings) return null; |   if (isWebDesktop && !title && !settings) return null;\n  const addButton = <Button type="button" data-testid="section-add" aria-label="Post a job" />;
+ * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |   if (isWebDesktop && !title) return null;\n  const addButton = <Button type="button" data-testid="section-add" aria-label="Post a job" />;
  * @mutate src/components/sections/SectionScreen.tsx |             <AppTopBar title={title} explore section={section} /> |             <AppTopBar title={title} add={{ label: "Add", path: "/" }} explore section={section} />
  */
 import { describe, it, expect } from "vitest";
@@ -42,11 +42,9 @@ describe("no section + in any section header (owner 2026-10-28)", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("the bar's remaining icon controls keep one size (the bell's class starts with the icon class)", () => {
-    const icon = bar.match(/const TOP_BAR_ICON_CLASS = "([^"]+)";/)?.[1] ?? "";
-    expect(icon).toMatch(/h-11 w-11/);
+  it("the bell keeps its 44px size and 22px glyph", () => {
     const bell = bar.match(/<NotificationPanel triggerClassName="([^"]+)"/)?.[1] ?? "";
-    expect(bell.startsWith(icon), `bell "${bell}" vs icon "${icon}"`).toBe(true);
+    expect(bell.startsWith("h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]"), `bell "${bell}"`).toBe(true);
   });
 
   it("no filled primary surface anywhere in the bar", () => {

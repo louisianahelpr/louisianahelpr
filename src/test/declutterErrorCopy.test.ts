@@ -69,6 +69,8 @@ const DECLUTTER_FILES = [
   "20261027204500_declutter_safe_meetup.sql",
   // Q2427 bundle discounts: its codes are in bundleErrors.ts.
   "20261027211754_declutter_bundle_discount.sql",
+  // Q2453 tips on deliveries: invalid_tip, tip_not_yet, tip_unavailable.
+  "20261028014848_helpr_task_tips.sql",
 ];
 // require_feature (20261012031120) raises feature_disabled on every RPC; declutter_consume_fee_debt (3b, whose
 // other codes are service-only) raises invalid_payout, which slice 4's member handover paths reach.
@@ -95,7 +97,7 @@ describe("Declutter error copy is exact (both ways)", () => {
   const codes = raisedCodes();
 
   it("reads a real inventory", () => {
-    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(25); // 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
+    expect(readdirSync(DIR).filter((f: string) => DECLUTTER_FILES.includes(f))).toHaveLength(26); // 26: + tips on deliveries (20261028014848, Q2453); 25: + bundle discounts (20261027211754, Q2427, 2026-10-27); 24: + donate what doesn't sell (20261027222743, Q2428); 23 before that: + the one-time setup fee (20261026154738, Q2352) + board 141's refund request after the handover (20261026155251, 2026-10-23) + seller delivery (20261027153244, 2026-10-27) + the Free section (20261027170717, 2026-10-27) + safe meetup spots (20261027204500, Q2425, 2026-10-27)
     expect(codes.size).toBeGreaterThan(25);
   });
 

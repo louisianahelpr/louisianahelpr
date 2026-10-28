@@ -20,7 +20,29 @@
 type RaisePart = { raise_id: string; payment_intent_id: string; cents: number };
 
 /** One transfer of the payout: from the order's charge (raiseId null) or from one raise's charge. */
-export type PayoutPart = { raiseId: string | null; paymentIntentId: string; amountCents: number };
+export type PayoutPart = { raiseId: string | null; paymentIntentId: string; amountCents: number; tipId?: string | null };
+
+/** One held delivery tip (owner #3706), as helpr_task_payouts_due names it. */
+type TipPart = { tip_id: string; payment_intent_id: string; cents: number };
+
+/**
+ * Held delivery tips (owner 2026-10-28, issue #3706; migration 20261028014848): a tip for a Helpr
+ * with no payout account was charged on the platform and is paid WITH the delivery pay, each tip
+ * as its own transfer of EXACTLY the tip from the tip's own charge. They are outside the payout's
+ * amount_cents (the delivery pay, rounded down, with its fee): the Helpr gets every cent of a tip.
+ * Throws on a malformed part (a data defect: never paid by a guess).
+ */
+export function heldTipParts(tipParts: unknown): PayoutPart[] {
+  const tips = tipParts == null ? [] : tipParts;
+  if (!Array.isArray(tips)) throw new Error("tip_parts is not a list");
+  return (tips as TipPart[]).map((t) => {
+    if (!t || typeof t.tip_id !== "string" || !t.tip_id || typeof t.payment_intent_id !== "string"
+      || !t.payment_intent_id.startsWith("pi_") || !Number.isInteger(t.cents) || t.cents < 300 || t.cents > 100_000) {
+      throw new Error("a tip part is malformed");
+    }
+    return { raiseId: null, tipId: t.tip_id, paymentIntentId: t.payment_intent_id, amountCents: t.cents };
+  });
+}
 
 /**
  * The transfers that make up a payout of `amountCents`. Throws (a data defect:

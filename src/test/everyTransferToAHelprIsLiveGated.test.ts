@@ -76,6 +76,13 @@ const DESTINATION_CHARGES: Record<string, { sites: number; test: string; proof: 
     test: "src/test/edge/auto-tip-charge.test.ts",
     proof: "Stripe-refused, handled",
   },
+  // Declutter delivery tips (Q2453): the job tip's destination charge, to the delivery Helpr. (A HELD tip, owner
+  // #3706, has no transfer_data: it is charged on the platform and declutter-money's own live gate sends it.)
+  "supabase/functions/declutter-checkout/index.ts": {
+    sites: 1,
+    test: "src/test/edge/declutter-delivery-tip.test.ts",
+    proof: "Stripe-refused, handled",
+  },
 };
 
 function codeOf(file: string): string {

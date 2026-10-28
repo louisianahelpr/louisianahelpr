@@ -178,6 +178,10 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   not_a_delivery_in_transit: "Only a delivery the Helpr picked up can be decided as damaged in delivery.",
   delivery_decision_needed: "The Helpr has this item. Decide it as damaged in delivery, or pay the seller.",
   task_not_found: "This delivery isn't available.",
+  // Tips on deliveries (20261028014848, Q2453).
+  invalid_tip: "Tips are $3 to $1,000.",
+  tip_not_yet: "You can add a tip once the delivery is done.",
+  tip_unavailable: "This delivery can't take a tip.",
   task_taken: "Another Helpr took this delivery, or it closed.",
   too_many_releases: "You backed out of or missed 3 deliveries this week. You can take new ones again in a few days.",
   too_many_taken: "Pick up one of your deliveries before you take another.",
@@ -233,6 +237,14 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   photo_unavailable: "That photo couldn't load. Try again.",
   // declutter-checkout's raise_pay before its migration is deployed (PGRST202).
   raise_unavailable: "Raising the pay isn't available yet. Nothing was charged.",
+  // declutter-checkout's delivery_tip (Q2453): the job tip's own refusals, word for word (create-payment action "tip").
+  payment_review: "This payment can't go through right now. Please contact support.",
+  tip_helpr_no_payout: "This Helpr hasn't set up their payout account yet and cannot receive tips at this time.",
+  tip_helpr_held: "This Helpr can't receive tips right now. Please try again later.",
+  tip_check_failed: "Could not verify the Helpr's payout account. Please try again.",
+  tip_not_sent: "Your tip couldn't be sent, so nothing was charged. Please try again later.",
+  tip_already_paid: "This tip already went through. Thank you!",
+  tip_page_closed: "That tip page closed. Close this and open it again to tip.",
 };
 
 /**

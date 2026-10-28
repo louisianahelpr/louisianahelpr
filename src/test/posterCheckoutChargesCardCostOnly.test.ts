@@ -93,7 +93,7 @@ const NOT_A_JOB_CHECKOUT: Record<string, { sites: number; why: string }> = {
   "create-bgc-payment/index.ts": { sites: 1, why: "a background-check purchase at a fixed price" },
   "create-boost-payment/index.ts": { sites: 1, why: "a Job Boost purchase at a fixed price" },
   "declutter-card/index.ts": { sites: 1, why: "Declutter: a SETUP page that saves a card and charges nothing (row 36)" },
-  "declutter-checkout/index.ts": { sites: 2, why: "Declutter: an item sale (items + the 5% + 70c buyer's fee, F1), not a job; the card fee comes out of the fee. Second site (Q1929): the buyer's delivery-pay raise, the raise plus its card fee, paid by the buyer; not a poster job" },
+  "declutter-checkout/index.ts": { sites: 3, why: "Declutter: an item sale (items + the 5% + 70c buyer's fee, F1), not a job; the card fee comes out of the fee. Second site (Q1929): the buyer's delivery-pay raise, the raise plus its card fee, paid by the buyer; not a poster job. Third site (Q2453): a tip on a done delivery, the job tip's pricing (tipFees.ts: 100% to the Helpr, the card fee on top); not a poster job" },
   "shop-checkout/index.ts": { sites: 1, why: "Shops M1: a card HOLD for a shop order (items + the same F1 5% + 70c buyer's fee + Stripe Tax), not a job; the card fee comes out of the fee" },
   "create-pro-checkout/index.ts": { sites: 1, why: "a membership purchase (Stripe Price ids)" },
   "pay-onboarding-fee/index.ts": { sites: 1, why: "the one-time account setup fee, on its own" },

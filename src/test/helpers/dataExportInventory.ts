@@ -155,6 +155,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   helpr_tasks: { by: ["helpr_id"] },
   helpr_task_events: { by: ["actor_id"] },
   helpr_task_payouts: { by: ["helpr_id"] },
+  // Q2453 (20261028014848): tips on deliveries, the tipper's and the Helpr's.
+  helpr_task_tips: { by: ["tipper_id", "helpr_id"] },
   declutter_delivery_dropoffs: { by: ["buyer_id"] },
   // Declutter seller delivery (20261027153244, exported by 20261027153245): the seller's setting,
   // windows, days off and per-item switch; each delivery either side is on (a seller's copy drops

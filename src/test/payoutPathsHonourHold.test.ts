@@ -51,6 +51,7 @@
  * @mutate supabase/functions/_shared/crewBlockFees.ts | const hold = await checkPayoutHold(admin, row.helper_id); | const hold = { kind: "clear" } as { kind: string; message?: string };
  * @mutate supabase/functions/money-reconciliation/index.ts | => loadPayoutHolds(admin, ids); | => ({ ok: true as const, holds: new Map<string, unknown>(), ids });
  * @mutate supabase/functions/auto-resolve-disputes/index.ts |               const holds = await loadPayoutHolds( |               const holds = await loadPayoutHoldz(
+ * @mutate supabase/functions/declutter-checkout/index.ts | const hold = await checkPayoutHold(admin, helprId); | const hold = { kind: "clear" } as { kind: string; message?: string };
  * @mutate supabase/functions/stripe-payouts/index.ts | stripe.balance.retrieve({ stripeAccount: accountId }), | stripe.balance.retrieve({ stripeAccount: accountId }), stripe.transfers.create({ amount: 1, currency: "usd", destination: accountId }),
  * @mutate supabase/functions/cash-out-credits/index.ts | transfer = await stripe.transfers.create( | await stripe.transfers.create({ amount: 1, currency: "usd", destination: "acct_x" });\n      transfer = await stripe.transfers.create(
  */
@@ -90,6 +91,8 @@ const PAYOUT_PATHS: Record<string, number> = {
   "supabase/functions/_shared/crewBlockFees.ts": 1,
   // Declutter slice 4 (B53): a seller's payout for a handed-over order; slice 5: a Helpr's delivery pay
   "supabase/functions/declutter-money/index.ts": 3, // + Shops M2 shop payouts (20261018211820)
+  // Q2453: a Declutter delivery tip's destination charge (the job tip's; a HELD tip has no transfer_data)
+  "supabase/functions/declutter-checkout/index.ts": 1,
 };
 
 /**
@@ -104,6 +107,8 @@ const READ_ONLY_HOLD_READERS: Record<string, string> = {
     "payout_pending_stranded skips a job a hold keeps in payout_pending (reported in payout_pending_held); an unreadable hold exempts nothing",
   "supabase/functions/auto-resolve-disputes/index.ts":
     "the stuck-split sweep sets aside a split execute-dispute-split refused for a hold (PAYOUT_HOLD_SPLIT_ERROR) while the hold stands",
+  "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
+    "a PAID delivery tip (Q2453) whose Helpr was put on a hold after the page opened pages staff critical for a hand reversal (Q2459); Stripe already moved the money, this handler moves none",
 };
 
 interface Site {

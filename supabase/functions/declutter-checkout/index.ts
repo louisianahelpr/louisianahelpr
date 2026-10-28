@@ -40,6 +40,17 @@
  *                kind declutter_raise, the order's transfer group). The webhook
  *                applies it only once it is paid.
  *
+ *   delivery_tip { task_id, tip_cents, tip_attempt_id }  Q2453: the BUYER tips
+ *                the Helpr of a delivery that is done. helpr_task_tip_start AS
+ *                THE BUYER (every rule in SQL), then a Stripe page that follows
+ *                the job tip (create-payment action "tip") EXACTLY: a
+ *                destination charge to the Helpr's own account for
+ *                tipChargeBreakdown's charge, application fee = the card fee,
+ *                so the Helpr receives the whole tip (_shared/tipFees.ts); the
+ *                same payout-account, payout-hold and ban-review refusals; the
+ *                attempt id keys the page. The webhook marks it paid
+ *                (metadata kind declutter_delivery_tip).
+ *
  *   seller_delivery_quote { seller_id, address? }  The seller delivers
  *                (20261027153244, switch 'declutter_seller_delivery'): with an
  *                address, it is geocoded HERE and stored exactly as for Helpr
@@ -72,6 +83,10 @@ import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
+import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
+import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -597,6 +612,141 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
   return json({ url: session.url, order_id: orderId, raise_id: raise.raise_id });
 }
 
+type TipStart = { tip_id: string; helpr_id: string | null; tip_cents: number; title: string; payment_status: string; stripe_session_id: string | null; held?: boolean };
+
+/**
+ * Q2453: the BUYER tips the Helpr of a delivery that is done. The money is the job tip's
+ * (create-payment action "tip"), line for line: the Helpr receives the whole tip, the card fee
+ * is added on top for the buyer inside ONE line (owner 2026-10-25: no fee line), the platform
+ * keeps only that fee (application_fee_amount), card and Link only, 3D Secure from $300.
+ */
+async function deliveryTip(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
+  const taskId = typeof body.task_id === "string" ? body.task_id : "";
+  if (!UUID_RE.test(taskId)) return json({ error: "task_not_found" }, 404);
+  // The prompt's own id (one per opening): it keys the page, so a retry of one prompt is one page.
+  const attemptId = typeof body.tip_attempt_id === "string" && UUID_RE.test(body.tip_attempt_id) ? body.tip_attempt_id : "";
+  const tipCents = typeof body.tip_cents === "number" && Number.isInteger(body.tip_cents) ? body.tip_cents : NaN;
+  if (!attemptId || !(tipCents >= TIP_MIN_CENTS && tipCents <= TIP_MAX_CENTS)) return json({ error: "invalid_tip" }, 400);
+  const tipSwitchOff = await requireFeature(admin, "declutter", user, corsHeaders);
+  if (tipSwitchOff) return tipSwitchOff;
+  const { data, error } = await asBuyer.rpc("helpr_task_tip_start", { p_task_id: taskId, p_tip_cents: tipCents, p_attempt_id: attemptId });
+  if (error?.code === "PGRST202") return json({ error: "tip_unavailable" }, 503);
+  if (error) return rpcRefusal(error);
+  const tip = (Array.isArray(data) ? data[0] : data) as TipStart | undefined;
+  if (!tip?.tip_id || !tip.helpr_id || tip.tip_cents !== tipCents) {
+    console.error(`[declutter-checkout] tip for task ${taskId} came back without its row`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  if (tip.payment_status === "paid") return json({ error: "tip_already_paid" }, 409);
+  const helprId = tip.helpr_id;
+  // Q1324, as a job tip: the payer under a ban review is told to contact support; a Helpr under
+  // review gets the payout-hold reply, so the buyer never learns a review exists. Fails closed.
+  const review = await loadBanReviewUsers(admin, [user.id, helprId]);
+  if (!review.ok) throw new Error(`ban review read failed: ${review.message}`);
+  if (review.users.has(user.id)) return json({ error: "payment_review" }, 403);
+  // The Helpr's own Stripe account (a destination charge pays them directly). A read error fails:
+  // it must never be taken for "no account".
+  const { data: helpr, error: helprErr } = await admin.from("profiles").select("stripe_account_id").eq("user_id", helprId).maybeSingle();
+  if (helprErr) {
+    console.error(`[declutter-checkout] tip: Helpr profile read failed for ${helprId}: ${helprErr.message}`);
+    return json({ error: "tip_check_failed" }, 500);
+  }
+  const account = (helpr as { stripe_account_id?: string | null } | null)?.stripe_account_id ?? null;
+  // Owner #3706: a Helpr with no payout account still gets the tip; the SQL marked the row held and
+  // it is paid with their held delivery pay. A row NOT held needs the account (a destination charge).
+  const held = tip.held === true;
+  if (!held && !account) {
+    return json({ error: "tip_helpr_no_payout" }, 400);
+  }
+  const hold = await checkPayoutHold(admin, helprId);
+  if (hold.kind === "error") {
+    console.error(`[declutter-checkout] tip: payout hold check failed for ${helprId}: ${hold.message}`);
+    return json({ error: "tip_check_failed" }, 500);
+  }
+  if (hold.kind === "held" || review.users.has(helprId)) {
+    return json({ error: "tip_helpr_held", code: PAYOUT_HELD_CODE }, 409);
+  }
+  const mode = await stripeModeForParties(admin, [user.id, helprId], { caller: user.id });
+  const stripe = new Stripe(stripeSecretKeyFor(mode), { apiVersion: "2025-08-27.basil" });
+  // A row that already has a page (a retry after Stripe's key window): that page, never a second one.
+  if (tip.stripe_session_id) {
+    const pageMode = sessionIdMode(tip.stripe_session_id);
+    const pageStripe = pageMode && pageMode !== mode ? new Stripe(stripeSecretKeyFor(pageMode), { apiVersion: "2025-08-27.basil" }) : stripe;
+    let prior: Stripe.Checkout.Session | null = null;
+    try {
+      prior = await pageStripe.checkout.sessions.retrieve(tip.stripe_session_id);
+    } catch (e) {
+      console.error(`[declutter-checkout] tip ${tip.tip_id}: prior page read failed: ${caughtMessage(e)}`);
+      return json({ error: TRY_AGAIN }, 500);
+    }
+    if (prior.status === "open" && prior.url) return json({ url: prior.url, tip_id: tip.tip_id });
+    if (prior.status === "complete") return json({ error: "tip_already_paid" }, 409);
+    return json({ error: "tip_page_closed" }, 409);
+  }
+  const q = tipChargeBreakdown(tipCents);
+  let payerCustomer: string | undefined;
+  try {
+    payerCustomer = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
+  } catch (e) {
+    // The page asks for the email instead: the stored customer only pre-fills it.
+    console.error(`[declutter-checkout] tip: stored customer read failed: ${caughtMessage(e)}`);
+  }
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      ...(payerCustomer ? { customer: payerCustomer } : { customer_email: user.email }),
+      mode: "payment",
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: "usd",
+          tax_behavior: "exclusive",
+          // Owner 2026-10-25: the tipper sees only the total they pay, no card-fee line; the
+          // application fee below still keeps exactly the fee, so the Helpr's transfer is the tip.
+          product_data: { name: `Tip — ${tip.title}`, description: `Your Helpr receives your whole $${(q.tipCents / 100).toFixed(2)} tip.`, tax_code: NONTAXABLE_TAX_CODE },
+          unit_amount: q.chargeCents,
+        },
+      }],
+      // Card (incl. Apple/Google Pay) and Link only: the fee recovers the CARD rate (Q383).
+      payment_method_types: TIP_PAYMENT_METHOD_TYPES,
+      adaptive_pricing: { enabled: false },
+      payment_method_options: threeDSecureOptions(q.chargeCents),
+      payment_intent_data: {
+        // Held (owner #3706): charged on the platform; declutter-money transfers exactly the tip from this
+        // charge with the delivery pay. Otherwise the job tip's destination charge: the Helpr gets
+        // charge - application fee = the tip at once.
+        ...(held ? {} : { transfer_data: { destination: account as string }, application_fee_amount: q.feeCents }),
+        // tipper_id: a refund or dispute notice finds who paid (refundNotice reads md.tipper_id; lh-money-escrow review #3).
+        metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, tipper_id: user.id, held: held ? "1" : "0", tip_cents: String(q.tipCents), fee_cents: String(q.feeCents), helper_cents: String(q.helperCents) },
+      },
+      metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, task_id: taskId, tipper_id: user.id, helpr_id: helprId, tip_cents: String(q.tipCents), charge_cents: String(q.chargeCents) },
+      success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)),
+      cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
+    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}` });
+  } catch (tipErr) {
+    const refused = await noteDestinationChargeRefused(tipErr, {
+      fn: "declutter-checkout", what: "A delivery tip checkout", helperId: helprId, fields: { task_id: taskId, tip_cents: tipCents, held: held ? "yes" : "no" },
+    });
+    // Stripe refused the Helpr's account before any money moved; the ops alert is sent (once a day).
+    if (refused) return json({ error: "tip_not_sent" }, 409);
+    throw tipErr;
+  }
+  const { data: attached, error: attachErr } = await admin.rpc("helpr_task_tip_attach", { p_tip_id: tip.tip_id, p_session_id: session.id });
+  if (attachErr) {
+    // Not recorded yet: the page stays open, and a retry replays this same page (the Stripe key) and
+    // records it (lh-money-escrow review nit 5: expiring it here would hand the retry a dead page).
+    console.error(`[declutter-checkout] tip ${tip.tip_id}: page not recorded: ${attachErr.message}`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  if (attached !== true) {
+    // The row kept another page: this one must not stay payable.
+    console.error(`[declutter-checkout] tip ${tip.tip_id}: the row holds another page`);
+    await expirePage(stripe, session.id);
+    return json({ error: TRY_AGAIN }, 409);
+  }
+  return json({ url: session.url, tip_id: tip.tip_id });
+}
+
 /** An ISO time string the database can read, or null. */
 function isoTime(v: unknown): string | null {
   if (typeof v !== "string" || v.length > 40 || Number.isNaN(Date.parse(v))) return null;
@@ -704,6 +854,7 @@ serve(async (req) => {
     if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);
     if (body.action === "raise_pay") return await raisePay(body, user, asMember, admin);
     if (body.action === "seller_delivery_quote") return await sellerDeliveryQuote(body, user, asMember, admin);
+    if (body.action === "delivery_tip") return await deliveryTip(body, user, asMember, admin);
     return json({ error: "invalid_action" }, 400);
   } catch (error) {
     if (error instanceof StripeModeRefused) return stripeModeRefusedResponse(error, corsHeaders);

@@ -103,8 +103,9 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
   const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
-  // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist.
-  const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn");
+  // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist; A2-5: so does one
+  // marked sold elsewhere (no Relist: it was sold).
+  const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn" || i.status === "sold_elsewhere");
   const show = (g: SellingGroup) => only === null || only === g;
   return (
     <div className="space-y-6">
@@ -119,7 +120,7 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
           { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
           // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
-          ...(takenDown.length > 0 ? [{ key: "taken" as const, label: "Taken down", count: takenDown.length }] : []),
+          ...(takenDown.length > 0 ? [{ key: "taken" as const, label: "History", count: takenDown.length }] : []),
         ]}
       />
       {show("offers") && <OffersSection side="seller" />}

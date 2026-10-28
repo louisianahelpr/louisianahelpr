@@ -1,5 +1,5 @@
 /**
- * "Mark sold elsewhere" is not "Delete" (Declutter audit 2, SE2-1; Q?soldelsewhere; migration 20261028192719).
+ * "Mark sold elsewhere" is not "Delete" (Declutter audit 2, SE2-1; Q2468; migration 20261028192719).
  *
  * THE CLASS. Two different outcomes shared one write: Manage listing's "Mark sold elsewhere" and "Delete"
  * both called declutter_withdraw_item, so a listing sold elsewhere became 'withdrawn' ("Taken down") like a

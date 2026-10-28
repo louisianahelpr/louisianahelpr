@@ -38,6 +38,7 @@ import {
   setListingDrops,
   setListingPrice,
   withdrawItem,
+  markSoldElsewhere,
   type DeclutterItem,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -100,7 +101,9 @@ export function ManageListingSheet({
   const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops stopped at ${formatPrice(item.current_price_cents)}.`);
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
-  const takeDown = useListingAction(() => withdrawItem(item.id), view === "sold" ? "Marked sold. It's off sale." : "Listing deleted.", close);
+  // A2-5: "Mark sold elsewhere" keeps the listing in the seller's history; Delete stays a withdraw.
+  const takeDown = useListingAction(() => (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)),
+    view === "sold" ? "Marked sold elsewhere. It's off sale and in your selling history." : "Listing deleted.", close);
   const busy = drops.isPending || pause.isPending || relist.isPending || takeDown.isPending;
   const paused = item.status === "paused";
   // A free item (20261027170717) has no price to change, no drops and no seller delivery: only pause, relist, take down.
@@ -162,7 +165,7 @@ export function ManageListingSheet({
               </>)}
               <li>
                 <button type="button" className={ROW} onClick={() => setView("sold")} disabled={busy}>
-                  <RowText title="Mark sold elsewhere">Takes it down; no fees</RowText>
+                  <RowText title="Mark sold elsewhere">Takes it down and keeps it in your history; no fees</RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </button>
               </li>
@@ -195,7 +198,7 @@ export function ManageListingSheet({
           <div className="space-y-4">
             <p className="text-ds-15">
               {view === "sold"
-                ? "We'll take it off sale. There's no fee, and anyone with an open offer is told nothing was charged."
+                ? "We'll take it off sale and keep it in your selling history. There's no fee, and anyone with an open offer is told nothing was charged."
                 : "Its photos are removed and open offers close. Nothing is charged. This can't be undone."}
             </p>
             <SheetFooter>

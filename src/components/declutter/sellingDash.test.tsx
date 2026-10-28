@@ -21,7 +21,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <MyListingsView userId={userId} haulOn={haulOn} />\n |             <MyListingsView userId={userId} haulOn={haulOn} />\n            <BundleDiscountCard />\n
  * @mutate src/components/declutter/DeclutterHomeView.tsx |           <PickupTimesCard userId={userId} />\n |
  * @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("taken") && <TakenDownSection items={takenDown} />} |
- * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn") | (i) => i.status === "never")
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | (i) => i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | (i) => i.status === "never" \|\| i.status === "sold_elsewhere")
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -30,6 +30,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const reopenSpy = vi.hoisted(() => vi.fn(async (_id: string) => "draft"));
+const withdrawSpy = vi.hoisted(() => vi.fn(async (_id: string) => undefined));
 const state = {
   mine: [] as unknown[],
   offers: [] as unknown[],
@@ -101,7 +102,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [{ id: "p1", item_id: "i1", storage_path: "u1/i1/a.jpg", position: 0 }],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
-  withdrawItem: async () => undefined,
+  withdrawItem: withdrawSpy,
   fetchMyCard: async () => ({ brand: "visa", last4: "4242" }),
   fetchMyActiveStrikes: async () => 0,
   fetchMyOffers: async () => state.offers,
@@ -257,7 +258,7 @@ describe("Selling tab: Taken down, with Relist", () => {
   it("a taken-down listing shows under its own 'Taken down' chip and group, and Relist reopens it in the sell flow", async () => {
     state.mine = [ITEM, TAKEN];
     const { container } = at("/declutter?tab=selling");
-    const group = await screen.findByRole("region", { name: "Taken down" });
+    const group = await screen.findByRole("region", { name: "Selling history" });
     expect(within(group).getByText("Old radio")).toBeInTheDocument();
     const chip = container.querySelector('[data-status-box="taken"]') as HTMLElement;
     expect(chip).not.toBeNull();
@@ -269,7 +270,7 @@ describe("Selling tab: Taken down, with Relist", () => {
 
   it("every status a seller's own listing can hold is shown on Selling (nothing vanishes)", async () => {
     // The statuses a seller's listing can sit in without a sale (sold / completed show as orders under Sold).
-    const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "withdrawn"] as const;
+    const statuses = ["draft", "pending_review", "live", "paused", "reserved", "rejected", "withdrawn", "sold_elsewhere"] as const;
     state.mine = statuses.map((s, n) => ({ ...ITEM, id: `s${n}`, status: s, title: `Item ${s}` }));
     at("/declutter?tab=selling");
     expect(statuses.length).toBeGreaterThan(5);
@@ -281,6 +282,50 @@ describe("Selling tab: Taken down, with Relist", () => {
     const { container } = at("/declutter?tab=selling");
     await screen.findByText("Oak rocking chair");
     expect(container.querySelector('[data-status-box="taken"]')).toBeNull();
-    expect(screen.queryByRole("region", { name: "Taken down" })).toBeNull();
+    expect(screen.queryByRole("region", { name: "Selling history" })).toBeNull();
+  });
+
+  // A2-5 (audit 2 SE2-1): "Mark sold elsewhere" keeps the listing as 'sold_elsewhere'. It belongs in the seller's
+  // history, reads "Sold elsewhere.", has no Relist (it was sold), and is off the live listings.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | i.status === "withdrawn" \|\| i.status === "sold_elsewhere") | i.status === "withdrawn")
+  // @mutate src/components/declutter/DeclutterTakenDown.tsx |             {item.status === "withdrawn" && ( |             {true && (
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | new Set(["withdrawn", "sold_elsewhere"]) | new Set(["withdrawn"])
+  it("a listing sold elsewhere is in Selling history, reads Sold elsewhere, has no Relist, and is off Your listings (A2-5)", async () => {
+    const SOLD = { ...ITEM, id: "i8", status: "sold_elsewhere", title: "Brass lamp", current_price_cents: 2000 };
+    state.mine = [ITEM, SOLD];
+    const { container } = at("/declutter?tab=selling");
+    const group = await screen.findByRole("region", { name: "Selling history" });
+    const row = within(group).getByText("Brass lamp").closest("li") as HTMLElement;
+    expect(within(row).getByText("Sold elsewhere.")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "Relist" })).toBeNull();
+    expect((container.querySelector('[data-status-box="taken"]') as HTMLElement).textContent).toContain("History");
+    const listings = screen.getByRole("region", { name: "Your listings" });
+    expect(within(listings).queryByText("Brass lamp")).toBeNull();
+    expect(within(listings).getByText("Oak rocking chair")).toBeInTheDocument();
+  });
+});
+
+// #18 (lead 2026-10-28): "Take this item off sale?" was the browser's window.confirm (a grey system box). It is the
+// shared in-app ConfirmSheet now; src/test/declutterNoBrowserConfirm.test.ts keeps it at zero for this file.
+// @mutate src/components/declutter/DeclutterHomeView.tsx |                     onClick={() => setAsking(item)} |                     onClick={() => { if (window.confirm("Take this item off sale?")) takeDown.mutate(item.id); }}
+describe("#18: taking a listing down asks in the app", () => {
+  it("Take down opens the sheet; Not now changes nothing; Take down takes it down", async () => {
+    withdrawSpy.mockClear();
+    const confirmSpy = vi.spyOn(window, "confirm").mockImplementation(() => { throw new Error("window.confirm used"); });
+    state.mine = [{ ...ITEM, id: "i7", status: "pending_review", title: "Wicker chair" }];
+    state.offers = [];
+    state.cart = [];
+    at("/declutter?tab=selling");
+    fireEvent.click(await screen.findByRole("button", { name: "Take down" }));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getByText("Take this item off sale?")).toBeInTheDocument();
+    fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(withdrawSpy).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Take down" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take down" }));
+    await waitFor(() => expect(withdrawSpy).toHaveBeenCalledWith("i7"));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 });

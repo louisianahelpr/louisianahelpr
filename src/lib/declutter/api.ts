@@ -55,7 +55,9 @@ export function rpcData<T>(result: { data: T; error: { message: string } | null;
 
 export type DeclutterStatus =
   | "draft" | "pending_review" | "live" | "paused" | "reserved" | "sold" | "completed"
-  | "ended" | "withdrawn" | "rejected" | "removed";
+  | "ended" | "withdrawn" | "rejected" | "removed"
+  // Declutter audit 2 A2-5 (20261028192719): the seller sold it somewhere else; kept in their history.
+  | "sold_elsewhere";
 
 export type DeliverySize = "small" | "large" | "xl";
 
@@ -448,6 +450,12 @@ export async function removePhoto(photoId: string): Promise<void> {
 
 export async function withdrawItem(itemId: string): Promise<void> {
   const paths = rpcData(await supabase.rpc("declutter_withdraw_item", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_withdraw_item", e));
+  await removeObjects((paths ?? []) as string[]);
+}
+
+/** "Mark sold elsewhere" (A2-5): off sale like a withdraw, but the listing is kept as 'sold_elsewhere'. Its photos go the same way. */
+export async function markSoldElsewhere(itemId: string): Promise<void> {
+  const paths = rpcData(await supabase.rpc("declutter_mark_sold_elsewhere", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_mark_sold_elsewhere", e));
   await removeObjects((paths ?? []) as string[]);
 }
 

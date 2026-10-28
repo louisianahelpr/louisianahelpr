@@ -34,6 +34,7 @@ vi.mock("@/lib/declutter/api", () => ({
   pauseListing: async (...a: unknown[]) => { calls.push(["pause", ...a]); return "paused"; },
   relistListing: async (...a: unknown[]) => { calls.push(["relist", ...a]); return "live"; },
   withdrawItem: async (...a: unknown[]) => { calls.push(["withdraw", ...a]); },
+  markSoldElsewhere: async (...a: unknown[]) => { calls.push(["sold_elsewhere", ...a]); },
   fetchAutoFree: async () => autoFree,
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: dropPct.value }),
   setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
@@ -150,6 +151,18 @@ describe("Manage a listing (board 158)", () => {
     expect(screen.getByText(/This can't be undone/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Delete listing" }));
     await waitFor(() => expect(calls).toContainEqual(["withdraw", "i1"]));
+  });
+
+  // A2-5 (audit 2 SE2-1): "Mark sold elsewhere" and "Delete" both called declutter_withdraw_item, so a sale was
+  // recorded as a deletion. Mark sold now calls declutter_mark_sold_elsewhere (kept as history); Delete stays a withdraw.
+  // @mutate src/components/declutter/DeclutterManageListing.tsx | (view === "sold" ? markSoldElsewhere(item.id) : withdrawItem(item.id)) | withdrawItem(item.id)
+  it("Mark sold elsewhere records a sale elsewhere, never a withdraw (A2-5)", async () => {
+    sheet();
+    fireEvent.click(await screen.findByText("Mark sold elsewhere"));
+    expect(screen.getByText(/keep it in your selling history/)).toBeTruthy();
+    expect(calls).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Mark sold" }));
+    await waitFor(() => expect(calls).toEqual([["sold_elsewhere", "i1"]]));
   });
 
   it("a lowest price above the price is refused before any call", async () => {

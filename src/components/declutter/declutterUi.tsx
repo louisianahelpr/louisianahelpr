@@ -23,6 +23,7 @@ export const STATUS_LABEL: Record<DeclutterStatus, string> = {
   withdrawn: "Taken down",
   rejected: "Not approved",
   removed: "Removed by Louisiana Helpr",
+  sold_elsewhere: "Sold elsewhere",
 };
 
 export const STATUS_HELP: Partial<Record<DeclutterStatus, string>> = {

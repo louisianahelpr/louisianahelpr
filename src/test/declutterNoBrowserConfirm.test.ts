@@ -24,9 +24,8 @@ const ROOT = resolve(__dirname, "../..");
 const files = walkSource([join(ROOT, "src/components/declutter"), join(ROOT, "src/pages/declutter")])
   .filter((f) => !/\.test\.tsx?$/.test(f));
 
-/** The sell-flow builder's files (Selling tab's take-down, the moving sale's end), and how many each still has. */
+/** The sell-flow builder's files and how many each still has: none now (the moving sale's end moved to a sheet; the Selling tab's take-down moved to ConfirmSheet, #18). */
 const SELL_FLOW_CONFIRMS: Record<string, number> = {
-  "src/components/declutter/DeclutterHomeView.tsx": 1,
 };
 
 const sites = () =>

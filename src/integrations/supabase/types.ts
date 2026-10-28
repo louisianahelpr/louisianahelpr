@@ -14164,6 +14164,13 @@ export type Database = {
         }
         Returns: string
       }
+      declutter_delivery_tip_open: { Args: { p_order_id: string }; Returns: boolean }
+      declutter_order_items_named: { Args: { p_order_id: string }; Returns: string }
+      declutter_paid_next_step: { Args: { p_order_id: string }; Returns: string }
+      declutter_pickup_anchor: {
+        Args: { p_pickup_day: string; p_slot_start: string }
+        Returns: string
+      }
       declutter_seller_sold_count: { Args: { p_seller_id: string }; Returns: number }
       declutter_notice_type: {
         Args: { p_link: string; p_title: string; p_type: string }

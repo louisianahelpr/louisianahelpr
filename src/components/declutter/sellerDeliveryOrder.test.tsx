@@ -73,7 +73,7 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     expect(sheet).toHaveTextContent("Cancel this order?");
     expect(sheet).toHaveTextContent("Most of what you paid comes back.");
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep the order" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    await waitFor(() => { expect(screen.queryByRole("dialog")).toBeNull(); expect(screen.getByRole("button", { name: "Cancel order" })).toBeEnabled(); });
     expect(state.calls).toEqual([]);
     await askAndConfirm("Cancel order", /Cancel this order\?/, "Cancel order", "buyer_cancel");
     expect(window.confirm).not.toHaveBeenCalled();

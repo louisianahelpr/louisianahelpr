@@ -180,6 +180,7 @@
     "public.declutter_donation_partners.declutter_donation_partners_active_idx",
     "public.declutter_donations.declutter_donations_job_idx",
     "public.helpr_task_tips.helpr_task_tips_helpr_idx",
-    "public.helpr_task_tips.helpr_task_tips_tipper_idx"
+    "public.helpr_task_tips.helpr_task_tips_tipper_idx",
+    "public.feature_switch_members.feature_switch_members_user_id_idx"
   ]
 }

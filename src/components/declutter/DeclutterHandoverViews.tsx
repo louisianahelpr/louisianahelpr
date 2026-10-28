@@ -555,7 +555,7 @@ function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: 
       <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
         They didn't show
       </button>
-      <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} pending={report.isPending} onConfirm={() => report.mutate()} />
+      <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />
     </>
   );
 }

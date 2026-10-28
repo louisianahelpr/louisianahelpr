@@ -42,7 +42,7 @@ export function ListedWhatNext() {
     ? [
         { key: "listed", label: <>Listed at <Money cents={it.current_price_cents} /></>, detail: "Today", state: "done" },
         ...(drop
-          ? [{ key: "drop", label: `Price can drop ${dropWhenLabel(drop.at)}`, detail: <>As low as <Money cents={drop.lowestCents} />, then 5% less each evening, never below your lowest price</>, state: "now" as const }]
+          ? [{ key: "drop", label: `Price can drop ${dropWhenLabel(drop.at)}`, detail: <>As low as <Money cents={drop.lowestCents} />, then {drop.pct}% less each evening (rounded down to a whole dollar), never below your lowest price</>, state: "now" as const }]
           : []),
         { key: "buyers", label: "Buyers ask questions or buy", detail: "We'll tell you each time", state: drop ? "later" : "now" },
         { key: "sold", label: "When it sells", detail: "We show you how to hand it off", state: "later" },

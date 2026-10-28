@@ -114,6 +114,7 @@ import {
   requestAiCheck,
   requestAiDraft,
   requestAiDraftFromPhotos,
+  setDropPct,
   AI_DRAFT_PHOTOS,
   AI_TIMEOUT_MS,
   reviewListing,
@@ -339,6 +340,20 @@ describe("reads", () => {
     await expect(fetchQuestions("i1")).resolves.toEqual([]);
   });
 
+  // Owner 2026-10-28, money review #1: before 20261028160637 deploys, 5% and off are already what the server does; another step is refused in words.
+  // @mutate src/lib/declutter/api.ts |     if (pct === 0 \|\| pct === 5) return pct; |     return pct;
+  it("setDropPct before its RPC is deployed: 5% and off pass, any other step says it is not ready", async () => {
+    const missing = () => ({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_set_drop_pct(p_item_id, p_pct) in the schema cache", hint: null } });
+    h.queue.push(missing());
+    await expect(setDropPct("i1", 5)).resolves.toBe(5);
+    h.queue.push(missing());
+    await expect(setDropPct("i1", 0)).resolves.toBe(0);
+    h.queue.push(missing());
+    const e = await rejection(setDropPct("i1", 15));
+    expect(e.message).toBe("drop_pct_unavailable");
+    expect(declutterErrorMessage(e)).toBe(DECLUTTER_CLIENT_ERROR_COPY.drop_pct_unavailable);
+  });
+
   it("fetchQuestions falls back to the table read without asker_id only while the RPC is not deployed (PGRST202 naming it)", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     h.queue.push({ data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_item_questions(p_item_id) in the schema cache", hint: null } });
@@ -481,6 +496,7 @@ describe("RPC writes", () => {
     { label: "reviewListing approve", call: () => reviewListing("i1", true, "looks fine"), rpc: "declutter_admin_review_item", args: [{ p_item_id: "i1", p_approve: true, p_note: "looks fine" }], data: "live", want: "live", code: "review_note_required" },
     { label: "removePhoto", call: () => removePhoto("p1"), rpc: "declutter_remove_item_photo", args: [{ p_photo_id: "p1" }], data: null, want: undefined, code: "photo_not_found" },
     { label: "withdrawItem", call: () => withdrawItem("i1"), rpc: "declutter_withdraw_item", args: [{ p_item_id: "i1" }], data: null, want: undefined, code: "item_not_editable" },
+    { label: "setDropPct", call: () => setDropPct("i1", 10), rpc: "declutter_set_drop_pct", args: [{ p_item_id: "i1", p_pct: 10 }], data: 10, want: 10, code: "invalid_drop_pct" },
   ];
 
   it.each(cases)("$label calls $rpc with exactly its arguments and returns the result", async (c) => {

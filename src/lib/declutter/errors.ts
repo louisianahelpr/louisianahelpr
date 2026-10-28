@@ -82,6 +82,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Row 101 porch default (20261017055504).
   porch_unavailable: "The seller asked to meet at their home for this item, so porch pickup isn't available. Choose pickup at the seller's home.",
   invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
+  // declutter_set_drop_pct (owner 2026-10-28).
+  invalid_drop_pct: "Pick a price drop of 5, 10, 15 or 20 percent, or turn price drops off.",
   order_not_payable: "This checkout is no longer open. Start checkout again.",
   no_sale_to_cancel: "There's no sale to cancel on this item.",
   sale_already_paid: "The buyer already paid. Contact support to cancel.",
@@ -230,6 +232,8 @@ export const DECLUTTER_CLIENT_ERROR_COPY: Record<string, string> = {
   payment_unavailable: "The payment page isn't available right now. Please try again. Nothing was charged.",
   // declutter-ai-draft room mode (moving-out mode).
   room_photos_invalid: "Add 1 to 4 room photos. Use photos you took, not screenshots.",
+  // setDropPct before 20261028160637 reaches prod (PGRST202): only the old 5% step exists.
+  drop_pct_unavailable: "Choosing how much the price drops isn't ready yet. Pick 5% for now, or turn price drops off.",
   // declutter-ai-draft draft mode for a NEW listing (photos in the request, owner 2026-10-28).
   item_photos_invalid: "Claude couldn't read those photos. Use photos you took, not screenshots, or fill in the details yourself.",
   ai_rate_limited: "The photo tool needs a break. Wait a few minutes, then try again.",

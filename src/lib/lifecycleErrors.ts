@@ -1089,6 +1089,17 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     under_18: DC.under_18,
   },
+  // Owner 2026-10-28: the seller's nightly price-drop step (20261028160637).
+  declutter_set_drop_pct: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    invalid_drop_pct: DC.invalid_drop_pct,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_set_porch_ok: {
     account_restricted: DC.account_restricted,
     declutter_strikes_blocked: DC.declutter_strikes_blocked,

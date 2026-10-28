@@ -225,28 +225,50 @@ export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {
  * apart from ITEM_COLUMNS so Browse's reads are untouched. RLS decides; null
  * when the member can't read the item.
  */
-export async function fetchItemDropState(
-  itemId: string,
-): Promise<{ sale_mode: string | null; last_price_drop_on: string | null } | null> {
-  const row = unwrap(
-    await supabase.from("declutter_items").select("sale_mode, last_price_drop_on").eq("id", itemId).maybeSingle(),
-  );
-  return (row ?? null) as { sale_mode: string | null; last_price_drop_on: string | null } | null;
+export async function fetchItemDropState(itemId: string): Promise<DropStateRow | null> {
+  const row = await readDropColumns((cols) => supabase.from("declutter_items").select(cols).eq("id", itemId).maybeSingle());
+  return (row ?? null) as DropStateRow | null;
+}
+
+/** The price-drop columns a buyer may read; drop_pct is the seller's step (20261028160637). */
+export type DropStateRow = { sale_mode: string | null; last_price_drop_on: string | null; drop_pct?: number | null };
+const DROP_COLUMNS = "sale_mode, last_price_drop_on, drop_pct";
+const DROP_COLUMNS_BEFORE_PCT = "sale_mode, last_price_drop_on";
+
+/**
+ * The drop columns, with drop_pct. Before 20261028160637 reaches prod the read
+ * is refused with 42703 naming drop_pct: read again without it (every listing
+ * then had the 5% step, which priceDrop.ts reads for an absent column). Every
+ * other refusal is thrown. Remove once the migration is live on prod.
+ */
+async function readDropColumns(run: (columns: string) => PromiseLike<ItemRead>, extra = ""): Promise<unknown> {
+  const first = await run(extra + DROP_COLUMNS);
+  if (first.error?.code === "42703" && first.error.message.includes("drop_pct")) return unwrap(await run(extra + DROP_COLUMNS_BEFORE_PCT));
+  return unwrap(first);
+}
+
+/** Owner 2026-10-28: the seller's nightly drop, 0 (off), 5, 10, 15 or 20 percent (declutter_set_drop_pct). */
+export async function setDropPct(itemId: string, pct: number): Promise<number> {
+  const res = await supabase.rpc("declutter_set_drop_pct", { p_item_id: itemId, p_pct: pct });
+  // Before 20261028160637 reaches prod (PGRST202) every listing drops 5%: a 5% choice is already true, and
+  // "off" is kept by the lowest price being the price; any other step cannot be honoured yet, so say so.
+  if (res.error && isMissingRpcNamed(res.error, "declutter_set_drop_pct")) {
+    if (pct === 0 || pct === 5) return pct;
+    throw new Error("drop_pct_unavailable");
+  }
+  return rpcData(res, (e) => rpcErrorMessage("declutter_set_drop_pct", e)) as number;
 }
 
 /**
  * Browse's batch of the same two columns (board 25's "May drop tonight" tag and
  * the "Price drops" filter), one read for every card; RLS decides as above.
  */
-export async function fetchDropStates(
-  itemIds: string[],
-): Promise<Map<string, { sale_mode: string | null; last_price_drop_on: string | null }>> {
-  const out = new Map<string, { sale_mode: string | null; last_price_drop_on: string | null }>();
+export async function fetchDropStates(itemIds: string[]): Promise<Map<string, DropStateRow>> {
+  const out = new Map<string, DropStateRow>();
   if (itemIds.length === 0) return out;
-  const rows = unwrap(
-    await supabase.from("declutter_items").select("id, sale_mode, last_price_drop_on").in("id", itemIds),
-  ) as { id: string; sale_mode: string | null; last_price_drop_on: string | null }[] | null;
-  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on });
+  const rows = (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
+    (DropStateRow & { id: string })[] | null;
+  for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct });
   return out;
 }
 

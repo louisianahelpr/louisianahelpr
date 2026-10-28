@@ -46,7 +46,7 @@ export const SORT_LABEL: Record<DeclutterSort, string> = {
 };
 
 /** The drop columns Browse reads per item (fetchDropStates). */
-export type DropState = Pick<PriceDropFields, "sale_mode" | "last_price_drop_on">;
+export type DropState = Pick<PriceDropFields, "sale_mode" | "last_price_drop_on" | "drop_pct">;
 
 interface BrowseItem {
   status: string;

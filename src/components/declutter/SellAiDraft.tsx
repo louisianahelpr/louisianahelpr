@@ -35,7 +35,7 @@ export interface AiFields {
  * What the seller's form becomes once Claude answers: each field Claude fills
  * in, EXCEPT one the seller changed while Claude was writing (theirs wins).
  */
-export function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDraft): F {
+function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDraft): F {
   const pick = <K extends keyof AiFields>(k: K, v: AiFields[K]) => (current[k] === atStart[k] ? v : current[k]);
   return {
     ...current,

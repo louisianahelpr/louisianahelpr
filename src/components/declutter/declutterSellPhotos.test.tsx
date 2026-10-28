@@ -19,6 +19,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const NEW_ID = "0f0e0d0c-0b0a-4908-8706-0504030201ff";
 const calls: string[] = [];
 const aiCalls: string[][] = [];
+const drafts: { priceCents: number; floorPriceCents: number }[] = [];
+const drops: [string, number][] = [];
 const DRAFT = {
   title: "Mid-century walnut dresser", description: "Six drawers, solid walnut, light scratches on top.",
   category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false,
@@ -61,7 +63,9 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchPhotos: async () => [],
   fetchHasAgreedSales: async () => false,
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
-  createDraft: async () => { calls.push("createDraft"); return NEW_ID; },
+  createDraft: async (f: { priceCents: number; floorPriceCents: number }) => { calls.push("createDraft"); drafts.push(f); return NEW_ID; },
+  setDropPct: async (id: string, pct: number) => { drops.push([id, pct]); return pct; },
+  fetchItemDropState: async () => null,
   updateDraft: async () => "ok",
   setPorchOk: async () => true,
   addPhoto: async (_u: string, id: string, f: File) => { calls.push(`addPhoto:${id}:${f.name}`); return "p"; },
@@ -98,6 +102,8 @@ describe("photo-first selling", () => {
   beforeEach(() => {
     calls.length = 0;
     aiCalls.length = 0;
+    drafts.length = 0;
+    drops.length = 0;
     aiAnswer.hold = false;
     aiAnswer.release = null;
     let n = 0;
@@ -129,11 +135,19 @@ describe("photo-first selling", () => {
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByRole("heading", { name: "What's your price?" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
+    // Owner 2026-10-28: drops are the seller's own yes/no, OFF until they turn them on, so no lowest price is asked.
+    // @mutate src/components/declutter/DeclutterSellView.tsx |   drops: false,\n  dropPct: DEFAULT_DROP_PCT, |   drops: true,\n  dropPct: DEFAULT_DROP_PCT,
+    expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByLabelText("Lowest you'll take")).toBeNull();
+    expect(document.querySelector("[data-drop-schedule]")).toBeNull();
+    fireEvent.click(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "10%" }));
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
-    // Board 31b: the drop strip follows the real rule (floor(current * 0.95), never below the lowest).
-    // @mutate src/components/declutter/DeclutterSellSteps.tsx |     cur = Math.max(floorCents, Math.floor(cur * 0.95)); |     cur = Math.max(floorCents, Math.round(cur * 0.95));
+    // Board 31b: the drop strip follows the real rule (the seller's step, down to a whole dollar, never below the lowest).
+    // @mutate src/components/declutter/DeclutterSellSteps.tsx |     cur = Math.max(floorCents, dropStepCents(cur, pct)); |     cur = Math.max(floorCents, Math.floor(cur * 0.95));
     const strip = document.querySelector("[data-drop-schedule]")!;
-    expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$38", "$36.10", "$34.29", "$32.57", "$30.94", "$30"]);
+    expect([...strip.querySelectorAll("ol li")].map((li) => li.textContent)).toEqual(["$36", "$32", "$30"]);
+    expect(strip.textContent).toMatch(/10% less each evening/);
     expect(strip.textContent).toMatch(/may stop sooner/);
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByRole("heading", { name: "How can buyers get it?" })).toBeInTheDocument();
@@ -143,6 +157,29 @@ describe("photo-first selling", () => {
     await waitFor(() =>
       expect(calls).toEqual(["createDraft", `addPhoto:${NEW_ID}:a.jpg`, `addPhoto:${NEW_ID}:b.jpg`, `addPhoto:${NEW_ID}:c.jpg`]),
     );
+    // The seller's choice is what the server stores: their lowest price and their step.
+    // @mutate src/components/declutter/DeclutterSellView.tsx |       if (!form.free) await setDropPct(id, choice.dropPct); |       void choice;
+    expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 3000 })]);
+    expect(drops).toEqual([[NEW_ID, 10]]);
+  });
+
+  it("price drops left off: the lowest price is saved as the price and the step as 0, so it never drops", async () => {
+    open();
+    await screen.findByRole("heading", { name: "Show it off" });
+    fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("a.jpg")] } });
+    await screen.findByText(/^1 of 12/);
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Title"), { target: { value: "Oak rocking chair" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Price"), { target: { value: "40" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    fireEvent.change(await screen.findByLabelText("Area buyers see"), { target: { value: "Mid-City, Baton Rouge" } });
+    fireEvent.change(screen.getByLabelText("Pickup address"), { target: { value: "100 Main Street, Baton Rouge, LA 70802" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    // @mutate src/components/declutter/DeclutterSellView.tsx |   if (!f.drops) return { floorCents: price, dropPct: 0 }; |   if (!f.drops) return { floorCents: price, dropPct: 5 };
+    await waitFor(() => expect(drops).toEqual([[NEW_ID, 0]]));
+    expect(drafts).toEqual([expect.objectContaining({ priceCents: 4000, floorPriceCents: 4000 })]);
+    expect(await screen.findByText("Off: it stays at your price")).toBeInTheDocument();
   });
 
   it("a step will not move on until its own question is answered", async () => {

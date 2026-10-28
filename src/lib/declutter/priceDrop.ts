@@ -8,12 +8,14 @@
  * - The sweep only touches items that are live, sale_mode 'offers', live for
  *   at least 12 hours (live_at <= now() - 12h), not already dropped on that
  *   Louisiana (America/Chicago) day, and still above the seller's stop.
- * - The new price is greatest(floor, stop, floor(current * 0.95)).
+ * - The new price is greatest(floor, stop, step), where step is current less
+ *   the seller's drop_pct (5, 10, 15 or 20; 0 = off, skipped), down to a whole
+ *   dollar (20261028160637; before it, a fixed floor(current * 0.95)).
  *
  * The floor and the stop are private (declutter_item_private; the stop is
  * hidden even from the seller, B42), so nobody but the server knows whether a
  * listing has reached its stop. What IS certain: if the price drops at that
- * run, it drops to no less than floor(current * 0.95). So the page says
+ * run, it drops to no less than the step (dropStepCents). So the page says
  * "could drop as low as $X", never "drops to $X".
  */
 
@@ -27,6 +29,25 @@ export interface PriceDropFields {
   current_price_cents: number;
   live_at: string | null;
   last_price_drop_on?: string | null;
+  /** The seller's step, percent (declutter_items.drop_pct, 20261028160637); 0 = off. Absent reads as 5, the rule before it. */
+  drop_pct?: number | null;
+}
+
+/** The steps a seller may pick (declutter_set_drop_pct and the drop_pct CHECK accept 0 and exactly these). */
+export const DROP_PCT_CHOICES = [5, 10, 15, 20] as const;
+export const DEFAULT_DROP_PCT = 5;
+
+/**
+ * One evening's drop before the floor and the stop (declutter_price_drop_sweep,
+ * 20261028160637): current * (100 - pct) / 100, down to a whole dollar.
+ */
+export function dropStepCents(currentCents: number, pct: number): number {
+  return Math.floor((currentCents * (100 - pct)) / 10000) * 100;
+}
+
+/** The step a row carries, 5 when the column is absent (before 20261028160637 reaches prod). */
+export function dropPctOf(item: Pick<PriceDropFields, "drop_pct">): number {
+  return typeof item.drop_pct === "number" ? item.drop_pct : DEFAULT_DROP_PCT;
 }
 
 /** The Louisiana calendar day (YYYY-MM-DD) an instant falls on. */
@@ -46,11 +67,14 @@ function nextRunAfter(now: Date): Date {
  * there; null when the rule never touches it (not live, fixed price, or no
  * cent left to drop).
  */
-export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { at: Date; lowestCents: number } | null {
+export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { at: Date; lowestCents: number; pct: number } | null {
   // (a cron run that failed or an item that was reserved at the last run also
   // hides the line below: hiding is the safe side of the truth rule)
   if (item.status !== "live" || item.sale_mode !== "offers" || !item.live_at) return null;
-  const lowestCents = Math.floor(item.current_price_cents * 0.95);
+  const pct = dropPctOf(item);
+  // Drops off (0): the sweep skips it. Said here, not left to the rounding ($18.50 at 0% would round to $18).
+  if (pct <= 0) return null;
+  const lowestCents = dropStepCents(item.current_price_cents, pct);
   if (!(lowestCents < item.current_price_cents)) return null;
   const liveAt = new Date(item.live_at).getTime();
   if (Number.isNaN(liveAt)) return null;
@@ -67,7 +91,7 @@ export function nextPriceDrop(item: PriceDropFields, now: Date = new Date()): { 
   for (let i = 0; i < 3; i++) {
     const oldEnough = liveAt <= run.getTime() - MIN_LIVE_MS;
     const notToday = !item.last_price_drop_on || item.last_price_drop_on < chicagoDay(run);
-    if (oldEnough && notToday) return { at: run, lowestCents };
+    if (oldEnough && notToday) return { at: run, lowestCents, pct };
     run = new Date(run.getTime() + 24 * 60 * 60 * 1000);
   }
   return null;

@@ -324,7 +324,7 @@ export default function MoveFlow() {
       {rows.length > 0 && (
         <Section id="move-check" title={`${stepNo("check")}. Check each item (${kept.length} of ${rows.length} kept)`}>
           <p className="text-xs text-muted-foreground">
-            Untick anything you're keeping. Give each item a price. Leave the lowest price blank to keep the price as it is; fill it in and the price drops 5% each evening until it gets there.
+            Untick anything you're keeping. Give each item a price. Leave the lowest price blank to keep the price as it is; fill it in and the price drops 5% each evening, rounded down to a whole dollar, until it gets there.
           </p>
           <ul className="space-y-3">
             {rows.map((r) => (

@@ -4,7 +4,7 @@
  * that file stays under the component-size threshold.
  */
 import { formatPrice } from "@/lib/declutter/distance";
-import { PRICE_DROP_RUN_UTC } from "@/lib/declutter/priceDrop";
+import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
 
 /** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
 export function StepHead({ title, sub }: { title: string; sub: string }) {
@@ -65,16 +65,17 @@ export function dropRunTime(now: Date = new Date()): string {
 
 /**
  * Board 31b's "If it doesn't sell" strip, from the REAL rule (priceDrop.ts):
- * each evening's drop is to floor(current * 0.95), never below the lowest
- * price. The stop above the floor is private even from the seller (B42), so
- * the strip says the drops may stop sooner; never a promised schedule.
+ * each evening's drop is the seller's step (dropStepCents: their percent, down
+ * to a whole dollar), never below the lowest price. The stop above the floor
+ * is private even from the seller (B42), so the strip says the drops may stop
+ * sooner; never a promised schedule.
  */
-export function DropSchedule({ priceCents, floorCents }: { priceCents: number | null; floorCents: number | null }) {
-  if (!priceCents || !floorCents || floorCents >= priceCents || floorCents < 100) return null;
+export function DropSchedule({ priceCents, floorCents, pct }: { priceCents: number | null; floorCents: number | null; pct: number }) {
+  if (!priceCents || !floorCents || floorCents >= priceCents || floorCents < 100 || pct <= 0) return null;
   const steps: number[] = [];
   let cur = priceCents;
   while (steps.length < 6 && cur > floorCents) {
-    cur = Math.max(floorCents, Math.floor(cur * 0.95));
+    cur = Math.max(floorCents, dropStepCents(cur, pct));
     steps.push(cur);
   }
   const max = priceCents;
@@ -82,7 +83,7 @@ export function DropSchedule({ priceCents, floorCents }: { priceCents: number | 
     <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" data-drop-schedule="">
       <div className="flex items-baseline justify-between gap-2">
         <p className="text-ds-14 font-semibold text-foreground">If it doesn't sell</p>
-        <p className="text-ds-12 text-muted-foreground">5% less each evening, {dropRunTime()}</p>
+        <p className="text-ds-12 text-muted-foreground">{pct}% less each evening, {dropRunTime()}</p>
       </div>
       <ol className="flex items-end gap-1.5" aria-label="The lowest it could be each evening">
         {steps.map((c, i) => (

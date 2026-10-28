@@ -29,7 +29,9 @@ import {
   SheetPrimaryAction,
   SheetSecondaryAction,
 } from "@/components/ui/sheet";
+import { dropPctOf } from "@/lib/declutter/priceDrop";
 import {
+  fetchItemDropState,
   fetchManageState,
   pauseListing,
   relistListing,
@@ -90,7 +92,11 @@ export function ManageListingSheet({
   // Before migration 20261020064354 reaches prod only "take it down" works (withdraw).
   const deployed = state.data !== "not_deployed";
   const manage = state.data && state.data !== "not_deployed" ? state.data : null;
-  const stopped = manage?.drops_stopped ?? false;
+  // Owner 2026-10-28: a listing put up with drops OFF (drop_pct 0, its lowest price = its price) never drops,
+  // so it reads as stopped here, and the switch cannot claim "back on" (money review 2026-10-28 #3).
+  const dropState = useQuery({ queryKey: ["declutter", "drop-state", item.id], queryFn: () => fetchItemDropState(item.id), enabled: open });
+  const listedOff = dropState.data ? dropPctOf(dropState.data) === 0 : false;
+  const stopped = (manage?.drops_stopped ?? false) || listedOff;
   const drops = useListingAction((on: boolean) => setListingDrops(item.id, on), stopped ? "Price drops are back on." : `Price drops stopped at ${formatPrice(item.current_price_cents)}.`);
   const pause = useListingAction(() => pauseListing(item.id), "Paused. It's hidden from buyers.", close);
   const relist = useListingAction(() => relistListing(item.id), "Back on sale.", close);
@@ -127,12 +133,12 @@ export function ManageListingSheet({
               </li>
               <li className={ROW}>
                 <RowText title="Stop price drops" id="manage-stop-drops">
-                  {stopped ? `Stopped at ${itemPriceLabel(item.current_price_cents)}` : `Keep it at ${itemPriceLabel(item.current_price_cents)}`}
+                  {listedOff ? "Off: you listed it without price drops" : stopped ? `Stopped at ${itemPriceLabel(item.current_price_cents)}` : `Keep it at ${itemPriceLabel(item.current_price_cents)}`}
                 </RowText>
                 <Switch
                   aria-labelledby="manage-stop-drops"
                   checked={stopped}
-                  disabled={!manage || busy}
+                  disabled={!manage || busy || listedOff}
                   onCheckedChange={(on) => drops.mutate(!on)}
                 />
               </li>

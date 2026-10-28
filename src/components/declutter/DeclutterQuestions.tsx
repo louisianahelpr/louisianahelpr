@@ -133,12 +133,15 @@ export function DeclutterQuestions({
   sellerId,
   isSeller,
   canAsk,
+  free = false,
 }: {
   itemId: string;
   sellerId: string;
   isSeller: boolean;
   /** A signed-in buyer on a live or reserved item. */
   canAsk: boolean;
+  /** A free item is claimed, never offered on (deep audit #23): no "Make an offer" line. */
+  free?: boolean;
 }) {
   const qc = useQueryClient();
   const sellerName = useSellerFirstName(sellerId);
@@ -197,7 +200,7 @@ export function DeclutterQuestions({
               Ask
             </Button>
           </div>
-          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is hidden. Want to make a deal? Make an offer.</p>
+          <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is hidden.{free ? "" : " Want to make a deal? Make an offer."}</p>
         </form>
       )}
       {isSeller && <AnswerSheet q={answering} itemId={itemId} onClose={() => setAnswering(null)} />}

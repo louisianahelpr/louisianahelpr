@@ -16,7 +16,6 @@
  */
 import AppPage from "@/components/AppPage";
 import { SectionScreen } from "@/components/sections/SectionScreen";
-import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeclutterNotice } from "./declutterUi";
 
@@ -24,7 +23,7 @@ import { DeclutterNotice } from "./declutterUi";
 export function DeclutterHomeSkeleton() {
   return (
     // The Browse silhouette, so no "Search all sections" field: Browse draws its own search row.
-    <SectionScreen section="declutter" title="Declutter" add={sectionByKey("declutter").add} globalSearch={false} tabs={<Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={<Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />}>
       <DeclutterBrowseBones />
     </SectionScreen>
   );

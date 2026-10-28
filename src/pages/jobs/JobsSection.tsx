@@ -86,7 +86,7 @@ const JobsSection = () => {
   /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
   const makeHeader = (browse?: { end?: ReactNode; count?: number }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
-      <AppTopBar title={section.label} add={section.add} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
+      <AppTopBar title={section.label} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
       <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
           the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search

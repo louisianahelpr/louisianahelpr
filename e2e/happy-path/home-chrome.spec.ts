@@ -140,35 +140,33 @@ for (const variant of [
     const isDesktopWeb = variant.width >= 900;
 
     // --- the top bar: title, then bell · profile on a phone; on the desktop website the
-    // title and "+" sit IN the global top bar, left of the bell and photo (ONE header row,
+    // title sits IN the global top bar, left of the bell and photo (ONE header row,
     // owner 2026-10-21: PageTitleBar portals into DesktopTopNav's slot) ---
     const bar = isDesktopWeb ? page.locator("[data-desktop-title-slot]") : page.getByTestId("app-top-bar");
     await expect(bar).toBeVisible();
     // Phone (Q2359, owner 2026-10-22, the Explore header): no visible title; the bar IS the section chips with the
     // bell and the photo, and the page's h1 is the section's name, screen-reader only. No "+" (the bottom bar's
-    // center "+" creates). Desktop keeps the visible "Jobs" title and its "+".
+    // center "+" creates). Desktop keeps the visible "Jobs" title and no "+" either (owner 2026-10-28: the rail's
+    // "+ Create" posts).
     if (isDesktopWeb) await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
     else {
       await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toHaveCount(1);
       await expect(bar.getByTestId("explore-switcher")).toBeVisible();
     }
+    await expect(page.getByTestId("section-add"), `no section + anywhere @ ${variant.tag}`).toHaveCount(0);
     if (!isDesktopWeb) {
-      await expect(bar.getByTestId("section-add"), `no + in the phone bar @ ${variant.tag}`).toHaveCount(0);
       await expect(page.getByTestId("explore-switcher").getByRole("radio", { name: "Jobs" })).toHaveAttribute("aria-checked", "true");
     }
-    const add = isDesktopWeb ? (await bar.getByTestId("section-add").boundingBox())! : (await bar.getByTestId("top-bar-bell").boundingBox())!;
-    // Desktop website (Q2221): the bar keeps the title and "+" only; the bell lives in the desktop
+    const anchor = isDesktopWeb ? (await bar.getByRole("heading", { level: 1 }).boundingBox())! : (await bar.getByTestId("top-bar-bell").boundingBox())!;
+    // Desktop website (Q2221): the bar keeps the title; the bell lives in the desktop
     // header and Profile in the rail, so neither repeats here.
-    let barBottom = add.y + add.height;
+    let barBottom = anchor.y + anchor.height;
     if (isDesktopWeb) {
       await expect(bar.getByTestId("top-bar-bell"), `no second bell @ ${variant.tag}`).toHaveCount(0);
       await expect(bar.getByTestId("top-bar-profile"), `no avatar in the bar @ ${variant.tag}`).toHaveCount(0);
-      // ONE row: the title, the "+" and the header's photo share a line, "+" left of the photo.
+      // ONE row: the title and the header's photo share a line.
       const photo = (await page.getByTestId("desktop-top-profile").boundingBox())!;
-      const title = (await bar.getByRole("heading", { level: 1 }).boundingBox())!;
-      expect(Math.abs(title.y + title.height / 2 - (photo.y + photo.height / 2)), `the title is level with the photo @ ${variant.tag}`).toBeLessThan(8);
-      expect(Math.abs(add.y + add.height / 2 - (photo.y + photo.height / 2)), `the + is level with the photo @ ${variant.tag}`).toBeLessThan(8);
-      expect(add.x + add.width, `the + sits left of the photo @ ${variant.tag}`).toBeLessThanOrEqual(photo.x);
+      expect(Math.abs(anchor.y + anchor.height / 2 - (photo.y + photo.height / 2)), `the title is level with the photo @ ${variant.tag}`).toBeLessThan(8);
       barBottom = Math.max(barBottom, photo.y + photo.height);
     } else {
       const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;

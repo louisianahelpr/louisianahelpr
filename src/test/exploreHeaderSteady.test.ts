@@ -83,13 +83,13 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} add=\{add\} explore section=\{section\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }
     const jobs = code("src/pages/jobs/JobsSection.tsx");
     const head = jobs.slice(jobs.indexOf('className="explore-header'), jobs.indexOf("</div>", jobs.indexOf('className="explore-header')));
-    const order = ['<AppTopBar title={section.label} add={section.add} explore section="jobs"', "<SectionTabs "].map((s) => head.indexOf(s));
+    const order = ['<AppTopBar title={section.label} explore section="jobs"', "<SectionTabs "].map((s) => head.indexOf(s));
     expect(order[0]).toBeGreaterThan(0);
     expect(order).toEqual([...order].sort((a, b) => a - b));
     // Jobs' search is an icon in the status chip row now, never a field in the header (owner 2026-10-25;

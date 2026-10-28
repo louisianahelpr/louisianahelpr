@@ -353,8 +353,6 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/admin/settings/SmsStatusCard.tsx": "one admin-only <p role=alert> inside the Text alerts card on Admin Settings (the settings page loaded); the failed admin_sms_status read is reported by the QueryCache hook",
   "components/notificationPreferences/SmsAlertsCard.tsx": "one line with a Try again button inside the Text alerts card of the Notifications tab (the Profile and the tab loaded); the failed get_my_sms_consent read is reported by the QueryCache hook",
   "components/rentals/LeasePanel.tsx": "one line inside a home's card where its lease goes (the Homes screen and the card loaded)",
-  "components/admin/settings/MeetupSpotsCard.tsx": "one admin-only <p role=alert> inside the Declutter meetup spots card on Admin Settings (the settings page loaded); the failed spots read is reported by the QueryCache hook",
-  "components/declutter/DeclutterMeetup.tsx": "one line where the Meet at a safe spot panel goes inside a meetup order's handover view (the order itself loaded); the failed order-meetup read is reported by the QueryCache hook",
 };
 
 const tsxFiles = walk(SRC).filter((f) => f.endsWith(".tsx"));

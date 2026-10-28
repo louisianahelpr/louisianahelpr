@@ -19,8 +19,7 @@ import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles"
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
 /** 20261027153244 adds "seller_delivery": the seller brings it at a time the buyer picks (switch declutter_seller_delivery). */
-// Q2425 (20261027204500): "meetup" is a safe public spot an admin curated; the seller's address is never shared.
-export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery" | "meetup";
+export type Handover = "pickup_home" | "porch" | "delivery" | "seller_delivery";
 
 const DECLUTTER_PHOTO_BUCKET = "job-photos";
 

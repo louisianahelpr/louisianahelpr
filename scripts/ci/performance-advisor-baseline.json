@@ -171,7 +171,6 @@
     "public.declutter_seller_deliveries.declutter_seller_deliveries_buyer_idx",
     "public.declutter_seller_deliveries.declutter_seller_deliveries_due_idx",
     "public.declutter_seller_deliveries.declutter_seller_deliveries_slot_idx",
-    "public.declutter_meetup_spots.declutter_meetup_spots_active_idx",
     "public.declutter_price_alerts.declutter_price_alerts_item_user_idx",
     "public.declutter_price_alerts.declutter_price_alerts_user_idx",
     "public.helpr_delivery_online.helpr_delivery_online_until_idx"

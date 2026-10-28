@@ -53,8 +53,9 @@ import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { formatPrice } from "@/lib/declutter/distance";
+import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically
 // from two Declutter screens, the shared Helpr task module rode in
@@ -118,7 +119,13 @@ function invalidate(qc: ReturnType<typeof useQueryClient>, orderId: string) {
  * Every paid order in `cart` (the cart's paid lines). The Buying and Selling
  * tabs pass one side's lines and their own heading (PaidOrders in DeclutterTradeViews).
  */
-export function PaidOrdersSection({ cart, heading, label }: { cart: CartLine[]; heading?: ReactNode; label?: string }) {
+export function PaidOrdersSection({ cart, heading, label, views, show }: {
+  cart: CartLine[]; heading?: ReactNode; label?: string;
+  /** Buying's tracker (BuyingOrders.tsx): each buyer order's steps, chip and one next action. */
+  views?: Map<string, BuyerOrderView>;
+  /** Which orders the chosen chip shows (all when absent). */
+  show?: (orderId: string) => boolean;
+}) {
   const { user } = useCurrentUser();
   const userId = user?.id ?? "";
   const orders = paidOrdersFromCart(cart);
@@ -133,17 +140,19 @@ export function PaidOrdersSection({ cart, heading, label }: { cart: CartLine[]; 
     queryFn: () => fetchMyPayouts(userId),
     enabled: !!userId && orders.some((o) => o.side === "seller"),
   });
-  if (orders.length === 0 || !userId) return null;
+  const shown = show ? orders.filter((o) => show(o.orderId)) : orders;
+  if (shown.length === 0 || !userId) return null;
   if (bookings.isError) {
     return <ErrorState variant="inline" title="We couldn't load your pickups." body={declutterErrorMessage(bookings.error)} onRetry={() => void bookings.refetch()} />;
   }
   return (
     <section className="space-y-3" aria-label={label ?? "Paid sales"}>
       {heading ?? <h2 className="text-base font-semibold">Paid: pickup and handover</h2>}
-      {orders.map((o) => (
+      {shown.map((o) => (
         <OrderCard
           key={o.orderId}
           order={o}
+          view={views?.get(o.orderId)}
           userId={userId}
           booking={(bookings.data ?? []).find((b) => b.order_id === o.orderId) ?? null}
           payout={(payouts.data ?? []).find((p) => p.order_id === o.orderId) ?? null}
@@ -175,7 +184,7 @@ function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "r
   return p.debt_cents > 0 ? ` (${parts} minus ${formatPrice(p.debt_cents)} you owed)` : ` (${parts})`;
 }
 
-function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null }) {
+function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
@@ -184,6 +193,16 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
   const [problemOpen, setProblemOpen] = useState(false);
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
   const refundRequests = useFeature("declutter_refund_requests");
+  // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
+  const [open, setOpen] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open || !view) return;
+    const go = bodyRef.current?.querySelector<HTMLElement>(".btn-grad-primary:not([disabled]), input, select");
+    go?.scrollIntoView?.({ block: "center" });
+    go?.focus({ preventScroll: true });
+  }, [open, view]);
+  const body = !view || open;
   return (
     <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
       {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming. The buyer's card no
@@ -195,11 +214,13 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
             {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? " · You're selling" : ""}
           </p>
         </div>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>
+        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(items)}</span>
       </div>
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
-      {(order.handover === "porch" || order.handover === "pickup_home") && (
+      {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
+      {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
+      {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
         <PickupStatus
           orderId={order.orderId}
           handover={order.handover}
@@ -256,6 +277,7 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
+      </div>}
     </article>
   );
 }

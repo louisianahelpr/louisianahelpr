@@ -151,6 +151,9 @@ function numeric(sf: ts.SourceFile, e: ts.Expression): number | null {
   if (ts.isNumericLiteral(e)) return Number(e.text.replace(/_/g, ""));
   // `cond ? X : false`: a poller that is on only while `cond` holds polls every X.
   if (ts.isConditionalExpression(e) && e.whenFalse.kind === ts.SyntaxKind.FalseKeyword) return numeric(sf, e.whenTrue);
+  // `(q) => (cond ? X : false)`: React Query's function form, read through its (parenthesised) returned expression.
+  if (ts.isParenthesizedExpression(e)) return numeric(sf, e.expression);
+  if (ts.isArrowFunction(e) && !ts.isBlock(e.body)) return numeric(sf, e.body);
   if (ts.isIdentifier(e)) {
     let v: number | null = null;
     visit(sf, (n) => {
@@ -202,9 +205,10 @@ function pollers(): Poller[] {
 const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "pages/auth/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
   "pages/auth/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
+  "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval": { ms: 3_000, why: "only while a confirmation text is waiting (pending_phone set, sms_opt_in still false): re-reads the member's own SMS row so the phone's YES flips the card to On before a stale Cancel can turn it off (owner-reported 2026-10-28); stops the moment the row says opted in or the card unmounts" },
   "components/declutter/DeclutterOfferPanel.tsx refetchInterval": { ms: 1_500, why: "back from saving a card for Buy now / Make an offer: re-reads the saved card until Stripe's webhook files it; on only while resuming, and CARD_WAIT_MS (10 s) ends it, so at most ~7 reads" },
 };
-const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval"]);
+const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval", "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval"]);
 
 describe("hot-query load (Q53)", () => {
   it("scans a real source tree", () => {

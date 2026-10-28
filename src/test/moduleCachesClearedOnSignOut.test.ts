@@ -35,6 +35,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/job-card/helperStepRequest.ts:pending": { kind: "not-user-data",why: "a one-shot tap request (job id + step name) that expires after 10 s and is cleared the first time the tracker draws; nothing to leak to the next account" },
   "src/lib/pinnedConversations.ts:loadGen": { kind: "keyed-by-user-id" },
   "src/components/header/PageTitleBar.tsx:listeners": { kind: "not-user-data", why: "subscriber callbacks for the desktop top bar's title slot (a DOM element portal target); no account data" },
+  "src/components/header/PageTitleBar.tsx:stackListeners": { kind: "not-user-data", why: "subscriber callbacks for which mounted title bar is first (overlay rows go under the desktop bar, 2026-10-28); mount ids only, no account data" },
   "src/lib/payoutAfterHireSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the payout_after_hire switch answer (owner 2026-10-25); IdentityCheckHost republishes the answer for whoever is signed in (signed out reads off)" },
   "src/lib/identityCheckSwitch.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the identity_check switch answer; IdentityCheckHost republishes the answer for whoever is signed in (signed out reads off)" },
   "src/lib/identityCheck.ts:listeners": { kind: "not-user-data", why: "subscriber callbacks of the one Identity sheet's open/closed state (IdentityCheckHost); the state is a reason string, nothing about the account" },

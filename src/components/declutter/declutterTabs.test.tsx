@@ -230,11 +230,12 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     where = "";
   });
 
-  it("owner 10-19: Browse | Buying | Selling, one word each, Browse leftmost and the default; Wanted's entry is hidden even with its switch on", async () => {
+  it("owner 10-19 + 10-28: Browse | Buying | Selling | Deliver, one word each, Browse leftmost and the default; Wanted's entry is hidden even with its switch on", async () => {
     at("/declutter");
     await screen.findByRole("tablist", { name: "Declutter view" });
     const tabs = screen.getAllByRole("tab");
-    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling"]);
+    // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling).
+    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver"]);
     for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText(/Wanted/)).toBeNull();
@@ -404,3 +405,5 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(t).toMatchObject({ toPay: 0, purchasesOpen: 1, sellerOffers: 0, buying: 1, selling: 0 });
   });
 });
+
+// @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "deliver", label: "Deliver" },\n |

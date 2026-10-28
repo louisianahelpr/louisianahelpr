@@ -219,11 +219,11 @@ describe("Helpr task calls", () => {
   });
 
   it("vehicle: reads the caller's row and saves through the RPC", async () => {
-    h.queue.push(ok({ has_truck: true, second_person: false, photo_path: "u/vehicle/a.jpg" }), ok({}));
+    h.queue.push(ok({ has_car: true, has_truck: true, second_person: false, photo_path: "u/vehicle/a.jpg" }), ok({}));
     await expect(fetchMyVehicle("u")).resolves.toMatchObject({ has_truck: true });
-    expect(h.queries[0]).toEqual({ table: "helpr_vehicles", ops: [["select", ["has_truck, second_person, photo_path"]], ["eq", ["user_id", "u"]], ["maybeSingle", []]] });
-    await saveVehicle(false, false, null);
-    expect(h.rpcs[0]).toEqual(["helpr_set_vehicle", { p_has_truck: false, p_second_person: false, p_photo_path: null }]);
+    expect(h.queries[0]).toEqual({ table: "helpr_vehicles", ops: [["select", ["has_car, has_truck, second_person, photo_path"]], ["eq", ["user_id", "u"]], ["maybeSingle", []]] });
+    await saveVehicle(true, false, false, null);
+    expect(h.rpcs[0]).toEqual(["helpr_set_vehicle", { p_has_car: true, p_has_truck: false, p_second_person: false, p_photo_path: null }]);
   });
 });
 

@@ -4499,6 +4499,7 @@ export type Database = {
       }
       helpr_vehicles: {
         Row: {
+          has_car: boolean
           has_truck: boolean
           is_seed: boolean
           photo_path: string | null
@@ -4507,6 +4508,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          has_car?: boolean
           has_truck?: boolean
           is_seed?: boolean
           photo_path?: string | null
@@ -4515,6 +4517,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          has_car?: boolean
           has_truck?: boolean
           is_seed?: boolean
           photo_path?: string | null
@@ -15488,7 +15491,7 @@ export type Database = {
       helpr_route_leg_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
       helpr_route_plan: { Args: { p_lat: number; p_lng: number; p_now: string; p_stops: Json }; Returns: Json }
       helpr_route_suggestions: { Args: { p_with_task: string }; Returns: Json }
-      helpr_set_vehicle: { Args: { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
+      helpr_set_vehicle: { Args: { p_has_car: boolean; p_has_truck: boolean; p_photo_path: string; p_second_person: boolean } | { p_has_truck: boolean; p_photo_path: string; p_second_person: boolean }; Returns: Json }
       helpr_task_accept: { Args: { p_pickup_slot_start: string; p_task_id: string }; Returns: Json }
       helpr_task_assert_helpr: { Args: never; Returns: string }
       helpr_task_close: { Args: { p_note: string; p_status: string; p_task: string }; Returns: string }

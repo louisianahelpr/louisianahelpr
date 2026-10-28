@@ -56,7 +56,7 @@ import {
 } from "@/lib/declutter/moves";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, STATUS_LABEL, TAX_STATEMENTS } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
-import { AREA_ADDRESS_RE } from "./DeclutterSellView";
+import { AREA_ADDRESS_RE } from "./sellForm";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
 // The shared field look (DatePickerField / Input): one height and radius on this page (board 164).

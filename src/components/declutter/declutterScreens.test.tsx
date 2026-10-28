@@ -140,7 +140,7 @@ import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
 import DeclutterItemPage from "@/pages/declutter/DeclutterItemPage";
 import { rememberAfterCard } from "@/lib/declutter/afterCard";
-import { formProblem } from "./DeclutterSellView";
+import { formProblem } from "./sellForm";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 // Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).

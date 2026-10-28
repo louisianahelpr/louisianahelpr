@@ -13,7 +13,7 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
   if (stop.kind === "pickup") {
     return (
       <div className="space-y-1">
-        <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here</label>
+        <label htmlFor={`${id}-pick`} className="block text-ds-13 font-semibold">Picked up: a photo of the item, taken here<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
         <input id={`${id}-pick`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" disabled={pickedUp.isPending}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) pickedUp.mutate(f); e.target.value = ""; }} />
       </div>
@@ -22,7 +22,8 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
   if (stop.status !== "picked_up") return <p className="text-ds-13 text-muted-foreground">Pick this item up first.</p>;
   return (
     <div className="space-y-2">
-      <label htmlFor={`${id}-drop`} className="block text-ds-13 font-semibold">Photo at the drop-off address</label>
+      {/* Deep audit #41: on a route every stop had the same label; the hidden words tell a screen reader which stop. */}
+      <label htmlFor={`${id}-drop`} className="block text-ds-13 font-semibold">Photo at the drop-off address<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
       <input id={`${id}-drop`} type="file" accept="image/*" capture="environment" className="block w-full max-w-full text-ds-13" onChange={(e) => setDropPhoto(e.target.files?.[0] ?? null)} />
       <button type="button" className={`${primary} disabled:opacity-50`} disabled={delivered.isPending || !dropPhoto} onClick={() => delivered.mutate(dropPhoto)}>
         Left at the door

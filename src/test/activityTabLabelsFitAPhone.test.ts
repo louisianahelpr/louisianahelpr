@@ -97,7 +97,7 @@ function chipGeometry() {
 
 describe("the Jobs status chips fit a phone", () => {
   it("the inventory is the real chip list, not a copy of it", () => {
-    expect(BOX_BUCKETS.length).toBe(4);
+    expect(BOX_BUCKETS.length).toBe(5);
     for (const labels of [POSTED_GROUP_LABEL, WORKING_GROUP_LABEL]) {
       for (const k of BOX_BUCKETS) expect(labels[k], `${k} has no label`).toBeTruthy();
     }

@@ -31,7 +31,8 @@ describe("Jobs > Posted / Working open on every group", () => {
   it("both tabs walk the same order: needs you, waiting, scheduled, done, cancelled", () => {
     expect(ORDER).toEqual(["needs_you", "waiting", "scheduled", "done", "cancelled"]);
     expect(APPLIED_STATUS_FILTERS.map((f) => f.key)).toEqual(ORDER);
-    expect([...BOX_BUCKETS]).toEqual(ORDER.slice(0, 4));
+    // Every bucket has its chip, Cancelled last (owner 2026-10-28: "are we missing a button for cancelled?").
+    expect([...BOX_BUCKETS]).toEqual(ORDER);
   });
 
   it("the page opens on 'all' and never moves the reader to one bucket by itself", () => {

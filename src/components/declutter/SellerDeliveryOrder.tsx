@@ -36,9 +36,12 @@ import {
 } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
 import { HANDOFF_WORDS } from "./SellerDeliveryChoice";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary !text-[hsl(var(--parchment))] rounded-full px-4 py-2 text-sm font-semibold";
+// min-h-11: the 44px tap floor (they were 36px; Declutter audit 2026-10-28).
+const btn = "min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold";
+const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-4 py-2 text-sm font-semibold";
 
 /** Which buttons a side gets right now (pure, so the rules are tested apart from the screen). */
 export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Date.now()) {
@@ -60,12 +63,22 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
   };
 }
 
+/** What each money moment says before it runs (the words window.confirm used to carry, plus "I got it", which had none). */
+const ASK = {
+  gotIt: { title: "Do you have it?", confirm: "I got it", cancel: "Not now", words: "Tapping I got it finishes the sale and the seller is paid. You can still ask for a refund within 24 hours if something is wrong." },
+  notDelivered: { title: "It wasn't delivered?", confirm: "It wasn't delivered", cancel: "Not now", words: "You get everything back, delivery included." },
+  buyerCancel: { title: "Cancel this order?", confirm: "Cancel order", cancel: "Keep the order", words: "Most of what you paid comes back. You can cancel until 24 hours before the delivery." },
+  sellerCancel: { title: "Cancel this delivery?", confirm: "Cancel delivery", cancel: "Keep the delivery", words: "The buyer gets everything back, you get a Declutter strike, and the cost of the refund comes out of your next payout." },
+} as const;
+
 export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { orderId: string; userId: string; onProblem: () => void }) {
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
   const [moving, setMoving] = useState(false);
   const [photo, setPhoto] = useState<File | null>(null);
+  // The money moments ask in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
+  const [ask, setAsk] = useState<"gotIt" | "notDelivered" | "buyerCancel" | "sellerCancel" | null>(null);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: key });
     void qc.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
@@ -86,7 +99,10 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
   const answer = useMutation(act((accept: boolean) => answerDeliveryTime(orderId, accept),
     (r) => (r === "moved" ? "Delivery time changed." : r === "slot_taken" ? "That time was just taken, so the delivery keeps its time." : "The delivery keeps its time.")));
   if (booking.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the delivery…</p>;
-  if (booking.isError || !b) return <p className="text-sm text-muted-foreground" role="status">{sellerDeliveryErrorMessage(booking.error)}</p>;
+  // A failed read is an error with a retry, like every Declutter list (audit 2026-10-28: it was a grey line with no way to try again).
+  if (booking.isError || !b) {
+    return <ErrorState variant="inline" title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} />;
+  }
   const can = sellerDeliveryActions(b);
   const busy = delivered.isPending || gotIt.isPending || notDelivered.isPending || buyerCancel.isPending || sellerCancel.isPending || handoff.isPending || answer.isPending;
   const fileId = `sd-photo-${orderId}`;
@@ -129,28 +145,35 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         </div>
       )}
       <div className="flex flex-wrap gap-2">
-        {can.gotIt && <button type="button" className={primary} disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</button>}
+        {can.gotIt && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
         {can.askNewTime && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
         {can.notDelivered && (
           <button type="button" className={btn} disabled={busy}
-            onClick={() => { if (window.confirm("It wasn't delivered? You get everything back, delivery included.")) notDelivered.mutate(undefined); }}>
+            onClick={() => setAsk("notDelivered")}>
             It wasn't delivered
           </button>
         )}
         {can.buyerCancel && (
           <button type="button" className={btn} disabled={busy}
-            onClick={() => { if (window.confirm("Cancel this order? Most of what you paid comes back. You can cancel until 24 hours before the delivery.")) buyerCancel.mutate(undefined); }}>
+            onClick={() => setAsk("buyerCancel")}>
             Cancel order
           </button>
         )}
         {can.sellerCancel && (
           <button type="button" className={btn} disabled={busy}
-            onClick={() => { if (window.confirm("Cancel this delivery? The buyer gets everything back, you get a Declutter strike, and the cost of the refund comes out of your next payout.")) sellerCancel.mutate(undefined); }}>
+            onClick={() => setAsk("sellerCancel")}>
             Cancel delivery
           </button>
         )}
         <button type="button" className={btn} onClick={onProblem}>Report a problem</button>
       </div>
+      {ask && (
+        <ConfirmSheet open title={ASK[ask].title} confirmLabel={ASK[ask].confirm} cancelLabel={ASK[ask].cancel} pending={busy} testId={`seller-delivery-${ask}`}
+          onClose={() => setAsk(null)}
+          onConfirm={() => ({ gotIt, notDelivered, buyerCancel, sellerCancel })[ask].mutate(undefined, { onSettled: () => setAsk(null) })}>
+          {ASK[ask].words}
+        </ConfirmSheet>
+      )}
       {moving && can.askNewTime && <NewTimePicker orderId={orderId} current={b} onDone={() => { setMoving(false); refresh(); }} />}
     </div>
   );

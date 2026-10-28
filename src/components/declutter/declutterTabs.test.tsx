@@ -41,6 +41,7 @@ import { declutterTodo, oldDeclutterView } from "@/lib/declutter/tabs";
 const SOON = new Date(Date.now() + 20 * 3_600_000).toISOString();
 
 const state = {
+  calls: [] as unknown[][],
   live: [] as unknown[],
   wantedOn: true,
   mine: [] as unknown[],
@@ -140,9 +141,9 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchMyOffers: async () => state.offers,
   fetchMyCart: async () => state.cart,
   makeOffer: async () => "o",
-  respondOffer: async () => "declined",
+  respondOffer: async (...a: unknown[]) => { state.calls.push(["respond", ...a]); return "accepted"; },
   buyNow: async () => "l",
-  sellerCancelSale: async () => 1,
+  sellerCancelSale: async (...a: unknown[]) => { state.calls.push(["cancel_sale", ...a]); return 1; },
   startCardSave: async () => "https://checkout.stripe.test/setup",
   startCheckoutPayment: async () => ({ url: "https://checkout.stripe.test/pay", paid: false }),
   fetchHasAgreedSales: async () => false,
@@ -239,6 +240,7 @@ const tab = (name: RegExp) => screen.getByRole("tab", { name });
 describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () => {
   beforeEach(() => {
     state.live = [];
+    state.calls = [];
     state.wantedOn = true;
     state.mine = [];
     state.offers = [];
@@ -255,6 +257,35 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(tabs.length).toBeGreaterThan(2);
+  });
+
+  it("lead 10-28: Accept and Cancel sale ask in an in-app sheet, never window.confirm; nothing runs until its button", async () => {
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             onClick={() => setAccepting(true)} |             onClick={() => act.mutate({ action: "accept" })}
+    // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |               onClick={() => setAsking(l.item_id)} |               onClick={() => { if (l.item_id) cancel.mutate(l.item_id); }}
+    const confirmSpy = vi.spyOn(window, "confirm");
+    everything();
+    at("/declutter?tab=selling");
+    const onMine = await screen.findByRole("region", { name: "Offers on your items" });
+    fireEvent.click(within(onMine).getByRole("button", { name: "Accept" }));
+    let sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Sell it for $25?");
+    expect(sheet).toHaveTextContent("every other offer on it closes, and the buyer gets 48 hours to pay.");
+    expect(state.calls).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Accept" }));
+    await vi.waitFor(() => expect(state.calls).toEqual([["respond", "o1", "accept", null]]));
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
+    sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Cancel this sale?");
+    expect(sheet).toHaveTextContent("You'll get a Declutter strike");
+    fireEvent.click(within(sheet).getByRole("button", { name: "Keep the sale" }));
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(state.calls).toHaveLength(1);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel sale" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Cancel sale" }));
+    await vi.waitFor(() => expect(state.calls[1]).toEqual(["cancel_sale", "i9"]));
+    expect(confirmSpy).not.toHaveBeenCalled();
+    confirmSpy.mockRestore();
   });
 
   it("owner 10-28: no Wanted tab and no \"Can't find it?\" link while 'declutter_wanted' is off; ?tab=wanted opens Browse", async () => {

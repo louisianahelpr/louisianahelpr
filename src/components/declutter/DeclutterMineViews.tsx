@@ -38,7 +38,8 @@ import { useStatusFilter, type StatusBoxDef } from "@/components/sections/Status
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { fetchMyItems } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
-import { CartView, OffersSection, PaidOrders, SalesWaiting } from "./DeclutterTradeViews";
+import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
+import { SalesWaiting } from "./DeclutterSalesWaiting";
 
 const BUYING = ["cart", "offers", "purchases"] as const;
 type BuyingGroup = (typeof BUYING)[number];

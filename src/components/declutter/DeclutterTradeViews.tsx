@@ -33,7 +33,6 @@ import {
   fetchMyCart,
   fetchMyOffers,
   respondOffer,
-  sellerCancelSale,
   startCheckoutPayment,
   type CartLine,
   type Handover,
@@ -57,6 +56,8 @@ import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { useBundleDiscount } from "./useBundleDiscount";
 import { CartHold } from "./DeclutterReserveSheet";
 import { timeLeft } from "@/lib/declutter/timeLeft";
+import { SalesWaiting } from "./DeclutterSalesWaiting";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 
 /** "$12.50" -> 1250; null for anything that is not a positive amount with at most 2 decimals. */
 export function dollarsInputToCents(raw: string): number | null {
@@ -100,8 +101,11 @@ function OfferRow({ o }: { o: MyOffer }) {
   const [counter, setCounter] = useState("");
   const [countering, setCountering] = useState(false);
   const counterCents = dollarsInputToCents(counter);
+  // Accept asks in the app, never window.confirm (lead 2026-10-28, DeclutterConfirmSheet).
+  const [accepting, setAccepting] = useState(false);
   const act = useMutation({
     mutationFn: (v: { action: "accept" | "decline" | "counter" | "withdraw"; cents?: number }) => respondOffer(o.offer_id, v.action, v.cents ?? null),
+    onSettled: () => setAccepting(false),
     onSuccess: (res) => {
       setCountering(false);
       setCounter("");
@@ -173,12 +177,7 @@ function OfferRow({ o }: { o: MyOffer }) {
             type="button"
             className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold"
             disabled={act.isPending}
-            onClick={() => {
-              const words = o.my_side === "seller"
-                ? `Sell "${o.item_title}" for ${formatPrice(o.amount_cents)}? Every other offer on it closes, and the buyer gets 48 hours to pay.`
-                : `Buy "${o.item_title}" for ${formatPrice(o.amount_cents)}? You'll have 48 hours to check out and pay.`;
-              if (window.confirm(words)) act.mutate({ action: "accept" });
-            }}
+            onClick={() => setAccepting(true)}
           >
             Accept
           </button>
@@ -217,6 +216,13 @@ function OfferRow({ o }: { o: MyOffer }) {
           Take back my offer
         </button>
       )}
+      <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
+        title={o.my_side === "seller" ? `Sell it for ${formatPrice(o.amount_cents)}?` : `Buy it for ${formatPrice(o.amount_cents)}?`}
+        confirmLabel="Accept" testId="accept-offer">
+        {o.my_side === "seller"
+          ? `"${o.item_title}": every other offer on it closes, and the buyer gets 48 hours to pay.`
+          : `"${o.item_title}": you'll have 48 hours to check out and pay. Nothing is charged until you do.`}
+      </ConfirmSheet>
     </li>
   );
 }
@@ -245,51 +251,6 @@ export function OffersSection({ side }: { side: "buyer" | "seller" }) {
       ) : (
         <ul className="space-y-3">{mine.map((o) => <OfferRow key={o.offer_id} o={o} />)}</ul>
       )}
-    </section>
-  );
-}
-
-/** The seller's accepted sales waiting for the buyer to pay, with the way out (row 19). */
-export function SalesWaiting() {
-  const qc = useQueryClient();
-  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
-  const cancel = useMutation({
-    mutationFn: (itemId: string) => sellerCancelSale(itemId),
-    onSuccess: (n) => {
-      toast.success(`Sale cancelled. You have ${Math.min(n, 3)} of 3 strikes.`);
-      invalidateTrades(qc);
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
-  // Paid sales are handled by PaidOrders side="seller" (slice 4), below this on the Selling tab.
-  const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
-  if (cart.isError) {
-    return <ErrorState variant="inline" title="We couldn't load your sales." body={declutterErrorMessage(cart.error)} onRetry={() => void cart.refetch()} />;
-  }
-  if (waiting.length === 0) return null;
-  return (
-    <section className="space-y-2" aria-label="Sold, waiting for the buyer to pay">
-      <h2 className="text-base font-semibold">Sold, waiting for the buyer to pay</h2>
-      <ul className="space-y-3">
-        {waiting.map((l) => (
-          <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-            <p className="font-semibold">{l.item_title} · {itemPriceLabel(l.price_cents)}</p>
-            <p className="text-sm text-muted-foreground">Waiting for the buyer to pay · {timeLeft(l.checkout_by)}</p>
-            <button
-              type="button"
-              className="rounded-full border border-border px-4 py-2 text-sm font-semibold"
-              disabled={cancel.isPending}
-              onClick={() => {
-                if (window.confirm("Cancel this sale? You'll get a Declutter strike, and the buyer is told. 3 strikes pause Declutter for you.")) {
-                  if (l.item_id) cancel.mutate(l.item_id);
-                }
-              }}
-            >
-              Cancel sale
-            </button>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }

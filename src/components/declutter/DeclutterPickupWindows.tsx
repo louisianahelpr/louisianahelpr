@@ -17,7 +17,7 @@ import { Chip } from "./DeclutterFilterPanel";
 
 export function ItemPickupTimes({ itemId }: { itemId: string }) {
   const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });
-  if (q.isError) return <p className="text-xs text-muted-foreground">{declutterErrorMessage(q.error)}</p>;
+  if (q.isError) return <ErrorState variant="inline" title="We couldn't load the pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   const line = q.data ? windowsSummary(q.data) : "";
   if (!line) return null;
   return <p className="text-sm" data-testid="declutter-pickup-times">Pickup times: <span className="font-medium">{line}</span></p>;

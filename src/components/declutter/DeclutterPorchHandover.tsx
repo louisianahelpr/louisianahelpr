@@ -39,17 +39,20 @@ function useMyHandover(orderId: string) {
   return useQuery({ queryKey: ["declutter", "handover", orderId], queryFn: () => fetchMyHandover(orderId) });
 }
 
-/** The words for where it stands, per side and step. Names the other side only by role (no pronouns). */
+/**
+ * The words for where it stands, per side and step. Names the other side only by role (no pronouns).
+ * Plain sentences, never dot-joined fragments (lead 2026-10-28: "Paid · book a pickup…" -> "Paid. Book a pickup time.").
+ */
 function standing(handover: Pickup, side: "buyer" | "seller", at: number): string {
   // The booked time is the booking panel's line, right below; it is not repeated here.
   if (handover === "porch") {
     if (at === 0) return side === "buyer"
-      ? "Paid · the seller puts it out and posts a photo of where it is."
-      : "Paid · put it out and take one photo where the buyer will find it.";
-    if (at === 1) return side === "buyer" ? "Ready · it's out. Pick it up at your pickup time." : "It's out · the buyer is told and sees your photo.";
+      ? "Paid. The seller puts it out and posts a photo of where it is."
+      : "Paid. Put it out and take one photo where the buyer will find it.";
+    if (at === 1) return side === "buyer" ? "It's out. Pick it up at your pickup time." : "It's out. The buyer is told and sees your photo.";
   } else {
-    if (at === 0) return side === "buyer" ? "Paid · book a pickup time with the seller." : "Paid · the buyer books a pickup time.";
-    if (at === 1) return "Booked · see the pickup time below.";
+    if (at === 0) return side === "buyer" ? "Paid. Book a pickup time." : "Paid. The buyer books a pickup time.";
+    if (at === 1) return "Booked. The pickup time is below.";
   }
   return at === 2 ? "Picked up." : "Handed over.";
 }
@@ -78,7 +81,7 @@ export function PickupStatus({
   const done = at === 3;
   const money =
     side === "buyer"
-      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : " · the seller is paid after you pick it up."}</> : null
+      ? totalCents != null ? <>You paid <strong className="tabular-nums">{formatPrice(totalCents)}</strong>{done ? "." : ". The seller is paid after you pick it up."}</> : null
       : done
         ? null
         : handover === "porch"

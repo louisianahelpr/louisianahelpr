@@ -186,12 +186,13 @@ function OrderCard({ order, userId, booking, payout }: { order: PaidOrder; userI
   const refundRequests = useFeature("declutter_refund_requests");
   return (
     <article className="rounded-[20px] border border-border bg-card p-4 space-y-3">
-      {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming and which side you are. */}
+      {/* Board 47 / 26 mine card: title, the price in money ink, ONE line saying how it's coming. The buyer's card no
+          longer says "You're buying" (lead 2026-10-28: every card on the Buying tab repeated it). */}
       <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">
         <div className="min-w-0">
           <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
           <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"} · {order.side === "buyer" ? "You're buying" : "You're selling"}
+            {order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? " · You're selling" : ""}
           </p>
         </div>
         <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(items)}</span>

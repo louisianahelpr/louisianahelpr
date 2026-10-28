@@ -373,6 +373,37 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.queryByRole("heading", { name: /^Offers on your items/ })).toBeNull();
   });
 
+  // Lead 2026-10-28 (Buying, calmer; shot round2/buying-paid-375-light.png): "Your cart is empty." and "You haven't
+  // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
+  // ONCE; a chosen chip still shows its own list's empty state.
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const show = (g: BuyingGroup) => (only === null ? !has \|\| has[g] : only === g); |   const show = (g: BuyingGroup) => only === null \|\| only === g;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {nothing && ( |       {false && (
+  it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
+    state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
+    const first = at("/declutter?tab=buying");
+    expect(await screen.findByText("paid order ord-bought as buyer")).toBeInTheDocument();
+    expect(screen.queryByText("Your cart is empty.")).toBeNull();
+    expect(screen.queryByRole("region", { name: "Your cart" })).toBeNull();
+    expect(screen.queryByText("You haven't made any offers.")).toBeNull();
+    expect(screen.queryByText("Nothing bought yet.")).toBeNull();
+    first.unmount();
+
+    state.cart = [];
+    const second = at("/declutter?tab=buying");
+    expect(await screen.findByText("Nothing bought yet.")).toBeInTheDocument();
+    expect(screen.queryByText("Your cart is empty.")).toBeNull();
+    expect(screen.queryByText("You haven't made any offers.")).toBeNull();
+    expect(screen.queryByText(/^Nothing bought yet\. After you pay/)).toBeNull();
+    // Exactly one empty state on the tab.
+    expect(screen.getAllByText(/^Nothing bought yet\.$|cart is empty|haven't made any offers|^Nothing bought yet\. After/).length).toBe(1);
+    second.unmount();
+
+    // A chosen chip shows its own list, empty or not.
+    at("/declutter?tab=buying&status=cart");
+    expect(await screen.findByText("Your cart is empty.")).toBeInTheDocument();
+    expect(screen.queryByText("Nothing bought yet.")).toBeNull();
+  });
+
   it("Selling: your listings, the offers on your items, sales waiting to be paid and paid sales, every old action still there", async () => {
     everything();
     at("/declutter?view=selling");

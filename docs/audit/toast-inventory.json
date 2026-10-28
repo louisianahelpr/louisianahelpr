@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 992,
+    "calls": 993,
     "files": 259,
     "rendering": 843,
-    "suppressedByPolicy": 149,
+    "suppressedByPolicy": 150,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
@@ -14,11 +14,11 @@
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 152,
+      "toast.success": 153,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 446,
+      "literal": 447,
       "template": 103,
       "dynamic": 493,
       "jsx": 0
@@ -6680,7 +6680,17 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 78,
+      "line": 85,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Text alerts are on."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
+      "line": 91,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6690,7 +6700,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 86,
+      "line": 99,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6700,7 +6710,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 91,
+      "line": 104,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

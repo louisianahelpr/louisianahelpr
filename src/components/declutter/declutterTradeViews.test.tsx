@@ -28,7 +28,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = offered.includes(handover) ? handover : offered[0]; |   const chosen = handover;
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const offered: Handover[] = deliveryOpen ? [...order, "delivery"] : order; |   const offered: Handover[] = [...order, "delivery"];
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={opening \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| (delivering && !liveQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady} |         disabled={held \|\| opening \|\| (sellerDelivering && !sdReady) \|\| !meetupReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |   const payCents = (sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />

@@ -152,6 +152,12 @@ export const ADMIN_RPC_ERROR_COPY = {
     meetup_spot_invalid: "Fill in the parish, name and address, pick a type, and put the map point in Louisiana.",
     meetup_spot_not_found: "That spot no longer exists. Refresh the list.",
   },
+  // Q2428 partner charities (20261027222743).
+  admin_declutter_save_donation_partner: {
+    admin_only: "Only an admin can add or edit partner charities.",
+    donation_partner_invalid: "Fill in the parish, name and address, and put the map point in Louisiana.",
+    donation_partner_not_found: "That partner no longer exists. Refresh the list.",
+  },
   declutter_admin_decide_problem: {
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,

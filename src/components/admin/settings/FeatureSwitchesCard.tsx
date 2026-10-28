@@ -25,6 +25,7 @@ import { MeetupSpotsCard } from "./MeetupSpotsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
+import { DonationPartnersCard } from "./DonationPartnersCard";
 
 type SwitchRow = { key: string; audience: string; description: string; updated_at: string };
 type PendingChange = { key: string; from: string; to: FeatureAudience };
@@ -172,6 +173,7 @@ export function FeatureSwitchesCard() {
     <CategorySuggestionsCard />
     <DeclutterProblemsCard />
     <MeetupSpotsCard />
+    <DonationPartnersCard />
     <RentalsOwnershipCard />
     <HomesListingsCard />
     </>

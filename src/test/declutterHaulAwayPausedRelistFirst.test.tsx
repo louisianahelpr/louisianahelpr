@@ -30,6 +30,8 @@ import { HAUL_AWAY_ERROR_COPY, rpcErrorMessage } from "@/lib/declutter/haulAwayE
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
+// Q2428: the donation picker and receipts read through React Query; this suite is about the haul-away card itself.
+vi.mock("@/components/declutter/DeclutterDonate", () => ({ DonatePicker: () => null, DonationReceipts: () => null }));
 
 const REPO = resolve(__dirname, "..", "..");
 const MIGRATIONS = join(REPO, "supabase", "migrations");

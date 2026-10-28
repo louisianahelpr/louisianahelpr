@@ -563,6 +563,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "crew_confirm_pending.helper_id": { reason: "20261007011530: transient state of one crew Confirm waiting on payout setup (deleted when it completes or the spot is removed); holds no content, only the job, slot and person ids the export already carries through group_job_helpers" },
   "job_accept_pending.helper_id": { reason: "Q1180: transient state of one offer (deleted when the accept completes or the offer moves on); holds no content, only the job and person ids the export already carries through jobs" },
   "admin_user_notes.admin_id": { reason: "the staff member who wrote the note", stripped: true },
+  "declutter_donation_partners.created_by": { reason: "Q2428 (20261027222743): the admin who added a partner charity; staff curation, not member data; each save is also in admin_audit_log" },
   "helper_shadowbans.created_by": { reason: "the staff member who applied the shadowban", stripped: true },
   "category_suggestions.reviewed_by": { reason: "I1: the staff member who approved or declined the suggestion", stripped: true },
   "payout_holds.held_by": { reason: "Q764: the staff member who placed the payout hold", stripped: true },

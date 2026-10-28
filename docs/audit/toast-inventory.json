@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 986,
-    "files": 256,
-    "rendering": 837,
+    "calls": 990,
+    "files": 258,
+    "rendering": 841,
     "suppressedByPolicy": 149,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
-      "toast": 69,
-      "toast.error": 699,
+      "toast": 71,
+      "toast.error": 701,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,9 +18,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 445,
+      "literal": 446,
       "template": 103,
-      "dynamic": 488,
+      "dynamic": 491,
       "jsx": 0
     }
   },
@@ -3778,8 +3778,57 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/settings/DonationPartnersCard.tsx",
+      "line": 36,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "d.id ? \"Partner saved.\" : \"Partner added.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Partner saved."
+          },
+          {
+            "form": "literal",
+            "text": "Partner added."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/settings/DonationPartnersCard.tsx",
+      "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "haulAwayErrorMessage(err)",
+        "from": "src/lib/declutter/haulAwayErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "HAUL_AWAY_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "HAUL_AWAY_CLIENT_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 80,
+      "line": 81,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -3789,7 +3838,7 @@
     },
     {
       "file": "src/components/admin/settings/FeatureSwitchesCard.tsx",
-      "line": 85,
+      "line": 86,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4245,6 +4294,35 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterDonate.tsx",
+      "line": 24,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "haulAwayErrorMessage(err)",
+        "from": "src/lib/declutter/haulAwayErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "HAUL_AWAY_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "HAUL_AWAY_CLIENT_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
       },
       "renders": true
     },
@@ -10868,7 +10946,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 70,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -10878,7 +10956,17 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 88,
+      "line": 97,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't find the charity you picked, so this is a plain haul-away. Pick it again on Haul it away to donate."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/post-job/useHaulAwayPrefill.ts",
+      "line": 100,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10898,7 +10986,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 94,
+      "line": 106,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -10908,7 +10996,7 @@
     },
     {
       "file": "src/pages/post-job/useHaulAwayPrefill.ts",
-      "line": 103,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "literal",

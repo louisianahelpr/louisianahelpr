@@ -11,6 +11,7 @@ import { Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { daysUntil, haulAwayPostJobPath } from "@/lib/declutter/haulAwayLink";
 import type { HaulAwayRow } from "@/lib/declutter/haulAwayParam";
+import { DonatePicker, DonationReceipts } from "./DeclutterDonate";
 
 /** "Dresser, 2 chairs, boxes": the first few titles, then how many more. */
 export function leftoversLine(titles: string[], shown = 3): string {
@@ -35,9 +36,12 @@ const PAUSED_HAUL_AWAY_ITEM_LINE = "Paused items can't be hauled away. Relist it
  * pre-filled. The day and the price are set there, like any job.
  */
 export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[]; pausedCount?: number }) {
-  if (group.length === 0) return null;
+  // Q2428: the seller's donation receipts sit with the haul-away (they come from it), shown even when nothing is left to haul.
+  if (group.length === 0) return <DonationReceipts />;
   const n = group.length;
   return (
+    <>
+    <DonationReceipts />
     <section
       aria-labelledby="haul-away-title"
       className="rounded-2xl border border-border bg-card p-4 space-y-3"
@@ -77,7 +81,9 @@ export function HaulAwayCard({ group, pausedCount = 0 }: { group: HaulAwayRow[];
           {n === 1 ? "Post a haul-away job" : `Post a haul-away job for ${n} items`}
         </Link>
       </Button>
+      <DonatePicker itemIds={group.map((r) => r.item_id)} />
     </section>
+    </>
   );
 }
 

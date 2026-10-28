@@ -4,7 +4,7 @@
  * Pure components (no Supabase); the backend proof is
  * src/test/pglite/declutterHaulAway.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (group.length === 0) return null; |   if (false) return null;
+ * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (group.length === 0) return <DonationReceipts />; |   if (false) return <DonationReceipts />;
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |         <Link to={haulAwayPostJobPath(group.map((r) => r.item_id))}> |         <Link to={haulAwayPostJobPath(group.slice(0, 1).map((r) => r.item_id))}>
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |       <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => onPutBack(row)}> |       <Button type="button" size="sm" variant="outline" disabled={pending}>
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |   if (row.state === "paying") { |   if (false) {
@@ -20,6 +20,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { HaulAwayCard, HaulAwayItemActions, HaulAwayItemLine, leftoversLine } from "./DeclutterHaulAway";
 import type { HaulAwayRow } from "@/lib/declutter/haulAway";
+// Q2428: the donation picker and receipts read through React Query; this suite is about the haul-away card itself.
+vi.mock("@/components/declutter/DeclutterDonate", () => ({ DonatePicker: () => null, DonationReceipts: () => null }));
 
 const row = (over: Partial<HaulAwayRow>): HaulAwayRow => ({
   item_id: "i1",

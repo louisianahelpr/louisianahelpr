@@ -1567,6 +1567,78 @@ export type Database = {
         Relationships: [
         ]
       }
+      declutter_donation_partners: {
+        Row: {
+          active: boolean
+          address: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lat: number
+          lng: number
+          name: string
+          parish: string
+          takes: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lat: number
+          lng: number
+          name: string
+          parish: string
+          takes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lat?: number
+          lng?: number
+          name?: string
+          parish?: string
+          takes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      declutter_donations: {
+        Row: {
+          chosen_at: string
+          donated_at: string | null
+          item_id: string
+          job_id: string | null
+          partner_address: string
+          partner_id: string | null
+          partner_name: string
+        }
+        Insert: {
+          chosen_at?: string
+          donated_at?: string | null
+          item_id: string
+          job_id?: string | null
+          partner_address: string
+          partner_id?: string | null
+          partner_name: string
+        }
+        Update: {
+          chosen_at?: string
+          donated_at?: string | null
+          item_id?: string
+          job_id?: string | null
+          partner_address?: string
+          partner_id?: string | null
+          partner_name?: string
+        }
+        Relationships: []
+      }
       declutter_fee_debt_deductions: {
         Row: {
           deducted_cents: number
@@ -12819,6 +12891,19 @@ export type Database = {
           title: string
         }[]
       }
+      admin_declutter_save_donation_partner: {
+        Args: {
+          p_active: boolean
+          p_address: string
+          p_id: string
+          p_lat: number
+          p_lng: number
+          p_name: string
+          p_parish: string
+          p_takes: string
+        }
+        Returns: string
+      }
       admin_declutter_save_meetup_spot: {
         Args: { p_active: boolean; p_address: string; p_id: string; p_kind: string; p_lat: number; p_lng: number; p_name: string; p_note: string; p_parish: string }
         Returns: string
@@ -13400,6 +13485,10 @@ export type Database = {
         Returns: number
       }
       declutter_checkout_free: { Args: { p_handover: string; p_seller_id: string }; Returns: string }
+      declutter_choose_donation: {
+        Args: { p_item_ids: string[]; p_partner_id: string }
+        Returns: number
+      }
       declutter_claim_free: { Args: { p_item_id: string }; Returns: string }
       declutter_cancel_haul_away: {
         Args: { p_item_id: string; p_job_id?: string }
@@ -13418,6 +13507,27 @@ export type Database = {
         Returns: Json
       }
       declutter_close_wanted: { Args: { p_wanted_id: string }; Returns: string }
+      declutter_donation_own_items: {
+        Args: { p_item_ids: string[]; p_uid: string }
+        Returns: string[]
+      }
+      declutter_donation_partner_miles: {
+        Args: { p_item_ids: string[]; p_partner_id: string }
+        Returns: number
+      }
+      declutter_donation_partners_near: {
+        Args: { p_item_ids: string[] }
+        Returns: {
+          address: string
+          chosen: boolean
+          id: string
+          miles: number
+          name: string
+          parish: string
+          takes: string
+        }[]
+      }
+      declutter_donation_rules: { Args: never; Returns: Json }
       declutter_free_rules: { Args: never; Returns: Json }
       declutter_complete_handover: { Args: { p_by: string; p_order_id: string }; Returns: Json }
       declutter_confirm_handover: {
@@ -13679,6 +13789,18 @@ export type Database = {
       declutter_move_out_date_problem: {
         Args: { p_move_out_on: string }
         Returns: string
+      }
+      declutter_my_donations: {
+        Args: { p_item_ids?: string[] }
+        Returns: {
+          chosen_at: string
+          donated_at: string
+          item_id: string
+          item_title: string
+          partner_address: string
+          partner_name: string
+          receipt: boolean
+        }[]
       }
       declutter_my_moving_sale: {
         Args: never

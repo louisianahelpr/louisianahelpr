@@ -29,6 +29,8 @@ import { isPostable, type HaulAwayRow } from "./haulAwayParam";
 export { HAUL_AWAY_CLIENT_ERROR_COPY, haulAwayErrorMessage } from "./haulAwayErrors";
 // For Post a Job's prefill, which loads only this module (useHaulAwayPrefill).
 export { fetchMyItemPrivate, photoPublicUrl } from "@/lib/declutter/api";
+// Q2428: Post a Job's donation prefill reads the chosen charity through this module too.
+export { fetchMyDonations, oneDonationPartner } from "./donate";
 // The pure helpers live in ./haulAwayParam (tiny, shared by the screens);
 // re-exported so one import serves callers that load this module anyway.
 export {
@@ -104,6 +106,29 @@ export function buildHaulAwayPrefill(rows: HaulAwayRow[]): HaulAwayPrefill | nul
     budget: String(haulAwayPayDollars(ok.map((r) => r.delivery_size))),
     photoPaths: [...firsts, ...rest].slice(0, JOB_PHOTO_MAX),
   };
+}
+
+/**
+ * Q2428: the same job, to a chosen partner charity. The charity's name and address go first in the description:
+ * the Helpr must know where to take it, and the receipt is written only when the completed job names the charity
+ * (declutter_donation_job_completed, 20261027222743). No dump, no value.
+ */
+export function buildDonationPrefill(rows: HaulAwayRow[], partner: { name: string; address: string }): HaulAwayPrefill | null {
+  const base = buildHaulAwayPrefill(rows);
+  if (!base) return null;
+  const ok = rows.filter(isPostable);
+  const title = ok.length === 1 ? fitWords(`Donate: ${ok[0].title}`, TITLE_MAX) : `Donate ${ok.length} items`;
+  const list = ok.map((r) => `- ${fitWords(r.title, 80)} (${SIZE_WORDS[r.delivery_size] ?? "large"})`).join("\n");
+  const description = fit(
+    [
+      `Drop off at ${partner.name}, ${partner.address}.`,
+      `Pick up ${ok.length === 1 ? "this item" : "these items"} from my place and take ${ok.length === 1 ? "it" : "them"} there.`,
+      list,
+      "Please take a photo when you drop off, so I can see it got there.",
+    ].join("\n\n"),
+    DESCRIPTION_MAX,
+  );
+  return { ...base, title, description };
 }
 
 /** The RPC's data, or a throw carrying the plain words for its refusal on `userMessage` (as src/lib/declutter/api.ts). */

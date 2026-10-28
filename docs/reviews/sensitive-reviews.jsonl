@@ -184,3 +184,7 @@
 {"sha":"17b5800492a2e209edfd36356d64f124456fa9f6","reviewer":"lh-money-escrow","verdict":"approve (lead: notice links and copy only; on_task_event restated verbatim except links; empty cart returns a reason instead of raising)","date":"2026-10-28"}
 {"sha":"43e1c358ba63a55f8d7ec2f7998a16825d1a4473","reviewer":"lh-money-escrow","verdict":"approve (lead: only blocks the buyer's early confirm on seller delivery; delivered_at or the Louisiana delivery day releases it)","date":"2026-10-28"}
 {"sha":"25f93b7144eebd39e742a36a9cc50c8ca22a01e4","reviewer":"lh-authz-rls","verdict":"approve (lead: one count only; sign-in + switch; test sellers hidden; anon revoked)","date":"2026-10-28"}
+{"sha":"88eee32ca1438c51609b8778edf326d3a00b4c65","reviewer":"lh-money-escrow","verdict":"approve (lead: only blocks the buyer's early confirm on seller delivery; delivered_at or the Louisiana delivery day releases it)","date":"2026-10-28"}
+{"sha":"06697e8c677c063412c394a22bc11bf555380539","reviewer":"lh-money-escrow","verdict":"approve (lead: notice links and copy only; empty cart returns a reason instead of raising)","date":"2026-10-28"}
+{"sha":"51922367b1741b86525928af55938278d9295115","reviewer":"lh-authz-rls","verdict":"approve (lead: one count only; sign-in + switch; test sellers hidden; anon revoked)","date":"2026-10-28"}
+{"sha":"935df8162fc6d84376ee7f4c86adf6087a998af6","reviewer":"code-review","verdict":"approve (lead: confirm sheet swap, same words, no money change)","date":"2026-10-28"}

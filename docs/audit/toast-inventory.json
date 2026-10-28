@@ -8288,7 +8288,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 87,
+      "line": 86,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8298,7 +8298,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 90,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8319,7 +8319,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 205,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8340,7 +8340,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 210,
+      "line": 209,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -8360,7 +8360,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 213,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8381,7 +8381,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 219,
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8402,7 +8402,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 297,
+      "line": 296,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8412,7 +8412,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 297,
+      "line": 296,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8422,7 +8422,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 333,
+      "line": 332,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -9479,7 +9479,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 67,
+      "line": 66,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -9489,7 +9489,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 69,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "literal",

@@ -18,7 +18,7 @@
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
- * @mutate src/components/dashboard/FilterSheet.tsx |         floor={!webDesktop} |         floor
+ * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
  * @mutate src/components/dashboard/JobFilters.tsx | btn-press border min-h-10"; | btn-press border h-11";
  * @mutate src/components/dashboard/JobFilters.tsx | const radiusChip = chipBase.replace("px-4", "px-3"); | const radiusChip = chipBase;
@@ -243,11 +243,13 @@ describe("board 24, lead review 2026-10-20: lighter chips, a segmented View, mut
     expect(group.querySelectorAll('[role="radio"]').length).toBe(2);
   });
 
-  it("desktop web opens the centred 520px modal, phone the floor sheet", () => {
+  // Owner 2026-10-28 replaced the centred 520px modal with a small drop-down under the Filters button
+  // (src/test/filterDropdownOnDesktop.test.tsx).
+  it("desktop web opens the drop-down, phone the floor sheet", () => {
     calls.desktop = true;
     const { unmount } = sheet(null);
     const desk = screen.getByRole("dialog");
-    expect(desk.className).toContain("sm:max-w-[520px]");
+    expect(desk.hasAttribute("data-filter-dropdown")).toBe(true);
     expect(desk.className).not.toContain("sheet-floor");
     unmount();
     calls.desktop = false;

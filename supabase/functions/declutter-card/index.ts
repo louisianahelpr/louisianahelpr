@@ -78,6 +78,9 @@ serve(async (req) => {
       currency: "usd",
       customer: customerId,
       payment_method_types: ["card"],
+      // Card only, Link hidden (audit 2026-10-28 #22): card-only still showed Stripe's Link
+      // checkbox pre-ticked, which then demanded a phone number on the card page.
+      wallet_options: { link: { display: "never" } },
       client_reference_id: user.id,
       metadata: { kind: "declutter_card", user_id: user.id },
       setup_intent_data: { metadata: { kind: "declutter_card", user_id: user.id } },

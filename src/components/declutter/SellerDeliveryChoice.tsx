@@ -13,6 +13,10 @@
  *   pick          day chips, then time chips, then the door choice (owner
  *                 2026-10-22): "Leave it at my door" (the seller leaves it with
  *                 a photo) or "Hand it to me"
+ * A failed address check (deep audit 2026-10-28 D-1/#13: a 503 geocode_unavailable
+ * left "Checking…" and the order went through) says so under the field, in words,
+ * and clears and hides the times until the address is changed or checks out, so
+ * Pay stays off: checkout never goes ahead on an address nobody checked.
  */
 
 /** The door choice's words (owner 2026-10-22). */
@@ -22,7 +26,6 @@ export const HANDOFF_WORDS: Record<DeliveryHandoff, { title: string; words: stri
 };
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { formatPrice } from "@/lib/declutter/distance";
 import {
@@ -88,11 +91,16 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
   const days = groupSlotsByDay(offer?.slots ?? []);
   const [day, setDay] = useState<string | null>(null);
   const shownDay = days.find((d) => d.day === day) ?? days.find((d) => d.slots.some((s) => sameSlot(s, slot))) ?? days[0];
+  // The words of the last failed check, shown until the address changes or a check succeeds.
+  const [failed, setFailed] = useState<string | null>(null);
   const check = useMutation({
     mutationFn: () => quoteSellerDelivery(sellerId, address.trim()),
+    // A new check drops the time picked before it: Pay waits for this answer.
+    onMutate: () => { setFailed(null); onSlot(null); },
     onSuccess: (o) => { onSlot(null); setDay(null); onOffer(o); },
-    onError: (err) => toast.error(sellerDeliveryErrorMessage(err)),
+    onError: (err) => setFailed(sellerDeliveryErrorMessage(err)),
   });
+  const errorId = `dcl-sd-address-error-${sellerId}`;
   const addressId = `dcl-sd-address-${sellerId}`;
   return (
     <div className="space-y-3 rounded-xl border border-border p-3" data-seller-delivery-picker="">
@@ -102,13 +110,22 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
         </label>
         <div className="flex gap-2">
           <input id={addressId} className="w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
-            autoComplete="street-address" maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
+            autoComplete="street-address" maxLength={300} value={address}
+            aria-invalid={failed ? true : undefined} aria-describedby={failed ? errorId : undefined}
+            onChange={(e) => { setAddress(e.target.value); setFailed(null); }} />
           <button type="button" className="shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold"
             disabled={check.isPending || address.trim().length < 5} onClick={() => check.mutate()}>
             {check.isPending ? "Checking…" : "Check"}
           </button>
         </div>
-        <p className="text-xs text-muted-foreground">The seller sees your address only after you pay.</p>
+        {failed ? (
+          <p id={errorId} role="alert" className="rounded-lg px-3 py-2 text-sm text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.10)" }}
+            data-sd-check-failed="">
+            {failed} Delivery can't be booked until the address checks out. Try again, or choose another way to get it.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">The seller sees your address only after you pay.</p>
+        )}
       </div>
       {state === "out_of_range" && (
         <p className="rounded-lg bg-muted px-3 py-2 text-sm" role="status">The seller doesn't deliver that far. Choose another way to get it, or try another address.</p>
@@ -116,10 +133,10 @@ export function SellerDeliveryPicker({ sellerId, offer, state, slot, onSlot, onO
       {state === "no_times" && (
         <p className="rounded-lg bg-muted px-3 py-2 text-sm" role="status">No delivery times are open in the next two weeks. Choose another way to get it.</p>
       )}
-      {state === "pick" && sellerDeliveryTermsLine(offer) && (
+      {state === "pick" && !failed && sellerDeliveryTermsLine(offer) && (
         <p className="text-sm font-medium" data-sd-terms="">{sellerDeliveryTermsLine(offer)}</p>
       )}
-      {state === "pick" && shownDay && (
+      {state === "pick" && shownDay && !failed && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Pick a day</p>
           <div role="radiogroup" aria-label="Delivery day" className="flex flex-wrap gap-2">

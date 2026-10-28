@@ -78,7 +78,8 @@ vi.mock("./DeclutterReviewForm", () => ({
 
 // Slice 5: the delivery card has its own test (declutterDeliveryViews.test.tsx).
 vi.mock("./DeclutterDeliveryViews", () => ({
-  OrderDeliveryPanel: ({ taskId, side }: { taskId: string; side: string }) => <p>Delivery card {taskId} for the {side}</p>,
+  OrderDeliveryPanel: ({ taskId, side, tipOnly }: { taskId: string; side: string; tipOnly?: boolean }) =>
+    <p>{tipOnly ? `Tip panel ${taskId}` : `Delivery card ${taskId}`} for the {side}</p>,
 }));
 
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
@@ -158,6 +159,20 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.queryByText("1234 Example St, Baton Rouge")).toBeNull();
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
     expect(screen.getByRole("button", { name: "Report a problem" })).toBeInTheDocument();
+  });
+
+  // Audit 2026-10-28 A3-1: after "I got it" the order is handed_over; the tip must stay on the card.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense |       {false && <Suspense
+  it("a handed-over Helpr delivery keeps the buyer's tip panel; the seller gets none (A3-1)", async () => {
+    const done = line({ handover: "delivery", delivery_task_id: "t1", delivery_cents: 2400, order_status: "handed_over" });
+    const { unmount } = show([done]);
+    expect(await screen.findByText("Tip panel t1 for the buyer")).toBeInTheDocument();
+    expect(screen.getByText("Handed over.")).toBeInTheDocument();
+    expect(screen.queryByText(/Delivery card/)).toBeNull();
+    unmount();
+    show([{ ...done, my_side: "seller" }]);
+    expect(await screen.findByText("Handed over.")).toBeInTheDocument();
+    expect(screen.queryByText(/Tip panel/)).toBeNull();
   });
 
   it("the buyer sees the address and books the pickup; the seller waits for the buyer (rows 14, 98)", async () => {

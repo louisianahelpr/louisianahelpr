@@ -67,7 +67,9 @@ vi.mock("@/lib/helprTasks/api", () => ({
 vi.mock("@/lib/declutter/meetup", () => ({ fetchOrderMeetup: async () => null, meetupHere: async () => "here", meetupMapUrl: () => "", chooseMeetupSpot: async () => undefined }));
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
 vi.mock("./DeclutterReviewForm", () => ({ DeclutterReviewForm: () => <p>Review form</p> }));
-vi.mock("./DeclutterDeliveryViews", () => ({ OrderDeliveryPanel: ({ taskId }: { taskId: string }) => <p>Delivery card {taskId}</p> }));
+vi.mock("./DeclutterDeliveryViews", () => ({
+  OrderDeliveryPanel: ({ taskId, tipOnly }: { taskId: string; tipOnly?: boolean }) => <p>{tipOnly ? "Tip panel" : "Delivery card"} {taskId}</p>,
+}));
 vi.mock("./SellerDeliveryOrder", () => ({ SellerDeliveryOrderPanel: ({ orderId }: { orderId: string }) => <p>Seller delivery {orderId}</p> }));
 vi.mock("./DeclutterAddHelpr", () => ({ AddHelprPanel: () => null }));
 vi.mock("./DeclutterRefundRequest", () => ({ DeclutterRefundPanel: () => null }));
@@ -179,6 +181,17 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(card("free").textContent).not.toMatch(/You paid|\$0/);
     expect(card("free").querySelector('[aria-label^="Step 1 of 4: Claimed"]')).not.toBeNull();
     expect(card("home0")).toHaveTextContent("You paid $42.30.");
+  });
+
+  // Audit 2026-10-28 A3-1: after "I got it" the Helpr can still be tipped, without opening Details.
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {done && order.side === "buyer" && order.handover === "delivery" |       {body && done && order.side === "buyer" && order.handover === "delivery"
+  it("a handed-over Helpr delivery shows the tip on the collapsed card (A3-1)", async () => {
+    load([{ id: "hd4", line: { handover: "delivery", delivery_task_id: "t-hd4", order_status: "handed_over" }, step: 3, bucket: "done", action: null }]);
+    show();
+    expect(await screen.findByText("Tip panel t-hd4")).toBeInTheDocument();
+    const el = card("hd4");
+    expect(el.querySelector("[data-order-body]")).toBeNull();
+    expect(within(el).queryByText(/Delivery card/)).toBeNull();
   });
 
   it("the next action opens the card at that action, and the head button gives way to the real control", async () => {

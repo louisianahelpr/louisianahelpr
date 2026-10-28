@@ -20,10 +20,10 @@
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF NEW.confirmed_by = 'code' AND | IF false AND
  * @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |   IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN |   IF p_by IS NULL OR p_by NOT IN ('code', 'customer', 'auto', 'admin') THEN
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   v_from := b.slot_start + interval '15 minutes'; |   v_from := b.slot_start;
@@ -153,8 +153,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     expect(sp).toContain("IF o.handover NOT IN ('pickup_home', 'meetup') THEN RAISE EXCEPTION 'not_a_door_pickup'");
     expect(sp).toContain("v_out := public.declutter_complete_handover(o.id, 'seller');");
     expect(sp).toContain("IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN RAISE EXCEPTION 'before_pickup_time'");
-    // Restated from its effective definition (no code) by 20261028200440: the seller's notices open Selling.
-    expect(DEFS.get("declutter_delivery_on_task_event")?.file).toBe("20261028200440_declutter_audit3_notices_and_empty_cart.sql");
+    // 20261028200440 (seller notices open Selling), then A3-8 (20261028210552: only the notice lines naming the item); still no code (checked below).
+    expect(DEFS.get("declutter_delivery_on_task_event")?.file).toBe("20261028210552_declutter_sale_notices_name_inline.sql");
     expect(flat(body("declutter_delivery_on_task_event"))).not.toMatch(/4-digit|drop-off code/);
     expect(flat(NO_QR)).toContain("CREATE TRIGGER trg_declutter_handovers_no_new_code BEFORE INSERT OR UPDATE OF confirmed_by ON public.declutter_handovers");
     expect(flat(body("declutter_no_new_code_confirmation"))).toContain("IF NEW.confirmed_by = 'code' AND (TG_OP = 'INSERT' OR OLD.confirmed_by IS DISTINCT FROM 'code') THEN");

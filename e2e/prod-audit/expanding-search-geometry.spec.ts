@@ -620,7 +620,7 @@ const SURFACES: {
     // to be named or the walk stops inside the field itself. Since 2026-10-27
     // the strip is the hairline box and the row inside it is the shared
     // [data-jobs-toolbar] row (jobsToolbar.ts), whose children are the siblings.
-    rowSel: "[data-feed-strip] [data-jobs-toolbar]",
+    rowSel: "[data-feed-strip]",
     minWidth: 900,
   },
   {

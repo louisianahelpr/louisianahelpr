@@ -27,7 +27,7 @@
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql |          public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents), t.open_until, t.latest_pickup_at |          t.pay_cents - t.fee_cents, t.open_until, t.latest_pickup_at
 // @mutate supabase/migrations/20261027201327_delivery_dropoff_on_accept.sql | THEN public.helpr_payout_round_down_cents(t.pay_cents - t.fee_cents) END, | THEN t.pay_cents - t.fee_cents END,
 // @mutate supabase/migrations/20261021181118_helpr_delivery_payout_round_down.sql | ELSE format('$%s is on its way to your payout account.', (v_amount / 100)::text) END, | ELSE format('$%s is on its way to your payout account.', to_char(v_amount / 100.0, 'FM999990.00')) END,
-// @mutate supabase/functions/declutter-money/index.ts |       parts = helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts); |       parts = helprPayoutParts(h.amount_cents + 50, h.payment_intent_id, h.raised_cents, h.raise_parts);
+// @mutate supabase/functions/declutter-money/index.ts |       parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)]; |       parts = [...helprPayoutParts(h.amount_cents + 50, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

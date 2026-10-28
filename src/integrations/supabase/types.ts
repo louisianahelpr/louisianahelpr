@@ -4367,6 +4367,64 @@ export type Database = {
         Relationships: [
         ]
       }
+      helpr_task_tips: {
+        Row: {
+          attempt_id: string
+          charged_cents: number | null
+          created_at: string
+          held: boolean
+          helpr_id: string | null
+          id: string
+          is_seed: boolean
+          paid_at: string | null
+          paid_out_at: string | null
+          payment_status: string
+          payout_transfer_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
+          task_id: string
+          tip_cents: number
+          tipper_id: string | null
+        }
+        Insert: {
+          attempt_id: string
+          charged_cents?: number | null
+          created_at?: string
+          held?: boolean
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          paid_at?: string | null
+          paid_out_at?: string | null
+          payment_status?: string
+          payout_transfer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          task_id: string
+          tip_cents: number
+          tipper_id?: string | null
+        }
+        Update: {
+          attempt_id?: string
+          charged_cents?: number | null
+          created_at?: string
+          held?: boolean
+          helpr_id?: string | null
+          id?: string
+          is_seed?: boolean
+          paid_at?: string | null
+          paid_out_at?: string | null
+          payment_status?: string
+          payout_transfer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
+          task_id?: string
+          tip_cents?: number
+          tipper_id?: string | null
+        }
+        Relationships: [
+        ]
+      }
       helpr_tasks: {
         Row: {
           accepted_at: string | null
@@ -15520,6 +15578,24 @@ export type Database = {
       helpr_task_source_require_feature: { Args: { p_kind: string }; Returns: undefined }
       helpr_task_source_slot_ok: { Args: { p_kind: string; p_source: string; p_start: string }; Returns: boolean }
       helpr_task_sweep: { Args: never; Returns: Json }
+      helpr_task_tip_attach: { Args: { p_session_id: string; p_tip_id: string }; Returns: boolean }
+      helpr_task_tip_paid: {
+        Args: { p_charged_cents: number; p_payment_intent_id: string; p_session_id: string; p_tip_id: string }
+        Returns: Json
+      }
+      helpr_task_tip_payout_sent: { Args: { p_tip_id: string; p_transfer_id: string }; Returns: string }
+      helpr_task_tip_start: { Args: { p_attempt_id: string; p_task_id: string; p_tip_cents: number }; Returns: Json }
+      helpr_task_tips_stranded: {
+        Args: never
+        Returns: {
+          helpr_id: string
+          payment_intent_id: string
+          payout_status: string
+          task_id: string
+          tip_cents: number
+          tip_id: string
+        }[]
+      }
       helpr_task_vehicle_fits: { Args: { p_size: string; p_user: string }; Returns: boolean }
       helpr_task_view: { Args: { p_task_id: string }; Returns: Json }
       helpr_tasks_open_near: {

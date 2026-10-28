@@ -24,6 +24,7 @@ const state = {
   setupPaused: false,
   profile: undefined as undefined | Record<string, unknown>,
   offered: [] as string[],
+  tips: [] as unknown[],
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -69,6 +70,13 @@ vi.mock("@/lib/helprTasks/api", () => ({
 vi.mock("@/lib/helprTasks/online", () => ({ fetchOnlineStatus: async () => null, isOnline: () => false, setOnline: vi.fn() }));
 // Q1929's "Raise the pay" panel has its own test (deliveryRaisePanel.test.tsx); here it shows nothing.
 vi.mock("@/lib/declutter/deliveryRaise", () => ({ fetchDeliveryRaiseStatus: async () => null, startDeliveryRaise: vi.fn() }));
+// Q2453: the delivery tip (its money is proven in src/test/edge/declutter-delivery-tip.test.ts).
+vi.mock("@/lib/declutter/deliveryTip", () => ({
+  fetchMyPaidDeliveryTips: async () => state.tips,
+  fetchTipsOnMyDeliveries: async () => new Map((state.tips as { task_id?: string; tip_cents: number }[]).filter((t) => t.task_id).map((t) => [t.task_id!, t.tip_cents])),
+  startDeliveryTip: async (...a: unknown[]) => { state.calls.push(["tip", ...a]); return "https://checkout.stripe.test/tip"; },
+}));
+vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: async (url: string) => { state.calls.push(["open", url]); } }));
 
 import { DeliverView, OrderDeliveryPanel } from "./DeclutterDeliveryViews";
 import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
@@ -98,6 +106,7 @@ beforeEach(() => {
   state.setupPaused = false;
   state.profile = undefined;
   state.offered = [];
+  state.tips = [];
   vi.spyOn(window, "confirm").mockReturnValue(true);
 });
 
@@ -152,6 +161,55 @@ describe("a delivery photo that cannot load says so (lh-silent-failure #6)", () 
     show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
     expect(await screen.findByText(/At the drop-off: the photo couldn't load/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+  });
+});
+
+describe("OrderDeliveryPanel: a tip for the delivery Helpr (Q2453)", () => {
+  const done = { ...VIEW, status: "confirmed", helpr_first_name: "Hank", accepted_at: "2026-10-17T15:00:00Z", picked_up_at: "2026-10-17T18:00:00Z",
+    delivered_at: "2026-10-17T21:00:00Z", confirmed_at: "2026-10-17T21:30:00Z", confirmed_by: "customer" };
+
+  it("once it is done the buyer may tip: the job tip's picker, the one total, and the Helpr gets the whole tip", async () => {
+    state.view = done;
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("Add a tip for Hank?")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^\$10/ }));
+    // tipChargeBreakdown(1000): $10.61 charged, the whole $10.00 to the Helpr; no fee line.
+    expect(screen.getByText("$10.61")).toBeInTheDocument();
+    expect(screen.getByText(/Hank receives the whole \$10\.00 tip/)).toBeInTheDocument();
+    expect(screen.queryByText(/fee/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Tip $10.00" }));
+    await waitFor(() => expect(state.calls[0]?.slice(0, 3)).toEqual(["tip", "t1", 1000]));
+    expect(String(state.calls[0]?.[3])).toMatch(/^[0-9a-f-]{36}$/);
+    await waitFor(() => expect(state.calls[1]).toEqual(["open", "https://checkout.stripe.test/tip"]));
+  });
+
+  it("before it is done, and for the seller, there is no tip", async () => {
+    state.view = { ...done, status: "delivered", confirmed_at: null, confirmed_by: null };
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText(/left it at your drop-off address/)).toBeInTheDocument();
+    expect(screen.queryByText(/Add a tip/)).toBeNull();
+    state.view = done;
+    show(<OrderDeliveryPanel taskId="t1" side="seller" orderId="o1" />);
+    expect(await screen.findAllByText("Delivered.")).not.toHaveLength(0);
+    expect(screen.queryByText(/Add a tip/)).toBeNull();
+  });
+
+  it("a tip already paid is thanked, not offered again", async () => {
+    state.view = done;
+    state.tips = [{ id: "tip1", tip_cents: 1500, payment_status: "paid", paid_at: "2026-10-17T22:00:00Z" }];
+    show(<OrderDeliveryPanel taskId="t1" side="buyer" orderId="o1" />);
+    expect(await screen.findByText("You tipped Hank $15.00. Thank you.")).toBeInTheDocument();
+    expect(screen.queryByText(/Add a tip/)).toBeNull();
+  });
+});
+
+describe("DeliverView: the Helpr sees the buyer's tip on the delivery (Q2453)", () => {
+  it("a paid tip shows on its delivery card, the whole amount", async () => {
+    state.mine = [{ task_id: "t1", status: "confirmed", size: "small", title: "Lamp", pickup_area: "Mid-City", dropoff_area: "Baker, LA",
+      trip_miles: 9, take_home_cents: 2620, pickup_slot_start: "2026-10-20T15:00:00Z", payout_status: "succeeded" }];
+    state.tips = [{ task_id: "t1", tip_cents: 1000 }];
+    show(<DeliverView />);
+    expect(await screen.findByText("The buyer tipped you $10.")).toBeInTheDocument();
   });
 });
 

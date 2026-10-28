@@ -30,6 +30,8 @@ import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
 import { MovingSaleBanner } from "@/components/declutter/MovingSaleBanner";
 import { SellingNowRow } from "@/components/declutter/SellingNowRow";
+import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfileSection";
+import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
@@ -139,6 +141,7 @@ const UserProfile = () => {
     loading,
     offlineEmpty,
   } = useUserProfileData(userId, currentUserId);
+  const declutterReviewCount = useDeclutterReviewCount(userId);
 
   const profile = (data?.profile ?? null) as Profile | null;
 
@@ -595,6 +598,8 @@ const UserProfile = () => {
                 // stranger's view of a helper with a dozen. The count is a
                 // SECURITY DEFINER aggregate; the list stays the list.
                 workedJobsCount={completedWorkedCount}
+                // #28: the hero's rating tile must not say "No reviews yet" over Declutter reviews.
+                declutterReviewCount={declutterReviewCount}
                 replyLatency={replyLatency}
                 onTimeArrivalRate={onTimeArrivalRate}
                 revisionFrequency={revisionFrequency}
@@ -624,6 +629,7 @@ const UserProfile = () => {
           />
           <MovingSaleBanner sellerId={userId!} />
           <SellingNowRow sellerId={userId!} />
+          <DeclutterProfileSection userId={userId!} />
 
           {/* "No disputes on record" USED TO RENDER HERE, in green, as the
               positive half of the Track Record card. It is gone, and its

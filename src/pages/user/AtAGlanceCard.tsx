@@ -190,6 +190,14 @@ type Props = {
    * signed-out visitor (`wantsMutual`, useUserProfileData.ts).
    */
   mutualJobsCount: number;
+  /**
+   * #28 (Declutter deep audit, 2026-10-28): reviews this member has in
+   * Declutter (DeclutterProfileSection, below on the same page). The rating
+   * tile counts job reviews only, so with none of those it must not say "No
+   * reviews yet" over a Declutter section that has some: it says "No job
+   * reviews yet" instead.
+   */
+  declutterReviewCount?: number;
   showReviews: boolean;
   showPostedJobs: boolean;
   showWorkedJobs: boolean;
@@ -214,6 +222,7 @@ export const AtAGlanceCard = ({
   revisionFrequency: _revisionFrequency,
   repeatHirePercent: _repeatHirePercent,
   mutualJobsCount,
+  declutterReviewCount = 0,
   showReviews,
   showPostedJobs,
   showWorkedJobs,
@@ -261,7 +270,7 @@ export const AtAGlanceCard = ({
           onClick: onToggleReviews,
           selected: showReviews,
         }
-      : { key: "rating", icon: Star, value: "New", label: "No reviews yet" },
+      : { key: "rating", icon: Star, value: "New", label: declutterReviewCount > 0 ? "No job reviews yet" : "No reviews yet" },
 
     // ── 2. Jobs completed ──
     // Completed before posted (most-to-least-important order): work someone

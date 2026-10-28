@@ -18,6 +18,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { newestFunction } from "./helpers/parityReaders";
+import { smsConfirmWaitingFresh } from "@/lib/smsConsent";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { readdirSync } from "./helpers/trackedFiles";
 
@@ -66,12 +67,25 @@ describe("the one-time add-your-phone prompt", () => {
 // 03:04:16 turned the new alerts straight off. The card re-reads while a
 // confirmation is waiting, and a Cancel first re-reads and keeps alerts on if
 // the YES already landed.
-// @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false), |     refetchInterval: false,
+// @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     refetchInterval: (q) => (smsConfirmWaitingFresh(q.state.data) ? 3000 : false), |     refetchInterval: false,
+// @mutate src/lib/smsConsent.ts | now - Date.parse(c.pending_since) < SMS_CONFIRM_POLL_CAP_MS | true
 // @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |        if (fresh?.sms_opt_in) { |        if (false) {
+describe("the waiting-card re-read is capped at 10 min", () => {
+  it("polls only while a confirmation is waiting and under 10 minutes old", () => {
+    const t0 = Date.parse("2026-10-28T03:00:00Z");
+    const waiting = { phone_e164: null, sms_opt_in: false, opted_in_at: null, opted_out_at: null, opt_out_source: null, pending_phone: "+12255550123", pending_since: "2026-10-28T03:00:00Z" };
+    expect(smsConfirmWaitingFresh(waiting, t0 + 9 * 60_000)).toBe(true);
+    expect(smsConfirmWaitingFresh(waiting, t0 + 10 * 60_000)).toBe(false);
+    expect(smsConfirmWaitingFresh({ ...waiting, sms_opt_in: true }, t0 + 60_000)).toBe(false);
+    expect(smsConfirmWaitingFresh({ ...waiting, pending_since: null }, t0 + 60_000)).toBe(false);
+    expect(smsConfirmWaitingFresh(undefined, t0)).toBe(false);
+  });
+});
+
 describe("a confirmed YES is never undone by a stale Waiting card", () => {
   it("re-reads while waiting, and Cancel keeps alerts on when the YES already landed", () => {
     const card = read("src/components/notificationPreferences/SmsAlertsCard.tsx");
-    expect(card).toContain("refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false),");
+    expect(card).toContain("refetchInterval: (q) => (smsConfirmWaitingFresh(q.state.data) ? 3000 : false),");
     expect(card).toMatch(/if \(!optIn && pendingPhone && !optedIn\) \{ const fresh = \(await refetch\(\)\)\.data; if \(fresh\?\.sms_opt_in\) \{ toast\.success\("Text alerts are on\."\); return; \} \}/);
   });
 });

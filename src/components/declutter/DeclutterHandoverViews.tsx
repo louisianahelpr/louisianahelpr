@@ -62,6 +62,7 @@ import { currentPosition } from "@/lib/declutter/position";
 // signed-in-shared and put /posts over its critical-path budget.
 import { PickupStatus, PorchOutPhoto } from "./DeclutterPorchHandover";
 import { DateTimeField } from "@/components/DateTimeField";
+import { FoldedTimePicker } from "./DeclutterFoldedTime";
 const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m) => ({ default: m.OrderDeliveryPanel })));
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
@@ -313,19 +314,17 @@ function BookingPanel({ order, booking }: { order: PaidOrder; booking: MyBooking
       {/* Each side moves a booked time once (deep audit #25: "Move it" was still offered after the move was used). */}
       {movedAlready ? (
         <p className="text-xs text-muted-foreground" data-testid="declutter-move-used">You've already moved this pickup once. Message the other side if the time doesn't work.</p>
+      ) : booked ? (
+        // Deep audit #32: folded behind one button, so a booked card is not two full pickers deep at 390.
+        <FoldedTimePicker id={id} openLabel="Move the pickup" title="Move it (you can do this once)" fieldLabel="New pickup time"
+          confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
       ) : (
       <>
-      <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
+      <label htmlFor={id} className="block text-xs font-medium">Pick a pickup time</label>
       <div className="space-y-2">
-        <DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />
-        <button
-          type="button"
-          className={booked ? btn : primary}
-          disabled={book.isPending || !localInputToIso(value)}
-          onClick={() => { const iso = localInputToIso(value); if (iso) book.mutate(iso); }}
-        >
-          {booked ? "Move" : "Book"}
-        </button>
+        <DateTimeField id={id} label="Pickup time" value={value} onChange={setValue} />
+        <button type="button" className={primary} disabled={book.isPending || !localInputToIso(value)}
+          onClick={() => { const iso = localInputToIso(value); if (iso) book.mutate(iso); }}>Book</button>
       </div>
       </>
       )}
@@ -410,7 +409,6 @@ function HandoverPanel({ order, userId, slotStart, who, onProblem }: { order: Pa
 
 function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId: string; booking: MyBooking; who: string }) {
   const qc = useQueryClient();
-  const [until, setUntil] = useState("");
   // Board 159: the seller checks the porch photo in "Put it out" before sending it.
   const [preview, setPreview] = useState<File | null>(null);
   const timing = useMutation({
@@ -455,12 +453,10 @@ function PorchPanel({ order, userId, booking, who }: { order: PaidOrder; userId:
           <p className="text-sm">
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
           </p>
-          <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
             <button type="button" className={btn} disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</button>
-            <p className="text-ds-12 text-muted-foreground">Or until a time:</p>
-            <DateTimeField id={`dcl-out-${order.orderId}`} label="Out until" value={until} onChange={setUntil} />
-            <button type="button" className={btn} disabled={timing.isPending || !localInputToIso(until)}
-              onClick={() => timing.mutate({ mode: "until", iso: localInputToIso(until) })}>Out until then</button>
+            <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel="Out until a time…" title="Out until" fieldLabel="Out until"
+              confirmLabel="Out until then" pending={timing.isPending} onConfirm={(iso) => timing.mutate({ mode: "until", iso })} />
           </div>
         </>
       )}

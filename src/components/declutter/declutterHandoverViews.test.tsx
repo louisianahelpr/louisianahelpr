@@ -14,7 +14,7 @@
  * @mutate src/components/declutter/DeclutterOrderBits.tsx |     queries: lines.map((l) => ({ |     queries: lines.slice(0, 1).map((l) => ({
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       ) : order.handover === "delivery" ? ( |       ) : false ? (
  */
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |             <DateTimeField id={`dcl-out-${order.orderId}`} label="Out until" value={until} onChange={setUntil} /> |             <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} />
+// @mutate src/components/declutter/DeclutterFoldedTime.tsx |       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} /> |       <input type="datetime-local" value={value} onChange={(e) => setValue(e.target.value)} />
 // @mutate src/components/declutter/DeclutterPorchHandover.tsx |   if (handover === "porch" ? !!h?.set_out_at : booked) return 1; |   if (booked) return 1;
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           itemsCents={items} |           itemsCents={order.lines[0]?.total_cents ?? 0}
 import { readFileSync } from "node:fs";
@@ -203,8 +203,36 @@ describe("Declutter slice 4: paid-order cards", () => {
     unmount();
     state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 0, seller_reschedules: 0 }];
     show([line()]);
-    expect(await screen.findByText("Move it (you can do this once)")).toBeInTheDocument();
+    // Deep audit #32: the move picker is folded behind one button until it is wanted.
+    fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
+    expect(screen.getByText("Move it (you can do this once)")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
+  });
+
+  // Deep audit #32 (44-seller-sold-p2/p3-390): a booked porch card stacked two full date-and-time pickers and 5 buttons.
+  // @mutate src/components/declutter/DeclutterFoldedTime.tsx |   const [open, setOpen] = useState(false); |   const [open, setOpen] = useState(true);
+  it("#32: a booked porch card shows no picker until one is asked for; Out until a time opens one and sends it", async () => {
+    state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 0, seller_reschedules: 0 }];
+    const { container } = show([line({ handover: "porch", my_side: "seller" })]);
+    const move = await screen.findByRole("button", { name: "Move the pickup" });
+    const outUntil = screen.getByRole("button", { name: "Out until a time…" });
+    expect(screen.getByRole("button", { name: "Out all day" })).toBeInTheDocument();
+    // The DateTimeField stand-in is a plain input with the picker's id: none is on the card yet.
+    expect(container.querySelectorAll('input[id^="dcl-slot-"], input[id^="dcl-out-"]')).toHaveLength(0);
+    expect(move).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(outUntil);
+    expect(container.querySelectorAll('input[id^="dcl-out-"]')).toHaveLength(1);
+    expect(container.querySelectorAll('input[id^="dcl-slot-"]')).toHaveLength(0);
+    const send = screen.getByRole("button", { name: "Out until then" });
+    expect(send).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Out until"), { target: { value: "2026-10-31T18:00" } });
+    fireEvent.click(send);
+    await waitFor(() => expect(state.calls).toContainEqual(["porch_time", "o1", "until", new Date("2026-10-31T18:00").toISOString()]));
+    // Sent: it folds again.
+    expect(container.querySelectorAll('input[id^="dcl-out-"]')).toHaveLength(0);
+    fireEvent.click(screen.getByRole("button", { name: "Out until a time…" }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Out until a time…" })).toBeInTheDocument();
   });
 
   it("a multi-item order lists every item's pickup address, not only the first item's (authz review 2.7)", async () => {
@@ -367,7 +395,7 @@ describe("Declutter slice 4: paid-order cards", () => {
 
   // Lead review (71/72): the app's own day + time pickers and a real photo button, never the bare browser controls.
   it("pickup times use the shared DateTimeField and the porch photo is a button, not a bare file box", () => {
-    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterDeliveryViews.tsx"]) {
+    for (const f of ["src/components/declutter/DeclutterHandoverViews.tsx", "src/components/declutter/DeclutterDeliveryViews.tsx", "src/components/declutter/DeclutterFoldedTime.tsx"]) {
       const src = blankComments(readFileSync(f, "utf8"));
       expect(src, f).not.toMatch(/type="datetime-local"/);
       expect(src, f).toMatch(/<DateTimeField\b/);

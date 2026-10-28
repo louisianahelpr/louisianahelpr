@@ -10,8 +10,8 @@ import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { ExploreSwitcher } from "./ExploreSwitcher";
 import type { SectionKey } from "./sectionsConfig";
 
-/** The top bar's icon controls, one size and weight: the section gear and the bell. */
-const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
+/** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
+const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
 /**
  * The phone top bar (owner final decisions, 2026-10-19). Right side: the
@@ -26,14 +26,15 @@ const TOP_BAR_ICON_CLASS = "h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px]";
  * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
  * bell, and the rail carries Profile, so the bar keeps only the section title;
  * on Home (no title) it draws nothing (Q2221: two logos and two bells at 1440).
- * Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
+ * A section's settings gear is never here: it ends the section's tabs row on
+ * every width (SectionSettingsButton; owner 2026-10-28, desktop: "move gear down
+ * with the other icons"). Guard: src/test/desktopTopBarNoDuplicates.test.tsx.
  */
 export function AppTopBar({
   title: sectionTitle,
   explore = false,
   section,
   showProfile = true,
-  settings,
   desktopGap = true,
 }: {
   /** Omit on Home: the logo shows instead. */
@@ -53,11 +54,6 @@ export function AppTopBar({
   section?: SectionKey;
   /** False on You itself (board 18): the bar keeps only the bell, since you are already on your profile. */
   showProfile?: boolean;
-  /**
-   * The section's settings, as a GEAR (owner, 2026-10-21: Jobs settings moved from a card at the foot
-   * of Posted / Working into the header). Same 44px control as the bell.
-   */
-  settings?: { label: string; path: string };
   /** False inside PageScaffold's title card (Jobs, Messages), which pads itself. */
   desktopGap?: boolean;
 }) {
@@ -67,24 +63,7 @@ export function AppTopBar({
   const phoneExplore = explore && !isWebDesktop;
   const chipsRow = phoneExplore && !!section;
   const title = chipsRow ? sectionTitle : phoneExplore ? "Explore" : sectionTitle;
-  if (isWebDesktop && !title && !settings) return null;
-  const actions = settings ? (
-    <>
-      {settings && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          aria-label={settings.label}
-          data-testid="section-settings"
-          onClick={() => navigate(settings.path)}
-          className={TOP_BAR_ICON_CLASS}
-        >
-          <Settings aria-hidden />
-        </Button>
-      )}
-    </>
-  ) : null;
+  if (isWebDesktop && !title) return null;
   // The bell and the photo: the same two controls on every phone bar.
   const personal = (
     <>
@@ -106,12 +85,11 @@ export function AppTopBar({
       )}
     </>
   );
-  // ONE header row (owner 2026-10-21): on the desktop website the title and the
-  // gear go into the global top bar beside the bell and photo.
+  // ONE header row (owner 2026-10-21): on the desktop website the title goes into
+  // the global top bar beside the bell and photo.
   return (
     <PageTitleBar
       title={title ?? ""}
-      actions={actions}
       desktopGap={desktopGap}
       phone={
         !(chipsRow && section) ? (
@@ -122,7 +100,6 @@ export function AppTopBar({
             <HelprMark size="sm" emblemOnly to="/home" />
           )}
           <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
-            {actions}
             {personal}
           </div>
         </header>
@@ -143,8 +120,11 @@ export function AppTopBar({
 }
 
 /**
- * The section's settings gear where the Explore header's chips row has no room for it (owner, 2026-10-22): the end
- * of the section's tabs row, on a phone. The same 44px ghost control as the bar's own gear.
+ * The section's settings GEAR (owner, 2026-10-21: Jobs settings moved from a card at the foot of Posted / Working into
+ * the header): the LAST control at the right end of the section's tabs row, on every tab and every width (phone, owner
+ * 2026-10-22: the chips row has no room; desktop, owner 2026-10-28: "move gear down with the other icons"), so it
+ * never jumps between tabs. The same 40px ghost square as the row's search, filters and map.
+ * Guard: src/test/profileIsAccountMoneyHelp.test.tsx.
  */
 export function SectionSettingsButton({ settings }: { settings: { label: string; path: string } }) {
   const navigate = useNavigate();
@@ -156,7 +136,7 @@ export function SectionSettingsButton({ settings }: { settings: { label: string;
       aria-label={settings.label}
       data-testid="section-settings"
       onClick={() => navigate(settings.path, { replace: false })}
-      className={`${TOP_BAR_ICON_CLASS} shrink-0`}
+      className={TABS_ROW_ICON_CLASS}
     >
       <Settings aria-hidden />
     </Button>

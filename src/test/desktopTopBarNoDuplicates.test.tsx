@@ -7,7 +7,7 @@
  * the rail's "+ Create" posts), and on Home draws nothing; on a phone it is
  * unchanged (title or logo, bell, avatar).
  *
- * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title && !settings) return null; |
+ * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |
  * @mutate src/components/sections/AppTopBar.tsx |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {true && (\n      <span data-testid="top-bar-bell">
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
  */

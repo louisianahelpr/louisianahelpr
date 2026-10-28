@@ -21,7 +21,6 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
-import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const JOBS_SETTINGS = { label: "Jobs settings", path: "/jobs/settings" };
 
@@ -44,7 +43,6 @@ export function resolveJobsTab(params: URLSearchParams, picked: string): "browse
 const JobsSection = () => {
   const [params, setParams] = useSearchParams();
   const [picked] = useSectionTab(["posted", "working"]);
-  const isWebDesktop = useIsWebDesktop();
   // An OLD My Jobs link is decided from the URL the section OPENED with, once.
   // Browse writes ?q= (its search) and ?job= (its open job) into the same URL
   // as you use it; read live, typing one letter in Browse's search jumped to
@@ -81,13 +79,14 @@ const JobsSection = () => {
   // place for each"): no inset of its own, the bar 4px over the toggle, exactly SectionScreen's
   // (Declutter, Shops, Homes). Guard: e2e/prod-audit/section-shell-alignment.spec.ts.
   // THE EXPLORE HEADER (owner, 2026-10-22): the section chips with the bell and the photo, the thin tabs (the
-  // Jobs settings gear at their end on a phone), then the search. It sits in the scaffold's title card, above the
+  // Jobs settings gear LAST at their right end, on every tab and width: owner 2026-10-28, desktop, "move gear down
+  // with the other icons"), then the search. It sits in the scaffold's title card, above the
   // scrolling list, and never changes while the list scrolls (exploreHeaderSteady).
   /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
   const makeHeader = (browse?: { end?: ReactNode; count?: number }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
-      <AppTopBar title={section.label} explore section="jobs" settings={JOBS_SETTINGS} desktopGap={false} />
-      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={isWebDesktop ? browse?.end : <SectionSettingsButton settings={JOBS_SETTINGS} />} />
+      <AppTopBar title={section.label} explore section="jobs" desktopGap={false} />
+      <SectionTabs label="Jobs & Posts" tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
       {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
           the search not expanded"): Browse has "Search jobs" in its own row; Posted and Working carry a search
           ICON at the end of their status chip row that opens IN PLACE, leftward, and filters that tab's list

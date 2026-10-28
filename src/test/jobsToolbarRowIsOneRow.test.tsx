@@ -147,7 +147,8 @@ describe("Browse, Posted and Working draw the same row box and the same hairline
     expect(dash).not.toMatch(/JOBS_TOOLBAR_LINE_CLASS/);
     const jobs = read("src/pages/jobs/JobsSection.tsx");
     expect(jobs).toContain("browseCount={browse?.count}");
-    expect(jobs).toContain("end={isWebDesktop ? browse?.end");
+    // ...then the Jobs settings gear, last (owner 2026-10-28: "move gear down with the other icons").
+    expect(jobs).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
     // Posted / Working keep their chip row: the literal box (jobsTabsStayPut reads it) wears the shared line.
     const at = list.indexOf("{isWebDesktop && (");
     const box = /className="([^"]*)"\s+style=\{\{ borderBottom: "([^"]*)" \}\}/.exec(list.slice(at, at + 400));

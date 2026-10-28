@@ -65,6 +65,7 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 // @mutate scripts/ci/ban-gate-coverage.sql | UNION ALL SELECT rule, object, detail FROM auth_ban_set\n |
 // @mutate scripts/ci/ban-gate-coverage.sql |   ('rpc_settle_dispute_without_payment', 'admin-only (body checks has_role admin)'),\n |
 // @mutate supabase/migrations/20260923185224_ban_enforcement_everywhere.sql | NEW.user_id::text, true); | NEW.user_id::text, false);
+// @mutate scripts/ci/ban-gate-coverage.sql | ('helpr_set_vehicle', 'Declutter vehicle match | ('helpr_set_vehicle_x', 'Declutter vehicle match
 
 // RPCs a migration NEWER than the snapshot grants to authenticated, whose
 // latest body does not call is_caller_banned(). The snapshot alone could not
@@ -73,28 +74,69 @@ const migGated = [...(MIG.match(/FOREACH v_pair IN ARRAY ARRAY\[([\s\S]*?)\]/)?.
 const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
 // Scanned once: gatedInRepo runs per snapshot RPC, and a rescan each time
 // took the stale-exemption test past vitest's 20s timeout on CI (Vitest red).
-let migrationScan: { lastBody: Map<string, string>; granted: Set<string> } | undefined;
-function migrationRpcs(): { lastBody: Map<string, string>; granted: Set<string> } {
+// Bodies are kept PER OVERLOAD (name + argument count): the live check reads
+// pg_proc, where every overload is its own row, so an older overload that only
+// delegates (and never calls is_caller_banned() itself) is still ungated there.
+// Keyed by name alone, the newest overload hid it: helpr_set_vehicle's 3-arg
+// overload (20261028012406) turned db-deploy 40630560064 red after the push.
+type RpcScan = { overloads: Map<string, Map<number, string>>; granted: Set<string> };
+let migrationScan: RpcScan | undefined;
+function migrationRpcs(): RpcScan {
   return (migrationScan ??= scanMigrationRpcs());
 }
-function scanMigrationRpcs(): { lastBody: Map<string, string>; granted: Set<string> } {
+// Number of top-level arguments in the parenthesised list that opens at `open`.
+function argCount(sql: string, open: number): number {
+  let depth = 0;
+  let commas = 0;
+  let any = false;
+  for (let i = open; i < sql.length; i++) {
+    const c = sql[i];
+    if (c === "(") depth++;
+    else if (c === ")") {
+      depth--;
+      if (depth === 0) break;
+    } else if (depth === 1) {
+      if (c === ",") commas++;
+      else if (!/\s/.test(c)) any = true;
+    }
+  }
+  return any ? commas + 1 : 0;
+}
+function scanMigrationRpcs(): RpcScan {
   const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
-  const lastBody = new Map<string, string>();
+  const overloads = new Map<string, Map<number, string>>();
   const granted = new Set<string>();
   for (const f of files) {
     const sql = blankSqlComments(readFileSync(resolve(MIGRATIONS, f), "utf8"));
+    const events: { at: number; name: string; args: number | null; stmt: string | null }[] = [];
     for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
       // Whole statement: attributes sit before AS $$ or after the closing $$.
-      lastBody.set(m[1], m[0]);
+      events.push({ at: m.index!, name: m[1], args: argCount(sql, m.index! + m[0].indexOf("(")), stmt: m[0] });
+    }
+    for (const m of sql.matchAll(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-z0-9_]+)\s*(\()?/gi)) {
+      events.push({ at: m.index!, name: m[1].toLowerCase(), args: m[2] ? argCount(sql, m.index! + m[0].length - 1) : null, stmt: null });
+    }
+    for (const e of events.sort((x, y) => x.at - y.at)) {
+      const byArgs = overloads.get(e.name) ?? new Map<number, string>();
+      if (e.stmt !== null) byArgs.set(e.args!, e.stmt);
+      else if (e.args === null) byArgs.clear();
+      else byArgs.delete(e.args);
+      overloads.set(e.name, byArgs);
     }
     if (f.slice(0, 14) <= SNAP_VERSION) continue;
     for (const m of sql.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+TO\s+([^;]+);/gi)) {
       if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
     }
   }
-  return { lastBody, granted };
+  return { overloads, granted };
 }
-const gatedInRepo = (fn: string) => /is_caller_banned\s*\(/.test(migrationRpcs().lastBody.get(fn) ?? "");
+const overloadBodies = (fn: string) => [...(migrationRpcs().overloads.get(fn)?.values() ?? [])];
+const callsBanGate = (stmt: string) => /is_caller_banned\s*\(/.test(stmt);
+// Gated only when EVERY current overload calls is_caller_banned() itself.
+const gatedInRepo = (fn: string) => {
+  const bodies = overloadBodies(fn);
+  return bodies.length > 0 && bodies.every(callsBanGate);
+};
 // A snapshot RPC a later migration DROPs (and does not re-create) is gone from
 // prod: it leaves the universe, as a gated one does (Q1216,
 // reject_other_applications_on_accept, dropped by 20261004193221).
@@ -115,10 +157,10 @@ const droppedSinceSnapshot = (fn: string) => {
   return droppedScan.has(fn);
 };
 function postSnapshotUngatedRpcs(): string[] {
-  const { lastBody, granted } = migrationRpcs();
+  const { granted } = migrationRpcs();
   // The live check counts VOLATILE functions only; a STABLE/IMMUTABLE one writes nothing.
-  const volatile = (fn: string) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
-  return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
+  const volatile = (stmt: string) => !/\b(STABLE|IMMUTABLE)\b/i.test(stmt.replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
+  return [...granted].filter((fn) => overloadBodies(fn).some((stmt) => volatile(stmt) && !callsBanGate(stmt))).sort();
 }
 
 describe("Q281 ban gate: every client write path is gated or exempt with a reason", () => {

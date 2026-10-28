@@ -427,8 +427,10 @@ export default function DeclutterHome() {
   // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
   if (view === "browse") return <DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} />;
   return (
-    // Browse (above) draws its own "Search items", so Explore's global search shows only on these tabs.
-    <SectionScreen section="declutter" title="Declutter" globalSearch tabs={tabsFor()}>
+    // Browse (above) draws its own "Search items", so Explore's global search shows only on these tabs. Not on Buying
+    // (lead walkthrough 2026-10-28, shot 05): a buyer's cart, offers and purchases are not what "Search all sections"
+    // finds, so the row was a grey bar between the tabs and the buyer's own lists.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying"} tabs={tabsFor()}>
       <StrikeCount userId={user.id} />
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />

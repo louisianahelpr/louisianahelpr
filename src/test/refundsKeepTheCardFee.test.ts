@@ -92,7 +92,7 @@
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261028171944_declutter_notice_copy.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -519,7 +519,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // lists only; diffed line by line by lander42, TRAIN25); the refund reasons and fee are unchanged.
       // Board 141 (20261026155251_declutter_refund_requests.sql): one line, a replayed paid event for a HANDED-OVER sale answers already_paid
       // (it used to fall through to a full 'order_closed' refund of that same payment). No reason or fee changed.
-      declutter_mark_order_paid: "20261026155251_declutter_refund_requests.sql e4daad55d7c911e9",
+      // 20261028171944 (notice copy, lead 2026-10-28): only the four notice lines changed, diffed against prod's
+      // prosrc: prices through declutter_price_text, "Buyer paid" links ?view=selling. No reason, amount or fee changed.
+      declutter_mark_order_paid: "20261028171944_declutter_notice_copy.sql 9d34b0a63d5f4687",
+      // Not a refund path: it only NAMES the notice kind 'declutter_refunds' (20261028162048 / 20261028171944), so
+      // the touches() test matches it. It maps a notice title to a push switch and records nothing.
+      declutter_notice_type: "20261028171944_declutter_notice_copy.sql 6d3bd29e5202e869",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).

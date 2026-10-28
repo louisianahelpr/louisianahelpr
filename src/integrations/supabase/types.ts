@@ -14176,6 +14176,8 @@ export type Database = {
           sales: number
         }[]
       }
+      declutter_price_text: { Args: { p_cents: number }; Returns: string }
+      declutter_price_words: { Args: { p_text: string }; Returns: string }
       declutter_problem_window_open: { Args: { p_order_id: string }; Returns: boolean }
       declutter_propose_delivery_time: { Args: { p_order_id: string; p_slot_start: string }; Returns: Json }
       declutter_publish_item: { Args: { p_item_id: string }; Returns: string }

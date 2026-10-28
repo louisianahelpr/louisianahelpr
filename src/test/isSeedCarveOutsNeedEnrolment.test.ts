@@ -80,7 +80,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_lock_buyable_item: "hides",
   declutter_map_pins: "hides", // Browse map pins (20261028151144): test listings hidden from real members, as Browse's list
   declutter_money_rows_seed: "tags",
-  declutter_notify: "hides",
+  declutter_notify_strict: "hides", // 20261028162048: the seed rule moved from declutter_notify into the strict writer it wraps
   declutter_order_rows_seed: "tags",
   declutter_price_drop_alert: "hides",
   declutter_price_drop_sweep: "hides",

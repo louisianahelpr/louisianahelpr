@@ -46,6 +46,9 @@ export function useSectionTab<T extends string>(valid: readonly T[]) {
  * (the tap floor), the visual weight is what got smaller. Arrow keys move between tabs (automatic activation, the
  * panels are cheap to swap), one tab stop for the row (roving tabindex), as SegmentedControl did.
  */
+/** From this many tabs (Browse included) a phone row sets its words by the screen's width (A3-6). */
+export const DENSE_TAB_COUNT = 5;
+
 export function SectionTabs<T extends string>({
   label,
   tabs,
@@ -65,6 +68,7 @@ export function SectionTabs<T extends string>({
 }) {
   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
   options[0].quiet = browseCount;
+  const dense = options.length >= DENSE_TAB_COUNT;
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
@@ -83,7 +87,13 @@ export function SectionTabs<T extends string>({
       {/* A row that also carries controls at its end (Jobs: search, filters, gear; owner 2026-10-28) packs its tabs
           8px apart below 420px, so "Browse Posted Working" and three 44px controls fit a 375 phone without the last
           tab scrolling out of sight (measured: 218px of tabs in a 191px track at 375 with 20px gaps). */}
-      <div role="tablist" aria-label={label} onKeyDown={onKeyDown} className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : "gap-5")}>
+      {/* FIVE OR MORE TABS ON A PHONE (A3-6, Declutter audit 3, 2026-10-28): Browse Buying Selling Deliver Wanted were
+          362px of row in 280 / 335 / 350px at 320 / 375 / 390, so the last tab read "Wante" at the scroll edge. Below
+          420px such a row sets its words by the screen's width (.section-tabs-dense in index.css: 12px at 320, 14px at
+          390, never over 15px) 12px apart, and fits (measured 0 overflow at 320/375/390, ~/.lh-shots/b3-1028/a3-6). A
+          row that still overflows (two to-do counts at 320) keeps scrolling, as before. */}
+      <div role="tablist" aria-label={label} onKeyDown={onKeyDown}
+        className={cn("flex min-w-0 flex-1 items-end overflow-x-auto no-scrollbar", end ? "gap-2 min-[420px]:gap-5" : dense ? "gap-3 min-[420px]:gap-5" : "gap-5", dense && "section-tabs-dense")}>
         {options.map((o, i) => {
           const active = o.value === value;
           return (

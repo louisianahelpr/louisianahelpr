@@ -52,7 +52,6 @@ export function FilterDropdown({
         <PopoverDismissLayer />
       </PopoverPortal>
       <PopoverContent
-        role="dialog"
         aria-label={label}
         data-filter-dropdown=""
         side="bottom"

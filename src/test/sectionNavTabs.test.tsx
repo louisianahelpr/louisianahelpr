@@ -36,7 +36,7 @@
  * @mutate src/components/sections/ExploreSwitcher.tsx |         tone="quiet" |         tone="solid"
  * (Owner 2026-10-22, the Explore header: a section not open to everyone says "Coming soon" under its name for
  * EVERY viewer, member and tester alike; a tester's still opens, and its empty Browse says "Opens soon".)
- * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" /> | <span data-coming-soon="" />
+ * @mutate src/components/sections/ExploreSwitcher.tsx | <SoonPill variant="caption" data-coming-soon="" className="tracking-[-0.03em]" /> | <span data-coming-soon="" />
  * @mutate src/components/sections/ExploreSwitcher.tsx |       ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel, |       ariaLabel: s.navLabel,
  * @mutate src/components/DesktopSidebarNav.tsx |     youItem,\n  ]; |     youItem,\n    { path: "/posts", icon: Plus, label: "Posts" },\n  ];
  * @mutate src/components/DesktopSidebarNav.tsx | onClick={() => { if (soon) return sayComingSoon(label); if | onClick={() => { if (false) return sayComingSoon(label); if

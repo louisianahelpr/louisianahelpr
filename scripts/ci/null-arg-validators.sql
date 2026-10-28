@@ -406,6 +406,11 @@ BEGIN
           EXECUTE $q$INSERT INTO public.declutter_pickup_windows (seller_id, weekday, starts_local, ends_local)
                    SELECT '00000000-0000-4000-8140-00000000000a', d, '09:00', '18:00' FROM generate_series(0, 6) d WHERE d <> 1$q$;
         END IF;
+        -- Q2452 (20261028012406): every delivery needs a car, so A has one (helpr_task_vehicle_fits' TRUE case).
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'helpr_vehicles' AND column_name = 'has_car') THEN
+          EXECUTE $q$INSERT INTO public.helpr_vehicles (user_id, has_car) VALUES ('00000000-0000-4000-8140-00000000000a', true)$q$;
+        END IF;
       WHEN 'handed_over' THEN
         -- Board 141 (20261026155251): order H, B's pickup from seller A handed over just now, its seller payout
         -- pending and never tried (to_regclass: before 20261015042253 there is no payout table).

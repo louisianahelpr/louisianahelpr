@@ -85,6 +85,8 @@ export interface MyTask {
 }
 
 export interface MyVehicle {
+  /** Every delivery needs a car (owner 2026-10-28, Q2452); a truck is a car. */
+  has_car: boolean;
   has_truck: boolean;
   second_person: boolean;
   photo_path: string | null;
@@ -195,12 +197,12 @@ export async function fetchTaskView(taskId: string): Promise<TaskView> {
 }
 
 export async function fetchMyVehicle(userId: string): Promise<MyVehicle | null> {
-  const row = unwrap(await supabase.from("helpr_vehicles").select("has_truck, second_person, photo_path").eq("user_id", userId).maybeSingle());
+  const row = unwrap(await supabase.from("helpr_vehicles").select("has_car, has_truck, second_person, photo_path").eq("user_id", userId).maybeSingle());
   return (row ?? null) as MyVehicle | null;
 }
 
-export async function saveVehicle(hasTruck: boolean, secondPerson: boolean, photoPath: string | null): Promise<void> {
-  data(await supabase.rpc("helpr_set_vehicle", { p_has_truck: hasTruck, p_second_person: secondPerson, p_photo_path: photoPath as string }), (e) => rpcErrorMessage("helpr_set_vehicle", e));
+export async function saveVehicle(hasCar: boolean, hasTruck: boolean, secondPerson: boolean, photoPath: string | null): Promise<void> {
+  data(await supabase.rpc("helpr_set_vehicle", { p_has_car: hasCar, p_has_truck: hasTruck, p_second_person: secondPerson, p_photo_path: photoPath as string }), (e) => rpcErrorMessage("helpr_set_vehicle", e));
 }
 
 /** Take a task with a 30-minute pickup time (inside the source's pickup times). */

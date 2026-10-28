@@ -92,7 +92,8 @@ beforeEach(() => {
   state.view = null;
   state.open = [];
   state.mine = [];
-  state.vehicle = null;
+  // Q2452: every delivery needs a car; the usual Helpr here has one.
+  state.vehicle = { has_car: true, has_truck: false, second_person: false, photo_path: null };
   state.calls = [];
   state.openError = null;
   state.setupPaused = false;
@@ -163,7 +164,31 @@ describe("DeliverView (the Helpr's screen)", () => {
     fireEvent.change(screen.getByLabelText("Photo of your truck"), { target: { files: [jpeg()] } });
     fireEvent.click(screen.getByLabelText(/second person/));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(state.calls).toEqual([["vehicle", true, true, "u1/vehicle/truck.jpg"]]));
+    await waitFor(() => expect(state.calls).toEqual([["vehicle", true, true, true, "u1/vehicle/truck.jpg"]]));
+  });
+
+  it("no car: Deliver says to add one instead of listing deliveries, and ticking the truck ticks the car (Q2452)", async () => {
+    state.vehicle = null;
+    state.open = [{ task_id: "t9", source_kind: "declutter_delivery", size: "small", title: "Lamp", pickup_area: "Mid-City",
+      dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2026-10-18T15:00:00Z",
+      latest_pickup_at: "2026-10-23T15:00:00Z" }];
+    show(<DeliverView />);
+    expect(await screen.findByText("Add your car under Your vehicle to take deliveries.")).toBeInTheDocument();
+    expect(screen.queryByText("Pick up in Mid-City")).toBeNull();
+    // The shared Checkbox (a button with role checkbox).
+    const car = screen.getByRole("checkbox", { name: "I have a car" });
+    expect(car).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(screen.getByRole("checkbox", { name: "I have a truck" }));
+    expect(car).toHaveAttribute("aria-checked", "true");
+    expect(car).toBeDisabled();
+  });
+
+  it("a car alone is saved as a car (Q2452)", async () => {
+    state.vehicle = null;
+    show(<DeliverView />);
+    fireEvent.click(await screen.findByLabelText("I have a car"));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(state.calls).toEqual([["vehicle", true, false, false, null]]));
   });
 
   it("an open delivery shows area words and take-home pay, and is taken with a pickup time", async () => {

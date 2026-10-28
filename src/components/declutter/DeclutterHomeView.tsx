@@ -24,6 +24,7 @@ import { ListedWhatNext } from "./ListedWhatNext";
 import { BoughtWhatNext } from "./BoughtWhatNext";
 import {
   fetchMyItems,
+  fetchMySalePrices,
   fetchPhotos,
   fetchDropStates,
   photoPublicUrl,
@@ -117,6 +118,22 @@ function listingStatusLine(item: DeclutterItem): string {
   return SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
 }
 
+const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
+
+/**
+ * A listing row's price. A sold one shows what it sold for (deep audit SE-5: $40 listed, sold for $32), and nothing
+ * while that is unknown, never the list price in its place.
+ */
+function ListingPrice({ item, sold }: { item: DeclutterItem; sold: number | undefined }) {
+  const cents = SOLD.has(item.status) ? sold : item.current_price_cents;
+  if (cents === undefined) return null;
+  return (
+    <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]" data-listing-price="">
+      {itemPriceLabel(cents)}
+    </span>
+  );
+}
+
 /** The Browse card's picture, small: the cover photo, or the category icon on its tint (never a blank box). */
 function ListingThumb({ path, category }: { path: string | undefined; category: string }) {
   return (
@@ -139,6 +156,9 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
   const myPhotos = useQuery({ queryKey: ["declutter", "photos", mineIds.join(",")], queryFn: () => fetchPhotos(mineIds), enabled: mineIds.length > 0 });
   const myCover = useMemo(() => firstPhotos(myPhotos.data ?? []), [myPhotos.data]);
   const myDrops = useQuery({ queryKey: ["declutter", "drop-states", mineIds.join(",")], queryFn: () => fetchDropStates(mineIds), enabled: mineIds.length > 0 });
+  // SE-5: a sold listing shows what it SOLD for (the paid line), never its list price; read only when one is sold.
+  const anySold = (mine.data ?? []).some((i) => SOLD.has(i.status));
+  const salePrices = useQuery({ queryKey: ["declutter", "sale-prices", userId], queryFn: () => fetchMySalePrices(userId), enabled: anySold });
   // Haul-away (docs/specs/declutter-haul-away.md): hidden behind its own switch,
   // read by DeclutterHome so the page lands once (Q?declutter-settle).
   const haul = useQuery({
@@ -258,7 +278,7 @@ function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boolean })
                     {drop ? "May drop tonight" : listingStatusLine(item)}
                   </p>
                 </div>
-                <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(item.current_price_cents)}</span>
+                <ListingPrice item={item} sold={salePrices.data?.get(item.id)} />
               </div>
               <div className="flex flex-wrap gap-2 sm:shrink-0 sm:justify-end" data-listing-actions="">
                 {item.status === "draft" ? (

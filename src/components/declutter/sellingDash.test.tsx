@@ -25,6 +25,9 @@
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "sold") return "Claimed · waiting for pickup"; |   void 0;
  * @mutate src/components/declutter/declutterUi.tsx |   if (item.current_price_cents === 0 && item.status === "reserved") return "Claimed"; |   void 0;
  * @mutate src/components/declutter/DeclutterItemView.tsx | title={`Your listing: ${sellerStatusLabel(it)}`} | title={`Your listing: ${STATUS_LABEL[it.status]}`}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={salePrices.data?.get(item.id)} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
  * @mutate src/components/declutter/DeclutterTakenDown.tsx |     mutationFn: (itemId: string) => reopenListing(itemId).then(() => itemId), |     mutationFn: async (itemId: string) => itemId,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -42,6 +45,7 @@ const state = {
   mine: [] as unknown[],
   offers: [] as unknown[],
   cart: [] as unknown[],
+  salePrices: new Map<string, number>(),
 };
 
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
@@ -106,6 +110,7 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),
   fetchMyItems: async () => state.mine,
+  fetchMySalePrices: async () => state.salePrices,
   fetchPhotos: async () => [{ id: "p1", item_id: "i1", storage_path: "u1/i1/a.jpg", position: 0 }],
   fetchDropStates: async () => new Map(),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
@@ -378,5 +383,45 @@ describe("Selling tab: a claimed free item is never 'Sold'", () => {
       (f) => f !== "src/components/declutter/declutterUi.tsx" && /\bSTATUS_LABEL\s*\[/.test(blankComments(readFileSync(join(process.cwd(), f), "utf8"))),
     );
     expect(offenders).toEqual([]);
+  });
+});
+
+/**
+ * Deep audit SE-5 (2026-10-28, shot 49b): "Blue enamel mug · Handed over · $40" on a mug that sold for $32. A sold
+ * listing's row shows what it sold for (its paid cart line, fetchMySalePrices), and no figure at all while that is
+ * unknown, never the list price in its place. An unsold listing keeps its current price.
+ */
+describe("Selling tab: a sold listing shows what it sold for", () => {
+  beforeEach(() => {
+    state.offers = [];
+    state.cart = [];
+  });
+
+  const price = (container: HTMLElement, title: string) => {
+    const row = Array.from(container.querySelectorAll("[data-listing-row]")).find((r) => r.textContent?.includes(title))!;
+    return row.querySelector("[data-listing-price]")?.textContent ?? null;
+  };
+
+  it("sold and handed over: the sold price; live: the current price", async () => {
+    state.mine = [
+      { ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 },
+      { ...ITEM, id: "s2", status: "sold", title: "Oak desk", price_cents: 9000, current_price_cents: 9000 },
+      { ...ITEM, id: "s3", status: "live", title: "Floor lamp", price_cents: 2500, current_price_cents: 2000 },
+    ];
+    state.salePrices = new Map([["s1", 3200], ["s2", 7500]]);
+    const { container } = at("/declutter?tab=selling");
+    await waitFor(() => expect(price(container, "Blue enamel mug")).toBe("$32"));
+    expect(price(container, "Oak desk")).toBe("$75");
+    expect(price(container, "Floor lamp")).toBe("$20");
+  });
+
+  it("a sold listing whose sale price is unknown shows no figure, never its list price", async () => {
+    state.mine = [{ ...ITEM, id: "s1", status: "completed", title: "Blue enamel mug", price_cents: 4000, current_price_cents: 4000 }];
+    state.salePrices = new Map();
+    const { container } = at("/declutter?tab=selling");
+    await screen.findByText("Blue enamel mug");
+    await new Promise((r) => setTimeout(r, 50));
+    expect(price(container, "Blue enamel mug")).toBeNull();
+    expect(container.querySelector("[data-selling-list]")!.textContent).not.toContain("$40");
   });
 });

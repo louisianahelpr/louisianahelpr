@@ -227,6 +227,20 @@ describe("the photo-first Declutter item page", () => {
     expect(document.querySelector("[data-item-delivered]")).toBeNull();
   });
 
+  it("one filled button on a buyer's item page: Buy now (Ask is an outline beside its question box)", async () => {
+    // @mutate src/components/declutter/DeclutterQuestions.tsx | <Button type="submit" variant="outline" className="h-auto shrink-0" | <Button type="submit" className="h-auto shrink-0"
+    // Counted by the filled class inside the page (jsdom draws no CSS; the 375/1440 WebKit shots measured the same:
+    // ~/.lh-shots/declutter-audit-1028/measure-*.json "primaries"). The phone's portaled buy bar repeats Buy now when the
+    // in-page one scrolls away, so it is outside the page and not counted.
+    state.item = { ...ITEM };
+    const { container } = open();
+    await screen.findByRole("button", { name: /^Buy now/ });
+    await screen.findByRole("button", { name: "Ask" });
+    const filled = [...container.querySelectorAll("button.btn-grad-primary, a.btn-grad-primary")].map((b) => (b.textContent ?? "").trim());
+    expect(filled.length, JSON.stringify(filled)).toBe(1);
+    expect(filled[0]).toMatch(/^Buy now/);
+  });
+
   it("D5: the condition is a word chip ('Lightly used'), never stars", async () => {
     open();
     const block = await screen.findByRole("region", { name: "Price and condition" });

@@ -27,6 +27,29 @@ export const SETUP_KIND_INFO: Record<SetupKind, { button: string; category: "ass
   setup: { button: "Set it up", category: "handyman", titleVerb: "Set up", need: "set up" },
 };
 
+/** What each item can need (audit #27: "Put it together" was offered on a mug). A category listed here offers those
+ *  choices at any size; any other category offers all three only when the item is bigger than small. */
+const KINDS_BY_CATEGORY: Record<string, readonly SetupKind[]> = {
+  furniture: ["assemble", "mount"],
+  baby_kids: ["assemble"],
+  outdoor_garden: ["assemble"],
+  sports_outdoors: ["assemble"],
+  home_decor: ["mount"],
+  electronics: ["mount", "setup"],
+  appliances: ["setup"],
+};
+
+/** The choices an order's items fit, in SETUP_KINDS order; with no item details (an older server) every choice. */
+export function setupKindsFor(details: SetupItemDetail[] | undefined): SetupKind[] {
+  if (!details || details.length === 0) return [...SETUP_KINDS];
+  const fit = new Set<SetupKind>();
+  for (const d of details) {
+    const kinds = KINDS_BY_CATEGORY[d.category] ?? (d.delivery_size === "small" ? [] : SETUP_KINDS);
+    kinds.forEach((k) => fit.add(k));
+  }
+  return SETUP_KINDS.filter((k) => fit.has(k));
+}
+
 export function parseSetupKind(v: string | null | undefined): SetupKind {
   return SETUP_KINDS.includes(v as SetupKind) ? (v as SetupKind) : "assemble";
 }
@@ -45,8 +68,16 @@ export interface SetupHelprInfo {
   /** How the item reaches the buyer: pickup at the seller's home, porch pickup, or Helpr delivery (20261017055505). */
   handover: "pickup_home" | "porch" | "delivery";
   items: string[];
+  /** Each item's category and size, in the order of items (20261028 setup-Helpr item details); absent on an older server. */
+  item_details?: SetupItemDetail[];
   pickup_at: string | null;
   jobs: SetupJob[];
+}
+
+export interface SetupItemDetail {
+  title: string;
+  category: string;
+  delivery_size: "small" | "large" | "xl";
 }
 
 /** The browse surfaces' funded set: a job Helprs can see (same rule as turnoverPrefill). */
@@ -125,6 +156,7 @@ export async function fetchSetupHelpr(orderId: string): Promise<SetupHelprInfo> 
     // read as the plain seller's-home pickup, the original handover.
     handover: raw.handover === "porch" || raw.handover === "delivery" ? raw.handover : "pickup_home",
     items: Array.isArray(raw.items) ? raw.items : [],
+    item_details: Array.isArray(raw.item_details) ? raw.item_details : undefined,
     pickup_at: raw.pickup_at ?? null,
     jobs: Array.isArray(raw.jobs) ? raw.jobs : [],
   };

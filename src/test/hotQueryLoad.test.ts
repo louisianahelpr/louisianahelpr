@@ -206,9 +206,10 @@ const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "pages/auth/SignupPending.tsx setInterval": { ms: 5_000, why: "email-verification gate screen; stops on navigate, below the floor on purpose (the user is waiting on it)" },
   "pages/auth/CompleteProfile.tsx setInterval": { ms: 2_500, why: "profile-row retry while a brand-new profile is being created; stops as soon as it exists" },
   "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval": { ms: 3_000, why: "only while a confirmation text is waiting (pending_phone set, sms_opt_in still false), capped at 10 min after it was sent (smsConfirmWaitingFresh): re-reads the member's own SMS row so the phone's YES flips the card to On before a stale Cancel can turn it off (owner-reported 2026-10-28); stops at opted in, at 10 min, or when the card unmounts" },
+  "components/declutter/DeclutterPaySettling.tsx refetchInterval": { ms: 2_000, why: "back from Stripe (?paid=1, B-1 deep audit 2026-10-28): re-reads the cart until the paid checkout leaves it, so Pay can never be pressed twice; on only while settling and SETTLE_SLOW_MS (60 s) ends it, so at most ~30 reads" },
   "components/declutter/DeclutterOfferPanel.tsx refetchInterval": { ms: 1_500, why: "back from saving a card for Buy now / Make an offer: re-reads the saved card until Stripe's webhook files it; on only while resuming, and CARD_WAIT_MS (10 s) ends it, so at most ~7 reads" },
 };
-const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval", "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval"]);
+const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval", "components/declutter/DeclutterPaySettling.tsx refetchInterval", "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval"]);
 
 describe("hot-query load (Q53)", () => {
   it("scans a real source tree", () => {

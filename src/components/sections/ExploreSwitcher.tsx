@@ -110,10 +110,12 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
       label: soon ? (
         <span data-soon="" className="flex flex-col items-center leading-[1.15]">
           <span className={on ? undefined : "text-muted-foreground font-medium"}>{s.navLabel}</span>
-          <SoonPill variant="caption" data-coming-soon="" />
+          {/* Still 9px; set 3% tighter so four chips fit a 375 phone (owner 2026-10-28). */}
+          <SoonPill variant="caption" data-coming-soon="" className="tracking-[-0.03em]" />
         </span>
       ) : (
-        s.navLabel
+        // A name with no caption under it keeps a little air of its own (the chips' own padding is 2px a side).
+        <span className="px-0.5">{s.navLabel}</span>
       ),
       ariaLabel: soon ? comingSoonLabel(s.navLabel) : s.navLabel,
     };
@@ -137,8 +139,12 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
         // still the lighter (quiet) control of 2026-10-21. A row too narrow for four chips (320) scrolls sideways
         // rather than cutting a name.
         tone="quiet"
-        className="w-full overflow-x-auto no-scrollbar"
-        optionClassName="px-1.5 text-ds-11 whitespace-nowrap"
+        // ALL FOUR FIT A 375 PHONE (owner 2026-10-28: "Homes" was cut off): measured 38+77+77+77px of chips in a
+        // 237px track (252 at 390), so the chips are 2px a side with no gap between them, the caption's own width
+        // setting each one's. Text stays 11px / 9px. At 320 the row still scrolls sideways.
+        // Guard: src/test/exploreChipsFitAPhone.test.ts.
+        className="w-full overflow-x-auto no-scrollbar gap-0"
+        optionClassName="px-0.5 text-ds-11 whitespace-nowrap"
       />
     </nav>
   );

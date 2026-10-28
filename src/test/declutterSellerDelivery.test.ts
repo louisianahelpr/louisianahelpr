@@ -280,6 +280,23 @@ describe("Declutter seller delivery screens follow the server's rules", () => {
     expect(sellerDeliveryActions({ ...base, status: "needs_time", slot_start: null, slot_end: null }, at("2026-11-02T00:00:00Z")).buyerCancel).toBe(true);
   });
 
+  it("#7 (deep audit 2026-10-28): the buyer's 'I got it' only from the delivery day (Louisiana time) or once marked delivered", () => {
+    // @mutate src/components/declutter/SellerDeliveryOrder.tsx |     gotIt: open && b.side === "buyer" && (marked \|\| (booked && laDay(now) >= laDay(Date.parse(b.slot_start!)))), |     gotIt: open && b.side === "buyer",
+    // @mutate src/components/declutter/SellerDeliveryOrder.tsx | const LA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", | const LA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "UTC",
+    // The slot is 2 PM Nov 1 in Louisiana (19:00Z). The day before: no.
+    expect(sellerDeliveryActions(base, at("2026-10-31T18:00:00Z")).gotIt).toBe(false);
+    // 11 PM Oct 31 in Louisiana is already Nov 1 in UTC: still the day before here.
+    expect(sellerDeliveryActions(base, at("2026-11-01T04:00:00Z")).gotIt).toBe(false);
+    // 12:30 AM Nov 1 in Louisiana: the delivery day.
+    expect(sellerDeliveryActions(base, at("2026-11-01T05:30:00Z")).gotIt).toBe(true);
+    expect(sellerDeliveryActions(base, at("2026-11-02T15:00:00Z")).gotIt).toBe(true);
+    // Marked delivered early: the buyer may confirm at once.
+    expect(sellerDeliveryActions({ ...base, delivered_at: "2026-10-31T17:00:00Z" }, at("2026-10-31T18:00:00Z")).gotIt).toBe(true);
+    // No time booked yet, or the seller's side: never.
+    expect(sellerDeliveryActions({ ...base, status: "needs_time", slot_start: null, slot_end: null }, at("2026-11-02T00:00:00Z")).gotIt).toBe(false);
+    expect(sellerDeliveryActions({ ...base, side: "seller" }, at("2026-11-01T19:30:00Z")).gotIt).toBe(false);
+  });
+
   it("'It wasn't delivered' from 15 minutes after the hour ends; the seller's mark from the slot start", () => {
     expect(sellerDeliveryActions(base, at("2026-11-01T20:10:00Z")).notDelivered).toBe(false);
     expect(sellerDeliveryActions(base, at("2026-11-01T20:16:00Z")).notDelivered).toBe(true);

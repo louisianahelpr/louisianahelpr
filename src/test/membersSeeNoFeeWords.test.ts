@@ -143,6 +143,7 @@ export function allHits(): string[] {
  */
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
+  "src/components/declutter/DeclutterTradeViews.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"): the checkout total says it includes a service fee, with no name of a rate and no number",
   "sql:admin_alert_manual_close::'cancellation fee transfer failed'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:bill_helpr_fault_card_fee::'job %s: the Helpr ruled at fault was deleted while its full refund ran, so the %s-cent card fee the refund returned could not be billed: recover it by hand'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",
   "sql:block_user_and_settle::'\"%s\": the person who posted it blocked a committed crew member %s hours before the start. That member is owed a $%s cancellation fee (%s%% of their $%s share). Nothing was charged or paid automatically; settle it by hand.'": "staff text: an admin alert, admin tool reply, ledger reason or log line no member reads",

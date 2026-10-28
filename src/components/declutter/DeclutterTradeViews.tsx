@@ -350,6 +350,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const netItemsCents = itemsTotalCents - discountCents;
   const sdAmounts = sdRate !== null ? sellerDeliveryAmounts(netItemsCents, sdRate) : null;
   const payCents = (delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
+  // #20 (owner 2026-10-28, "Words only"): when the total holds more than the lines above it (the buyer's service fee),
+  // one quiet line says so, with no number. A free claim never reaches this sheet with a fee.
+  const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + setupFeeCents;
+  const includesServiceFee = payCents > listedCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff;
   const addressId = `dcl-dropoff-${sellerId}`;
   return (
@@ -431,6 +435,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
           </dd>
         </div>
+        {includesServiceFee && (
+          <p className="text-ds-12 text-muted-foreground" data-service-fee-words="">Includes a small Louisiana Helpr service fee.</p>
+        )}
         {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}
       </dl>
       {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the

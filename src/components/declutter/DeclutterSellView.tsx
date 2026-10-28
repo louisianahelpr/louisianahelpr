@@ -14,7 +14,8 @@
  *      street address), the private pickup address and pickup times (row 52).
  *      Continue SAVES the draft (create or declutter_update_draft) and uploads
  *      the held photos.
- *   5. Ready to list: the preview, the four tax confirmations (row 54), List it
+ *   5. Ready to list: the preview, ONE tax checkbox stating the four facts
+ *      (row 54; owner 2026-10-28; attestItem records all four), List it
  *      (live, or waiting for a review: row 33).
  * Under 18 (row 53) and missing payout setup (row 23) show as plain-English
  * blocks, never as dead buttons; the server refuses both anyway.
@@ -55,7 +56,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ChipGroup, DropSchedule, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
-import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_STATEMENTS } from "./declutterUi";
+import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
@@ -123,7 +124,8 @@ export default function SellFlow() {
   const [aiBusy, setAiBusy] = useState(false);
   const [uploading, setUploading] = useState(0);
   const [windows, setWindows] = useState<PickupWindow[]>([{ weekday: 6, starts: "09:00", ends: "12:00" }]);
-  const [checks, setChecks] = useState<boolean[]>([false, false, false, false]);
+  // One tick for the four tax facts (owner 2026-10-28); attestItem still records all four.
+  const [attested, setAttested] = useState(false);
   const [publishing, setPublishing] = useState(false);
   // Audit #45: Continue is always a live button, so what a step still needs is said once it is tapped, beside it,
   // not printed in advance under a button that looks ready (it read as a disabled future step).
@@ -322,8 +324,8 @@ export default function SellFlow() {
 
   async function onPublish() {
     if (!itemId) return;
-    if (checks.some((c) => !c)) {
-      toast.error("All four statements need a check before you can list this item.");
+    if (!attested) {
+      toast.error("Tick the box about this item before you list it.");
       return;
     }
     setPublishing(true);
@@ -553,14 +555,11 @@ export default function SellFlow() {
           </ul>
           <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax">
             <h3 id="sell-tax" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
-            <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things. Check all four to list.</p>
-            {TAX_STATEMENTS.map((st, i) => (
-              <div key={st} className="flex items-start gap-3 text-ds-14">
-                <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
-                  onCheckedChange={(v) => setChecks((c) => c.map((x, j) => (j === i ? v === true : x)))} />
-                <label htmlFor={`sell-tax-${i}`}>{st}</label>
-              </div>
-            ))}
+            <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>
+            <div className="flex items-start gap-3 text-ds-14">
+              <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} />
+              <label htmlFor="sell-tax">{TAX_ATTESTATION_SENTENCE}</label>
+            </div>
           </div>
           {photoCount < DECLUTTER_MIN_PHOTOS && <p className="text-ds-14 text-muted-foreground">Add at least {photosWord(DECLUTTER_MIN_PHOTOS)} to list this item.</p>}
         </section>

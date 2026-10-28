@@ -9,7 +9,9 @@
  * @mutate src/components/declutter/declutterUi.tsx |   pending_review: "Waiting for a review", |   pending_review: "pending_review",
  * @mutate src/components/declutter/DeclutterQuestions.tsx |             <Button type="submit" className="h-auto shrink-0" disabled={ask.isPending \|\| text.length < 2}> |             <Button type="submit" className="h-auto shrink-0 btn-grad-primary" variant="ghost" disabled={ask.isPending \|\| text.length < 2}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <p className="text-ds-15 font-semibold [overflow-wrap:anywhere]">{q.question}</p> | <p className="text-ds-15 font-semibold">{q.question}</p>
- * @mutate src/components/declutter/DeclutterSellView.tsx |                 <Checkbox id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]} |                 <input type="checkbox" id={`sell-tax-${i}`} className="mt-0.5" checked={checks[i]}
+ * @mutate src/components/declutter/DeclutterSellView.tsx | <Checkbox id="sell-tax" className="mt-0.5" checked={attested} onCheckedChange={(v) => setAttested(v === true)} /> | <input type="checkbox" id="sell-tax" className="mt-0.5" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
+ * Owner 2026-10-28 "make these checks 1": one box, all four facts; one tick lists (attestItem's four trues: api.test.ts).
+ * @mutate src/components/declutter/DeclutterSellView.tsx |     if (!attested) { |     if (false) {
  * @mutate src/components/declutter/declutterUi.tsx |     if (agreed.data === true) return <>{agreedSales}</>; |
  * Owner 2026-10-19: back from Stripe's card page, the member returns to the item and carries on.
  * @mutate src/pages/declutter/DeclutterPage.tsx |     const state: AfterCardState \| null = cardReturn === "saved" ? { afterCard: next.action } : null; |     const state: AfterCardState \| null = null;
@@ -124,7 +126,13 @@ vi.mock("@/lib/declutter/api", () => ({
   buyNow: async () => "l",
   sellerCancelSale: async () => 1,
   fetchHasAgreedSales: async () => state.agreed,
+  // List it (step 5): the attest/publish chain, recorded, never Supabase.
+  setPickupWindows: vi.fn(async () => 1),
+  attestItem: vi.fn(async () => undefined),
+  requestAiCheck: vi.fn(async () => ({ checked: true, flagged: false })),
+  publishItem: vi.fn(async () => "live"),
 }));
+import * as api from "@/lib/declutter/api";
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import DeclutterSellPage from "@/pages/declutter/DeclutterSellPage";
@@ -184,6 +192,8 @@ describe("Declutter screens", () => {
     state.agreed = false;
     state.card = null;
     sessionStorage.clear();
+    vi.mocked(api.attestItem).mockClear();
+    vi.mocked(api.publishItem).mockClear();
   });
 
   it("switch off: every Declutter route is the 404", async () => {
@@ -377,7 +387,7 @@ describe("Declutter controls are the shared ones", () => {
     expect(seen).toBeGreaterThan(4);
   });
 
-  it("the four tax confirmations are the shared Checkbox and porch pickup the shared Switch, never native inputs", async () => {
+  it("the tax confirmation is ONE shared Checkbox stating all four facts, and porch pickup the shared Switch, never native inputs", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
     at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
@@ -387,12 +397,24 @@ describe("Declutter controls are the shared ones", () => {
     expect(await screen.findByRole("switch", { name: /Porch pickup/ })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
     await screen.findByRole("heading", { name: "Ready to list?" });
+    // Owner 2026-10-28 "make these checks 1": exactly one box.
     const boxes = screen.getAllByRole("checkbox");
-    expect(boxes.length).toBe(4);
-    for (const b of boxes) expect(b.tagName).toBe("BUTTON");
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].tagName).toBe("BUTTON");
     expect(document.querySelectorAll('input[type="checkbox"]').length).toBe(0);
-    // Each statement is the box's label.
-    expect(screen.getByRole("checkbox", { name: "I bought this item for my own personal or household use." })).toBeInTheDocument();
+    // Its label states all four facts (R.S. 47:305(A), LDR RR 15-001).
+    const name = boxes[0].getAttribute("id") ? document.querySelector(`label[for="${boxes[0].id}"]`)?.textContent ?? "" : "";
+    for (const fact of [/own personal or household use/, /not in the business of selling items like this/, /occasional sale/, /keep it until I hand it over/]) {
+      expect(name).toMatch(fact);
+    }
+    // Untick: List it refuses and lists nothing; one tick lists, attesting all four.
+    fireEvent.click(screen.getByRole("button", { name: "List it" }));
+    await screen.findByRole("heading", { name: "Ready to list?" });
+    expect(api.attestItem).not.toHaveBeenCalled();
+    fireEvent.click(boxes[0]);
+    fireEvent.click(screen.getByRole("button", { name: "List it" }));
+    await waitFor(() => expect(api.attestItem).toHaveBeenCalledWith("i1"));
+    await waitFor(() => expect(api.publishItem).toHaveBeenCalledWith("i1"));
   });
 
   it("a long unbroken question, answer or description can wrap inside its card", async () => {

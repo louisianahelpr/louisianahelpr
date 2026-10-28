@@ -31,7 +31,7 @@
  */
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { act, within, cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { act, within, cleanup, fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -285,7 +285,8 @@ describe("Declutter location ask", () => {
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
     }];
     const browse = at("/declutter", <DeclutterPage />);
-    expect(await screen.findByText(/Mid-City, Baton Rouge · About 1 mi away/)).toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector("[data-card-away]")?.textContent).toBe("About 1 mi away"));
+    expect(document.querySelector("[data-card-area]")?.textContent).toBe("Mid-City, Baton Rouge");
     browse.unmount();
     live.items = [];
 
@@ -316,7 +317,11 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" /> | {null}
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
-    expect(first.querySelector("[data-card-place]")!.className).toMatch(/\btruncate\b/);
+    // #45 (deep audit 2026-10-28): the town truncates, the distance never does (it sits beside it, shrink-0).
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-area className="block truncate">{item.area_label}</span> | <span data-card-area className="block">{item.area_label}</span>
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-away className="shrink-0 whitespace-nowrap"> | <span data-card-away className="truncate">
+    expect(first.querySelector("[data-card-area]")!.className).toMatch(/\btruncate\b/);
+    expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);
     // Stars are for people, never an item card (spec v2 §3).
     for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
@@ -472,6 +477,27 @@ describe("Declutter location ask", () => {
     fireEvent.error(tile.querySelector("img")!);
     expect(tile.querySelector("img")).toBeNull();
     expect(tile.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
+    r.unmount();
+  });
+
+  it("#45 (deep audit 2026-10-28): a long town gives way, the distance always shows whole", async () => {
+    const { ItemCard } = await import("./DeclutterItemCard");
+    const item = {
+      id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
+      price_cents: 4000, current_price_cents: 4000, area_label: "Mid City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
+    } as never;
+    const r = render(<MemoryRouter><ItemCard item={item} miles={3.2} approximate={false} /></MemoryRouter>);
+    const place = r.container.querySelector("[data-card-place]")!;
+    const away = place.querySelector("[data-card-away]")!;
+    expect(away.textContent).toBe("3 mi away");
+    // The distance is its own piece that never shrinks or truncates; only the town does.
+    expect(away.className).toMatch(/\bshrink-0\b/);
+    expect(away.className).not.toMatch(/\btruncate\b/);
+    expect(away.closest(".truncate")).toBeNull();
+    expect(place.querySelector("[data-card-area]")!.className).toMatch(/\btruncate\b/);
+    // Never inside the town's truncating line.
+    expect(place.querySelector("[data-card-area]")!.contains(away)).toBe(false);
+    expect(place.querySelector("[data-card-area]")!.textContent).toBe("Mid City, Baton Rouge");
     r.unmount();
   });
 

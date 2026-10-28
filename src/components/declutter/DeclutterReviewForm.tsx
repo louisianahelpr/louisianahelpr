@@ -28,17 +28,42 @@ import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
+/**
+ * Deep audit 2026-10-28 SH-4 (#16): "Leave a review" came back after a reload (the sent state lived only in the
+ * component) and reopened an empty form that failed with already_reviewed. The server has no read of "did I review
+ * this order" for members yet (declutter_reviews is service-role only), so this device remembers each order it saw
+ * reviewed (a send, or the server's already_reviewed); another device still learns it on its first try.
+ */
+const reviewedKey = (orderId: string, side: "buyer" | "seller") => `declutter-reviewed:${orderId}:${side}`;
+function rememberedReviewed(orderId: string, side: "buyer" | "seller"): boolean {
+  try {
+    return localStorage.getItem(reviewedKey(orderId, side)) === "1";
+  } catch (err) {
+    // Storage blocked (private mode): the button shows, and the server still refuses a second review.
+    console.warn("[declutter] could not read the reviewed mark", err);
+    return false;
+  }
+}
+function rememberReviewed(orderId: string, side: "buyer" | "seller") {
+  try {
+    localStorage.setItem(reviewedKey(orderId, side), "1");
+  } catch (err) {
+    console.warn("[declutter] could not save the reviewed mark", err);
+  }
+}
+
 export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string; side: "buyer" | "seller"; userId: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [stars, setStars] = useState(0);
   const [comment, setComment] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState(() => rememberedReviewed(orderId, side));
   const { otherId, name, avatarUrl, who } = useOrderOtherPerson(orderId, userId, side);
   const send = useMutation({
     mutationFn: (args: { stars: number; comment: string | null; tags: string[] }) => leaveReview(orderId, args.stars, args.comment, args.tags),
     onSuccess: (r) => {
+      rememberReviewed(orderId, side);
       setSent(true);
       setOpen(false);
       toast.success(r.tagsDropped ? `Thanks. Your tags couldn't be saved yet. ${REVIEW_SHOWS}` : `Thanks. ${REVIEW_SHOWS}`);
@@ -47,6 +72,7 @@ export function DeclutterReviewForm({ orderId, side, userId }: { orderId: string
     onError: (err) => {
       // Reviewed before (another device, or before a reload): the card stops offering it.
       if ((err as { message?: unknown })?.message === "already_reviewed") {
+        rememberReviewed(orderId, side);
         setSent(true);
         setOpen(false);
       }

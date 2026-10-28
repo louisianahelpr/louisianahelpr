@@ -178,7 +178,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // re-created sweep_no_show_alerts, both with the new copy written in; the
     // older link rewrites (20260831232514, 20260901021929) were all superseded
     // by later CREATEs.
-    expect(rewritten.length).toBe(30);
+    // (2026-10-28: 29.) 20261028200440 (audit 3 notices) re-created declutter_delivery_on_task_event, which
+    // 20261027172503 had rewritten in place, so it is a plain CREATE again.
+    expect(rewritten.length).toBe(29);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

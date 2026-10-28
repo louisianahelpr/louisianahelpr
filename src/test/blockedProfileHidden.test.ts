@@ -11,7 +11,7 @@
 // @mutate src/pages/user/UserProfile.tsx | if (blockedByMe \|\| (blockCheckPending && blockError)) { | if (false) {
 // @mutate src/pages/user/UserProfile.tsx | if (loading \|\| blockCheckPending) { | if (loading) {
 // @mutate src/pages/user/useBlockedByMe.ts | .eq("blocker_id", currentUserId!) | .eq("blocked_id", currentUserId!)
-// @mutate src/pages/user/UserProfile.tsx | const ok = await unblockUser(currentUserId, userId); | const ok = true;
+// @mutate src/pages/user/useUnblock.ts | const ok = await unblockUser(currentUserId, userId); | const ok = true;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -45,7 +45,10 @@ describe("a profile you blocked is hidden behind an Unblock screen", () => {
   });
 
   it("Unblock lifts the block through the checked helper and re-reads it", () => {
-    const h = src.slice(src.indexOf("const handleUnblock"), src.indexOf("const handleUnblock") + 600);
+    // The handler lives in useUnblock.ts (split out of UserProfile.tsx, 2026-10-28); the page uses it.
+    expect(src).toContain("useUnblock(currentUserId, userId, blockedByMeKey)");
+    const unblockSrc = readFileSync(join(__dirname, "..", "pages", "user", "useUnblock.ts"), "utf8");
+    const h = unblockSrc.slice(unblockSrc.indexOf("const handleUnblock"), unblockSrc.indexOf("const handleUnblock") + 600);
     expect(h).toContain("const ok = await unblockUser(currentUserId, userId);");
     expect(h).toContain("if (!ok)");
     expect(h).toContain("invalidateQueries({ queryKey: blockedByMeKey })");

@@ -43,8 +43,7 @@ import SaveHelperButton from "@/components/SaveHelperButton";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useQueryClient } from "@tanstack/react-query";
-import { unblockUser } from "@/lib/userBlocks";
+import { useUnblock } from "./useUnblock";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -58,21 +57,8 @@ const UserProfile = () => {
   // Q367 (owner, 2026-09-24): the profile of someone YOU blocked shows "You
   // blocked this person" and an Unblock button, and none of their details.
   // Blocker side only — a person who blocked you still sees nothing new here.
-  const queryClient = useQueryClient();
   const { blockedByMeKey, data: blockedByMe, status: blockStatus, isError: blockError, refetch: refetchBlock } = useBlockedByMe(currentUserId, userId);
-  const [unblocking, setUnblocking] = useState(false);
-  const handleUnblock = async () => {
-    if (!currentUserId || !userId) return;
-    setUnblocking(true);
-    const ok = await unblockUser(currentUserId, userId);
-    setUnblocking(false);
-    if (!ok) {
-      toast.error("Couldn't unblock this person. Please try again.");
-      return;
-    }
-    toast.success("Unblocked");
-    await queryClient.invalidateQueries({ queryKey: blockedByMeKey });
-  };
+  const { unblocking, handleUnblock } = useUnblock(currentUserId, userId, blockedByMeKey);
 
   const [showReviews, setShowReviews] = useState(searchParams.get("tab") === "reviews");
 

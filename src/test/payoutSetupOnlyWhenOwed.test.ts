@@ -36,7 +36,8 @@ describe("payout setup only when money is owed", () => {
       expect(newestFunction(n).file, n).toContain("20261027163240");
     }
     // Restated by the review notice (Q2414), which keeps this file's no-payout-gate body.
-    expect(newestFunction("declutter_admin_review_item").file).toContain("20261027182550");
+    // Restated again by the audit-3 notices (20261028200440: "live" now links ?tab=selling), the same no-payout-gate body.
+    expect(newestFunction("declutter_admin_review_item").file).toContain("20261028200440");
     // Restated once more by the Free section, which only adds "a free claim is never money owed".
     expect(newestFunction("payout_setup_hire_allowed").file).toContain("20261027170717");
   });

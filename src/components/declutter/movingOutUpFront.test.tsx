@@ -7,7 +7,7 @@
  *  - step 4 said "3 to 12 photos" after one became enough: it reads DECLUTTER_MIN_PHOTOS / DECLUTTER_MAX_PHOTOS;
  *  - "End the moving sale" asked with window.confirm: it asks in ConfirmSheet, same words (lead 2026-10-28).
  *
- * @mutate src/components/declutter/DeclutterMoveView.tsx |         {moveDetailsProblem ? ( |         {false ? (
+ * @mutate src/components/declutter/DeclutterMoveView.tsx |         {moveDetailsProblem ? (\n          <p className="text-xs | {false ? (\n          <p className="text-xs
  * @mutate src/components/declutter/DeclutterMoveView.tsx | id="move-files" disabled={!!moveDetailsProblem \|\| scanning} | id="move-files" disabled={scanning}
  * @mutate src/components/declutter/DeclutterMoveView.tsx |         {date && dateProblem && <p | {false && <p
  * @mutate src/components/declutter/DeclutterMoveView.tsx |     writeMoveDraft(user.id, { date, areaLabel, pickupAddress, rows }); |     void 0;

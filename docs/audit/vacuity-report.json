@@ -1,10 +1,12 @@
 {
-  "generated": "2026-10-27T21:40:46.788Z",
-  "guards": 2442,
-  "registered": 2434,
+  "generated": "2026-10-28T00:46:31.706Z",
+  "guards": 2463,
+  "registered": 2453,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
+    "src/components/declutter/declutterShareRow.test.tsx",
+    "src/components/guarantee/helprGuaranteePanel.test.tsx",
     "src/components/job-card/posterMarkedDone.test.ts",
     "src/components/postjob/PostJobStepHeader.pick.test.tsx",
     "src/components/referral/EnterReferralCodeCard.test.tsx",
@@ -22,6 +24,12 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/helprGuarantee.test.ts",
+      "why": [
+        "words (literal declared in this file) is both input and oracle"
       ]
     },
     {

@@ -160,8 +160,7 @@ describe("Declutter slice 1: hidden, gated, private (20261014193955)", () => {
     // The seller, and (slice 4, row 98) the buyer of a PAID order holding the item: nobody else.
     expect(flat(body("declutter_address_access"))).toContain("WHEN i.seller_id = p_user_id THEN 'seller'");
     // Seller delivery (20261027153244): a buyer the seller delivers to never gets the seller's address.
-    expect(flat(body("declutter_address_access"))).toContain("AND o.status = 'paid' AND o.buyer_id = p_user_id AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer' END");
-    // Q2425 (20261027204500): nor does a buyer meeting at a safe public spot (the line above).
+    expect(flat(body("declutter_address_access"))).toContain("AND o.status = 'paid' AND o.buyer_id = p_user_id AND o.handover <> 'seller_delivery') THEN 'paid_buyer' END");
   });
 
   it("4b. no app code reads the private table directly", () => {

@@ -200,7 +200,6 @@ rpc_exempt(fn, why) AS (
   ('shops_admin_remove_strike', 'admin-only (body checks has_role admin first; Shops M4 removes one Shops strike, audited)'),
   ('shops_admin_give_strike', 'admin-only (body checks has_role admin first; Shops M4 gives one admin strike per order and side, audited)'),
   ('admin_payout_settle_by_hand', 'admin-only (body checks has_role admin; held-for-review payout recorded as settled by hand)'),
-  ('admin_declutter_save_meetup_spot', 'admin-only (body checks has_role admin first; Declutter safe meetup 20261027204500 adds or edits a public meetup spot, audited)'),
   -- No user-visible write.
   ('get_helper_earnings_export', 'read-only; VOLATILE only by default'),
   ('search_profiles_by_name', 'a read; its only write is its own rate-limit log'),

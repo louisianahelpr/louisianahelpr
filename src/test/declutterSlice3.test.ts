@@ -19,7 +19,7 @@
  * @mutate supabase/migrations/20261027205327_declutter_auto_free_day12.sql |        AND (i.last_price_drop_on IS NULL OR i.last_price_drop_on < v_today) |        AND true
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_mark_order_paid(uuid, text, integer) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |         AND NOT seller_hidden\n |         AND true\n
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                     ELSE public.declutter_buyer_fee_cents(v_items) END; |                     ELSE greatest(round(v_items * 0.15)::integer, 100) END;
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
@@ -71,12 +71,7 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     // Seller delivery (20261027153244) is new work for the seller: both switches, for that handover only.
     const SELLER_DELIVERY_ONLY = /IF p_handover = 'seller_delivery' THEN\s+PERFORM public\.require_feature\('declutter'\);\s+PERFORM public\.require_feature\('declutter_seller_delivery'\);/;
     expect(body("declutter_start_checkout")).toMatch(SELLER_DELIVERY_ONLY);
-    // Q2425 (20261027204500): a safe-spot meetup is new work for the seller too: the switch, for that handover only.
-    const MEETUP_ONLY = /IF p_handover = 'meetup' THEN\s+PERFORM public\.require_feature\('declutter'\);\s+END IF;/;
-    expect(body("declutter_start_checkout")).toMatch(MEETUP_ONLY);
-    for (const fn of FINISHING) {
-      expect(body(fn).replace(DELIVERY_ONLY, "").replace(SELLER_DELIVERY_ONLY, "").replace(MEETUP_ONLY, ""), fn).not.toMatch(/require_feature/);
-    }
+    for (const fn of FINISHING) expect(body(fn).replace(DELIVERY_ONLY, "").replace(SELLER_DELIVERY_ONLY, ""), fn).not.toMatch(/require_feature/);
     for (const fn of CLIENT_WRITES) expect(body(fn), fn).toMatch(/public\.is_caller_banned\(\)/);
     for (const fn of ["declutter_make_offer", "declutter_respond_offer", "declutter_buy_now", "declutter_start_checkout"]) {
       expect(body(fn), fn).toContain("public.declutter_assert_member(true)");

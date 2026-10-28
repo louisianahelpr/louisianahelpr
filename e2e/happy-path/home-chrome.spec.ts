@@ -156,6 +156,10 @@ for (const variant of [
     await expect(page.getByTestId("section-add"), `no section + anywhere @ ${variant.tag}`).toHaveCount(0);
     if (!isDesktopWeb) {
       await expect(page.getByTestId("explore-switcher").getByRole("radio", { name: "Jobs" })).toHaveAttribute("aria-checked", "true");
+      // All four section chips fit without scrolling from 375 up (owner 2026-10-28: "Homes" was cut off; 320 may
+      // still scroll). src/test/exploreChipsFitAPhone.test.ts holds the levers.
+      const chipsOverflow = await page.getByTestId("explore-switcher").getByRole("radiogroup").evaluate((el) => el.scrollWidth - el.clientWidth);
+      expect(chipsOverflow, `the four chips fit @ ${variant.tag}`).toBeLessThanOrEqual(0);
     }
     const anchor = isDesktopWeb ? (await bar.getByRole("heading", { level: 1 }).boundingBox())! : (await bar.getByTestId("top-bar-bell").boundingBox())!;
     // Desktop website (Q2221): the bar keeps the title; the bell lives in the desktop

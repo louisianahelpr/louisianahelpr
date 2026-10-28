@@ -195,9 +195,11 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
     expect(await screen.findByText("Add a card to finish.")).toBeInTheDocument();
-    expect(screen.getByText(/You're only charged when you buy\. Then you confirm the buy\./)).toBeInTheDocument();
+    // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
+    expect(screen.getByText("We save your card now; you're only charged when you check out. Then you confirm the buy.")).toBeInTheDocument();
     // Said once: the line under the buttons steps aside while the card step says it.
-    expect(screen.getAllByText(/You're only charged when you buy\./)).toHaveLength(1);
+    expect(screen.getAllByText(/only charged when/)).toHaveLength(1);
     expect(window.confirm).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Add a card" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/setup"]));

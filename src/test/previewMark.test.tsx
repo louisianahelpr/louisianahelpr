@@ -15,7 +15,7 @@
  * supabase.rpc: tester, member, loading, failed, failed refetch, not deployed,
  * signed out (never asks); (c) every listing draws PreviewPill gated on the
  * section's own preview flag. Explore's header is the one exception (owner, 2026-10-22): its chips say
- * "Coming soon" to every viewer, and a tester's section carries the "early preview" banner inside instead
+ * "Coming soon" to every viewer, and a tester's empty Browse says "Opens soon" instead (no banner, owner 2026-10-28)
  * (src/test/sectionNavTabs.test.tsx, src/test/exploreHeaderSteady.test.ts).
  *
  * @mutate src/components/mobileNav/useSectionTabs.ts |   return on && openToEveryone !== null && !openToEveryone.has(feature); |   return on && !openToEveryone?.has(feature);

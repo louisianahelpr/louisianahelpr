@@ -12,7 +12,9 @@
  *     with the tabs inside it, in the owner's order: chips row, tabs, search.
  *  3. The chips row is the top bar: no visible title, the section's name kept as the page's one h1 (sr-only).
  *  4. "Coming soon" for everyone (owner, 2026-10-22): the chips never say "Preview"; a tester inside a preview
- *     section sees the "Coming soon – early preview" banner, and its empty Browse says "Opens soon".
+ *     section sees its empty Browse say "Opens soon", and NO "Coming soon – early preview" banner over the
+ *     content (owner, 2026-10-28: "remove coming soon early preview. the bottom stuff already says that. same for
+ *     homes and declutter").
  * Measured (WebKit, read-only prod session, ~/.lh-shots/ui5-explore/): Jobs Browse first card 242 -> 169px at 375;
  * while scrolling, nothing in the header moves at 375 or 1440 (before: 69 -> 70.4px at 375, 77.4 -> 79.4px at 1440).
  *
@@ -23,12 +25,13 @@
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="text-page-title">{title}</h1>
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
- * @mutate src/components/sections/SectionScreen.tsx | {section && <SectionPreviewBanner section={section} />} |
+ * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
+import { trackedFiles } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
@@ -75,9 +78,8 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
 
   it("2. the four sections draw the header outside the scroll column, chips row then tabs then search", () => {
     const screen = code("src/components/sections/SectionScreen.tsx");
-    // Drawn for every section screen (Home's has none), and the tester's banner with it.
+    // Drawn for every section screen (Home's has none).
     expect(screen).toMatch(/\{section && \(\s*<div data-explore-header=""/);
-    expect(screen).toContain("{section && <SectionPreviewBanner section={section} />}");
     const header = screen.indexOf("data-explore-header");
     const scroll = screen.indexOf("data-app-page-scroll");
     expect(header).toBeGreaterThan(0);
@@ -110,11 +112,14 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(css).toMatch(/\.explore-chips-more \[role="radiogroup"\] \{[^}]*mask-image: linear-gradient/);
   });
 
-  it("4. 'Coming soon' for everyone: no Preview mark on the chips; the tester's banner and 'Opens soon'", () => {
+  it("4. 'Coming soon' for everyone: no Preview mark on the chips, no 'early preview' banner anywhere, 'Opens soon'", () => {
     const sw = code("src/components/sections/ExploreSwitcher.tsx");
     expect(sw).not.toMatch(/PreviewPill|previewLabel/);
     expect(sw).toMatch(/const soon = !on \|\| isPreview\(s\);/);
-    expect(code("src/components/sections/SectionPreviewBanner.tsx")).toContain("Coming soon – early preview");
+    // The banner's class, from source (owner 2026-10-28): no screen draws the "early preview" words again.
+    const screens = trackedFiles("src").filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !f.startsWith("src/test/"));
+    expect(screens.length).toBeGreaterThan(200);
+    expect(screens.filter((f) => /early preview/i.test(code(f)))).toEqual([]);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/listings/RentBrowse.tsx"]) {
       expect({ f, opensSoon: /preview \? "Opens soon"/.test(code(f)) }).toEqual({ f, opensSoon: true });
     }

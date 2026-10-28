@@ -1,4 +1,4 @@
-import { useSyncExternalStore, type ReactNode } from "react";
+import { useId, useLayoutEffect, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import BackButton from "@/components/BackButton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -26,6 +26,35 @@ export function registerDesktopTitleSlot(el: HTMLElement | null): void {
   if (slot === el) return;
   slot = el;
   listeners.forEach((l) => l());
+}
+
+/*
+ * Only the FIRST mounted title bar goes up into the desktop bar. A screen opened
+ * on top of a page (Applicants over Jobs) draws its own back + title row at the
+ * top of its own content, under the bar (owner, 2026-10-28: "applicants and back
+ * arrow go under jobs"; two titles side by side squeezed the page's "+" and gear
+ * into the middle, and the overlay covered the bar so its back arrow could not be
+ * clicked).
+ */
+let mounted: string[] = [];
+const stackListeners = new Set<() => void>();
+function useIsFirstTitleBar(id: string): boolean {
+  useLayoutEffect(() => {
+    mounted = [...mounted, id];
+    stackListeners.forEach((l) => l());
+    return () => {
+      mounted = mounted.filter((m) => m !== id);
+      stackListeners.forEach((l) => l());
+    };
+  }, [id]);
+  return useSyncExternalStore(
+    (l) => {
+      stackListeners.add(l);
+      return () => stackListeners.delete(l);
+    },
+    () => mounted.length === 0 || mounted[0] === id,
+    () => true,
+  );
 }
 
 function useDesktopTitleSlot(): HTMLElement | null {
@@ -82,6 +111,15 @@ export function useHeaderInDesktopBar(): boolean {
 export function PageTitleBar({ title, back, actions, phone, desktopGap = true, moment = false }: PageTitleBarProps) {
   const isWebDesktop = useIsWebDesktop();
   const target = useDesktopTitleSlot();
+  const first = useIsFirstTitleBar(useId());
+  if (isWebDesktop && target && !first) {
+    // A screen on top of a page: its own row, under the bar, inside the screen.
+    return (
+      <div className="pt-5 pb-5" data-page-title-nested="">
+        <DesktopRow title={title} back={back} actions={actions} moment={moment} />
+      </div>
+    );
+  }
   if (isWebDesktop && target) {
     return (
       <>

@@ -135,7 +135,11 @@ function functionNames(source) {
       // No end-of-line anchor: 51 of 151 functions carry content after the
       // brace, and requiring `{$` silently parsed two thirds of them away while
       // still reporting a confident count.
-      const f = line.match(/^ {6}(\w+): \{/);
+      // An OVERLOADED function is generated as `name:` followed by a `| { Args ... }`
+      // union, with nothing after the colon. Matching only `name: {` dropped every
+      // overload from the fresh output, so helpr_set_vehicle (two overloads since
+      // 20261028012406) read as "gone from prod" (db-deploy 40636247431).
+      const f = line.match(/^ {6}(\w+):(?: \{|$)/);
       if (f) names.add(f[1]);
     }
   }

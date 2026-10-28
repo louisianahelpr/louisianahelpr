@@ -13589,6 +13589,7 @@ export type Database = {
         Args: { p_note: string; p_order_id: string; p_reason: string }
         Returns: Json
       }
+      declutter_assert_can_draft_from_photos: { Args: never; Returns: undefined }
       declutter_assert_can_scan_room: { Args: never; Returns: undefined }
       declutter_assert_member: { Args: { p_selling: boolean }; Returns: string }
       declutter_auto_free_due: { Args: never; Returns: number }

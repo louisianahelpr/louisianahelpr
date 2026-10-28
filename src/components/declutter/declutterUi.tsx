@@ -71,6 +71,15 @@ export const TAX_STATEMENTS = [
   "I'll keep the item until I hand it over to the buyer.",
 ] as const;
 
+/**
+ * The same four facts as ONE sentence for the Sell flow's single checkbox
+ * (owner 2026-10-28: "make these checks 1"). One tick records all four
+ * attestations (attestItem sends each as true; declutter_attest_item stores
+ * each column), so the R.S. 47:305(A) occasional-sale record is unchanged.
+ */
+export const TAX_ATTESTATION_SENTENCE =
+  "I bought this for my own personal or household use, I'm not in the business of selling items like this, this is an occasional sale, and I'll keep it until I hand it over to the buyer.";
+
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 /**

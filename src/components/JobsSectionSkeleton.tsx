@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SectionAddButton } from "@/components/sections/AppTopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ActivityCardSkeleton, DashboardSkeleton } from "@/components/SkeletonLoaders";
 import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
@@ -28,12 +29,13 @@ function JobsHeaderBones() {
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
       {/* The Explore header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
-          the global top bar, no back arrow and no "+" (owner 2026-10-28: the loading frame draws exactly the settled
+          the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
           header; src/test/sectionLoadingHeaderIsSettled.test.tsx). On a phone (AppTopBar `section`): `app-top-bar
           h-12`, the section chips, the bell, the photo, as bones. */}
       <PageTitleBar
         title="Jobs"
         desktopGap={false}
+        actions={<SectionAddButton section="jobs" />}
         phone={
           <div className="app-top-bar flex items-center gap-1 h-12">
             <Skeleton className="explore-switcher-bone h-12 min-w-0 flex-1 rounded-full" />

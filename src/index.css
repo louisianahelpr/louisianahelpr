@@ -4970,4 +4970,4 @@ html.page-scrolled .page-title-card:has(.explore-header),
 /* The desktop filter drop-down (FilterDropdown.tsx; owner 2026-10-28: "filters should be a small drop down like
    this"): smaller chips than the phone sheet, which keeps its 40px touch chips. Mouse only: the drop-down never
    opens on a phone or in the app. */
-[data-filter-dropdown] button[aria-pressed] { height: auto; min-height: 2rem; padding-left: 0.75rem; padding-right: 0.75rem; }
+:where([data-filter-dropdown] button[aria-pressed]) { height: auto; min-height: 2rem; padding-left: 0.75rem; padding-right: 0.75rem; }

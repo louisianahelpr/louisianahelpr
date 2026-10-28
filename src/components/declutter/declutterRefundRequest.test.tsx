@@ -4,6 +4,10 @@
  * proves the panel shows the SERVER's amounts, starts the seller's offer EMPTY (owner 2026-10-21), sends
  * exactly what the member chose, and offers Report a problem only after the seller says no.
  *
+ * Deep audit 2026-10-28 B-5 (#5): the full refund is less than the payment (the card network keeps its part); the buyer
+ * is told why in words wherever that amount is shown, with no fee name or figure (membersSeeNoFeeWords scans the copy).
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | . <span data-full-refund-why="">{FULL_REFUND_WHY}</span> For a full refund | . For a full refund
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx | {refundDollars(v.full_refund_cents)}. <span data-full-refund-why="">{FULL_REFUND_WHY}</span> Give the item back; | {refundDollars(v.full_refund_cents)}. Give the item back;
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   const [amount, setAmount] = useState(""); |   const [amount, setAmount] = useState("10");
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, choice === "part" ? offerCents : null), |     mutationFn: () => answerRefund(v.request?.id ?? "", choice, offerCents),
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |           {v.can_report && problemForm} |           {problemForm}
@@ -69,6 +73,10 @@ describe("DeclutterRefundPanel", () => {
     show(BASE);
     fireEvent.click(await screen.findByRole("button", { name: "Ask for a refund" }));
     expect(screen.getByText(/A full refund is \$41\.20/)).toBeTruthy();
+    // #5: why it is less than what was paid, in words, never a fee figure.
+    const why = document.querySelector("[data-full-refund-why]")!;
+    expect(why.textContent).toBe("That's all you paid, less the small part the card network kept for the payment, which it doesn't give back.");
+    expect(why.textContent).not.toMatch(/\$|\d|fee/i);
     fireEvent.click(screen.getByLabelText("Damaged"));
     fireEvent.change(screen.getByLabelText("Tell them more"), { target: { value: "  The leg is cracked.  " } });
     fireEvent.click(screen.getByRole("button", { name: "Send to the seller" }));
@@ -129,6 +137,7 @@ describe("DeclutterRefundPanel", () => {
   it("buyer: while the item goes back, the refund is promised on the seller's confirmation, with no button to press", async () => {
     show({ ...BASE, can_ask: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });
     expect(await screen.findByText(/Give the item back; arrange it in Messages\. Your refund is sent as soon as Nikki confirms they have it\./)).toBeTruthy();
+    expect(document.querySelector("[data-full-refund-why]")?.textContent).toMatch(/^That's all you paid, less the small part the card network kept/);
     expect(screen.queryByRole("button", { name: "I got it back" })).toBeNull();
   });
 });

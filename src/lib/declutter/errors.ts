@@ -16,7 +16,7 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   free_item_claim_it: "This item is free. Tap Get it free.",
   not_free: "This item isn't free any more. Check its price.",
   free_claim_limit: "You have 3 free items waiting. Pick those up first.",
-  free_order: "These items are free. Choose a pickup and tap Get it free.",
+  free_order: "These items are free. Choose a pickup and tap Confirm and pick a time.",
   not_free_order: "Some of these items have a price. Check out to pay for them.",
   checkout_page_open: "A payment page for this seller is still open. Close it, then try again in a few minutes.",
   feature_disabled: "Declutter isn't open for your account yet.",

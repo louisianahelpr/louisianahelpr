@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 992,
-    "files": 262,
-    "rendering": 844,
-    "suppressedByPolicy": 148,
+    "calls": 994,
+    "files": 263,
+    "rendering": 845,
+    "suppressedByPolicy": 149,
     "byKind": {
       "confirmConsequential": 28,
       "errorToast": 6,
       "successToast": 1,
       "toast": 72,
-      "toast.error": 703,
+      "toast.error": 704,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 151,
+      "toast.success": 152,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 447,
+      "literal": 448,
       "template": 103,
-      "dynamic": 492,
+      "dynamic": 493,
       "jsx": 0
     }
   },
@@ -4383,7 +4383,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 30,
+      "line": 34,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4393,7 +4393,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 34,
+      "line": 38,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4403,7 +4403,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 76,
+      "line": 85,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -4413,7 +4413,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 80,
+      "line": 89,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4963,7 +4963,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 60,
+      "line": 61,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4973,7 +4973,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 164,
+      "line": 171,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4983,7 +4983,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 177,
+      "line": 184,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5580,6 +5580,26 @@
     {
       "file": "src/components/declutter/DeclutterWantedViews.tsx",
       "line": 155,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterYourOffer.tsx",
+      "line": 69,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Offer taken back. Enter a new one, or leave it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterYourOffer.tsx",
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

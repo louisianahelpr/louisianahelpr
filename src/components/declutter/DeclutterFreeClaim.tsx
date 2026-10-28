@@ -6,14 +6,15 @@
  * at once; the server says so in plain words when a fourth is tried.
  */
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { checkoutFree, claimFree, type DeclutterItem } from "@/lib/declutter/api";
+import { checkoutFree, claimFree, fetchMyCart, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DeclutterNotice } from "./declutterUi";
+import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 
 /** Is this listing free? (price and current price are both 0, a CHECK keeps them together). */
 export function isFreeItem(item: Pick<DeclutterItem, "current_price_cents">): boolean {
@@ -24,16 +25,24 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const { underAge } = useAgeGate();
+  // Deep audit #3: a free item the member claimed themselves says so, with the way to choose a pickup.
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart, enabled: item.status === "reserved" });
+  const myHold = myHoldOn(cart.data, item.id);
   const claim = useMutation({
     mutationFn: () => claimFree(item.id),
     onSuccess: () => {
       toast.success("It's yours. Choose how you'll pick it up within 48 hours.");
       void qc.invalidateQueries({ queryKey: ["declutter"] });
-      navigate("/declutter?view=cart");
+      navigate("/declutter?tab=buying");
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
+  // Until the cart read is in, say nothing yet: "Someone is buying" would flash before "Reserved for you".
+  if (item.status === "reserved" && cart.isLoading) return <HoldChecking />;
+  if (item.status === "reserved" && myHold) {
+    return <ReservedForYou line={myHold} free />;
+  }
   if (item.status === "reserved") {
     return <DeclutterNotice title="Someone claimed this item.">If they don't choose a pickup in time, it's free again.</DeclutterNotice>;
   }
@@ -96,7 +105,7 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, onDone }: { sellerId:
         {!porchOk && <p className="text-xs text-muted-foreground">The giver asked to meet at their home for this item, so porch pickup isn't available.</p>}
       </fieldset>
       <Button type="button" size="wrap" className="w-full rounded-full" disabled={confirm.isPending} onClick={() => confirm.mutate()}>
-        {confirm.isPending ? "Confirming…" : "Get it free"}
+        {confirm.isPending ? "Confirming…" : "Confirm and pick a time"}
       </Button>
       <p className="text-xs text-muted-foreground">Free items are picked up only. Nothing is charged.</p>
     </div>

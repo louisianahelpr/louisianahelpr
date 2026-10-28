@@ -233,7 +233,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
   });
 
-  // Deep audit #32 (44-seller-sold-p2/p3-390): a booked porch card stacked two full date-and-time pickers and 5 buttons.
+  // Deep audit #32 (44-seller-sold-p2/p3-390): a booked porch card stacked two full date-and-time pickers and 5 buttons (audit 2026-10-28).
   // @mutate src/components/declutter/DeclutterFoldedTime.tsx |   const [open, setOpen] = useState(false); |   const [open, setOpen] = useState(true);
   it("#32: a booked porch card shows no picker until one is asked for; Out until a time opens one and sends it", async () => {
     state.bookings = [{ ...slot(-24 * 60), buyer_reschedules: 0, seller_reschedules: 0 }];

@@ -131,7 +131,6 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/declutter/SellerDeliveryOrder.tsx": { bucket: "declutter-handover" },
   "src/pages/quotes/SendQuotePage.tsx": { bucket: "job-photos" },
   // My route (Train D): a stop's "Picked up" / drop-off photo goes up through useTaskSteps -> uploadTaskPhoto, the helpr-tasks bucket.
-  "src/components/declutter/StopActions.tsx": { bucket: "helpr-tasks" },
   // #49 (2026-10-28): the shared camera button behind the Helpr's delivery photos (DeclutterDeliveryViews, StopActions).
   "src/components/ui/PhotoPickButton.tsx": { bucket: "helpr-tasks" },
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { SectionInboxEmpty, type SectionEmpty } from "./SectionInboxEmpty";
+import { mainInboxEmptyBody } from "./messageSections";
 import { useNavigate } from "react-router-dom";
 import { coerceInboxView, defaultInboxTab, INBOX_TAB_LABEL, INBOX_TAB_ORDER, UNFILTERED_INBOX_TAB } from "@/lib/inboxDefault";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -98,6 +99,8 @@ interface ConversationListProps {
   sectionTabs?: ReactNode;
   /** A section tab with no conversations yet: its own empty state, and no Active / All (job states). */
   sectionEmpty?: SectionEmpty | null;
+  /** The All / Unread empty inbox's line (messageSections.mainInboxEmptyBody): names Declutter when it is on. */
+  mainEmptyBody?: string;
 }
 
 // Sort comparator (descending by lastAt) — pulled out so the pinned /
@@ -235,6 +238,7 @@ export function ConversationList({
   resetSelectionNonce = 0,
   sectionTabs,
   sectionEmpty = null,
+  mainEmptyBody = mainInboxEmptyBody(false),
 }: ConversationListProps) {
   const navigate = useNavigate();
   /* Same gate Activity uses (Activity.tsx:410). On the desktop WEBSITE the
@@ -1286,7 +1290,7 @@ export function ConversationList({
                 // Q1558: "nearly identical"); the icon is the Messages tab's own.
                 icon={navIconFor("/messages")}
                 title="No messages yet"
-                body="Apply to a job or accept a Helpr's offer — conversations appear here once they start."
+                body={mainEmptyBody}
                 bodyLines={MAIN_TAB_EMPTY_BODY_LINES}
                 action={
                   <BarkPillButton onClick={() => navigate("/jobs")}>

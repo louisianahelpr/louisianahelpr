@@ -421,6 +421,7 @@ const Messages = () => {
       allConversations={inbox.allConversations}
       sectionTabs={inbox.strip}
       sectionEmpty={inbox.sectionEmpty}
+      mainEmptyBody={inbox.mainEmptyBody}
       loading={loading}
       loadError={loadError}
       retryInbox={retryInbox}

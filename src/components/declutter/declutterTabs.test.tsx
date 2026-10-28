@@ -594,6 +594,28 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     );
     expect(t).toMatchObject({ toPay: 0, purchasesOpen: 1, sellerOffers: 0, buying: 1, selling: 0 });
   });
+
+  // Audit 2026-10-28 #37 (SE2-4): the seller's Helpr notices ("A Helpr will pick it up", "Helpr pickup
+  // booked", "Picked up") link the old ?view=cart, which opened the BUYER's tab for a seller whose only
+  // open sale is a Helpr delivery; the buyer's "Your item is on its way" opened Selling for a member
+  // who also had a porch sale open.
+  // @mutate src/lib/declutter/tabs.ts |   const sellerWaiting = todo ? todo.salesOpen + todo.salesAwaitingPayment + todo.salesDelivering : 0; |   const sellerWaiting = todo ? todo.salesOpen + todo.salesAwaitingPayment : 0;
+  // @mutate src/lib/declutter/tabs.ts |   const buyerWaiting = todo ? todo.toPay + todo.purchasesOpen + todo.purchasesDelivering : 0; |   const buyerWaiting = todo ? todo.toPay + todo.purchasesOpen : 0;
+  it("an old ?view=cart link opens the side whose Helpr delivery is under way (#37)", () => {
+    const delivering = (side: "buyer" | "seller", id: string) =>
+      ({ ...LINE, line_id: id, my_side: side, status: "paid", order_id: id, order_status: "paid", handover: "delivery" });
+    const sellerOnly = declutterTodo([delivering("seller", "d1")] as never, []);
+    expect(sellerOnly).toMatchObject({ salesDelivering: 1, purchasesDelivering: 0, selling: 0 });
+    expect(oldDeclutterView("cart", sellerOnly)).toBe("selling");
+    const porchSale = { ...LINE, line_id: "p1", my_side: "seller", status: "paid", order_id: "p1", order_status: "paid", handover: "porch" };
+    const buyerDelivery = declutterTodo([delivering("buyer", "d2"), porchSale] as never, []);
+    expect(buyerDelivery).toMatchObject({ purchasesDelivering: 1, salesOpen: 1, buying: 0 });
+    // Both sides have something: the link's usual side (Buying), not the seller's porch sale.
+    expect(oldDeclutterView("cart", buyerDelivery)).toBe("buying");
+    // A handed-over delivery is history: it decides nothing.
+    const done = declutterTodo([{ ...delivering("seller", "d3"), order_status: "handed_over" }] as never, []);
+    expect(done.salesDelivering).toBe(0);
+  });
 });
 
 // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "deliver", label: "Deliver" },\n |

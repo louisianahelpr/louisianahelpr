@@ -15,6 +15,7 @@ import { Link } from "react-router-dom";
 import { Loader2, MapPin, MapPinOff, X } from "lucide-react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { report } from "@/lib/errorLogger";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { photoPublicUrl, type DeclutterItem, type DeclutterMapPin } from "@/lib/declutter/api";
 import { itemPriceLabel, milesLabel } from "@/lib/declutter/distance";
 import { LA_BOUNDS, readIsDark } from "@/components/browseMap/config";
@@ -161,6 +162,7 @@ export default function DeclutterMap({
   if (pinsError && !pins) {
     return (
       <div className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-card/40 px-6 text-center${shell}`} role="status">
+        <ReportErrorScreen source="DeclutterMap.pins" title="We couldn't load the map." />
         <MapPinOff className="h-6 w-6 text-muted-foreground" aria-hidden />
         <p className="text-ds-15 font-semibold text-foreground">We couldn't load the map.</p>
         <button type="button" onClick={onRetry} className="min-h-11 rounded-full px-4 text-ds-13 font-bold text-[hsl(var(--sage-ink))]">Try again</button>

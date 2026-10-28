@@ -210,8 +210,10 @@ export const POPUP_SHEET_CLS =
   "fixed inset-x-0 bottom-0 w-full max-w-full max-h-[92dvh] !rounded-b-none " +
   "p-4 pb-[max(1rem,var(--safe-area-bottom,0px))] " +
   "data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom";
+// `popup-centred` is the hook for the ONE rail-inset rule (index.css): on the desktop website, with the rail open, a
+// centred popup centres on the area beside the rail, not on the whole window (item 2, 2026-10-28).
 export const POPUP_DIALOG_CLS =
-  "sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:[translate:-50%_-50%] sm:w-full sm:max-w-[480px] " +
+  "popup-centred sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:[translate:-50%_-50%] sm:w-full sm:max-w-[480px] " +
   "sm:max-h-[86vh] sm:!rounded-b-[28px] sm:p-5 sm:pb-5 " +
   "sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:slide-out-to-bottom-0 " +
   "sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95";

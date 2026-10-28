@@ -1478,6 +1478,19 @@ html.web-desktop {
     left: var(--desktop-sidebar-w);
   }
 
+  /* POPUPS CENTRE ON THE PAGE, NOT THE WINDOW (item 2, 2026-10-28; CLAUDE.md: measure centring against the
+     post-rail area). Every dialog and centred sheet (POPUP_DIALOG_CLS, `popup-centred`) sat at `left: 50%` of the
+     window: centre x 720 at 1440, 124px left of the page's 844, so a 768px job dialog ran over the rail's edge.
+     Its own centre moves to the middle of the area beside the rail; the scrim is unchanged. (A floor
+     sheet is this same centred dialog from 640px up: `.sheet-floor` is phone-only.)
+     Guard: src/test/popupsCentreBesideTheRail.test.ts. */
+  html.web-desktop.desktop-rail.side-panel-open .popup-centred {
+    left: calc(50% + var(--desktop-sidebar-w) / 2);
+    /* Never wider than the area beside the rail (16px each side): a 768px dialog at a 900px window would otherwise
+       run 58px off the right edge once centred there. Its own max-width (480 / 768) still caps it. */
+    width: min(100%, calc(100vw - var(--desktop-sidebar-w) - 2rem));
+  }
+
   /* THE PAGE COLOUR RUNS BEHIND THE PANEL TOO.
      The frame stops at the rail's edge, so the strip behind and around the
      side panel was never painted by the app at all — what showed through was

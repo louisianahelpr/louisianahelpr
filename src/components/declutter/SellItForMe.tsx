@@ -97,15 +97,18 @@ function SellItForMeSheet({ open, onOpenChange }: { open: boolean; onOpenChange:
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
           </button>
-          {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />}
+          {shopsOn && open && <LocalBusinesses />}
         </div>
       </SheetContent>
     </Sheet>
   );
 }
 
-/** Option B: nearby shops that sell things for people. */
-function LocalBusinesses({ onHireHelpr, hireProps }: { onHireHelpr: () => void; hireProps: ReturnType<ReturnType<typeof useAgeGate>["gatedProps"]> }) {
+/**
+ * Option B: nearby shops that sell things for people. With none nearby it only says so: "Hire a local Helpr" sits
+ * right above, and a second "Hire a Helpr instead" button did the same thing (deep audit #34, shot 107).
+ */
+function LocalBusinesses() {
   const { origin } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   const categories = useShopCategories();
@@ -143,9 +146,6 @@ function LocalBusinesses({ onHireHelpr, hireProps }: { onHireHelpr: () => void; 
         <div className="rounded-2xl border border-border bg-card p-4 text-center" data-testid="sell-for-me-no-businesses">
           <Store className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>
-          <SectionActionPill className="mt-3" onClick={onHireHelpr} {...hireProps}>
-            Hire a Helpr instead
-          </SectionActionPill>
         </div>
       ) : (
         // One card across in a phone-width sheet, two side by side once the sheet is wide (desktop).

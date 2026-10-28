@@ -7,17 +7,19 @@
  *     cap, the template with the no-account line).
  *   - B: nearby shops in "Declutter and estate sale services" on the Shops
  *     card, each with a greyed "Request a quote" (Coming soon; no shop can be
- *     asked yet: Q1869 / Q1947), and an empty state that links back to A.
+ *     asked yet: Q1869 / Q1947), and an empty state that only says so (deep
+ *     audit #34: its "Hire a Helpr instead" did what "Hire a local Helpr",
+ *     right above, does).
  *     Only while the 'shops' switch is on; otherwise the sheet offers A alone
  *     and never asks for shops.
  * The data modules are stubbed; the shop category's place in the list is
  * src/test/shopCategories.test.ts, the enum value src/lib/jobCategories.test.ts.
  *
  * @mutate src/components/declutter/SellItForMe.tsx |   if (!declutterOn) return null; |
- * @mutate src/components/declutter/SellItForMe.tsx | {shopsOn && open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />} | {open && <LocalBusinesses onHireHelpr={hireHelpr} hireProps={gatedProps("post")} />}
+ * @mutate src/components/declutter/SellItForMe.tsx | {shopsOn && open && <LocalBusinesses />} | {open && <LocalBusinesses />}
  * @mutate src/components/declutter/SellItForMe.tsx |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null, category: SELL_FOR_ME_SHOP_CATEGORY }), |     queryFn: () => browseShops({ lat: from?.lat ?? null, lng: from?.lng ?? null }),
  * @mutate src/components/declutter/SellItForMe.tsx |                   onClick={() => setAsked(s.id)} |                   onClick={() => {}}
- * @mutate src/components/declutter/SellItForMe.tsx |           <SectionActionPill className="mt-3" onClick={onHireHelpr} {...hireProps}> |           <SectionActionPill className="mt-3" {...hireProps}>
+ * @mutate src/components/declutter/SellItForMe.tsx |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p>\n |           <p className="mt-2 text-sm font-semibold">No local businesses offer this yet.</p><button type="button">Hire a Helpr instead</button>\n
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellItForMeEntry grouped />\n | \n
@@ -134,17 +136,14 @@ describe("Sell it for me: A, hire a Helpr", () => {
     state.explained = [];
   });
 
-  it("under 18 the Helpr choice (and the empty state's) is greyed and only says why (Q1586)", async () => {
+  it("under 18 the Helpr choice is greyed and only says why (Q1586)", async () => {
     state.underAge = true;
     show();
     open();
     const hire = await screen.findByTestId("sell-for-me-hire-helpr");
     expect(hire).toHaveAttribute("data-age-gated", "post");
     fireEvent.click(hire);
-    const other = within(await screen.findByTestId("sell-for-me-no-businesses")).getByRole("button", { name: "Hire a Helpr instead" });
-    expect(other).toHaveAttribute("data-age-gated", "post");
-    fireEvent.click(other);
-    expect(state.explained).toEqual(["post", "post"]);
+    expect(state.explained).toEqual(["post"]);
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
@@ -204,12 +203,15 @@ describe("Sell it for me: B, ask a local business", () => {
     expect(screen.queryByTestId("where")).toBeNull();
   });
 
-  it("no businesses yet: says so and offers the Helpr instead", async () => {
+  it("no businesses yet: says so, and the sheet has ONE way to hire a Helpr (deep audit #34)", async () => {
     show();
     open();
     const empty = await screen.findByTestId("sell-for-me-no-businesses");
     expect(empty).toHaveTextContent("No local businesses offer this yet.");
-    fireEvent.click(within(empty).getByRole("button", { name: "Hire a Helpr instead" }));
+    expect(within(empty).queryAllByRole("button")).toHaveLength(0);
+    const sheet = screen.getByTestId("sell-it-for-me-sheet");
+    expect(within(sheet).getAllByRole("button", { name: /hire a( local)? helpr/i })).toHaveLength(1);
+    fireEvent.click(screen.getByTestId("sell-for-me-hire-helpr"));
     expect(await screen.findByTestId("where")).toHaveTextContent("/post-job?sellForMe=1");
   });
 

@@ -22,8 +22,8 @@
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start > now()) THEN | IF false THEN
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | They leave it at your door with a photo; | Have your 4-digit code ready;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |   order_id uuid NOT NULL UNIQUE REFERENCES public.declutter_orders(id) ON DELETE RESTRICT, |   order_id uuid NOT NULL REFERENCES public.declutter_orders(id) ON DELETE RESTRICT,
- * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
- * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
+ * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;

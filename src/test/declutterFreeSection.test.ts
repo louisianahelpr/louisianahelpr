@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261027211754_declutter_bundle_discount.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
- * @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
+ * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} />) | <OfferPanel item={it} userId={user.id} />
@@ -43,7 +43,8 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_checkout_free").file).toContain("20261028223036_declutter_notice_links_open_the_right_tab.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
-    expect(newestFunction("declutter_complete_handover").file).toContain("20261028223036_declutter_notice_links_open_the_right_tab.sql");
+    // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).
+    expect(newestFunction("declutter_complete_handover").file).toContain("20261028232338_declutter_damage_no_enjoy_notice.sql");
     const names = ["declutter_claim_free", "declutter_free_rules",
       "declutter_buy_now", "declutter_close_paid_order",
       "declutter_create_item", "declutter_update_draft", "declutter_orders_fee_rule_f1", "payout_setup_hire_allowed",

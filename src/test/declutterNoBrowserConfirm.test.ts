@@ -27,7 +27,6 @@ const files = walkSource([join(ROOT, "src/components/declutter"), join(ROOT, "sr
 /** The sell-flow builder's files (Selling tab's take-down, the moving sale's end), and how many each still has. */
 const SELL_FLOW_CONFIRMS: Record<string, number> = {
   "src/components/declutter/DeclutterHomeView.tsx": 1,
-  "src/components/declutter/DeclutterMoveView.tsx": 1,
 };
 
 const sites = () =>

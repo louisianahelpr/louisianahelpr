@@ -4753,7 +4753,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 172,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4763,7 +4763,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 180,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4773,7 +4773,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 184,
+      "line": 209,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -4783,7 +4783,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 186,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4793,7 +4793,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 195,
+      "line": 220,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4803,7 +4803,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 211,
+      "line": 236,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -4813,7 +4813,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 214,
+      "line": 239,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4833,7 +4833,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 225,
+      "line": 250,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4843,7 +4843,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 237,
+      "line": 262,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4853,7 +4853,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 243,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -4863,7 +4863,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 247,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4873,7 +4873,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 258,
+      "line": 283,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4883,7 +4883,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 265,
+      "line": 290,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4893,7 +4893,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 266,
+      "line": 291,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4913,7 +4913,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterMoveView.tsx",
-      "line": 269,
+      "line": 294,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

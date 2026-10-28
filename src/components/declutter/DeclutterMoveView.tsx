@@ -7,8 +7,8 @@
  *      The room photos are only sent to the tool; never saved or shown.
  *   3. Check the list: keep or drop each item, name it, price it. Saving
  *      makes drafts (declutter_create_move_drafts: every listing rule).
- *   4. The moving-sale items: each draft still needs its own 3 to 12 photos
- *      (row 31), added in the ordinary listing form.
+ *   4. The moving-sale items: each draft still needs photos of its own
+ *      (DECLUTTER_MIN_PHOTOS to DECLUTTER_MAX_PHOTOS), added in the ordinary listing form.
  *   5. List the ready ones together: pickup times, the four confirmations,
  *      then one publish per item (the review queue still applies).
  *   6. Moving day: change the date or end the sale; hire a Helpr for help
@@ -55,7 +55,9 @@ import {
   type MoveRow,
 } from "@/lib/declutter/moves";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, STATUS_LABEL, TAX_STATEMENTS } from "./declutterUi";
-import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
+import { readMoveDraft, writeMoveDraft } from "@/lib/declutter/moveDraft";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { AREA_ADDRESS_RE } from "./sellForm";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
 
@@ -99,6 +101,7 @@ export default function MoveFlow() {
   const [picked, setPicked] = useState<Set<string> | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [changingDate, setChangingDate] = useState(false);
+  const [askEnd, setAskEnd] = useState(false);
   const scans = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +128,27 @@ export default function MoveFlow() {
   const current = myDate.data ?? null;
   const prefillFrom = inPlay[0]?.id ?? null;
   const priv = useQuery({ queryKey: ["declutter", "private", prefillFrom], queryFn: () => fetchMyItemPrivate(prefillFrom!), enabled: !!prefillFrom });
+
+  // Audit #33: what isn't saved yet survives a reload (moveDraft.ts). Restored first, so the prefill
+  // below fills only what the draft left empty; kept on every change after that.
+  const restored = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user?.id || restored.current === user.id) return;
+    restored.current = user.id;
+    const d = readMoveDraft(user.id);
+    if (!d) return;
+    setDate((x) => x || d.date);
+    setAreaLabel((x) => x || d.areaLabel);
+    setPickupAddress((x) => x || d.pickupAddress);
+    if (d.rows.length > 0) {
+      setRows((rs) => (rs.length ? rs : d.rows));
+      scans.current = d.rows.length;
+    }
+  }, [user?.id]);
+  useEffect(() => {
+    if (!user?.id || restored.current !== user.id) return;
+    writeMoveDraft(user.id, { date, areaLabel, pickupAddress, rows });
+  }, [user?.id, date, areaLabel, pickupAddress, rows]);
 
   // Carry the move's date, area and address forward from what is saved.
   const prefilled = useRef(false);
@@ -160,6 +184,7 @@ export default function MoveFlow() {
       : AREA_ADDRESS_RE.test(areaLabel) ? "Use your neighborhood or town for the area, not a street address."
         : pickupAddress.trim().length < 5 ? "Add the pickup address. Buyers only see it after they pay."
           : null;
+  const moveDetailsProblem = dateProblem ?? placeProblem;
   const kept = rows.filter((r) => r.keep);
   const rowProblem = kept.map(moveRowProblem).find((p) => p) ?? null;
   const setRow = (key: string, patch: Partial<MoveRow>) => setRows((rs) => rs.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -302,6 +327,9 @@ export default function MoveFlow() {
         <p className="text-xs text-muted-foreground">
           Buyers see your area and your move-out date. Only the buyer who pays sees the address.
         </p>
+        {/* Audit #33: a wrong or missing date used to surface only at Save, after a minute-long photo scan.
+            Once something is typed, the date's problem shows here, beside the field it is about. */}
+        {date && dateProblem && <p className="text-xs text-destructive-ink" role="status" data-move-date-problem="">{dateProblem}</p>}
         {current && date && date !== current && !dateProblem && (
           <Button type="button" variant="outline" size="sm" disabled={changingDate} onClick={() => void onChangeDate(date)}>
             {changingDate ? "Changing…" : `Change the date on my moving-sale items to ${formatMoveDate(date)}`}
@@ -315,10 +343,20 @@ export default function MoveFlow() {
         <p className="text-xs text-muted-foreground">
           Up to {MOVE_ROOM_PHOTOS_MAX} photos of one room at a time. They're only used to find the items. They aren't saved or shown to buyers.
         </p>
-        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="move-files" onChange={(e) => void onRoomPhotos(e.target.files)} />
-        <Button asChild variant="outline" size="sm" className="cursor-pointer">
-          <label htmlFor="move-files">{scanning ? "Looking at your photos…" : "Add room photos"}</label>
-        </Button>
+        {/* Audit #33: the move's details come first, so the scan's items can be saved the moment they're checked. */}
+        {moveDetailsProblem ? (
+          <p className="text-xs text-muted-foreground" data-move-needs-details="">First, fill in your move above: {moveDetailsProblem}</p>
+        ) : null}
+        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="move-files" disabled={!!moveDetailsProblem || scanning}
+          onChange={(e) => void onRoomPhotos(e.target.files)} />
+        {moveDetailsProblem ? (
+          // A real disabled button (the shared disabled look), not a label that only looks inert.
+          <Button type="button" variant="outline" size="sm" disabled>Add room photos</Button>
+        ) : (
+          <Button asChild variant="outline" size="sm" className="cursor-pointer">
+            <label htmlFor="move-files">{scanning ? "Looking at your photos…" : "Add room photos"}</label>
+          </Button>
+        )}
       </Section>
 
       {rows.length > 0 && (
@@ -381,7 +419,10 @@ export default function MoveFlow() {
           <p className="text-sm text-muted-foreground">Nothing saved yet. Add room photos to start.</p>
         ) : (
           <>
-            <p className="text-xs text-muted-foreground">Each item needs 3 to 12 photos of its own before it can be listed. Tap an item to add them.</p>
+            {/* Audit #33: this said "3 to 12 photos" after one photo became enough (owner 2026-10-20); it reads the rule now. */}
+            <p className="text-xs text-muted-foreground" data-move-photo-rule="">
+              Each item needs at least {photosWord(DECLUTTER_MIN_PHOTOS)} of its own (up to {DECLUTTER_MAX_PHOTOS}) before it can be listed. Tap an item to add them.
+            </p>
             <ul className="divide-y divide-border">
               {inPlay.map((it) => {
                 const n = photoCount.get(it.id) ?? 0;
@@ -469,13 +510,15 @@ export default function MoveFlow() {
             variant="outline"
             size="sm"
             disabled={changingDate}
-            onClick={() => {
-              if (window.confirm("End the moving sale? Your items stay up as ordinary listings.")) void onChangeDate(null);
-            }}
+            onClick={() => setAskEnd(true)}
           >
             End the moving sale
           </Button>
         )}
+        <ConfirmSheet open={askEnd} title="End the moving sale?" confirmLabel="End the moving sale" pending={changingDate}
+          onConfirm={() => { setAskEnd(false); void onChangeDate(null); }} onClose={() => setAskEnd(false)} testId="move-end-sale">
+          Your items stay up as ordinary listings.
+        </ConfirmSheet>
       </Section>
     </AppPage>
   );

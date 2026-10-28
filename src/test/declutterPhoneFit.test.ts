@@ -9,6 +9,7 @@
  *
  * @mutate src/components/declutter/DeclutterGallery.tsx | aspect-square max-h-[52dvh] sm:max-h-none | aspect-square
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | const CHIP = "flex h-11 min-h-11 items-center | const CHIP = "flex h-10 items-center
+ * @mutate src/components/declutter/DeclutterFilterPanel.tsx | : "border border-foreground/25 bg-background text-foreground"}`}> | : "border border-border bg-card text-foreground"}`}>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -27,6 +28,18 @@ describe("Declutter fits a phone", () => {
     const cap = cls.find((c) => /^max-h-\[(\d+)dvh\]$/.test(c));
     expect(cap, "no max-h-[Ndvh] on the phone photo").toBeDefined();
     expect(Number(/\d+/.exec(cap!)![0])).toBeLessThanOrEqual(60);
+  });
+
+  it("an unselected chip shows on a card in dark mode: the page fill and a firm edge, never card-on-card", () => {
+    // Lead 2026-10-28: on Wanted's card, bg-card + border-border made "5 mi / 25 mi / 50 mi" plain floating words in dark.
+    const m = read("src/components/declutter/DeclutterFilterPanel.tsx").match(/: "([^"]*)"\}`\}>/);
+    expect(m, "the unselected chip class was not found").not.toBeNull();
+    const cls = m![1].split(/\s+/);
+    expect(cls).toContain("bg-background");
+    expect(cls).not.toContain("bg-card");
+    const edge = cls.find((c) => /^border-foreground\/(\d+)$/.test(c));
+    expect(edge, "no border-foreground/N edge").toBeDefined();
+    expect(Number(edge!.split("/")[1])).toBeGreaterThanOrEqual(20);
   });
 
   it("Declutter's choice chips are at least 44px tall (h-11)", () => {

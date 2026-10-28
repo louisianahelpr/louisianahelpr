@@ -25,7 +25,9 @@ const CHIP = "flex h-11 min-h-11 items-center rounded-full px-4 text-ds-13 font-
 export function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
   return (
     // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
-    <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+    // Unselected: the page's own fill with a firm edge, so it shows on a card in dark mode too (lead 2026-10-28: on
+    // Wanted's card, bg-card + border-border vanished in dark).
+    <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-foreground/25 bg-background text-foreground"}`}>
       {children}
     </button>
   );

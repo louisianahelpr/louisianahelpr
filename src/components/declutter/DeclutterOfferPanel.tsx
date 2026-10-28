@@ -21,6 +21,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
 import { OfferSentWhatNext } from "./OfferSentWhatNext";
+import { ReserveSheet, type ReserveStep } from "./DeclutterReserveSheet";
 import { dollarsInputToCents, invalidateTrades } from "./DeclutterTradeViews";
 
 /**
@@ -162,23 +163,24 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
+  // Buy now asks in an in-app sheet, then says "Reserved for you, not paid yet" in the same sheet (DeclutterReserveSheet;
+  // lead 2026-10-28: never window.confirm). The buy itself is unchanged: the 48-hour hold (owner 2026-10-28).
+  const [reserve, setReserve] = useState<ReserveStep>(null);
   const buy = useMutation({
     mutationFn: () => buyNow(item.id, item.current_price_cents),
     onSuccess: () => {
-      toast.success("It's yours. Check out within 48 hours.");
+      setReserve("reserved");
       invalidateTrades(qc);
     },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    onError: (err) => {
+      setReserve(null);
+      toast.error(declutterErrorMessage(err));
+    },
   });
 
-  const confirmBuy = () => {
-    const total = buyNowTotalCents(item.current_price_cents);
-    // The single-item pickup total (lh-money-escrow review notes: Helpr delivery
-    // is added at checkout, and more from the same seller shares one 70c).
-    if (window.confirm(`Buy "${item.title}" for ${formatPrice(total)}? Delivery, if you choose it, is added at checkout. You'll have 48 hours to check out and pay. Your card isn't charged now.`)) {
-      buy.mutate();
-    }
-  };
+  // The single-item pickup total (lh-money-escrow review notes: Helpr delivery is added at checkout, and more from
+  // the same seller shares one checkout) is shown in the sheet.
+  const confirmBuy = () => setReserve("ask");
   const run = (action: AfterCardAction) => {
     if (action === "buy") confirmBuy();
     else setOpen(true);
@@ -362,6 +364,16 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
           </div>,
           document.body,
         )}
+      <ReserveSheet
+        step={reserve}
+        title={item.title}
+        priceCents={item.current_price_cents}
+        sellerId={item.seller_id}
+        pending={buy.isPending}
+        onReserve={() => buy.mutate()}
+        onClose={() => setReserve(null)}
+        onCheckout={() => { setReserve(null); navigate("/declutter?tab=buying"); }}
+      />
       <OfferSentWhatNext cents={sentCents} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );

@@ -10,10 +10,10 @@
  * src/test/pglite/declutterSlice4.pglite.mjs. Concurrency (typed code vs "I got it"
  * vs auto-pay vs problem vs no-show; two real sessions; the typed code is gone since 20261018183715): scripts/declutter/race-handover.mjs.
  *
- * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
+ * @mutate supabase/migrations/20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
  * @mutate supabase/migrations/20261021023158_declutter_porch_note.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
- * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
- * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   IF v_side <> 'buyer' THEN | IF false THEN
+ * @mutate supabase/migrations/20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
+ * @mutate supabase/migrations/20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql |   IF v_side <> 'buyer' THEN | IF false THEN
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF o.handover NOT IN ('pickup_home', 'meetup') THEN\n    RAISE EXCEPTION 'not_a_door_pickup' | IF false THEN\n    RAISE EXCEPTION 'not_a_door_pickup'
  * @mutate supabase/migrations/20261027153244_declutter_seller_delivery.sql |          AND (o.handover <> 'porch' OR EXISTS (SELECT 1 FROM public.declutter_handovers h\n                                                WHERE h.order_id = o.id AND h.set_out_photo_path IS NOT NULL)) THEN |          THEN
@@ -125,7 +125,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
   it("no QR and no 4-digit code (owner 2026-10-17 + 2026-10-18 pop-up): \"Left on porch\" with a photo, \"I got it\", the porch photo and the auto-pay only", () => {
     // Q2266 restated it with the porch note (20261021023158); still no code, read from the newest body below.
     expect(DEFS.get("declutter_my_handover")?.file).toBe("20261021023158_declutter_porch_note.sql");
-    expect(DEFS.get("declutter_confirm_handover")?.file).toBe(NO_QR_FILE);
+    // #7 (20261028202844) restated it verbatim but the seller-delivery day check; still no code (checked below).
+    expect(DEFS.get("declutter_confirm_handover")?.file).toBe("20261028202844_declutter_sd_confirm_waits_for_delivery_day.sql");
     const h = flat(body("declutter_my_handover"));
     expect(h).not.toMatch(/'qr'|lhdeclutter:|'code'/);
     const c = flat(body("declutter_confirm_handover"));

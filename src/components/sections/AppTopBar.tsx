@@ -1,14 +1,15 @@
-import { Settings } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/NotificationPanel";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
 import { ExploreSwitcher } from "./ExploreSwitcher";
-import type { SectionKey } from "./sectionsConfig";
+import { sectionByKey, type SectionKey } from "./sectionsConfig";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
@@ -18,10 +19,10 @@ const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center rounded-ds-md btn-pr
  * NOTIFICATIONS bell, then the PROFILE avatar at the far right. Left: the logo
  * on Home, the section title elsewhere. Messages lives in the bottom nav.
  *
- * NO SECTION "+" ANYWHERE (owner, 2026-10-28, desktop: "do we need the post a
- * job since the create is to post etc?"): creating lives in ONE place, the left
- * rail's "+ Create" on the desktop website and the bottom bar's center "+" on a
- * phone. Guard: src/test/topBarAddMatchesBell.test.ts.
+ * NO SECTION "+" ON A PHONE: the bottom bar's center "+" creates. The desktop
+ * website's section bar carries the section's soft "+ Post a job" / "+ Sell an
+ * item" / "+ Open a shop" / "+ Add a property" beside the bell (owner 2026-10-28,
+ * reversing the same morning's removal). Guard: src/test/topBarAddMatchesBell.test.tsx.
  *
  * ON THE DESKTOP WEBSITE the app's own header already carries the logo and the
  * bell, and the rail carries Profile, so the bar keeps only the section title;
@@ -59,11 +60,34 @@ export function AppTopBar({
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
+  const gate = useAgeGate();
   const isWebDesktop = useIsWebDesktop();
   const phoneExplore = explore && !isWebDesktop;
   const chipsRow = phoneExplore && !!section;
   const title = chipsRow ? sectionTitle : phoneExplore ? "Explore" : sectionTitle;
   if (isWebDesktop && !title) return null;
+  // DESKTOP WEBSITE ONLY: the section's own "+ Post a job" (etc.) beside the bell, in the LIGHTER green, a soft
+  // olive tint, clearly second to the rail's solid "+ Create" (owner 2026-10-28: "add the post a job and post an
+  // item or whatever buttons back on the top nav maybe just make it the lighter green"). A phone keeps the
+  // bottom bar's center "+" and no "+" here. Guard: src/test/topBarAddMatchesBell.test.tsx.
+  const add = isWebDesktop && section ? sectionByKey(section).add : undefined;
+  const isPost = add?.path === "/post-job";
+  const go = () => add && navigate(add.path);
+  const actions = add ? (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      aria-label={add.label}
+      data-testid="section-add"
+      onClick={isPost ? gate.gate("post", go) : go}
+      {...(isPost ? gate.gatedProps("post") : {})}
+      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] hover:bg-[hsl(var(--bark)/0.18)] [&>svg]:w-[18px] [&>svg]:h-[18px]"
+    >
+      <Plus aria-hidden />
+      {add.cta ?? add.label}
+    </Button>
+  ) : undefined;
   // The bell and the photo: the same two controls on every phone bar.
   const personal = (
     <>
@@ -90,6 +114,7 @@ export function AppTopBar({
   return (
     <PageTitleBar
       title={title ?? ""}
+      actions={actions}
       desktopGap={desktopGap}
       phone={
         !(chipsRow && section) ? (

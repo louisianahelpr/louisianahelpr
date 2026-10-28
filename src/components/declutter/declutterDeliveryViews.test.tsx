@@ -354,7 +354,7 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2000-01-01T15:00:00Z", pickup_address: "1234 Example St" };
     show(<DeliverView />);
     fireEvent.change(await screen.findByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
-    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                       if (f) setAsk({ kind: "away", file: f }); |                       if (f) sellerAway.mutate(f);
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx | onPick={(f) => setAsk({ kind: "away", file: f })} | onPick={(f) => sellerAway.mutate(f)}
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Report that the seller wasn't there?");
     expect(state.calls).toEqual([]);

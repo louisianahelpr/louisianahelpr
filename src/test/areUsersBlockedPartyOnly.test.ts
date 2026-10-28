@@ -81,6 +81,7 @@ const EXPECTED_CALLERS = [
   // pair (the watcher, the item's seller); neither is necessarily auth.uid() (the evening sweep lowers
   // prices as service_role) and it gets the real answer through the pg_trigger_depth() > 0 arm.
   "declutter_price_drop_alert",
+    "declutter_question_notice",
   "declutter_respond_offer",
   // Moving-out mode (20261016053625): declutter_seller_moving_sale passes
   // (v_uid := auth.uid(), p_seller_id), so the caller is always one party.

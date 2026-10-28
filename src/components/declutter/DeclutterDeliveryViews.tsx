@@ -425,6 +425,12 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
             : t.status === "failed" ? "Decided as damaged in delivery. Not paid." : "Closed."}
         </p>
       )}
+      {/* Deep audit #40: after the drop-off photo the card said nothing until the buyer confirmed. */}
+      {t.status === "delivered" && (
+        <p className="text-sm font-semibold text-[hsl(var(--sage-ink))]" role="status" data-task-delivered="">
+          Delivered. Waiting for the buyer to confirm it arrived.
+        </p>
+      )}
       {/* Q2453: the buyer's tip, all of it the Helpr's (Stripe sends it straight to their account). */}
       {tipCents > 0 && <p className="text-sm">The buyer tipped you {formatPrice(tipCents)}.</p>}
       {active && view.isError && <p className="text-sm" role="alert">{declutterErrorMessage(view.error)}</p>}

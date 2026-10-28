@@ -180,7 +180,9 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // by later CREATEs.
     // (2026-10-28: 29.) 20261028200440 (audit 3 notices) re-created declutter_delivery_on_task_event, which
     // 20261027172503 had rewritten in place, so it is a plain CREATE again.
-    expect(rewritten.length).toBe(29);
+    // (2026-10-28: 28.) 20261028210552 (A3-8, the sale notices name the item) re-created
+    // declutter_complete_handover, which 20261027172503 had rewritten in place, from its effective body.
+    expect(rewritten.length).toBe(28);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

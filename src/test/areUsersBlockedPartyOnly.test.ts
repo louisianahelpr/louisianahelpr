@@ -76,6 +76,9 @@ const EXPECTED_CALLERS = [
   // quoting buyer; the Helpr finding or taking a task) as one argument, the
   // seller / the task's buyer or seller the other.
   "declutter_delivery_quote",
+  // A3-8 / A2-18 (20261028210552): the tip line checks the order's buyer against the delivery's own Helpr
+  // (helpr_tasks.helpr_id of the order's task), both parties to that delivery, as helpr_task_tip_start does.
+  "declutter_delivery_tip_open",
   "declutter_lock_buyable_item",
   // Price-drop alerts (20261027204745, Train D): an AFTER UPDATE trigger on declutter_items passes the
   // pair (the watcher, the item's seller); neither is necessarily auth.uid() (the evening sweep lowers

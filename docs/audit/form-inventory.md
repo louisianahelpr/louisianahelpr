@@ -101,7 +101,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterDeliveryViews.tsx` | input×1, checkbox/switch/radio×3, date/calendar×1 | datetime-local |  | What happened · Your vehicle · Route · Your deliveries · Deliveries near you |
-| `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
 | `src/components/declutter/DeclutterFoldedTime.tsx` | input×1, date/calendar×1 | datetime-local |  |  |
 | `src/components/declutter/DeclutterHandoverSheets.tsx` | input×1 | text | 200 | porch-note · Left side of the porch, by the swing |
 | `src/components/declutter/DeclutterHandoverViews.tsx` | input×3, textarea×1, select×1, date/calendar×1 | datetime-local, file | 1000 | declutter-no-show-warning · declutter-move-used |
@@ -121,6 +120,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/declutter/AutoFreeRow.tsx` | checkbox/switch/radio×1 |  |  |  |
+| `src/components/declutter/DeclutterFilterPanel.tsx` | input×1, checkbox/switch/radio×2 | text |  |  |
 | `src/components/declutter/DeclutterFreeClaim.tsx` | input×1 | radio |  | Get this item free |
 | `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-stop-drops · manage-price · manage-floor · Your listing |
 

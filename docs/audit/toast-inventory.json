@@ -6680,7 +6680,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 85,
+      "line": 87,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -6690,7 +6690,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 91,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6700,7 +6700,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 99,
+      "line": 101,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -6710,7 +6710,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 104,
+      "line": 106,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

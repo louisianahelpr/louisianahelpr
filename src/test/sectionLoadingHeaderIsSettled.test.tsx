@@ -17,7 +17,7 @@
  *
  * @mutate src/pages/shops/ShopsPage.tsx | <ShopsGate title="Shops" skeleton={<SectionGateFrame section="shops" label="Loading Shops" />}> | <ShopsGate title="Shops">
  * @mutate src/pages/rentals/RentalsPage.tsx | <RentalsGate skeleton={<SectionGateFrame section="homes" label="Loading Homes" />}> | <RentalsGate skeleton={<AppPage title="Homes"><p>Loading Homes</p></AppPage>}>
- * @mutate src/components/JobsSectionSkeleton.tsx |     <PageTitleBar\n      title="Jobs" |     <PageTitleBar\n      title="Jobs"\n      back={{ backTo: "/home" }}
+ * @mutate src/components/JobsSectionSkeleton.tsx |       <PageTitleBar\n        title="Jobs" |       <PageTitleBar\n        title="Jobs"\n        back={{ backTo: "/home" }}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";

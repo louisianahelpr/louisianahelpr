@@ -1,5 +1,5 @@
 import { RentalsGate } from "@/components/rentals/rentalsUi";
-import { SectionGateFrame } from "@/components/sections/SectionScreen";
+import { SectionGateFrame } from "@/components/sections/SectionGateFrame";
 import RentalsHomeView from "@/components/rentals/RentalsHomeView";
 
 /** Rentals S1: the 404 unless the hidden 'rentals' switch is on (RentalsGate);

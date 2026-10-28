@@ -1217,7 +1217,7 @@ html[data-theme="dark"].web-desktop:not(.app-shell) body:has(.app-shell-frame),
 
 [data-theme="dark"] .glass-modal {
   border-color: hsla(0, 0%, 100%, 0.08);
-  background-color: hsl(20 12% 13% / 0.92);
+  background-color: hsl(20 12% 13%); /* opaque, as light (ui-polish item 3, 2026-10-28) */
 }
 
 
@@ -2998,10 +2998,13 @@ button,
      the [feed] job card" — a warm-tinted scrim bleeding through 15%
      transparency, blurred over whatever's behind it, read muddier than the
      feed card's fully-opaque surface). Global — every dialog uses this
-     class — so every dialog gets the same closer-to-solid card now. */
-  background-color: hsl(var(--background) / 0.95);
-  -webkit-backdrop-filter: blur(40px);
-  backdrop-filter: blur(40px);
+     class — so every dialog gets the same closer-to-solid card now.
+     OPAQUE since 2026-10-28 (lead, ui-polish item 3): at 95% the feed's cards
+     and words still showed through the job dialog's body at 1440 (WebKit, no
+     blur painted). A popup is a solid card in its own colour, in both themes
+     (the reduced-transparency block further down already said so), so there
+     is no backdrop to blur. Guard: src/test/dialogsAreOpaque.test.ts. */
+  background-color: hsl(var(--background));
   box-shadow: 0 30px 80px -20px hsl(160 10% 12% / 0.35);
   border-radius: 28px;
   /* The body's `overscroll-behavior-y: none` (set globally to kill the

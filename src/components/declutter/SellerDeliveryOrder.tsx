@@ -43,6 +43,10 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 const btn = "min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-4 py-2 text-sm font-semibold";
 
+/** The Louisiana calendar day of an instant, "2026-11-01" (sorts as text). */
+const LA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" });
+const laDay = (ms: number) => LA_DAY.format(new Date(ms));
+
 /** Which buttons a side gets right now (pure, so the rules are tested apart from the screen). */
 export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Date.now()) {
   const booked = b.status === "booked" && !!b.slot_start;
@@ -52,7 +56,9 @@ export function sellerDeliveryActions(b: SellerDeliveryBooking, now: number = Da
   const open = b.order_status === "paid";
   return {
     markDelivered: open && b.side === "seller" && started && !marked,
-    gotIt: open && b.side === "buyer",
+    // Deep audit 2026-10-28 B-7 (#7): "I got it" showed a day before the delivery and one tap finished the sale.
+    // It now shows once the seller marked it delivered, or from the delivery day (Louisiana time); it still asks first.
+    gotIt: open && b.side === "buyer" && (marked || (booked && laDay(now) >= laDay(Date.parse(b.slot_start!)))),
     notDelivered: open && b.side === "buyer" && booked && !marked && !!b.not_delivered_from && now >= Date.parse(b.not_delivered_from),
     buyerCancel: open && b.side === "buyer" && !marked && (cancelBy === null || now <= cancelBy),
     sellerCancel: open && b.side === "seller" && !marked && b.status !== "needs_time",
@@ -115,6 +121,9 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem }: { order
         </p>
         <p className="text-muted-foreground">{HANDOFF_WORDS[b.handoff].title}{b.side === "seller" ? " (the buyer's choice)" : ""}</p>
         {b.side === "seller" && b.dropoff_address && <p>Deliver to: {b.dropoff_address}</p>}
+        {b.side === "buyer" && !can.gotIt && b.order_status === "paid" && b.status === "booked" && !b.delivered_at && (
+          <p data-got-it-later="">You can confirm you got it from the delivery day.</p>
+        )}
         {b.delivered_at && <p>{b.handoff === "hand" ? "Handed over" : "Left at the door"}. {b.side === "buyer" ? "Tap \"I got it\". Something wrong? You have 24 hours to report a problem." : "You're paid when the buyer confirms, or in 24 hours unless they report a problem."}</p>}
       </div>
       {can.changeHandoff && (

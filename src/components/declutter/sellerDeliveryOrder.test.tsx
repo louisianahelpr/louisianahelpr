@@ -9,6 +9,8 @@
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |             onClick={() => setAsk("notDelivered")}> |             onClick={() => notDelivered.mutate(undefined)}>
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("gotIt")}>I got it</button>} | onClick={() => gotIt.mutate(undefined)}>I got it</button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
+ * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && b.order_status === "paid" |         {false && b.order_status === "paid"
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -79,7 +81,14 @@ describe("seller-delivery order: the money moments ask in the app", () => {
     expect(window.confirm).not.toHaveBeenCalled();
   });
 
+  it("#7: before the delivery day there is no I got it, only when it can be tapped", async () => {
+    show();
+    expect(await screen.findByText("You can confirm you got it from the delivery day.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+  });
+
   it("buyer: I got it says the seller is paid, and asks first", async () => {
+    state.booking = { ...BASE, delivered_at: iso(-HOUR) };
     show();
     await askAndConfirm("I got it", /Do you have it\?.*the seller is paid/, "I got it", "got_it");
     expect(window.confirm).not.toHaveBeenCalled();

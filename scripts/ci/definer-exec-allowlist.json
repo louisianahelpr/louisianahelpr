@@ -87,7 +87,7 @@
     "declutter_pause_listing(uuid)": "client",
     "declutter_relist_listing(uuid)": "client",
     "declutter_reopen_listing(uuid)": "client",
-    "declutter_remove_cart_item(uuid)": "reviewed 2026-10-28 (A2-8): Declutter RPC behind the hidden 'declutter' switch (require_feature first); removes the caller's OWN in-cart line only (buyer_id = auth.uid(); anyone else's is item_not_found); refuses while its order's Stripe page can be paid (checkout_open); supersedes the line's unpaid order, puts the item back on sale; proof src/test/pglite/declutterRemoveCartItem.pglite.mjs",
+    "declutter_remove_cart_item(uuid)": "client",
     "declutter_auto_free_state(uuid)": "client",
     "declutter_set_auto_free(uuid, boolean)": "client",
     "declutter_set_listing_drops(uuid, boolean)": "client",

@@ -14022,6 +14022,7 @@ export type Database = {
           pin_lng: number
         }[]
       }
+      declutter_mark_sold_elsewhere: { Args: { p_item_id: string }; Returns: string[] }
       declutter_mark_order_paid: {
         Args: {
           p_amount_cents: number

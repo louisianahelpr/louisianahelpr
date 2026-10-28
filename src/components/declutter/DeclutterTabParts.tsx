@@ -39,7 +39,7 @@ export function SectionHeading({ title, todo, todoWords }: { title: string; todo
  * A Selling list with nothing in it yet (owner 2026-10-28: designed empty states, not a bare grey sentence): the
  * list's icon on the olive tint, what will show here, and when. A dashed edge: the slot the first one fills.
  */
-export function SellerEmpty({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+function SellerEmpty({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
     <div data-seller-empty="" className="flex items-start gap-3 rounded-[20px] border border-dashed border-border bg-card/60 px-4 py-4">
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--olive)/0.35)] text-[hsl(var(--bark))]" aria-hidden>

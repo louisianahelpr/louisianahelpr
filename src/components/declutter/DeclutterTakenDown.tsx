@@ -16,7 +16,7 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { SectionHeading } from "./DeclutterTabParts";
 
 /** Relist a taken-down listing: back to a draft, then the sell flow on it (photos first: they were deleted). */
-export function useReopenListing() {
+function useReopenListing() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   return useMutation({

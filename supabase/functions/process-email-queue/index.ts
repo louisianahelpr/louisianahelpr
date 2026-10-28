@@ -5,6 +5,7 @@ import { cronError, cronResult, defectTracker } from '../_shared/cron-result.ts'
 import { FROM_DEFAULT, htmlToPlainText, SEND_TIMEOUT_MS, sendWithResend } from '../_shared/resend.ts'
 import { isReservedRecipient } from '../_shared/reservedRecipient.ts'
 import { isTestRecipient, TEST_RECIPIENT_REASON } from '../_shared/testRecipient.ts'
+import { finalizeSendLog } from '../_shared/emailSendLog.ts'
 import { serve } from "../_shared/buildStamp.ts";
 
 // Email delivery is via Resend exclusively. Helpr's auth-email-hook
@@ -164,16 +165,10 @@ serve(async (req) => {
       // profile) is suppressed the same way, so it never spends Resend quota.
       const reservedRecipient = isReservedRecipient(payload.to)
       if (reservedRecipient || await isTestRecipient(supabase, payload.to)) {
-        const { error: supLogError } = await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
-          status: 'suppressed',
-          error_message: reservedRecipient
-            ? 'reserved recipient domain (RFC 2606); never deliverable'
-            : TEST_RECIPIENT_REASON,
-        })
-        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError.message}`)
+        // The pre-logged 'pending' row becomes 'suppressed' (LO2-2: inserting a second row left it pending forever).
+        const supLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed',
+          reservedRecipient ? 'reserved recipient domain (RFC 2606); never deliverable' : TEST_RECIPIENT_REASON)
+        if (supLogError) defects.record(`suppressed log ${msg.msg_id}: ${supLogError}`)
         const { error: supDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
         if (supDelError) defects.record(`dequeue suppressed ${msg.msg_id}: ${supDelError.message}`)
         continue
@@ -190,14 +185,8 @@ serve(async (req) => {
             queued_at: payload.queued_at,
             ttl_minutes: ttlMinutes[queue],
           })
-          const { error: ttlLogError } = await supabase.from('email_send_log').insert({
-            message_id: payload.message_id,
-            template_name: payload.label || queue,
-            recipient_email: payload.to,
-            status: 'dlq',
-            error_message: `TTL exceeded (${ttlMinutes[queue]} minutes)`,
-          })
-          if (ttlLogError) defects.record(`ttl dlq log ${msg.msg_id}: ${ttlLogError.message}`)
+          const ttlLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `TTL exceeded (${ttlMinutes[queue]} minutes)`)
+          if (ttlLogError) defects.record(`ttl dlq log ${msg.msg_id}: ${ttlLogError}`)
           const { error: ttlDlqError } = await supabase.rpc('move_to_dlq', {
             source_queue: queue,
             dlq_name: dlq,
@@ -217,14 +206,8 @@ serve(async (req) => {
 
       // Move to DLQ if max retries exceeded
       if (msg.read_ct > MAX_RETRIES) {
-        const { error: retryLogError } = await supabase.from('email_send_log').insert({
-          message_id: payload.message_id,
-          template_name: payload.label || queue,
-          recipient_email: payload.to,
-          status: 'dlq',
-          error_message: `Max retries (${MAX_RETRIES}) exceeded`,
-        })
-        if (retryLogError) defects.record(`max-retry dlq log ${msg.msg_id}: ${retryLogError.message}`)
+        const retryLogError = await finalizeSendLog(supabase, payload, queue, 'dlq', `Max retries (${MAX_RETRIES}) exceeded`)
+        if (retryLogError) defects.record(`max-retry dlq log ${msg.msg_id}: ${retryLogError}`)
         const { error: retryDlqError } = await supabase.rpc('move_to_dlq', {
           source_queue: queue,
           dlq_name: dlq,
@@ -325,32 +308,13 @@ serve(async (req) => {
         // so a rejected write left no 'sent' row, no log line and no defect, and
         // the next redelivery of that message read `alreadySent = null` and sent
         // the email again. A guard that fails silently is not a guard.
-        const { data: updatedSent, error: updateSentError } = await supabase
-          .from('email_send_log')
-          .update({ status: 'sent', error_message: null })
-          .eq('message_id', payload.message_id)
-          .in('status', ['pending', 'failed'])
-          .select('id')
-
-        if (updateSentError) {
-          console.error('Failed to mark email sent', { queue, msg_id: msg.msg_id, error: updateSentError.message })
-          defects.record(`send-log update ${msg.msg_id}: ${updateSentError.message}`)
-        } else if (!updatedSent || updatedSent.length === 0) {
-          // Zero rows is the NORMAL transactional path (no pre-logged pending
-          // row), not a failure — hence the insert rather than an alarm. But it
-          // is only reached when the update itself succeeded, because a failed
-          // update tells us nothing about whether a row exists and blindly
-          // inserting on top of one would double-log.
-          const { error: insertSentError } = await supabase.from('email_send_log').insert({
-            message_id: payload.message_id,
-            template_name: payload.label || queue,
-            recipient_email: payload.to,
-            status: 'sent',
-          })
-          if (insertSentError) {
-            console.error('Failed to log email send', { queue, msg_id: msg.msg_id, error: insertSentError.message })
-            defects.record(`send-log insert ${msg.msg_id}: ${insertSentError.message}`)
-          }
+        // The open row ('pending', or 'failed' from an earlier try) becomes 'sent'; a message with no pre-logged
+        // row (the NORMAL path for senders that do not use queueEmail) gets one, but only after the update itself
+        // succeeded: a failed update tells us nothing about whether a row exists (_shared/emailSendLog.ts).
+        const sentLogError = await finalizeSendLog(supabase, payload, queue, 'sent', null)
+        if (sentLogError) {
+          console.error('Failed to mark email sent', { queue, msg_id: msg.msg_id, error: sentLogError })
+          defects.record(`send-log ${msg.msg_id}: ${sentLogError}`)
         }
 
         // Delete from queue.
@@ -375,12 +339,8 @@ serve(async (req) => {
         // Q840 last line fired (a fixture address sendWithResend refused).
         // Permanent, so never retried into the DLQ: log it suppressed and drop it.
         if (error instanceof Error && error.name === 'TestRecipientRefusedError') {
-          const { error: refLogError } = await supabase
-            .from('email_send_log')
-            .update({ status: 'suppressed', error_message: TEST_RECIPIENT_REASON })
-            .eq('message_id', payload.message_id)
-            .eq('status', 'pending')
-          if (refLogError) defects.record(`suppressed log ${msg.msg_id}: ${refLogError.message}`)
+          const refLogError = await finalizeSendLog(supabase, payload, queue, 'suppressed', TEST_RECIPIENT_REASON)
+          if (refLogError) defects.record(`suppressed log ${msg.msg_id}: ${refLogError}`)
           const { error: refDelError } = await supabase.rpc('delete_email', { queue_name: queue, message_id: msg.msg_id })
           if (refDelError) defects.record(`dequeue refused ${msg.msg_id}: ${refDelError.message}`)
           continue
@@ -393,30 +353,11 @@ serve(async (req) => {
           error: errorMsg,
         })
 
-        // Same UPDATE-first pattern as success path: collapse the pre-logged
-        // pending row into the terminal failed state instead of orphaning it.
-        const { data: updatedFailed, error: updateFailedError } = await supabase
-          .from('email_send_log')
-          .update({ status: 'failed', error_message: errorMsg.slice(0, 1000) })
-          .eq('message_id', payload.message_id)
-          .eq('status', 'pending')
-          .select('id')
-
-        if (updateFailedError) {
-          console.error('Failed to record send failure', { queue, msg_id: msg.msg_id, error: updateFailedError.message })
-          defects.record(`failure-log update ${msg.msg_id}: ${updateFailedError.message}`)
-        } else if (!updatedFailed || updatedFailed.length === 0) {
-          const { error: insertFailedError } = await supabase.from('email_send_log').insert({
-            message_id: payload.message_id,
-            template_name: payload.label || queue,
-            recipient_email: payload.to,
-            status: 'failed',
-            error_message: errorMsg.slice(0, 1000),
-          })
-          if (insertFailedError) {
-            console.error('Failed to log send failure', { queue, msg_id: msg.msg_id, error: insertFailedError.message })
-            defects.record(`failure-log insert ${msg.msg_id}: ${insertFailedError.message}`)
-          }
+        // Same as every outcome: the open row becomes 'failed' instead of a second row (_shared/emailSendLog.ts).
+        const failedLogError = await finalizeSendLog(supabase, payload, queue, 'failed', errorMsg)
+        if (failedLogError) {
+          console.error('Failed to record send failure', { queue, msg_id: msg.msg_id, error: failedLogError })
+          defects.record(`failure-log ${msg.msg_id}: ${failedLogError}`)
         }
 
         if (isRateLimited(error)) {

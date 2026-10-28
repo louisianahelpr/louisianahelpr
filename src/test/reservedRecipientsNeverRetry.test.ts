@@ -33,7 +33,9 @@ describe("reserved recipients never retry into the DLQ", () => {
     expect(check).toBeGreaterThan(0);
     expect(send).toBeGreaterThan(check);
     const block = src.slice(check, src.indexOf("continue", check));
-    expect(block).toContain("status: 'suppressed'");
+    // LO2-2 (2026-10-28): the outcome is written through finalizeSendLog, which turns the pre-logged 'pending' row
+    // into 'suppressed' (src/test/emailSendLogOneRow.test.ts).
+    expect(block).toContain("finalizeSendLog(supabase, payload, queue, 'suppressed',");
     expect(block).toContain("rpc('delete_email'");
   });
 });

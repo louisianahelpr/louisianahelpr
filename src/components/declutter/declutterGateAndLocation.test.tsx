@@ -45,6 +45,11 @@ vi.mock("@/lib/declutter/bundle", async (orig) => ({
   fetchBundleRule: async () => null,
   fetchBundlePreview: async () => 0,
 }));
+// The item page's pickup-times line (#58, 2026-10-28) reads the seller's windows: none here.
+vi.mock("@/lib/declutter/handover", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/handover")>()),
+  fetchItemPickupWindows: async () => [],
+}));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.feature, useFeatureStatus: () => ({ on: state.feature, settled: true }) }));
 // What Browse lists; empty unless a test puts an item up.
 const watchCalls: unknown[][] = [];

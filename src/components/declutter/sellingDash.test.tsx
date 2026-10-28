@@ -407,7 +407,7 @@ describe("#18: taking a listing down asks in the app", () => {
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText("Take this item off sale?")).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Not now" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull(); // the sheet closes on the press itself
     expect(withdrawSpy).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Take down" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Take down" }));

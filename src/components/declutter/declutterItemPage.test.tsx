@@ -86,7 +86,11 @@ vi.mock("@/lib/authRedirects", async () => ({
 }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    rpc: async () => ({ data: state.safeRows, error: null }),
+    // The pickup-times and bundle reads (2026-10-28) answer their own shapes: no windows, no discountable items.
+    rpc: async (fn: string) =>
+      fn === "declutter_item_pickup_windows" || fn === "declutter_bundle_applies"
+        ? { data: [], error: null }
+        : { data: state.safeRows, error: null },
     from: (t: string) => { calls.push(["from", [t]]); return builder; },
   },
 }));

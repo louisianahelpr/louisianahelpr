@@ -526,7 +526,9 @@ export function DeliverView() {
   const locate = useMutation({
     mutationFn: currentPosition,
     onSuccess: (p) => setWhere(p),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
+    // Audit 3 (A3-2): the shared location_required words talk about a pickup address; sorting the list is not that.
+    onError: (err) =>
+      toast.error(err instanceof Error && err.message === "location_required" ? "Turn on location to see the nearest deliveries first." : declutterErrorMessage(err)),
   });
   if (!userId) return null;
   const myList = mine.data ?? [];

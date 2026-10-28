@@ -470,7 +470,7 @@ describe("Declutter slice 3 screens", () => {
     const sheet = await screen.findByRole("dialog");
     expect(within(sheet).getByText(/"Rug" goes back on sale for everyone\. Nothing is charged, and you get no strike\./)).toBeInTheDocument();
     fireEvent.click(within(sheet).getByRole("button", { name: "Keep it" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(screen.queryByRole("dialog")).toBeNull(); // the sheet closes on the press itself
     expect(state.removed).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Remove Rug from your cart" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Remove" }));

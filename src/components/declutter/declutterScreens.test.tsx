@@ -126,6 +126,14 @@ import { rememberAfterCard } from "@/lib/declutter/afterCard";
 import { formProblem } from "./DeclutterSellView";
 import { dollarsToCents } from "@/lib/declutter/money";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+// Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
+vi.mock("@/lib/declutter/donate", () => ({
+  fetchDonationPartnersNear: vi.fn(async () => []),
+  fetchMyDonations: vi.fn(async () => []),
+  chooseDonation: vi.fn(async () => 0),
+  donatePostJobPath: (p: string) => `${p}&donate=1`,
+  oneDonationPartner: () => null,
+}));
 
 function at(path: string, el: React.ReactNode, route = path.split("?")[0]) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

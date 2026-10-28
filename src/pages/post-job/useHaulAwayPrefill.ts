@@ -55,6 +55,7 @@ async function photoFile(path: string, photoPublicUrl: (p: string) => string): P
 export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): string[] | null {
   const on = useFeature("declutter_haul_away");
   const raw = searchParams.get("haulAway");
+  const donate = searchParams.get("donate") === "1";
   const [itemIds, setItemIds] = useState<string[] | null>(null);
   // Applied once per link: the switch can read false then true again (a failed
   // refetch), and re-applying would overwrite the seller's edits and add the
@@ -83,7 +84,18 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
         return;
       }
       if (!live) return;
-      const p = d.buildHaulAwayPrefill(rows);
+      let p = d.buildHaulAwayPrefill(rows);
+      // Q2428: `&donate=1` is the haul-away to the charity the seller picked on the card; its name and address go
+      // in the job (the receipt is written only when the completed job names it). No pick found: the plain haul-away.
+      if (p && donate) {
+        const picked = await d.fetchMyDonations(p.itemIds).then((m) => d.oneDonationPartner(m, p!.itemIds)).catch((err) => {
+          report(err, { severity: "warning", tags: { source: "useHaulAwayPrefill.donate" } });
+          return null;
+        });
+        if (!live) return;
+        if (picked) p = d.buildDonationPrefill(rows, picked) ?? p;
+        else toast("Couldn't find the charity you picked, so this is a plain haul-away. Pick it again on Haul it away to donate.");
+      }
       if (!p) {
         toast(rows.some((r) => r.state === "booked" || r.state === "paying")
           ? "A Helpr is already booked, or a checkout is open, for this haul-away."
@@ -122,8 +134,8 @@ export function useHaulAwayPrefill(searchParams: URLSearchParams, s: Setters): s
       if (live && files.length > 0) s.addPrefillImages(files);
     }, (err) => failed(err, () => "please try again."));
     return () => { live = false; };
-    // The setters are stable; the switch and the param are the triggers.
-  }, [on, raw]);
+    // The setters are stable; the switch and the params are the triggers.
+  }, [on, raw, donate]);
 
   return itemIds;
 }

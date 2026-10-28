@@ -130,6 +130,14 @@ vi.mock("@/lib/declutter/api", () => ({
 
 import DeclutterPage from "@/pages/declutter/DeclutterPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+// Q2428: no partner charity near and no donation receipts (the donate RPCs never reach prod from a test).
+vi.mock("@/lib/declutter/donate", () => ({
+  fetchDonationPartnersNear: vi.fn(async () => []),
+  fetchMyDonations: vi.fn(async () => []),
+  chooseDonation: vi.fn(async () => 0),
+  donatePostJobPath: (p: string) => `${p}&donate=1`,
+  oneDonationPartner: () => null,
+}));
 
 let where = "";
 function Where() {

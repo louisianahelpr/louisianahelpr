@@ -389,7 +389,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
 
   const embeddedTitle = (
     <div className="flex flex-col gap-4">
-      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: headerCount } : undefined)}
+      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes ? undefined : headerCount } : undefined)}
       {/* The same 46px row box as Posted / Working's chip row (jobsToolbar.ts, owner 2026-10-27). */}
       {!isWebDesktop && <div data-jobs-toolbar="" className={JOBS_TOOLBAR_ROW}>
         <div className="min-w-0 flex-1"><BrowseCompactSearchRow filters={filters} filtersButtonRef={filtersButtonRef} /></div>

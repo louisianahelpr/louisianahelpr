@@ -146,14 +146,14 @@ for (const variant of [
     await expect(bar).toBeVisible();
     // Phone (Q2359, owner 2026-10-22, the Explore header): no visible title; the bar IS the section chips with the
     // bell and the photo, and the page's h1 is the section's name, screen-reader only. No "+" (the bottom bar's
-    // center "+" creates). Desktop keeps the visible "Jobs" title and no "+" either (owner 2026-10-28: the rail's
-    // "+ Create" posts).
+    // center "+" creates). Desktop keeps the visible "Jobs" title and its soft "+ Post a job" beside the bell (owner
+    // 2026-10-28: "add the post a job ... buttons back on the top nav maybe just make it the lighter green").
     if (isDesktopWeb) await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible();
     else {
       await expect(bar.getByRole("heading", { level: 1, name: "Jobs" })).toHaveCount(1);
       await expect(bar.getByTestId("explore-switcher")).toBeVisible();
     }
-    await expect(page.getByTestId("section-add"), `no section + anywhere @ ${variant.tag}`).toHaveCount(0);
+    await expect(page.getByTestId("section-add"), `the section + on desktop only @ ${variant.tag}`).toHaveCount(isDesktopWeb ? 1 : 0);
     if (!isDesktopWeb) {
       await expect(page.getByTestId("explore-switcher").getByRole("radio", { name: "Jobs" })).toHaveAttribute("aria-checked", "true");
       // All four section chips fit without scrolling from 375 up (owner 2026-10-28: "Homes" was cut off; 320 may
@@ -171,6 +171,9 @@ for (const variant of [
       // ONE row: the title and the header's photo share a line.
       const photo = (await page.getByTestId("desktop-top-profile").boundingBox())!;
       expect(Math.abs(anchor.y + anchor.height / 2 - (photo.y + photo.height / 2)), `the title is level with the photo @ ${variant.tag}`).toBeLessThan(8);
+      const add = (await bar.getByTestId("section-add").boundingBox())!;
+      expect(Math.abs(add.y + add.height / 2 - (photo.y + photo.height / 2)), `the + is level with the photo @ ${variant.tag}`).toBeLessThan(8);
+      expect(add.x + add.width, `the + sits left of the photo @ ${variant.tag}`).toBeLessThanOrEqual(photo.x);
       barBottom = Math.max(barBottom, photo.y + photo.height);
     } else {
       const bellBox = (await bar.getByTestId("top-bar-bell").boundingBox())!;

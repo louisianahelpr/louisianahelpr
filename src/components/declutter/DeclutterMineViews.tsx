@@ -14,7 +14,7 @@ const CHIP = "flex h-10 shrink-0 items-center gap-1 rounded-full px-4 text-ds-13
 // Selected chips: the look inline at each site, with its declared ink, so the gradInkContrast resolver can rebuild it.
 const OFF = "border border-border bg-card text-foreground";
 
-function StatusChips<K extends string>({ chips, value, onPick, trailing }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void; trailing?: ReactNode }) {
+function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
   const all = chips.reduce((n, c) => n + c.count, 0);
   return (
     <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto px-3 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -27,15 +27,12 @@ function StatusChips<K extends string>({ chips, value, onPick, trailing }: { chi
           {c.count > 0 && <span className={value === c.key || !c.hot ? "" : "text-[hsl(var(--accent-ink))]"}> · {c.count}</span>}
         </button>
       ))}
-      {trailing}
     </div>
   );
 }
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
-import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { fetchMyItems } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
@@ -79,19 +76,13 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
   const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
   const show = (g: SellingGroup) => only === null || only === g;
-  const navigate = useNavigate();
-  const add = sectionByKey("declutter").add;
   return (
     <div className="space-y-6">
+      {/* Filters only (owner 2026-10-28): the filled "Sell an item" pill that ended this row looked like a second
+          selected filter beside the pressed one; the header's "Sell an item" button is the section's one add action. */}
       <StatusChips
         value={only}
         onPick={(k) => (k === null ? only && toggle(only) : toggle(k))}
-        trailing={
-          // Board 26: "Sell an item" ends the chip row (the section's one add action).
-          <button type="button" onClick={() => navigate(add.path)} className={`${CHIP} btn-grad-primary !text-[hsl(var(--parchment))]`}>
-            {add.label}
-          </button>
-        }
         chips={[
           { key: "offers", label: "To answer", count: todo?.sellerOffers ?? 0, hot: true },
           { key: "listings", label: "Listed", count: listed },

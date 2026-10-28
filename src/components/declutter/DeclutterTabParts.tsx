@@ -5,7 +5,9 @@
  * orders on one side. Split out of DeclutterTradeViews to keep it under the
  * component size threshold; DeclutterTradeViews re-exports all three.
  */
+import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { HandCoins, PackageCheck, type LucideIcon } from "lucide-react";
 import { fetchMyCart, fetchMyOffers } from "@/lib/declutter/api";
 import { declutterTodo, type DeclutterTodo } from "@/lib/declutter/tabs";
 import { PaidOrdersSection } from "./DeclutterHandoverViews";
@@ -34,6 +36,33 @@ export function SectionHeading({ title, todo, todoWords }: { title: string; todo
 }
 
 /**
+ * A Selling list with nothing in it yet (owner 2026-10-28: designed empty states, not a bare grey sentence): the
+ * list's icon on the olive tint, what will show here, and when. A dashed edge: the slot the first one fills.
+ */
+export function SellerEmpty({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
+  return (
+    <div data-seller-empty="" className="flex items-start gap-3 rounded-[20px] border border-dashed border-border bg-card/60 px-4 py-4">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[hsl(var(--olive)/0.35)] text-[hsl(var(--bark))]" aria-hidden>
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <div className="min-w-0">
+        <p className="text-ds-15 font-semibold">{title}</p>
+        <p className="text-ds-13 text-muted-foreground">{children}</p>
+      </div>
+    </div>
+  );
+}
+
+/** "Offers on your items" with none yet (OffersSection side="seller"), from the real offer rules (half the price, 48 hours). */
+export function NoSellerOffers() {
+  return (
+    <SellerEmpty icon={HandCoins} title="No offers yet">
+      Buyers can offer from half your price. You have 48 hours to answer each one.
+    </SellerEmpty>
+  );
+}
+
+/**
  * Paid orders on one side (slice 4: book the pickup, hand over, porch photos,
  * no-shows, problems, payout, reviews): Purchases on Buying, the paid sales on Selling.
  */
@@ -48,9 +77,13 @@ export function PaidOrders({ side }: { side: "buyer" | "seller" }) {
     return (
       <section className="space-y-2" aria-label={buyer ? "Purchases" : "Sold: pickup and payout"}>
         <SectionHeading title={buyer ? "Purchases" : "Sold: pickup and payout"} />
-        <p className="text-sm text-muted-foreground">
-          {buyer ? "Nothing bought yet. After you pay, each order shows here with its pickup." : "Nothing sold yet. Once a buyer pays, the pickup and your payout show here."}
-        </p>
+        {buyer ? (
+          <p className="text-sm text-muted-foreground">Nothing bought yet. After you pay, each order shows here with its pickup.</p>
+        ) : (
+          <SellerEmpty icon={PackageCheck} title="Nothing sold yet">
+            When a buyer pays, you book the pickup here and see your payout.
+          </SellerEmpty>
+        )}
       </section>
     );
   }

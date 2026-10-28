@@ -3,8 +3,13 @@
  * form and moving-out mode. They apply to all the seller's listings
  * (declutter_set_pickup_windows replaces the whole set).
  */
+import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ChevronDown, Clock } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import type { PickupWindow } from "@/lib/declutter/api";
+import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
+import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { WEEKDAYS } from "./declutterUi";
 
 export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWindow[]; setWindows: (f: (ws: PickupWindow[]) => PickupWindow[]) => void }) {
@@ -38,5 +43,70 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
         </Button>
       )}
     </>
+  );
+}
+
+const START: PickupWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
+
+/** "Saturday 9:00 AM to 12:00 PM", or how many times a week. */
+function pickupSummary(rows: { weekday: number; starts_local: string; ends_local: string }[]): string {
+  if (rows.length === 0) return "None yet. You add one with your first listing.";
+  if (rows.length > 1) return `${rows.length} times a week`;
+  const t = (hhmm: string) => {
+    const [h, m] = hhmm.split(":").map(Number);
+    return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  };
+  const r = rows[0];
+  return `${WEEKDAYS[r.weekday]} ${t(r.starts_local)} to ${t(r.ends_local)}`;
+}
+
+/**
+ * The Selling tab's "Pickup times" setting (owner 2026-10-28: the seller's settings in one place). The same times the
+ * sell form and moving-out mode edit (declutter_set_pickup_windows replaces the whole set, for every listing).
+ */
+export function PickupTimesCard({ userId }: { userId: string }) {
+  const qc = useQueryClient();
+  const saved = useQuery({ queryKey: ["declutter", "windows", userId], queryFn: () => fetchMyPickupWindows(userId) });
+  const [open, setOpen] = useState(false);
+  const [windows, setWindows] = useState<PickupWindow[]>([START]);
+  const save = useMutation({
+    mutationFn: () => setPickupWindows(windows),
+    onSuccess: () => {
+      toast.success("Pickup times saved.");
+      void qc.invalidateQueries({ queryKey: ["declutter", "windows"] });
+      setOpen(false);
+    },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
+  });
+  if (saved.isError) return null;
+  const toggle = () => {
+    if (!open) {
+      const rows = saved.data ?? [];
+      setWindows(rows.length ? rows.map((r) => ({ weekday: r.weekday, starts: r.starts_local.slice(0, 5), ends: r.ends_local.slice(0, 5) })) : [START]);
+    }
+    setOpen((o) => !o);
+  };
+  return (
+    <section className="rounded-2xl border border-border bg-card" aria-label="Pickup times" data-pickup-times-card="">
+      <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open} disabled={saved.isLoading} onClick={toggle}>
+        <Clock className="h-5 w-5 shrink-0" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-semibold">Pickup times</span>
+          <span className="block text-xs text-muted-foreground">{saved.isLoading ? "Loading…" : pickupSummary(saved.data ?? [])}</span>
+        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {open && (
+        <div className="space-y-3 border-t border-border px-4 py-3">
+          <p className="text-xs text-muted-foreground">When buyers can come for any of your items. They pick one of these after they pay.</p>
+          <PickupTimesEditor windows={windows} setWindows={setWindows} />
+          <div className="flex justify-end">
+            <Button type="button" size="sm" disabled={save.isPending} onClick={() => save.mutate()}>
+              {save.isPending ? "Saving…" : "Save pickup times"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

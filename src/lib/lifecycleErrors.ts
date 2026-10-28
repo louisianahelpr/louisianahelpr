@@ -1012,6 +1012,16 @@ export const RPC_ERROR_COPY = {
     pickup_windows_required: DC.pickup_windows_required,
     under_18: DC.under_18,
   },
+  // 20261028180400: a taken-down listing back to a draft (owner 2026-10-28).
+  declutter_reopen_listing: {
+    account_restricted: DC.account_restricted,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    item_not_editable: DC.item_not_editable,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
   declutter_seller_item_private: {
     feature_disabled: DC.feature_disabled,
     item_not_found: DC.item_not_found,

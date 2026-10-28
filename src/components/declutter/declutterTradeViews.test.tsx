@@ -398,7 +398,7 @@ describe("Declutter slice 3 screens", () => {
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
     state.setupFeeCents = 200;
     show(<CartView />);
-    expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
+    expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
     const bill = document.querySelector("[data-checkout-breakdown]")!;
     expect(bill.textContent).toMatch(/One-time account setup fee\$2/);
     expect(bill.textContent).toMatch(/You pay\$10\.05/);
@@ -415,7 +415,7 @@ describe("Declutter slice 3 screens", () => {
     state.cart = [line];
     state.setupFeeKnown = false;
     show(<CartView />);
-    expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Checkout", level: 3 })).toBeInTheDocument();
     expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$[0-9.]+\+ any setup fee/);
     state.setupFeeKnown = true;
   });
@@ -443,7 +443,7 @@ describe("Declutter slice 3 screens", () => {
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
     show(<CartView />);
-    expect(await screen.findByText("From one seller · one checkout")).toBeInTheDocument();
+    expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
     expect(screen.getByText("$7")).toBeInTheDocument();
     expect(screen.queryByText("$1.05")).toBeNull();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
@@ -458,7 +458,11 @@ describe("Declutter slice 3 screens", () => {
     // never a fee line, name or number.
     // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         <div><dt>Buyer's fee (5% + 70¢, once)</dt><dd>{formatPrice(totalCents - itemsTotalCents)}</dd></div>{setupFeeCents > 0 && (
     expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05$/);
-    expect(screen.getByText("One checkout, one pickup, one payment.")).toBeInTheDocument();
+    // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx | <p className="text-ds-13 text-muted-foreground">From the same seller: one pickup, one payment.</p> | <p className="text-ds-13 text-muted-foreground">One checkout, one pickup, one payment.</p>
+    expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
+    const card = screen.getByRole("region", { name: "Checkout 1" });
+    expect((card.textContent ?? "").match(/checkout/gi)?.length ?? 0).toBeLessThanOrEqual(2);
     const note = document.querySelector("[data-checkout-note]")!;
     // The real payout rule (declutter_handover_sweep, read live 2026-10-20): handover done, or 24 h after the slot
     // unless a problem is open.

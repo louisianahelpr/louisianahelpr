@@ -9,11 +9,24 @@
  *  - "caption": "Coming soon" under a section's name inside its Explore header chip
  *               (owner, 2026-10-22): the chip is already the border, so no pill. It
  *               replaced "badge", the 14px "Soon" the old switcher hung off an icon.
+ *  - "rail":    "Coming soon" UNDER the section's name on the desktop rail, as on the
+ *               phone's chips. Audit #42 (2026-10-28): a member's phone chip said "Coming
+ *               soon" and the same member's rail said "Soon"; the lead's rule: members see
+ *               "Coming soon", a tester who can open the section sees "Preview". As a pill
+ *               beside the name it did not fit: "Declutter" plus the pill ran 21px past the
+ *               nested row's 131px (WebKit, 1440), so it is a muted line under the name.
  */
-export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption"; className?: string } & Record<`data-${string}`, string>) {
+export function SoonPill({ variant = "full", className = "", ...rest }: { variant?: "full" | "short" | "caption" | "rail"; className?: string } & Record<`data-${string}`, string>) {
   if (variant === "caption") {
     return (
       <span {...rest} className={`text-ds-9 font-medium text-muted-foreground ${className}`}>
+        Coming soon
+      </span>
+    );
+  }
+  if (variant === "rail") {
+    return (
+      <span {...rest} className={`block text-ds-11 font-medium leading-tight text-muted-foreground ${className}`}>
         Coming soon
       </span>
     );

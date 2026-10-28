@@ -129,7 +129,8 @@ describe("every pop-up title is sentence case", () => {
     // the rebased tree): RefundRequestDialog and RefundAnswerDialog.
     // 178: + "Approve for the poster?" (the approval queue's confirm, 2026-10-23).
     // 179: + "You have the item back?" (the refund request's one confirm, money review 2026-10-27).
-    expect(all.length).toBe(179);
+    // 181: +2 Declutter's Buy now sheet (2026-10-28, DeclutterReserveSheet): "Reserve it for 48 hours", "Reserved for you".
+    expect(all.length).toBe(181);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

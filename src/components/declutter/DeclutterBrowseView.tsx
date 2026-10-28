@@ -256,7 +256,8 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string; tabs: (
               <div className="flex flex-col items-center gap-2">
                 {searched && (
                   <Button type="button" variant="outline" size="sm" className="rounded-full" data-testid="declutter-clear-search" onClick={() => { setQuery(""); clearAll(); }}>
-                    {filterCount === 0 ? "Clear search" : "Clear filters"}
+                    {/* Not "Clear search": that name is the search field's own ✕ (searchFieldsAllChecked). */}
+                    Show all items
                   </Button>
                 )}
                 <WantedLink />

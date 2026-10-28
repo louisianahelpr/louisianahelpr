@@ -268,7 +268,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.queryByText(/Wanted/)).toBeNull();
   });
 
-  it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Clear search and the Wanted link", async () => {
+  it("lead 10-28 (shot 04): a search that finds nothing says so, never \"Opens soon\", with Show all items and the Wanted link", async () => {
     // Nothing listed at all (an early-preview section) AND a search in the address: the search's answer wins.
     at("/declutter?q=sofa");
     expect(await screen.findByText("Nothing matches that search.")).toBeInTheDocument();
@@ -276,7 +276,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     expect(screen.queryByText("Nothing for sale yet.")).toBeNull();
     expect(screen.getByTestId("declutter-wanted-link")).toBeInTheDocument();
     const clear = screen.getByTestId("declutter-clear-search");
-    expect(clear).toHaveTextContent("Clear search");
+    expect(clear).toHaveTextContent("Show all items");
     fireEvent.click(clear);
     expect(await screen.findByText("Nothing for sale yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-clear-search")).toBeNull();

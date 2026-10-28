@@ -12,7 +12,7 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
@@ -36,8 +36,7 @@ const FILE = "20261027170717";
 
 describe("the Declutter Free section", () => {
   it("reads the newest definitions (floor)", () => {
-    // declutter_start_checkout: restated again by Q2425 (20261027204500) with the free_order rule kept (asserted below).
-    const names = ["declutter_claim_free", "declutter_checkout_free", "declutter_free_rules",
+    const names = ["declutter_claim_free", "declutter_checkout_free", "declutter_free_rules", "declutter_start_checkout",
       "declutter_buy_now", "declutter_take_item", "declutter_close_paid_order", "declutter_complete_handover",
       "declutter_create_item", "declutter_update_draft", "declutter_orders_fee_rule_f1", "payout_setup_hire_allowed",
       "declutter_setup_fee_before_list"];

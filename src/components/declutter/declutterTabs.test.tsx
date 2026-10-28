@@ -106,8 +106,6 @@ vi.mock("./DeclutterHandoverViews", () => ({
     </section>
   ),
 }));
-// Q2425: no safe meetup spot near these carts (its own tests: declutterTradeViews, declutterHandoverViews).
-vi.mock("@/lib/declutter/meetup", () => ({ fetchMeetupSpotsNear: async () => [], fetchOrderMeetup: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMyItems: async () => state.mine,

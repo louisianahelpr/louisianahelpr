@@ -184,11 +184,11 @@ describe("the section tabs (owner 2026-10-18)", () => {
     expect(exploreLabels()).toEqual(["Jobs", "Declutter", "Shops", "Homes"]);
   });
 
-  it("the top bar's right side is the bell, then the Profile avatar at the far right (no section + since owner 2026-10-28)", () => {
+  // The desktop website's soft section "+" (owner 2026-10-28) is guarded in topBarAddMatchesBell.test.tsx.
+  it("the top bar's right side is the bell, then the Profile avatar at the far right", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
     const bell = bar.indexOf('data-testid="top-bar-bell"');
     const avatar = bar.indexOf('data-testid="top-bar-profile"');
-    expect(bar).not.toContain('data-testid="section-add"');
     expect(bell).toBeGreaterThan(0);
     expect(avatar).toBeGreaterThan(bell);
   });

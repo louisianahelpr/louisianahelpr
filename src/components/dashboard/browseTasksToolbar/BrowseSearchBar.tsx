@@ -12,6 +12,7 @@ import {
   pushRecentSearch,
 } from "@/lib/searchHistory";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
+import { DESKTOP_SEARCH_PILL_SURFACE, DESKTOP_SEARCH_PILL_WIDTH } from "@/components/sections/searchPill";
 
 /**
  * The Browse feed's search field, rendered INSIDE the title card — the same
@@ -202,14 +203,14 @@ export function BrowseSearchBar({
   );
 
   return (
-    // WIDTH CAP (owner, 2026-09-14, VN-5: "the search bar should not take up
-    // the whole column"): `lg:max-w-md` on desktop; phone stays full-width.
+    // THE DESKTOP SEARCH PILL (owner 2026-10-28, the mock-up's "Today" row; searchPill.ts): 260px, 42px, a
+    // 1.5px light border, no shadow. It may shrink on a narrow window rather than push the row.
     // `spellCheck={false}` on the input — a search query is not prose the
     // browser should be second-guessing with red squiggles.
-    <div className={`relative flex-1 min-w-0 lg:max-w-md ${className}`}>
+    <div className={`relative min-w-0 ${DESKTOP_SEARCH_PILL_WIDTH} ${className}`}>
       <div ref={fieldRowRef} className="flex items-center gap-2">
         <div className="relative flex-1 min-w-0">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-muted-foreground pointer-events-none" />
           <input
             ref={inputRef}
             type="search"
@@ -244,7 +245,7 @@ export function BrowseSearchBar({
               filters.setSearchOpen(false);
             }}
             // `pr-10` reserves the lane the trailing ✕ sits in.
-            className={`w-full pl-9 pr-10 h-9 text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
+            className={`w-full pl-10 pr-10 text-ds-15 text-foreground ${DESKTOP_SEARCH_PILL_SURFACE} focus:outline-none focus:border-[hsl(var(--bark)/0.55)] transition-colors placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden`}
           />
           {/* The X lives INSIDE the field, on its right — the same shape the
               Activity search uses (owner: "instead of Cancel put X in the

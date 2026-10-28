@@ -59,7 +59,7 @@
 // FREE space, never a sibling's, and must not push the page. `min-w-0` on the
 // search wrapper is what lets it shrink inside its flex row; demanding 900px
 // instead makes it both steal from its siblings and hang off the right edge.
-// @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | relative flex-1 min-w-0 lg:max-w-md | relative flex-1 min-w-[900px] lg:max-w-md
+// @mutate src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx | <div className={`relative min-w-0 ${DESKTOP_SEARCH_PILL_WIDTH} ${className}`}> | <div className={`relative min-w-[900px] ${DESKTOP_SEARCH_PILL_WIDTH} ${className}`}>
 // Q143: the Messages field below 360 must open on its own line with the row at
 // rest. Un-holding the chevron's box below 360 moves the hamburger on open
 // (measured 187 -> 235, the first run of this clause).

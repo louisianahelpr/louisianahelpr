@@ -48,6 +48,10 @@ export default function SmsAlertsCard() {
     // and the card simply stays hidden (error + switch off renders nothing).
     enabled: !!user,
     queryFn: async (): Promise<SmsConsent> => parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent"))),
+    // While a confirmation text is waiting, re-read every few seconds so the
+    // phone's YES flips this card to On (owner 2026-10-28: the card still said
+    // Waiting after YES, and its Cancel then turned the new alerts off).
+    refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false),
   });
 
   const [phone, setPhone] = useState("");
@@ -73,6 +77,15 @@ export default function SmsAlertsCard() {
   const save = async (optIn: boolean) => {
     setSaving(true);
     try {
+      // Cancelling a waiting request: if the phone already replied YES, keep
+      // the alerts on instead of turning them straight back off.
+      if (!optIn && pendingPhone && !optedIn) {
+        const fresh = (await refetch()).data;
+        if (fresh?.sms_opt_in) {
+          toast.success("Text alerts are on.");
+          return;
+        }
+      }
       const res = await supabase.rpc("set_sms_consent", { p_opt_in: optIn, p_phone: optIn ? phone : "" });
       if (res.error) {
         toast.error(rpcErrorMessage("set_sms_consent", res.error) ?? "We couldn't save that. Try again.");

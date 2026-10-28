@@ -60,3 +60,18 @@ describe("the one-time add-your-phone prompt", () => {
     for (const f of signup) expect(read(`src/pages/auth/signup/${f}`), f).not.toContain("SmsPhonePrompt");
   });
 });
+
+// Owner 2026-10-28 (screenshot + prod events): the phone's YES opted in at
+// 03:04:07, but the open card still showed "Waiting" with Cancel; Cancel at
+// 03:04:16 turned the new alerts straight off. The card re-reads while a
+// confirmation is waiting, and a Cancel first re-reads and keeps alerts on if
+// the YES already landed.
+// @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false), |     refetchInterval: false,
+// @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |        if (fresh?.sms_opt_in) { |        if (false) {
+describe("a confirmed YES is never undone by a stale Waiting card", () => {
+  it("re-reads while waiting, and Cancel keeps alerts on when the YES already landed", () => {
+    const card = read("src/components/notificationPreferences/SmsAlertsCard.tsx");
+    expect(card).toContain("refetchInterval: (q) => (q.state.data?.pending_phone && !q.state.data?.sms_opt_in ? 3000 : false),");
+    expect(card).toMatch(/if \(!optIn && pendingPhone && !optedIn\) \{ const fresh = \(await refetch\(\)\)\.data; if \(fresh\?\.sms_opt_in\) \{ toast\.success\("Text alerts are on\."\); return; \} \}/);
+  });
+});

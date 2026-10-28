@@ -191,7 +191,9 @@ export function DeclutterQuestions({
               onChange={(e) => setQuestion(e.target.value)}
               placeholder="Ask about size, condition…"
             />
-            <Button type="submit" className="h-auto shrink-0" disabled={ask.isPending || text.length < 2}>
+            {/* Outline: Buy now is the item page's one filled button (Declutter audit 2026-10-28: two olive buttons, Buy now
+                and Ask, competed). Guard: declutterItemPage.test.tsx "one filled button". */}
+            <Button type="submit" variant="outline" className="h-auto shrink-0" disabled={ask.isPending || text.length < 2}>
               Ask
             </Button>
           </div>

@@ -11,6 +11,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { roundPayoutDownCents } from "../../../supabase/functions/_shared/money";
+import { DECLUTTER_CLIENT_ERROR_COPY, DECLUTTER_ERROR_COPY } from "@/lib/declutter/errors";
 
 /** Row 29: $10 base per checkout. */
 export const DELIVERY_BASE_CENTS = 1000;
@@ -70,7 +71,13 @@ export async function fetchDeliveryQuote(sellerId: string, address: string): Pro
           return null;
         })
       : null;
-    throw new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
+    // Mark known user-facing codes `worded: true` so the global MutationCache
+    // reporter (_isHandledCopyError) skips them — the component's onError toast
+    // already handles them (Sentry JAVASCRIPT-4N: geocode_unavailable noise).
+    const code = typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable";
+    const knownCode = Object.prototype.hasOwnProperty.call(DECLUTTER_CLIENT_ERROR_COPY, code)
+      || Object.prototype.hasOwnProperty.call(DECLUTTER_ERROR_COPY, code);
+    throw Object.assign(new Error(code), knownCode ? { worded: true } : {});
   }
   const quote = (data as { quote?: unknown } | null)?.quote;
   if (!isQuote(quote)) throw new Error("payment_unavailable");

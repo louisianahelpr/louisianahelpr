@@ -165,6 +165,17 @@ describe("fetchDeliveryQuote", () => {
     const err = await fetchDeliveryQuote("s", "1 Nowhere Ln").catch((e: unknown) => e);
     expect((err as Error).message).toBe("address_not_found");
     expect(declutterErrorMessage(err)).toMatch(/couldn't find that address/);
+    // Known codes are `worded: true` so the global MutationCache reporter skips
+    // them (Sentry JAVASCRIPT-4N: geocode_unavailable from the E2E test).
+    expect((err as Record<string, unknown>).worded).toBe(true);
+  });
+
+  it("geocode_unavailable is worded so MutationCache skips reporting it", async () => {
+    const ctx = new Response(JSON.stringify({ error: "geocode_unavailable" }), { status: 503 });
+    h.queue.push({ data: null, error: { message: "Edge Function returned a non-2xx status code", context: ctx } });
+    const err = await fetchDeliveryQuote("s", "1 Main St").catch((e: unknown) => e);
+    expect((err as Error).message).toBe("geocode_unavailable");
+    expect((err as Record<string, unknown>).worded).toBe(true);
   });
 
   it("an answer that is not a quote is never shown as a price", async () => {

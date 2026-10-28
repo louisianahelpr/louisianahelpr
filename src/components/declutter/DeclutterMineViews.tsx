@@ -37,6 +37,7 @@ import { fetchMyItems } from "@/lib/declutter/api";
 import type { DeclutterTodo } from "@/lib/declutter/tabs";
 import { CartView, OffersSection, PaidOrders } from "./DeclutterTradeViews";
 import { SalesWaiting } from "./DeclutterSalesWaiting";
+import { TakenDownSection } from "./DeclutterTakenDown";
 
 const BUYING = ["cart", "offers", "purchases"] as const;
 type BuyingGroup = (typeof BUYING)[number];
@@ -67,7 +68,7 @@ export function BuyingDash({ todo }: { todo: DeclutterTodo | null }) {
 /** On sale, or on its way there (the listings a seller still manages). */
 const LISTED = new Set(["draft", "pending_review", "live", "paused", "reserved"]);
 
-const SELLING = ["listings", "offers", "waiting", "sold"] as const;
+const SELLING = ["listings", "offers", "waiting", "sold", "taken"] as const;
 type SellingGroup = (typeof SELLING)[number];
 
 export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | null; userId: string; listings: ReactNode }) {
@@ -75,6 +76,8 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
   // The same read (and key) My listings uses, so this adds no request.
   const mine = useQuery({ queryKey: ["declutter", "mine", userId], queryFn: () => fetchMyItems(userId) });
   const listed = (mine.data ?? []).filter((i) => LISTED.has(i.status)).length;
+  // Owner 2026-10-28 (shots 48-49): a taken-down listing keeps its history here, with Relist.
+  const takenDown = (mine.data ?? []).filter((i) => i.status === "withdrawn");
   const show = (g: SellingGroup) => only === null || only === g;
   return (
     <div className="space-y-6">
@@ -88,12 +91,15 @@ export function SellingDash({ todo, userId, listings }: { todo: DeclutterTodo | 
           { key: "listings", label: "Listed", count: listed },
           { key: "waiting", label: "To be paid", count: todo?.salesAwaitingPayment ?? 0 },
           { key: "sold", label: "Hand over", count: todo?.salesOpen ?? 0, hot: true },
+          // Only while there is one (owner 2026-10-28: chips only for lists that hold something).
+          ...(takenDown.length > 0 ? [{ key: "taken" as const, label: "Taken down", count: takenDown.length }] : []),
         ]}
       />
       {show("offers") && <OffersSection side="seller" />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting />}
       {show("sold") && <PaidOrders side="seller" />}
+      {show("taken") && <TakenDownSection items={takenDown} />}
     </div>
   );
 }

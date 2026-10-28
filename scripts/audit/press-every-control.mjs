@@ -297,8 +297,9 @@ export function networkGate() {
     },
   };
 }
-export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it|unsave|reverse|connect (?:google|apple))\b/i;
+export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it|unsave|reverse|connect (?:google|apple)|watch|unwatch)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
+import { isDeclaredReadRpcPath } from "./declaredReadRpcs.mjs";
 import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl, isNotificationOpen } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
@@ -562,6 +563,7 @@ export function rowGoneAfterOwnWrite({ rowText, mutatedRows, now }) {
  * What counts as a write: a 2xx PATCH / PUT / DELETE, or POST, to PostgREST or
  * Storage, EXCEPT a POST to an RPC whose name says it reads (`get_`, `is_`,
  * `has_`, `my_`, `search_`, `count_`, `list_`, `can_`, `client_compat_floor`)
+ * or that every migration declares STABLE / IMMUTABLE (declaredReadRpcs.mjs),
  * and Storage's list/sign POSTs. Edge functions are not counted (several only
  * read, e.g. check-pro-subscription), so a function-only write still needs the
  * label gate. Misreading a read as a write cannot excuse anything by itself:
@@ -577,7 +579,7 @@ export function isWriteRequest({ method, url, status }) {
   if (m === "PATCH" || m === "PUT" || m === "DELETE") return true;
   if (m !== "POST") return false;
   const rpc = /\/rest\/v1\/rpc\/([A-Za-z0-9_]+)$/.exec(path);
-  if (rpc) return !READ_RPC_RX.test(rpc[1]);
+  if (rpc) return !(READ_RPC_RX.test(rpc[1]) || isDeclaredReadRpcPath(path));
   if (/\/storage\/v1\/object\/(list|sign)\//.test(path)) return false;
   return true;
 }
@@ -1832,7 +1834,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isNotificationOpen({ label }) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isNotificationOpen({ label, chain: entry.chain }) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;

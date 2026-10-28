@@ -19,7 +19,7 @@
  * any other missing page control still fails.
  *
  * @mutate scripts/audit/pressProdSafety.mjs | dismiss\|investigat\w*\|assign\w*\| | 
- * @mutate scripts/audit/press-every-control.mjs | \|\| isNotificationOpen({ label }) \|\| isAdminWrite({ persona, label }) \|\| meta.type | \|\| isNotificationOpen({ label }) \|\| meta.type
+ * @mutate scripts/audit/press-every-control.mjs | \|\| isNotificationOpen({ label, chain: entry.chain }) \|\| isAdminWrite({ persona, label }) \|\| meta.type | \|\| isNotificationOpen({ label, chain: entry.chain }) \|\| meta.type
  * @mutate scripts/audit/press-every-control.mjs |   if (rowConsumed) return ROW_CONSUMED_SKIP; | 
  * @mutate scripts/audit/press-every-control.mjs |   return !(now ?? []).some((c) => c.rowText === rowText); |   return true;
  */

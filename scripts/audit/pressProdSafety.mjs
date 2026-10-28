@@ -26,6 +26,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync } from "node:fs";
 import { readLiveCache, sessionAlive, writeCache } from "../../e2e/liveSession.ts";
 import { isReadRpcPath, isStorageSignPath } from "../../e2e/readRpc.ts";
+import { isDeclaredReadRpcPath } from "./declaredReadRpcs.mjs";
 import { resolve } from "node:path";
 import { acceptCurrentTerms } from "../lib/acceptCurrentTerms.mjs";
 import { ensureTestAccountsEnrolled, isSharedTestAccount } from "../lib/testAccountEnrolment.mjs";
@@ -391,8 +392,16 @@ export function isCommitControl(meta = {}) {
  * control: it goes through the mutation gate like any other, never ungated.
  */
 export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /;
-export function isNotificationOpen({ label = "" }) {
-  return NOTIFICATION_OPEN_RX.test(label);
+/*
+ * Read the CHAIN, not the control's own words (Declutter audit 2026-10-28,
+ * audit2 press.log: 23 GATE MISSes on PATCH /rest/v1/notifications). The main
+ * loop passed only `label`, the row's own text ("Offer declined Hallie
+ * declined..."); "Notifications" is the chain step that opened the bell panel,
+ * so the prefix never matched and every row was pressed ungated. `chain` is
+ * the press's full path (entry.chain: every opener, then the control).
+ */
+export function isNotificationOpen({ label = "", chain = null }) {
+  return NOTIFICATION_OPEN_RX.test(Array.isArray(chain) && chain.length ? chain.join(" \u203a ") : label);
 }
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
@@ -1046,7 +1055,8 @@ const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pa
  * every POST / PUT / PATCH / DELETE writes bar PRESS_AUTH_ALLOWED, and a GET
  * writes only when PRESS_AUTH_GET_WRITES names it. Elsewhere GET / HEAD /
  * OPTIONS and anything off PRESS_WRITE_SURFACE_RX read; a read-named RPC
- * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), a storage
+ * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), an RPC every
+ * migration declares STABLE / IMMUTABLE (declaredReadRpcs.mjs), a storage
  * sign or list, a stripe-connect read action and PRESS_READ_FUNCTIONS read;
  * PRESS_SIDE_EFFECT_WRITES are side effects; every other POST / PATCH / PUT /
  * DELETE writes. An unparseable URL writes (fail closed).
@@ -1064,7 +1074,7 @@ export function pressWriteKind({ method, url, body = null }) {
   if (safeMethod) return "read";
   if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
   if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
-  if (isReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";
+  if (isReadRpcPath(pathname) || isDeclaredReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";
   const fn = /^\/functions\/v1\/([a-z0-9-]+)/.exec(pathname)?.[1];
   if (fn === "stripe-connect" && !isStripeWriteRequest(url, body)) return "read";
   if (fn && Object.hasOwn(PRESS_READ_FUNCTIONS, fn)) return "read";

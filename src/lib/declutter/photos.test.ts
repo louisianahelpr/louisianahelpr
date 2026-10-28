@@ -18,7 +18,7 @@ const compress = {
 };
 vi.mock("@/lib/imageCompression", () => ({ compressImage: (f: File) => compressImpl(f) }));
 
-import { cleanListingPhoto, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath } from "./photos";
+import { cleanListingPhoto, jpegHasMetadata, LISTING_PHOTO_UNCLEANABLE, listingPhotoPath, stripJpegAppSegments } from "./photos";
 
 /** SOI, optional APP1 "Exif" segment, APP0, SOS. */
 function jpeg(withExif: boolean): Uint8Array {
@@ -39,10 +39,49 @@ describe("Declutter listing photos are cleaned before upload", () => {
     expect(jpegHasMetadata(new Uint8Array([1, 2, 3]))).toBe(false);
   });
 
-  it("a re-encoded JPEG with no metadata is accepted", async () => {
+  it("a re-encoded JPEG with no metadata is accepted, byte for byte", async () => {
     const out = fileOf(jpeg(false));
     compress.mockResolvedValue(out);
-    await expect(cleanListingPhoto(fileOf(jpeg(true)))).resolves.toBe(out);
+    const got = await cleanListingPhoto(fileOf(jpeg(true)));
+    expect(got.type).toBe("image/jpeg");
+    expect(new Uint8Array(await got.arrayBuffer())).toEqual(jpeg(false));
+  });
+
+  // 2026-10-28: Apple's encoder (iOS Safari / WKWebView; measured in Playwright WebKit) writes its own APP1 and
+  // APP13 into every canvas JPEG: markers e0:16, e1:76, ed:56, c0, c4, db, dd, da. Refusing any APP1 refused
+  // every photo on an iPhone. Now every APPn but APP0 and every comment is stripped; the image data is kept.
+  // @mutate src/lib/declutter/photos.ts |     if (!metadata) keep.push(bytes.subarray(i, i + 2 + len)); |     keep.push(bytes.subarray(i, i + 2 + len));
+  // @mutate src/lib/declutter/photos.ts |     const metadata = (marker >= 0xe1 && marker <= 0xef) \|\| marker === 0xfe; |     const metadata = marker === 0xe1;
+  // @mutate src/lib/declutter/photos.ts |   if (!stripped \|\| jpegHasMetadata(stripped)) throw new ListingPhotoError(LISTING_PHOTO_UNCLEANABLE); |   if (!stripped) return cleaned;
+  it("a WebKit canvas JPEG (its own APP1 + APP13) is stripped to APP0 + the image, not refused", async () => {
+    const seg = (marker: number, body: number[]) => [0xff, marker, 0x00, body.length + 2, ...body];
+    const app0 = seg(0xe0, [0x4a, 0x46, 0x49, 0x46, 0x00, 1, 1, 0, 0, 1, 0, 1, 0, 0]);
+    const app1 = seg(0xe1, [0x45, 0x78, 0x69, 0x66, 0x00, 0x00, 0x4d, 0x4d, 0x00, 0x2a]);
+    const app13 = seg(0xed, [0x50, 0x68, 0x6f, 0x74, 0x6f, 0x73, 0x68, 0x6f, 0x70]);
+    const xmp = seg(0xe2, [0x49, 0x43, 0x43]);
+    const com = seg(0xfe, [0x68, 0x69]);
+    const dqt = seg(0xdb, [0x00, 1, 2, 3]);
+    const sof = seg(0xc0, [8, 0, 1, 0, 1, 1, 1, 0x11, 0]);
+    const scan = [0xff, 0xda, 0x00, 0x02, 0x11, 0x22, 0x33, 0xff, 0xd9];
+    const webkit = new Uint8Array([0xff, 0xd8, ...app0, ...app1, ...app13, ...xmp, ...com, ...dqt, ...sof, ...scan]);
+    compress.mockResolvedValue(fileOf(webkit));
+    const got = new Uint8Array(await (await cleanListingPhoto(fileOf(jpeg(true)))).arrayBuffer());
+    expect(got).toEqual(new Uint8Array([0xff, 0xd8, ...app0, ...dqt, ...sof, ...scan]));
+    expect(jpegHasMetadata(got)).toBe(false);
+    // Stripping again changes nothing: no metadata segment is left.
+    expect(stripJpegAppSegments(got)).toEqual(got);
+  });
+
+  it("a header that cannot be walked to its scan is refused, never uploaded", async () => {
+    // Truncated segment length, no start-of-scan, a non-marker byte: each refused.
+    const truncated = new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x40, 0x45, 0x78]);
+    const noScan = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x04, 0x00, 0x00, 0xff, 0xd9]);
+    const garbage = new Uint8Array([0xff, 0xd8, 0x12, 0x34, 0x00, 0x04, 0xff, 0xda, 0x00, 0x02]);
+    for (const bad of [truncated, noScan, garbage]) {
+      expect(stripJpegAppSegments(bad)).toBeNull();
+      compress.mockResolvedValue(fileOf(bad));
+      await expect(cleanListingPhoto(fileOf(jpeg(true)))).rejects.toThrow(LISTING_PHOTO_UNCLEANABLE);
+    }
   });
 
   it("refuses when compressImage handed back the ORIGINAL (HEIC, no canvas, empty blob): GPS kept", async () => {
@@ -53,9 +92,11 @@ describe("Declutter listing photos are cleaned before upload", () => {
     await expect(cleanListingPhoto(original)).rejects.toThrow(LISTING_PHOTO_UNCLEANABLE);
   });
 
-  it("refuses a 'cleaned' JPEG that still carries EXIF", async () => {
+  it("a 'cleaned' JPEG that still carries EXIF goes up WITHOUT it (stripped, never as it is)", async () => {
     compress.mockResolvedValue(fileOf(jpeg(true)));
-    await expect(cleanListingPhoto(fileOf(jpeg(true)))).rejects.toThrow(LISTING_PHOTO_UNCLEANABLE);
+    const got = new Uint8Array(await (await cleanListingPhoto(fileOf(jpeg(true)))).arrayBuffer());
+    expect(jpegHasMetadata(got)).toBe(false);
+    expect(got).toEqual(jpeg(false));
   });
 
   it("refuses a non-image and a failed re-encode", async () => {

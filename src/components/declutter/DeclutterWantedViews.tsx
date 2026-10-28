@@ -88,7 +88,7 @@ function WantedForm({ at, onPosted }: { at: { lat: number; lng: number }; onPost
           <label className="block text-ds-15 font-semibold" htmlFor="wanted-max">Up to</label>
           <div className={`${input} flex items-center gap-1`}>
             <span aria-hidden className="font-semibold text-[hsl(var(--burnt-sienna))]">$</span>
-            <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
+            <input id="wanted-max" className="w-full min-w-0 self-stretch rounded-xl bg-transparent font-semibold text-[hsl(var(--burnt-sienna))] outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring placeholder:font-normal placeholder:text-muted-foreground"
               inputMode="numeric" value={form.maxPrice} placeholder="30"
               onChange={(e) => setForm((f) => ({ ...f, maxPrice: e.target.value }))} />
           </div>

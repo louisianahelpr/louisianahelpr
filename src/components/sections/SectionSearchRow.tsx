@@ -14,6 +14,11 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
  * for sale: City or ZIP") is whole at 320; what you type stays 15px.
  *
  * Geometry is pinned by e2e/prod-audit/section-shell-alignment.spec.ts.
+ *
+ * FOCUS: the pill is the one ring (deep audit #46, 2026-10-28). It is an OUTLINE on the form, because the T2
+ * card rule in index.css pins every .bg-card box-shadow with !important, so a `ring-*` (a box-shadow) never
+ * painted; and the input drops the global outline (`focus-visible:outline-none`), which had drawn a square
+ * box around the words inside the pill. Guard: src/test/oneFocusRingOnFields.test.ts.
  */
 export function SectionSearchRow({
   value,
@@ -58,7 +63,7 @@ export function SectionSearchRow({
       onSubmit={submit}
       data-section-search=""
       data-testid={testId}
-      className="flex items-center gap-2 h-10 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:ring-2 focus-within:ring-ring"
+      className="flex items-center gap-2 h-10 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-[hsl(var(--ring))]"
     >
       <Search className="w-[18px] h-[18px] text-muted-foreground shrink-0" aria-hidden />
       <input
@@ -68,7 +73,7 @@ export function SectionSearchRow({
         placeholder={placeholder}
         aria-label={placeholder}
         enterKeyHint="search"
-        className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground outline-none placeholder:text-muted-foreground max-[359px]:placeholder:text-ds-13 [&::-webkit-search-cancel-button]:hidden"
+        className="flex-1 min-w-0 bg-transparent text-ds-15 text-foreground outline-none focus-visible:outline-none placeholder:text-muted-foreground max-[359px]:placeholder:text-ds-13 [&::-webkit-search-cancel-button]:hidden"
       />
       {value && (
         <button type="button" aria-label="Clear search" onClick={() => onChange("")} className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center text-muted-foreground">

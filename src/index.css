@@ -2356,6 +2356,16 @@ button,
   outline-offset: 0;
 }
 
+/* ONE focus ring on a typing field (Declutter deep audit #46, 2026-10-28: the
+   search, offer and counter fields showed two rings). The global outline above
+   sits 2px OUTSIDE the field, so a bordered field read as its own border, a
+   gap, then the outline. Here the outline lies over the border (-1px) and
+   stands in for it: one ring. Checkboxes, radios, sliders and file pickers
+   keep the offset ring. Guard: src/test/oneFocusRingOnFields.test.ts. */
+:is(input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="button"], [type="submit"], [type="reset"]), textarea, select):focus-visible {
+  outline-offset: -1px;
+}
+
 /* Animations */
 @keyframes fadeIn {
   from {

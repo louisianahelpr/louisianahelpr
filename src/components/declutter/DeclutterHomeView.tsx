@@ -41,6 +41,7 @@ import { firstPhotos } from "./DeclutterItemCard";
 import { ManageListingSheet } from "./DeclutterManageListing";
 import { dropOutlook } from "@/lib/declutter/browseFilters";
 import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTradeViews";
+import { OrdersUpdating } from "./OrdersUpdating";
 import { BuyingDash, SellingDash } from "./DeclutterMineViews";
 import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
@@ -479,6 +480,7 @@ export default function DeclutterHome() {
     // listings and sales are not what "Search all sections" finds.
     <SectionScreen section="declutter" title="Declutter" globalSearch={view !== "buying" && view !== "selling"} tabs={tabsFor()}>
       <StrikeCount userId={user.id} />
+      {(view === "buying" || view === "selling") && <OrdersUpdating />}
       {view === "buying" ? <><BoughtWhatNext /><BuyingDash todo={todo} /></>
           : view === "selling" ? <SellingView userId={user.id} haulOn={haulAway.on} movingOutOn={movingOut.on} todo={todo} />
             : view === "deliver" ? <Suspense fallback={<HelprSpinner />}><DeliverView /></Suspense>

@@ -20,6 +20,7 @@ import { report } from "./errorLogger";
 import { currentScreen } from "./currentScreen";
 import { PERSIST_MAX_AGE_MS } from "./queryPersister";
 import { shouldRetryQuery } from "./queryRetry";
+import { keepOrderReadsFresh } from "./declutter/orderFreshness";
 
 // A query that has exhausted its retries is about to drive an <ErrorState>;
 // a failed mutation is about to drive an error toast. Neither used to be
@@ -172,3 +173,7 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+// Declutter order and money reads: read again on every open and return, never shown stale without a cue
+// (deep audit #17; src/lib/declutter/orderFreshness.ts).
+keepOrderReadsFresh(queryClient);

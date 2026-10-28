@@ -17,7 +17,7 @@
  *     2026-10-21, finding 1).
  *
  * @mutate src/components/NotificationPreferences.tsx |     const newVal = !shownOn(key); |     const newVal = !prefs[key];
- * @mutate src/components/NotificationPreferences.tsx |               checked={shownOn(item.emailKey) && emailMasterEnabled} |               checked={!!prefs[item.emailKey] && emailMasterEnabled}
+ * @mutate src/components/NotificationPreferences.tsx | emailShownOn={shownOn(item.emailKey)} | emailShownOn={!!prefs[item.emailKey]}
  * @mutate src/components/NotificationPreferences.tsx |       setMarketingConsent(consentRead.data?.marketing_consent === true); |       setMarketingConsent(false);
  * @mutate src/components/NotificationPreferences.tsx |     if (pressed !== "email_promotions") delete payload.email_promotions; |
  */

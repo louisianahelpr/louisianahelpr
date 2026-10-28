@@ -30,7 +30,7 @@ import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
-import { rows } from "@/components/notificationPreferences/constants";
+import { declutterRows, rows } from "@/components/notificationPreferences/constants";
 
 const root = resolve(__dirname, "../..");
 const DIR = resolve(root, "supabase/migrations");
@@ -63,15 +63,32 @@ function prefColumns(): Set<string> {
     for (const m of sql.matchAll(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?notification_preferences\s*\(([\s\S]*?)\n\);/gi)) {
       for (const c of m[1].matchAll(/^\s*"?(\w+)"?\s+(?:boolean|uuid|text|time|timestamptz|timestamp|integer)/gim)) cols.add(c[1]);
     }
+    // Columns added in a loop (20261028162048, the Declutter switches):
+    // FOREACH v IN ARRAY ARRAY['a', ...] LOOP ... EXECUTE format('ALTER TABLE
+    // public.notification_preferences ADD COLUMN %I ...', v | 'email_' || v).
+    for (const m of sql.matchAll(/FOREACH\s+(\w+)\s+IN\s+ARRAY\s+ARRAY\[([^\]]*)\]([\s\S]*?)END\s+LOOP/gi)) {
+      const [, v, list, loop] = m;
+      const names = [...list.matchAll(/'(\w+)'/g)].map((x) => x[1]);
+      for (const a of loop.matchAll(/notification_preferences\s+ADD\s+COLUMN\s+%I[^']*',\s*('email_'\s*\|\|\s*)?(\w+)\s*\)/gi)) {
+        if (a[2] !== v) continue;
+        for (const n of names) cols.add(a[1] ? `email_${n}` : n);
+      }
+    }
   }
   return cols;
 }
 
-/** Email switches a member can see: `rows` emailKeys plus standalone toggles on the screen. */
+/**
+ * Email switches a member can see: `rows` emailKeys, the Declutter group's rows
+ * (DeclutterNotificationGroup: each shows its Email switch or, for a kind that
+ * sends no email or always does, a dash with that reason as its label), plus
+ * standalone toggles on the screen.
+ */
 function visibleEmailSwitches(): Set<string> {
   const screen = blankComments(read("src/components/NotificationPreferences.tsx"));
   const standalone = [...screen.matchAll(/toggle\("(email_\w+)"\)/g)].map((m) => m[1]);
-  return new Set<string>([...rows.map((r) => r.emailKey as string), ...standalone]);
+  const declutter = declutterRows.map((r) => r.emailKey as string);
+  return new Set<string>([...rows.map((r) => r.emailKey as string), ...declutter, ...standalone]);
 }
 
 describe("Q2120 quote reminders by email, with their own switch", () => {

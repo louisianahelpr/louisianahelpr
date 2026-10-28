@@ -34,7 +34,7 @@
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -698,5 +698,63 @@ describe("Declutter slice 3 screens", () => {
     expect(dollarsInputToCents("25.555")).toBeNull();
     expect(dollarsInputToCents("0")).toBeNull();
     expect(dollarsInputToCents("abc")).toBeNull();
+  });
+});
+
+// B-1 (deep audit 2026-10-28, CRITICAL): back from the payment page (?paid=1) the cart showed the unpaid checkout and a
+// live Pay for 10+ s while the order was already paid: a buyer could pay twice. Now "Payment received" shows at once,
+// the paid checkout's Pay is off until the cart (read again, every 2 s) shows it paid, and another seller's stays usable.
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| | disabled={opening \|\|
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |       <PaySettlingNotice s={settling} />\n |
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |           rememberPaying(sellerId);\n |
+// @mutate src/components/declutter/DeclutterPaySettling.tsx |       returnedAt !== null && !settledBy(q.state.data, q.state.dataUpdatedAt, returnedAt, sellerId) ? SETTLE_POLL_MS : false, |       false,
+// @mutate src/components/declutter/DeclutterPaySettling.tsx |     settling: !settled && !(slow && sellerId === null), |     settling: false,
+describe("B-1: the return from the payment page never offers Pay again for what was just paid", () => {
+  const soon = () => new Date(Date.now() + 20 * 3_600_000).toISOString();
+  const lamp = () => ({ line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+    checkout_by: soon(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null });
+  const rug = () => ({ ...lamp(), line_id: "l9", item_id: "i9", item_title: "Rug", seller_id: "s3" });
+  const group = (n: number) => screen.getByRole("region", { name: `Checkout ${n}` });
+  beforeEach(() => {
+    sessionStorage.clear();
+    state.paid = [];
+    state.opened = [];
+    state.cart = [lamp(), rug()];
+  });
+
+  it("the checkout just paid says Payment received and holds its Pay until the cart shows it paid; another seller's Pay stays", async () => {
+    // The Pay tap remembers which checkout it was.
+    const before = show(<CartView />, "/declutter?tab=buying");
+    fireEvent.click(await within(await screen.findByRole("region", { name: "Checkout 1" })).findByRole("button", { name: /^Pay / }));
+    await waitFor(() => expect(state.opened.length).toBe(1));
+    before.unmount();
+
+    // Back from Stripe: the webhook has not landed yet, so the server still has the lamp in the cart.
+    show(<CartView />, "/declutter?tab=buying&paid=1");
+    expect(await screen.findByText("Payment received.")).toBeInTheDocument();
+    const held = within(group(1)).getByRole("button", { name: "Confirming your payment…" });
+    expect(held).toBeDisabled();
+    expect(within(group(2)).getByRole("button", { name: /^Pay / })).toBeEnabled();
+
+    // The webhook lands: the next read (polled, no reload) shows the lamp paid, and the notice goes.
+    state.cart = [{ ...lamp(), status: "paid", order_id: "ord1", order_status: "paid", handover: "porch", total_cents: 385 }, rug()];
+    await waitFor(() => expect(screen.queryByText("Payment received.")).toBeNull(), { timeout: 5000 });
+    expect(screen.queryByRole("button", { name: "Confirming your payment…" })).toBeNull();
+    expect(screen.getAllByRole("button", { name: /^Pay / }).length).toBe(1);
+  });
+
+  it("when which checkout was paid is unknown, every Pay waits", async () => {
+    show(<CartView />, "/declutter?tab=buying&paid=1");
+    expect(await screen.findByText("Payment received.")).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button", { name: "Confirming your payment…" });
+    expect(buttons.length).toBe(2);
+    for (const b of buttons) expect(b).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /^Pay / })).toBeNull();
+  });
+
+  it("no ?paid=1: nothing is held", async () => {
+    show(<CartView />, "/declutter?tab=buying");
+    expect((await screen.findAllByRole("button", { name: /^Pay / })).length).toBe(2);
+    expect(screen.queryByText("Payment received.")).toBeNull();
   });
 });

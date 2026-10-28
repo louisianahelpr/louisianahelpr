@@ -21,7 +21,7 @@ const files = walkSource([join(ROOT, "src/components/declutter"), join(ROOT, "sr
   .filter((f) => !/\.test\.tsx?$/.test(f));
 
 /** Sites still on window.confirm on 2026-10-28 (after Buy now moved to its sheet): sell side, Selling and delivery. */
-const DECLUTTER_BROWSER_CONFIRMS = 10;
+const DECLUTTER_BROWSER_CONFIRMS = 7;
 
 const sites = () =>
   files.flatMap((f) => {

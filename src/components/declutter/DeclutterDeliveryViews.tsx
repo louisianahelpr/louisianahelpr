@@ -39,6 +39,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { BusyAreasCard } from "@/components/busyAreas/BusyAreasCard";
 import { DeliverExplainer } from "./DeclutterDeliverExplainer";
+import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   acceptTask,
@@ -116,8 +117,11 @@ function TaskPhotos({ view }: { view: TaskView }) {
 export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; side: "buyer" | "seller"; orderId: string }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
+  // "I got it" asks in the app, never window.confirm (lead 2026-10-28; DeclutterConfirmSheet).
+  const [askGot, setAskGot] = useState(false);
   const gotIt = useMutation({
     mutationFn: () => confirmReceived(taskId),
+    onSettled: () => setAskGot(false),
     onSuccess: () => {
       toast.success("Delivery done. Enjoy your item.");
       invalidateTasks(qc);
@@ -186,11 +190,14 @@ export function OrderDeliveryPanel({ taskId, side, orderId }: { taskId: string; 
       {/* Q2453: once it is done, the buyer may tip the Helpr (the job tip's money, 100% to the Helpr). */}
       {side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel taskId={taskId} helprFirstName={v.helpr_first_name} />}
       {canConfirm && (
-        <button type="button" className={primary} disabled={gotIt.isPending}
-          onClick={() => { if (window.confirm("Do you have the item? Tapping \"I got it\" pays the Helpr. You can still ask the seller for a refund within 24 hours.")) gotIt.mutate(); }}>
+        <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}>
           I got it
         </button>
       )}
+      <ConfirmSheet open={askGot} title="Do you have it?" confirmLabel="I got it" pending={gotIt.isPending}
+        onConfirm={() => gotIt.mutate()} onClose={() => setAskGot(false)} testId="delivery-got-it">
+        Tapping I got it pays the Helpr. You can still ask the seller for a refund within 24 hours.
+      </ConfirmSheet>
     </div>
   );
 }
@@ -375,8 +382,11 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   // "Picked up" and "Left at the door" are shared with My route (useTaskSteps).
   const { pickedUp, delivered: deliverStep, done } = useTaskSteps(t.task_id, userId, () => setDropPhoto(null));
   const deliver = { isPending: deliverStep.isPending, mutate: () => deliverStep.mutate(dropPhoto) };
+  // Back out and "the seller wasn't there" ask in the app, never window.confirm (lead 2026-10-28).
+  const [ask, setAsk] = useState<{ kind: "backOut" } | { kind: "away"; file: File } | null>(null);
   const backOut = useMutation({
     mutationFn: () => releaseTask(t.task_id),
+    onSettled: () => setAsk(null),
     onSuccess: (r) => done(r.strike ? "You backed out less than 2 hours before the pickup, so you got a delivery strike." : "You backed out. Another Helpr can take it."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -388,6 +398,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
       if (awayUploaded.current?.file !== file) awayUploaded.current = { file, path: await uploadTaskPhoto(userId, t.task_id, file) };
       await reportPickupNoShow(t.task_id, awayUploaded.current.path, where);
     },
+    onSettled: () => setAsk(null),
     onSuccess: () => done("Reported. Louisiana Helpr will look at it and decide. You're not counted as a no-show meanwhile."),
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
@@ -421,7 +432,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
                 onChange={(e) => { const f = e.target.files?.[0]; if (f) pickedUp.mutate(f); e.target.value = ""; }} />
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={btn} disabled={backOut.isPending}
-                  onClick={() => { if (window.confirm("Back out of this delivery? Under 2 hours before the pickup it costs a delivery strike.")) backOut.mutate(); }}>
+                  onClick={() => setAsk({ kind: "backOut" })}>
                   Back out
                 </button>
               </div>
@@ -434,7 +445,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
                     onChange={(e) => {
                       const f = e.target.files?.[0];
                       e.target.value = "";
-                      if (f && window.confirm("Report that the seller wasn't there? Louisiana Helpr looks at it and decides.")) sellerAway.mutate(f);
+                      if (f) setAsk({ kind: "away", file: f });
                     }} />
                 </>
               )}
@@ -452,6 +463,14 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
           <TaskPhotos view={v} />
         </>
       )}
+      <ConfirmSheet open={ask?.kind === "backOut"} title="Back out of this delivery?" confirmLabel="Back out" pending={backOut.isPending}
+        onConfirm={() => backOut.mutate()} onClose={() => setAsk(null)} testId="delivery-back-out">
+        Another Helpr can take it. Under 2 hours before the pickup it costs a delivery strike.
+      </ConfirmSheet>
+      <ConfirmSheet open={ask?.kind === "away"} title="Report that the seller wasn't there?" confirmLabel="Report it" pending={sellerAway.isPending}
+        onConfirm={() => { if (ask?.kind === "away") sellerAway.mutate(ask.file); }} onClose={() => setAsk(null)} testId="delivery-seller-away">
+        Your door photo goes to Louisiana Helpr, who looks at it and decides. You're not counted as a no-show meanwhile.
+      </ConfirmSheet>
     </li>
   );
 }

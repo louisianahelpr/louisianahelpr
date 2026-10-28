@@ -11,7 +11,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         disabled={save.isPending \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const state = {
@@ -152,7 +152,15 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(await screen.findByAltText("At the drop-off")).toHaveAttribute("src", "https://signed.test/h/task/t1/d.jpg");
     expect(screen.getByAltText("At the pickup")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "I got it" }));
+    // The in-app sheet first, never window.confirm (lead 2026-10-28): nothing is paid until its own "I got it".
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}> |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => gotIt.mutate()}>
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Do you have it?");
+    expect(sheet).toHaveTextContent("pays the Helpr");
+    expect(state.calls).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "I got it" }));
     await waitFor(() => expect(state.calls).toEqual([["got_it", "t1"]]));
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 });
 
@@ -280,7 +288,14 @@ describe("DeliverView (the Helpr's screen)", () => {
     fireEvent.change(screen.getByLabelText(/Photo of the item when you pick it up/), { target: { files: [jpeg()] } });
     await waitFor(() => expect(state.calls[0]).toEqual(["picked_up", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
     fireEvent.click(screen.getByRole("button", { name: "Back out" }));
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                   onClick={() => setAsk({ kind: "backOut" })}> |                   onClick={() => backOut.mutate()}>
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Back out of this delivery?");
+    expect(sheet).toHaveTextContent("Under 2 hours before the pickup it costs a delivery strike.");
+    expect(state.calls).toHaveLength(1);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Back out" }));
     await waitFor(() => expect(state.calls[1]).toEqual(["release", "t1"]));
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("the seller wasn't there: reported with a photo at the pickup and the Helpr's location, after 15 minutes", async () => {
@@ -289,7 +304,13 @@ describe("DeliverView (the Helpr's screen)", () => {
     state.view = { ...VIEW, role: "helpr", status: "accepted", pickup_slot_start: "2000-01-01T15:00:00Z", pickup_address: "1234 Example St" };
     show(<DeliverView />);
     fireEvent.change(await screen.findByLabelText(/The seller wasn't there: a photo of the door/), { target: { files: [jpeg()] } });
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |                       if (f) setAsk({ kind: "away", file: f }); |                       if (f) sellerAway.mutate(f);
+    const sheet = await screen.findByRole("dialog");
+    expect(sheet).toHaveTextContent("Report that the seller wasn't there?");
+    expect(state.calls).toEqual([]);
+    fireEvent.click(within(sheet).getByRole("button", { name: "Report it" }));
     await waitFor(() => expect(state.calls[0]).toEqual(["no_show", "t1", "u1/task/t1/photo.jpg", { lat: 30.5, lng: -91.15 }]));
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it("my delivery, picked up: the drop-off needs a photo and no code (owner 2026-10-18)", async () => {

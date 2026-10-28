@@ -12,6 +12,7 @@ import { formatPriceExact } from "@/lib/format";
 import type { usePostJobForm } from "./usePostJobForm";
 import { detailsBlocker } from "./detailsBlocker";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { usePrefillOpensDetails } from "./usePrefillOpensDetails";
 import { AgeGateNote } from "@/components/AgeGateNote";
 import { useEffect, useRef, useState } from "react";
 import { JobCategoryGroups } from "@/components/postjob/JobCategoryGroups";
@@ -106,6 +107,14 @@ export function FormStep({ form }: FormStepProps) {
   // header's back arrow steps back through it.
   const page = form.formPage ?? 1;
   const setPage = form.setFormPage;
+  // A3-3: a link whose pre-fill already picked the category (Declutter "Add a Helpr") goes on to Details, as a tap does.
+  usePrefillOpensDetails({
+    deepLink: !!form.prefillOpensDetails,
+    category: form.category,
+    onFirstPage: page === 1,
+    blocked: atOpenJobLimit || underAge,
+    goOn: () => setPage?.(2),
+  });
   const rootRef = useRef<HTMLDivElement>(null);
   // scrollToField (postJobFormHelpers) asks a hidden screen to open when the
   // submit pass refuses a field on it.

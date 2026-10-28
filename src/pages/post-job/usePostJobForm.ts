@@ -17,6 +17,7 @@ import { usePostJobGiftCard } from "./usePostJobGiftCard";
 import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
+import { prefillOpensDetails } from "./usePrefillOpensDetails";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -567,6 +568,8 @@ export function usePostJobForm() {
     setStep,
     formPage,
     setFormPage,
+    // A3-3: FormStep opens such a link at Details once its pre-filled category lands (usePrefillOpensDetails).
+    prefillOpensDetails: prefillOpensDetails(searchParams),
     entryPanel,
     setEntryPanel,
     categoryGroup,

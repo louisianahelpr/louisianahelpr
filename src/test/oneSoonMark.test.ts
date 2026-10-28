@@ -3,7 +3,7 @@
  * (a bordered pill, plain "Opening soon", plain "Soon", a tiny badge, ink text).
  * Every listing now draws THE one SoonPill.
  *
- * @mutate src/components/DesktopSidebarNav.tsx |                   <SoonPill variant="short" aria-hidden="true" className="ml-auto" /> |                   <span className="ml-auto">Soon</span>
+ * @mutate src/components/DesktopSidebarNav.tsx |                   {soon && <SoonPill variant="rail" aria-hidden="true" />} |                   {soon && <span>Soon</span>}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

@@ -264,10 +264,9 @@ const DesktopSidebarRail = () => {
                   style={{ fontWeight: active ? 700 : 500 }}
                 >
                   {label}
+                  {/* Audit #42: a closed section says "Coming soon" under its name, as the phone chips do. */}
+                  {soon && <SoonPill variant="rail" aria-hidden="true" />}
                 </span>
-                {soon && (
-                  <SoonPill variant="short" aria-hidden="true" className="ml-auto" />
-                )}
                 {preview && <PreviewPill variant="compact" className="ml-auto" />}
               </button>
             </li>

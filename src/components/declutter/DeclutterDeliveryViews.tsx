@@ -27,6 +27,7 @@ import { HiredPayoutSetupDialog } from "@/components/payouts/HiredPayoutSetupDia
 import { payoutAccountReady } from "@/lib/payoutAfterHire";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { DeliveryRaisePanel } from "./DeliveryRaisePanel";
+import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { DeliveryTipPanel } from "./DeliveryTipPanel";
 import { fetchTipsOnMyDeliveries } from "@/lib/declutter/deliveryTip";
 import { DateTimeField } from "@/components/DateTimeField";
@@ -122,6 +123,8 @@ function TaskPhotos({ view }: { view: TaskView }) {
 export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false }: { taskId: string; side: "buyer" | "seller"; orderId: string; tipOnly?: boolean }) {
   const qc = useQueryClient();
   const task = useQuery({ queryKey: ["helpr-tasks", "view", taskId], queryFn: () => fetchTaskView(taskId), meta: { persist: false } });
+  // A2-7: the buyer's raise read starts NOW, beside the task read, not once the task has loaded and the panel mounts.
+  useQuery({ ...deliveryRaiseQuery(orderId), enabled: side === "buyer" });
   // "I got it" asks in the app, never window.confirm (lead 2026-10-28; DeclutterConfirmSheet).
   const [askGot, setAskGot] = useState(false);
   const gotIt = useMutation({

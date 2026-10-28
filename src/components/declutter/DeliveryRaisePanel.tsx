@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { fetchDeliveryRaiseStatus, startDeliveryRaise, type DeliveryRaise } from "@/lib/declutter/deliveryRaise";
+import { startDeliveryRaise, type DeliveryRaise } from "@/lib/declutter/deliveryRaise";
+import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { raiseCardFeeCents, RAISE_MIN_CENTS } from "@/lib/declutter/raiseFee";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 
@@ -30,7 +31,7 @@ function raiseLine(r: DeliveryRaise): string {
 
 export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
   const qc = useQueryClient();
-  const status = useQuery({ queryKey: ["declutter", "delivery-raise", orderId], queryFn: () => fetchDeliveryRaiseStatus(orderId) });
+  const status = useQuery(deliveryRaiseQuery(orderId));
   const [dollars, setDollars] = useState("10");
   const [opening, setOpening] = useState(false);
   const raise = useMutation({

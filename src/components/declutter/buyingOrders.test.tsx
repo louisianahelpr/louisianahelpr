@@ -28,6 +28,7 @@ const state = {
   handovers: {} as Record<string, Record<string, unknown>>,
   sd: {} as Record<string, Record<string, unknown>>,
   tasks: {} as Record<string, Record<string, unknown>>,
+  raiseReads: [] as string[],
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -63,6 +64,11 @@ vi.mock("@/lib/declutter/sellerDelivery", async (orig) => ({
 }));
 vi.mock("@/lib/helprTasks/api", () => ({
   fetchTaskView: async (taskId: string) => ({ task_id: taskId, accepted_at: null, picked_up_at: null, delivered_at: null, ...state.tasks[taskId] }),
+}));
+// A2-7: the list starts each Helpr delivery's raise read (the panel itself is OrderDeliveryPanel's, stubbed here).
+vi.mock("@/lib/declutter/deliveryRaise", () => ({
+  fetchDeliveryRaiseStatus: async (orderId: string) => { state.raiseReads.push(orderId); return null; },
+  startDeliveryRaise: vi.fn(),
 }));
 vi.mock("@/lib/declutter/meetup", () => ({ fetchOrderMeetup: async () => null, meetupHere: async () => "here", meetupMapUrl: () => "", chooseMeetupSpot: async () => undefined }));
 vi.mock("./useOrderOtherPerson", () => ({ useOrderOtherPerson: () => ({ otherId: "u2", name: "Dana R", avatarUrl: null, first: "Dana", who: "Dana" }) }));
@@ -171,6 +177,15 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
       checked++;
     }
     expect(checked).toBe(CASES.length);
+  });
+
+  // @mutate src/components/declutter/BuyingOrders.tsx |   useQueries({ queries: helpr.map((o) => deliveryRaiseQuery(o.orderId)) });\n |
+  it("A2-7: with the list (Details still closed), each Helpr delivery's raise read is already out; no other order's", async () => {
+    state.raiseReads = [];
+    load(CASES);
+    show();
+    await waitFor(() => expect([...state.raiseReads].sort()).toEqual(CASES.filter((c) => c.line.handover === "delivery").map((c) => c.id).sort()));
+    expect(card("hd0").querySelector("[data-order-body]")).toBeNull();
   });
 
   it("#6: a free order says Free, never You paid $0; a paid one says what was paid", async () => {

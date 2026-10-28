@@ -125,6 +125,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterFreeClaim.tsx` | input×1 | radio |  | Get this item free |
 | `src/components/declutter/DeclutterManageListing.tsx` | input×2, checkbox/switch/radio×1 | text |  | manage-stop-drops · manage-price · manage-floor · Your listing |
 
+## /declutter, /declutter/sell, /declutter/move
+
+| File | Controls | input types | maxLength | hints |
+|---|---|---|---|---|
+| `src/components/declutter/DeclutterPickupTimes.tsx` | select×1 |  |  | Pickup times |
+
 ## /declutter/item/:id
 
 | File | Controls | input types | maxLength | hints |
@@ -147,12 +153,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/declutter/DeclutterSellPhotos.tsx` | input×1 | file |  | Photos · sell-files |
 | `src/components/declutter/DeclutterSellView.tsx` | input×5, textarea×1, checkbox/switch/radio×4 | text | 80, 2000, 300 | sell-title · e.g. Oak rocking chair · sell-desc · sell-price · Price · sell-drops · sell-floor · e.g. 30 |
-
-## /declutter/sell, /declutter/move
-
-| File | Controls | input types | maxLength | hints |
-|---|---|---|---|---|
-| `src/components/declutter/DeclutterPickupTimes.tsx` | input×2, select×1, date/calendar×2 | time |  |  |
 
 ## /forgot-password
 
@@ -192,7 +192,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
 | `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
 | `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
-| `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Search · Close search |
+| `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Close search |
 | `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | textarea×1 |  | 1000 |  |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | textarea×1 |  | 500 |  |

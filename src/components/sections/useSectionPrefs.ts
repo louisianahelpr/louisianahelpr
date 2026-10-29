@@ -61,6 +61,23 @@ function read(user: string | undefined): SectionPrefs {
   return prefs;
 }
 
+/**
+ * Would hiding `key` leave no OPEN section showing? (A3-C13, app audit
+ * 2026-10-29.) The old rule counted every section, open or not: with only
+ * Jobs open, a member could switch Jobs off (one of four hidden), and + Create
+ * then listed nothing but three "Coming soon" rows. `openKeys` are the
+ * sections live for this viewer (useOpenSectionKeys); with none known the
+ * rule falls back to "not every section".
+ */
+export function hidesLastOpenSection(hidden: readonly SectionKey[], key: SectionKey, openKeys: readonly SectionKey[]): boolean {
+  const next = new Set([...hidden, key]);
+  if (next.size >= ALL.length) return true;
+  return openKeys.length > 0 && openKeys.every((k) => next.has(k));
+}
+
+/** What a refused switch-off says. */
+export const KEEP_ONE_OPEN_TOAST = "Keep at least one open section on";
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => listeners.delete(cb);
@@ -84,11 +101,14 @@ export function useSectionPrefs() {
     [userId],
   );
 
-  /** Returns false (and changes nothing) when it would hide the last section. */
+  /**
+   * Returns false (and changes nothing) when it would hide the last section,
+   * or (given `openKeys`) the last section OPEN to this viewer.
+   */
   const setHidden = useCallback(
-    (key: SectionKey, hide: boolean) => {
+    (key: SectionKey, hide: boolean, openKeys: readonly SectionKey[] = []) => {
+      if (hide && hidesLastOpenSection(prefs.hidden, key, openKeys)) return false;
       const hidden = hide ? [...new Set([...prefs.hidden, key])] : prefs.hidden.filter((k) => k !== key);
-      if (hidden.length >= ALL.length) return false;
       save({ ...prefs, hidden });
       return true;
     },

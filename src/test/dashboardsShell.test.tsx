@@ -32,7 +32,7 @@
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
  * @mutate src/components/sections/useSectionPrefs.ts |   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)) |   const visible = prefs.order.filter(() => true)
- * @mutate src/components/sections/useSectionPrefs.ts |       if (hidden.length >= ALL.length) return false; |       if (hidden.length > ALL.length) return false;
+ * @mutate src/components/sections/useSectionPrefs.ts |   if (next.size >= ALL.length) return true; |   if (next.size > ALL.length) return true;
  * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"], |   "/explore": [],
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

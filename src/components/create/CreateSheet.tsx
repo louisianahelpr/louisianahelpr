@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
-import type { SectionDef, SectionKey } from "@/components/sections/sectionsConfig";
+import { SECTIONS, type SectionDef, type SectionKey } from "@/components/sections/sectionsConfig";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionIsOn, useSectionIsPreview } from "@/components/sections/ExploreSwitcher";
 import { sayComingSoon } from "@/components/mobileNav/useSectionTabs";
@@ -64,8 +64,12 @@ function useCreateRows() {
 export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const navigate = useNavigate();
   const gate = useAgeGate();
-  const { visible } = useSectionPrefs();
+  const { visible, prefs, setHidden } = useSectionPrefs();
   const { isOn, isPreview, actions, note } = useCreateRows();
+  // A3-C13: a member who hid every OPEN section (allowed before the rule
+  // counted open sections) saw only "Coming soon" rows here, with no reason.
+  // Say why, and offer to show them again.
+  const hiddenOpen = visible.some(isOn) ? [] : SECTIONS.filter((s) => isOn(s) && prefs.hidden.includes(s.key));
   const go = (path: string) => {
     hapticLight();
     onOpenChange(false);
@@ -76,6 +80,27 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
       <SheetContent side="bottom" floor data-testid="create-sheet" onOpenAutoFocus={(e) => e.preventDefault()}>
         <SheetHero moment title="What are we doing?" />
         <p className="text-ds-14 text-muted-foreground">One account, four ways to get things done.</p>
+        {hiddenOpen.length > 0 && (
+          <div className="mt-4 liquid-glass px-4 py-3 flex flex-col items-start gap-2" data-testid="create-all-hidden">
+            <p className="text-ds-14 text-foreground">
+              You hid {hiddenOpen.map((s) => s.label).join(" and ")} in Settings, so there's nothing to start here yet.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {hiddenOpen.map((s) => (
+                <button
+                  key={s.key}
+                  type="button"
+                  data-create-unhide={s.key}
+                  onClick={() => setHidden(s.key, false)}
+                  className="btn-press btn-grad-primary rounded-full min-h-11 px-4 text-ds-14 font-semibold"
+                  style={{ color: "hsl(var(--primary-foreground))" }}
+                >
+                  Show {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <ul className="mt-4 liquid-glass overflow-hidden">
           {visible.map((s, i) => {
             const on = isOn(s);

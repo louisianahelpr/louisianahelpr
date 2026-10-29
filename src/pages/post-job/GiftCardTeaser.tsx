@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
+import { GIFT_RECEIVED_HREF } from "@/pages/profile/giftCards/useShowReceivedGifts";
 
 interface GiftCardTeaserProps {
   /** The viewer — dismissal is remembered per user on this device. */
@@ -26,7 +27,8 @@ export const giftBannerDismissKey = (userId: string) => `helpr_gift_banner_dismi
  * set) brings the banner back, while the same gifts stay dismissed.
  * safeStorage wraps every localStorage read and write in try/catch.
  *
- * "See them" goes to the gift card tab, not straight into a post with the
+ * "See them" goes to the gift card tab's received cards (GIFT_RECEIVED_HREF, scrolled past the send form, audit
+ * 2026-10-29 A2-C26), not straight into a post with the
  * gift applied: the count includes gifts sent to this user's email that are
  * not yet claimed (recipient_id null), which the post-job gift apply refuses
  * until claimed. The gift tab is where a gift is claimed and "Use This Gift"
@@ -61,7 +63,7 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
           className="font-sans text-ds-13 mt-0.5 text-muted-foreground"
         >
           Ready to spend on your next job ·{" "}
-          <Link to="/profile?tab=gift_card" className="font-bold" style={{ color: "hsl(var(--bark))" }}>
+          <Link to={GIFT_RECEIVED_HREF} className="font-bold" style={{ color: "hsl(var(--bark))" }}>
             {count > 1 ? "See them" : "See it"}
           </Link>
         </p>

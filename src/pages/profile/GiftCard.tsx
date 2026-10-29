@@ -64,8 +64,8 @@ import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
 import { fetchReceivedGiftCards, fetchSentGiftCards } from "./giftCards/giftCardQueries";
 import { ReceivedListSkeleton, SentListSkeleton } from "./giftCards/ListSkeleton";
-import { RecipientPicker } from "./giftCards/RecipientPicker";
-import type { RecipientMatch } from "./giftCards/RecipientPicker";
+import { RecipientPicker, type RecipientMatch } from "./giftCards/RecipientPicker";
+import { GIFT_RECEIVED_ID, useShowReceivedGifts } from "./giftCards/useShowReceivedGifts";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -311,9 +311,9 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   // ONE gate for both lists (Q1754, prod-audit page-settle 1440, 2026-09-30):
   // "sent" is one request, "sent to you" is two (rows, then donor names), so
   // gated apart the empty "sent" block landed at 700ms and the nine received
-  // cards at 900ms — the page arriving in two waves. Both lists show their
-  // placeholders until BOTH have settled, then arrive in one paint.
+  // cards at 900ms — the page arriving in two waves. Both lists show their placeholders until BOTH settle, then one paint.
   const listsLoading = loadingReceived || loadingDonated;
+  useShowReceivedGifts(!listsLoading); // ?show=received (Post a Job's gift banner): scroll to the cards (A2-C26)
   // Q571: offline with nothing loaded is not "no gift cards". Telling someone
   // offline that their unredeemed gift cards do not exist is the false empty
   // state the isError note above guards against, by another road.
@@ -745,7 +745,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
               it only adds dead space under the last card. */}
           <section className="space-y-section">
             {/* Gifts sent to you */}
-            <div>
+            <div id={GIFT_RECEIVED_ID} className="scroll-mt-4">
               <p className="text-ds-13 font-sans font-semibold mb-3" style={{ color: "hsl(var(--ink-deep))" }}>
                 Gift cards sent to you
               </p>

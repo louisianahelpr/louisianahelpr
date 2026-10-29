@@ -65,7 +65,7 @@ describe("gift card banner", () => {
   it("renders at the top of Post a job's entry screen, linking to the gift tab", () => {
     renderEntry();
     expect(banner()).toHaveTextContent("2 Helpr gift cards waiting for you");
-    expect(screen.getByRole("link", { name: "See them" })).toHaveAttribute("href", "/profile?tab=gift_card");
+    expect(screen.getByRole("link", { name: "See them" })).toHaveAttribute("href", "/profile?tab=gift_card&show=received");
     // Top of the column, right under step 0's question (owner 2026-10-21), above the four cards.
     const q = screen.getByRole("heading", { name: "How do you want to start?" });
     const first = screen.getByRole("button", { name: /^Start from scratch/ });

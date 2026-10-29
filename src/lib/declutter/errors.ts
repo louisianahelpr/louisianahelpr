@@ -100,6 +100,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   message_rate_limited: "Slow down a little, then send again.",
   invalid_handovers: "Tick at least one way buyers can get it. A free item is picked up from your porch.",
   invalid_porch_choice: "Choose whether buyers can pick this item up from your porch.",
+  // declutter_set_porch_days (20261029161347).
+  invalid_porch_days: "Pick porch days from Sunday to Saturday.",
   // declutter_set_drop_pct (owner 2026-10-28).
   invalid_drop_pct: "Pick a price drop of 5, 10, 15 or 20 percent, or turn price drops off.",
   order_not_payable: "This checkout is no longer open. Start checkout again.",

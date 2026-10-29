@@ -6,6 +6,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
 import { isCaptchaError } from "@/lib/turnstile";
+import { runWithCaptcha } from "@/hooks/useCaptcha";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -161,17 +162,15 @@ const SignupPending = () => {
   const handleResend = async () => {
     if (resendCooldown > 0 || resending || !prefillEmail) return;
     setResending(true);
-    const captchaToken = await turnstileRef.current?.getToken() ?? null;
     // Same landing as Signup's first email (`emailRedirectTo` there): the link
     // opens THIS page, whose poll admits the confirmed account into the app.
     // Without it the resent link fell back to the project's Site URL.
-    const { error } = await supabase.auth.resend({
+    // Never held on the security box unless the server refuses (A3-B1).
+    const { error } = await runWithCaptcha(turnstileRef.current, (captchaToken) => supabase.auth.resend({
       type: "signup",
       email: prefillEmail.trim(),
-      options: { emailRedirectTo: getSignupConfirmRedirect(), captchaToken: captchaToken ?? undefined },
-    });
-    // Turnstile tokens are single-use (Q1314): arm a fresh one.
-    turnstileRef.current?.reset();
+      options: { emailRedirectTo: getSignupConfirmRedirect(), captchaToken },
+    }));
     setResending(false);
     if (error) {
       // Nothing was sent, and a refused security check says nothing about the

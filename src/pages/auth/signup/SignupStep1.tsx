@@ -7,7 +7,7 @@
 // Reusable input/label class constants are passed in so the parent stays
 // the single source of truth for form styling.
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { HelprMark } from "@/components/HelprMark";
 import { Button } from "@/components/ui/button";
@@ -52,6 +52,8 @@ export interface SignupStep1Props {
   onContinue: () => void | Promise<void>;
   /** A reason line (e.g. "Create an account to get alerts") in place of the default. */
   subtitle?: string;
+  /** The page's security box (<TurnstileField>), placed right above Continue as on Login (A3-C1). */
+  captchaSlot?: ReactNode;
 }
 
 
@@ -76,6 +78,7 @@ export function SignupStep1({
   labelCls,
   onContinue,
   subtitle,
+  captchaSlot,
 }: SignupStep1Props) {
   // The Continue button stays visually active even before the policies box is
   // checked — a disabled grey button is a dead end the user can't learn from.
@@ -377,6 +380,7 @@ export function SignupStep1({
 
       {/* Continue sits BELOW the consent (Q2256 / audit #44, owner 2026-10-21:
           keep the one combined Terms + 18+ box, read before the action). */}
+      {captchaSlot}
       <Button
         variant="primary"
         className="w-full rounded-full"

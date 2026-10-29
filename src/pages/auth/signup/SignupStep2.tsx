@@ -7,7 +7,7 @@
 //
 // Validation lives in the parent (validateAboutYouStep).
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -95,6 +95,8 @@ export interface SignupStep2Props {
   onSkip: () => void | Promise<void>;
   /** Account creation in flight — disables the button and shows a busy label. */
   loading?: boolean;
+  /** The page's security box (<TurnstileField>), placed right above the primary button as on Login (A3-C1). */
+  captchaSlot?: ReactNode;
 }
 
 
@@ -120,6 +122,7 @@ export function SignupStep2(props: SignupStep2Props) {
     onContinue,
     onSkip,
     loading = false,
+    captchaSlot,
   } = props;
 
   // Live field validity — drives the inline green check (mirrors Step 1's
@@ -307,6 +310,7 @@ export function SignupStep2(props: SignupStep2Props) {
 
       {/* One back control only. The card's header row already carries a back
           arrow, and two arrows on one screen is ambiguous. */}
+      {captchaSlot}
       <div className="flex gap-3">
         <Button
           variant="primary"

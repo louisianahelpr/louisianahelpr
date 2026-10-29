@@ -88,6 +88,11 @@ const Signup = () => {
   const submittingRef = useRef(false);
   const captcha = useCaptcha();
   const captureLead = useSignupLeadCapture(captcha.ref); // spends a token from the same widget (Q1589)
+  // Turnstile (Q1314), placed right above each step's primary button, as on
+  // Login (A3-C1). Each step mounts its own: step 1's Continue takes the token
+  // for the lead capture before the step changes (getToken takes a ready token
+  // synchronously), and step 2 gets a freshly minted one for signUp.
+  const turnstile = <TurnstileField ref={captcha.ref} action="signup" />;
 
   // Step 1 fields
   const [firstName, setFirstName] = useState("");
@@ -564,6 +569,7 @@ const Signup = () => {
             loading={loading}
             onContinue={() => finishStep2(false)}
             onSkip={() => finishStep2(true)}
+            captchaSlot={turnstile}
           />
           </>
         )}
@@ -590,6 +596,7 @@ const Signup = () => {
             inputCls={inputCls}
             labelCls={labelCls}
             subtitle={stepHeading.subtitle}
+            captchaSlot={turnstile}
             onContinue={async () => {
               if (!(await validateAccountStep())) return;
               track(AhaEvent.SignupStepCompleted, { step: 1, ...ppoTrackingProps() });
@@ -598,8 +605,6 @@ const Signup = () => {
             }}
           />
         )}
-        {/* Turnstile (Q1314) for BOTH steps: step 1's lead capture spends a token (Q1589), step 2's signUp the next. */}
-        <TurnstileField ref={captcha.ref} action="signup" className="mt-3" />
         {/* "Already have an account? Sign in" lives in SignupStep1's social
             column (as Login's "New to Helpr?"); a second copy here rendered it twice. */}
           </div>

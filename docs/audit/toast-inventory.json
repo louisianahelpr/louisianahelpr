@@ -1,26 +1,26 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1013,
-    "files": 270,
-    "rendering": 856,
-    "suppressedByPolicy": 157,
+    "calls": 1017,
+    "files": 271,
+    "rendering": 859,
+    "suppressedByPolicy": 158,
     "byKind": {
       "confirmConsequential": 30,
       "errorToast": 6,
       "successToast": 2,
       "toast": 72,
-      "toast.error": 712,
+      "toast.error": 715,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 160,
+      "toast.success": 161,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 456,
       "template": 103,
-      "dynamic": 504,
+      "dynamic": 508,
       "jsx": 0
     }
   },
@@ -4791,7 +4791,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -4801,7 +4801,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5091,7 +5091,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 177,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5101,7 +5101,54 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 190,
+      "line": 192,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferRules.tsx",
+      "line": 39,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "msg"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferRules.tsx",
+      "line": 45,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferRules.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "suggestedReplyErrorMessage(err)",
+        "from": "src/lib/declutter/aiReply.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "REPLY_ERROR_COPY[code] ?? REPLY_ERROR_COPY.ai_unavailable"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferRules.tsx",
+      "line": 58,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

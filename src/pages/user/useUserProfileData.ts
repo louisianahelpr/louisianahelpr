@@ -249,8 +249,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
         supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
-        supabase.from("jobs").select("id, title, status, category, budget, created_at").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
+        // customer_id + helper_id: JobsList shows only rows the viewer was a
+        // party to (A3-C8), never another poster's job on a public profile.
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
+        supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id").eq("helper_id", userId!).order("created_at", { ascending: false }).limit(20),
         // Verification-ladder inputs (#112): grab the trust signals while
         // we're already touching this row. `get_safe_profiles` doesn't
         // expose these, but the profiles RLS policy already permits SELECT

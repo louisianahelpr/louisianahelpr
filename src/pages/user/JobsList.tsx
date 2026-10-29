@@ -14,9 +14,36 @@ type Props = {
    * truthful "3 Jobs completed" tile and taps it can load none of them.
    */
   knownCount?: number;
+  /** The signed-in viewer. Only jobs they were a party to are listed. */
+  viewerId: string | null;
+  /** Hides the "only your jobs are shown" line on your own profile. */
+  isOwnProfile?: boolean;
 };
 
-export const JobsList = ({ jobs, variant, knownCount = 0 }: Props) => {
+/**
+ * The rows a viewer may see on a profile: jobs the VIEWER was part of (posted
+ * or worked), and nothing else (A3-C8, app audit 2026-10-29).
+ *
+ * "Jobs posted" said "Helpr keeps the details private" while "Jobs completed"
+ * listed job titles, dates and prices. The rows come from `jobs`, whose RLS
+ * (read on prod 2026-10-29: own jobs, selected helpers, a pending direct
+ * offer, admins) already scopes a member to jobs they are part of; on the
+ * audited profile every listed job was the viewer's own. But an admin, or a
+ * crew mate admitted by user_may_see_job_address, could be shown jobs between
+ * OTHER people. Filtering on the parties makes the rule the page states true
+ * for every viewer: no other person's job titles or prices on a public
+ * profile. On your own profile every row is yours.
+ */
+export function jobsViewerWasPartOf(jobs: ProfileJob[], viewerId: string | null): ProfileJob[] {
+  if (!viewerId) return [];
+  return jobs.filter((j) => j.customer_id === viewerId || j.helper_id === viewerId);
+}
+
+export const JobsList = ({ jobs: allRows, variant, knownCount = 0, viewerId, isOwnProfile = false }: Props) => {
+  const jobs = jobsViewerWasPartOf(allRows, viewerId);
+  // Some of this person's jobs exist but are not listed: say so, the same way
+  // on both tiles, instead of listing some and withholding others silently.
+  const moreWithheld = !isOwnProfile && jobs.length > 0 && knownCount > jobs.length;
   const EmptyIcon = variant === "posted" ? ClipboardList : Hammer;
   /* AN EMPTY LIST MEANS TWO DIFFERENT THINGS, and this panel used to say the
      wrong one. "No completed jobs yet" printed under a tile reading "3 Jobs
@@ -39,6 +66,11 @@ export const JobsList = ({ jobs, variant, knownCount = 0 }: Props) => {
 
   return (
     <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 motion-safe:duration-200">
+      {moreWithheld && (
+        <p className="text-ds-11 text-muted-foreground px-1" data-testid="profile-jobs-only-yours">
+          Only jobs you were part of are shown. Helpr keeps the rest private.
+        </p>
+      )}
       {jobs.length > 0 ? jobs.map((job) => (
         // p-3, not the card convention's p-5: these are compact repeated list
         // rows (one line of title + meta), and card padding would turn a

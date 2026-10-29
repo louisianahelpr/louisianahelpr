@@ -19,8 +19,8 @@ vi.mock("@/hooks/useHelprTakesTips", async (importOriginal) => ({
 // Q709(c), owner 2026-10-05: on a completed crew card, ONE Tip per member row,
 // each showing "Tipped" once that member has been tipped; the tip names the
 // member (create-payment refuses a crew tip without one).
-// @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |                   onClick={() => onTip(job.id, m.name, m.id)} |                   onClick={() => onTip(job.id, m.name)}
-// @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |               {m.tipped ? ( |               {false ? (
+// @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |             <CrewTipRow key={m.id} member={m} onTip={() => onTip(job.id, m.name, m.id)} /> |             <CrewTipRow key={m.id} member={m} onTip={() => onTip(job.id, m.name)} />
+// @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |         {m.tipped ? ( |         {false ? (
 
 const POSTER = "00000000-0000-4000-8000-000000000002";
 const A = "00000000-0000-4000-8000-000000000003";

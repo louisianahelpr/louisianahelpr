@@ -16,6 +16,7 @@
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |   const offerTip = tipOpen && takesTips !== false; |   const offerTip = tipOpen;
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts |       return job.is_group_job \|\| h.tipsReady === false |       return job.is_group_job
  * @mutate src/components/reviewPanel/ReviewForm.tsx |       if (rating === 5 && canTip && takesTips !== false) { |       if (rating === 5 && canTip) {
+ * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |   if (!m.tipped && takesTips === false) { |   if (false) {
  * @mutate src/components/CompletionPrompts.tsx |       <Dialog open={step === "tip" && takesTips !== false} onOpenChange={() => setStep("share")}> |       <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
  */
 import { readFileSync } from "node:fs";
@@ -29,7 +30,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const HELPR = "00000000-0000-4000-8000-0000000000aa";
 const POSTER = "00000000-0000-4000-8000-0000000000bb";
-const db = vi.hoisted(() => ({ ready: false as boolean | null, rpcCalls: 0 }));
+const db = vi.hoisted(() => ({ ready: false as boolean | null, rpcCalls: 0, byId: {} as Record<string, boolean> }));
 const invoke = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -44,7 +45,7 @@ vi.mock("@/integrations/supabase/client", () => {
         if (name !== "get_safe_profiles") return { data: null, error: { message: `unexpected rpc ${name}` } };
         db.rpcCalls++;
         if (db.ready === null) return { data: null, error: { message: "read failed" } };
-        return { data: args.user_ids.map((id) => ({ user_id: id, is_payout_ready: db.ready })), error: null };
+        return { data: args.user_ids.map((id) => ({ user_id: id, is_payout_ready: id in db.byId ? db.byId[id] : db.ready })), error: null };
       },
       from: () => jobsChain,
       functions: { invoke: (...a: unknown[]) => invoke(...a) },
@@ -93,6 +94,7 @@ const tipButtons = () => screen.queryAllByRole("button", { name: /^Tip\b/ });
 beforeEach(() => {
   invoke.mockReset();
   db.rpcCalls = 0;
+  db.byId = {};
   __resetHelprTakesTipsCache();
 });
 
@@ -138,6 +140,25 @@ describe("F29: a Helpr whose payout setup is not finished is never offered a tip
     await waitFor(() => expect(db.rpcCalls).toBeGreaterThan(0));
     await waitFor(() => expect(tipButtons().length).toBeGreaterThan(0));
     expect(screen.queryByText(LINE)).toBeNull();
+  });
+
+  it("crew: each member is asked on their own; one not payout-ready gets the line, the other keeps Tip", async () => {
+    const READY = "00000000-0000-4000-8000-0000000000c1";
+    const NOT_READY = "00000000-0000-4000-8000-0000000000c2";
+    db.ready = true;
+    db.byId = { [READY]: true, [NOT_READY]: false };
+    const crewJob = { ...job, helper_id: null, is_group_job: true, helpers_needed: 2 } as unknown as Job;
+    const c = ctx();
+    wrap(<CompletedStep {...c} job={crewJob} completedJobMeta={{
+      "job-1": { tipped: false, reviewed: true, crewToReview: [], crewTips: [
+        { id: READY, name: "Ana B.", tipped: false },
+        { id: NOT_READY, name: "Ben C.", tipped: false },
+      ] },
+    }} />);
+    expect(await screen.findByText(tipsNotReadyLine("Ben C."))).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Tip Ben C\./ })).toBeNull();
+    expect(screen.getByRole("button", { name: /Tip Ana B\./ })).toBeTruthy();
+    expect(screen.queryByText(tipsNotReadyLine("Ana B."))).toBeNull();
   });
 
   it("card face: 'Tip <name>' is not the face action when the Helpr can't take tips", () => {

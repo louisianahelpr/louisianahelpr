@@ -65,7 +65,6 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { RemoveFromCart } from "./DeclutterCartRemove";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
-
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
 
 export function invalidateTrades(qc: ReturnType<typeof useQueryClient>) {

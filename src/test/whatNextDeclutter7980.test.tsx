@@ -6,7 +6,7 @@
  * listing shows no drop step; a listing sent for review says so.
  *
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setSentCents(cents); |       toast.success("Offer sent. The seller has 48 hours to answer.");
- * @mutate src/components/declutter/OfferSentWhatNext.tsx | <Money cents={buyNowTotalCents(cents)} /> | <Money cents={cents} />
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
  * @mutate src/components/declutter/ListedWhatNext.tsx |   const drop = live ? nextPriceDrop(it) : null; |   const drop = live ? { at: new Date(), lowestCents: 1 } : null;
  * @mutate src/components/declutter/DeclutterSellView.tsx |       navigate("/declutter?view=selling", { state: { justListed: { itemId, status } } }); |       navigate("/declutter?view=selling");
  */

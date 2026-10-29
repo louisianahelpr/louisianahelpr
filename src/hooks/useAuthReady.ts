@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { recordColdLaunchPhase } from "@/lib/coldLaunchPhases";
+import { noteAuthUser } from "@/lib/authUserChanged";
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2500;
 // How long we will wait for a session RESTORE that we know is in flight (a
@@ -77,6 +78,7 @@ const emitAuthSnapshot = (rawSnapshot: AuthSnapshot) => {
   // marker in the dashboard. One-shot via the prior snapshot check.
   const justBecameReady = !authSnapshot.isReady && snapshot.isReady;
   authSnapshot = snapshot;
+  noteAuthUser(snapshot.isReady, snapshot.user?.id ?? null);
   if (DEBUG_AUTH) {
     console.log("[auth] snapshot", {
       isReady: snapshot.isReady,

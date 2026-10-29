@@ -11,6 +11,7 @@
  * @mutate src/pages/messages/Messages.tsx |       embedded={twoPane}\n      activeKey={ |       embedded={false}\n      activeKey={
  * @mutate src/pages/messages/Messages.tsx |       {twoPane ? ( |       {false ? (
  * @mutate src/pages/messages/MessagesTwoPane.tsx |           style={{ width: MESSAGES_LIST_PANE_PX }} |           style={{ width: 340 }}
+ * @mutate src/pages/messages/MessagesTwoPane.tsx |           ) : null} |           ) : <p>When you message someone, the conversation opens here.</p>}
  * @mutate src/pages/messages/useTwoPane.ts | export const TWO_PANE_MIN_WIDTH = 1140; | export const TWO_PANE_MIN_WIDTH = 900;
  * @mutate src/pages/messages/useTwoPane.ts |   return isWebDesktop && isWide; |   return isWide;
  * @mutate src/components/messages/ConversationList.tsx |   const phoneTopBar = embedded \|\| !isWebDesktop; |   const phoneTopBar = !isWebDesktop && !embedded;
@@ -47,8 +48,10 @@ describe("Messages matches board 38 without ever cutting the chat off", () => {
     expect(panes).toContain("<PageScaffold>");
     expect(panes).toMatch(/data-testid="messages-list-pane"[\s\S]*style=\{\{ width: MESSAGES_LIST_PANE_PX \}\}/);
     expect(panes).toMatch(/data-testid="messages-chat-pane" className="flex-1 min-w-0/);
-    // A resting state when no thread is open, honest about an empty inbox.
-    expect(panes).toMatch(/hasConversations \? "Pick a conversation" : "No conversations yet"/);
+    // A resting state when no thread is open; with no conversations the pane
+    // stays empty, the inbox pane's empty state is the only one (A3-C19).
+    expect(panes).toMatch(/\) : hasConversations \? \(\s*<div data-testid="messages-chat-resting"[\s\S]*Pick a conversation[\s\S]*\) : null\}/);
+    expect(panes).not.toMatch(/No conversations yet|When you message someone/);
     // Narrower: the one-at-a-time swap is still there.
     expect(page).toMatch(/\) : !activeConvo \? \(\s*<SectionBoundary label="conversations">\{listEl\}<\/SectionBoundary>\s*\) : \(\s*<SectionBoundary label="chat">\{chatEl\}<\/SectionBoundary>/);
   });

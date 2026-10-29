@@ -4992,10 +4992,13 @@ html.page-scrolled .page-title-card:has(.explore-header),
   background: var(--lp-surface);
   box-shadow: var(--lp-shadow);
 }
-/* The landing's bar is the page's own warm ground, slightly see-through; the
-   opaque form of that same colour under reduced transparency (CLAUDE.md: each
-   surface's OWN colour, per theme). */
-.landing-page .glass-nav { background-color: color-mix(in srgb, var(--lp-ground) 84%, transparent); }
+/* The landing's bar is the page's own warm ground, OPAQUE (audit 2026-10-28
+   P5-7: at 84% the scrolled content showed through it at 375, "JUST FINISHED"
+   and a job photo behind the logo row). The same colour under reduced
+   transparency (CLAUDE.md: each surface's OWN colour, per theme); that block
+   stays because the generic reduced-transparency .glass-nav rule is
+   !important. Guard: src/test/landingHeaderOpaque.test.ts. */
+.landing-page .glass-nav { background-color: var(--lp-ground); }
 @media (prefers-reduced-transparency: reduce) {
   .landing-page .glass-nav,
   [data-theme="dark"] .landing-page .glass-nav { background-color: var(--lp-ground) !important; }

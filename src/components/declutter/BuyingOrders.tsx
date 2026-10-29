@@ -20,6 +20,8 @@ import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { formatPrice } from "@/lib/declutter/distance";
 import { porchDayWords } from "./DeclutterPorchDay";
 import { useMyPaidCents } from "./useMyPaidCents";
+import { useOpenProblems } from "./useOpenProblems";
+import { PROBLEM_ON_HOLD } from "./DeclutterProblemOpen";
 import { ORDER_BUCKETS, OrderSteps, orderBucket, orderStepAt, orderWaitsOnYou, type OrderBucket, type OrderFacts, type OrderHandover } from "./OrderSteps";
 
 /** One paid order on the buyer's side, as the tracker files it. */
@@ -85,6 +87,7 @@ export function buyerNextAction(f: OrderFacts): string | null {
 /** Where it stands, for the buyer, in one sentence. `when` is the booked time in words, when there is one. */
 function buyerStanding(f: OrderFacts, when: string | null): string {
   if (f.cancelled) return "Cancelled and refunded to your card.";
+  if (f.problem) return PROBLEM_ON_HOLD;
   if (f.done) return "Handed over. It's yours.";
   const at = orderStepAt(f);
   switch (f.handover) {
@@ -153,6 +156,8 @@ export function useBuyingTracker(): BuyingTracker {
   const bookings = useQuery({ queryKey: ["declutter", "bookings", ids.join(",")], queryFn: () => fetchMyBookings(ids), enabled: ids.length > 0 });
   // A1-B2: "You paid" is the card charge (the sale plus a first purchase's setup fee), never the line's total_cents.
   const paidCents = useMyPaidCents(ids);
+  // Audit 1b D2-2: an open problem puts the order on hold (the same key the order card reads).
+  const problems = useOpenProblems(ids);
   const pickups = live.filter((o) => o.handover !== "delivery" && o.handover !== "seller_delivery");
   const handovers = useQueries({ queries: pickups.map((o) => ({ queryKey: ["declutter", "handover", o.orderId], queryFn: () => fetchMyHandover(o.orderId) })) });
   const sd = live.filter((o) => o.handover === "seller_delivery");
@@ -174,12 +179,15 @@ export function useBuyingTracker(): BuyingTracker {
     const bookingRow = (bookings.data ?? []).find((b) => b.order_id === o.orderId);
     const slot = bookingRow?.slot_start ?? null;
     const sdRow = sdRows[sd.indexOf(o)]?.data ?? null;
-    const facts = buyerOrderFacts(o, {
-      slotStart: slot,
-      handover: handovers[pickups.indexOf(o)]?.data ?? null,
-      sellerDelivery: sdRow,
-      task: tasks[helpr.indexOf(o)]?.data ?? null,
-    });
+    const facts: OrderFacts = {
+      ...buyerOrderFacts(o, {
+        slotStart: slot,
+        handover: handovers[pickups.indexOf(o)]?.data ?? null,
+        sellerDelivery: sdRow,
+        task: tasks[helpr.indexOf(o)]?.data ?? null,
+      }),
+      problem: problems.has(o.orderId),
+    };
     const bucket = orderBucket(facts);
     counts[bucket]++;
     const whenIso = o.handover === "seller_delivery" ? sdRow?.slot_start ?? null : slot;

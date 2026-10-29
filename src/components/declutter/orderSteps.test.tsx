@@ -80,6 +80,26 @@ describe("OrderSteps: one tracker for every Declutter order", () => {
     expect(orderBucket(d[0])).toBe("waiting");
   });
 
+  // Audit 1b D2-2: while a problem is open nothing is asked of either side (booking and a no-show are refused,
+  // problem_open), so no order waits on the viewer and it files under Waiting, never Needs you or Upcoming.
+  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.done \|\| f.cancelled \|\| f.problem) return false; |   if (f.done \|\| f.cancelled) return false;
+  // @mutate src/components/declutter/OrderSteps.tsx |   if (f.problem) return "waiting"; |
+  it("an open problem: no order waits on either side, and every open state files under Waiting (D2-2)", () => {
+    let n = 0;
+    for (const handover of HANDOVERS) {
+      for (const side of SIDES) {
+        for (const f of life(handover, side)) {
+          if (f.done) continue;
+          const held = { ...f, problem: true };
+          expect(orderWaitsOnYou(held), `${handover} ${side}`).toBe(false);
+          expect(orderBucket(held), `${handover} ${side}`).toBe("waiting");
+          n++;
+        }
+      }
+    }
+    expect(n).toBeGreaterThan(20);
+  });
+
   it("renders the shared bar with this order's words and step", () => {
     const { container } = render(<OrderSteps facts={{ handover: "porch", side: "buyer", booked: true, out: true, done: false }} />);
     expect(container.querySelector('[aria-label="Step 3 of 4: On the porch"]')).not.toBeNull();

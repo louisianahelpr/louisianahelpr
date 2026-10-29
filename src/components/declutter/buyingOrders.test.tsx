@@ -33,6 +33,8 @@ const state = {
   sd: {} as Record<string, Record<string, unknown>>,
   tasks: {} as Record<string, Record<string, unknown>>,
   raiseReads: [] as string[],
+  /** Audit 1b D2-2: open problems (declutter_problems, status open). */
+  problems: [] as Record<string, unknown>[],
 };
 
 vi.mock("@/components/DateTimeField", () => ({
@@ -50,6 +52,7 @@ vi.mock("@/lib/declutter/paidCents", () => ({
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyBookings: async () => state.bookings,
   fetchMyPayouts: async () => [],
+  fetchOpenProblems: async () => state.problems,
   fetchOrderPickupWindows: async () => null,
   fetchMyHandover: async (orderId: string) => ({ order_id: orderId, status: "paid", side: "buyer", confirmed_at: null, set_out_at: null,
     set_out_photo_path: null, picked_up_at: null, ...state.handovers[orderId] }),
@@ -253,5 +256,24 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
     expect(within(el).getByRole("button", { name: "Hide details" })).toHaveAttribute("aria-expanded", "true");
     // One tracker on the card: the head's, never the old pickup bar beside it.
     expect(el.querySelectorAll('ol[aria-label^="Step "]').length).toBe(1);
+  });
+
+  // Audit 1b D2-2 (1b-problem-after-375): after "Report a problem" the collapsed porch card still said "Pick the day
+  // you'll come for it" with "Pick a pickup day" as its next action. Now it says the problem is open and asks nothing.
+  // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
+  // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return PROBLEM_ON_HOLD; |
+  it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
+    load(CASES.filter((c) => c.id === "porch0" || c.id === "home0"));
+    state.problems = [{ id: "p1", order_id: "porch0", reporter_side: "buyer", reason: "not_as_described" }];
+    show();
+    await waitFor(() => expect(within(card("porch0")).getByText("Problem reported: Louisiana Helpr is looking.")).toBeInTheDocument());
+    const el = card("porch0");
+    expect(within(el).getByText("On hold while Louisiana Helpr looks at the problem.")).toBeInTheDocument();
+    expect(within(el).getByText(/Not as described, reported by you\./)).toBeInTheDocument();
+    expect(within(el).queryByRole("button", { name: "Pick a pickup day" })).toBeNull();
+    expect(el.textContent).not.toContain("Pick the day you'll come for it");
+    // The other order is untouched.
+    expect(within(card("home0")).getByRole("button", { name: "Book a pickup time" })).toBeInTheDocument();
+    state.problems = [];
   });
 });

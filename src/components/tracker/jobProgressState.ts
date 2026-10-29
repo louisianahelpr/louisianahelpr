@@ -104,6 +104,9 @@ type ProgressOpts = {
     threadHelprId?: string | null;
     /** The thread Helpr's application status, when they have applied (chat, an open job). */
     application?: string | null;
+    /** Poster, an open job: how many applicants wait on their pick, when the surface knows (the job page). 0 = nobody
+     *  has applied yet, so the line says it is waiting for applicants, not "Pick your Helpr" (audit 2026-10-28 A2-C30). */
+    pendingApplicants?: number;
     /** The date or time was moved by an accepted change (useJobRescheduled): both sides confirm the NEW slot. */
     rescheduled?: boolean;
     now?: Date;
@@ -216,7 +219,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
     // An applicant waiting on the poster's pick is the poster's move.
     if (o.application === "pending") return at(0, poster, "Posted", poster ? `${other} applied` : `You applied. Waiting on ${otherLow}`, held);
     if (o.application === "rejected") return at(null, false, "Not picked", poster ? "You passed on this one" : "Not picked this time", false);
-    return at(0, false, "Posted", poster ? "Pick your Helpr" : "Open for Helprs", held);
+    return at(0, false, "Posted", poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") : "Open for Helprs", held);
   }
 
   if (job.helper_id && o.threadHelprId && job.helper_id !== o.threadHelprId) {

@@ -204,7 +204,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               </p>
             )}
           </div>
-          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus} />
+          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
+            pendingApplicants={isPoster && applicants.data ? pending : undefined} />
           {isPoster ? (
             <PosterMoney job={job} total={total} loading={applicants.isLoading} />
           ) : (

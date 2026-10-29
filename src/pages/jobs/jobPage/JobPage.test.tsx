@@ -36,6 +36,8 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? "")); |   const meta = metaLine(job, !isPoster);
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) \|\| onCrew); |   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId));
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | myApplication: myApplication.data, posterFirst, onCrew }); | myApplication: myApplication.data, posterFirst });
+ * @mutate src/components/tracker/jobProgressState.ts | poster ? (o.pendingApplicants === 0 ? "Waiting for Helprs to apply" : "Pick your Helpr") | poster ? ("Pick your Helpr")
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |  pendingApplicants={isPoster && applicants.data ? pending : undefined} /> |  />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -275,6 +277,16 @@ describe("job page, poster side (boards 15, 168)", () => {
     expect(screen.getByText("Pick your Helpr")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Review 2 applicants" }));
     expect(screen.getByTestId("where").textContent).toBe(`/posts?highlight=${row().id}&applicants=1`);
+  });
+
+  // Audit 2026-10-28 A2-C30: the poster's own open job with nobody applied said "Pick your Helpr".
+  it("with no applicants yet, the tracker says it is waiting for Helprs to apply, never 'Pick your Helpr'", () => {
+    state.job = row({ customer_id: ME });
+    state.party = true;
+    state.applicants = { total: 0, pending: 0 };
+    renderPage();
+    expect(screen.getByText("Waiting for Helprs to apply")).toBeTruthy();
+    expect(screen.queryByText("Pick your Helpr")).toBeNull();
   });
 
   // Audit 2026-10-28 F4: with card_hold_at_post on, the card is charged at the hire, so a paid job's line

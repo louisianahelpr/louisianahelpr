@@ -40,7 +40,7 @@ export function chatOpenPath(c: { jobId: string; otherUserId: string | null }): 
 }
 
 /** The value old builds wrote: a thread is open, but it names none. Still stripped on sight. */
-export const LEGACY_CHAT_FLAG = "1";
+const LEGACY_CHAT_FLAG = "1";
 
 /**
  * The thread an open-chat URL names, or null when it names none (no flag, or legacy `?chat=1`).

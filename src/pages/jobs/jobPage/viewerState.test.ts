@@ -4,7 +4,7 @@
  * @mutate src/pages/jobs/jobPage/viewerState.ts |     if (app.status === "pending" && o.job.status === "open") return |     if (false) return
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (mineAssigned && !o.job.helper_confirmed_at && o.job.status === "accepted") { |   if (false) {
  * @mutate src/pages/jobs/jobPage/viewerState.ts |   if (o.onCrew) return { action: { kind: "open_working" }, status: null }; |
- * @mutate src/pages/jobs/jobPage/useJobPage.ts |   return { job, applicants, isPoster, myApplication, onCrew: onCrew.data === true }; |   return { job, applicants, isPoster, myApplication, onCrew: false };
+ * @mutate src/pages/jobs/jobPage/useJobPage.ts |   return { job, applicants, isPoster, myApplication, tracking, onCrew: onCrew.data === true }; |   return { job, applicants, isPoster, myApplication, tracking, onCrew: false };
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | .from("group_job_helpers").select("id").eq("job_id", jobId).eq("helper_id", userId) | .from("group_job_helpers").select("id").eq("job_id", jobId)
  */
 import { describe, it, expect } from "vitest";

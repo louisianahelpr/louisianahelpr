@@ -13,7 +13,7 @@
  * @mutate src/lib/lastRoute.ts |   if (chat !== null && !namesAThread(chat)) { |   if (chat !== null) {
  * @mutate src/pages/messages/constants.ts |   const jobId = chat && chat !== LEGACY_CHAT_FLAG ? chat : null; |   const jobId = null as string \| null;
  * @mutate src/pages/messages/useMessagesData.ts |     navigate(chatOpenPath(convo), { |     navigate("/messages?chat=1", {
- * @mutate src/pages/messages/Messages.tsx |   const deepLinkJobId = searchParams.get("jobId") ?? resumedThread?.jobId ?? null; |   const deepLinkJobId = searchParams.get("jobId");
+ * @mutate src/pages/messages/useMessagesDeepLink.ts |   const deepLinkJobId = searchParams.get("jobId") ?? resumedThread?.jobId ?? null; |   const deepLinkJobId = searchParams.get("jobId");
  * @mutate src/pages/messages/Messages.tsx |     if (!activeConvo && flagged && !resumePending) { |     if (!activeConvo && flagged) {
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
@@ -141,10 +141,13 @@ describe("resuming reopens that exact thread (F27)", () => {
 describe("Messages hands a resumed thread to the loader and waits for it (F27)", () => {
   const src = blankComments(readFileSync("src/pages/messages/Messages.tsx", "utf8"));
   it("reads the thread the mounted URL names, once", () => {
-    expect(src).toContain("useState(() => threadFromChatFlag(searchParams))");
-    expect(src).toMatch(/deepLinkJobId = searchParams\.get\("jobId"\) \?\? resumedThread\?\.jobId/);
-    expect(src).toMatch(/deepLinkUserId = searchParams\.get\("userId"\) \?\? resumedThread\?\.userId/);
-    expect(src).toMatch(/deepLinkTeamUserId = searchParams\.get\("teamThread"\) \?\? resumedThread\?\.teamUserId/);
+    // The read lives in useMessagesDeepLink (moved out of Messages for its size budget); Messages takes it.
+    expect(src).toMatch(/\{ resumedThread, deepLinkJobId, deepLinkUserId, deepLinkTeamUserId \} = useMessagesDeepLink\(searchParams\)/);
+    const hook = blankComments(readFileSync("src/pages/messages/useMessagesDeepLink.ts", "utf8"));
+    expect(hook).toContain("useState(() => threadFromChatFlag(searchParams))");
+    expect(hook).toMatch(/deepLinkJobId = searchParams\.get\("jobId"\) \?\? resumedThread\?\.jobId/);
+    expect(hook).toMatch(/deepLinkUserId = searchParams\.get\("userId"\) \?\? resumedThread\?\.userId/);
+    expect(hook).toMatch(/deepLinkTeamUserId = searchParams\.get\("teamThread"\) \?\? resumedThread\?\.teamUserId/);
   });
   it("does not strip a flag that names a thread until the loader settles", () => {
     expect(src).toContain("const resumePending = !!resumedThread && !deepLinkSettled && !loadError;");

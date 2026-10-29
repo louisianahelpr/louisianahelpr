@@ -24,9 +24,9 @@ import {
   THREAD_OPEN_STATE,
   chatOpenPath,
   isThreadOpenEntry,
-  threadFromChatFlag,
 } from "./constants";
 import { useMessagesData } from "./useMessagesData";
+import { useMessagesDeepLink } from "./useMessagesDeepLink";
 import { useMessagesRealtime } from "./useMessagesRealtime";
 import { useThreadMuteActions } from "./useThreadMuteActions";
 import { useMessageSections } from "./useMessageSections";
@@ -42,15 +42,7 @@ const Messages = () => {
   const twoPane = useMessagesTwoPane();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  // F27: the thread a URL we MOUNTED on names in its open-chat flag (`?chat=<jobId>&with=<userId>`):
-  // a resume from route memory, a reload, a shared link. Read once, at mount: once this page is
-  // running, the flag follows the thread the user opens (chatOpenPath), and reading it live would
-  // send every inbox tap back through the deep-link loader.
-  const [resumedThread] = useState(() => threadFromChatFlag(searchParams));
-  const deepLinkJobId = searchParams.get("jobId") ?? resumedThread?.jobId ?? null;
-  const deepLinkUserId = searchParams.get("userId") ?? resumedThread?.userId ?? null;
-  // `?teamThread=<user>` — a "Louisiana Helpr Team" thread (src/lib/teamThread.ts).
-  const deepLinkTeamUserId = searchParams.get("teamThread") ?? resumedThread?.teamUserId ?? null;
+  const { resumedThread, deepLinkJobId, deepLinkUserId, deepLinkTeamUserId } = useMessagesDeepLink(searchParams);
   // The URL's "a thread is open" flag — MobileNav hides the entire bottom
   // dock while it is set. See the contract on chatOpenPath in
   // ./messages/constants; the effect below is what keeps it honest.

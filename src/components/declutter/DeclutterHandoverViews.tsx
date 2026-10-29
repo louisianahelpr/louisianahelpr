@@ -56,6 +56,7 @@ import { noShowFrom, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { payoutBreakdown, payoutStatusWords } from "@/lib/declutter/payoutWords";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
@@ -168,27 +169,6 @@ export function PaidOrdersSection({ cart, heading, label, views, show }: {
   );
 }
 
-const PAYOUT_WORDS: Record<MyPayout["status"], string> = {
-  // 141d: the payout waits until the sale is final (20261026155251).
-  pending: "We send it once the sale is final: 24 hours after the handover, unless the buyer asks for a refund.",
-  failed: "Your payout didn't go through yet. We'll keep trying. Check that your payout account is set up.",
-  succeeded: "Paid to your payout account. Banks usually show it in 2 business days.",
-  nothing_due: "Nothing to pay out: this sale covered an amount you owed from an earlier refund.",
-};
-
-/**
- * What the payout is made of: "after the buyer's refund" (board 141d), or
- * "($30.00 + $15.00 delivery minus $1.50 you owed)". A seller delivery's rate is
- * paid with the items (20261027153244), so the payout is items + rate - refunded - debt,
- * each read from the row's own columns. A free delivery adds no delivery part.
- */
-function payoutBreakdown(p: Pick<MyPayout, "items_cents" | "delivery_cents" | "refunded_cents" | "debt_cents">): string {
-  if ((p.refunded_cents ?? 0) > 0) return " after the buyer's refund";
-  const rate = p.delivery_cents ?? 0;
-  if (rate <= 0 && p.debt_cents <= 0) return "";
-  const parts = rate > 0 ? `${formatPrice(p.items_cents)} + ${formatPrice(rate)} delivery` : formatPrice(p.items_cents);
-  return p.debt_cents > 0 ? ` (${parts} minus ${formatPrice(p.debt_cents)} you owed)` : ` (${parts})`;
-}
 
 function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder; userId: string; booking: MyBooking | null; payout: MyPayout | null; view?: BuyerOrderView }) {
   const title = order.lines.map((l) => l.item_title).join(", ");
@@ -244,7 +224,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.side === "seller" && payout && items > 0 && (
             <p className="text-sm">
               {formatPrice(payout.amount_cents)}
-              {payoutBreakdown(payout)}. {PAYOUT_WORDS[payout.status]}
+              {payoutBreakdown(payout)}. {payoutStatusWords(payout)}
             </p>
           )}
           {refundRequests && items > 0 && (

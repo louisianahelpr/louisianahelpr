@@ -25,7 +25,7 @@
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql | IF p_by <> 'admin' AND EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261028232338_declutter_damage_no_enjoy_notice.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
+ * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
  * @mutate supabase/migrations/20261028225038_declutter_porch_pick_a_day.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
  * @mutate supabase/migrations/20261021074131_id_badge_reads_stripe_identity_only.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;

@@ -87,7 +87,8 @@ describe("Post a job sizes its grids to its own column", () => {
     const tiles = read("src/components/postjob/JobCategoryGroups.tsx");
     expect(tiles.match(/className="pj-tiles grid gap-2\.5"/g)?.length).toBe(2);
     expect(tiles.match(/className="pj-group-tiles grid gap-2\.5"/g)?.length).toBe(1);
-    expect(tiles.match(/id="category-picker" className="pj-cq/g)?.length).toBe(2);
+    // One category-picker element for both views (A0-L1), each a pj-cq container.
+    expect(tiles.match(/id="category-picker" className=\{open \? "pj-cq" : "pj-cq space-y-5"\}/g)?.length).toBe(1);
     const when = read("src/components/postjob/LogisticsSection.tsx");
     expect(when).toMatch(/<div className="pj-cq">\s*<div className="pj-when-grid grid gap-5">/);
   });

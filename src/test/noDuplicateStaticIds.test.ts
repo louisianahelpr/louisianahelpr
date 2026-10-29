@@ -10,6 +10,8 @@
  * are listed in KNOWN with a reason; the list is EXACT both ways.
  *
  * @mutate src/components/declutter/DeclutterSellView.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
+ * @mutate src/components/profile/EarningsTab.tsx | <div id="earnings-bank-connect" | <div id="earnings-bank-account"
+ * @mutate src/components/postjob/JobCategoryGroups.tsx | <section aria-label={`In ${open.label}`} | <section id="category-picker" aria-label={`In ${open.label}`}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -19,16 +21,13 @@ import { trackedFiles } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 
-/** file: id -> why the two copies never render at the same time. Measured 2026-10-29 (b25). */
+/** file: id -> why the two copies never render at the same time. Measured 2026-10-29 (b25); six fixed 2026-10-29 (b39). */
 // @two-way src/test/noDuplicateStaticIds.test.ts:stale duplicate-id entry
 const KNOWN: Record<string, string> = {
-  "src/components/postjob/AddressBlock.tsx: streetAddress": "pre-existing; not yet read",
-  "src/components/postjob/JobCategoryGroups.tsx: category-picker": "pre-existing; not yet read",
-  "src/components/profile/EarningsTab.tsx: earnings-bank-account": "pre-existing; not yet read",
-  "src/components/shops/ShopFaqs.tsx: shop-faqs": "pre-existing; not yet read",
-  "src/components/shops/ShopOrderSheet.tsx: shop-order": "pre-existing; not yet read",
-  "src/components/shops/ShopPolicies.tsx: shop-policies": "pre-existing; not yet read",
-  "src/pages/posts/EditJobDialog.tsx: edit-date-needed": "pre-existing; not yet read",
+  // Read 2026-10-29 (b39, A0-L1): three branches that never render together (the oneBox ternary, then
+  // mapKitReady's), and the id must stay the literal "streetAddress": useJobSubmit's
+  // scrollToField("streetAddress") and scripts/perf/inp-lab.mjs ("#streetAddress") find the field by it.
+  "src/components/postjob/AddressBlock.tsx: streetAddress": "exclusive branches; literal id is the scrollToField target",
 };
 
 export function duplicateIds(source: string): string[] {

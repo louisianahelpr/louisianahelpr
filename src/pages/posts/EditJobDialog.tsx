@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { Switch } from "@/components/ui/switch";
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { DatePickerField } from "@/components/DatePickerField";
@@ -59,6 +59,8 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 }
 
 export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
+  // A0-L1: one id for "Date needed" and whichever date control is showing.
+  const dateId = useId();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<string>("other");
@@ -315,16 +317,16 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
               <Input aria-label="Location" value={location} onChange={(e) => setLocation(e.target.value)} disabled={hasHelper} autoCapitalize="words" enterKeyHint="next" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-date-needed" className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
+              <Label htmlFor={dateId} className="text-ds-11 font-sans font-semibold uppercase tracking-[0.06em] text-muted-foreground">Date needed</Label>
               {hasHelper ? (
                 // When a helpr is locked in, the field is read-only. Show a
                 // disabled Input mirroring the locked state of the other
                 // fields in this dialog rather than a non-interactive
                 // DatePickerField (which has no `disabled` styling).
-                <Input id="edit-date-needed" type="date" value={dateNeeded} disabled readOnly />
+                <Input id={dateId} type="date" value={dateNeeded} disabled readOnly />
               ) : (
                 <DatePickerField
-                  id="edit-date-needed"
+                  id={dateId}
                   value={dateNeeded}
                   onChange={setDateNeeded}
                   min={todayLocalISO()}

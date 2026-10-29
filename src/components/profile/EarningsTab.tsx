@@ -253,7 +253,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const scrollToPayoutAccount = () => {
     setView("earned");
     requestAnimationFrame(() =>
-      document.getElementById("earnings-bank-account")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      // The connected account (Earned floor) or, before connecting, the connect card at the top (A0-L1: two ids).
+      (document.getElementById("earnings-bank-account") ?? document.getElementById("earnings-bank-connect"))?.scrollIntoView({ behavior: "smooth", block: "start" }),
     );
   };
 
@@ -319,7 +320,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           until then, with no Stripe account on the profile row, its
           data-aware bones hold the slot (owner, 2026-10-03). */}
       {showConnect && (
-        <div id="earnings-bank-account" hidden={!connectSettled}>
+        <div id="earnings-bank-connect" hidden={!connectSettled}>
           <Suspense fallback={null}>
             <PaymentTab onSettled={markConnectSettled} />
           </Suspense>

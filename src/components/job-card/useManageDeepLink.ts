@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { jobIsUnfundedDraft } from "./activityFilters";
 
 /** On Posted's list: everything but a never-paid draft (jobIsUnfundedDraft, Q1668). */
@@ -59,4 +59,21 @@ export function useManageDeepLink(
     if (!cards.expandedJobIds.has(target)) cards.toggleExpandedJobId(target);
     setTarget(null);
   }, [target, postedJobs, cards]);
+}
+
+/**
+ * `/jobs?tab=working&job=<id>&open=1` (the job page's Open in working / See the offer / View application, and the
+ * chat card's Open job; audit 2026-10-28 F10): that Working card opens in place, not just pulsed in its bucket.
+ * On Working `?highlight=` names an APPLICATION, so links name the JOB with `?job=`. The Working cards expand by
+ * JOB id (AppliedJobCard: toggleExpandedJobId(app.job_id)). Pass null params off the Working tab.
+ * Lives here, not in JobListPage, so that oversized page doesn't grow (componentSizeRatchet).
+ */
+export function useOpenWorkingDeepLink(
+  params: URLSearchParams | null,
+  appliedApps: ReadonlyArray<{ job_id: string }>,
+  cards: { expandedJobIds: Set<string>; toggleExpandedJobId: (id: string) => void },
+): void {
+  const jobId = params?.get("open") === "1" ? params.get("job") : null;
+  const refs = useMemo(() => appliedApps.map((a) => ({ id: a.job_id })), [appliedApps]);
+  useManageDeepLink(jobId, refs, cards);
 }

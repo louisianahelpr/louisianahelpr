@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
+import { useEffect, useRef, useState, useCallback, lazy, Suspense, type ReactNode } from "react";
 import { EmbeddedActivityHeader, EmbeddedActivityLoading, boxLabelledFilters } from "@/components/job-card/embeddedActivity";
 import { deepLinkReady, useActivitySettled } from "./deepLinkWait";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -13,7 +13,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
-import { notOnPostedCopy, onPostedList, useManageDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
+import { notOnPostedCopy, onPostedList, useManageDeepLink, useOpenWorkingDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
 import { useToastClearance } from "@/hooks/useToastClearance";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
@@ -82,10 +82,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const manageJobId = defaultTab === "posted" && searchParams.get("manage") === "1" ? searchParams.get("highlight") : null;
   // `&applicants=1` (the job page's "Review N applicants"): open that job's applicants, not just its card.
   const applicantsJobId = defaultTab === "posted" && searchParams.get("applicants") === "1" ? searchParams.get("highlight") : null;
-  // `/jobs?tab=working&job=<id>&open=1` (the job page's Open in working / See the offer / View application, and the
-  // chat card's Open job; audit 2026-10-28 F10): that Working card opens in place, not just pulsed in its bucket.
-  // `?job=` names the JOB here; `?highlight=` on this tab names an APPLICATION, so a job id there matched nothing.
-  const openWorkingJobId = defaultTab === "applied" && searchParams.get("open") === "1" ? searchParams.get("job") : null;
 
   // Deep-link to ONE JOB — `?job=<jobId>`.
   //
@@ -304,13 +300,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     } else if (tab === "posted" && highlightJobId && !onList) {
       toast.info(notOnPostedCopy(postedJobs.find((j) => j.id === highlightJobId)));
     }
-
     const next = new URLSearchParams(searchParams);
     const hadJobParam = next.has("job");
-    if (hadJobParam) {
-      next.delete("job");
-      next.delete("open");
-    }
+    if (hadJobParam) ["job", "open"].forEach((k) => next.delete(k));
     if (bucket) {
       setStatusFilter(bucket);
       // Mirror it into the URL only when it differs from the default, matching
@@ -339,9 +331,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   });
 
   useManageDeepLink(manageJobId, postedJobs, actions);
-  // The Working cards expand by JOB id (AppliedJobCard: toggleExpandedJobId(app.job_id)).
-  const appliedJobRefs = useMemo(() => appliedApps.map((a) => ({ id: a.job_id })), [appliedApps]);
-  useManageDeepLink(openWorkingJobId, appliedJobRefs, actions);
+  useOpenWorkingDeepLink(defaultTab === "applied" ? searchParams : null, appliedApps, actions);
   useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList);
   const toastClearance = useToastClearance();
 

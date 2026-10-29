@@ -52,7 +52,8 @@ describe("memberships are never shown or sold in the store app", () => {
     // Profile row gates on holding, or maybe still being billed for, a plan (mayStillBeBilled) instead of the switch.
     // 2026-10-27 (no-early-access-wait): seven. useDashboardData and useDashboardFilters read it to drop the
     // early-access wait while memberships are off.
-    expect(readers.length).toBe(7);
+    // 2026-10-28 (audit F15): eight. PaymentLifecycleSteps reads it for the payment-success "Live now" line.
+    expect(readers.length).toBe(8);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {

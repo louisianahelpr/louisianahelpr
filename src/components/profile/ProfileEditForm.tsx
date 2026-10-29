@@ -1,6 +1,6 @@
 import { FieldError } from "@/components/ui/FieldError";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import { usePortfolio } from "@/components/profile/profileEditForm/usePortfolio"
 import { PhotoNameSection } from "@/components/profile/profileEditForm/PhotoNameSection";
 import { RecentWorkSection } from "@/components/profile/profileEditForm/RecentWorkSection";
 import { TrustMarksCard } from "@/components/profile/profileEditForm/TrustMarksCard";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
@@ -55,6 +55,19 @@ export function ProfileEditForm({
   onBack,
   onPortfolioChange,
 }: ProfileEditFormProps) {
+  // Home's "Pick what you do" opens this form at the "I can help with" chips
+  // (?focus=skills, SKILLS_FOCUS_PATH), not at the top with the chips below
+  // the fold (app audit A3-C11, 2026-10-29). Once per arrival, after the
+  // profile has loaded so the card is in place.
+  const [searchParams] = useSearchParams();
+  const focusSkills = searchParams.get("focus") === "skills";
+  const skillsCardRef = useRef<HTMLDivElement>(null);
+  const focusedSkillsRef = useRef(false);
+  useEffect(() => {
+    if (!focusSkills || !profile || focusedSkillsRef.current) return;
+    focusedSkillsRef.current = true;
+    requestAnimationFrame(() => skillsCardRef.current?.scrollIntoView({ block: "start" }));
+  }, [focusSkills, profile]);
   // ID-verification status locals removed with the manual-upload card —
   // Stripe Identity owns that status now (stripe-idv-start / -webhook).
   // Contact details in a bio never save (rejected server-side, 23514);
@@ -297,7 +310,7 @@ export function ProfileEditForm({
             column would have meant touching all five. A plain text field with
             a live pill preview gives the chip affordance without changing what
             is persisted. */}
-        <div className="rounded-2xl liquid-glass p-card space-y-3">
+        <div ref={skillsCardRef} data-skills-card className="rounded-2xl liquid-glass p-card space-y-3 scroll-mt-4">
           <div className="flex items-baseline justify-between gap-3">
             {/* Board 41: "I can help with" (the public profile reads it as "Helps with"). */}
             <Label htmlFor="skills" className="text-ds-11 block">I can help with</Label>

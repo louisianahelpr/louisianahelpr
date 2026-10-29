@@ -616,7 +616,17 @@ export interface AiDraft {
   deliverySize: DeliverySize;
   conditionStars: number;
   flagged: boolean;
+  /**
+   * Owner 2026-10-29: Claude's suggested starting price in whole dollars, clamped to our own sold
+   * prices when the fair-price hint has a range; null (or absent, from an older function) = none.
+   */
+  priceDollars?: number | null;
+  /** One plain line on why that price (never a retail claim: the server drops one). */
+  priceReason?: string | null;
 }
+
+/** Where the fair-price hint looks, sent so the server can ground Claude's price in our sold prices. */
+export type AiHintPoint = { lat: number; lng: number } | null;
 
 /**
  * How long the app waits for the photo tool (draft or banned-item check)
@@ -628,8 +638,8 @@ export interface AiDraft {
  */
 export const AI_TIMEOUT_MS = 60_000;
 
-async function invokeAi(itemId: string, mode: "draft" | "check"): Promise<unknown> {
-  return invokeAiBody({ itemId, mode });
+async function invokeAi(itemId: string, mode: "draft" | "check", at: AiHintPoint = null): Promise<unknown> {
+  return invokeAiBody(at ? { itemId, mode, at } : { itemId, mode });
 }
 
 async function invokeAiBody(body: Record<string, unknown>): Promise<unknown> {
@@ -656,8 +666,8 @@ async function invokeAiBody(body: Record<string, unknown>): Promise<unknown> {
 }
 
 /** Suggestions from the photos for the seller to edit (row 32). Saves nothing. */
-export async function requestAiDraft(itemId: string): Promise<AiDraft> {
-  return (await invokeAi(itemId, "draft")) as AiDraft;
+export async function requestAiDraft(itemId: string, at: AiHintPoint = null): Promise<AiDraft> {
+  return (await invokeAi(itemId, "draft", at)) as AiDraft;
 }
 
 /** How many of a new listing's photos Claude looks at (the edge function's draft mode reads 4 too). */
@@ -669,12 +679,12 @@ export const AI_DRAFT_PHOTOS = 4;
  * data) and sent once, smaller, in the request; it is never uploaded or kept.
  * Saves nothing.
  */
-export async function requestAiDraftFromPhotos(files: File[]): Promise<AiDraft> {
+export async function requestAiDraftFromPhotos(files: File[], at: AiHintPoint = null): Promise<AiDraft> {
   const list = files.slice(0, AI_DRAFT_PHOTOS);
   if (list.length === 0) throw new Error("ai_photos_required");
   const photos: string[] = [];
   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75)));
-  return (await invokeAiBody({ mode: "draft", photos })) as AiDraft;
+  return (await invokeAiBody(at ? { mode: "draft", photos, at } : { mode: "draft", photos })) as AiDraft;
 }
 
 /**

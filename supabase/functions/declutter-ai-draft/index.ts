@@ -5,8 +5,10 @@
  * The seller has uploaded photos to their own DRAFT. This reads up to 4 of
  * them from storage (service role, after checking the draft is the caller's)
  * and asks Gemini (the ai-job-builder pattern). Two modes:
- *   draft  (row 32) a title, description, category, delivery size and 1-5
- *          condition stars for the seller's form to edit. Nothing is saved.
+ *   draft  (row 32) a title, description, category, delivery size, 1-5
+ *          condition stars and a starting price with its reason (owner
+ *          2026-10-29; clamped to our own sold prices by groundPrice when the
+ *          fair-price hint has a range) for the seller's form to edit. Nothing is saved.
  *   check  (row 34) judges the SAVED listing (photos + text) for banned
  *          items and records the verdict through declutter_record_ai_check
  *          (service role only), which refuses it as stale unless the photos
@@ -46,7 +48,10 @@ import { requireFeature } from "../_shared/featureSwitch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.99.0";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
-import { DECLUTTER_CATEGORIES, DELIVERY_SIZES, ROOM_MAX_ITEMS, roomPhotosFromBody, sanitizeDraft, sanitizeRoom } from "./sanitize.ts";
+import {
+  DECLUTTER_CATEGORIES, DELIVERY_SIZES, ROOM_MAX_ITEMS, groundPrice, hintPointFromBody, roomPhotosFromBody, sanitizeDraft, sanitizeRoom,
+  type DeclutterDraft, type SoldRange,
+} from "./sanitize.ts";
 import { fetchModelWithRetry } from "./modelRetry.ts";
 import { claudeFetch, claudeJson, type ClaudeImage } from "../_shared/claudeMessages.ts";
 import { sanitizeShopItemDraft, SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TOOL } from "./shopItemSanitize.ts";
@@ -75,16 +80,27 @@ const ITEM_SCHEMA = {
     condition_stars: { type: "integer", minimum: 1, maximum: 5 },
     possibly_banned: { type: "boolean" },
     banned_reason: { type: "string" },
+    price_dollars: { type: "integer", minimum: 1, maximum: 1000 },
+    price_reason: { type: "string" },
   },
-  required: ["title", "description", "category", "delivery_size", "condition_stars", "possibly_banned"],
+  required: ["title", "description", "category", "delivery_size", "condition_stars", "possibly_banned", "price_dollars", "price_reason"],
   additionalProperties: false,
 };
+
+/**
+ * Owner 2026-10-29 ("ai should always be doing most of the work"): Claude also
+ * sets the starting price. Never a retail claim; sanitizeDraft drops a reason
+ * that makes one, and groundPrice clamps the price to our own sold prices when
+ * the fair-price hint has a range.
+ */
+const PRICE_RULE = `Suggest a fair starting price in whole US dollars (1 to 1000) for a quick local sale of this USED item, from what you see: the kind of item, its condition and its size. Give price_reason as one short plain line about the item itself (for example "Solid wood and only light wear, so it should sell fast at this price"). Never mention retail, new, original or store prices, or any website or marketplace.`;
 
 const BANNED_RULE = `Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be sold: weapons, ammunition or weapon knives; alcohol; prescription or illegal drugs; vapes or e-cigarettes; any recalled product; cribs made before mid-2011; used car seats; counterfeit goods; adult items; live animals; vehicles or boats; real estate. If you are not sure, set it to true.`;
 
 /** One item's listing from its photos: a saved draft's (mode 'draft') or a new listing's held photos (photosDraft). */
 const ITEM_SYSTEM_PROMPT = `You help a person in Louisiana list a USED HOUSEHOLD ITEM for sale on Louisiana Helpr's Declutter section, from photos of the item.
 Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences: what it is, brand if visible, material, size, visible wear or damage), the best category, a delivery size (small = one person carries it in a car; large = needs a truck or a big SUV; xl = needs a truck and two people), and a condition rating from 1 to 5 stars (5 = like new, 4 = lightly used, 3 = used with visible wear, 2 = heavy wear or a fault, 1 = for parts or repair).
+${PRICE_RULE}
 ${BANNED_RULE}`;
 
 const ITEM_TOOL = { name: "draft_listing", description: "A draft listing for one used household item", parameters: ITEM_SCHEMA };
@@ -293,19 +309,49 @@ serve(async (req) => {
       return json({ checked: true, flagged: draft.flagged });
     }
 
-    return json({
-      title: draft.title,
-      description: draft.description,
-      category: draft.category,
-      deliverySize: draft.deliverySize,
-      conditionStars: draft.conditionStars,
-      flagged: draft.flagged,
-    });
+    return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
   } catch (e) {
     console.error("[declutter-ai-draft] error:", caughtMessage(e));
     return json({ error: "ai_unavailable" }, 500);
   }
 });
+
+/** What the seller's form gets back for one item (draft mode). */
+function draftAnswer(draft: DeclutterDraft) {
+  return {
+    title: draft.title,
+    description: draft.description,
+    category: draft.category,
+    deliverySize: draft.deliverySize,
+    conditionStars: draft.conditionStars,
+    flagged: draft.flagged,
+    priceDollars: draft.priceDollars,
+    priceReason: draft.priceReason,
+  };
+}
+
+/**
+ * Clamps Claude's price to OUR past sales of the same category and condition
+ * near the point the app sent (body.at), through declutter_price_hint AS THE
+ * CALLER (its own switch and gates apply). No point, no range, or the hint
+ * refused: Claude's price as is; the hint is extra help, never a blocker.
+ */
+async function groundWithOurSales(anon: Client, draft: DeclutterDraft, body: Record<string, unknown>): Promise<DeclutterDraft> {
+  const at = hintPointFromBody(body?.at);
+  if (!at || draft.priceDollars === null) return draft;
+  const { data, error } = await anon.rpc("declutter_price_hint", {
+    p_category: draft.category,
+    p_condition_stars: draft.conditionStars,
+    p_lat: at.lat,
+    p_lng: at.lng,
+  });
+  if (error) {
+    // feature_disabled is the ordinary answer while the hint is testers-only; anything else is logged.
+    if (!error.message?.includes("feature_disabled")) console.warn("[declutter-ai-draft] price hint failed:", error.message);
+    return draft;
+  }
+  return groundPrice(draft, ((data ?? []) as SoldRange[])[0]);
+}
 
 // createClient<any>: the bare ReturnType<typeof createClient> resolves its generics to never, which deno check refuses (PR #3294).
 type Client = ReturnType<typeof createClient<any>>;
@@ -412,12 +458,5 @@ async function photosDraft(req: Request, anon: Client, body: Record<string, unkn
   }
   const draft = answer.parsed ? sanitizeDraft(answer.parsed) : null;
   if (!draft) return json({ error: "ai_unavailable" }, 502);
-  return json({
-    title: draft.title,
-    description: draft.description,
-    category: draft.category,
-    deliverySize: draft.deliverySize,
-    conditionStars: draft.conditionStars,
-    flagged: draft.flagged,
-  });
+  return json(draftAnswer(await groundWithOurSales(anon, draft, body)));
 }

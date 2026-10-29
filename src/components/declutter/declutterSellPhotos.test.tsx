@@ -24,6 +24,8 @@ const drops: [string, number][] = [];
 const DRAFT = {
   title: "Mid-century walnut dresser", description: "Six drawers, solid walnut, light scratches on top.",
   category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false,
+  // Owner 2026-10-29: Claude sets the starting price too.
+  priceDollars: 45, priceReason: "Solid walnut with light wear, so it should sell fast.",
 };
 /** Claude's answer: resolves at once unless a test holds it to look at the "writing" state. */
 const aiAnswer = {
@@ -208,8 +210,10 @@ describe("photo-first selling", () => {
 
   // Owner 2026-10-28: "claude did not help with the listing so idk how to get it to do the listing for me".
   // @mutate src/components/declutter/DeclutterSellView.tsx | autoStart: !itemId && held.length > 0 | autoStart: false
-  // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null), | : null),
+  // @mutate src/components/declutter/DeclutterSellView.tsx | : held.length > 0 ? () => requestAiDraftFromPhotos(held, hintAt) : null), | : null),
   // @mutate src/components/declutter/SellAiDraft.tsx | : mergeAiDraft(f, atStart, d))); | : f));
+  // @mutate src/components/declutter/SellAiDraft.tsx |     price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? pick("price", String(d.priceDollars)) : current.price, |     price: current.price,
+  // @mutate src/components/declutter/SellAiDraft.tsx |           <AiPriceLine draft={d} /> |
   it("a NEW listing: Claude writes it by itself once the first photos are added, shows it, and can write it again", async () => {
     aiAnswer.hold = true;
     open();
@@ -224,6 +228,7 @@ describe("photo-first selling", () => {
     aiAnswer.release!();
     expect(await screen.findByText("Claude wrote your listing")).toBeInTheDocument();
     expect(document.querySelector("[data-ai-title]")).toHaveTextContent(DRAFT.title);
+    expect(document.querySelector("[data-ai-price]")).toHaveTextContent(`Suggested price: $45 · ${DRAFT.priceReason}`);
     // Adding more photos does not run it again by itself...
     fireEvent.change(document.getElementById("sell-files")!, { target: { files: [jpg("c.jpg")] } });
     await screen.findByText(/^3 of 12/);
@@ -238,6 +243,9 @@ describe("photo-first selling", () => {
     expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
     expect(screen.getByRole("radio", { name: "Furniture" })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "Lightly used" })).toHaveAttribute("aria-checked", "true");
+    // Claude's price fills the price box; the seller can change it.
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByLabelText("Price")).toHaveValue("45");
   });
 
   it("what the seller typed while Claude was writing is kept", async () => {

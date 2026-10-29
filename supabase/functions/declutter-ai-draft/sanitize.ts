@@ -21,6 +21,29 @@ export interface DeclutterDraft {
   flagged: boolean;
   /** Why the AI thinks the item may be banned (row 34); never shown to buyers. */
   flagReason: string | null;
+  /** Claude's suggested starting price in whole dollars ($1-$1,000, the sell form's range), or null. */
+  priceDollars: number | null;
+  /** One plain line on why that price; null when there is no price or the line made a claim we cannot back. */
+  priceReason: string | null;
+}
+
+/** The sell form's price range in whole dollars (formProblem: $1-$1,000). */
+export const PRICE_MIN_DOLLARS = 1;
+export const PRICE_MAX_DOLLARS = 1000;
+
+/**
+ * Owner 2026-10-29: never a "retail" claim. A reason that names a store
+ * price, an original/new price or a marketplace is dropped (the price stays):
+ * we cannot back it, and a buyer could read it as our promise.
+ */
+const UNBACKED_PRICE_CLAIM = /retail|msrp|\bnew (?:price|cost|one|ones)\b|brand[- ]new price|original(?:ly)? (?:price|cost|sold|paid)|list price|amazon|walmart|target\.com|home depot|lowe'?s|ebay|craigslist|facebook|marketplace|costs? \$\d+ new/i;
+
+/** The model's price: a whole-dollar number in range, else null (the seller types one). */
+function priceFrom(raw: unknown): number | null {
+  const n = Math.round(Number(raw));
+  if (raw === null || raw === undefined || raw === "" || !Number.isFinite(n)) return null;
+  if (n < PRICE_MIN_DOLLARS) return null;
+  return Math.min(PRICE_MAX_DOLLARS, n);
 }
 
 const oneLine = (s: string) => s.replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
@@ -45,7 +68,44 @@ export function sanitizeDraft(raw: unknown): DeclutterDraft | null {
   const flagged = r.possibly_banned !== false;
   const reasonRaw = typeof r.banned_reason === "string" ? oneLine(r.banned_reason).slice(0, 300) : "";
   const flagReason = flagged ? (reasonRaw || "The photo check could not confirm the item is allowed.") : null;
-  return { title, description, category, deliverySize, conditionStars, flagged, flagReason };
+  const priceDollars = priceFrom(r.price_dollars);
+  const priceReasonRaw = typeof r.price_reason === "string" ? oneLine(r.price_reason).slice(0, 140) : "";
+  const priceReason = priceDollars !== null && priceReasonRaw.length >= 3 && !UNBACKED_PRICE_CLAIM.test(priceReasonRaw) ? priceReasonRaw : null;
+  return { title, description, category, deliverySize, conditionStars, flagged, flagReason, priceDollars, priceReason };
+}
+
+/** What declutter_price_hint answers: the middle of OUR past sales of the same category and condition nearby. */
+export interface SoldRange {
+  low_cents: number;
+  high_cents: number;
+  sales: number;
+}
+
+/**
+ * Grounds Claude's price in our own sold prices (owner 2026-10-29): when the
+ * fair-price hint has a real range (the same validity rule the app applies:
+ * at least 10 sales, low at least $1, high >= low), the price is clamped into
+ * it and the reason says so in our words. No range: Claude's price as is.
+ */
+export function groundPrice(draft: DeclutterDraft, hint: SoldRange | null | undefined): DeclutterDraft {
+  if (draft.priceDollars === null || !hint) return draft;
+  const ok = Number.isInteger(hint.sales) && hint.sales >= 10 && Number.isFinite(hint.low_cents) && Number.isFinite(hint.high_cents)
+    && hint.low_cents >= 100 && hint.high_cents >= hint.low_cents;
+  if (!ok) return draft;
+  const low = Math.max(PRICE_MIN_DOLLARS, Math.ceil(hint.low_cents / 100));
+  const high = Math.min(PRICE_MAX_DOLLARS, Math.max(low, Math.floor(hint.high_cents / 100)));
+  const price = Math.min(high, Math.max(low, draft.priceDollars));
+  const range = low === high ? `$${low}` : `$${low}-$${high}`;
+  return { ...draft, priceDollars: price, priceReason: `Items like this sold for ${range} on Declutter near you.` };
+}
+
+/** A lat/lng the app sent for the price hint, or null when missing or out of range. */
+export function hintPointFromBody(raw: unknown): { lat: number; lng: number } | null {
+  if (!raw || typeof raw !== "object") return null;
+  const { lat, lng } = raw as { lat?: unknown; lng?: unknown };
+  if (typeof lat !== "number" || typeof lng !== "number" || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  return { lat: Math.round(lat * 100) / 100, lng: Math.round(lng * 100) / 100 };
 }
 
 /** Moving-out mode (docs/specs/declutter-moving-out.md): items the model found in room photos. */

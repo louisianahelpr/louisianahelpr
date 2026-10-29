@@ -31,6 +31,8 @@ export interface AiFields {
   category: string;
   deliverySize: DeliverySize;
   conditionStars: number;
+  /** Whole dollars as the price box holds them (owner 2026-10-29: Claude sets the price too). */
+  price: string;
 }
 
 /**
@@ -46,6 +48,8 @@ function mergeAiDraft<F extends AiFields>(current: F, atStart: AiFields, d: AiDr
     category: pick("category", d.category),
     deliverySize: pick("deliverySize", d.deliverySize),
     conditionStars: pick("conditionStars", d.conditionStars),
+    // No price from Claude (or an older function): the seller's box stays as it is.
+    price: typeof d.priceDollars === "number" && d.priceDollars >= 1 ? pick("price", String(d.priceDollars)) : current.price,
   };
 }
 
@@ -60,6 +64,7 @@ function fillEmptyFields<F extends AiFields>(current: F, d: AiDraft): F {
     title: current.title.trim() ? current.title : d.title,
     description: current.description.trim() ? current.description : d.description,
     category: current.category === "other" ? d.category : current.category,
+    price: !current.price.trim() && typeof d.priceDollars === "number" && d.priceDollars >= 1 ? String(d.priceDollars) : current.price,
   };
 }
 
@@ -109,6 +114,17 @@ export function useSellAiDraft<F extends AiFields>({
   return { state, run: () => run(false) };
 }
 
+/** Claude's suggested price and its one-line reason (owner 2026-10-29); nothing when there is none. */
+export function AiPriceLine({ draft }: { draft: AiDraft }) {
+  if (typeof draft.priceDollars !== "number" || draft.priceDollars < 1) return null;
+  return (
+    <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-price="">
+      <span className="font-semibold">Suggested price: ${draft.priceDollars}</span>
+      {draft.priceReason ? <span className="text-muted-foreground"> · {draft.priceReason}</span> : null}
+    </p>
+  );
+}
+
 export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () => void }) {
   if (state.status === "busy") {
     return (
@@ -116,7 +132,7 @@ export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () =
         <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-[hsl(var(--sage-ink))]" aria-hidden />
         <div className="min-w-0">
           <p className="text-ds-15 font-semibold text-foreground">Claude is writing your listing…</p>
-          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size and condition. This takes a few seconds.</p>
+          <p className="mt-0.5 text-ds-13 text-muted-foreground">It looks at your photos for the name, details, category, size, condition and a fair price. This takes a few seconds.</p>
         </div>
       </div>
     );
@@ -135,6 +151,7 @@ export function SellAiDraftPanel({ state, onRun }: { state: AiState; onRun: () =
             {[CATEGORY_LABEL[d.category] ?? d.category, CONDITION_LABEL[d.conditionStars], SIZE_LABEL[d.deliverySize]].filter(Boolean).join(" · ")}
           </p>
           {d.description && <p className="line-clamp-3 text-ds-14 text-foreground [overflow-wrap:anywhere]">{d.description}</p>}
+          <AiPriceLine draft={d} />
         </div>
         {d.flagged && (
           <p className="text-ds-13 font-semibold text-foreground">

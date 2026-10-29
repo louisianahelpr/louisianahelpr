@@ -762,6 +762,11 @@ describe("the AI helpers", () => {
     h.queue.push(ok(draft));
     await expect(requestAiDraft("i1")).resolves.toEqual(draft);
     expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "draft" }, timeout: AI_TIMEOUT_MS }]]);
+    // Owner 2026-10-29: the price hint's point goes along, so the server grounds Claude's price in our sold prices.
+    h.invokes.length = 0;
+    h.queue.push(ok(draft));
+    await requestAiDraft("i1", { lat: 30.45, lng: -91.15 });
+    expect(h.invokes).toEqual([["declutter-ai-draft", { body: { itemId: "i1", mode: "draft", at: { lat: 30.45, lng: -91.15 } }, timeout: AI_TIMEOUT_MS }]]);
   });
 
   it("the photo tool has a client timeout above the edge function's own worst case, and a timeout says so", async () => {

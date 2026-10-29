@@ -168,11 +168,12 @@ export default function SellFlow() {
   }, [savedWindows.data]);
 
   const photoCount = (photos.data ?? []).length;
+  const hintAt = coords ? { lat: coords.lat, lng: coords.lng } : item.data ? { lat: Number(item.data.area_lat), lng: Number(item.data.area_lng) } : origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
   // Owner 2026-10-28: Claude writes the listing. A new listing's photos are still on the device, so they
   // go in the request (never stored) and it runs by itself once the first ones are added; a saved draft
   // asks from its uploaded photos. Either way "Write it again" asks once more.
   const aiAsk = useMemo(
-    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId) : null) : held.length > 0 ? () => requestAiDraftFromPhotos(held) : null),
+    () => (itemId ? (photoCount > 0 ? () => requestAiDraft(itemId, hintAt) : null) : held.length > 0 ? () => requestAiDraftFromPhotos(held, hintAt) : null),
     [itemId, photoCount, held],
   );
   // Audit AA9: a resumed draft with photos and an empty title or details is filled by itself too (empty fields only).
@@ -480,15 +481,7 @@ export default function SellFlow() {
             category={form.category}
             conditionStars={form.conditionStars}
             place="near_you"
-            at={
-              coords
-                ? { lat: coords.lat, lng: coords.lng }
-                : item.data
-                  ? { lat: Number(item.data.area_lat), lng: Number(item.data.area_lng) }
-                  : origin.status === "ready"
-                    ? { lat: origin.lat, lng: origin.lng }
-                    : null
-            }
+            at={hintAt}
           />}
         </section>
       )}

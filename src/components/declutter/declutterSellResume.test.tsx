@@ -13,6 +13,7 @@
  * @mutate src/components/declutter/SellAiDraft.tsx |     description: current.description.trim() ? current.description : d.description, |     description: current.description,
  * @mutate src/components/declutter/SellAiDraft.tsx |     category: current.category === "other" ? d.category : current.category, |     category: d.category,
  * @mutate src/components/declutter/DeclutterSellView.tsx | photoCount > 0 && (!form.title.trim() \|\| !form.description.trim()) | photoCount > 0
+ * @mutate src/components/declutter/SellAiDraft.tsx |     price: !current.price.trim() && typeof d.priceDollars | price: typeof d.priceDollars
  * @mutate src/components/declutter/DeclutterSellView.tsx | <h3 id="sell-tax-head" | <h3 id="sell-tax"
  * @mutate src/components/declutter/SellDeliveryOffNotice.tsx |   if (!on \|\| !ticked \|\| !mine.data \|\| mine.data.enabled) return null; |   return null;
  */
@@ -25,6 +26,7 @@ const ID = "0f0e0d0c-0b0a-4908-8706-0504030201aa";
 const DRAFT = {
   title: "Mid-century walnut dresser", description: "Six drawers, solid walnut, light scratches on top.",
   category: "furniture", deliverySize: "large", conditionStars: 4, flagged: false,
+  priceDollars: 45, priceReason: "Solid walnut.",
 };
 const saved = { title: "Oak rocking chair", description: "", category: "other" };
 const delivery = { enabled: false };
@@ -106,6 +108,9 @@ describe("a resumed draft", () => {
     expect(await screen.findByLabelText("Title")).toHaveValue("Oak rocking chair");
     expect(screen.getByLabelText(/Anything else/)).toHaveValue(DRAFT.description);
     expect(screen.getByRole("radio", { name: "Furniture" })).toHaveAttribute("aria-checked", "true");
+    // The saved price is the seller's: Claude's suggestion never replaces it.
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(await screen.findByLabelText("Price")).toHaveValue("40");
   });
 
   it("a category the seller picked stays theirs while Claude fills the empty details", async () => {

@@ -326,20 +326,22 @@ export function SignupStep2(props: SignupStep2Props) {
           {loading ? "Creating account…" : "Create account"}
         </Button>
       </div>
-      {/* Every field on this screen is optional (owner 2026-10-26): "Skip for
-          now" creates the account with none of them. A referral code a share
-          link brought in still counts. */}
-      <Button
+      {/* Every field on this screen is optional (owner 2026-10-26): Skip
+          creates the account with none of them. A referral code a share link
+          brought in still counts. ONE clear action (app audit A3-C2, lead
+          2026-10-29): "Create account" is the button; Skip is a quiet text
+          link that says what it does too, so two buttons that both create the
+          account no longer compete. */}
+      <button
         type="button"
-        variant="ghost"
-        className="w-full rounded-ds-md"
-        size="lg"
+        className="mx-auto block min-h-11 px-3 text-ds-14 font-semibold underline underline-offset-2 disabled:opacity-50"
+        style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         data-testid="signup-skip"
         onClick={onSkip}
         disabled={loading}
       >
-        Skip for now
-      </Button>
+        Skip and create account
+      </button>
     </div>
   );
 }

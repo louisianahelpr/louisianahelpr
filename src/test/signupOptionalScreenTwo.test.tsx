@@ -23,6 +23,7 @@
  * @mutate src/pages/auth/Signup.tsx |         referralCode: (skipped ? linkReferralCode : referralCode.trim().toUpperCase()) \|\| null, |         referralCode: referralCode.trim().toUpperCase() \|\| null,
  * @mutate src/components/ProtectedRoute.tsx |   if (!signupFinished(profile)) return false; |
  * @mutate src/pages/auth/signup/SignupStep2.tsx |         onClick={onSkip} |         onClick={onContinue}
+ * @mutate src/pages/auth/signup/SignupStep2.tsx |         Skip and create account |         Skip for now
  * @mutate src/components/ProtectedRoute.tsx |   { key: "full_name", label: "Full name" }, |   { key: "full_name", label: "Full name" }, { key: "location", label: "City" },
  * @mutate src/pages/auth/CompleteProfile.tsx |             {!providerGaveName && ( |             {true && (
  * @mutate src/pages/auth/CompleteProfile.tsx |     { const zip = zipCode.replace(/\D/g, ""); if (zip && zip.length !== 5) return fail( |     { const zip = zipCode.replace(/\D/g, ""); if (zip.length !== 5) return fail(
@@ -118,7 +119,8 @@ describe("screen 2: photo, city, ZIP, bio and referral code, all optional, with 
     fireEvent.click(screen.getByTestId("signup-skip"));
     expect(onSkip).toHaveBeenCalledTimes(1);
     expect(onContinue).not.toHaveBeenCalled();
-    expect(screen.getByTestId("signup-skip").textContent).toBe("Skip for now");
+    // ONE clear action (A3-C2): Skip is a text link that says it creates the account, not a second button.
+    expect(screen.getByTestId("signup-skip").textContent).toBe("Skip and create account");
   });
 
   it("requires nothing on screen 2, but a typed ZIP is five digits", () => {

@@ -8,9 +8,12 @@
  *
  * THE FIX (20261029180706). The same UPDATE now sets closed_reason 'no_show'; the newest
  * applications_closed_reason_check admits it (applicantBadgeCoversClosedReasons keeps the badge map exact
- * both ways). The poster's badge says "No-show"; the Helpr's card, closed card and job page say "The poster
- * reported you didn't show up for this job", and the job page links the strikes rules (/rules#strikes-bans,
+ * both ways). The poster's badge says "No-show"; the Helpr's closed card and job page say "The poster
+ * reported you didn't show up for this job" (the collapsed card's one-line status: "Reported as a no-show",
+ * since the whole sentence needs 246px of a 194px line at 320), and the job page links the strikes rules (/rules#strikes-bans,
  * the "Strikes and bans" section of CommunitySection).
+ *
+ * PGlite proof (old body RED, new migration 3x GREEN): src/test/pglite/noShowClosesTheApplication.pglite.mjs
  *
  * @mutate supabase/migrations/20261029180706_application_closed_by_no_show.sql |          closed_reason = 'no_show'\n |          closed_reason = NULL\n
  * @mutate src/pages/posts/postedJobs/applicantBadge.ts |   no_show: "No-show", |   no_show: "Declined",
@@ -52,8 +55,12 @@ describe("a no-show report closes the reported Helpr's application as a no-show"
     expect(closedCardLabel({ status: "rejected", closed_reason: "no_show" })).toBe(SAID);
     const app = { status: "rejected", closed_reason: "no_show", job: { id: "j1", status: "open", helper_id: null } } as never;
     expect(deriveHelperWait(app)).toBe("reported_no_show");
-    expect(HELPER_WAIT.reported_no_show.detail).toBe(SAID);
-    expect(HELPER_STEP.reported_no_show.label).toBe("No-show");
+    // The collapsed card's one line holds the short form (collapsedStatusSentence: 194px at 320), never "You weren't picked".
+    expect(HELPER_WAIT.reported_no_show.detail).toBe("Reported as a no-show");
+    // A plain entry (not the per-job function form), labelled as a problem.
+    const step = HELPER_STEP.reported_no_show;
+    expect(typeof step).toBe("object");
+    expect(typeof step === "function" ? null : step.label).toBe("No-show");
     const v = jobPageViewerState({
       isPoster: false,
       userId: "h1",

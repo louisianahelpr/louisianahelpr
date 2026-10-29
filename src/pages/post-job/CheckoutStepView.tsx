@@ -3,6 +3,8 @@ import { PostJobStepHeader } from "@/components/postjob/PostJobStepHeader";
 import { PostJobPreviewCard } from "@/components/postjob/PostJobPreviewCard";
 import { POST_JOB_DESKTOP_GRID, PostJobStepRail } from "@/components/postjob/PostJobStepRail";
 import { FORM_PAGE_OF, type PostJobScreen } from "@/components/postjob/postJobScreens";
+import { useAskForQuotes } from "@/components/quotes/PostJobQuoteChoice";
+import type { ReactNode } from "react";
 import type { usePostJobForm } from "./usePostJobForm";
 
 interface CheckoutStepViewProps {
@@ -23,6 +25,21 @@ interface CheckoutStepViewProps {
  * post from the gift and charged $0. A total that isn't the total is a trust
  * bug even when the surprise is pleasant.
  */
+type QuoteAsk = { sending: boolean; onAsk: () => void };
+
+/** Review opened from Get quotes (A2-C32): sends the request with the window picked on screen 5. Mounted only
+ *  then, so the plain Review never touches the router or query hooks the ask needs. */
+function WithQuoteAsk({ form, children }: CheckoutStepViewProps & { children: (ask: QuoteAsk) => ReactNode }) {
+  const quotes = useAskForQuotes(form.quoteWindowHours);
+  const onAsk = () => void quotes.ask({
+    title: form.title, description: form.description, category: form.category, streetAddress: form.streetAddress,
+    city: form.city, addrState: form.addrState, zipCode: form.zipCode, dateNeeded: form.dateNeeded,
+    startTime: form.startTime, isFlexibleSchedule: form.isFlexibleSchedule, estimatedHours: form.estimatedHours,
+    parish: form.parish,
+  });
+  return <>{children({ sending: quotes.sending, onAsk })}</>;
+}
+
 export function CheckoutStepView({ form }: CheckoutStepViewProps) {
   // Q2399 (owner 2026-10-25): with card_hold_at_post (read once in
   // usePostJobForm) the card is HELD when the job posts and charged only at
@@ -56,8 +73,10 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         canPick={canPick}
         onPick={pick}
         helper={
-          // A post a gift card covers in full charges $0: no "pay" line then.
-          form.totalCharge > 0
+          form.quoteReview
+            ? "Check your job, then ask for quotes. Nothing is charged until you book one."
+            // A post a gift card covers in full charges $0: no "pay" line then.
+            : form.totalCharge > 0
             ? cardHoldOn
               ? "Check your job. Your card isn't charged until you hire someone. A bank payment is charged when you post."
               : "Check your job. You're charged when you post, and the money is held until the job is done."
@@ -71,7 +90,18 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
           step 1, next to the fields it is judging — not above the total. The
           component and its usePostingQuality hook had no other callers, so both
           were deleted with it. */}
+      {form.quoteReview ? <WithQuoteAsk form={form}>{(ask) => checkout(ask)}</WithQuoteAsk> : checkout()}
+      </div>
+      <aside className="hidden xl:block sticky top-6">
+        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.budgetNum} />
+      </aside>
+    </div>
+  );
+
+  function checkout(quoteAsk?: QuoteAsk) {
+    return (
       <CheckoutStep
+        quoteAsk={quoteAsk}
         title={form.title}
         description={form.description}
         categoryLabel={form.categoryLabel}
@@ -115,10 +145,6 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         // (owner, 2026-10-14, "no later prompt").
         onSubmit={form.handleSubmit}
       />
-      </div>
-      <aside className="hidden xl:block sticky top-6">
-        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.budgetNum} />
-      </aside>
-    </div>
-  );
+    );
+  }
 }

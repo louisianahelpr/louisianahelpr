@@ -18,6 +18,8 @@ import { useSavedJobAddress } from "./useSavedJobAddress";
 import { useHaulAwayPrefill } from "./useHaulAwayPrefill";
 import { SELL_FOR_ME_PARAM } from "@/lib/declutter/sellForMe";
 import { prefillOpensDetails } from "./usePrefillOpensDetails";
+import { DEFAULT_QUOTE_WINDOW, type QuoteWindowHours } from "@/lib/quotes/api";
+import type { PriceMode } from "@/components/quotes/PostJobQuoteChoice";
 
 export type { Step } from "./postJobFormTypes";
 
@@ -68,6 +70,11 @@ export function usePostJobForm() {
   // Screen 1b: the group whose categories are showing (owner 2026-10-21: 8 groups first, a tap opens
   // that group's categories, a category tap goes on to Details).
   const [categoryGroup, setCategoryGroup] = useState<JobCategoryGroupId | null>(null);
+  // "Set a price" or "Get quotes" (screen 5) and the quote window, kept here so Review (screen 7, another step)
+  // reads them; `quoteReview` = Review was opened from Get quotes, so it asks for quotes, never pays (A2-C32).
+  const [priceMode, setPriceMode] = useState<PriceMode>("price");
+  const [quoteWindowHours, setQuoteWindowHours] = useState<QuoteWindowHours>(DEFAULT_QUOTE_WINDOW);
+  const [quoteReview, setQuoteReview] = useState(false);
 
   // Gift card — the gift card this post is being funded with, if any.
   // Read ONCE here so the id that goes to create-payment and the amount the
@@ -719,6 +726,12 @@ export function usePostJobForm() {
     scheduleInPast,
     budgetComplete,
     helprActivity,
+    priceMode,
+    setPriceMode,
+    quoteWindowHours,
+    setQuoteWindowHours,
+    quoteReview,
+    setQuoteReview,
     // handlers
     handleReview,
     handleSubmit,

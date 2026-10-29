@@ -13,7 +13,6 @@ import {
   Zap,
   CreditCard,
   CheckCircle2,
-  Users,
   BookOpen,
   DollarSign,
   ShieldCheck,
@@ -34,6 +33,8 @@ import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
 import { isSafeBlobPreviewUrl } from "./safeBlobPreviewUrl";
+import { HelprActivityNote } from "./HelprActivityNote";
+import { QuoteAskButton } from "@/components/quotes/QuoteAskButton";
 
 interface CheckoutStepProps {
   title: string;
@@ -96,6 +97,8 @@ interface CheckoutStepProps {
   uploading: boolean;
   uploadProgress?: { done: number; total: number } | null;
   onSubmit: () => void;
+  /** A2-C32: Review opened from Get quotes: the glance rows only (no price yet), then "Ask for quotes". */
+  quoteAsk?: { sending: boolean; onAsk: () => void };
   /** Preferred helper stub — shown as a "Send to [name] first?" shortcut
    *  when the poster has a trusted repeat helper set on their profile. */
   /** Whether the "send to preferred helper first" checkbox is checked. */
@@ -142,6 +145,7 @@ export function CheckoutStep({
   uploading,
   uploadProgress,
   onSubmit,
+  quoteAsk,
 }: CheckoutStepProps) {
   // Q1586(c): a saved birthday under 18 greys the post button out (the server
   // refuses the jobs insert too).
@@ -250,8 +254,8 @@ export function CheckoutStep({
             </div>
           )}
 
-          {/* Budget with fee breakdown */}
-          <div className="px-4 py-3 flex items-start justify-between gap-3">
+          {/* Budget with fee breakdown (none while asking for quotes: there is no price yet) */}
+          {!quoteAsk && <div className="px-4 py-3 flex items-start justify-between gap-3">
             {/* Label is "Total", not "Budget" — it names the figure that now
                 leads this row (what the poster is charged), so the label and
                 the number agree. */}
@@ -287,7 +291,7 @@ export function CheckoutStep({
                 isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount} />
 
             </div>
-          </div>
+          </div>}
 
           {/* Location — full street address (the poster's own job, so
               showing the complete address once at checkout is fine). No parish
@@ -382,33 +386,9 @@ export function CheckoutStep({
         </div>
       </div>
 
-      {/* Two-sided liquidity signal — a quiet confidence cue that the
-          helpr side is active before the poster commits to paying.
-          The count is helprs who've worked at least one job in this
-          parish (from get_parish_activity), so the copy says exactly
-          that — never an invented "active this week" figure. Renders
-          only when the count is meaningful (>= 3). */}
-      {helprActivity && (
-        <div
-          className="flex items-center gap-2.5 rounded-ds-md px-3 py-2"
-          style={{
-            background: "hsl(var(--primary) / 0.06)",
-            border: "0.5px solid hsl(var(--primary) / 0.22)",
-          }}
-        >
-          <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
-          <p className="text-ds-12 leading-snug text-foreground">
-            <span className="font-sans font-bold tabular-nums">
-              {helprActivity.count} Helprs
-            </span>{" "}
-            <span className="text-muted-foreground">
-              have worked jobs in {helprActivity.parish} Parish — your
-              job will reach an active community.
-            </span>
-          </p>
-        </div>
-      )}
+      <HelprActivityNote activity={helprActivity} />
 
+      {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
       {/* Payment breakdown card */}
       <div className="rounded-2xl liquid-glass overflow-hidden">
         <div className="px-5 py-4 border-b border-border">
@@ -799,6 +779,7 @@ export function CheckoutStep({
         {/* A second "Back to edit" ghost button used to sit under the CTA. Removed on owner instruction: the
             page-header arrow already goes back, and a back control under the pay button competes with it. */}
       </div>
+      </>}
     </>
   );
 }

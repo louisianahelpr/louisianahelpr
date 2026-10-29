@@ -2,12 +2,12 @@
  * Post a job, "Set a price" or "Get quotes" (owner Q1, Q4; owner 2026-10-19:
  * pills with one line on what happens next). Since board 3 (builder2-jobs
  * 2026-10-20) the choice heads screen 3 of 5, "What will you pay?"; the quote
- * ask goes out from screen 4. The three form
+ * ask goes out from Review (7 of 7, A2-C32). The three form
  * sections are stubbed (their own tests cover them); this pins the choice:
  * shown only with the 'quotes' switch on and only for a one-time job with no
  * direct offer, "Get quotes" swaps the budget for the 24 h / 48 h / 3 days
  * window (48 h default), and "Ask for quotes" sends the form's details to
- * create_quote_request, never the Review, then pay path.
+ * create_quote_request from a Review with no price or payment breakdown, never the pay path.
  *
  * @mutate src/pages/post-job/FormStep.tsx |   const quotesShape = !form.offerToHelperId && !form.isRecurring && !form.isGroupJob; |   const quotesShape = !form.offerToHelperId;
  *
@@ -19,6 +19,11 @@
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           quotesComingSoon\n            ? { |           false\n            ? {
  * @mutate src/pages/post-job/FormStep.tsx | quotesComingSoon={!quotesOn} | quotesComingSoon={false}
  * @mutate src/pages/post-job/FormStep.tsx |           if (!askingQuotes) return form.handleReview(e); |           return form.handleReview(e);
+ * @mutate src/pages/post-job/FormStep.tsx |     submitLabel = "Review"; |     submitLabel = "Ask for quotes";
+ * @mutate src/pages/post-job/FormStep.tsx |           form.handleReview(e, { quotes: true }); |           void 0;
+ * @mutate src/components/postjob/CheckoutStep.tsx | {!quoteAsk && <div className="px-4 py-3 flex items-start justify-between gap-3"> | {<div className="px-4 py-3 flex items-start justify-between gap-3">
+ * @mutate src/components/postjob/CheckoutStep.tsx | {quoteAsk ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <> | {false ? <QuoteAskButton {...quoteAsk} underAge={underAge} /> : <>
+ * @mutate src/pages/post-job/CheckoutStepView.tsx | {form.quoteReview ? <WithQuoteAsk | {false ? <WithQuoteAsk
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |           { value: "price", label: "Set a price" }, |           { value: "price", label: "Set my price" },
  * @mutate src/components/quotes/PostJobQuoteChoice.tsx |         {quotesComingSoon && soonTapped ? QUOTES_COMING_SOON : PRICE_MODE_NEXT[value]}\n |         \n
  * @mutate src/lib/quotes/api.ts | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 48; | export const DEFAULT_QUOTE_WINDOW: QuoteWindowHours = 24;
@@ -55,9 +60,13 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-import { FormStep } from "@/pages/post-job/FormStep";
+vi.mock("@/hooks/useStripeSalesTax", () => ({ useStripeSalesTax: () => ({ salesTax: 0, loading: false, jurisdiction: null }) }));
 
-const handleReview = vi.fn((e: { preventDefault: () => void }) => e.preventDefault());
+import { FormStep } from "@/pages/post-job/FormStep";
+import { CheckoutStepView } from "@/pages/post-job/CheckoutStepView";
+import { DEFAULT_QUOTE_WINDOW } from "@/lib/quotes/api";
+
+const handleReview = vi.fn((e: { preventDefault: () => void }, _opts?: { quotes?: boolean }) => e.preventDefault());
 
 function form(over: Record<string, unknown> = {}) {
   return {
@@ -67,14 +76,28 @@ function form(over: Record<string, unknown> = {}) {
     streetAddress: "100 Main St", city: "Baton Rouge", addrState: "LA", zipCode: "70801",
     dateNeeded: "2026-10-25", startTime: "09:00", isFlexibleSchedule: false, estimatedHours: "4",
     parish: "East Baton Rouge", budgetNum: 0, scheduleInPast: false, streetAddressOk: true,
+    categoryLabel: "Painting", imagePreviews: [], specialRequirements: "", recurrenceDays: [], recurrenceWeeks: 0,
+    totalCharge: 0, customerFeeAmount: 0, onboardingFeeAmount: 0, urgentFeeNum: 0, isUrgent: false, helprActivity: null,
     ...over,
   } as never;
 }
 
-/** FormStep with a real page state, opened on screen 3 (the price screen). */
+/** FormStep with a real page state, opened on screen 3 (the price screen); Review (CheckoutStepView) once
+ *  handleReview opens it for a quote ask (the real handleReview does setStep("checkout")). */
 function Paged({ f }: { f: Record<string, unknown> }) {
   const [formPage, setFormPage] = useState(3);
-  return <FormStep form={{ ...f, formPage, setFormPage } as never} />;
+  const [priceMode, setPriceMode] = useState("price");
+  const [quoteWindowHours, setQuoteWindowHours] = useState<number>(DEFAULT_QUOTE_WINDOW); // as usePostJobForm seeds it
+  const [quoteReview, setQuoteReview] = useState(false);
+  const [step, setStep] = useState("form");
+  const all = {
+    ...f, formPage, setFormPage, priceMode, setPriceMode, quoteWindowHours, setQuoteWindowHours, quoteReview, setQuoteReview, setStep,
+    handleReview: (e: { preventDefault: () => void }, opts?: { quotes?: boolean }) => {
+      handleReview(e, opts);
+      if (opts?.quotes) setStep("checkout");
+    },
+  };
+  return step === "checkout" ? <CheckoutStepView form={all as never} /> : <FormStep form={all as never} />;
 }
 
 function show(f: never) {
@@ -181,16 +204,28 @@ describe("Post a job: Set a price or Get quotes", () => {
     }
   });
 
-  it("Get quotes swaps the budget for the window (48 h default) and asks for quotes, never Review, then pay", async () => {
+  // A2-C32 (lead option A): screen 6's button says "Review" (not "Ask for quotes", which skipped 7 of 7); Review
+  // shows "Your post at a glance" with no price or payment breakdown, and its one button is "Ask for quotes".
+  it("Get quotes swaps the budget for the window (48 h default), reviews, then asks for quotes, never pay", async () => {
     show(form());
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.queryByText("Budget section")).toBeNull();
     expect(screen.getByRole("radio", { name: "48 hours" })).toHaveAttribute("aria-checked", "true");
     fireEvent.click(screen.getByRole("radio", { name: "3 days" }));
     toScreen4();
+    expect(screen.queryByRole("button", { name: /Ask for quotes/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(handleReview).toHaveBeenCalledWith(expect.anything(), { quotes: true });
+    expect(state.calls.filter((c) => c.fn === "create_quote_request")).toEqual([]);
+    // Screen 7 of 7: the glance rows, no price, no payment breakdown, no pay button.
+    expect(screen.getByRole("heading", { name: "Look good?" })).toBeInTheDocument();
+    expect(screen.getByText("Your post at a glance")).toBeInTheDocument();
+    expect(screen.getByText("Paint the back fence")).toBeInTheDocument();
+    expect(screen.queryByText("Total")).toBeNull();
+    expect(screen.queryByText(/Payment breakdown/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Continue to payment|Confirm details/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Ask for quotes/ }));
     await waitFor(() => expect(state.calls.some((c) => c.fn === "create_quote_request")).toBe(true));
-    expect(handleReview).not.toHaveBeenCalled();
     expect(state.calls.find((c) => c.fn === "create_quote_request")?.args).toMatchObject({
       p_title: "Paint the back fence",
       p_category: "painting",

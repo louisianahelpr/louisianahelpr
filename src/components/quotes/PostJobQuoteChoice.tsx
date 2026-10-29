@@ -7,12 +7,12 @@
  * one-time job with no direct offer (a series, a crew job or an offer to one
  * Helpr keep today's flow).
  *
- * "Ask for quotes" sends the same details, address and schedule the form
+ * Get quotes has its own Review (A2-C32): "Ask for quotes" there sends the same details, address and schedule the form
  * holds to create_quote_request; nothing is charged. The poster pays later,
  * when they book a quote, through the one escrow checkout.
  */
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
-import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { CircleDollarSign } from "lucide-react";
@@ -23,7 +23,6 @@ import { composeJobAddress, geocodeAddress } from "@/lib/geocode";
 import { composeLocationString } from "@/pages/post-job/postJobFormHelpers";
 import { report } from "@/lib/errorLogger";
 import {
-  DEFAULT_QUOTE_WINDOW,
   QUOTE_WINDOWS,
   createQuoteRequest,
   type QuoteWindowHours,
@@ -145,10 +144,10 @@ interface QuoteRequestFormFields {
   parish: string | null;
 }
 
-function useAskForQuotes() {
+/** Sends the quote request from Review (A2-C32: Get quotes has a Review screen too, then "Ask for quotes"). */
+export function useAskForQuotes(windowHours: QuoteWindowHours) {
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [windowHours, setWindowHours] = useState<QuoteWindowHours>(DEFAULT_QUOTE_WINDOW);
   const [sending, setSending] = useState(false);
 
   async function ask(f: QuoteRequestFormFields) {
@@ -194,24 +193,13 @@ function useAskForQuotes() {
     }
   }
 
-  return { windowHours, setWindowHours, sending, ask };
-}
-
-/** What Post a Job's submit calls while "Get quotes" is picked. */
-export interface QuoteAskHandle {
-  ask: (f: QuoteRequestFormFields) => Promise<void>;
+  return { sending, ask };
 }
 
 /**
- * The quote window section, mounted only while "Get quotes" is picked, so the
- * router and query hooks it needs are never touched on today's flow. Post a
- * Job's submit reaches it through the ref.
+ * The quote window section, mounted only while "Get quotes" is picked. The window lives in the form
+ * (usePostJobForm) so Review reads it; the ask goes out from Review (useAskForQuotes).
  */
-export const QuoteRequestSection = forwardRef<QuoteAskHandle, { stepNumber: number; onSendingChange: (sending: boolean) => void }>(
-  function QuoteRequestSection({ stepNumber, onSendingChange }, ref) {
-    const quotes = useAskForQuotes();
-    useImperativeHandle(ref, () => ({ ask: quotes.ask }), [quotes.ask]);
-    useEffect(() => onSendingChange(quotes.sending), [quotes.sending, onSendingChange]);
-    return <QuoteWindowSection stepNumber={stepNumber} windowHours={quotes.windowHours} onWindowChange={quotes.setWindowHours} />;
-  },
-);
+export function QuoteRequestSection({ stepNumber, windowHours, onWindowChange }: { stepNumber: number; windowHours: QuoteWindowHours; onWindowChange: (h: QuoteWindowHours) => void }) {
+  return <QuoteWindowSection stepNumber={stepNumber} windowHours={windowHours} onWindowChange={onWindowChange} />;
+}

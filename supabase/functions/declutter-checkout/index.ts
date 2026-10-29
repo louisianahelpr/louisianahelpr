@@ -83,6 +83,7 @@ import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { declutterCheckoutLineName } from "../_shared/declutterCheckoutName.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { checkPayoutHold, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { noteDestinationChargeRefused } from "../_shared/livePayoutHold.ts";
@@ -443,9 +444,19 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // Owner 2026-10-25 (issue #3672): members never see a fee name or number, so
   // the page shows ONE line for the purchase, the items and the buyer's premium
   // together (the same cents the order froze; the total check below is unchanged).
+  // Audit 1a #15 (2026-10-29): that line carries the item's own title (or the first
+  // title + how many more), never a generic label, so every page names what is
+  // being bought. A failed title read is logged and falls back to the generic name:
+  // the label never blocks a payment, and the amounts are untouched either way.
+  const { data: titleRows, error: titleErr } = await admin.from("declutter_cart_items")
+    .select("declutter_items(title)").eq("order_id", order.order_id);
+  if (titleErr) console.error(`[declutter-checkout] order ${order.order_id} item titles not read: ${titleErr.message}`);
+  const purchaseName = declutterCheckoutLineName(
+    ((titleRows ?? []) as { declutter_items: { title?: string | null } | null }[]).map((r) => r.declutter_items?.title),
+  );
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
     { quantity: 1, price_data: { currency: "usd", unit_amount: order.items_cents + order.premium_cents,
-      product_data: { name: "Declutter purchase", tax_code: NONTAXABLE_TAX_CODE } } },
+      product_data: { name: purchaseName, tax_code: NONTAXABLE_TAX_CODE } } },
   ];
   if (deliveryCents > 0) {
     // Row 29: $10 + $2 per road mile + size add-ons, computed and frozen in SQL.

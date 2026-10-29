@@ -716,6 +716,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/caughtMessage\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/caughtMessage.ts";`,
   );
+  // Declutter Stripe line name (audit 1a #15): `_shared/declutterCheckoutName.ts` has
+  // ZERO imports (a pure function), so the REAL module names the purchase line.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/declutterCheckoutName\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/declutterCheckoutName.ts";`,
+  );
 
   // JPEG metadata strip (Q2212): `_shared/jpegStripMetadata.ts` has ZERO
   // imports (pure byte walking), so the REAL module runs and the listing-photo

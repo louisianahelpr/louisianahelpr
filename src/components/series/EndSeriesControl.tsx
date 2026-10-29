@@ -23,6 +23,7 @@ export function EndSeriesControl({
   jobTitle,
   userId,
   mode = "end",
+  splitOk = false,
 }: {
   jobId: string;
   jobTitle: string | null;
@@ -33,6 +34,8 @@ export function EndSeriesControl({
    * upcoming dates back to the series and ends nothing for anyone else.
    */
   mode?: "end" | "leave";
+  /** The series lets days be split between Helprs (series_split_ok); otherwise nobody else is on it (A2-C42). */
+  splitOk?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [ending, setEnding] = useState(false);
@@ -122,7 +125,7 @@ export function EndSeriesControl({
         title={mode === "leave" ? `Leave "${jobTitle ?? "this series"}"?` : `End "${jobTitle ?? "this series"}"?`}
         description={
           mode === "leave"
-            ? "Your upcoming dates that aren't booked yet go back to the series: another Helpr on it can pick them up, or the person who posted it can offer them to someone new. Giving up a date that starts within 24 hours counts as a reliability strike. Visits already booked stay yours; cancel one from its own card."
+            ? `Your upcoming dates that aren't booked yet go back to the series: ${splitOk ? "another Helpr on it can pick them up, or the person who posted it can offer them to someone new" : "the person who posted it can offer them to someone new"}. Giving up a date that starts within 24 hours counts as a reliability strike. Visits already booked stay yours; cancel one from its own card.`
             : "No new visits will be booked or charged. Visits already booked stay on the calendar, and each can still be cancelled from its own card. This can't be undone."
         }
         primaryLabel={ending ? (mode === "leave" ? "Leaving…" : "Ending…") : mode === "leave" ? "Leave series" : "End series"}

@@ -4,11 +4,12 @@
  * DeclutterItemCard's own photo. A new `src` gets a fresh try.
  */
 import { useState, type ImgHTMLAttributes, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 type Props = Omit<ImgHTMLAttributes<HTMLImageElement>, "src" | "alt" | "onError"> & { src: string; alt: string; fallback?: ReactNode };
 
-export function FallbackImg({ src, alt, fallback = null, ...img }: Props) {
+export function FallbackImg({ src, alt, fallback = null, className, ...img }: Props) {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   if (failedSrc === src) return <>{fallback}</>;
-  return <img {...img} src={src} alt={alt} data-fallback-img="" onError={() => setFailedSrc(src)} />;
+  return <img {...img} className={cn("bg-photo-empty", className)} src={src} alt={alt} data-fallback-img="" onError={() => setFailedSrc(src)} />;
 }

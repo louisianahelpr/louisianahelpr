@@ -13,7 +13,7 @@ const LandingAppleButton = lazy(() => import("./LandingAppleButton"));
  * The landing page below the hero (owner-approved redesign, 2026-10-20): the
  * four section cards, then (after How a job works) the money band and the join
  * block. A section whose switch is not open to everyone has no link and sits
- * under ONE "Opening soon" line with the others not yet open (owner 2026-10-21),
+ * under ONE "Coming soon" line with the others not yet open (owner 2026-10-21),
  * and so does every switched section until that answer is in (fails closed,
  * useSectionsOpen). An OPEN section's card links to its Browse
  * page (or sign-up, returning there, for a section behind sign-in).
@@ -137,7 +137,7 @@ export function SectionsShowcase() {
             {idOn ? "Verify your ID once and it counts everywhere on Helpr." : "One account works in every section of Helpr."}
           </p>
         </div>
-        {/* Owner 2026-10-21: ONE "Opening soon" line above the unopened cards, never a
+        {/* Owner 2026-10-21: ONE "Coming soon" line (audit 2026-10-28 P5-4: the rail and chips say "Coming soon", so the landing does too) above the unopened cards, never a
             pill on each. The open cards come first; the line names the group, so it
             moves with the switches (fail closed: a section is "soon" until its answer
             is in). At lg the four cards share one row, the open ones on the left:
@@ -162,7 +162,7 @@ export function SectionsShowcase() {
                 style={{ color: "var(--lp-body)" }}
                 data-testid="landing-sections-soon"
               >
-                Opening soon
+                Coming soon
               </p>
               <ul
                 aria-labelledby="sections-soon"

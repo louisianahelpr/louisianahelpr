@@ -1,7 +1,7 @@
 /**
  * The hero search (owner, 2026-10-20, LANDING-APPROVED.md "search all four"):
  * one box for jobs, items, shops and homes. Today only Jobs is open to everyone
- * (Declutter, Shops and Homes say "Opening soon" until their switches open), so
+ * (Declutter, Shops and Homes say "Coming soon" until their switches open), so
  * a signed-out visitor's words search the public Jobs board (`/browse?q=`),
  * where acting on a job asks them to sign up and returns them. Signed in,
  * they open /search?q= (board 89), which searches every open section and

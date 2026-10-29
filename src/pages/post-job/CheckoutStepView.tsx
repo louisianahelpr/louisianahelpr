@@ -93,7 +93,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
       {form.quoteReview ? <WithQuoteAsk form={form}>{(ask) => checkout(ask)}</WithQuoteAsk> : checkout()}
       </div>
       <aside className="hidden xl:block sticky top-6">
-        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.budgetNum} />
+        {/* A Get quotes Review shows no price (A2-C32): the preview drops the budget, as on the form steps. */}
+        <PostJobPreviewCard title={form.title} category={form.category} photo={form.imagePreviews?.[0]} budget={form.quoteReview ? 0 : form.budgetNum} />
       </aside>
     </div>
   );

@@ -389,8 +389,12 @@ type AdminProblemRow = Omit<AdminProblemDetail, "item_titles" | "item_photo_path
   problem_photo_paths: string[] | null; reported_at: string; item_titles: string[] | null; item_photo_paths: string[] | null;
 };
 
-export async function fetchOpenProblemsWithDetail(): Promise<AdminProblem[]> {
-  const res = await supabase.rpc("declutter_admin_open_problems");
+/**
+ * `includeTest`: the admin's "Show test listings" switch (audit 1028 part 2, D2-4). The server hides every problem on
+ * a test (is_seed) order unless p_include_test, so without it a test-account problem could never be decided in the UI.
+ */
+export async function fetchOpenProblemsWithDetail(includeTest = false): Promise<AdminProblem[]> {
+  const res = await supabase.rpc("declutter_admin_open_problems", { p_include_test: includeTest });
   if (res.error && isMissingRpcNamed(res.error, "declutter_admin_open_problems")) {
     const rows = (await fetchOpenProblemsForAdmin()) as Omit<AdminProblem, "detail">[];
     return rows.map((r) => ({ ...r, detail: null }));

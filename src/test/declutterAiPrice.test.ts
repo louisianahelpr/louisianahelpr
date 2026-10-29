@@ -21,7 +21,8 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { groundPrice, hintPointFromBody, sanitizeDraft } from "../../supabase/functions/declutter-ai-draft/sanitize";
+import { groundPrice, hintPointFromBody, PRICE_MAX_DOLLARS, PRICE_MIN_DOLLARS, sanitizeDraft } from "../../supabase/functions/declutter-ai-draft/sanitize";
+import { moveRowProblem } from "@/lib/declutter/moves";
 
 const base = { title: "Oak dresser", description: "Six drawers.", category: "furniture", delivery_size: "large", condition_stars: 4, possibly_banned: false };
 // Parsed from text, as the model's answer arrives.
@@ -76,6 +77,14 @@ describe("Claude's suggested price", () => {
       expect(groundPrice(d, h)).toEqual(d);
     }
     expect(groundPrice(answer({}), { low_cents: 4000, high_cents: 7500, sales: 20 }).priceDollars).toBeNull();
+  });
+
+  it("Claude's price range is the range a listing can be saved at ($1 to $1,000), no wider and no narrower", () => {
+    const row = (price: string) => moveRowProblem({ title: "Oak rocking chair", price, floor: "" });
+    expect(row(String(PRICE_MIN_DOLLARS))).toBeNull();
+    expect(row(String(PRICE_MAX_DOLLARS))).toBeNull();
+    expect(row((PRICE_MIN_DOLLARS - 0.01).toFixed(2))).not.toBeNull();
+    expect(row(String(PRICE_MAX_DOLLARS + 1))).not.toBeNull();
   });
 
   it("reads the hint point only when it is a real lat/lng", () => {

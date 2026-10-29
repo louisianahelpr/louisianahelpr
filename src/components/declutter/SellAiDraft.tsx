@@ -115,7 +115,7 @@ export function useSellAiDraft<F extends AiFields>({
 }
 
 /** Claude's suggested price and its one-line reason (owner 2026-10-29); nothing when there is none. */
-export function AiPriceLine({ draft }: { draft: AiDraft }) {
+function AiPriceLine({ draft }: { draft: AiDraft }) {
   if (typeof draft.priceDollars !== "number" || draft.priceDollars < 1) return null;
   return (
     <p className="text-ds-14 text-foreground [overflow-wrap:anywhere]" data-ai-price="">

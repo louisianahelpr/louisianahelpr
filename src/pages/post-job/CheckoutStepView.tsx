@@ -118,6 +118,8 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         isFlexibleSchedule={form.isFlexibleSchedule}
         specialRequirements={form.specialRequirements}
         isRecurring={form.isRecurring}
+        isGroupJob={form.isGroupJob}
+        helpersNeeded={parseInt(form.helpersNeeded) || 2}
         recurrenceInterval={form.recurrenceInterval}
         recurrenceEndDate={form.recurrenceEndDate}
         recurrenceDays={form.recurrenceDays}

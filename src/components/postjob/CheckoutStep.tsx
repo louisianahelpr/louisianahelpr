@@ -55,6 +55,9 @@ interface CheckoutStepProps {
   isFlexibleSchedule: boolean;
   specialRequirements: string;
   isRecurring: boolean;
+  /** A crew job and its size (A2-C33: the Total row says how the budget splits). */
+  isGroupJob?: boolean;
+  helpersNeeded?: number;
   recurrenceInterval: string;
   recurrenceEndDate: string;
   recurrenceDays: number[];
@@ -121,6 +124,8 @@ export function CheckoutStep({
   isFlexibleSchedule,
   specialRequirements,
   isRecurring,
+  isGroupJob = false,
+  helpersNeeded = 1,
   recurrenceEndDate,
   recurrenceDays,
   recurrenceWeeks,
@@ -288,7 +293,8 @@ export function CheckoutStep({
                 {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
               </p>
               <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={totalWithTax} hasGift={hasGift} giftAppliedAmount={giftAppliedAmount}
-                isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount} />
+                isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount}
+                visitCount={isRecurring ? seriesDates.length : 1} crewSize={isGroupJob ? helpersNeeded : 1} />
 
             </div>
           </div>}

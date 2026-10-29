@@ -20,6 +20,8 @@
  * what makes its payload trustworthy. This function only reads it.
  */
 
+import { caughtMessage } from "./caughtMessage.ts";
+
 /** How recent the proof must be. Long enough to read the dialog, short enough that a phone left unlocked a while ago cannot be used. */
 export const REAUTH_WINDOW_SECONDS = 10 * 60;
 
@@ -40,7 +42,7 @@ function decodePayload(jwt: string): Record<string, unknown> | null {
   } catch (err) {
     // A token getUser accepted always decodes; a payload that does not is
     // treated as "no proof", which refuses the delete (fail closed).
-    console.warn("[recentSignIn] token payload did not decode", err instanceof Error ? err.message : String(err));
+    console.warn("[recentSignIn] token payload did not decode", caughtMessage(err));
     return null;
   }
 }

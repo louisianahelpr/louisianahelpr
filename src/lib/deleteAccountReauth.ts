@@ -34,7 +34,7 @@ export function hasPasswordSignIn(user: Pick<User, "identities"> | null | undefi
 export type ReauthResult = { ok: true } | { ok: false; message: string };
 
 export async function reauthWithPassword(email: string, password: string, captchaToken: string | undefined): Promise<ReauthResult> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } });
+  const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken } });
   if (!error) return { ok: true };
   const captcha = captchaRefusal(error.message);
   if (captcha) return { ok: false, message: captcha };
@@ -45,7 +45,7 @@ export async function reauthWithPassword(email: string, password: string, captch
 }
 
 export async function sendDeleteCode(email: string, captchaToken: string | undefined): Promise<ReauthResult> {
-  const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: false, captchaToken } });
+  const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: false, captchaToken } });
   if (!error) return { ok: true };
   const captcha = captchaRefusal(error.message);
   if (captcha) return { ok: false, message: captcha };
@@ -56,7 +56,7 @@ export async function sendDeleteCode(email: string, captchaToken: string | undef
 }
 
 export async function verifyDeleteCode(email: string, code: string): Promise<ReauthResult> {
-  const { error } = await supabase.auth.verifyOtp({ email, token: code.trim(), type: "email" });
+  const { error } = await supabase.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: "email" });
   if (!error) return { ok: true };
   return { ok: false, message: "That code isn't right or has expired. Check the email, or send a new code." };
 }

@@ -25,7 +25,8 @@ const ROOT = path.resolve(__dirname, "../..");
 const SEND = /\bsupabase\.auth\.(resend|resetPasswordForEmail|signInWithOtp)\s*\(/;
 
 /** file -> the visible success result in it, and the test proving it renders. */
-const VISIBLE_RESULT: Record<string, { marker: string; test: string; proof: string }> = {
+/** `shownIn`: the screen that renders the result, when the send lives in a helper it calls (default: the send's own file). */
+const VISIBLE_RESULT: Record<string, { marker: string; test: string; proof: string; shownIn?: string }> = {
   "src/pages/auth/SignupPending.tsx": {
     marker: 'role="status"',
     test: "src/pages/auth/SignupPending.test.tsx",
@@ -40,6 +41,13 @@ const VISIBLE_RESULT: Record<string, { marker: string; test: string; proof: stri
     marker: "confirmConsequential(`Reset link sent to",
     test: "src/lib/toastPolicy.consequential.test.ts",
     proof: "Reset link sent to",
+  },
+  // A3-I5 (batch 3): the delete-account "is it really you?" code. The send is in the helper; the dialog step shows it.
+  "src/lib/deleteAccountReauth.ts": {
+    marker: "We sent a 6-digit code to",
+    shownIn: "src/components/profile/DeleteAccountReauth.tsx",
+    test: "src/test/deleteAccountAsksWhoYouAre.test.tsx",
+    proof: "we sent a 6-digit code to",
   },
 };
 
@@ -60,8 +68,8 @@ describe("every auth email send shows a visible result", () => {
 
   for (const [file, want] of Object.entries(VISIBLE_RESULT)) {
     it(`${file} renders its success result, and a test proves it`, () => {
-      const src = blankComments(readSource(path.join(ROOT, file)) ?? "");
-      expect(src, `${file} must show ${want.marker}`).toContain(want.marker);
+      const src = blankComments(readSource(path.join(ROOT, want.shownIn ?? file)) ?? "");
+      expect(src, `${want.shownIn ?? file} must show ${want.marker}`).toContain(want.marker);
       expect(readSource(path.join(ROOT, want.test)) ?? "", `${want.test} must prove it`).toContain(want.proof);
     });
   }

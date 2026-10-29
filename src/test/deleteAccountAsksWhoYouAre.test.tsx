@@ -143,6 +143,8 @@ describe("A3-I5 dialog: password first, then the delete", () => {
     await waitFor(() =>
       expect(signInWithOtp).toHaveBeenCalledWith({ email: "g@example.com", options: { shouldCreateUser: false, captchaToken: undefined } }),
     );
+    // The send shows a visible result, not only a flicked label (src/test/authEmailSendsShowAResult.test.ts).
+    expect((await screen.findByText(/we sent a 6-digit code to/i)).textContent).toMatch(/we sent a 6-digit code to/i);
     fireEvent.change(await screen.findByLabelText(/code from the email/i), { target: { value: "123456" } });
     await waitFor(() => expect(del).toBeEnabled());
     fireEvent.click(del);

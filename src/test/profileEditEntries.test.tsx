@@ -10,6 +10,7 @@
  */
 // @mutate src/components/profile/profileLanding/YouCard.tsx |         onClick={() => navigate(EDIT_PROFILE_PATH)} |         onClick={() => navigate("/profile")}
 // @mutate src/pages/user/UserProfile.tsx |           ) : isOwnProfile ? ( |           ) : false ? (
+// @mutate src/pages/user/OwnProfileEditButton.tsx |       onClick={() => navigate(EDIT_PROFILE_PATH)} |       onClick={() => navigate("/profile")}
 // @mutate src/pages/user/UserProfile.tsx | const OWN_PROFILE_TITLE = "How others see you"; | const OWN_PROFILE_TITLE = "Profile Review";
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -20,6 +21,7 @@ const navigate = vi.hoisted(() => vi.fn());
 vi.mock("react-router-dom", async (orig) => ({ ...(await orig<object>()), useNavigate: () => navigate }));
 
 import { EDIT_PROFILE_PATH, YouCard } from "@/components/profile/profileLanding/YouCard";
+import { OwnProfileEditButton } from "@/pages/user/OwnProfileEditButton";
 
 afterEach(() => {
   cleanup();
@@ -40,10 +42,18 @@ describe("Edit profile is one tap from your own profile surfaces (A3-C6, A3-C7)"
   it("your own public profile has Edit in its title row and is titled How others see you", () => {
     const src = blankComments(readSource("src/pages/user/UserProfile.tsx") ?? "");
     // Floor: the title-row actions block was found at all.
-    const actions = src.slice(src.indexOf("titleActions={\n"), src.indexOf("/>", src.indexOf("data-testid=\"own-profile-edit\"")));
+    const start = src.indexOf("titleActions={\n");
+    const actions = src.slice(start, src.indexOf("<OwnProfileEditButton />", start) + "<OwnProfileEditButton />".length);
     expect(actions.length).toBeGreaterThan(200);
-    expect(actions).toMatch(/\) : isOwnProfile \? \(\s*<Button[^]*?onClick=\{\(\) => navigate\(EDIT_PROFILE_PATH\)\}/);
+    // The own-profile branch renders the extracted Edit button (OwnProfileEditButton.tsx, batch 2 train e8920b8ca6).
+    expect(actions).toMatch(/\) : isOwnProfile \? \(\s*<OwnProfileEditButton \/>$/);
     expect(src).toContain('const OWN_PROFILE_TITLE = "How others see you";');
     expect(src).toMatch(/const headerTitle = isOwnProfile \? OWN_PROFILE_TITLE : "Profile";/);
+  });
+
+  it("the own-profile Edit button opens Edit profile", () => {
+    render(<OwnProfileEditButton />);
+    fireEvent.click(screen.getByTestId("own-profile-edit"));
+    expect(navigate).toHaveBeenCalledWith(EDIT_PROFILE_PATH);
   });
 });

@@ -34,9 +34,10 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
           return (
             <li key={key}>
               {done && onPick && (canPick?.(key) ?? true) ? (
-                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(key)}>
+                // One name, built whole: the label span and a separate sr-only ", done…" span read as
+                // "What , done." (audit 2026-10-29 A2-L12). The visible label still starts the name.
+                <button type="button" className={`${row} ctl-tint`} onClick={() => onPick(key)} aria-label={`${label}, done. Go back to this step`}>
                   {body}
-                  <span className="sr-only">, done. Go back to this step</span>
                 </button>
               ) : (
                 <div className={row} aria-current={current ? "step" : undefined}>

@@ -18,6 +18,7 @@ import { routeMapsUrl } from "@/lib/declutter/route";
 import { fetchMyRoute, type RouteStop } from "@/lib/helprTasks/api";
 import { StopActions } from "./StopActions";
 import { RouteSuggestions } from "./RouteSuggestions";
+import { FallbackImg } from "./FallbackImg";
 
 const DeliveryRouteMap = lazy(() => import("./DeliveryRouteMap"));
 
@@ -63,7 +64,8 @@ function StopCard({ stop, userId }: { stop: RouteStop; userId: string }) {
           {stop.items.map((it, i) => (
             <li key={`${it.title}-${i}`} className="w-20 space-y-1">
               {it.photo_path
-                ? <img src={photoPublicUrl(it.photo_path)} alt={it.title} className="h-20 w-20 rounded-lg bg-photo-empty object-cover" loading="lazy" />
+                ? <FallbackImg src={photoPublicUrl(it.photo_path)} alt={it.title} className="h-20 w-20 rounded-lg bg-photo-empty object-cover" loading="lazy"
+                    fallback={<span aria-hidden className="block h-20 w-20 rounded-lg bg-photo-empty" />} />
                 : <span aria-hidden className="block h-20 w-20 rounded-lg bg-photo-empty" />}
               <p className="text-ds-12 line-clamp-2">{it.title}</p>
             </li>

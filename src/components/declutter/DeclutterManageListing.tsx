@@ -48,6 +48,7 @@ import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
+import { FallbackImg } from "./FallbackImg";
 
 type View = "menu" | "price" | "sold" | "delete";
 
@@ -233,7 +234,7 @@ function ListingSummary({ item, coverUrl }: { item: DeclutterItem; coverUrl: str
   return (
     <div className="flex items-center gap-3 rounded-[20px] border border-border bg-card px-4 py-3">
       <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-        {coverUrl && <img src={coverUrl} alt="" className="h-full w-full object-cover" />}
+        {coverUrl && <FallbackImg src={coverUrl} alt="" className="h-full w-full object-cover" />}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-ds-15 font-semibold">{item.title}</span>

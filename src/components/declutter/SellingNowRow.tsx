@@ -16,6 +16,7 @@ import { fetchPhotos, fetchSellerItems, photoPublicUrl } from "@/lib/declutter/a
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { FallbackImg } from "./FallbackImg";
 
 /** fetchSellerItems leaves one item out (the item page's own); none here, so the nil id. */
 const NO_ITEM = "00000000-0000-0000-0000-000000000000";
@@ -52,7 +53,8 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
             >
               <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
                 {cover.get(it.id) ? (
-                  <img src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover" />
+                  <FallbackImg src={photoPublicUrl(cover.get(it.id)!)} alt="" loading="lazy" className="w-full h-full object-cover"
+                    fallback={<PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" />} />
                 ) : (
                   <PhotoPlaceholder icon={categoryIcon(it.category)} seed={it.category} className="h-full w-full" />
                 )}

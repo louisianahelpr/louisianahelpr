@@ -23,6 +23,7 @@ import { clusterElement, pinElement, PIN_HEIGHT } from "@/components/browseMap/m
 import { fitToPins, laRegion } from "@/components/browseMap/MapLayers";
 import { colorSchemeFor, getMapKit, regionFromBounds, type MKAnnotation, type MKMap } from "@/components/browseMap/mapkitRuntime";
 import { useMapFollowsTheme } from "@/components/browseMap/useMapLayersSync";
+import { FallbackImg } from "./FallbackImg";
 
 const ITEM_NOUN = ["item", "items"] as const;
 
@@ -208,7 +209,7 @@ export default function DeclutterMap({
               className="flex items-center gap-3 rounded-2xl border border-border bg-card p-2.5 pr-12 shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
-                {cover.get(selected.item.id) && <img src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="h-full w-full object-cover" />}
+                {cover.get(selected.item.id) && <FallbackImg src={photoPublicUrl(cover.get(selected.item.id)!)} alt="" className="h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(selected.item.current_price_cents)}</span>

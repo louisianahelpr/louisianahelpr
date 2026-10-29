@@ -9,6 +9,7 @@
 // @mutate src/pages/posts/PostedJobSeriesControls.tsx |   const running = !job.series_ended_on && job.status !== "cancelled" && job.status !== "completed"; |   const running = true;
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 vi.mock("@/pages/posts/SeriesStrip", () => ({ SeriesStrip: () => null }));
 vi.mock("@/components/series/JobSeriesCardControls", () => ({ SeriesDatesForJob: () => null }));
@@ -18,7 +19,7 @@ const { PostedJobSeriesControls } = await import("./PostedJobSeriesControls");
 const SAID = "$40 a visit · 4 visits. Each later visit is charged to your saved card about 3 days before it.";
 const series = {
   id: "j1", title: "Mow my lawn", status: "open", parent_job_id: null, recurrence_days: [1], recurrence_weeks: 4,
-  date_needed: "2026-11-02", series_ended_on: null, budget: 40,
+  date_needed: jobLocalDateISO(4), series_ended_on: null, budget: 40,
 };
 const line = () => document.querySelector("[data-series-money]")?.textContent ?? null;
 
@@ -34,7 +35,7 @@ describe("A2-C36: the poster's series card says the budget is per visit and when
   });
 
   it("an ended, cancelled or completed series has no charge ahead, so no line", () => {
-    for (const over of [{ series_ended_on: "2026-11-09" }, { status: "cancelled" }, { status: "completed" }]) {
+    for (const over of [{ series_ended_on: jobLocalDateISO(11) }, { status: "cancelled" }, { status: "completed" }]) {
       const { unmount } = render(<PostedJobSeriesControls job={{ ...series, ...over }} userId="p1" />);
       expect(line(), JSON.stringify(over)).toBeNull();
       unmount();

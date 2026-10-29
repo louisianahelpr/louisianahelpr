@@ -2,6 +2,8 @@
  * STATUS_IDX (src/lib/jobProgressIndex.ts) must name the tracker's STATUSES in order:
  * deriveCurrentStatusIdx reads a tracking status by STATUS_IDX instead of STATUSES since the
  * split that keeps the tracker out of the chat card's first screen (2026-10-29, bootReach).
+ *
+ * @mutate src/lib/jobProgressIndex.ts |   arrived: 4,\n  working: 5, |   working: 4,\n  arrived: 5,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

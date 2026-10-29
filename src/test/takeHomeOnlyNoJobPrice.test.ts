@@ -7,6 +7,8 @@ import { describe, expect, it } from "vitest";
  * "this should never show job price. only what they take home". The one
  * component both Helpr sheets use (the job sheet, Application sent) shows the
  * take-home alone.
+ *
+ * @mutate src/components/dashboard/helprTakeHome.tsx |       You take home <span |       Job price {formatPrice(job.budget)} · You take home <span
  */
 const src = readFileSync(resolve(__dirname, "../components/dashboard/helprTakeHome.tsx"), "utf8");
 

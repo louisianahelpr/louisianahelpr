@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
  * Owner 2026-10-25 (pop-up): the Helpr's earnings tax export drops the
  * "Platform Fee" column; it shows the job's gross, parish tax and net payout
  * only, in the CSV, the PDF and the dialog's description.
+ *
+ * @mutate src/components/EarningsExport.tsx | "Gross Earnings (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)", | "Gross Earnings (USD)", "Platform Fee (USD)", "Parish Tax Collected (USD)", "Net Payout (USD)",
  */
 const src = readFileSync(resolve(__dirname, "EarningsExport.tsx"), "utf8");
 

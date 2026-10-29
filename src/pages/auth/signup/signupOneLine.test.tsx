@@ -6,6 +6,8 @@ import { resolve } from "node:path";
  * Owner 2026-10-25 (sign-up on an iPhone): "make the stuff that's 2 lines 1
  * line", then "remove the stuff under the password ... what's required". The
  * consent and footer lines measured one line each at 375/390 (Chromium, WebKit).
+ *
+ * @mutate src/pages/auth/signup/SignupStep1.tsx | {password ? passwordProblem(password) : "Add a password"} | {password ? "Check your password" : "Add a password"}
  */
 const step1 = readFileSync(resolve(__dirname, "SignupStep1.tsx"), "utf8");
 const terms = readFileSync(resolve(__dirname, "../../info/legal/TermsSection.tsx"), "utf8");

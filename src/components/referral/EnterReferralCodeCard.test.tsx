@@ -5,6 +5,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
  * Owner 2026-10-25: a place to enter a friend's referral code after sign-up
  * (Apple/Google sign-ups never saw the field). The card shows for 7 days after
  * joining, sends the code to claim_my_referral_code, and says what came back.
+ *
+ * @mutate src/components/referral/EnterReferralCodeCard.tsx | const REFERRAL_CLAIM_DAYS = 7; | const REFERRAL_CLAIM_DAYS = 8;
  */
 let createdAt: string | null = new Date().toISOString();
 const rpc = vi.fn();

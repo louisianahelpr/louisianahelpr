@@ -8,6 +8,8 @@ import { describe, expect, it } from "vitest";
  * its content, so those steps sat ~2px under the plain ones (measured live:
  * labels at 188.3 vs 186.1). The button must top-align its content, and the
  * wrapper inside it must be a block, so both kinds start at the top.
+ *
+ * @mutate src/components/tracker/JobProgress.tsx | className="flex flex-col justify-start w-[calc(100%+4px)] | className="flex flex-col w-[calc(100%+4px)]
  */
 const src = readFileSync(resolve(__dirname, "../components/tracker/JobProgress.tsx"), "utf8");
 

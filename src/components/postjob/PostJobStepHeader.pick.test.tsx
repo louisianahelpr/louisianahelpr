@@ -6,6 +6,8 @@ import { PostJobStepHeader } from "./PostJobStepHeader";
  * Owner 2026-10-25: the post-job stepper's passed steps go back when tapped, on
  * the phone too (the desktop rail already did). Only steps already passed and
  * allowed by canPick are buttons; the current step and steps ahead are not.
+ *
+ * @mutate src/components/postjob/PostJobStepHeader.tsx | return i + 1 < step && key && onPick && (canPick?.(key) ?? true) ? ( | return i + 1 < step && key && onPick ? (
  */
 describe("the phone step bar reopens a passed step", () => {
   it("passed, pickable steps are buttons that call onPick with their screen", () => {

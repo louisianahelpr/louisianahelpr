@@ -2,6 +2,8 @@
  * Q2426: the seller's own live listing shares in one tap. "Share this item" hands the item's own link to the
  * share ladder (the phone's sheet, where Facebook and the groups are); "Post to Facebook" opens Facebook's
  * share page for that link in a new tab. The link is /declutter/item/<id>, whose card api/share.ts builds.
+ *
+ * @mutate src/components/declutter/DeclutterShareCard.tsx | itemPriceLabel(it.current_price_cents)} on Louisiana Helpr | itemPriceLabel(it.current_price_cents)}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";

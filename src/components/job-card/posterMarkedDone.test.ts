@@ -8,6 +8,8 @@ import type { Job } from "./activityConstants";
  * were done outside the app. just have them in my done section".
  * jobs.poster_marked_done_at (20261025211357) files a cancelled job under Done
  * and its line reads plain "Done"; status stays 'cancelled' (money untouched).
+ *
+ * @mutate src/components/job-card/activityFilters.ts |   return j.status === "cancelled" && !!j.poster_marked_done_at; |   return false;
  */
 const cancelled = { status: "cancelled", payment_status: "refunded", cancellation_reason: "Expired" } as const;
 const marked = { ...cancelled, poster_marked_done_at: "2026-10-25T21:00:00Z" };

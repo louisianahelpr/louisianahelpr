@@ -650,6 +650,10 @@ export interface AiDraft {
   priceDollars?: number | null;
   /** One plain line on why that price (never a retail claim: the server drops one). */
   priceReason?: string | null;
+  /** Photo coach (owner 2026-10-29): which photo sent (0-based) makes the best cover, or null. */
+  coverPhoto?: number | null;
+  /** At most one "one more photo would help" tip, or null. */
+  photoTip?: string | null;
 }
 
 /** Where the fair-price hint looks, sent so the server can ground Claude's price in our sold prices. */

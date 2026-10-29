@@ -25,7 +25,17 @@ export interface DeclutterDraft {
   priceDollars: number | null;
   /** One plain line on why that price; null when there is no price or the line made a claim we cannot back. */
   priceReason: string | null;
+  /**
+   * Photo coach (owner 2026-10-29): which of the photos sent (0-based) makes the best cover, or null
+   * when the caller did not say how many it sent (room / group modes) or the answer was not one of them.
+   */
+  coverPhoto: number | null;
+  /** At most one "one more photo would help" tip (e.g. "A photo of the label"), or null. */
+  photoTip: string | null;
 }
+
+/** Brand / model / size / measurements read from labels, as one line added to the details (never invented: blank when not readable). */
+const DETAILS_MAX = 300;
 
 /** The sell form's price range in whole dollars (formProblem: $1-$1,000). */
 export const PRICE_MIN_DOLLARS = 1;
@@ -48,13 +58,21 @@ function priceFrom(raw: unknown): number | null {
 
 const oneLine = (s: string) => s.replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
 
-/** null when the answer is unusable (no title). */
-export function sanitizeDraft(raw: unknown): DeclutterDraft | null {
+/**
+ * null when the answer is unusable (no title). `photoCount` is how many photos the model was sent
+ * (one item's draft); without it there is no cover pick.
+ */
+export function sanitizeDraft(raw: unknown, photoCount?: number): DeclutterDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const title = typeof r.title === "string" ? oneLine(r.title).slice(0, 80) : "";
   if (title.length < 3) return null;
-  const description = typeof r.description === "string" ? r.description.trim().slice(0, 2000) : "";
+  const baseDescription = typeof r.description === "string" ? r.description.trim() : "";
+  // Photo coach: what the labels say, as its own line, unless the description already has it.
+  const details = typeof r.details === "string" ? oneLine(r.details).slice(0, DETAILS_MAX) : "";
+  const description = (details.length >= 3 && !baseDescription.toLowerCase().includes(details.toLowerCase())
+    ? (baseDescription ? `${baseDescription}\n${details}` : details)
+    : baseDescription).slice(0, 2000);
   const category = (DECLUTTER_CATEGORIES as readonly string[]).includes(r.category as string)
     ? (r.category as DeclutterDraft["category"])
     : "other";
@@ -71,7 +89,11 @@ export function sanitizeDraft(raw: unknown): DeclutterDraft | null {
   const priceDollars = priceFrom(r.price_dollars);
   const priceReasonRaw = typeof r.price_reason === "string" ? oneLine(r.price_reason).slice(0, 140) : "";
   const priceReason = priceDollars !== null && priceReasonRaw.length >= 3 && !UNBACKED_PRICE_CLAIM.test(priceReasonRaw) ? priceReasonRaw : null;
-  return { title, description, category, deliverySize, conditionStars, flagged, flagReason, priceDollars, priceReason };
+  const cover = Number(r.cover_photo);
+  const coverPhoto = photoCount !== undefined && Number.isInteger(cover) && cover >= 0 && cover < photoCount ? cover : null;
+  const tipRaw = typeof r.photo_tip === "string" ? oneLine(r.photo_tip).slice(0, 120) : "";
+  const photoTip = tipRaw.length >= 3 ? tipRaw : null;
+  return { title, description, category, deliverySize, conditionStars, flagged, flagReason, priceDollars, priceReason, coverPhoto, photoTip };
 }
 
 /** What declutter_price_hint answers: the middle of OUR past sales of the same category and condition nearby. */

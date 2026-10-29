@@ -32,6 +32,11 @@ export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/
 // saved, unchanged.
 const SKILL_PRESETS = SKILL_GROUPS.flatMap((g) => g.skills);
 
+/** A phone number's field: wide enough for "(504) 555-0199" and its tick, never the whole column. */
+export const SHORT_FIELD_MEASURE = "max-w-[22rem]";
+/** Area + ZIP side by side: a city name and five digits. */
+export const AREA_FIELD_MEASURE = "max-w-[36rem]";
+
 export function ProfileEditForm({
   profile,
   firstName,
@@ -193,7 +198,12 @@ export function ProfileEditForm({
         {/* Contact section */}
         <div className="rounded-2xl liquid-glass p-card space-y-4">
           <div className="space-y-3">
-            <div>
+            {/* FIELD MEASURE (app audit A3-L2, 2026-10-29): at 1440 the phone box
+                ran 1102px for ten digits. Short fields are sized to what they
+                hold; the page column itself stays full width (owner
+                2026-10-21, src/lib/pageColumn.ts), so these are unprefixed
+                caps on the fields, never a page measure. */}
+            <div className={SHORT_FIELD_MEASURE}>
               <Label htmlFor="phone" className="text-ds-11 mb-1.5 block">Phone</Label>
               <div className="relative">
                 <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={phone} onChange={(e) => setPhone(e.target.value)} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
@@ -210,7 +220,7 @@ export function ProfileEditForm({
                 city name uses whatever is left. Below 360px the two stack, because a
                 320px phone clipped the city even before this (29px) and cannot fit both.
                 Measured at 320 / 375 / 1440. */}
-            <div className="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_6.25rem] gap-3">
+            <div className={`grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_6.25rem] gap-3 ${AREA_FIELD_MEASURE}`}>
               <div>
                 {/* Board 41: "Area" (it is shown as an area, never an address). */}
                 <Label htmlFor="location" className="text-ds-11 mb-1.5 block">Area</Label>

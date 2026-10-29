@@ -9,7 +9,7 @@
  *   ONE ROW PER SECTION in Customize order, a main action and a second one
  *   only where its path exists (Moving out sale only while that switch is on;
  *   "Open a shop" becomes "Add a product or service" once the member has a
- *   shop). A section closed to the viewer is a greyed "Opening soon" row with
+ *   shop). A section closed to the viewer is a greyed "Coming soon" row with
  *   no actions; it never routes into a closed section.
  * - Post a job keeps the under-18 gate. "Or just describe it" opens the AI job
  *   builder (/post-job?start=ai, which step 0 opens on: usePostJobForm entryPanel).
@@ -197,13 +197,13 @@ describe("the create sheet (mock-up 20: one row per section)", () => {
     expect(toasts).toEqual([]);
   });
 
-  it("a section switched OFF for the viewer is a greyed 'Opening soon' row with no actions", () => {
+  it("a section switched OFF for the viewer is a greyed 'Coming soon' row with no actions", () => {
     switches.on = new Set(["shops"]);
     renderDock();
     openSheet();
     for (const key of ["declutter", "homes"]) {
       expect(row(key).getAttribute("aria-disabled")).toBe("true");
-      expect(row(key).textContent).toContain("Opening soon");
+      expect(row(key).textContent).toContain("Coming soon");
       expect(row(key).querySelectorAll("[data-create-action]").length).toBe(0);
     }
     fireEvent.click(document.querySelector('[data-create-soon="homes"]') as HTMLElement);

@@ -5,7 +5,7 @@
  * a signed-out visitor's words search the public Jobs board (`/browse?q=`),
  * where acting on a job asks them to sign up and returns them. Signed in,
  * they open /search?q= (board 89), which searches every open section and
- * says "Opening soon" for the rest. Guard: src/test/landingRedesign.test.tsx.
+ * says "Coming soon" for the rest. Guard: src/test/landingRedesign.test.tsx.
  */
 export const SEARCH_PARAM = "q";
 export const SEARCH_MAX = 80;

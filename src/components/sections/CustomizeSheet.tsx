@@ -11,7 +11,7 @@ import { SoonPill } from "@/components/sections/SoonPill";
 /**
  * Customize sections = board 90 (2026-10-20; first built 2026-10-19). Home and
  * Messages are ALWAYS ON (one line, no switch; owner 2026-10-25 no-scroll). Each section shows its
- * both-sides line and a switch, or "Opening soon" while it is closed to this
+ * both-sides line and a switch, or "Coming soon" while it is closed to this
  * viewer. Reorder with the arrows (there is no drag, so the copy never says
  * drag). At least one section stays on. Opened from Home's "Your sections"
  * header and from You.

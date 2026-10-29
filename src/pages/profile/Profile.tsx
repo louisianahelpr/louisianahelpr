@@ -95,7 +95,7 @@ const ProfilePage = () => {
   const initialTab = resolveTab(searchParams.get("tab"));
   const [tab, setTab] = useState<Tab>(initialTab);
   // ONE SETTLED PAINT for the landing (Q169, Q?profile-declutter-shift). Board 18's activity tiles read the
-  // section switches (useSectionTabs: "Opening soon" or not); painted before the answer, a tile changes under
+  // section switches (useSectionTabs: "Coming soon" or not); painted before the answer, a tile changes under
   // the reader (prod precedent: a late Declutter row moved Settings 90px, CLS 0.0599). The skeleton holds until
   // all answer, at most ARRIVAL_CAP_MS, so Log out never hides.
   const declutterSwitch = useFeatureStatus("declutter");

@@ -1,7 +1,7 @@
 /**
  * BOARD 52, You › Settings (spec v2 §9.17): Look (color mode, bigger text and
  * buttons), Your sections (a switch per OPEN section; a closed section says
- * "Opening soon" and shows "Soon" instead of a switch, §1.8), Updates (Notifications, Saved searches), Your
+ * "Coming soon" and shows "Soon" instead of a switch, §1.8), Updates (Notifications, Saved searches), Your
  * account, then Log out. Reached from the You tab's Settings row, and a tab
  * opened from here backs out to Settings, not to the landing.
  *
@@ -55,14 +55,14 @@ describe("You › Settings, board 52", () => {
     expect(screen.getByText("Log out")).toBeTruthy();
   });
 
-  it("open sections get a switch; a closed one says Opening soon with no switch", () => {
+  it("open sections get a switch; a closed one says Coming soon with no switch", () => {
     renderSettings();
     const sections = screen.getByRole("region", { name: "Your sections" });
     const jobs = within(sections).getByText("Jobs").closest("[data-settings-row]") as HTMLElement;
     const shops = within(sections).getByText("Shops").closest("[data-settings-row]") as HTMLElement;
     expect(within(jobs).getByRole("switch")).toBeTruthy();
     expect(within(shops).queryByRole("switch")).toBeNull();
-    expect(shops.textContent).toContain("Opening soon");
+    expect(shops.textContent).toContain("Coming soon");
     expect(shops.textContent).toContain("Soon");
     fireEvent.click(within(sections).getByRole("switch", { name: "Show Declutter" }));
     expect(setHidden).toHaveBeenCalledWith("declutter", true);

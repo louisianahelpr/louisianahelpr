@@ -185,7 +185,7 @@ export function SettingsTab({
               label={s.label}
               // Beside the name, not the switch: there it squeezed the blurb onto two lines at 375 (looked, 2026-10-21).
               badge={preview ? <PreviewPill data-section-preview={s.key} /> : undefined}
-              sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
+              sub={on ? SECTION_BLURB[s.key] : "Coming soon"}
               right={
                 on ? (
                   <Switch

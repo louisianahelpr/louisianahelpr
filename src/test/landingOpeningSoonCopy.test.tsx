@@ -21,6 +21,16 @@
  * "caption") say "Coming soon". The landing line now uses the rail's word, read
  * from the rendered SoonPill so the two cannot drift apart.
  * @mutate src/components/landing/SectionsShowcase.tsx |                 Coming soon\n |                 Opening soon\n
+ *
+ * And everywhere else a member sees it (lead, 2026-10-28): SoonPill's "full"
+ * pill (Create sheet, Settings, Customize), Settings' section line and /search's
+ * closed-section row said "Opening soon". Every tracked source file under src/
+ * (tests excepted, comments blanked) is scanned: the label "Opening soon" is
+ * gone. The owner's sentence form ("Homes is opening soon", openingSoonLine,
+ * youBoard18) is a sentence, not the label, and is not matched.
+ * @mutate src/components/sections/SoonPill.tsx | {variant === "full" ? "Coming soon" : "Soon"} | {variant === "full" ? "Opening soon" : "Soon"}
+ * @mutate src/pages/search/SearchPage.tsx |         Coming soon\n |         Opening soon\n
+ * @mutate src/components/profile/SettingsTab.tsx | sub={on ? SECTION_BLURB[s.key] : "Coming soon"} | sub={on ? SECTION_BLURB[s.key] : "Opening soon"}
  */
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -28,6 +38,7 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { blankComments } from "./helpers/blankNonCode";
+import { trackedFiles } from "./helpers/trackedFiles";
 
 const state = vi.hoisted(() => ({ open: null as ReadonlySet<string> | null }));
 vi.mock("@/components/landing/useSectionsOpen", async (importOriginal) => {
@@ -109,6 +120,21 @@ describe("the landing says what is open today", () => {
     const { unmount } = renderSections(null);
     expect(screen.getByTestId("landing-sections-soon").textContent).toBe(railWord);
     unmount();
+  });
+
+  it("no member-facing 'Opening soon' label anywhere in src/ (one word: Coming soon)", () => {
+    const files = trackedFiles("src").filter((f) => /\.(tsx?|mjs)$/.test(f) && !/\.(test|spec)\.|^src\/test\//.test(f));
+    expect(files.length).toBeGreaterThan(500);
+    const offenders: string[] = [];
+    let coming = 0;
+    for (const f of files) {
+      const code = blankComments(readFileSync(join(ROOT, f), "utf8"));
+      if (/Opening soon/.test(code)) offenders.push(f);
+      coming += (code.match(/Coming soon/g) ?? []).length;
+    }
+    expect(offenders).toEqual([]);
+    // SoonPill (3 variants), Settings, /search, the landing at least.
+    expect(coming).toBeGreaterThan(5);
   });
 
   it("the closing line is the owner's words", () => {

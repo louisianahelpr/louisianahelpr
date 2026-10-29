@@ -27,6 +27,8 @@ const state = {
   feature: true,
   /** Deep audit #58: the seller's windows the item page reads (declutter_item_pickup_windows); null = not deployed. */
   itemWindows: null as { weekday: number; starts: string; ends: string }[] | null,
+  /** Audit 1028 D1-2: the ways the seller ticked (declutter_items.handovers); null = an older item with none. */
+  itemHandovers: null as string[] | null,
   underAge: false,
   payoutBlock: null as string | null,
   sellerCart: [] as unknown[],
@@ -127,7 +129,7 @@ vi.mock("@/lib/declutter/api", () => ({
   updateDraft: async () => "i1",
   setPorchOk: async () => true,
   setHandovers: vi.fn(async (_id: string, ways: string[]) => ways),
-  fetchItemHandovers: async () => null,
+  fetchItemHandovers: async () => state.itemHandovers,
   setDropPct: async (_id: string, pct: number) => pct,
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 }),
   fetchMyPickupWindows: async () => [],
@@ -206,6 +208,7 @@ describe("Declutter screens", () => {
     state.feature = true;
     state.keepUp = false;
     state.itemWindows = null;
+    state.itemHandovers = null;
     state.underAge = false;
     state.payoutBlock = null;
     state.sellerCart = [];
@@ -328,6 +331,28 @@ describe("Declutter screens", () => {
     state.itemWindows = [1, 2, 3, 4, 5].map((weekday) => ({ weekday, starts: "17:00:00", ends: "20:00:00" }));
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     expect(await screen.findByTestId("declutter-pickup-times")).toHaveTextContent("Pickup times: Mon–Fri 5–8 PM");
+  });
+
+  // Audit 1028 D1-2 (1a-b-offer-item-p1-1440): the seller ticked porch and a safe meeting spot, the page said porch only.
+  // @mutate src/components/declutter/ItemPickupWays.tsx | const ORDER: SellerHandover[] = ["porch", "meetup", "seller_delivery", "delivery"]; | const ORDER: SellerHandover[] = ["porch"];
+  // @mutate src/components/declutter/DeclutterItemView.tsx |             <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} /> |             <p>{it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}</p>
+  it("the item page's Pickup lists every way the seller ticked, the safe meeting spot included (D1-2)", async () => {
+    state.item = { ...ITEM, seller_id: "u2", status: "live" };
+    const cases: [string[] | null, string[]][] = [
+      [["porch", "meetup"], ["Porch pickup", "Meet at a safe spot"]],
+      [["meetup", "seller_delivery", "delivery"], ["Meet at a safe spot", "Seller delivers", "Helpr delivery"]],
+    ];
+    for (const [ways, want] of cases) {
+      state.itemHandovers = ways;
+      const { unmount } = at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
+      const list = await waitFor(() => { const el = document.querySelector("[data-pickup-ways] ul"); expect(el).not.toBeNull(); return el!; });
+      expect([...list.querySelectorAll("li")].map((li) => li.textContent)).toEqual(want);
+      unmount();
+    }
+    // An older item with no ticks keeps its porch line.
+    state.itemHandovers = null;
+    at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
+    expect(await screen.findByTestId("declutter-porch-line")).toHaveTextContent("Porch pickup available");
   });
 
   describe("back from Stripe's card page (declutter-card returns to /declutter?card=saved or =cancelled)", () => {

@@ -46,6 +46,7 @@ import { DeclutterItemRows } from "./DeclutterItemRows";
 import { DeclutterBundleRow } from "./DeclutterBundleRow";
 import { DeclutterQuestions } from "./DeclutterQuestions";
 import { ItemPickupTimes } from "./DeclutterPickupWindows";
+import { ItemPickupWays } from "./ItemPickupWays";
 import { SellerListingPanel } from "./DeclutterManageListing";
 import { PriceDropBanner } from "./DeclutterPriceDrop";
 import { nextPriceDrop } from "@/lib/declutter/priceDrop";
@@ -222,9 +223,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p className="text-sm">Pickup in {it.area_label}</p>
             {/* Deep audit #58: when the seller is around, before anyone buys. */}
             <ItemPickupTimes itemId={itemId} />
-            <p className="text-sm" data-testid="declutter-porch-line">
-              {it.porch_ok !== false ? "Porch pickup available" : "Meet at the seller's home only"}
-            </p>
+            {/* Audit 1028 D1-2: every way the seller allows, the safe meeting spot included. */}
+            <ItemPickupWays itemId={itemId} porchOk={it.porch_ok !== false} />
             <p className="text-xs text-muted-foreground">{free ? "The exact address is shared once you choose your pickup." : "The exact address is shared after you pay."}</p>
           </section>
 

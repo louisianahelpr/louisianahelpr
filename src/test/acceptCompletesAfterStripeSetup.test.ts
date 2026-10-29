@@ -18,7 +18,7 @@
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
-// @mutate supabase/migrations/20261003193541_accept_completes_after_stripe_setup.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
+// @mutate supabase/migrations/20261029154727_no_show_closes_struck_application.sql |     RAISE EXCEPTION 'helper_never_accepted' |     RAISE NOTICE 'helper_never_accepted'
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')

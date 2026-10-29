@@ -13,7 +13,7 @@
  * @mutate src/lib/declutter/handover.ts |   if (error) throw new Error("photo_not_uploaded"); |   if (false) throw new Error("photo_not_uploaded");
  * @mutate src/lib/declutter/handover.ts |   const path = `${userId}/declutter/handover/${orderId}/${nonce}.jpg`; |   const path = `${userId}/declutter/${orderId}/${nonce}.jpg`;
  * @mutate src/lib/declutter/handover.ts |       .eq("seller_id", userId), |       .eq("buyer_id", userId),
- * @mutate src/lib/declutter/handover.ts |       .eq("status", "open") |       .eq("status", "closed")
+ * @mutate src/lib/declutter/handover.ts |       .eq("status", "open")\n      .order( |       .eq("status", "closed")\n      .order(
  * @mutate src/lib/declutter/handover.ts |   return (rows?.[0] ?? null) as |   return (rows ?? null) as
  * @mutate src/lib/declutter/handover.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_porch_note")) return "not_deployed"; |
  * @mutate src/lib/declutter/handover.ts | send(tags.length ? { ...base, p_tags: [...tags] } : base) | send(base)
@@ -331,9 +331,9 @@ describe("audit 1a #10: a refused handover photo is removed, and the refusal sti
 
 // Audit 1b D2-7: problem and refund photos go into <uid>/declutter/problem/<order>/, the folder the storage rule and
 // declutter_report_problem accept; cleaned like every Declutter photo; a photo taken earlier is fine (evidence).
-// @mutate src/lib/declutter/handover.ts |   const path = `${uid}/declutter/problem/${orderId}/${nonce}.jpg`; |   const path = `${uid}/declutter/handover/${orderId}/${nonce}.jpg`;
+// @mutate src/lib/declutter/handover.ts | `${uid}/declutter/problem/${orderId}/${photoNonce()}.jpg` | `${uid}/declutter/handover/${orderId}/${photoNonce()}.jpg`
 // @mutate src/lib/declutter/handover.ts |   if (!uid) throw new Error("not_authenticated"); |
-// @mutate src/lib/declutter/handover.ts |   const cleaned = await cleanListingPhoto(file);\n  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("photo_not_uploaded");\n  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());\n  const path = `${uid} |   const cleaned = file;\n  const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());\n  const path = `${uid}
+// @mutate src/lib/declutter/handover.ts |   const problemPhoto = await cleanHandoverPhoto(file); |   const problemPhoto = file;
 describe("uploadProblemPhoto", () => {
   const old = new File([new Uint8Array([1, 2, 3])], "x.heic", { type: "image/heic", lastModified: Date.now() - 3 * 86_400_000 });
   beforeEach(() => { h.session.uid = "u1"; });

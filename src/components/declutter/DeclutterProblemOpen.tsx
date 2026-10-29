@@ -11,7 +11,7 @@ const REASON_WORDS: Record<ProblemReason, string> = {
 };
 
 /** The note's headline while a problem is open. */
-export const PROBLEM_OPEN_HEADLINE = "Problem reported: Louisiana Helpr is looking.";
+const PROBLEM_OPEN_HEADLINE = "Problem reported: Louisiana Helpr is looking.";
 /** Where the order stands while a problem is open (the server refuses booking and a no-show then: problem_open). */
 export const PROBLEM_ON_HOLD = "On hold while Louisiana Helpr looks at the problem.";
 

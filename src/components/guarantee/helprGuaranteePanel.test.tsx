@@ -25,6 +25,7 @@ vi.mock("@/lib/guarantee", async (orig) => ({
 }));
 
 import { HelprGuaranteePanel } from "./HelprGuaranteePanel";
+import { fixDateChoices } from "@/lib/guarantee";
 
 const doneAgo = (h: number) => new Date(Date.now() - h * 3600e3).toISOString();
 const job = (over: Partial<GuaranteeJob> = {}): GuaranteeJob => ({
@@ -95,7 +96,9 @@ describe("the hired Helpr", () => {
     renderPanel(job(), "h1", "helpr");
     expect(await screen.findByText("Two shelves are crooked and a bracket is loose.")).toBeTruthy();
     const days = screen.getAllByRole("radio");
-    expect(days.length).toBe(4);
+    // The server's window, today only while a visit today is still possible (F31: fixDateChoices).
+    expect(days.length).toBe(fixDateChoices().length);
+    expect(days.length).toBeGreaterThanOrEqual(3);
     fireEvent.click(days[2]);
     fireEvent.click(screen.getByRole("button", { name: "Accept fix" }));
     await waitFor(() => expect(s.calls[0]?.[0]).toBe("answer"));

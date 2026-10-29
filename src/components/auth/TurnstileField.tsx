@@ -6,17 +6,20 @@ import { loadTurnstile, turnstileSiteKey, type TurnstileApi } from "@/lib/turnst
  * Cloudflare Turnstile, Managed mode, `interaction-only`: invisible for most
  * people, a checkbox only when Cloudflare wants one (Q1314).
  *
- * The form around it never waits on it to render. On submit the caller asks
- * `getToken()`: a token if there is one, else it waits briefly (longer while a
- * visible challenge is up), and resolves `null` rather than hanging. A null
- * token still goes to Supabase — while captcha is off server-side that is
- * simply a sign-in; once it is on, GoTrue refuses with a captcha error, which
- * the caller words via `isCaptchaError`. Tokens are single-use: getToken
- * hands each one out once, and the caller calls `reset()` after every attempt
- * so the widget mints the next.
+ * The form around it never waits on it to render, and a submit never waits on
+ * a checkbox the server may not need (A3-B1). On submit the caller asks
+ * `getToken()`: a token if there is one, else it waits briefly while the
+ * invisible check is still running, and resolves `null` the moment Cloudflare
+ * shows a box (or fails). A null token still goes to Supabase: while captcha
+ * is off server-side (owner-approved 2026-10-15, Q2113) that is simply a
+ * sign-in. Only when the server REFUSES for captcha does the caller ask again
+ * with `{ waitForCheckbox: true }` (runWithCaptcha, src/hooks/useCaptcha.ts):
+ * that wait shows "Tick the box to finish." under the box and gives the person
+ * time to tap it. Tokens are single-use: getToken hands each one out once, and
+ * the caller calls `reset()` after spending one so the widget mints the next.
  */
 export interface TurnstileHandle {
-  getToken: () => Promise<string | null>;
+  getToken: (opts?: { waitForCheckbox?: boolean }) => Promise<string | null>;
   reset: () => void;
 }
 
@@ -24,8 +27,10 @@ type Status = "off" | "loading" | "ready" | "interactive" | "error";
 
 /** How long a submit waits for an invisible challenge to finish. */
 const SILENT_WAIT_MS = 8_000;
-/** How long it waits once Cloudflare has shown a checkbox to press. */
+/** How long a `waitForCheckbox` ask waits once Cloudflare has shown a checkbox to press. */
 const INTERACTIVE_WAIT_MS = 45_000;
+/** Below this host width the `flexible` widget (300px minimum) would overflow the card, so it renders `compact`. */
+const FLEXIBLE_MIN_PX = 300;
 
 function currentTheme(): "light" | "dark" | "auto" {
   const t = document.documentElement.getAttribute("data-theme");
@@ -43,6 +48,8 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
     const waitersRef = useRef<Array<() => void>>([]);
     const [status, setStatusState] = useState<Status>(statusRef.current);
     const [attempt, setAttempt] = useState(0);
+    // A `waitForCheckbox` ask is waiting on the visible box: say what to do.
+    const [prompting, setPrompting] = useState(false);
 
     const setStatus = useCallback((s: Status) => {
       statusRef.current = s;
@@ -62,7 +69,7 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
             sitekey: siteKey,
             action,
             appearance: "interaction-only",
-            size: "flexible",
+            size: hostRef.current.clientWidth >= FLEXIBLE_MIN_PX ? "flexible" : "compact",
             theme: currentTheme(),
             callback: (token) => {
               tokenRef.current = token;
@@ -104,33 +111,44 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
     useImperativeHandle(
       ref,
       () => ({
-        getToken: async () => {
+        getToken: async (opts) => {
+          const waitForCheckbox = opts?.waitForCheckbox === true;
           const started = Date.now();
           // Once this wait has seen a visible checkbox it keeps the long
           // deadline, even after after-interactive drops the status back to
           // "loading" while Cloudflare verifies the tap.
           let sawInteractive = false;
-          for (;;) {
-            // TAKE the token, never just read it (Q1589): two callers can be
-            // waiting at once (sign-up's lead capture and its signUp), and a
-            // token is single-use, so the second must wait for a fresh one.
-            const taken = tokenRef.current;
-            if (taken) {
-              tokenRef.current = null;
-              return taken;
-            }
-            const s = statusRef.current;
-            if (s === "off" || s === "error") return null;
-            if (s === "interactive") sawInteractive = true;
-            const left = (sawInteractive ? INTERACTIVE_WAIT_MS : SILENT_WAIT_MS) - (Date.now() - started);
-            if (left <= 0) return null;
-            await new Promise<void>((wake) => {
-              const t = window.setTimeout(wake, left);
-              waitersRef.current.push(() => {
-                window.clearTimeout(t);
-                wake();
+          try {
+            for (;;) {
+              // TAKE the token, never just read it (Q1589): two callers can be
+              // waiting at once (sign-up's lead capture and its signUp), and a
+              // token is single-use, so the second must wait for a fresh one.
+              const taken = tokenRef.current;
+              if (taken) {
+                tokenRef.current = null;
+                return taken;
+              }
+              const s = statusRef.current;
+              if (s === "off" || s === "error") return null;
+              // A box is up. Unless the server already refused a call for
+              // captcha, never hold the submit on it (A3-B1).
+              if (s === "interactive" && !waitForCheckbox) return null;
+              if (s === "interactive" && !sawInteractive) {
+                sawInteractive = true;
+                setPrompting(true);
+              }
+              const left = (sawInteractive ? INTERACTIVE_WAIT_MS : SILENT_WAIT_MS) - (Date.now() - started);
+              if (left <= 0) return null;
+              await new Promise<void>((wake) => {
+                const t = window.setTimeout(wake, left);
+                waitersRef.current.push(() => {
+                  window.clearTimeout(t);
+                  wake();
+                });
               });
-            });
+            }
+          } finally {
+            if (sawInteractive) setPrompting(false);
           }
         },
         reset: () => {
@@ -156,6 +174,11 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
         data-status={status}
       >
         <div ref={hostRef} />
+        {prompting && status === "interactive" && (
+          <p role="status" className="mt-1 text-ds-12 text-muted-foreground">
+            Tick the box to finish.
+          </p>
+        )}
         {status === "error" && (
           <p role="status" className="flex flex-wrap items-center gap-x-2 text-ds-12 text-muted-foreground">
             <span>The security check didn't load.</span>

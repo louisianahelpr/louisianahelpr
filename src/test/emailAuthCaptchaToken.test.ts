@@ -16,7 +16,7 @@
  */
 // @mutate src/lib/loginTransport.ts | supabase.auth.signInWithPassword({ email: email.trim(), password, options: { captchaToken } }), | supabase.auth.signInWithPassword({ email: email.trim(), password }),
 // @mutate src/pages/auth/Login.tsx | <TurnstileField ref={captcha.ref} action="login" /> | {null}
-// @mutate src/pages/auth/ForgotPassword.tsx |       captchaToken: captchaToken ?? undefined,\n    }); |     });
+// @mutate src/pages/auth/ForgotPassword.tsx |         redirectTo: getPublicResetPasswordUrl(),\n        captchaToken,\n |         redirectTo: getPublicResetPasswordUrl(),\n
 // @mutate src/pages/auth/SignupPending.tsx | <TurnstileField ref={turnstileRef} action="signup_resend" className="mt-3" /> | {null}
 import { describe, it, expect } from "vitest";
 import { relative } from "node:path";

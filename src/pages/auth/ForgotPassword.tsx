@@ -11,6 +11,7 @@ import AuthShell from "@/components/auth/AuthShell";
 import { AuthCardHead } from "@/components/auth/AuthCardHead";
 import { TurnstileField, type TurnstileHandle } from "@/components/auth/TurnstileField";
 import { isCaptchaError } from "@/lib/turnstile";
+import { runWithCaptcha } from "@/hooks/useCaptcha";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
@@ -59,13 +60,13 @@ const ForgotPassword = () => {
   const performSend = async () => {
     hapticMedium();
     setLoading(true);
-    const captchaToken = await turnstileRef.current?.getToken() ?? null;
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: getPublicResetPasswordUrl(),
-      captchaToken: captchaToken ?? undefined,
-    });
-    // Turnstile tokens are single-use: arm a fresh one for the resend.
-    turnstileRef.current?.reset();
+    // Never held on the security box unless the server refuses (A3-B1);
+    // runWithCaptcha re-arms the single-use token for the resend.
+    const { error } = await runWithCaptcha(turnstileRef.current, (captchaToken) =>
+      supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: getPublicResetPasswordUrl(),
+        captchaToken,
+      }));
     setLoading(false);
     if (error) {
       // A refused security check (Q1314) must NOT take the neutral "check your

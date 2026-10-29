@@ -6,8 +6,8 @@
 // @mutate src/components/auth/TurnstileField.tsx |             if (s === "off" \|\| s === "error") return null; |             if (s === "off") return null;
 // @mutate src/components/auth/TurnstileField.tsx |             apiRef.current.reset(widgetRef.current); |             void 0;
 // @mutate src/components/auth/TurnstileField.tsx |         {status === "error" && ( |         {status === "never" && (
-// @mutate src/components/auth/TurnstileField.tsx |             if (s === "interactive") sawInteractive = true; |             void 0;
-// @mutate src/components/auth/TurnstileField.tsx |               tokenRef.current = null;\n              return taken; |               return taken;
+// @mutate src/components/auth/TurnstileField.tsx |               if (s === "interactive" && !sawInteractive) { |               if (false) {
+// @mutate src/components/auth/TurnstileField.tsx |                 tokenRef.current = null;\n                return taken; |                 return taken;
 // @mutate src/lib/turnstile.ts |   if (import.meta.env.VITE_TURNSTILE_ENABLED !== "true") return null; |   void 0;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { act, createRef } from "react";
@@ -108,7 +108,7 @@ describe("TurnstileField (Q1314)", () => {
     try {
       act(() => opts!["before-interactive-callback"]());
       let settled: string | null | undefined;
-      void ref.current!.getToken().then((t) => (settled = t));
+      void ref.current!.getToken({ waitForCheckbox: true }).then((t) => (settled = t));
       await act(async () => {
         await vi.advanceTimersByTimeAsync(1_000);
       });

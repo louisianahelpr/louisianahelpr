@@ -31,6 +31,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
 import { userFacingError } from "@/lib/userFacingError";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
+import { reviewIsLiveNow } from "./reviewLiveNow";
 
 export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, canTip = false, revieweeRole = "helper" }: ReviewFormProps) => {
   // ONE overall star rating. The three sub-criteria this used to collect
@@ -264,9 +265,14 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
       // (`set_review_visibility`, 20260506192638). Closing silently made a
       // reviewer who checked the profile and saw nothing believe the review
       // had failed — and this is the one screen that can explain the wait.
-      confirmConsequential(
-        "Review posted. It goes live once they review you too — or in 14 days, whichever comes first.",
-      );
+      // A2-C34: when the other side had already reviewed, the trigger made BOTH live at once; say so, not "held".
+      if (await reviewIsLiveNow(inserted[0].id)) {
+        confirmConsequential("Your reviews are both live now.");
+      } else {
+        confirmConsequential(
+          "Review posted. It goes live once they review you too — or in 14 days, whichever comes first.",
+        );
+      }
       onClose();
     }
     setSubmitting(false);

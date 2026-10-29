@@ -23,7 +23,7 @@
  * @mutate src/components/declutter/SellItForMe.tsx |     if (underAge) {\n      explain("post");\n      return;\n    } | 
  * @mutate src/components/declutter/SellItForMe.tsx |     navigate(sellForMePostJobPath()); |     navigate("/post-job");
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <SellItForMeEntry grouped />\n | \n
- * @mutate src/components/declutter/DeclutterSellView.tsx |       {!itemId && <SellItForMeEntry />} |
+ * @mutate src/components/declutter/SellOneScreen.tsx |           <SellItForMeEntry />\n | \n
  * @mutate src/pages/post-job/useJobFormEffects.ts |     setCategory(p.category);\n    setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]); |     setTitle(p.title);\n    setDescription(p.description);\n    // The setters are stable useState setters; the param is the trigger.\n  }, [searchParams]);
  * @mutate src/pages/post-job/usePostJobForm.ts |   const skipEntry = !!(searchParams.get(SELL_FOR_ME_PARAM) \|\| | const skipEntry = !!(
  * @mutate src/lib/declutter/sellForMe.ts | const SELL_FOR_ME_TITLE = "Photograph and list my items"; | const SELL_FOR_ME_TITLE = "Photograph and list my items for sale";
@@ -123,8 +123,11 @@ describe("Sell it for me: the entry", () => {
     // Owner 2026-10-28: under the listings, a row in "More ways to sell" beside Moving out sale (so the empty state shows it too).
     // Owner 2026-10-29: "Sell a bunch" (DeclutterBunchEntry) is the first row of that card, so the run is named in full.
     expect(home).toMatch(/<MyListingsView userId=\{userId\} haulOn=\{haulOn\} \/>[\s\S]{0,400}?<SellBunchEntry \/>\s*<SellItForMeEntry grouped \/>\s*<MovingOutEntry on=\{movingOutOn\} \/>/);
-    const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellView.tsx"), "utf8"));
-    expect(sell).toMatch(/\{!itemId && <SellItForMeEntry \/>\}/);
+    // A NEW listing is the one screen (owner 2026-10-29); a saved draft keeps the step form, without the entry.
+    const sell = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/SellOneScreen.tsx"), "utf8"));
+    expect(sell).toMatch(/<SellItForMeEntry \/>/);
+    const steps = blankComments(readFileSync(join(process.cwd(), "src/components/declutter/DeclutterSellView.tsx"), "utf8"));
+    expect(steps).not.toMatch(/<SellItForMeEntry/);
   });
 });
 

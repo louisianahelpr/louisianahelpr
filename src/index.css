@@ -3371,6 +3371,20 @@ button,
   .job-step-wide { display: block; }
   .job-steps-grid { grid-template-columns: repeat(8, minmax(0, 1fr)) !important; }
 }
+/* NARROW TRACKERS KEEP EVERY SHORT WORD WHOLE (audit 2026-10-28 F17). Measured on a local build, prod data:
+   /payment-success's tracker is 277px at 375 ("Hired" 30 in 29, "Done" 30 in 29) and 222px at 320 (7 of 8 cut);
+   the Working card's is 250px at 320 ("Off…", "Hir…", "Co…", "W…"). Under 300px the words step down to 0.91em
+   (10px at the default size; relative, so Senior Mode still scales) with 2px between columns. Under 260px the
+   columns are sized by their words, not shared equally, and the current step's small hand / hourglass steps
+   aside; its amber fill and bold word still mark it. Guard: src/test/trackerWordsFitNarrow.test.ts. */
+@container (max-width: 299px) {
+  .job-steps-grid { column-gap: 2px; }
+  .job-step-short { font-size: 0.91em; }
+}
+@container (max-width: 259px) {
+  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; }
+  .job-step-cur-icon { display: none; }
+}
 
 /* THE MONEY RANGE ROW SIZES ITS WORDS TO ITS OWN TRACK (audit 2026-10-28 P4-3; EarningsRangeToggle.tsx). The
    four full names ("Lifetime / This week / This month / This year") need a 324px track at the default text size;

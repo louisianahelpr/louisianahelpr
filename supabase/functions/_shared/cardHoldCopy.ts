@@ -5,9 +5,14 @@
  * Names no fee (owner 2026-10-25: members see no fee but the one-time $2
  * setup fee); every amount is the whole hold.
  */
-function holdDollars(cents: number): string {
-  const n = Math.max(0, Math.round(Number(cents) || 0)) / 100;
-  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+/**
+ * Whole dollars when the hold is whole ("$40", audit 2026-10-28 F17: "$40.00" on a $40 job, where every job card
+ * says "$40"); cents only when there are some ("$136.40"). Never rounded: the sum is the real hold.
+ */
+export function holdDollars(cents: number): string {
+  const c = Math.max(0, Math.round(Number(cents) || 0));
+  const fraction = c % 100 !== 0;
+  return `$${(c / 100).toLocaleString("en-US", { minimumFractionDigits: fraction ? 2 : 0, maximumFractionDigits: 2 })}`;
 }
 
 /** Every member-facing sentence about a hold, in one place (no fee named: owner 2026-10-25). */

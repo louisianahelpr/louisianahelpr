@@ -29,6 +29,7 @@ import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, type JobPageRow } from "./useJobPage";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
+import { HiredSeriesSection } from "./HiredSeriesSection";
 import { NoApplicantsYet } from "./NoApplicantsYet";
 import { HelprGuaranteePanel } from "@/components/guarantee/HelprGuaranteePanel";
 import { jobPageViewerState } from "./viewerState";
@@ -197,6 +198,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           </div>
           <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus}
             pendingApplicants={isPoster && applicants.data ? pending : undefined} />
+          {isHired && <HiredSeriesSection job={job} userId={userId} />}
           {isPoster ? (
             <PosterMoney job={job} total={total} loading={applicants.isLoading} />
           ) : (

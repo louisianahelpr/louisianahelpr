@@ -20,7 +20,7 @@ import { offerResponseDeadline, jobOfferCutoff, JOB_STARTS_TOO_SOON_COPY, OFFER_
 import { UserAvatar } from "@/components/UserAvatar";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
-import { formatPriceExact } from "@/lib/format";
+import { formatPriceExact, seriesSummary } from "@/lib/format";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { Star } from "lucide-react";
 
@@ -41,6 +41,9 @@ type Props = {
     urgent_fee?: number | null;
     is_flexible_schedule?: boolean | null;
     recurrence_days?: number[] | null;
+    recurrence_interval?: string | null;
+    recurrence_weeks?: number | null;
+    recurrence_end_date?: string | null;
     payment_status?: string | null;
   } | null;
   /** The day/time this applicant suggested when applying (owner 2026-10-23). Hiring them agrees to it:
@@ -94,6 +97,8 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   const price = job && !job.is_group_job && !(Number(job.urgent_fee) > 0) && Number(job.budget) > 0 ? Number(job.budget) : null;
   // A series charges its first visit at post and each later visit before it comes (charge-recurring-visits).
   const series = !!job?.recurrence_days?.length;
+  // A2-C41: "Weekly · 4 visits until Nov 21": every visit this hire covers, not only the first date.
+  const seriesLine = job ? seriesSummary(job) : null;
   // Only a funded job can be hired into (trg_job_funded_before_award); the note claims payment only then.
   const funded = !job?.payment_status || ["escrow", "payout_pending", "released"].includes(job.payment_status);
   const them = first === "Helpr" ? "your Helpr" : first;
@@ -194,6 +199,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
             <div className="rounded-ds-md border border-border bg-card p-3">
               {job?.title && <p className="font-sans text-ds-15 font-bold text-foreground">{job.title}</p>}
               {when && <p className="font-sans text-ds-13 text-muted-foreground">{when}</p>}
+              {seriesLine && <p className="font-sans text-ds-13 text-muted-foreground" data-hire-series="">{seriesLine}</p>}
               <div className="mt-3 flex items-center gap-3 border-t border-border pt-3">
                 <UserAvatar userId={helper?.userId} src={helper?.avatarUrl} name={helperName} pixelSize={40} aria-hidden className="h-10 w-10 shrink-0" />
                 <div className="min-w-0">

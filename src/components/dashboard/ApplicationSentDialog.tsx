@@ -1,5 +1,6 @@
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
 import { formatJobDate } from "@/lib/dateUtils";
+import { seriesSummary } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { JobPriceTakeHome } from "@/components/dashboard/helprTakeHome";
 
@@ -16,6 +17,15 @@ export type ApplicationSent = {
 };
 
 const first = (n: string | null | undefined) => n?.trim().split(/\s+/)[0] || null;
+
+/** "Do the job, Fri, Oct 31"; for a Repeats job every visit applied for (A2-C41):
+ *  "Do the job: Weekly · 4 visits until Nov 21, starting Fri, Oct 31". */
+function doLabel(sent: ApplicationSent | null): string {
+  const series = sent?.job ? seriesSummary(sent.job) : null;
+  const date = sent?.dateNeeded ? formatJobDate(sent.dateNeeded) : null;
+  if (series) return date ? `Do the job: ${series}, starting ${date}` : `Do the job: ${series}`;
+  return date ? `Do the job, ${date}` : "Do the job";
+}
 
 /**
  * AFTER AN APPLY, A POP-UP, NOT A TOAST (owner, 2026-10-08, Q1550), now the shared
@@ -52,7 +62,7 @@ export function ApplicationSentDialog({
         { key: "picked", label: name ? `If ${name} picks you` : "If you're picked", detail: "You get the address and can message about the job", state: "later" },
         {
           key: "do",
-          label: sent?.dateNeeded ? `Do the job, ${formatJobDate(sent.dateNeeded)}` : "Do the job",
+          label: doLabel(sent),
           detail: job ? <JobPriceTakeHome job={job} after=", paid once it's confirmed done" fallback="Then you're paid once it's confirmed done" /> : "Then you're paid once it's confirmed done",
           state: "later",
         },

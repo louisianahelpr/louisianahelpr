@@ -79,10 +79,15 @@ export function threadsForFilter(list: readonly Conversation[], filter: InboxFil
  * Board 13's caption: which side of the job you are on. Only what the thread
  * row knows for certain: your own job, or the job you were hired for. An
  * applicant or pre-hire chat gets no caption (never claims a hire).
+ *
+ * ONE STATUS PER ROW (F24, app audit 2026-10-28): the status chip on the name line says where the job is.
+ * "You're working" is itself a status, so it goes once the job is over (completed or cancelled): a row read
+ * "Completed" with "You're working · …" under it.
  */
-export function threadRoleCaption(c: Pick<Conversation, "teamThread" | "viewerIsPoster" | "viewerIsAssignedHelper">): string | null {
+const JOB_OVER_STATUSES: readonly string[] = ["completed", "cancelled"];
+export function threadRoleCaption(c: Pick<Conversation, "teamThread" | "viewerIsPoster" | "viewerIsAssignedHelper" | "jobStatus">): string | null {
   if (c.teamThread) return null;
   if (c.viewerIsPoster) return "Your job";
-  if (c.viewerIsAssignedHelper) return "You're working";
+  if (c.viewerIsAssignedHelper) return c.jobStatus && JOB_OVER_STATUSES.includes(c.jobStatus) ? null : "You're working";
   return null;
 }

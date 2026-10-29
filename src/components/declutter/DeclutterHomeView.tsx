@@ -51,6 +51,7 @@ import { SellerDeliveryCard } from "./SellerDeliverySettings";
 import { BundleDiscountCard } from "./BundleDiscountCard";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { SellItForMeEntry } from "./SellItForMe";
+import { SellBunchEntry } from "./DeclutterBunchEntry";
 import { DeclutterBrowse, type DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -372,6 +373,7 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
             <section className="space-y-2" aria-label="More ways to sell" data-sell-more="">
               <SectionHeading title="More ways to sell" />
               <div className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
+                <SellBunchEntry />
                 <SellItForMeEntry grouped />
                 <MovingOutEntry on={movingOutOn} />
               </div>

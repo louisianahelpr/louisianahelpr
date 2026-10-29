@@ -9,7 +9,7 @@
  *    memberDisplayName (supabase/functions/_shared/memberDisplayName.ts);
  *  - the SQL helper, the edge helper and formatName are the same rule.
  * Behaviour (helper cases, two producers, the backfill of stored rows, 3x replay): src/test/pglite/memberDisplayName.pglite.mjs.
- * @mutate supabase/migrations/20261023151519_notice_counts_the_after_photos.sql | SELECT public.member_display_name(full_name, 'Your Helpr') INTO v_helper_name | SELECT COALESCE(full_name, 'Your Helpr') INTO v_helper_name
+ * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql | SELECT public.member_display_name(full_name, 'Your Helpr') INTO v_helper_name | SELECT COALESCE(full_name, 'Your Helpr') INTO v_helper_name
  * @mutate supabase/migrations/20261021061341_member_display_name.sql | SELECT public.member_display_name(full_name, 'Someone') INTO v_reviewer_name | SELECT COALESCE(full_name, 'Someone') INTO v_reviewer_name
  * @mutate supabase/functions/create-notification/index.ts | facts.posterFirstName = memberDisplayName(prof?.full_name, "").split(" ")[0] \|\| null; | facts.posterFirstName = (prof?.full_name ?? "").split(" ")[0] \|\| null;
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const donorName = memberDisplayName((session.metadata as any)?.donor_name as string \| undefined, "Someone"); | const donorName = ((session.metadata as any)?.donor_name as string \| undefined)?.trim() \|\| "Someone";

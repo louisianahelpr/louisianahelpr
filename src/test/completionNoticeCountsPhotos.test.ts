@@ -7,9 +7,9 @@
  * Review them and confirm.'; with none it keeps the old sentence. Behaviour, 3x replay and the red check:
  * src/test/pglite/noticeCountsTheAfterPhotos.pglite.mjs.
  *
- * @mutate supabase/migrations/20261023151519_notice_counts_the_after_photos.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
- * @mutate supabase/migrations/20261023151519_notice_counts_the_after_photos.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
- * @mutate supabase/migrations/20261023151519_notice_counts_the_after_photos.sql | '. Review them and confirm.'; | '. Please review and confirm.';
+ * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql | WHERE COALESCE(btrim(p.path), '') <> ''); | WHERE false);
+ * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql |   v_helper_name := COALESCE(v_helper_name, 'Your Helpr'); |
+ * @mutate supabase/migrations/20261029160717_autostart_notice_never_claims_arrival.sql | '. Review them and confirm.'; | '. Please review and confirm.';
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

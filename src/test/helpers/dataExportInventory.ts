@@ -126,6 +126,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_item_private: { by: ["seller_id"] },
   declutter_item_photos: { by: ["seller_id"] },
   declutter_pickup_windows: { by: ["seller_id"] },
+  // Porch days (20261029161347; exported by 20261029223949): the seller's own picked porch weekdays.
+  declutter_seller_porch_days: { by: ["seller_id"] },
   declutter_questions: { by: ["asker_id"] },
   declutter_watchlist: { by: ["user_id"] },
   declutter_tax_attestations: { by: ["seller_id"] },
@@ -530,7 +532,6 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "rental_rent_payments.reported_by": { reason: "which side entered a rent payment ('tenant' or 'landlord'), not a person id; the table is keyed by tenancy_id and holds no person column (20261019073106)" },
   "rental_tenancies.ended_by": { reason: "which side ended the tenancy ('tenant' or 'landlord'), not a person id; the tenancy is exported by its landlord_id and tenant_id (20261019073106)" },
   "rental_properties.ownership_reviewed_by": { reason: "the admin who checked a landlord's ownership proof; the property is the landlord's (exported by rental_properties.owner_id, 20261017205605, with this staff id dropped)", stripped: true },
-  "declutter_seller_porch_days.seller_id": { reason: "porch days (20261029161347): the seller's own picked porch weekdays, readable by them in the sell form (declutter_my_porch_days); the export_my_data section is pending a sensitive-reviewed restatement (lander 7, 2026-10-29), like the pickup windows it mirrors (declutter_pickup_windows.seller_id)" },
   "declutter_seller_flags.set_by": { reason: "the staff member (or NULL for the server) who flagged a seller as business-like; the whole table stays out of the export (A3-I6)" },
   // Q552: the service-role-only enrolment of the platform's OWN test accounts
   // (the launch switch keeps test jobs visible to them). No member is ever in it.

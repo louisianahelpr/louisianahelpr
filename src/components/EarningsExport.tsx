@@ -263,7 +263,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
     doc.setTextColor(100);
     doc.text(
       "Parish tax is collected & remitted by Helpr LLC as a Louisiana marketplace facilitator. " +
-        "Net payout shown before tips. For tax-prep — provide this statement to your CPA.",
+        "Net payout shown before tips. Keep this statement for your taxes.",
       40,
       finalY + 24,
       { maxWidth: 720 }

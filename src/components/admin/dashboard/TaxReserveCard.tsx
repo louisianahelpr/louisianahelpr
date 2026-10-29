@@ -176,8 +176,16 @@ export const TaxReserveCard = ({
         </div>
       </div>
 
-      <p className="text-ds-10 text-muted-foreground leading-snug">
-        Confirm the exact rate with your CPA.
+      {/* Audit 2026-10-28 P5-11: this said "Confirm the exact rate with your CPA." The owner has
+          none; the card cites the published source it follows instead (both pages checked live
+          2026-10-28): IRS Form 1040-ES (estimated tax, the quarterly dates above) and the IRS
+          self-employment tax page ("The self-employment tax rate is 15.3%"). */}
+      <p className="text-ds-10 text-muted-foreground leading-snug" data-testid="tax-reserve-source">
+        A set-aside, not the bill. The amount owed is figured with{" "}
+        <a href="https://www.irs.gov/forms-pubs/about-form-1040-es" target="_blank" rel="noopener noreferrer" className="link-standard">
+          IRS Form 1040-ES
+        </a>
+        : self-employment tax (15.3%) plus your income-tax bracket.
       </p>
     </div>
   );

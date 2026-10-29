@@ -4,6 +4,28 @@ import { ListChecks } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PolicySearchContext } from "@/components/policy/CollapsedPolicy";
 
+/**
+ * The "General guidance only" tax row in the Terms and the Community Rules.
+ * It said "Consult a CPA for advice specific to your situation." Audit
+ * 2026-10-28 P5-11: we point to the published source instead of a
+ * professional, the IRS's own Self-Employed Individuals Tax Center (checked
+ * live 2026-10-28, HTTP 200). Guard: src/test/noProfessionalReferrals.test.ts.
+ */
+export const TaxGuidanceLine = () => (
+  <p>
+    Tax laws change. The IRS explains how self-employment income is taxed in its{" "}
+    <a
+      href="https://www.irs.gov/businesses/small-businesses-self-employed/self-employed-individuals-tax-center"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="link-standard"
+    >
+      Self-Employed Individuals Tax Center
+    </a>
+    .
+  </p>
+);
+
 // While a policy search is active, editorial chrome (the TLDR summary,
 // the privacy callout, the "contact support" footer) is noise — it isn't
 // a search result. These helpers collapse it so the results read as a

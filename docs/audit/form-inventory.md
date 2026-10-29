@@ -191,15 +191,12 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
 | `src/components/PhotoProof.tsx` | input×1 | file |  |  |
-| `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/refund/RefundRequestDialog.tsx` | textarea×1 |  | 1000 | refund-amount · e.g. 20.00 · refund-amount-of · refund-reason · refund-reason-hint |
 | `src/components/rentals/RentalVisitHelpr.tsx` | input×1, date/calendar×1 | datetime-local |  | Visit time · Visit time to offer |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/components/reviewPanel/ReviewForm.tsx` | input×1 | file |  | Add review photo |
 | `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
-| `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
 | `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Close search |
-| `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 | `src/pages/jobs/appliedJobCard/ActiveJobSection.tsx` | textarea×1 |  | 1000 |  |
 | `src/pages/jobs/appliedJobCard/DisputedSection.tsx` | textarea×1 |  | 500 |  |
 | `src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx` | input×1, textarea×1 | file |  | Edit your message · Remove attachment |
@@ -215,6 +212,9 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/guarantee/HelprGuaranteePanel.tsx` | input×1, textarea×2 | file |  | Photos · guarantee-note · guarantee-photos · guarantee-reject · Day to fix it · Helpr Guarantee |
+| `src/components/refund/RefundAnswerDialog.tsx` | input×2, date/calendar×2 | date, time |  |  |
+| `src/components/schedule/ScheduleChangeControl.tsx` | input×2, date/calendar×2 | date, time |  |  |
+| `src/components/series/SeriesDatesPanel.tsx` | input×1 | checkbox |  |  |
 
 ## /legal, /terms, /privacy, /rules
 

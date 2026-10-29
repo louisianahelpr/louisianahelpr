@@ -411,8 +411,9 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: 
   if (!porchReady) {
     return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;
   }
+  // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.
   return (
-    <>
+    <div>
       <button type="button" className={primary} disabled={confirm.isPending} onClick={() => setAsking(true)}>
         I got it
       </button>
@@ -426,7 +427,7 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, who, onProblem }: 
         onConfirm={() => confirm.mutate()}
         onProblem={() => { setAsking(false); onProblem(); }}
       />
-    </>
+    </div>
   );
 }
 
@@ -525,12 +526,12 @@ function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: 
   // Row 94: from 15 minutes after the booked time. The server checks again.
   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
   return (
-    <>
+    <div>
       <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
         They didn't show
       </button>
       <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />
-    </>
+    </div>
   );
 }
 

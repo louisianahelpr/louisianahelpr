@@ -8,6 +8,10 @@
  * @mutate src/components/declutter/BoughtWhatNext.tsx |   const total = orderId ? paidCents?.get(orderId) ?? null : null; |   const total = first.total_cents;
  * @mutate src/components/declutter/BoughtWhatNext.tsx |   return ids.length === 1 ? mine : null; |   return mine.length ? mine : null;
  * @mutate src/components/declutter/DeclutterHomeView.tsx | <><BoughtWhatNext /><BuyingDash todo={todo} /></> | <BuyingDash todo={todo} />
+ * Audit 1028 D1-3 (1a-b-pay-after-p1-375, 1a-b-meetpay-after-p1-1440): "Pick it up from the porch · Now" before any day
+ * was booked, while the card behind said "Pick the day you'll come for it". The Now step is the buyer's real next move.
+ * @mutate src/components/declutter/BoughtWhatNext.tsx |   const handoverSteps = buyerSteps(first.handover, !!booking.data?.some((b) => b.order_id === orderId && b.slot_start)); |   const handoverSteps = buyerSteps(first.handover, true);
+ * @mutate src/components/declutter/BoughtWhatNext.tsx | : [book("Book a time to meet", "In Buying, from the seller's times"), | : [book("Pick it up", "In Buying, from the seller's times"),
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -22,6 +26,8 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => false }));
 let cart: Partial<CartLine>[] = [];
 vi.mock("@/lib/declutter/api", () => ({ fetchMyCart: async () => cart }));
 let paid: Record<string, number> = {};
+let bookings: { order_id: string; slot_start: string | null }[] = [];
+vi.mock("@/lib/declutter/handover", () => ({ fetchMyBookings: async () => bookings }));
 vi.mock("@/lib/declutter/paidCents", () => ({
   fetchMyPaidCents: async (ids: string[]) => new Map(ids.filter((id) => id in paid).map((id) => [id, paid[id]])),
 }));
@@ -51,6 +57,33 @@ describe("board 82: after buying", () => {
     at("?paid=1&tab=buying");
     expect(await screen.findByText("$27.27")).toBeTruthy();
     expect(screen.getByTestId("what-next-sheet").textContent).not.toContain("$25.27");
+  });
+
+  it("D1-3: the Now step is the real next move for each handover, and the pickup only once it's booked", async () => {
+    const nowStep = async () => {
+      await screen.findByTestId("what-next-sheet");
+      const now = [...document.querySelectorAll('[data-testid="what-next-sheet"] li[data-state="now"]')];
+      expect(now).toHaveLength(1);
+      return now[0].querySelector("p > span")?.textContent;
+    };
+    const cases: [string, boolean, string][] = [
+      ["porch", false, "Pick a pickup day"],
+      ["meetup", false, "Book a time to meet"],
+      ["pickup_home", false, "Book a pickup time"],
+      ["seller_delivery", false, "Pick a delivery time"],
+      ["delivery", false, "A local Helpr brings it"],
+      ["porch", true, "Pick it up from the porch"],
+      ["meetup", true, "Meet at the safe spot"],
+    ];
+    for (const [handover, booked, want] of cases) {
+      cart = [line({ handover })];
+      paid = { o1: 2527 };
+      bookings = booked ? [{ order_id: "o1", slot_start: "2026-10-31T05:00:00Z" }] : [];
+      const { unmount } = at("?paid=1&tab=buying");
+      expect(await nowStep()).toBe(want);
+      unmount();
+    }
+    expect(cases.length).toBeGreaterThan(6);
   });
 
   it("two paid orders, or no ?paid=1: no sheet (never a guess)", () => {

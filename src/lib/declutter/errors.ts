@@ -155,6 +155,11 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   not_authorized: "Only Louisiana Helpr staff can do this.",
   problem_not_found: "That problem report wasn't found.",
   problem_already_decided: "This problem was already decided.",
+  // D2-3 (20261029225634): a second report is refused with where to add it; the other side adds theirs.
+  problem_already_open: "A problem is already open on this sale. Add your side to it, with photos, and Louisiana Helpr reads both.",
+  problem_already_reported: "You already reported a problem on this sale. Louisiana Helpr is looking at it and will tell you both what it decides.",
+  problem_side_is_yours: "You reported this problem. Louisiana Helpr is looking at it.",
+  too_many_problem_photos: "Add up to 3 photos.",
   not_handed_over: "Reviews open after the handover.",
   invalid_stars: "Pick 1 to 5 stars.",
   comment_too_long: "Keep your review under 1,000 characters.",

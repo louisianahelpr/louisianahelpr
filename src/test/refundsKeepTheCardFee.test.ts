@@ -560,7 +560,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_full_refund_cents: "20261026155251_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.
       // D2-5 (20261029224147): + admin_decided (the request ended with an admin decision); still reads the settled refund row's amount and status only.
-      declutter_refund_request_view: "20261029224147_declutter_admin_decision_closes_refund_request.sql f5014b4207909c83",
+      // D2-3 (20261029225634): + the request's photo_paths; still reads the settled refund row's amount and status only.
+      declutter_refund_request_view: "20261029225634_declutter_problem_both_sides_and_photos.sql 3bf8fd8dd4f18406",
+      // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
+      declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee

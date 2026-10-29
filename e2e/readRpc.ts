@@ -64,6 +64,10 @@ export const READ_RPCS_BY_NAME = new Set([
   "declutter_my_offers",
   "declutter_seller_moving_sale",
   "has_pre_verification_wipe",
+  // 2026-10-28 (Builder 10): STABLE (20261025162003_payout_after_hire.sql), a
+  // plain SELECT. Refused, it hid Money's "Set up payouts with Stripe" from
+  // every firewalled sweep, so its 320 px cut-off was never measured.
+  "payout_setup_hire_allowed_for_me",
   "poster_crew_block_fee_cents",
   "rentals_browse_listings",
   "rentals_my_ended_deposits",

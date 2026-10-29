@@ -316,3 +316,74 @@ test("overflowing labels: no control's label runs past its own box at 320/375 (i
   expect(measured).toBeGreaterThan(80);
   expect(wrong, `controls whose label runs past their own box:\n${wrong.join("\n")}`).toEqual([]);
 });
+
+/* THE PAYOUT SETUP CARD (2026-10-28). The 320 px "Set up payouts with Stripe"
+   button ran its label past both edges (content 249 in a 246 button) and no
+   sweep saw it: the routes above are measured as the poster, and the write
+   firewall refused payout_setup_hire_allowed_for_me (a STABLE read, now in
+   e2e/readRpc.ts), which hides the button. helper-e2e has no payout account, so
+   its Money > Earned draws the card; measure it the same way. A run where the
+   button is absent says so and fails, rather than passing on a screen that no
+   longer shows the control. */
+// @mutate src/components/PayoutSetupForm.tsx |             size="wrap"\n            onClick={handleOnboard} |             onClick={handleOnboard}
+test("overflowing labels: the payout setup card's controls fit at 320/375 (helper-e2e Money)", async ({ browser, request }, info) => {
+  const helper = await getSession(request, "helper");
+  const wrong: string[] = [];
+  for (const vw of [320, 375]) {
+    const ctx = await browser.newContext({
+      baseURL: info.project.use.baseURL,
+      viewport: { width: vw, height: 812 },
+      hasTouch: true,
+      serviceWorkers: "block",
+      userAgent: test.info().project.use.userAgent,
+    });
+    await ctx.addInitScript(
+      ({ key, val }) => {
+        try {
+          localStorage.setItem(key, val);
+          localStorage.setItem("helpr_onboarding", JSON.stringify({ completed: true, currentStep: 0, completedSteps: [] }));
+        } catch {
+          /* signed out: the card check below fails and says so */
+        }
+      },
+      { key: AUTH_STORAGE_KEY, val: JSON.stringify(helper) },
+    );
+    await writeFirewall(ctx);
+    // Money's card needs three edge-function READS the firewall refuses as
+    // POSTs: stripe-payouts (lists the caller's own payouts; refused, Money
+    // draws "We couldn't load your payout data") and stripe-connect's "status"
+    // and "list_payout_methods" (refused: "We couldn't check your payout
+    // status"). Routes added later win, so these let just those reads through;
+    // any other stripe-connect action (onboard, reset, ...) is still aborted.
+    await ctx.route("**/functions/v1/stripe-payouts", (route) => route.continue());
+    await ctx.route("**/functions/v1/stripe-connect", (route) => {
+      const req = route.request();
+      if (req.method() === "OPTIONS") return route.continue();
+      const action = (() => {
+        try {
+          return (JSON.parse(req.postData() ?? "{}") as { action?: string }).action;
+        } catch {
+          return undefined; // not JSON: not one of the two reads
+        }
+      })();
+      return action === "status" || action === "list_payout_methods" ? route.continue() : route.abort("blockedbyclient");
+    });
+    const page = await ctx.newPage();
+    await page.goto("/profile?tab=earnings", { waitUntil: "domcontentloaded" });
+    // The BUTTON, not the card's heading: the heading draws while the start
+    // button is still hidden (payout_setup_hire_allowed_for_me pending or
+    // refused), and a run measuring that card has measured nothing.
+    const start = page.getByRole("button", { name: /Set up payouts with Stripe|Complete Stripe verification/ });
+    await expect(start, `helper-e2e's Money tab drew no payout setup button at ${vw}`).toBeVisible({ timeout: 30_000 });
+    // Measure in the app's own font: the fallback is narrower.
+    await page.evaluate(() => document.fonts.ready);
+    await page.waitForTimeout(1500);
+    for (const c of await page.evaluate(readOverflowingControls)) {
+      const line = `money-payout-setup@${vw} "${c.text}" sw${c.sw}/cw${c.cw}`;
+      console.log(`OVERFLOW ${line}`);
+      wrong.push(line);
+    }
+    await ctx.close();
+  }
+  expect(wrong, `controls whose label runs past their own box:\n${wrong.join("\n")}`).toEqual([]);
+});

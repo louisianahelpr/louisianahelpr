@@ -19,7 +19,7 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const confirmBuy = () => setReserve("ask"); |   const confirmBuy = () => { if (window.confirm("Buy?")) buy.mutate(); };
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setReserve("reserved"); |       setReserve(null);
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx |               <SheetPrimaryAction onClick={onReserve} disabled={pending}>Reserve it</SheetPrimaryAction> |               <SheetPrimaryAction onClick={onClose} disabled={pending}>Reserve it</SheetPrimaryAction>
- * @mutate src/components/declutter/DeclutterTradeViews.tsx | o.floor_price_cents !== null && o.amount_cents < o.floor_price_cents; | o.floor_price_cents !== null;
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | && o.floor_price_cents < o.current_price_cents && o.amount_cents < o.floor_price_cents; | && o.floor_price_cents < o.current_price_cents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
@@ -368,6 +368,24 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.getByText(/Waiting for the seller/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Take back my offer" })).toBeInTheDocument();
     expect(screen.getAllByText(/under your lowest price/)).toHaveLength(1);
+  });
+
+  // Audit 1a #7 (prod 2026-10-29): a $30 listing with no lowest price stores $30 there, so a $20 offer AND the seller's
+  // own $25 counter both read "This is under your lowest price ($30)". The note is for a buyer's amount waiting on the
+  // seller, under a lowest price the seller set below the price.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const underFloor = o.my_side === "seller" && myTurn && o.floor_price_cents !== null | const underFloor = o.my_side === "seller" && o.floor_price_cents !== null
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | null && o.floor_price_cents < o.current_price_cents && o.amount_cents | null && o.amount_cents
+  it("audit 1a #7: no under-floor note when no lowest price was set, nor on the seller's own counter", async () => {
+    state.offers = [
+      { ...OFFER, offer_id: "n1", amount_cents: 2000, current_price_cents: 3000, floor_price_cents: 3000, item_title: "No floor lamp" },
+      { ...OFFER, offer_id: "c1", amount_cents: 2500, awaiting: "buyer", current_price_cents: 4000, floor_price_cents: 3000, item_title: "Countered desk" },
+      { ...OFFER, offer_id: "f1", amount_cents: 2000, current_price_cents: 4000, floor_price_cents: 3000, item_title: "Floor chair" },
+    ];
+    show(<OffersSection side="seller" />);
+    expect(await screen.findByText("Floor chair")).toBeInTheDocument();
+    const notes = screen.getAllByText(/under your lowest price/);
+    expect(notes).toHaveLength(1);
+    expect(notes[0].closest("[data-offer-row]")).toHaveTextContent("Floor chair");
   });
 
   it("board 160: a buyer's declined or expired offer says nothing was charged and links the item; never 'Offer again'", async () => {

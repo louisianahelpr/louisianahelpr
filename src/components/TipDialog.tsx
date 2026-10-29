@@ -19,6 +19,7 @@ import { report } from "@/lib/errorLogger";
 import { currentScreen } from "@/lib/currentScreen";
 import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../supabase/functions/_shared/tipFees";
+import { tipsNotReadyLine, useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 
 interface TipDialogProps {
   jobId: string;
@@ -34,6 +35,8 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
   const [amount, setAmount] = useState<number | undefined>(undefined);
   const [sending, setSending] = useState(false);
   const tipJob = useTipJob(jobId);
+  // F29: a Helpr who can't receive a tip is told so here, not at the last tap.
+  const takesTips = useHelprTakesTips(helperId ?? tipJob?.helperId, open);
   // ME-007: one id per opening of the prompt. The server salts the Stripe
   // idempotency key with it, so a retry while open collapses onto one
   // session and a deliberate second tip after reopening gets its own.
@@ -105,6 +108,15 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
         <DialogHero moment title={first ? `Add a tip for ${first}?` : "Add a tip?"} />
+        {takesTips === false ? (
+          <>
+            <p className="font-sans text-ds-13 text-foreground" data-testid="tips-not-ready">{tipsNotReadyLine(helperName)}</p>
+            <DialogFooter>
+              <DialogPrimaryAction onClick={onClose}>OK</DialogPrimaryAction>
+            </DialogFooter>
+          </>
+        ) : (
+        <>
         <div className="space-y-3 min-w-0">
           <p className="font-sans text-ds-13" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Optional.{tipJob ? ` ${tipJob.title} · $${formatPriceExact(tipJob.shareDollars)}` : ""}
@@ -118,6 +130,8 @@ export function TipDialog({ jobId, helperName, helperId, open, onClose }: TipDia
             {sending ? "Opening checkout…" : amount !== undefined && amount > 0 ? `Tip ${centsLabel(Math.round(amount * 100))}` : "Tip"}
           </DialogPrimaryAction>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

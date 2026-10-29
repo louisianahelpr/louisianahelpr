@@ -24,6 +24,7 @@ import { report } from "@/lib/errorLogger";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { TipCostBreakdown, TipPicker, centsLabel, useTipJob } from "@/components/TipCostBreakdown";
+import { useHelprTakesTips } from "@/hooks/useHelprTakesTips";
 import { formatPriceExact } from "@/lib/format";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
@@ -54,6 +55,11 @@ type CompletionPromptsProps = {
 
 export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onDone, isHelper = false, jobCategory }: CompletionPromptsProps) => {
   const [step, setStep] = useState<"review" | "tip" | "share" | "nps" | null>("review");
+  // F29: the tip step is skipped when the person reviewed can't receive a tip yet.
+  const takesTips = useHelprTakesTips(revieweeId);
+  useEffect(() => {
+    if (step === "tip" && takesTips === false) setStep("share");
+  }, [step, takesTips]);
 
   // "More work nearby" — only useful when the viewer is the helper.
   // Fetches up to 3 open jobs in the same category once the share step opens.
@@ -321,7 +327,7 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
       {/* Tip Prompt (board 180) — close advances to share step (peak
           emotional moment for a referral ask). Skipping the tip still hits
           the share step. */}
-      <Dialog open={step === "tip"} onOpenChange={() => setStep("share")}>
+      <Dialog open={step === "tip" && takesTips !== false} onOpenChange={() => setStep("share")}>
         <DialogContent
           stepped>
           <DialogHero moment title={`Add a tip for ${firstName}?`} />

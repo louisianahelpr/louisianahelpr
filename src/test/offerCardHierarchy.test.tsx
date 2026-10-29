@@ -33,7 +33,7 @@
  * @mutate src/pages/jobs/AppliedJobCard.tsx | hideStatus={isOffered} | hideStatus={false}
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isOffered && isExpanded && ( | {false && (
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |       {!isExpired && acceptPending && ( |       {false && (
- * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job"; | const acceptLabel = busy ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept job";
+ * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | const acceptLabel = busy && pressed === "accept" ? "Accepting…" : acceptPending ? "Finish accepting" : "Accept job"; | const acceptLabel = busy && pressed === "accept" ? "Accepting…" : acceptPending ? "Finish Stripe Setup" : "Accept job";
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | { id: "answer", at: deadline, text: "left to answer", expiredText: "Response deadline expired" }, |
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx |             startClock,\n |             \n
  * @mutate src/pages/posts/PostedJobCard.tsx |       eyebrow={offerUnanswered ? "Offered to" : "Helpr"} |       eyebrow="Helpr"

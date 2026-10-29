@@ -38,7 +38,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { recognizedAuthError } from "@/lib/authErrors";
 import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
-import { parishForCity } from "@/lib/parishes";
+import { cityZipMismatchHint } from "@/lib/cityZipMismatch";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -110,18 +110,7 @@ const Signup = () => {
   // ProfileEditForm — resolved as the user types so both hints below can
   // render before submit, not just at it.
   const { parish: resolvedZipParish, unknownZip } = useParishForZip(zipCode);
-  // Soft mismatch hint (owner-requested 2026-09-04): only fires when the
-  // typed City is a RECOGNIZED city of a DIFFERENT parish than the ZIP
-  // resolved to — never when the city is merely absent from the registry
-  // (parishForCity's own contract: null means "unknown", not "no match"),
-  // so a real small-town combination the registry doesn't list never gets
-  // flagged as wrong.
-  const cityZipMismatch = (() => {
-    if (!resolvedZipParish) return null;
-    const cityParish = parishForCity(location);
-    if (!cityParish || cityParish.name === resolvedZipParish) return null;
-    return `That ZIP usually maps to ${resolvedZipParish} Parish, not where ${location.trim()} is (${cityParish.name} Parish) — double check it.`;
-  })();
+  const cityZipMismatch = cityZipMismatchHint(location, resolvedZipParish);
   // Referral code is captured only from the `?ref=` deep link now (the manual
   // entry field lived on the removed Step 3). process_referral just records the
   // link at signup; the $5 credit is released by a DB trigger when the referred

@@ -28,6 +28,7 @@ import type { HelprActivity } from "@/hooks/useHelprActivity";
 // up, on the screen where they decide whether to trust us with a card.
 import { formatPriceExact } from "@/lib/format";
 import { CheckoutSummaryRow } from "./CheckoutSummaryRow";
+import { CheckoutBudgetLine } from "./CheckoutBudgetLine";
 import { recurringVisitDates, WEEKDAY_LABELS } from "@/lib/recurringSchedule";
 import { hasTaxableLine } from "@/lib/salesTax";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
@@ -282,22 +283,9 @@ export function CheckoutStep({
                     doubt. */}
                 {!hasGift && salesTax === null && <span className="font-normal text-ds-11 text-muted-foreground"> + tax</span>}
               </p>
-              {/* F18 (audit 2026-10-28): only when it says something the total does not. A plain
-                  $40 job read "$40.00" over "$40.00 budget", the same number twice. */}
-              {budgetNum > 0 && (hasGift || Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)) && (
-                <p className="text-ds-12 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                  <span className="font-semibold text-foreground">${formatPriceExact(budgetNum)}</span>
-                  {/* Names what the total holds. F3 (owner 2026-10-14/15): there
-                      is no service fee or card-cost line, so "budget + fees"
-                      would name fees that are not there; only the urgent
-                      bonus and the one-time setup fee can sit on top. On a
-                      gift-funded post the number above is what's left after
-                      the gift, so name the gift instead. */}
-                  {hasGift
-                    ? ` budget · $${formatPriceExact(giftAppliedAmount)} gift applied`
-                    : ` budget${isUrgent && urgentFeeNum > 0 ? " + urgent bonus" : ""}${onboardingFeeAmount > 0 ? " + one-time setup" : ""}`}
-                </p>
-              )}
+              <CheckoutBudgetLine budgetNum={budgetNum} totalWithTax={totalWithTax} hasGift={hasGift} giftAppliedAmount={giftAppliedAmount}
+                isUrgent={isUrgent} urgentFeeNum={urgentFeeNum} onboardingFeeAmount={onboardingFeeAmount} />
+
             </div>
           </div>
 

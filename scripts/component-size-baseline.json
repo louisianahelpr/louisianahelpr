@@ -13,23 +13,23 @@
     "src/components/MobileNav.tsx": 739,
     "src/components/NotificationPanel.tsx": 967,
     "src/components/NotificationPreferences.tsx": 876,
-    "src/components/postjob/CheckoutStep.tsx": 814,
+    "src/components/postjob/CheckoutStep.tsx": 804,
     "src/components/profile/CredentialsTab.tsx": 911,
     "src/components/profile/ScheduleTab.tsx": 843,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 790,
     "src/pages/auth/CompleteProfile.tsx": 898,
-    "src/pages/auth/Signup.tsx": 611,
+    "src/pages/auth/Signup.tsx": 605,
     "src/pages/home/Dashboard.tsx": 788,
     "src/pages/home/DashboardGuest.tsx": 805,
     "src/pages/info/Legal.tsx": 725,
     "src/pages/jobs/AppliedJobCard.tsx": 850,
     "src/pages/posts/PostedJobCard.tsx": 769,
     "src/pages/posts/postedJobs/ApplicantsPanel.tsx": 650,
-    "src/pages/profile/GiftCard.tsx": 830,
+    "src/pages/profile/GiftCard.tsx": 828,
     "src/pages/profile/petProfiles/PetForm.tsx": 648,
     "src/pages/profile/Profile.tsx": 842,
     "src/pages/profile/WorkRecord.tsx": 692,
-    "src/pages/user/UserProfile.tsx": 806
+    "src/pages/user/UserProfile.tsx": 804
   }
 }

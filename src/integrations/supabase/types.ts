@@ -14277,6 +14277,7 @@ export type Database = {
           paid_cents: number
         }[]
       }
+      declutter_my_porch_days: { Args: never; Returns: number[] }
       declutter_my_seller_delivery: { Args: never; Returns: Json }
       declutter_my_wanted: {
         Args: never
@@ -14634,6 +14635,10 @@ export type Database = {
       declutter_set_porch_time: {
         Args: { p_mode: string; p_order_id: string; p_until: string }
         Returns: undefined
+      }
+      declutter_set_porch_days: {
+        Args: { p_weekdays: number[] }
+        Returns: number[]
       }
       declutter_set_seller_delivery: {
         Args: { p_enabled: boolean; p_free_over_cents?: number; p_radius_miles: number; p_rate_cents: number }

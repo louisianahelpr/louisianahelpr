@@ -45,6 +45,13 @@ export function TipCostBreakdown({ tipDollars, receiverName }: { tipDollars: num
       <p className="font-sans text-ds-12 mt-2" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
         {receiverName ? receiverName.trim().split(/\s+/)[0] : "Your Helpr"} receives the whole {centsLabel(q.helperCents)} tip.
       </p>
+      {/* F30 (audit 2026-10-28): "You pay $4.43" for a $4.00 tip left the 43¢ unexplained. Owner rule #20
+          (2026-10-28, "Words only"): say a service fee is included, never its name of a rate or a number. */}
+      {q.chargeCents > q.tipCents && (
+        <p className="font-sans text-ds-12 mt-1" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-service-fee-words="">
+          Includes a small Louisiana Helpr service fee.
+        </p>
+      )}
     </div>
   );
 }

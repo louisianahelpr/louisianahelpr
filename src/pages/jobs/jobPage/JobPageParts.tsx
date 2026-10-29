@@ -16,6 +16,8 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { useFeature } from "@/hooks/useFeature";
+import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
+import type { Job } from "@/components/job-card/activityConstants";
 
 const CARD = "rounded-2xl border border-border bg-card p-4 lg:border-0 lg:p-0 lg:rounded-none lg:bg-transparent lg:!shadow-none";
 const MONEY = "text-[hsl(var(--burnt-sienna))]";
@@ -24,10 +26,16 @@ const MONEY = "text-[hsl(var(--burnt-sienna))]";
  * The job page's tracker is THE one tracker (owner, 2026-10-21): the same four segments and next line as
  * chat and the job cards (jobProgress). A Helpr browsing an open job is not on it yet: no tracker for them.
  */
-export function JobTracker({ job, side }: { job: JobPageRow; side: "poster" | "helpr" | null }) {
+export function JobTracker({ job, side, trackingStatus = null }: { job: JobPageRow; side: "poster" | "helpr" | null; trackingStatus?: string | null }) {
   const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
   if (!side) return null;
-  const progress = jobProgress(job, { viewer: side, rescheduled });
+  // The Working card's own progress (helperProgress off the tracking row), so the page's line and the card's agree.
+  const progress = jobProgress(job, {
+    viewer: side,
+    rescheduled,
+    workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway,
+    tracking: trackingStatus ? { status: trackingStatus } : null,
+  });
   if (progress.stage === null && !progress.next) return null;
   return (
     <div data-job-tracker="" className="rounded-2xl border border-border bg-card p-4 lg:border-0 lg:bg-transparent lg:p-0 lg:pt-1 lg:!shadow-none">

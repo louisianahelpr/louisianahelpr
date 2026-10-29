@@ -53,12 +53,17 @@ export interface JobPageRow {
   /** When the job was done (stamped by the server); the Helpr Guarantee's 48-hour window starts here. */
   completed_at?: string | null;
   has_active_dispute?: boolean | null;
+  /** The photo rule and the photos taken (party read only): the hired Helpr's line and button hang on them, as on
+   *  the Working card (audit 2026-10-28 F1/F26: without them every arrived job read "Take the before photo"). */
+  require_photo_proof?: boolean | null;
+  proof_before_urls?: string[] | null;
+  proof_after_urls?: string[] | null;
 }
 
 const BASE_COLUMNS =
   "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent";
 const PARTY_COLUMNS =
-  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, has_active_dispute";
+  "id, title, description, category, budget, date_needed, start_time, is_flexible_schedule, location, customer_id, status, payment_status, urgent_fee, helpers_needed, is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, helper_id, poster_fee_flat_cents, helper_confirmed_at, helper_dayof_confirmed_at, poster_confirmed_at, helper_on_the_way_at, helper_arrived_at, helper_arrival_verified_at, poster_confirmed_arrival_at, poster_confirmed_working_at, helper_completed_at, poster_completed_at, completed_at, has_active_dispute, require_photo_proof, proof_before_urls, proof_after_urls";
 
 function toRow(raw: Record<string, unknown>): JobPageRow {
   return {
@@ -114,6 +119,14 @@ async function fetchApplicantCounts(jobId: string): Promise<{ total: number; pen
   return { total: rows.length, pending: rows.filter((r) => r.status === "pending").length };
 }
 
+/** The job's latest tracking status (Start working lives there, not on the jobs row), or null. RLS: the parties. */
+async function fetchTrackingStatus(jobId: string): Promise<string | null> {
+  const row = unwrap(
+    await supabase.from("job_tracking").select("status").eq("job_id", jobId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+  ) as { status: string | null } | null;
+  return row?.status ?? null;
+}
+
 export function useJobPage(id: string | undefined, userId: string | undefined) {
   const job = useQuery({
     queryKey: [...queryKeys.jobs.all, "page", id ?? "", userId ?? ""],
@@ -134,5 +147,12 @@ export function useJobPage(id: string | undefined, userId: string | undefined) {
     enabled: !!job.data && !isPoster && !!userId,
     staleTime: 30 * 1000,
   });
-  return { job, applicants, isPoster, myApplication };
+  // The tracking row, for a job someone is hired on (the Working card's own progress input, helperProgress).
+  const tracking = useQuery({
+    queryKey: [...queryKeys.jobs.all, "page-tracking", id ?? ""],
+    queryFn: () => fetchTrackingStatus(id!),
+    enabled: !!job.data?.party && !!job.data.job.helper_id,
+    staleTime: 30 * 1000,
+  });
+  return { job, applicants, isPoster, myApplication, tracking };
 }

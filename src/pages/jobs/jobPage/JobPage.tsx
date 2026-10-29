@@ -39,6 +39,7 @@ import { fetchSellerCard } from "@/lib/declutter/api";
 import { posterStatusLine } from "@/components/job-card/jobStatusLine";
 import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
+import { hiredHelprFace } from "./hiredHelprFace";
 
 function groupLabel(category: string): string | null {
   const id = jobCategoryGroupOf(category);
@@ -69,7 +70,8 @@ const CARD = "rounded-2xl border border-border bg-card";
 
 export default function JobPage({ id, userId }: { id: string; userId: string }) {
   const navigate = useNavigate();
-  const { job: q, applicants, isPoster, myApplication } = useJobPage(id, userId);
+  const { job: q, applicants, isPoster, myApplication, tracking } = useJobPage(id, userId);
+  const trackingStatus = tracking.data ?? null;
   // The poster's "First L." (the same card PostedBy draws, so the read is shared), for "Waiting on Lexi".
   const posterId = q.data?.job.customer_id ?? null;
   const posterCard = useQuery({ queryKey: ["declutter", "seller-card", posterId], queryFn: () => fetchSellerCard(posterId!), enabled: !!posterId && !isPoster });
@@ -126,6 +128,11 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   // The poster's own line, the one the Posted card and this page's tracker print (posterStatusLine): when it asks
   // them to confirm the Helpr arrived, the button here does it (F14), instead of sending them to the card.
   const posterWait = isPoster ? posterStatusLine(job as unknown as Job, pending).id : null;
+  // The hired Helpr (F26): the Working card's own next-step button, plus Message and the street address.
+  const messagePoster = () => navigate(`/messages?jobId=${encodeURIComponent(job.id)}&userId=${encodeURIComponent(job.customer_id ?? "")}`);
+  const hiredFace = isHired && viewer.action.kind === "open_working"
+    ? hiredHelprFace(job, { userId, posterFirst, trackingStatus, open: () => navigate(highlight), message: messagePoster })
+    : null;
   const primary = isPoster && posterWait === "confirm_arrival"
     ? { label: arrival.confirming ? "Confirming…" : "Confirm arrival", go: () => void arrival.confirm(), disabled: arrival.confirming }
     : isPoster
@@ -141,7 +148,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               : `/posts?highlight=${encodeURIComponent(job.id)}&manage=1`,
           ),
       }
-    : viewer.action.kind === "open_working"
+    : hiredFace
+      ? { label: hiredFace.label, go: hiredFace.onClick, disabled: !!hiredFace.disabled, secondary: hiredFace.tone === "secondary" }
+      : viewer.action.kind === "open_working"
       ? { label: "Open in working", go: () => navigate(highlight) }
       : viewer.action.kind === "see_offer"
         ? { label: "See the offer", go: () => navigate(highlight) }
@@ -183,8 +192,15 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
             {/* Desktop prints the title once, in the page header (lead review 2026-10-20). */}
             <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
             {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}
+            {/* The hired Helpr is owed the street address (the party read carries it; RLS gives it only to parties). */}
+            {isHired && job.location && (
+              <p data-job-address="" className="text-ds-14 text-foreground [overflow-wrap:anywhere]">
+                <span className="font-semibold">Address: </span>
+                {job.location}
+              </p>
+            )}
           </div>
-          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} />
+          <JobTracker job={job} side={isPoster ? "poster" : isHired ? "helpr" : null} trackingStatus={trackingStatus} />
           {isPoster ? (
             <PosterMoney job={job} total={total} loading={applicants.isLoading} />
           ) : (
@@ -194,9 +210,28 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           <HelprGuaranteePanel job={job} userId={userId} side={isPoster ? "poster" : isHired ? "helpr" : null} />
           {viewer.status && <p data-viewer-status="" className="text-ds-14 font-semibold text-foreground">{viewer.status}</p>}
           {primary && (
-            <Button variant="primary" size="lg" className="w-full rounded-full text-ds-16" onClick={primary.go} disabled={"disabled" in primary ? primary.disabled : false}>
+            <Button
+              variant={"secondary" in primary && primary.secondary ? "outline" : "primary"}
+              size="lg"
+              className="w-full rounded-full text-ds-16"
+              onClick={primary.go}
+              disabled={"disabled" in primary ? primary.disabled : false}
+            >
               {primary.label}
             </Button>
+          )}
+          {hiredFace && (
+            <div data-hired-actions="" className="flex flex-wrap gap-2">
+              {/* Message the poster, unless the main button already is that (a waiting card's one button). */}
+              {hiredFace.onClick !== messagePoster && (
+                <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={messagePoster}>
+                  Message {posterFirst ?? "them"}
+                </Button>
+              )}
+              <Button variant="outline" size="lg" className="min-w-0 flex-1 rounded-full text-ds-15" onClick={() => navigate(highlight)}>
+                Open in working
+              </Button>
+            </div>
           )}
           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
         </section>

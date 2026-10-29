@@ -18,6 +18,9 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {hasPhoto && ( |         {true && (
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const primary = isPoster && posterWait === "confirm_arrival" |   const primary = isPoster && false
  * @mutate src/pages/jobs/jobPage/usePageConfirmArrival.ts |       await confirmPosterArrival(job); |       void job;
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const hiredFace = isHired && viewer.action.kind === "open_working" |   const hiredFace = false && viewer.action.kind === "open_working"
+ * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     workUnderway: helperProgress(job as unknown as Job, trackingStatus).workUnderway, |     workUnderway: undefined,
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {isHired && job.location && ( |             {false && job.location && (
  * @mutate src/pages/jobs/JobDetail.tsx |         <JobPage id={id} userId={user.id} /> |         <Navigate to={`/home?quickApply=${id}`} replace />
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         ? { label: "Apply", go: () => navigate(`/home?quickApply=${encodeURIComponent(job.id)}`) } |         ? { label: "Apply", go: () => navigate("/jobs") }
  * @mutate src/pages/jobs/jobPage/JobPageParts.tsx |   escrow: "Paid when you posted. We hold it until the job is done.", |   escrow: "Nothing is charged until you hire.",
@@ -49,6 +52,8 @@ const state = {
   owed: 0,
   myApplication: null as { status: string; closed_reason: string | null } | null,
   cardHold: false,
+  /** The job's latest job_tracking.status (useJobPage's tracking read). */
+  tracking: null as string | null,
 };
 
 vi.mock("./useJobPage", () => ({
@@ -57,12 +62,19 @@ vi.mock("./useJobPage", () => ({
     applicants: { isLoading: false, data: state.applicants },
     isPoster: !!state.job && state.job.customer_id === userId,
     myApplication: { data: state.myApplication },
+    tracking: { data: state.tracking },
   }),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
 // The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.
 const confirmArrivalMock = vi.hoisted(() => vi.fn(async (_job: { id: string; helper_id: string | null }) => {}));
 vi.mock("@/lib/posterArrival", () => ({ confirmPosterArrival: confirmArrivalMock }));
+// The hired Helpr's button asks the Working card's tracker to act (F26); record what it asked.
+const faceRequests = vi.hoisted(() => [] as unknown[][]);
+vi.mock("@/components/job-card/faceActionRequest", async (orig) => ({
+  ...(await orig<typeof import("@/components/job-card/faceActionRequest")>()),
+  requestFaceAction: (...a: unknown[]) => { faceRequests.push(a); },
+}));
 // A booked ("accepted") job asks whether its slot was moved; no move on these fixtures.
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 // The Helpr Guarantee panel's read (no claim on these jobs); its own behaviour is helprGuarantee.test.ts and the PGlite proof.
@@ -149,6 +161,8 @@ beforeEach(() => {
   state.party = false;
   state.applicants = { total: 0, pending: 0 };
   state.myApplication = null;
+  state.tracking = null;
+  faceRequests.length = 0;
   state.owed = 0;
   state.cardHold = false;
 });
@@ -324,6 +338,71 @@ describe("job page, the hired Helpr", () => {
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     // F10: Working's own card for THIS job, in its bucket and opened (`?job=`; `?highlight=` there is an application id).
     expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
+  // F26 (audit 2026-10-28, p4j-hired-hallie-p1-375.png): the hired Helpr's page had no address, no Message and no
+  // next action, only "Open in working". Now: the street address, the Working card's own next-step button, Message.
+  const TOMORROW = jobLocalDateISO(1);
+  const booked = () => row({ helper_id: ME, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z", date_needed: TOMORROW, start_time: "09:00" });
+
+  it("shows the street address, the day-before confirm as the button, and Message", () => {
+    state.job = booked();
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-address]")?.textContent).toBe("Address: 123 Main St, Delcambre, LA 70528");
+    // The Working card's own face for this state (helperFaceAction: confirm_day).
+    fireEvent.click(screen.getByRole("button", { name: "Confirm you'll be at the job" }));
+    expect(faceRequests).toEqual([[row().id, "confirm"]]);
+    expect(screen.getByTestId("where").textContent).toBe(`/jobs?tab=working&job=${row().id}&open=1`);
+  });
+
+  it("Message opens the thread with the poster", async () => {
+    state.job = booked();
+    state.party = true;
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "Message Rhonda" }));
+    expect(screen.getByTestId("where").textContent).toBe(`/messages?jobId=${row().id}&userId=${POSTER}`);
+  });
+
+  it("reads the photos and the tracking row like the Working card: both photos and started = Mark done", () => {
+    state.job = row({
+      helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+      helper_arrival_verified_at: "2026-10-28T12:30:00Z", poster_confirmed_arrival_at: "2026-10-28T12:35:00Z",
+      require_photo_proof: true, proof_before_urls: ["b.jpg"], proof_after_urls: ["a.jpg"],
+    });
+    state.party = true;
+    state.tracking = "working";
+    renderPage();
+    expect(document.body.textContent).not.toMatch(/before photo/i);
+    expect(screen.getByRole("button", { name: "Mark done" })).toBeTruthy();
+  });
+
+  it("the tracker reads the tracking row: before photo taken, not started, arrival not yet confirmed", () => {
+    state.job = row({
+      helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+      require_photo_proof: true, proof_before_urls: ["b.jpg"], proof_after_urls: [],
+    });
+    state.party = true;
+    state.tracking = "arrived";
+    renderPage();
+    const tracker = document.querySelector("[data-job-tracker]")?.textContent ?? "";
+    // Without the tracking row the line guessed "working" and said to mark it done.
+    expect(tracker).not.toMatch(/mark it done/i);
+    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull();
+  });
+
+  it("still asks for the before photo while it is owed", () => {
+    state.job = row({
+      helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z", helper_dayof_confirmed_at: "2026-10-27T12:00:00Z",
+      poster_confirmed_at: "2026-10-27T12:00:00Z", helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+      helper_arrival_verified_at: "2026-10-28T12:30:00Z", require_photo_proof: true, proof_before_urls: [], proof_after_urls: [],
+    });
+    state.party = true;
+    state.tracking = "arrived";
+    renderPage();
+    expect(screen.getByRole("button", { name: "Take the before photo" })).toBeTruthy();
   });
 
   it("an offered Helpr's See the offer opens that offer's card on Working", () => {

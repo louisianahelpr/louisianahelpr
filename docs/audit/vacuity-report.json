@@ -1,27 +1,17 @@
 {
-  "generated": "2026-10-29T15:08:10.888Z",
-  "guards": 2578,
-  "registered": 2568,
+  "generated": "2026-10-29T16:18:11.283Z",
+  "guards": 2636,
+  "registered": 2635,
   "unregistered": [
-    "e2e/prod-audit/admin-chrome.spec.ts",
-    "src/components/EarningsExport.noFee.test.ts",
-    "src/components/declutter/declutterShareRow.test.tsx",
-    "src/components/job-card/posterMarkedDone.test.ts",
-    "src/components/postjob/PostJobStepHeader.pick.test.tsx",
-    "src/components/referral/EnterReferralCodeCard.test.tsx",
-    "src/lib/jobProgressIndex.test.ts",
-    "src/pages/auth/signup/signupOneLine.test.tsx",
-    "src/test/jobStepsEvenRow.test.ts",
-    "src/test/takeHomeOnlyNoJobPrice.test.ts"
+    "e2e/prod-audit/admin-chrome.spec.ts"
   ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/admin/adminTestRows.test.ts",
     "src/components/landing/liveJobsRowFits.test.tsx",
-    "src/test/declutterOneSectionHeading.test.ts",
-    "src/test/declutterPriceDropsOptIn.test.ts",
-    "src/test/disabledPrimaryLooksDisabled.test.ts",
-    "src/test/emailSendLogOneRow.test.ts"
+    "src/pages/jobs/jobPage/viewerState.test.ts",
+    "src/test/emailSendLogOneRow.test.ts",
+    "src/test/trackerFullWordsFromMidWidth.test.tsx",
+    "src/test/vitestShardsGateTheCheck.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -251,7 +241,8 @@
       "tests": [
         "src/test/applyAndPostAskNoProfileDetails.test.tsx",
         "src/pages/post-job/checkoutTaxNote.test.tsx",
-        "src/pages/post-job/orderSummaryGlance.test.tsx"
+        "src/pages/post-job/orderSummaryGlance.test.tsx",
+        "src/pages/post-job/reviewTotalSaysItOnce.test.tsx"
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"
@@ -260,6 +251,7 @@
     {
       "module": "src/pages/post-job/EntryChoice.tsx",
       "tests": [
+        "src/pages/post-job/draftPickupPostsFresh.test.tsx",
         "src/pages/post-job/entrySkeletonFollowsJobHistory.test.tsx",
         "src/pages/post-job/giftCardBanner.test.tsx"
       ],
@@ -281,7 +273,8 @@
       "module": "src/pages/profile/giftCards/CreditCard.tsx",
       "tests": [
         "src/pages/profile/giftCards/departedDonorName.test.tsx",
-        "src/pages/profile/giftCards/giftCardSpendGate.test.tsx"
+        "src/pages/profile/giftCards/giftCardSpendGate.test.tsx",
+        "src/pages/profile/giftCards/giftSenderName.test.tsx"
       ],
       "parents": [
         "src/pages/profile/GiftCard.tsx"

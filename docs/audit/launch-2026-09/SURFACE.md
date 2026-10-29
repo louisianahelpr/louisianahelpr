@@ -16,21 +16,21 @@ reports coverage against THIS file, not against the route list.
 |---|---|---:|
 | Routes (non-redirect) | route | 52 |
 | Redirect-only routes | route | 1 |
-| `?tab=` variants | variant | 33 |
+| `?tab=` variants | variant | 34 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 197 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1008 (across 269 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1012 (across 269 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 33 |
-| Multi-step flows — probable | flow | 26 |
-| Back/next navigation only | flow | 54 |
+| Multi-step flows — probable | flow | 27 |
+| Back/next navigation only | flow | 56 |
 | Forms (submittable) | form | 84 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 162 |
 | Email templates | **exported template** | 22 |
 | Notification types (defined in notification_type_pref_map) | type | 25 |
-| **Navigable surfaces** (places a person can stand) | mixed | **668** |
-| **Copy surfaces** (strings a person may read) | mixed | **1055** |
-| **Total auditable surface** | mixed | **1723** |
+| **Navigable surfaces** (places a person can stand) | mixed | **672** |
+| **Copy surfaces** (strings a person may read) | mixed | **1059** |
+| **Total auditable surface** | mixed | **1731** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -148,6 +148,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `?tab=profile:analytics`
 - [ ] `?tab=profile:auto_tip`
 - [ ] `?tab=profile:availability`
+- [ ] `?tab=profile:blocked`
 - [ ] `?tab=profile:credentials`
 - [ ] `?tab=profile:earnings`
 - [ ] `?tab=profile:gift_card`
@@ -442,6 +443,7 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/DisputeTimelineDialog.tsx` | union-state |
 | `src/components/MobileNav.tsx` | union-state |
 | `src/components/PaymentTab.tsx` | union-state |
+| `src/components/profile/DeleteAccountReauth.tsx` | union-state |
 | `src/components/rentals/RentPanel.tsx` | union-state |
 | `src/components/schedule/ChangeJobSheet.tsx` | union-state |
 | `src/components/shops/ShopOrderCancel.tsx` | union-state |
@@ -489,6 +491,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/components/profile/SecurityTab.tsx` | nav-handler |
 | `src/components/profile/SettingsTab.tsx` | nav-handler |
 | `src/components/profile/subscriptionTab/MembershipFootnotes.tsx` | nav-handler |
+| `src/components/profile/subscriptionTab/MembershipPlansGate.tsx` | nav-handler |
 | `src/components/profile/SupportInline.tsx` | nav-handler |
 | `src/components/profile/WarningsTab.tsx` | nav-handler |
 | `src/components/ProfileRouteSkeleton.tsx` | nav-handler |
@@ -502,6 +505,7 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/pages/post-job/useJobSubmit.ts` | nav-handler |
 | `src/pages/posts/postedJobs/ApplicantsPanel.tsx` | nav-handler |
 | `src/pages/profile/AutoTip.tsx` | nav-handler |
+| `src/pages/profile/BlockedPeopleTab.tsx` | nav-handler |
 | `src/pages/profile/HelperAnalytics.tsx` | nav-handler |
 | `src/pages/profile/HelprWrapped.tsx` | nav-handler |
 | `src/pages/profile/HomeHistory.tsx` | nav-handler |

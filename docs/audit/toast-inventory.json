@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1009,
+    "calls": 1012,
     "files": 269,
-    "rendering": 853,
+    "rendering": 856,
     "suppressedByPolicy": 156,
     "byKind": {
-      "confirmConsequential": 29,
+      "confirmConsequential": 30,
       "errorToast": 6,
-      "successToast": 1,
+      "successToast": 2,
       "toast": 72,
-      "toast.error": 711,
+      "toast.error": 712,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -18,7 +18,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 454,
+      "literal": 457,
       "template": 103,
       "dynamic": 502,
       "jsx": 0
@@ -1375,7 +1375,17 @@
     },
     {
       "file": "src/components/SaveHelperButton.tsx",
-      "line": 93,
+      "line": 66,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save Helpr — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SaveHelperButton.tsx",
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1395,11 +1405,21 @@
     },
     {
       "file": "src/components/SaveHelperButton.tsx",
-      "line": 95,
+      "line": 110,
       "kind": "successToast",
       "title": {
         "form": "literal",
         "text": "Saved to your Helprs"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/SaveHelperButton.tsx",
+      "line": 117,
+      "kind": "successToast",
+      "title": {
+        "form": "literal",
+        "text": "Removed from your Helprs"
       },
       "renders": true
     },
@@ -5377,7 +5397,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 204,
+      "line": 207,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5387,7 +5407,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 209,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5397,7 +5417,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 240,
+      "line": 243,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -5407,7 +5427,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 262,
+      "line": 265,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -5427,7 +5447,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 265,
+      "line": 268,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5437,7 +5457,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 281,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5447,7 +5467,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 294,
+      "line": 297,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5457,7 +5477,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 307,
+      "line": 310,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5467,7 +5487,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 314,
+      "line": 317,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -5477,7 +5497,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSellView.tsx",
-      "line": 334,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8791,7 +8811,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 59,
+      "line": 60,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8808,7 +8828,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8818,7 +8838,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8828,7 +8848,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8838,7 +8858,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 165,
+      "line": 166,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8858,7 +8878,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8868,7 +8888,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 203,
+      "line": 204,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8878,7 +8898,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8888,7 +8908,7 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 209,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8898,7 +8918,17 @@
     },
     {
       "file": "src/components/reviewPanel/ReviewForm.tsx",
-      "line": 267,
+      "line": 270,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Your reviews are both live now."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/reviewPanel/ReviewForm.tsx",
+      "line": 272,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

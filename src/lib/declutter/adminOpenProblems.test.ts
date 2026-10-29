@@ -5,15 +5,16 @@
  * problems table rows, with no detail; any other error is a real failure.
  *
  * @mutate src/lib/declutter/handover.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_admin_open_problems")) { |   if (res.error && false) {
+ * @mutate src/lib/declutter/handover.ts |   const res = await supabase.rpc("declutter_admin_open_problems", { p_include_test: includeTest }); |   const res = await supabase.rpc("declutter_admin_open_problems");
  * @mutate src/lib/declutter/handover.ts |     id: problem_id, order_id, reporter_side, reason, note, photo_paths: problem_photo_paths, created_at: reported_at, |     id: order_id, order_id, reporter_side, reason, note, photo_paths: problem_photo_paths, created_at: reported_at,
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const state: { rpc: { data: unknown; error: unknown }; table: unknown[] } = { rpc: { data: null, error: null }, table: [] };
+const state: { rpc: { data: unknown; error: unknown }; table: unknown[]; args: unknown[] } = { rpc: { data: null, error: null }, table: [], args: [] };
 
 vi.mock("@/integrations/supabase/client", () => {
   const chain = { select: () => chain, eq: () => chain, order: async () => ({ data: state.table, error: null }) };
-  return { supabase: { rpc: async () => state.rpc, from: () => chain } };
+  return { supabase: { rpc: async (_fn: string, args?: unknown) => { state.args.push(args); return state.rpc; }, from: () => chain } };
 });
 vi.mock("@/lib/lifecycleErrors", () => ({
   rpcErrorMessage: () => null,
@@ -27,6 +28,7 @@ const tableRow = { id: "p1", order_id: "o1", reporter_side: "buyer", reason: "da
 beforeEach(() => {
   state.rpc = { data: null, error: null };
   state.table = [tableRow];
+  state.args = [];
 });
 
 describe("fetchOpenProblemsWithDetail", () => {
@@ -51,6 +53,14 @@ describe("fetchOpenProblemsWithDetail", () => {
     expect(p.detail?.item_titles).toEqual(["Mug"]);
     expect(p.detail?.item_photo_paths).toEqual([]);
     expect(p.detail?.total_cents).toBe(1725);
+  });
+
+  // Audit 1028 part 2, D2-4: the server hides test (is_seed) orders unless asked; "Show test listings" asks.
+  it("sends p_include_test: false by default, true when the admin shows test listings (D2-4)", async () => {
+    state.rpc = { data: [], error: null };
+    await fetchOpenProblemsWithDetail();
+    await fetchOpenProblemsWithDetail(true);
+    expect(state.args).toEqual([{ p_include_test: false }, { p_include_test: true }]);
   });
 
   it("any other error is thrown, never read as 'not deployed'", async () => {

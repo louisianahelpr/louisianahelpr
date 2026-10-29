@@ -13,9 +13,17 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |       if (stored !== change.to) throw | if (false) throw
 
 const requireBiometricMock = vi.fn<(reason: string) => Promise<boolean>>();
-vi.mock("./DeclutterReviewCard", () => ({ DeclutterReviewCard: () => null }));
+// Audit 1028 part 2, D2-4: the two Declutter admin cards share one "Show test listings" switch, held here. The probes
+// show what each card is given (the cards' own reads have their own tests).
+vi.mock("./DeclutterReviewCard", () => ({
+  DeclutterReviewCard: ({ showTest, onShowTestChange }: { showTest?: boolean; onShowTestChange?: (on: boolean) => void }) => (
+    <button type="button" aria-pressed={!!showTest} onClick={() => onShowTestChange?.(!showTest)}>Show test listings (probe)</button>
+  ),
+}));
 vi.mock("./CategorySuggestionsCard", () => ({ CategorySuggestionsCard: () => null }));
-vi.mock("./DeclutterProblemsCard", () => ({ DeclutterProblemsCard: () => null }));
+vi.mock("./DeclutterProblemsCard", () => ({
+  DeclutterProblemsCard: ({ includeTest }: { includeTest?: boolean }) => <p>Problems include test: {String(includeTest)}</p>,
+}));
 vi.mock("./RentalsOwnershipCard", () => ({ RentalsOwnershipCard: () => null }));
 vi.mock("./HomesListingsCard", () => ({ HomesListingsCard: () => null }));
 vi.mock("@/lib/biometricGate", () => ({
@@ -81,6 +89,16 @@ afterEach(async () => {
 });
 
 describe("FeatureSwitchesCard", () => {
+  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DeclutterProblemsCard includeTest={declutterShowTest} /> |     <DeclutterProblemsCard />
+  // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} /> | <DeclutterReviewCard />
+  it("D2-4: the review card's \"Show test listings\" also shows test accounts' problems", async () => {
+    render(wrap(<FeatureSwitchesCard />));
+    expect(await screen.findByText("Problems include test: false")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Show test listings (probe)" }));
+    expect(await screen.findByText("Problems include test: true")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Show test listings (probe)" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
   // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     declutter: useFeature("declutter"), |     declutter: canaryReachesMe,
   it("says, per switch, what the SERVER answers for this account (declutter off, canary on)", async () => {
     withDeclutter = true;

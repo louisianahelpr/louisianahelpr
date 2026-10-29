@@ -198,17 +198,21 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   );
 }
 
-export function DeclutterProblemsCard() {
+/** `includeTest`: the "Show test listings" switch on the Declutter review card (FeatureSwitchesCard holds it, D2-4). */
+export function DeclutterProblemsCard({ includeTest = false }: { includeTest?: boolean }) {
   const on = useFeature("declutter");
   const open = useQuery({
-    queryKey: ["declutter", "admin-problems"],
-    queryFn: fetchOpenProblemsWithDetail,
+    // ["declutter", "admin-problems"] stays the prefix a decision invalidates.
+    queryKey: ["declutter", "admin-problems", includeTest ? "with-test" : "real-only"],
+    queryFn: () => fetchOpenProblemsWithDetail(includeTest),
   });
   // Row 62: paid sales (and their problems) carry on with the switch off, so an open problem always shows
   // (lh-authz-rls review 4.1); with the switch off and nothing open, the card stays hidden.
   if (!on && !(open.data?.length)) return null;
   return (
-    <AdminCard title="Declutter problems" subtitle="Reported problems on paid sales. The money waits for your decision.">
+    <AdminCard title="Declutter problems" subtitle={includeTest
+      ? "Reported problems on paid sales, test accounts' included. The money waits for your decision."
+      : "Reported problems on paid sales. The money waits for your decision."}>
       {open.isError ? (
         <p className="text-sm" role="alert">{declutterErrorMessage(open.error)}</p>
       ) : open.isLoading ? (

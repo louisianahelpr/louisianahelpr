@@ -3404,6 +3404,16 @@ button,
   .range-cq .segmented-option { padding-left: 0.75rem; padding-right: 0.75rem; }
 }
 
+/* A PHONE SEARCH FIELD THAT FILLS ITS ROW KEEPS ITS WORD (audit 2026-10-28 F20; InlineListSearch `fill`). On
+   Posted / Working the open field takes whatever the lit chip leaves: 138px at 320 with "Not picked · 19" lit,
+   where the magnifier and the X's touch area left the word 48px and it read "Searc". Below a 160px field the
+   magnifier (decorative, aria-hidden) steps aside; the word "Search" and the field's name still say what it is.
+   Guard: src/test/searchKeepsLitChip.test.tsx. */
+.search-fill { container-type: inline-size; }
+@container (max-width: 159px) {
+  .search-fill-glyph { display: none; }
+}
+
 /* POST A JOB SIZES ITS GRIDS TO ITS OWN COLUMN, not the screen (lead, 2026-10-25). At 1180 the desktop
    rail, the step list and the "What Helprs will see" card leave the form about 370px, but a screen breakpoint
    (lg / md) gave it three category tiles ("Handym…", "Assembl…", a sub-line run out of its tile) and a 155px

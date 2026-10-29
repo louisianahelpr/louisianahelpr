@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
@@ -49,6 +50,10 @@ export function EmbeddedActivityHeader({
   onSearch: (next: string) => void;
 }) {
   const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
+  // While the search field is open on a phone the chip row keeps only its lit chip and the field takes the rest
+  // (lead 2026-10-28, audit F20: the open field left a sliver of cut chips, "Ne" / "Waitir"). Desktop has room.
+  const desktop = useIsWebDesktop();
+  const [searchOpen, setSearchOpen] = useState(false);
   const value = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;
   return (
     <div className="flex flex-col gap-4">
@@ -62,9 +67,10 @@ export function EmbeddedActivityHeader({
             onToggle={(k) => onFilter(nextBoxFilter(statusFilter, k))}
             // `all` is the length of the very list "All" shows (activityFilters: postedJobs.length / appliedApps.length).
             allCount={counts.all}
+            onlyLit={searchOpen && !desktop}
             // Search is an ICON at the row's end, like Browse's (owner 2026-10-25: "i prefer the search not expanded"),
             // and it opens IN PLACE, leftward out of the icon (owner 2026-10-27: "search should just open where its at").
-            end={<InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} />}
+            end={<InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill />}
           />
         </div>
       </div>

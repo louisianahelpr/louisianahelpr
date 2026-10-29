@@ -11,8 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { fetchBundleRule } from "@/lib/declutter/bundle";
-import { formatPrice } from "@/lib/declutter/distance";
-import { buyNowTotalCents } from "@/lib/declutter/money";
+import { BuyerTotal } from "./BuyerTotal";
 
 export type ReserveStep = "ask" | "reserved" | null;
 
@@ -73,7 +72,7 @@ export function ReserveSheet({
               </div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
                 <dt className="font-bold text-foreground">Total with pickup</dt>
-                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(priceCents))}</dd>
+                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={priceCents} /></dd>
               </div>
             </dl>
             <p className="mt-3 text-ds-15 font-semibold text-foreground">You pay at checkout. Not paid yet.</p>

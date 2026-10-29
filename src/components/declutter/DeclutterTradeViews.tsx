@@ -42,7 +42,8 @@ import { wayAllowed, waysEveryLineAllows } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
-import { buyNowTotalCents, dollarsInputToCents } from "@/lib/declutter/money";
+import { dollarsInputToCents } from "@/lib/declutter/money";
+import { BuyerTotal } from "./BuyerTotal";
 import { fetchDeliveryQuote, type DeliveryQuote } from "@/lib/declutter/delivery";
 import { fetchSellerDeliveryOffer, sellerDeliveryAmounts, type DeliveryHandoff, type SellerDeliveryOffer } from "@/lib/declutter/sellerDelivery";
 import { sellerDeliveryErrorMessage } from "@/lib/declutter/sellerDeliveryErrors";
@@ -170,7 +171,7 @@ function OfferRow({ o }: { o: MyOffer }) {
         // Board 70: what accepting the counter costs at checkout (pickup), from the same rule as Buy now.
         <dl className="space-y-1 rounded-xl border border-border p-3 text-ds-13" data-offer-bill="">
           <div className="flex justify-between gap-3"><dt>Their price</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(takeCents)}</dd></div>
-          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay with pickup</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(takeCents))}</dd></div>
+          <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1"><dt className="font-bold">You pay with pickup</dt><dd className="text-ds-16 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={takeCents} /></dd></div>
           <p className="text-ds-12 text-muted-foreground">At most. More items from this seller make it less.</p>
         </dl>
       )}

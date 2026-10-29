@@ -12,12 +12,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { useDockYield } from "@/components/mobileNav/useDockYield";
 import { buyNow, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { buyNowTotalCents, minOfferCents } from "@/lib/declutter/money";
+import { minOfferCents } from "@/lib/declutter/money";
+import { BuyerTotal } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -113,14 +113,11 @@ const CARD_POLL_MS = 1_500;
  * figure $2 low. Screen readers hear one line.
  */
 function BuyNowLabel({ priceCents }: { priceCents: number }) {
-  const setupFeeCents = useFirstPayoutFeeCents();
-  const setupFeeKnown = useFirstPayoutFeeKnown();
   return (
     <span className="flex flex-col items-center leading-tight">
       <span className="font-semibold">Buy now</span>{" "}
       <span className="sr-only">·</span>{" "}
-      <span data-buy-total="" className="text-xs font-medium">{formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)} total</span>
-      {!setupFeeKnown && <span data-buy-setup-fee-pending="" className="text-xs font-medium">+ any one-time setup fee</span>}
+      <BuyerTotal priceCents={priceCents} suffix=" total" className="text-xs font-medium" pendingClassName="text-xs font-medium" />
     </span>
   );
 }
@@ -335,7 +332,7 @@ export function OfferPanel({ item, userId }: { item: DeclutterItem; userId: stri
               <div className="flex justify-between gap-3"><dt>Your offer</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(cents)}</dd></div>
               <div className="flex items-baseline justify-between gap-3 border-t border-border pt-1.5">
                 <dt className="font-bold text-foreground">You pay if the seller says yes</dt>
-                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(buyNowTotalCents(cents))}</dd>
+                <dd className="text-ds-18 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]"><BuyerTotal priceCents={cents} /></dd>
               </div>
               {/* lh-money-escrow re-review #2: a ceiling. Accepting charges the lower of the offer and the price now,
                   and more items from this seller share one 70¢. Delivery, if chosen, is added at checkout. */}

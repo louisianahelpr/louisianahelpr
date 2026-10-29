@@ -18,10 +18,21 @@
  * hook, and its file says "+ any one-time setup fee" while the answer is
  * unknown (useFirstPayoutFeeKnown), never a figure $2 low.
  *
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)} total</span> | {formatPrice(priceCents + setupFeeCents)} total</span>
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)} total</span> | {formatPrice(buyNowTotalCents(priceCents))} total</span>
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
+ * BuyerTotal (lead-approved, 2026-10-29): ONE shared <BuyerTotal priceCents/>
+ * (src/components/declutter/BuyerTotal.tsx) builds every buyer-total figure:
+ * the Buy now label, "You pay if the seller says yes", "Total with pickup",
+ * "You pay with pickup" and the offer What next's "$X for pickup". The class:
+ * no bare buyNowTotalCents( in src/components outside it, and every one of
+ * those five screens renders it.
+ *
+ * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(priceCents + setupFeeCents)}{suffix}
+ * @mutate src/components/declutter/BuyerTotal.tsx | {formatPrice(buyNowTotalCents(priceCents) + setupFeeCents)}{suffix} | {formatPrice(buyNowTotalCents(priceCents))}{suffix}
+ * @mutate src/components/declutter/BuyerTotal.tsx |   const setupFeeCents = useFirstPayoutFeeCents(); |   const setupFeeCents = 0;
+ * @mutate src/components/declutter/BuyerTotal.tsx | {!setupFeeKnown && <span data-buy-setup-fee-pending="" | {false && <span data-buy-setup-fee-pending=""
+ * @mutate src/components/declutter/DeclutterReserveSheet.tsx | <BuyerTotal priceCents={priceCents} /> | {formatPrice(buyNowTotalCents(priceCents))}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | <BuyerTotal priceCents={takeCents} /> | {takeCents}
+ * @mutate src/components/declutter/OfferSentWhatNext.tsx | <BuyerTotal priceCents={cents} className={MONEY} pendingClassName="font-normal" /> | <Money cents={cents} />
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | <BuyerTotal priceCents={cents} /> | {cents}
  * @mutate src/lib/declutter/money.ts |   return checkoutAmounts([priceCents]).totalCents; |   return priceCents;
  */
 import { describe, expect, it } from "vitest";
@@ -43,17 +54,17 @@ describe("D6: Buy now names what checkout will charge", () => {
     expect(formatPrice(buyNowTotalCents(2000))).toBe("$21.70");
   });
 
-  it("inventory: every data-buy-total '<amount> total' label in the app prints buyNowTotalCents", () => {
+  it("inventory: every data-buy-total '<amount>' figure in the app prints buyNowTotalCents", () => {
     const files = walkSource([join(REPO, "src")]).filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f));
     expect(files.length).toBeGreaterThan(500);
     const labels: { file: string; expr: string }[] = [];
     for (const f of files) {
       const src = blankComments(readSource(f) ?? "");
-      for (const m of src.matchAll(/data-buy-total=[^>]*>\s*\{([^{}]*(?:\([^{}]*\))?[^{}]*)\}\s*total\b/g)) labels.push({ file: relative(REPO, f), expr: m[1] });
+      for (const m of src.matchAll(/data-buy-total=[^>]*>\s*\{([^{}]*(?:\([^{}]*\))?[^{}]*)\}/g)) labels.push({ file: relative(REPO, f), expr: m[1] });
     }
     expect(labels.length).toBeGreaterThan(0);
     const bare = labels.filter((l) => !/buyNowTotalCents\(/.test(l.expr));
-    expect(bare, bare.map((b) => `${b.file}: {${b.expr}} total`).join("\n")).toEqual([]);
+    expect(bare, bare.map((b) => `${b.file}: {${b.expr}}`).join("\n")).toEqual([]);
   });
 
   it("A1-B2: every Buy-now total adds the first purchase's setup fee, and says so while it is unknown", () => {
@@ -63,18 +74,51 @@ describe("D6: Buy now names what checkout will charge", () => {
     let labels = 0;
     for (const f of files) {
       const src = blankComments(readSource(f) ?? "");
-      const found = [...src.matchAll(/data-buy-total=[^>]*>\s*\{([^{}]*(?:\([^{}]*\))?[^{}]*)\}\s*total\b/g)];
+      const found = [...src.matchAll(/data-buy-total=[^>]*>\s*\{([^{}]*(?:\([^{}]*\))?[^{}]*)\}/g)];
       if (found.length === 0) continue;
       labels += found.length;
       const rel = relative(REPO, f);
       // The fee variable must be the checkout hook's answer, not a constant.
       const feeVar = /const\s+(\w+)\s*=\s*useFirstPayoutFeeCents\(\)/.exec(src)?.[1];
       if (!feeVar) { problems.push(`${rel}: no useFirstPayoutFeeCents() read`); continue; }
-      for (const m of found) if (!new RegExp(`buyNowTotalCents\\([^()]*\\)\\s*\\+\\s*${feeVar}\\b`).test(m[1])) problems.push(`${rel}: {${m[1]}} total leaves out ${feeVar}`);
+      for (const m of found) if (!new RegExp(`buyNowTotalCents\\([^()]*\\)\\s*\\+\\s*${feeVar}\\b`).test(m[1])) problems.push(`${rel}: {${m[1]}} leaves out ${feeVar}`);
       const knownVar = /const\s+(\w+)\s*=\s*useFirstPayoutFeeKnown\(\)/.exec(src)?.[1];
-      if (!knownVar || !new RegExp(`\\{!${knownVar}\\s*&&\\s*<span[^>]*>[^<]*setup fee`).test(src)) problems.push(`${rel}: no "setup fee" words while useFirstPayoutFeeKnown() is false`);
+      if (!knownVar || !new RegExp(`\\{!${knownVar}\\s*&&\\s*<span[^>]*>[^<]*(setup fee|SETUP_FEE_PENDING_WORDS)`).test(src)) problems.push(`${rel}: no "setup fee" words while useFirstPayoutFeeKnown() is false`);
     }
     expect(labels).toBeGreaterThan(0);
     expect(problems, problems.join("\n")).toEqual([]);
+  });
+
+  it("the pending words name the setup fee", () => {
+    const src = readSource(join(REPO, "src", "components", "declutter", "BuyerTotal.tsx")) ?? "";
+    expect(src).toMatch(/SETUP_FEE_PENDING_WORDS = "\+ any one-time setup fee"/);
+  });
+
+  it("BuyerTotal: no bare buyNowTotalCents( in src/components outside BuyerTotal.tsx, and the five buyer-total screens use it", () => {
+    const files = walkSource([join(REPO, "src", "components")]).filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f));
+    expect(files.length).toBeGreaterThan(300);
+    const bare: string[] = [];
+    for (const f of files) {
+      const rel = relative(REPO, f);
+      if (rel === join("src", "components", "declutter", "BuyerTotal.tsx")) continue;
+      const src = blankComments(readSource(f) ?? "");
+      if (/\bbuyNowTotalCents\(/.test(src)) bare.push(rel);
+    }
+    expect(bare, `build the figure with <BuyerTotal priceCents/> instead:\n${bare.join("\n")}`).toEqual([]);
+    // The buyer-total screens (lead 2026-10-29): each renders BuyerTotal beside its label.
+    const SITES: [string, string][] = [
+      ["DeclutterOfferPanel.tsx", "Buy now</span>"],
+      ["DeclutterOfferPanel.tsx", "You pay if the seller says yes"],
+      ["DeclutterReserveSheet.tsx", "Total with pickup"],
+      ["DeclutterTradeViews.tsx", "You pay with pickup"],
+      ["OfferSentWhatNext.tsx", "for pickup"],
+    ];
+    for (const [file, label] of SITES) {
+      const src = blankComments(readSource(join(REPO, "src", "components", "declutter", file)) ?? "");
+      const at = src.indexOf(label);
+      expect(at, `${file}: "${label}" not found`).toBeGreaterThan(-1);
+      const near = src.slice(Math.max(0, at - 160), at + 260);
+      expect(near, `${file}: "${label}" is not built by <BuyerTotal`).toMatch(/<BuyerTotal\s+priceCents=/);
+    }
   });
 });

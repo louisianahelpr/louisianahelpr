@@ -1455,8 +1455,8 @@ export function ConversationList({
                          them threads. It has to read as "nothing is running",
                          never as "your inbox is broken" — so it names the
                          reason, and the button beneath it names the number
-                         waiting under All. */
-                      ? "No conversations belong to a job that's still running. Finished ones are under All."
+                         waiting under Any status. */
+                      ? "No conversations belong to a job that's still running. Finished ones are under Any status."
                       : "No conversations match this view."}
               </p>
               {/* THE COUNT, and a way to ACT on it — the "Show Waiting (3)"
@@ -1485,7 +1485,7 @@ export function ConversationList({
                   nothing at all. */}
               {inboxTab === "active" && allTabConversations.length > 0 && (
                 <BarkPillButton onClick={() => { hapticLight(); setInboxFilter(UNFILTERED_INBOX_TAB); }}>
-                  Show all ({allTabConversations.length})
+                  Show finished ({allTabConversations.length})
                 </BarkPillButton>
               )}
             </div>

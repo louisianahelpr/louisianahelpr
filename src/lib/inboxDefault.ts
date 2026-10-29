@@ -169,5 +169,8 @@ export const INBOX_TAB_ORDER: readonly InboxTab[] = ["all", "active"];
 
 export const INBOX_TAB_LABEL: Record<InboxTab, string> = {
   active: "Active",
-  all: "All",
+  // Not "All" (A3-L8, app audit 2026-10-29): the inbox's filter chips start
+  // with "All" (every section), so the filter menu said "All" twice over two
+  // different things. This one is every thread whatever its job's status.
+  all: "Any status",
 };

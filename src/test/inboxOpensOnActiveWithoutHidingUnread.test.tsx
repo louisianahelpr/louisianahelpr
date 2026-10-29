@@ -36,7 +36,7 @@
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | false && (
  * @mutate src/components/messages/ConversationList.tsx | hiddenUnreadCount > dismissedHiddenUnread && ( | hiddenUnreadCount > 0 && (
  * @mutate src/components/messages/HiddenUnreadBar.tsx | if (loading \|\| !userId \|\| count >= dismissedHiddenUnread) return; | return;
- * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show all | setInboxFilter("active"); }}>\n                  Show all
+ * @mutate src/components/messages/ConversationList.tsx | setInboxFilter(UNFILTERED_INBOX_TAB); }}>\n                  Show finished | setInboxFilter("active"); }}>\n                  Show finished
  * @mutate src/components/messages/InboxMenus.tsx | aria-checked={inboxTab === key} | aria-checked={key === "all"}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
@@ -185,7 +185,7 @@ function openPhoneDisclosure() {
 }
 
 /** Pick a tab the way a reader does: the desktop strip, or the phone's "more" menu. */
-function chooseTab(label: "All" | "Active") {
+function chooseTab(label: "Any status" | "Active") {
   const group = screen.queryByRole("group", { name: "Filter conversations" });
   if (group) {
     const btn = within(group)
@@ -239,17 +239,17 @@ describe("Messages opens on All, and Active (when chosen) says what it is hiding
   it("seeds All on first load (desktop strip), All first, and Active is the narrow slice", () => {
     setWebDesktop(true);
     renderInbox(MIXED);
-    expect(selectedTabLabel()).toBe("All");
+    expect(selectedTabLabel()).toBe("Any status");
     // jsdom has no layout, so the TAB COUNTS prove the two slices differ:
     // 1 live thread out of 3, painted All first.
-    expect(tabCounts()).toEqual({ All: 3, Active: 1 });
-    expect(Object.keys(tabCounts())).toEqual(["All", "Active"]);
+    expect(tabCounts()).toEqual({ "Any status": 3, Active: 1 });
+    expect(Object.keys(tabCounts())).toEqual(["Any status", "Active"]);
   });
 
   it("seeds All on a phone too (the checked item in the more menu)", () => {
     setWebDesktop(false);
     renderInbox(MIXED);
-    expect(selectedTabLabel()).toBe("All");
+    expect(selectedTabLabel()).toBe("Any status");
   });
 
   it("arriving hides nothing: no bar, even with unread threads on open postings", () => {
@@ -294,7 +294,7 @@ describe("Messages opens on All, and Active (when chosen) says what it is hiding
 
     fireEvent.click(banner);
     openPhoneDisclosure();
-    expect(selectedTabLabel()).toBe("All");
+    expect(selectedTabLabel()).toBe("Any status");
     expect(screen.queryByText(/aren't in Active/i)).toBeNull();
   });
 
@@ -349,14 +349,14 @@ describe("Messages opens on All, and Active (when chosen) says what it is hiding
 
     expect(screen.getByText("Nothing here right now")).toBeTruthy();
     expect(
-      screen.getByText(/No conversations belong to a job that's still running\. Finished ones are under All\./),
+      screen.getByText(/No conversations belong to a job that's still running\. Finished ones are under Any status\./),
     ).toBeTruthy();
 
     // The button must WIDEN the view.
-    const showAll = screen.getByRole("button", { name: /Show all \(2\)/ });
+    const showAll = screen.getByRole("button", { name: /Show finished \(2\)/ });
     fireEvent.click(showAll);
     expect(screen.queryByText("Nothing here right now")).toBeNull();
     openPhoneDisclosure();
-    expect(selectedTabLabel()).toBe("All");
+    expect(selectedTabLabel()).toBe("Any status");
   });
 });

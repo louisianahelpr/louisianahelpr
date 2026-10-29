@@ -33,6 +33,8 @@
  * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""
  * @mutate src/index.css | .chip-row[data-more] { | .chip-row, .chip-row[data-more] {
  * @mutate src/index.css | html.web-desktop .chip-row {\n  flex-wrap: wrap !important; | html.web-desktop .chip-row {\n  flex-wrap: nowrap !important;
+ * @mutate src/pages/messages/useMessageSections.tsx |   const chipTabs = tabs.length > 1 ? tabs : []; |   const chipTabs = tabs;
+ * @mutate src/lib/inboxDefault.ts |   all: "Any status", |   all: "All",
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -72,6 +74,7 @@ vi.mock("@/components/sections/useSectionPrefs", async () => {
 
 import { coerceInboxFilter, messageSectionTabs, threadRoleCaption, threadsForFilter, threadsForSection } from "@/components/messages/messageSections";
 import { useMessageSections } from "@/pages/messages/useMessageSections";
+import { INBOX_TAB_LABEL } from "@/lib/inboxDefault";
 import { ConversationList } from "@/components/messages/ConversationList";
 import { ConversationRow } from "@/components/messages/ConversationRow";
 // The phone header is the shared AppTopBar since Q2231; its bell and avatar
@@ -168,6 +171,24 @@ describe("the hook", () => {
     // Declutter is switched off here and has no threads: no chip (owner 2026-10-21).
     expect(chips).toEqual(["All", "Unread · 1", "Jobs", "Shops", "Homes"]);
     expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  // A3-L8 (app audit 2026-10-29): with Jobs the only section, a lone "Jobs"
+  // chip showed what All shows; and the filter menu repeated "All".
+  it("a lone section chip is not drawn, and the menu never says All beside the All chip", () => {
+    featureOn.shops = false;
+    featureOn.rentals = false;
+    try {
+      const { result } = renderHook(() => useMessageSections([JOB, TEAM], [JOB, TEAM]), { wrapper: wrap("/messages?section=jobs") });
+      expect(result.current.section).toBe("all");
+      render(<MemoryRouter>{result.current.strip}</MemoryRouter>);
+      expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Unread · 1"]);
+    } finally {
+      featureOn.shops = true;
+      featureOn.rentals = true;
+    }
+    expect(Object.values(INBOX_TAB_LABEL).length).toBeGreaterThan(1);
+    expect(Object.values(INBOX_TAB_LABEL)).not.toContain("All");
   });
 
   it("with nothing unread the chip reads just 'Unread' (never '· 0')", () => {

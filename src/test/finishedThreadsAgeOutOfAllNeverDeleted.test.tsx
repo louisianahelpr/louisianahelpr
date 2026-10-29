@@ -199,10 +199,10 @@ describe("threadAgeOut — the All tab", () => {
     renderInbox(INBOX);
 
     fireEvent.click(within(screen.getByRole("group", { name: "Filter conversations" }))
-      .getAllByRole("button").find((b) => (b.textContent ?? "").startsWith("All"))!);
+      .getAllByRole("button").find((b) => (b.textContent ?? "").startsWith("Any status"))!);
 
     // 5 threads, 2 tucked away.
-    expect(tabCount("All")).toBe(3);
+    expect(tabCount("Any status")).toBe(3);
     expect(
       screen.getByText(new RegExp(`2 finished conversations are older than ${THREAD_AGE_OUT_DAYS} days`)),
       "hiding silently is how 'hidden' becomes 'I lost my messages'",
@@ -218,7 +218,7 @@ describe("threadAgeOut — the All tab", () => {
     const { container } = renderInbox(INBOX);
 
     fireEvent.click(within(screen.getByRole("group", { name: "Filter conversations" }))
-      .getAllByRole("button").find((b) => (b.textContent ?? "").startsWith("All"))!);
+      .getAllByRole("button").find((b) => (b.textContent ?? "").startsWith("Any status"))!);
 
     // Open the search field and look for the 200-day-old finished thread.
     fireEvent.click(screen.getByRole("button", { name: /search/i }));

@@ -180,7 +180,7 @@ afterEach(() => {
  * preview in ConversationRow); and the list already scrolls to the first
  * unread thread on entry (028fe3837).
  */
-const EXPECTED_TABS = ["All", "Active"];
+const EXPECTED_TABS = ["Any status", "Active"];
 
 /** The two widths the strip must be IDENTICAL at. */
 const WIDTHS: Array<[label: string, webDesktop: boolean]> = [

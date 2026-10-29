@@ -315,10 +315,10 @@ for (const route of ROUTES) {
       const more = page.getByRole("button", { name: "More conversation options" });
       if (await more.count()) {
         await more.first().click();
-        await page.getByRole("menuitemradio", { name: /^All/ }).first().click();
+        await page.getByRole("menuitemradio", { name: /^Any status/ }).first().click();
       } else {
-        await page.getByRole("tab", { name: /^All/ }).or(
-          page.getByRole("button", { name: /^All/ }),
+        await page.getByRole("tab", { name: /^Any status/ }).or(
+          page.getByRole("button", { name: /^Any status/ }),
         ).first().click();
       }
       await page.waitForTimeout(600);

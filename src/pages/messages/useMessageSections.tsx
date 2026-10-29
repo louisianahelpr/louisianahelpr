@@ -39,7 +39,11 @@ export function useMessageSections(conversations: Conversation[], allConversatio
   const tabs = messageSectionTabs(visible.map((s) => s.key), prefs.order, jobThreads).filter(
     (k) => live[k] || conversations.some((c) => threadSection(c) === k),
   );
-  const section = coerceInboxFilter(params.get("section"), tabs);
+  // A3-L8 (app audit 2026-10-29): a lone section chip ("Jobs" while it is the
+  // only section) shows exactly what All shows, so it is not drawn; a
+  // `?section=` link to it reads as All.
+  const chipTabs = tabs.length > 1 ? tabs : [];
+  const section = coerceInboxFilter(params.get("section"), chipTabs);
 
   const setSection = useCallback(
     (next: InboxFilter) => {
@@ -67,7 +71,7 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     { value: "all", label: "All" },
     // The real unread-thread count, or no number at all (never "· 0").
     { value: "unread", label: unread > 0 ? `Unread · ${unread}` : "Unread" },
-    ...tabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
+    ...chipTabs.map((k) => ({ value: k, label: sectionByKey(k).label })),
   ];
   // #3 (Declutter walk 2026-10-28, shot 46): the row's right edge was faded ALWAYS, so at 1440 the last chip that
   // fit ("Declutter") read as cut off, and the rest (Shops, Homes) sat out of sight in a row a mouse can't swipe

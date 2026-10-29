@@ -215,3 +215,7 @@
 {"sha":"bf7a8e4ada8014245f8ef33ad47bc5c7cb72aa69","reviewer":"lh-authz-rls","verdict":"approve (lead: additive category and size on the buyer's own order read)","date":"2026-10-29"}
 {"sha":"c1d21a552b9ecf3ee076e844ff8fbd1cedea9ec0","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only, has_role first; short names only)","date":"2026-10-29"}
 {"sha":"2f686734dcbb9610dd8e670bfdd9299c1ab46fad","reviewer":"lh-authz-rls","verdict":"approve (lead: admin-only, has_role first; short names only)","date":"2026-10-29"}
+{"sha":"dcce17049cf419ce5cb9107a36c4d0630fdf0cbb","reviewer":"lh-authz-rls","verdict":"approve (lead: windows only for an OPEN delivery task the caller could take; not its buyer or seller; anon revoked)","date":"2026-10-29"}
+{"sha":"61b7b4ebd77e56e74c46c533f83a21772826a8b0","reviewer":"lh-money-escrow","verdict":"approve (lead: notices only on the damage path)","date":"2026-10-29"}
+{"sha":"772f5b4e661fcb0dffa2a6c2d85ed4d278d1a0d0","reviewer":"code-review","verdict":"approve (lead: route stop wording only)","date":"2026-10-29"}
+{"sha":"adc90b080ad8676d54ff92f2e3fa660fa94f03df","reviewer":"lh-silent-failure","verdict":"approve (lead: queue outcome updates the pending send-log row)","date":"2026-10-29"}

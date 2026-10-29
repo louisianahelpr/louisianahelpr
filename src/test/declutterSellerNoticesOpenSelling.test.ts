@@ -19,7 +19,7 @@
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=buying', v_uid); | format('The seller paused "%s", so your offer is closed. Nothing was charged.', v_item.title),\n      '/declutter?tab=selling', v_uid);
 // @mutate supabase/migrations/20261028223036_declutter_notice_links_open_the_right_tab.sql | '/declutter?tab=' \|\| CASE WHEN p_side = 'seller' THEN 'selling' ELSE 'buying' END | '/declutter?view=offers'
 // @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?tab=selling' | You''re paid when the buyer has it.', public.declutter_order_items_named(o.id)),\n      '/declutter?view=cart'
-// @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | you''ll be told the pickup time.', '/declutter?tab=selling' | you''ll be told the pickup time.', '/declutter?view=cart'
+// @mutate supabase/migrations/20261029224749_declutter_porch_places.sql | you''ll be told the pickup time.', '/declutter?tab=selling' | you''ll be told the pickup time.', '/declutter?view=cart'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

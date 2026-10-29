@@ -79,7 +79,7 @@
  * The Declutter sql-policy sites (2026-10-15): (a) a no-fault reason moved to a full refund, in the function and
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
@@ -89,8 +89,8 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261029232103_declutter_refund_debt_notice.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, o.card_fee_cents); |   v_refund := public.declutter_record_refund(o.id, o.stripe_payment_intent_id, p_reason, o.total_cents - v_reserved, 0);
  * @mutate supabase/migrations/20261028210552_declutter_sale_notices_name_inline.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
@@ -391,6 +391,9 @@ const TS_MONEY_TOUCHES: string[] = [
 interface SqlPolicy {
   /** The migration holding the NEWEST definition of the decider, every policy source and the reason CHECK. */
   migration: string;
+  /** When the decider FUNCTION was restated later than the constraints (a notice-only change), its newest file. The
+   * function's policy CASE is still read and must equal the pinned map; the constraints stay pinned to `migration`. */
+  functionMigration?: string;
   proofs: string[];
   /** The table CHECK listing the reasons a refund row may carry: exactly the classified reasons. */
   reasonCheck: string;
@@ -417,6 +420,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // Board 141, Declutter side (20261026155251_declutter_refund_requests.sql): the reason list, the reason -> policy CHECK and
     // declutter_record_refund restated with two reasons; nothing else in them changed.
     migration: "20261026155251_declutter_refund_requests.sql",
+    // D2-6 (20261029232103, lh-money-escrow approve 2026-10-29): declutter_record_refund restated with a seller notice
+    // only; its v_policy CASE is read again below and must still equal the pinned map.
+    functionMigration: "20261029232103_declutter_refund_debt_notice.sql",
     proofs: ["src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
       "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
@@ -544,7 +550,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
       // Board 141: + refund_request_full (keep_card_fee) and refund_request_part (agreed_part, which this function
       // refuses with refund_amount_unknown: only declutter_refund_after_handover writes it, with the offered amount).
-      declutter_record_refund: "20261026155251_declutter_refund_requests.sql 79411a8a27d53e6a",
+      // D2-6 (20261029232103, lh-money-escrow approve 2026-10-29): restated verbatim from 20261026155251 plus one seller notice when a NEW debt row is inserted; reasons, policies, amounts and the debt row unchanged.
+      declutter_record_refund: "20261029232103_declutter_refund_debt_notice.sql 5198c482b12f0611",
       // Board 141: the ONE refund after the handover. Full = declutter_record_refund (keep_card_fee for the seller's
       // refund; the admin's fault reasons keep their policy) on the payment minus a delivery fee a Helpr earned (B69);
       // part = EXACTLY the offered amount (agreed_part, below the item price, card_fee_cents 0). Refuses a payout
@@ -1110,8 +1117,8 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
   const problems: string[] = [];
   const def = effectiveDefs(MIGRATIONS).get(name);
   if (!def) return [`${name}: no migration defines it`];
-  if (def.file !== p.migration) {
-    problems.push(`${name} is now defined by ${def.file}, not the pinned ${p.migration}: review that every reason still keeps the fee except our own mistakes, then pin it`);
+  if (def.file !== (p.functionMigration ?? p.migration)) {
+    problems.push(`${name} is now defined by ${def.file}, not the pinned ${p.functionMigration ?? p.migration}: review that every reason still keeps the fee except our own mistakes, then pin it`);
   }
   const defs = effectiveDefs(MIGRATIONS);
   for (const [fn, frags] of Object.entries(p.bodies)) {
@@ -1145,7 +1152,8 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
       text = d ? norm(blankSqlComments(d.stmt)).match(src.pattern)?.[1] : undefined;
       file = d?.file;
     }
-    if (file !== p.migration) problems.push(`${src.where} is now defined by ${file ?? "nothing"}, not ${p.migration}`);
+    const want = src.kind === "function" ? (p.functionMigration ?? p.migration) : p.migration;
+    if (file !== want) problems.push(`${src.where} is now defined by ${file ?? "nothing"}, not ${want}`);
     const c = text ? readCase(text, src.subject) : null;
     if (!c) {
       problems.push(`${src.where}: the reason -> fee policy CASE cannot be read (${text ?? "missing"})`);

@@ -238,6 +238,9 @@ describe("Declutter slice 3 screens", () => {
     // The in-app sheet, never a browser confirm (lead 2026-10-28): the hold, the pickup total, "Not paid yet".
     const ask = await screen.findByRole("dialog");
     expect(ask).toHaveTextContent("Reserve it for 48 hours");
+    // A1-C1: the strike is said up front, before "Reserve it" (not only on the "Reserved for you" step).
+    // @mutate src/components/declutter/DeclutterReserveSheet.tsx | data-reserve-strike="">Check out within 48 hours, or you get a strike and it goes back up for sale.</p> | data-reserve-strike="">Check out within 48 hours.</p>
+    expect(ask.querySelector("[data-reserve-strike]")).toHaveTextContent("Check out within 48 hours, or you get a strike and it goes back up for sale.");
     expect(ask).toHaveTextContent("Oak rocking chair");
     expect(ask.querySelector("[data-reserve-bill]")?.textContent).toMatch(/Total with pickup\$42\.70/);
     expect(ask).toHaveTextContent("You pay at checkout. Not paid yet.");

@@ -30,7 +30,7 @@ import { fillBudget, fillJobDetails } from "./postJobForm";
  * The bottom-row check runs again at 1440 with a mouse.
  * Nothing is posted: the journey stops on screen 6 and never presses Review.
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setDateNeeded(d.iso)} | onClick={() => {}}
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickDay(d.iso)} | onClick={() => {}}
  * @mutate src/components/postjob/LogisticsSection.tsx | className={`flex min-h-[60px] min-w-0 flex-col | className={`pointer-events-none flex min-h-[60px] min-w-0 flex-col
  * @mutate src/pages/post-job/FormStep.tsx | {barFloats && <div aria-hidden data-testid="post-job-bar-band" | {false && <div aria-hidden data-testid="post-job-bar-band"
  * @mutate src/pages/post-job/FormStep.tsx | top-full h-[calc(theme(spacing.safe-nav)*2)] bg-premium-page | top-full h-safe-nav bg-premium-page

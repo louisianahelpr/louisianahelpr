@@ -438,6 +438,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/accountPurge\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/accountPurge.ts";`,
   );
+  // A3-I5 (delete-own-account's reauth check): `_shared/recentSignIn.ts` imports only `./caughtMessage.ts`,
+  // which has none, so it points at the REAL module and the 10-minute window stays under test.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/recentSignIn\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/recentSignIn.ts";`,
+  );
   // Q290: export-my-data imports IDENTITY_BUCKETS from `_shared/purgeBuckets.ts`
   // directly; it has ZERO imports, so it points at the REAL module too.
   out = out.replace(

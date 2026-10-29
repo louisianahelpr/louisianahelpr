@@ -141,8 +141,11 @@ describe("every way of opening a message thread goes through openConvo", () => {
 
   it("the Messages page feeds jobId/userId into the hook's deep-link path", () => {
     const page = fs.readFileSync(path.join(SRC, "pages/messages/Messages.tsx"), "utf8");
-    expect(page).toMatch(/deepLinkJobId\s*=\s*searchParams\.get\("jobId"\)/);
-    expect(page).toMatch(/deepLinkUserId\s*=\s*searchParams\.get\("userId"\)/);
+    // The URL params are read in useMessagesDeepLink.ts (f82cd62e90: a resumed thread is the fallback, the URL wins).
+    const deepLink = fs.readFileSync(path.join(SRC, "pages/messages/useMessagesDeepLink.ts"), "utf8");
+    expect(deepLink).toMatch(/deepLinkJobId\s*=\s*searchParams\.get\("jobId"\)/);
+    expect(deepLink).toMatch(/deepLinkUserId\s*=\s*searchParams\.get\("userId"\)/);
+    expect(page).toMatch(/\{[^}]*\bdeepLinkJobId,\s*deepLinkUserId\b[^}]*\}\s*=\s*useMessagesDeepLink\(searchParams\)/);
     expect(page).toMatch(/useMessagesData\(\{[\s\S]*deepLinkJobId,[\s\S]*deepLinkUserId,/);
   });
 

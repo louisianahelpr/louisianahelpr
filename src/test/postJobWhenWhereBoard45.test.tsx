@@ -19,7 +19,7 @@
  *
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setIsFlexibleSchedule(true)} | onClick={() => setIsFlexibleSchedule(false)}
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickTime(t.value)} | onClick={() => pickTime("")}
- * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setDateNeeded(d.iso)} | onClick={() => setDateNeeded(strip[0].iso)}
+ * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => pickDay(d.iso)} | onClick={() => pickDay(strip[0].iso)}
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (!streetAddress.trim() && !zipCode.trim()) {\n      applySaved(savedAddress); |     if (!streetAddress.trim() && !zipCode.trim()) {\n      void 0;
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (!streetAddress.trim() && !zipCode.trim()) { |     if (true) {
  * @mutate src/components/postjob/LogisticsSection.tsx |       setStreetAddress("");\n      setZipCode(""); |       void 0;

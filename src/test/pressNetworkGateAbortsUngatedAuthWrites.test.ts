@@ -89,6 +89,7 @@ const APP_AUTH_METHODS: Record<string, "read" | "write" | "local"> = {
   "mfa.listFactors": "read", "mfa.getAuthenticatorAssuranceLevel": "local",
   signOut: "write", updateUser: "write", signInWithOAuth: "write", signInWithPassword: "write",
   signInWithIdToken: "write", signUp: "write", resetPasswordForEmail: "write", resend: "write", verifyOtp: "write",
+  signInWithOtp: "write", // A3-I5: the delete-account emailed code (POST /auth/v1/otp, in AUTH_WRITES)
   linkIdentity: "write", unlinkIdentity: "write", "mfa.enroll": "write", "mfa.unenroll": "write",
   "mfa.challengeAndVerify": "write",
 };

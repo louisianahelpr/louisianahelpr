@@ -1,6 +1,5 @@
 {
   "cleanup_observability_tables": 1,
-  "export_my_data": 1,
   "ops_alert_condition": 2,
   "ops_alert_record_user_error_screen": 3,
   "prevent_self_escalation": 1,

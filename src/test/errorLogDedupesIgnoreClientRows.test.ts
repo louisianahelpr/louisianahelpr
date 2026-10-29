@@ -33,7 +33,8 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 //   ops_alert_record_user_error_screen 3, ops_alert_condition 2: read CLIENT rows by design
 //     (user-error-screen rows are client rows; their caps are per account / per fingerprint).
 //   sweep_old_error_logs 2, cleanup_observability_tables 1: retention deletes, not a throttle.
-//   export_my_data 1: the caller's own rows.
+//   (export_my_data left this list in 20261029145604, A3-I6: Download My Data no longer
+//   reads error_logs without an origin predicate.)
 //   send_ops_daily_digest 2: lists rows for the owner to read; it mutes nothing. The second
 //     (Q1352, 20261012071234) counts source='csp' rows, which are client rows by design.
 //   prevent_self_escalation 1: its once-an-hour dedupe is on source 'rls-escalation-refused',
@@ -44,7 +45,6 @@ const MIG_DIR = join(process.cwd(), "supabase/migrations");
 // @mutate supabase/migrations/20261009223355_stuck_payment_needs_stripe_proof.sql |              AND coalesce(e.tags ->> 'origin', '') <> 'client'\n             AND e.tags ->> 'source' = 'detect_stuck_payments-seed' |              AND e.tags ->> 'source' = 'detect_stuck_payments-seed'
 const KNOWN_UNFILTERED: Record<string, number> = {
   cleanup_observability_tables: 1,
-  export_my_data: 1,
   ops_alert_condition: 2,
   ops_alert_record_user_error_screen: 3,
   prevent_self_escalation: 1,
@@ -55,7 +55,7 @@ const KNOWN_UNFILTERED: Record<string, number> = {
 // Q1264 (2): the LIVE check (scripts/check-live-privileges.mjs, after every
 // db-deploy and nightly) reads the deployed bodies against this same list, kept
 // in scripts/ci/error-log-unfiltered-readers.json; the two may not drift.
-// @mutate scripts/ci/error-log-unfiltered-readers.json |   "export_my_data": 1, |   "export_my_data": 2,
+// @mutate scripts/ci/error-log-unfiltered-readers.json |   "cleanup_observability_tables": 1, |   "cleanup_observability_tables": 2,
 it("the live check's allowlist is this list", () => {
   const live = JSON.parse(readFileSync(join(process.cwd(), "scripts/ci/error-log-unfiltered-readers.json"), "utf8"));
   expect(live).toEqual(KNOWN_UNFILTERED);

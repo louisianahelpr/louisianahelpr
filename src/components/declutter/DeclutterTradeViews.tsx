@@ -442,9 +442,6 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {sdRate !== null && (
           <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
         )}
-        {setupFeeCents > 0 && (
-          <div className="flex justify-between gap-3" data-checkout-setup-fee=""><dt>One-time account setup fee</dt><dd className="font-semibold tabular-nums text-[hsl(var(--burnt-sienna))]">{formatPrice(setupFeeCents)}</dd></div>
-        )}
         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
           <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
           <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">
@@ -454,6 +451,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
           </dd>
         </div>
+        {setupFeeCents > 0 && (
+          <p className="text-ds-12 text-muted-foreground" data-checkout-setup-fee="">Includes the one-time {formatPrice(setupFeeCents)} account setup fee.</p>
+        )}
         {includesServiceFee && (
           <p className="text-ds-12 text-muted-foreground" data-service-fee-words="">Includes a small Louisiana Helpr service fee.</p>
         )}

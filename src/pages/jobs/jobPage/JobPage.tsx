@@ -22,13 +22,11 @@ import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { DeclutterGallery } from "@/components/declutter/DeclutterGallery";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { categoryLabels } from "@/components/job-card/activityConstants";
-import { formatCategory } from "@/lib/format";
 import { getCity } from "@/lib/locationUtils";
 import { hasStreetAddress } from "@/pages/jobs/appliedJobCard/JobAddressLine";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
-import { jobCategoryGroupOf, JOB_CATEGORY_GROUPS, sentenceCaseLabel } from "@/lib/jobCategoryGroups";
+import { jobEyebrow } from "./jobEyebrow";
 import { useJobPage, type JobPageRow } from "./useJobPage";
 import { JobTracker, PosterMoney, HelprMoney, PostedBy } from "./JobPageParts";
 import { NoApplicantsYet } from "./NoApplicantsYet";
@@ -41,12 +39,6 @@ import type { Job } from "@/components/job-card/activityConstants";
 import { usePageConfirmArrival } from "./usePageConfirmArrival";
 import { hiredHelprFace } from "./hiredHelprFace";
 import { PageApplySheet, usePageApply } from "./PageApplySheet";
-
-function groupLabel(category: string): string | null {
-  const id = jobCategoryGroupOf(category);
-  if (!id || id === "other") return null;
-  return JOB_CATEGORY_GROUPS.find((g) => g.id === id)?.label ?? null;
-}
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow, showStreet: boolean): string {
@@ -112,8 +104,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const hasPhoto = (job.photos ?? []).some((u) => !!u);
   // A crew member is hired through the roster (helper_id is null on a crew job, A2-B8): street, tracker, Working card.
   const isHired = !isPoster && ((!!job.helper_id && job.helper_id === userId) || onCrew);
-  const category = sentenceCaseLabel(categoryLabels[job.category] ?? formatCategory(job.category));
-  const group = groupLabel(job.category);
+  const eyebrow = jobEyebrow(job.category);
   // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
   const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? ""));
   const open = job.status === "open";
@@ -192,7 +183,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           className={`space-y-4 lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:rounded-2xl lg:border lg:border-border lg:bg-card lg:p-5`}
         >
           <div className="space-y-1">
-            <p className="text-ds-13 font-semibold text-primary">{group ? `${group} · ${category}` : category}</p>
+            <p className="text-ds-13 font-semibold text-primary">{eyebrow}</p>
             {/* Desktop prints the title once, in the page header (lead review 2026-10-20). */}
             <h2 className="text-ds-24 font-bold leading-tight [overflow-wrap:anywhere] lg:hidden">{job.title}</h2>
             {meta && <p data-job-meta="" className="text-ds-14 text-muted-foreground">{meta}</p>}

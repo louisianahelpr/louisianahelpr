@@ -25,6 +25,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import { formatCategory } from "@/lib/format";
 import { getCity } from "@/lib/locationUtils";
+import { hasStreetAddress } from "@/pages/jobs/appliedJobCard/JobAddressLine";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { jobCategoryGroupOf, JOB_CATEGORY_GROUPS, sentenceCaseLabel } from "@/lib/jobCategoryGroups";
@@ -43,13 +44,23 @@ function groupLabel(category: string): string | null {
 }
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
-function metaLine(job: JobPageRow): string {
+function metaLine(job: JobPageRow, showStreet: boolean): string {
   return [
     job.date_needed ? formatJobDate(job.date_needed) : null,
     jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
-    job.location ? getCity(job.location) : null,
+    showStreet && hasStreetAddress(job.location) ? job.location : job.location ? getCity(job.location) : null,
   ].filter(Boolean).join(" · ");
 }
+
+/**
+ * The job statuses in which the Helpr's Working card prints the street (AppliedJobCard's
+ * showFullAddress: offered, confirmed, working, disputed). The job page prints the same
+ * street in the same states (audit 2026-10-28 F7: the offer card showed "4412 Highland Rd"
+ * while the job page said only "Baton Rouge"). Owner rule 2026-08-31: "Should only see
+ * address when they are offered the job"; the server (user_may_see_job_address) decides
+ * what `location` holds, this only stops the page printing the city in its place.
+ */
+const STREET_STATUSES = new Set(["open", "accepted", "in_progress", "revision_requested", "disputed"]);
 
 const CARD = "rounded-2xl border border-border bg-card";
 
@@ -94,7 +105,8 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const isHired = !isPoster && !!job.helper_id && job.helper_id === userId;
   const category = sentenceCaseLabel(categoryLabels[job.category] ?? formatCategory(job.category));
   const group = groupLabel(job.category);
-  const meta = metaLine(job);
+  // The offered or hired Helpr (helper_id is set from the offer on): the street, as on their Working card.
+  const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? ""));
   const open = job.status === "open";
   const pending = applicants.data?.pending ?? 0;
   const total = applicants.data?.total ?? 0;
@@ -175,7 +187,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               {primary.label}
             </Button>
           )}
-          {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared after you're hired.</p>}
+          {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
         </section>
 
 

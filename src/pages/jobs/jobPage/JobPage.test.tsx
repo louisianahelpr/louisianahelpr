@@ -24,7 +24,9 @@
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |         {isPoster && open && (job.payment_status === "escrow" \|\| job.payment_status === "held") && | {isPoster && open &&
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |         {reach && reach > 0 |         {reach !== null
  * @mutate src/pages/jobs/jobPage/NoApplicantsYet.tsx |     !(job.photos ?? []).length && { key: "photo" |     false && { key: "photo"
- * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared after you're hired.</p>} |
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |     showStreet && hasStreetAddress(job.location) ? job.location : job.location |     job.location
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |   const meta = metaLine(job, isHired && STREET_STATUSES.has(job.status ?? "")); |   const meta = metaLine(job, !isPoster);
+ * @mutate src/pages/jobs/jobPage/JobPage.tsx |           {!isPoster && !isHired && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>} |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -64,6 +66,8 @@ vi.mock("@/hooks/usePendingSaveConsumer", () => ({ usePendingSaveConsumer: () =>
 vi.mock("@/hooks/useJobRef", () => ({ useJobRef: () => undefined }));
 // Board 184: the reach read is a hidden-switch RPC; the tests set it through state.reach.
 vi.mock("./useJobReach", () => ({ useJobReach: () => state.reach }));
+// An accepted (offered) job asks whether it was rescheduled; these jobs never were.
+vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
 vi.mock("@/hooks/useFeedPhase", () => ({ useFeedPhase: () => "ready", useProfileWaitPhase: () => "ready" }));
 
 import JobPage from "./JobPage";
@@ -166,7 +170,7 @@ describe("job page, Helpr side (boards 42, 169)", () => {
     expect(document.querySelector("[data-helpr-money]")?.textContent ?? "").not.toMatch(/fee|%/i);
     expect(screen.getByText(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`)).toBeTruthy();
     expect(document.body.textContent).not.toContain("123 Main St");
-    expect(screen.getByText("The street address is shared after you're hired.")).toBeTruthy();
+    expect(screen.getByText("The street address is shared once you're offered the job.")).toBeTruthy();
     expect(screen.getByText("Home · Pressure washing")).toBeTruthy();
     // A Helpr browsing an open job is not on it yet: no tracker.
     expect(document.querySelector("[data-job-tracker]")).toBeNull();
@@ -239,9 +243,46 @@ describe("job page, the hired Helpr", () => {
     renderPage();
     expect(screen.getByLabelText(/^Job progress, step 7 of 8: Working, waiting on you\./)).toBeTruthy();
     expect(screen.getByText("Mark it done when you finish")).toBeTruthy();
-    expect(screen.queryByText("The street address is shared after you're hired.")).toBeNull();
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Open in working" }));
     expect(screen.getByTestId("where").textContent).toBe("/jobs?tab=working");
+  });
+});
+
+// Audit 2026-10-28 F7: the offer card in Working printed the street while the job page said only the
+// city. Owner rule 2026-08-31 ("Should only see address when they are offered the job"): the offered
+// Helpr sees the street on both; a Helpr who only applied sees the city and the line saying when.
+describe("job page, the street address follows the Working card", () => {
+  it("the offered Helpr sees the street the offer card shows, and no 'shared once' line", () => {
+    state.job = row({ helper_id: ME, status: "accepted", helper_confirmed_at: null });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-viewer-status]")?.textContent).toMatch(/offered you this job$/);
+    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · 123 Main St, Delcambre, LA 70528`);
+    expect(screen.queryByText("The street address is shared once you're offered the job.")).toBeNull();
+  });
+
+  it("the hired, working Helpr sees the street too", () => {
+    state.job = row({ helper_id: ME, status: "in_progress", helper_confirmed_at: "2026-10-20T12:00:00Z" });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-meta]")?.textContent).toContain("123 Main St");
+  });
+
+  it("an applicant sees the city only, with the line saying the street comes with an offer", async () => {
+    state.job = row();
+    state.myApplication = { status: "pending", closed_reason: null };
+    renderPage();
+    await screen.findByText("You applied · Waiting on Rhonda");
+    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
+    expect(screen.getByText("The street address is shared once you're offered the job.")).toBeTruthy();
+  });
+
+  it("the poster's page is unchanged (the city in the meta line)", () => {
+    state.job = row({ customer_id: ME });
+    state.party = true;
+    renderPage();
+    expect(document.querySelector("[data-job-meta]")?.textContent).toBe(`${formatJobDate(DAY)} · 9:00 AM · Delcambre`);
   });
 });
 

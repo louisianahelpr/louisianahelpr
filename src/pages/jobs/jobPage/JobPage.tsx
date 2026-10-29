@@ -116,7 +116,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst });
-  const highlight = `/jobs?tab=working&highlight=${encodeURIComponent(job.id)}`;
+  // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
+  // is an application id), and `open=1` expands the card instead of only pulsing it.
+  const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
   const primary = isPoster
     ? {
         label: open && pending > 0 ? `Review ${pending} applicant${pending === 1 ? "" : "s"}` : "Manage job",
@@ -131,7 +133,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           ),
       }
     : viewer.action.kind === "open_working"
-      ? { label: "Open in working", go: () => navigate("/jobs?tab=working") }
+      ? { label: "Open in working", go: () => navigate(highlight) }
       : viewer.action.kind === "see_offer"
         ? { label: "See the offer", go: () => navigate(highlight) }
         : viewer.action.kind === "view_application"

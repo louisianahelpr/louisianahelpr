@@ -13629,6 +13629,7 @@ export type Database = {
       declutter_admin_decide_problem: {
         Args: {
           p_decision: string
+          p_false_report?: boolean
           p_fault: string
           p_note: string
           p_problem_id: string

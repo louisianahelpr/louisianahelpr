@@ -111,3 +111,44 @@ describe("DeclutterProblemsCard: what the admin decides from (A2-13)", () => {
     expect(await screen.findByRole("button", { name: "Damaged in delivery" })).toBeInTheDocument();
   });
 });
+
+// AL-5 (20261029000048): a strike for a proven false report, as its own explicit question.
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, falseOn ? false : strike, note.trim() \|\| null, falseOn), |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, falseOn ? false : strike, note.trim() \|\| null, false),
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" \| "seller") : fault, | adminDecideProblem(row.id, decision, fault,
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |  disabled={decide.isPending \|\| (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button> |  disabled={decide.isPending}>Refund the buyer</Button>
+// @mutate src/components/admin/settings/DeclutterProblemsCard.tsx |       {reporter ? (\n        <fieldset className="space-y-1"> |       {false ? (\n        <fieldset className="space-y-1">
+describe("DeclutterProblemsCard: a false report (AL-5)", () => {
+  it("a buyer's false report: the fault is the buyer's, only \"Pay the seller\" is left, and the call says false_report", async () => {
+    state.rows = [row("not_received", "buyer", [], detail())];
+    show();
+    fireEvent.click(await screen.findByLabelText(/No, it was false: the buyer gets a strike for a false report/));
+    expect(screen.getByLabelText("Whose fault?")).toHaveValue("buyer");
+    expect(screen.getByLabelText("Whose fault?")).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Give the at-fault side a strike" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Refund the buyer" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Damaged in delivery" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Pay the seller" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "pay_seller", "buyer", false, null, true]]));
+  });
+
+  it("a seller's false report leaves only \"Refund the buyer\", with the seller at fault", async () => {
+    state.rows = [row("no_show", "seller", [], detail())];
+    show();
+    fireEvent.click(await screen.findByLabelText(/No, it was false: the seller gets a strike/));
+    expect(screen.getByRole("button", { name: "Pay the seller" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Refund the buyer" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "refund_buyer", "seller", false, null, true]]));
+  });
+
+  it("by default the report is not called false, and a Helpr's report never offers it", async () => {
+    state.rows = [row("not_as_described", "buyer", [], detail())];
+    const v = show();
+    fireEvent.click(await screen.findByRole("button", { name: "Pay the seller" }));
+    await waitFor(() => expect(state.calls).toEqual([["decide", "p1", "pay_seller", "none", false, null, false]]));
+    v.unmount();
+    state.rows = [row("no_show", "helpr")];
+    show();
+    await screen.findByText(/reported by the Helpr/);
+    expect(screen.queryByText("Was the report true?")).toBeNull();
+  });
+});

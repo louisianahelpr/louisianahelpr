@@ -171,6 +171,9 @@ describe("writes send exactly the SQL's parameters", () => {
 
     h.queue.push(ok({ refunded: true }));
     expect(await adminDecideProblem("p1", "refund_buyer", "seller", true, null)).toEqual({ refunded: true });
+    // AL-5: "the report was false" adds p_false_report; without it the call is the five old arguments.
+    h.queue.push(ok({ refunded: true }));
+    expect(await adminDecideProblem("p2", "pay_seller", "buyer", false, null, true)).toEqual({ refunded: true });
 
     expect(h.rpcs).toEqual([
       ["declutter_book_pickup", { p_order_id: "o1", p_slot_start: "2026-10-20T15:00:00Z" }],
@@ -183,6 +186,7 @@ describe("writes send exactly the SQL's parameters", () => {
       ["declutter_report_problem", { p_order_id: "o1", p_reason: "damaged", p_note: "cracked", p_photo_paths: ["u1/declutter/handover/o1/c.jpg"] }],
       ["declutter_leave_review", { p_order_id: "o1", p_stars: 5, p_comment: null }],
       ["declutter_admin_decide_problem", { p_problem_id: "p1", p_decision: "refund_buyer", p_fault: "seller", p_strike: true, p_note: null }],
+      ["declutter_admin_decide_problem", { p_problem_id: "p2", p_decision: "pay_seller", p_fault: "buyer", p_strike: false, p_note: null, p_false_report: true }],
     ]);
   });
 

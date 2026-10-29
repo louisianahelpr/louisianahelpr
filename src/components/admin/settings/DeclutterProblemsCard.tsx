@@ -29,6 +29,12 @@ import { AdminCard } from "../AdminViewShell";
  * strike); the server refuses "Refund the buyer" there, because that path
  * pays the Helpr for the trip (B69). A Helpr's "the seller wasn't there"
  * report arrives here too, reported by the Helpr.
+ *
+ * AL-5 (anti-lying #5, 20261029000048): "Was the report true?" is its own explicit question. "No, it was false"
+ * puts the fault on the reporter's side, leaves only the decision that goes against the reporter (a buyer's false
+ * report: pay the seller; a seller's: refund the buyer), and gives the REPORTER a Declutter strike for a false
+ * report (3 strikes = locked out of Declutter). Only for a buyer's or a seller's report; the server refuses
+ * anything else (false_report_mismatch).
  */
 type ProblemRow = AdminProblem;
 
@@ -136,10 +142,18 @@ function ProblemItem({ row }: { row: ProblemRow }) {
   const [fault, setFault] = useState<"seller" | "buyer" | "none">("none");
   const [strike, setStrike] = useState(false);
   const [note, setNote] = useState("");
+  const [falseReport, setFalseReport] = useState(false);
+  // A Helpr's report is a delivery matter: it is never marked false here.
+  const reporter = row.reporter_side === "buyer" || row.reporter_side === "seller" ? row.reporter_side : null;
+  // A false report goes against the reporter: the one decision left.
+  const againstReporter = reporter === "buyer" ? "pay_seller" : "refund_buyer";
+  const falseOn = falseReport && reporter !== null;
   const decide = useMutation({
-    mutationFn: (decision: "refund_buyer" | "pay_seller") => adminDecideProblem(row.id, decision, fault, strike, note.trim() || null),
+    mutationFn: (decision: "refund_buyer" | "pay_seller") =>
+      adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn),
     onSuccess: (_r, decision) => {
-      toast.success(decision === "refund_buyer" ? "Decided: the buyer is refunded." : "Decided: the seller is paid.");
+      const done = decision === "refund_buyer" ? "Decided: the buyer is refunded." : "Decided: the seller is paid.";
+      toast.success(falseOn ? `${done} The ${reporter} gets a strike for a false report.` : done);
       void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
@@ -163,8 +177,28 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.note}</p>
       {row.detail ? <ProblemDetail d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
+      {reporter ? (
+        <fieldset className="space-y-1">
+          <legend className="text-xs font-medium">Was the report true?</legend>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="radio" name={id("truth")} checked={!falseReport} onChange={() => setFalseReport(false)} />
+            Yes, or I can't tell
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="radio" name={id("truth")} checked={falseReport} onChange={() => { setFalseReport(true); setStrike(false); }} />
+            No, it was false: the {reporter} gets a strike for a false report
+          </label>
+          {falseReport ? (
+            <p className="text-xs text-muted-foreground">
+              The fault is the {reporter}'s, and only "{againstReporter === "pay_seller" ? "Pay the seller" : "Refund the buyer"}" is left.
+              3 strikes lock them out of Declutter.
+            </p>
+          ) : null}
+        </fieldset>
+      ) : null}
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
-      <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" value={fault}
+      <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+        value={falseOn ? (reporter as string) : fault} disabled={falseOn}
         onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none"; setFault(f); if (f === "none") setStrike(false); }}>
         <option value="none">Nobody's</option>
         <option value="seller">The seller's</option>
@@ -175,17 +209,17 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
       </p>
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={strike} disabled={fault === "none"} onChange={(e) => setStrike(e.target.checked)} />
+        <input type="checkbox" checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
       <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />
       <div className="flex gap-2">
-        <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending}>Refund the buyer</Button>
-        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending}>Pay the seller</Button>
+        <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
+        <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
       </div>
-      {deliveryReason && (
+      {deliveryReason && !falseOn && (
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">
             On a Helpr delivery the Helpr already has, decide damage here: the buyer gets everything back, the seller is

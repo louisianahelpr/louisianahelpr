@@ -307,16 +307,22 @@ export async function fetchItemAddress(itemId: string): Promise<{ pickup_address
   return (rows?.[0] ?? null) as { pickup_address: string; pickup_lat: number; pickup_lng: number } | null;
 }
 
-/** Admin "Declutter problems" card: decide refund the buyer / pay the seller, by fault, optional strike. */
+/**
+ * Admin "Declutter problems" card: decide refund the buyer / pay the seller, by fault, optional strike.
+ * `falseReport` (AL-5, 20261029000048): the report was false, so its reporter gets a Declutter strike for it. Sent
+ * only when true, so the five-argument call stays valid against a database without the new parameter.
+ */
 export async function adminDecideProblem(
   problemId: string,
   decision: "refund_buyer" | "pay_seller",
   fault: "seller" | "buyer" | "none",
   strike: boolean,
   note: string | null,
+  falseReport = false,
 ): Promise<Record<string, unknown>> {
   const res = await supabase.rpc("declutter_admin_decide_problem", {
     p_problem_id: problemId, p_decision: decision, p_fault: fault, p_strike: strike, p_note: note as string,
+    ...(falseReport ? { p_false_report: true } : {}),
   });
   // Admin-only copy is fetched only on a refusal (lifecycleErrors.ts, loadAdminRpcErrorCopy).
   const admin = res.error ? await loadAdminRpcErrorCopy() : null;

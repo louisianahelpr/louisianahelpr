@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T04:17:01.894Z",
-  "guards": 2566,
-  "registered": 2556,
+  "generated": "2026-10-29T06:02:19.367Z",
+  "guards": 2569,
+  "registered": 2558,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts",
     "src/components/EarningsExport.noFee.test.ts",
@@ -10,6 +10,7 @@
     "src/components/job-card/posterMarkedDone.test.ts",
     "src/components/postjob/PostJobStepHeader.pick.test.tsx",
     "src/components/referral/EnterReferralCodeCard.test.tsx",
+    "src/lib/jobProgressIndex.test.ts",
     "src/pages/auth/signup/signupOneLine.test.tsx",
     "src/test/jobStepsEvenRow.test.ts",
     "src/test/takeHomeOnlyNoJobPrice.test.ts"

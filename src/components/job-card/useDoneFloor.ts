@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+export { doneFloorStart } from "@/lib/doneFloor";
 
 /** The server's completion floor: LEAST(poster_confirmed_working_at,
  *  helper_arrived_at) + 30 min (rpc_helper_mark_done and both completion

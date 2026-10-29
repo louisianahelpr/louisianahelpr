@@ -706,8 +706,8 @@ const CASES: Array<{
     // gates used to test `job.status === "in_progress"` literally, so a
     // revision job lost its confirmations outright. Same rule as an ordinary
     // in-progress job now: the working vouch is still owed and still offered.
-    // Marked done: Approve & Pay is the primary; the optional working vouch stands down (owner, 2026-10-08).
-    name: "Posts · Revision requested, Helpr marked done (Approve & Pay over the working vouch)",
+    // Marked done: Approve and release is the primary; the optional working vouch stands down (owner, 2026-10-08).
+    name: "Posts · Revision requested, Helpr marked done (Approve and release over the working vouch)",
     render: () =>
       wrap(
         <InProgressStep
@@ -723,13 +723,13 @@ const CASES: Array<{
         />,
       ),
     minControls: 3,
-    primary: ["Approve & Pay"],
+    primary: ["Approve and release"],
   },
   {
     name: "Posts · In Progress, Helpr marked done (Message · Approve)",
     render: () => wrap(<InProgressStep {...posterCtx(makeJob({ poster_confirmed_arrival_at: ago(5), helper_completed_at: ago(1) }))} />),
     minControls: 2,
-    primary: ["Approve & Pay"],
+    primary: ["Approve and release"],
   },
   {
     name: "Posts · Completed (Tip · Review · Hire again)",

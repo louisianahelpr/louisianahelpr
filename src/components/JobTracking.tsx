@@ -27,7 +27,7 @@ import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { startEnRouteWatch, type EnRouteMode } from "@/lib/enRouteLocation";
 import { JobProgress } from "@/components/tracker/JobProgress";
-import { jobProgress } from "@/components/tracker/jobProgressState";
+import { jobProgress } from "@/components/tracker/jobProgressState"; import type { CardFace } from "@/components/tracker/jobStepFromWait";
 import { JobStepRowSlot, useInJobStepRow } from "@/components/job-card/jobStepRow";
 /* `JobActionChip` was imported here for the "Try my location again" chip
    only; that control is gone (owner, 2026-09-19) and this component draws no
@@ -251,7 +251,7 @@ export function JobTracking({
   jobLongitude,
   includePostingSteps = false,
   embedded = false,
-  rescheduled = false,
+  rescheduled = false, progressCard,
 }: {
   jobId: string;
   helperId: string | null;
@@ -347,6 +347,8 @@ export function JobTracking({
   embedded?: boolean;
   /** Moved by an accepted change (useJobRescheduled in the caller): the line names the new slot (owner, 2026-10-21). */
   rescheduled?: boolean;
+  /** The poster card's own line and face for an OPEN job: it knows the applicants, this panel does not (A2-B15). */
+  progressCard?: CardFace;
 }) {
   // Seed from the parent-batched tracking row when present so we don't
   // fire one fetch per rendered card (N+1 across active jobs on Activity).
@@ -1314,8 +1316,6 @@ export function JobTracking({
       <h3 className="sr-only">Job tracking</h3>
       {/* NO SOS PILL HERE (owner: "remove globally") — it lives in the action
           row with every other control, on both sides of the job. */}
-
-
       {/* Progress timeline */}
       {/* THE ONE TRACKER (owner, 2026-10-21: "we need 1 tracker"). The 8-icon stepper (Posted · Offered ·
           Accepted · Confirmed · On the way · Arrived · Working · Done) is gone: the same four segments and
@@ -1333,7 +1333,7 @@ export function JobTracking({
             // The open card reads the same Helpr line and button as its collapsed face (photo rule, tracking row).
             require_photo_proof: requirePhotoProof, proof_before_urls: proofBeforeUrls, proof_after_urls: proofAfterUrls,
           },
-          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null, rescheduled, workUnderway: currentStatusIdx >= STATUS_IDX.working, tracking },
+          { viewer: _isOwner ? "poster" : "helpr", otherFirst: ((_isOwner ? helperName : posterName) ?? "").trim().split(/\s+/)[0] || null, rescheduled, workUnderway: currentStatusIdx >= STATUS_IDX.working, tracking, card: progressCard },
         )}
       />
 

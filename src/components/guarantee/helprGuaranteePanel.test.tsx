@@ -2,6 +2,11 @@
  * Helpr Guarantee panel (owner 2026-10-27): the poster's explainer and "Not done right", the hired Helpr's
  * Accept fix / Can't fix / Mark fixed, the poster's It's fixed / Still not right. The data layer is mocked here;
  * the rules are the server's (src/test/pglite/helprGuarantee.pglite.mjs, src/test/helprGuarantee.test.ts).
+ *
+ * F5 (app audit 2026-10-28): the explainer ended "we decide, and a refund is of the job price." (broken sentence),
+ * and the admin-deciding line read "A refund, if any, is of the job price." (same shape; lead, same commit).
+ * @mutate src/components/guarantee/HelprGuaranteePanel.tsx |       we decide whether you get a refund of the job price. |       we decide, and a refund is of the job price.
+ * @mutate src/components/guarantee/HelprGuaranteePanel.tsx | An admin is deciding this, including whether you get a refund of the job price. | An admin is deciding this. A refund, if any, is of the job price.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -56,6 +61,22 @@ describe("the poster", () => {
     renderPanel(job({ status: "open" }), "me", "poster");
     expect(screen.getByText(/Not done right\? Tell us within 48 hours/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Not done right" })).toBeNull();
+  });
+
+  it("F5: the explainer's refund line is a whole sentence", () => {
+    const { container } = renderPanel(job({ status: "open" }), "me", "poster");
+    const text = (container.querySelector("[data-guarantee-explainer]")?.textContent ?? "").replace(/\s+/g, " ").trim();
+    // Inventory floor: the explainer rendered with all its sentences.
+    expect(text.split(/(?<=[.?])\s/).length).toBeGreaterThan(2);
+    expect(text, "the broken 'a refund is of the job price' sentence is back").not.toMatch(/refund is of/);
+    expect(text).toMatch(/If it can't be fixed, we decide whether you get a refund of the job price\.$/);
+  });
+
+  it("F5: while an admin decides, the poster reads the same plain refund wording", async () => {
+    s.claim = claim({ status: "escalating" });
+    const { container } = renderPanel(job(), "me", "poster");
+    expect(await screen.findByText("An admin is deciding this, including whether you get a refund of the job price.")).toBeTruthy();
+    expect(container.textContent, "the 'is of the job price' wording is back").not.toMatch(/is of the job price/);
   });
 
   it("within 48 h of done: Not done right, a sentence required, then the claim is sent", async () => {

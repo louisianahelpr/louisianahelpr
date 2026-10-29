@@ -45,7 +45,7 @@ function GuaranteeExplainer() {
     <p data-guarantee-explainer="" className="text-ds-13 text-muted-foreground">
       Not done right? Tell us within 48 hours of
       the job being done. Your Helpr comes back to fix it, and their pay waits until it's settled. If it can't be fixed,
-      we decide, and a refund is of the job price.
+      we decide whether you get a refund of the job price.
     </p>
   );
 }
@@ -179,7 +179,7 @@ function PosterView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) 
       );
     case "escalating":
     case "disputed":
-      return <p className="text-ds-14">An admin is deciding this. A refund, if any, is of the job price.</p>;
+      return <p className="text-ds-14">An admin is deciding this, including whether you get a refund of the job price.</p>;
     default:
       return claim.close_reason === "job_moved_on" ? null : <p className="text-ds-14">Settled: fixed.</p>;
   }

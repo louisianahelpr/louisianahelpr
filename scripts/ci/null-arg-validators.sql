@@ -61,6 +61,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_delivery_raise_open', 'allow',    'may the buyer still raise this delivery''s pay (Q1929, 20261021185418)'),
   ('declutter_delivery_tip_open',   'allow',    'A3-8 / A2-18 (20261028210552): TRUE = the buyer of this order can tip its delivery Helpr now, so "Enjoy your item" says so (the notice only; helpr_task_tip_start checks again)'),
   ('declutter_meetup_spot_near_lines','allow', 'is this meetup spot near every one of these cart lines (Q2425, 20261027204500): TRUE lets checkout freeze the spot'),
+  ('declutter_is_porch_day',        'allow',    'porch days (20261029161347): TRUE = this weekday is one of the seller''s porch days (picked days, else pickup-time weekdays), so porch_days offers it and book_porch_day accepts it'),
   ('has_pre_verification_wipe',     'noarg',    'reads auth.uid() only: was this caller''s unfinished profile wiped (Q1286 notice)'),
   ('has_role',                      'allow',    'user holds role (admin gates)'),
   ('payout_setup_hire_allowed',     'allow',    'may this member open a payout account: chosen for a job that holds money, or owed money (owner 2026-10-25, 20261025162003)'),
@@ -298,6 +299,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('declutter_sale_final',          NULL, ARRAY['''00000000-0000-4000-8140-000000000501''::uuid'], ARRAY[1]),
   -- Q2425: spot S (the 'meetup' step) is active and beside item I, whose line is in B's cart (the 'declutter' step).
   ('declutter_meetup_spot_near_lines', NULL, ARRAY['''00000000-0000-4000-8140-000000000701''::uuid', 'ARRAY(SELECT c.id FROM public.declutter_cart_items c WHERE c.item_id = ''00000000-0000-4000-8140-000000000301''::uuid)'], ARRAY[1,2]),
+  -- Porch days: A has no picked days and a Monday pickup window (the 'declutter' step), so Monday (1) is a porch day.
+  ('declutter_is_porch_day',        NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '1::smallint'], ARRAY[1,2]),
   ('helpr_task_photo_access',       '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000a/task/00000000-0000-4000-8140-000000000601/x.jpg''', 'false'], ARRAY[1,2]),
   -- A and B are both real (not test) accounts.
   ('helpr_task_same_stripe_mode',   NULL, ARRAY['''00000000-0000-4000-8140-00000000000a''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),

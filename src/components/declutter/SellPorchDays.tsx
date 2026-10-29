@@ -7,6 +7,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyPorchDays, saveMyPorchDays, PORCH_DAYS_NOT_DEPLOYED } from "@/lib/declutter/porchDays";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { WEEKDAYS } from "./declutterUi";
 
 const KEY = ["declutter", "my-porch-days"] as const;
@@ -19,7 +20,7 @@ export function SellPorchDays() {
     onSuccess: (days) => qc.setQueryData(KEY, days.length ? days : null),
   });
   if (mine.data === PORCH_DAYS_NOT_DEPLOYED || mine.isLoading) return null;
-  if (mine.isError) return <p role="alert" className="text-ds-13 text-foreground">{declutterErrorMessage(mine.error)}</p>;
+  if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your porch days." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   const picked = mine.data ?? [];
   const toggle = (d: number) => save.mutate(picked.includes(d) ? picked.filter((x) => x !== d) : [...picked, d].sort((a, b) => a - b));
   return (

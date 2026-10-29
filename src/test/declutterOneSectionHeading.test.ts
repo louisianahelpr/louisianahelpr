@@ -25,6 +25,9 @@ const TITLES: Record<string, number> = {
   "src/components/declutter/DeclutterItemView.tsx": 1,
   "src/components/declutter/DeclutterWantedViews.tsx": 1,
   "src/components/declutter/DeclutterSellSteps.tsx": 1,
+  // The one-screen listing (2026-10-29) carries the sell flow's titles: same page-title style as the old steps.
+  "src/components/declutter/SellOneScreen.tsx": 1,
+  "src/components/declutter/SellSummaryCard.tsx": 1,
   "src/components/declutter/MovingSaleBanner.tsx": 1,
   "src/components/declutter/SellingNowRow.tsx": 1,
   // The profile eyebrow beside Selling now (#61, 2026-10-28): same style as SellingNowRow.

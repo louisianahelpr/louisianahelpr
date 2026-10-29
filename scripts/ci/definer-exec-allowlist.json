@@ -84,6 +84,8 @@
     "declutter_admin_review_item(uuid, boolean, text)": "reviewed 2026-10-14 (Q14): Declutter slice 2 RPC behind the hidden 'declutter' switch (require_feature first); admin approve/reject: refuses anyone without the admin role (has_role(auth.uid())); audited in admin_audit_log",
     "declutter_my_item_review(uuid)": "reviewed 2026-10-14 (Q14): Declutter slice 2 RPC behind the hidden 'declutter' switch (require_feature first); the seller's own review note; rows scoped to seller_id = auth.uid()",
     "declutter_update_draft(uuid, text, text, text, integer, text, integer, integer, text, text, numeric, numeric)": "reviewed 2026-10-14 (Q14): Declutter slice 2 RPC behind the hidden 'declutter' switch (require_feature first); edits the caller's own draft only (seller_id = auth.uid(), member gates)",
+    "declutter_my_porch_days()": "client",
+    "declutter_set_porch_days(smallint[])": "client",
     "declutter_set_porch_ok(uuid, boolean)": "reviewed 2026-10-16 (Q14): Declutter porch-default RPC (spec row 101) behind the hidden 'declutter' switch (require_feature first, then the member gates); changes porch_ok on the caller's own DRAFT only (seller_id = auth.uid(), status draft), refuses NULL",
     "declutter_listing_manage_state(uuid)": "client",
     "declutter_pause_listing(uuid)": "client",

@@ -5,11 +5,11 @@
  * saved draft is never touched. Pickup times are per seller already (loaded as before).
  * The API is stubbed: this checks what the form does with the last setup.
  *
- * @mutate src/components/declutter/DeclutterSellView.tsx |   const usedLastSetup = useLastListingSetup(itemId ? undefined : user?.id, { setForm, setWays, setCoords }); |   const usedLastSetup = false;
+ * @mutate src/components/declutter/useSellFlowState.ts |   const usedLastSetup = useLastListingSetup(urlItemId ? undefined : user?.id, { setForm, setWays, setCoords }); |   const usedLastSetup = useLastListingSetup(undefined, { setForm, setWays, setCoords });
  * @mutate src/components/declutter/SellLastSetup.tsx |     areaLabel: f.areaLabel.trim() ? f.areaLabel : s.areaLabel, |     areaLabel: s.areaLabel,
  * @mutate src/components/declutter/SellLastSetup.tsx |     ...(s.dropPct !== null && !f.drops ? { drops: true, dropPct: s.dropPct } : {}), |
  * @mutate src/components/declutter/SellLastSetup.tsx |     if (s.ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? s.ways : w)); |
- * @mutate src/components/declutter/DeclutterSellView.tsx |           {usedLastSetup && <LastSetupNote />} |
+ * @mutate src/components/declutter/SellOneScreen.tsx |               <LastSetupNote onChange={() => setWaysOpen(true)} /> | <span />
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -89,14 +89,11 @@ function open() {
   );
 }
 
-async function toStep4() {
+/** The one-screen new listing (owner 2026-10-29): photos, then Claude's listing as a summary card. */
+async function addPhotoAndWait() {
   await screen.findByRole("heading", { name: "Show it off" });
   fireEvent.change(document.getElementById("sell-files")!, { target: { files: [new File(["x"], "a.jpg", { type: "image/jpeg" })] } });
-  await screen.findByText("Claude wrote your listing");
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-  await screen.findByLabelText("Title");
-  fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-  await screen.findByLabelText("Price");
+  await waitFor(() => expect(document.querySelector('[data-sell-summary="done"]')).not.toBeNull());
 }
 
 describe("a new listing remembers the last listing's setup", () => {
@@ -111,19 +108,20 @@ describe("a new listing remembers the last listing's setup", () => {
 
   it("fills the ways, area, pickup address and drop step, says so, and saves them", async () => {
     open();
-    await toStep4();
+    await addPhotoAndWait();
     // The drop step comes along as the seller set it last time; the lowest price is this item's own.
     expect(screen.getByRole("switch", { name: /Lower the price if it doesn't sell/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("radio", { name: "10%" })).toHaveAttribute("aria-checked", "true");
     fireEvent.change(screen.getByLabelText("Lowest you'll take"), { target: { value: "30" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "How can buyers get it?" });
+    // "How buyers get it" is ONE line when the last setup was used, with the note and its Change.
+    expect(document.querySelector("[data-ways-summary]")).not.toBeNull();
     expect(screen.getByText("Using your last listing's setup")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Change" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Change" }));
     expect(screen.getByLabelText("Area buyers see")).toHaveValue(LAST.areaLabel);
     expect(screen.getByLabelText("Pickup address")).toHaveValue(LAST.pickup!.address);
     expect(screen.getByRole("checkbox", { name: "Safe meeting spot" })).toHaveAttribute("aria-checked", "true");
-    fireEvent.click(screen.getByRole("button", { name: "Save and continue" }));
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(api.setHandovers).toHaveBeenCalledWith(NEW_ID, ["porch", "meetup"]));
     // The remembered point is used as is: the address is not looked up again.
     expect(geocode).not.toHaveBeenCalled();
@@ -133,10 +131,9 @@ describe("a new listing remembers the last listing's setup", () => {
   it("no earlier listing: the form starts as before, with no note", async () => {
     last.value = null;
     open();
-    await toStep4();
-    fireEvent.change(screen.getByLabelText("Price"), { target: { value: "40" } });
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    await screen.findByRole("heading", { name: "How can buyers get it?" });
+    await addPhotoAndWait();
+    // No earlier setup: "How buyers get it" starts open, with no note.
+    await screen.findByLabelText("Area buyers see");
     expect(document.querySelector("[data-last-setup]")).toBeNull();
     expect(screen.getByLabelText("Area buyers see")).toHaveValue("");
   });

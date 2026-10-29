@@ -2,7 +2,8 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 // The visibility delay is DERIVED, never retyped — `public.early_access_cutoff()`
 // is the enforcement point and `earlyAccess.ts` is the client mirror the parity
 // test already pins it to. See the "Posted" caption below.
-import { MAX_EARLY_ACCESS_DELAY_MINUTES } from "@/lib/earlyAccess";
+import { earlyAccessDelayMs } from "@/lib/earlyAccess";
+import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { assertNeverSafe } from "@/lib/assertNever";
 import type { JobStatus } from "@/lib/statusLabels";
 
@@ -13,11 +14,21 @@ import type { JobStatus } from "@/lib/statusLabels";
 // as scannable steps so customers know what to expect next.
 /** What each lifecycle point means, for the line under the one tracker (Posted, Hired, Working, Done). */
 const STEP_CAPTIONS = [
-  `Live now. Nearby Helprs see it within ${MAX_EARLY_ACCESS_DELAY_MINUTES} min.`,
+  "",
   "You review applicants and pick one.",
   "Your Helpr arrives and gets to work.",
   "You both confirm, and the payment goes out.",
 ] as const;
+
+/**
+ * The Posted caption: how long the longest-waiting Helpr (no membership) waits, from the
+ * client mirror of public.early_access_delay_minutes() (earlyAccessDelayMs): 0 while
+ * memberships are off, which is today for every member (audit 2026-10-28 F15: the
+ * page promised "within 20 min" while members saw the job at once).
+ */
+function liveNowCaption(delayMinutes: number): string {
+  return delayMinutes > 0 ? `Live now. Nearby Helprs see it within ${delayMinutes} min.` : "Live now. Nearby Helprs can see it.";
+}
 
 /** Posted · Hired · Working · Done on the one 8-step tracker: Posted, Hired, Working, all done. */
 const STAGE_OF = [0, 2, 6, 8] as const;
@@ -61,11 +72,12 @@ export function lifecycleStepFor(rawStatus: string | null | undefined, released 
  * the job page and the cards, with what the current step means under it.
  */
 export function PaymentLifecycleSteps({ current = 0 }: { current?: number | null }) {
+  const delayMinutes = earlyAccessDelayMs(null, useMembershipsOn()) / 60_000;
   if (current === null) return null;
   const at = Math.min(3, Math.max(0, current));
   return (
     <div className="mt-3">
-      <JobProgress progress={{ stage: STAGE_OF[at], waitingOnYou: false, tone: "progress", word: "", next: STEP_CAPTIONS[at], held: false }} />
+      <JobProgress progress={{ stage: STAGE_OF[at], waitingOnYou: false, tone: "progress", word: "", next: at === 0 ? liveNowCaption(delayMinutes) : STEP_CAPTIONS[at], held: false }} />
     </div>
   );
 }

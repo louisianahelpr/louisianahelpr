@@ -13,6 +13,8 @@
 // @mutate src/pages/post-job/PaymentSuccess.tsx |   const live = jobStatus === "open" && !alreadyReleased && !directOffer; |   const live = !alreadyReleased && !directOffer;
 // The offeree comes only from get_job_offer_targets (offeredHelperPrivacy), never a jobs select.
 let offerTargets = new Map<string, string>();
+// The "Live now" line reads the memberships switch (F15); off, as for every member today.
+vi.mock("@/hooks/useMembershipsOn", () => ({ useMembershipsOn: () => false }));
 vi.mock("@/lib/jobOfferTargets", () => ({ fetchJobOfferTargets: async () => offerTargets }));
 afterEach(() => { offerTargets = new Map(); });
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

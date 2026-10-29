@@ -54,7 +54,8 @@ describe("memberships are never shown or sold in the store app", () => {
     // early-access wait while memberships are off.
     // 2026-10-29 (A3-C14): eight. MembershipPlansGate reads useMembershipsStatus so the
     // Membership tab shows no plan prices while memberships are off.
-    expect(readers.length).toBe(8);
+    // 2026-10-28 (audit F15): nine. PaymentLifecycleSteps reads it for the payment-success "Live now" line.
+    expect(readers.length).toBe(9);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {

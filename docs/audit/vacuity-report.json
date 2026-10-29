@@ -1,7 +1,7 @@
 {
-  "generated": "2026-10-29T22:28:04.098Z",
-  "guards": 2678,
-  "registered": 2677,
+  "generated": "2026-10-29T23:27:04.402Z",
+  "guards": 2679,
+  "registered": 2678,
   "unregistered": [
     "e2e/prod-audit/admin-chrome.spec.ts"
   ],

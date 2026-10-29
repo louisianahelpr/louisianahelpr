@@ -5,7 +5,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useFeature } from "@/hooks/useFeature";
-import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { adminDecideDeliveryDamage, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
+import { offerCentsFromInput } from "@/lib/declutter/refundRequests";
 import { photoPublicUrl } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -97,22 +98,40 @@ const REASON_WORDS: Record<string, string> = {
   other: "Something else",
 };
 
+/** D2-3: a buyer's or seller's problem photo (the private declutter-handover bucket, a signed link). */
+function SidePhoto({ path, alt }: { path: string; alt: string }) {
+  const url = useQuery({ queryKey: ["declutter", "problem-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
+  if (!url.data) return null;
+  return <img src={url.data} alt={alt} className="h-32 w-32 rounded-lg object-cover" loading="lazy" />;
+}
+
 function ProblemItem({ row }: { row: ProblemRow }) {
   const qc = useQueryClient();
   const [fault, setFault] = useState<"seller" | "buyer" | "none">("none");
   const [strike, setStrike] = useState(false);
   const [note, setNote] = useState("");
   const [falseReport, setFalseReport] = useState(false);
+  // D2-14 (owner 2026-10-29: allow partial): pre-filled with the seller's last part offer, when there was one.
+  const offer = row.detail?.refund_offer_cents ?? null;
+  const [part, setPart] = useState(offer ? (offer / 100).toFixed(2) : "");
+  const partCents = offerCentsFromInput(part);
+  const itemsCents = row.detail?.items_cents ?? null;
+  const partOk = partCents !== null && itemsCents !== null && partCents < itemsCents;
+  const canPart = row.detail?.order_status === "handed_over";
   // A Helpr's report is a delivery matter: it is never marked false here.
   const reporter = row.reporter_side === "buyer" || row.reporter_side === "seller" ? row.reporter_side : null;
   // A false report goes against the reporter: the one decision left.
   const againstReporter = reporter === "buyer" ? "pay_seller" : "refund_buyer";
   const falseOn = falseReport && reporter !== null;
   const decide = useMutation({
-    mutationFn: (decision: "refund_buyer" | "pay_seller") =>
-      adminDecideProblem(row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn),
+    mutationFn: (decision: "refund_buyer" | "pay_seller" | "refund_part") => {
+      const args = [row.id, decision, falseOn ? (reporter as "buyer" | "seller") : fault, falseOn ? false : strike, note.trim() || null, falseOn] as const;
+      return decision === "refund_part" ? adminDecideProblem(...args, partCents) : adminDecideProblem(...args);
+    },
     onSuccess: (_r, decision) => {
-      const done = decision === "refund_buyer" ? "Decided: the buyer is refunded." : "Decided: the seller is paid.";
+      const done = decision === "refund_buyer" ? "Decided: the buyer is refunded."
+        : decision === "refund_part" ? `Decided: the buyer gets ${formatPrice(partCents ?? 0)} back and keeps the item.`
+          : "Decided: the seller is paid.";
       toast.success(falseOn ? `${done} The ${reporter} gets a strike for a false report.` : done);
       void qc.invalidateQueries({ queryKey: ["declutter", "admin-problems"] });
     },
@@ -139,6 +158,16 @@ function ProblemItem({ row }: { row: ProblemRow }) {
       {/* AL-4: the order's steps and both sides' handover photos, side by side with their times and places. */}
       {row.detail ? <ProblemCaseView problemId={row.id} d={row.detail} /> : null}
       {row.reporter_side === "helpr" && (row.photo_paths ?? []).map((p) => <HelprPhoto key={p} path={p} />)}
+      {/* D2-3: the reporter's photos, and the other side's words and photos. */}
+      {row.reporter_side !== "helpr" && (row.photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt={`The ${row.reporter_side}'s photo`} />)}
+      {row.detail?.other_side_note ? (
+        <div className="space-y-1" data-admin-other-side="">
+          <p className="text-sm [overflow-wrap:anywhere]">
+            <span className="font-semibold">The {row.reporter_side === "seller" ? "buyer" : "seller"}'s side:</span> {row.detail.other_side_note}
+          </p>
+          {(row.detail.other_side_photo_paths ?? []).map((p) => <SidePhoto key={p} path={p} alt="The other side's photo" />)}
+        </div>
+      ) : null}
       {/* AL-6: the buyer and seller's chat and the item questions, kept whole, as sides only. */}
       <ProblemTalk problemId={row.id} />
       {reporter ? (
@@ -183,6 +212,20 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         <Button onClick={() => decide.mutate("refund_buyer")} disabled={decide.isPending || (falseOn && againstReporter !== "refund_buyer")}>Refund the buyer</Button>
         <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>
       </div>
+      {canPart && !falseOn && (
+        <div className="space-y-1" data-admin-part-refund="">
+          <label htmlFor={id("part")} className="block text-xs font-medium">Or refund part of the price (the buyer keeps the item)</label>
+          {offer ? <p className="text-xs text-muted-foreground">The seller offered {formatPrice(offer)}.</p> : null}
+          <div className="flex gap-2">
+            <input id={id("part")} inputMode="decimal" className="w-32 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              value={part} onChange={(e) => setPart(e.target.value)} placeholder="$" />
+            <Button variant="outline" onClick={() => decide.mutate("refund_part")} disabled={decide.isPending || !partOk}>Refund part</Button>
+          </div>
+          {part.trim() && !partOk ? (
+            <p className="text-xs text-destructive" role="alert">Enter an amount above $0 and below the item price{itemsCents ? ` (${formatPrice(itemsCents)})` : ""}.</p>
+          ) : null}
+        </div>
+      )}
       {deliveryReason && !falseOn && (
         <div className="space-y-1">
           <p className="text-xs text-muted-foreground">

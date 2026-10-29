@@ -9,11 +9,11 @@
  * 2026-10-28): src/test/pglite/declutterFalseReportStrike.pglite.mjs. The admin screen's explicit choice:
  * src/components/admin/settings/DeclutterProblemsCard.test.tsx.
  *
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |   IF p_false_report THEN\n    UPDATE public.declutter_problems SET strike_given = true | IF false THEN\n    UPDATE public.declutter_problems SET strike_given = true
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |     PERFORM public.declutter_give_strike(p.reporter_id, p.reporter_side, 'false_report', |     PERFORM public.declutter_give_strike(o.buyer_id, 'buyer', 'false_report',
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |                          OR p_fault IS DISTINCT FROM p.reporter_side\n | \n
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |                          OR p_decision IS DISTINCT FROM CASE p.reporter_side WHEN 'buyer' THEN 'pay_seller' ELSE 'refund_buyer' END) THEN | ) THEN
- * @mutate supabase/migrations/20261029224147_declutter_admin_decision_closes_refund_request.sql |      OR p_false_report IS NULL OR (p_false_report AND p_strike) THEN |      OR (p_false_report AND p_strike) THEN
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |   IF p_false_report THEN\n    UPDATE public.declutter_problems SET strike_given = true | IF false THEN\n    UPDATE public.declutter_problems SET strike_given = true
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |     PERFORM public.declutter_give_strike(p.reporter_id, p.reporter_side, 'false_report', |     PERFORM public.declutter_give_strike(o.buyer_id, 'buyer', 'false_report',
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |                          OR p_fault IS DISTINCT FROM p.reporter_side\n | \n
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |                          OR p_decision IS DISTINCT FROM CASE p.reporter_side WHEN 'buyer' THEN 'pay_seller' ELSE 'refund_buyer' END) THEN | ) THEN
+ * @mutate supabase/migrations/20261029231235_declutter_admin_part_refund.sql |      OR p_false_report IS NULL OR (p_false_report AND p_strike) THEN |      OR (p_false_report AND p_strike) THEN
  * @mutate supabase/migrations/20261029000048_declutter_false_report_strike.sql |     'not_as_described', 'fake_offer', 'false_report')); |     'not_as_described', 'fake_offer'));
  * @mutate supabase/migrations/20261029000048_declutter_false_report_strike.sql | boolean) FROM PUBLIC, anon; | boolean) FROM PUBLIC;
  * @mutate src/lib/declutter/handover.ts |     ...(falseReport ? { p_false_report: true } : {}), |
@@ -37,9 +37,9 @@ describe("a strike for a proven false report (AL-5)", () => {
   const body = flat(blankSqlComments(def?.stmt ?? ""));
 
   it("the newest decision takes the explicit choice, never NULL, never with a second strike on top", () => {
-    // The newest definition is this migration or a later restatement of it (D2-5 20261029224147 restates it).
+    // The newest definition is this migration or a later restatement of it (D2-5 20261029224147, D2-14 20261029231235).
     expect((def?.file ?? "") >= "20261029000048_declutter_false_report_strike.sql").toBe(true);
-    expect(body).toContain("p_strike boolean, p_note text, p_false_report boolean DEFAULT false)");
+    expect(body).toContain("p_strike boolean, p_note text, p_false_report boolean DEFAULT false");
     expect(body).toContain("OR p_false_report IS NULL OR (p_false_report AND p_strike) THEN RAISE EXCEPTION 'invalid_decision'");
   });
 
@@ -55,7 +55,7 @@ describe("a strike for a proven false report (AL-5)", () => {
     const strike = body.indexOf("PERFORM public.declutter_give_strike(p.reporter_id, p.reporter_side, 'false_report',");
     expect(strike).toBeGreaterThan(body.indexOf("SET status = 'decided'"));
     expect(body).toContain("IF p_false_report THEN UPDATE public.declutter_problems SET strike_given = true WHERE id = p.id;");
-    expect(body).toContain("'false_report', p_false_report, 'result', v_out)");
+    expect(body).toContain("'false_report', p_false_report,");
     // The existing system decides the lock-out: 3 active strikes (declutter_assert_member).
     expect(flat(blankSqlComments(DEFS.get("declutter_assert_member")?.stmt ?? ""))).toContain(
       "IF public.declutter_active_strike_count(v_uid) >= 3 THEN RAISE EXCEPTION 'declutter_strikes_blocked'");

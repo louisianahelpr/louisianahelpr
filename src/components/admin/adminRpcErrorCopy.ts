@@ -176,6 +176,8 @@ export const ADMIN_RPC_ERROR_COPY = {
     not_authorized: DC.not_authorized,
     order_not_handed_over: DC.order_not_handed_over,
     order_not_paid: DC.order_not_paid,
+    // D2-14 (20261029231235).
+    part_refund_after_handover_only: DC.part_refund_after_handover_only,
     part_refund_unavailable: DC.part_refund_unavailable,
     payout_already_sent: DC.payout_already_sent,
     payout_missing: DC.payout_missing,

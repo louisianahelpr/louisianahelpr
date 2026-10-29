@@ -74,6 +74,8 @@ const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
 // Board 141 (Declutter side): the refund request after the handover loads with a handed-over order only.
 const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then((m) => ({ default: m.DeclutterRefundPanel })));
+// D2-3: both sides of a reported problem (the reason, words and photos; the other side adds theirs).
+const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides })));
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -226,6 +228,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
       {view && <BuyerOrderHead view={view} open={open} onOpen={() => setOpen(true)} onClose={() => setOpen(false)} />}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
+      <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
       {!view && (order.handover === "porch" || order.handover === "pickup_home") && (
         <PickupStatus
           orderId={order.orderId}

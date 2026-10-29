@@ -84,14 +84,14 @@ export const PUBLIC_PAGE_META = {
   },
   // Owner 2026-10-23: the Terms and the Privacy Policy as one open page each, for Twilio's A2P review (LegalFullText).
   "/terms/full": {
-    title: "Terms of Service, full text — Louisiana Helpr",
+    title: "Terms of Service, full text — Helpr",
     description: "The complete Louisiana Helpr Terms of Service on one page, every section open, including the SMS Terms.",
     canonical: `${SITE_ORIGIN}/terms/full`,
     ogTitle: "Louisiana Helpr Terms of Service (full text)",
     ogDescription: "Every section of the Louisiana Helpr Terms of Service on one page.",
   },
   "/privacy/full": {
-    title: "Privacy Policy, full text — Louisiana Helpr",
+    title: "Privacy Policy, full text — Helpr",
     description: "The complete Louisiana Helpr Privacy Policy on one page, every section open, including text messages.",
     canonical: `${SITE_ORIGIN}/privacy/full`,
     ogTitle: "Louisiana Helpr Privacy Policy (full text)",

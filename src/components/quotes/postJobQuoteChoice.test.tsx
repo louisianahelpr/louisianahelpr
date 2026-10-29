@@ -207,7 +207,8 @@ describe("Post a job: Set a price or Get quotes", () => {
   // A2-C32 (lead option A): screen 6's button says "Review" (not "Ask for quotes", which skipped 7 of 7); Review
   // shows "Your post at a glance" with no price or payment breakdown, and its one button is "Ask for quotes".
   it("Get quotes swaps the budget for the window (48 h default), reviews, then asks for quotes, never pay", async () => {
-    show(form());
+    // A budget typed before switching to Get quotes: Review must still show no price anywhere.
+    show(form({ budgetNum: 80 }));
     fireEvent.click(screen.getByRole("radio", { name: "Get quotes" }));
     expect(screen.queryByText("Budget section")).toBeNull();
     expect(screen.getByRole("radio", { name: "48 hours" })).toHaveAttribute("aria-checked", "true");
@@ -220,7 +221,9 @@ describe("Post a job: Set a price or Get quotes", () => {
     // Screen 7 of 7: the glance rows, no price, no payment breakdown, no pay button.
     expect(screen.getByRole("heading", { name: "Look good?" })).toBeInTheDocument();
     expect(screen.getByText("Your post at a glance")).toBeInTheDocument();
-    expect(screen.getByText("Paint the back fence")).toBeInTheDocument();
+    // The glance row names the job; the desktop preview aside (A2-L13) repeats the title but never a price.
+    expect(screen.getAllByText("Paint the back fence").filter((el) => !el.closest("aside"))).toHaveLength(1);
+    expect(document.querySelector("aside")?.textContent ?? "").not.toMatch(/\$/);
     expect(screen.queryByText("Total")).toBeNull();
     expect(screen.queryByText(/Payment breakdown/)).toBeNull();
     expect(screen.queryByRole("button", { name: /Continue to payment|Confirm details/ })).toBeNull();

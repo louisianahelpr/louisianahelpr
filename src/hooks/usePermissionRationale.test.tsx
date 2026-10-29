@@ -14,6 +14,7 @@ import {
 describe("usePermissionRationale", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    localStorage.clear();
     // Resolve any leftover dialog from a prior test
     __resolveRationale(false);
   });

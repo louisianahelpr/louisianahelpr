@@ -133,8 +133,18 @@ export function isRestorablePath(path: string): boolean {
  *
  * Route memory must never be able to persist a state the user cannot leave.
  * When adding a param here, ask: is this WHERE they were, or WHAT was open?
+ *
+ * F27 (audit 2026-10-28; lead decision): an open chat's URL now NAMES its thread,
+ * `?chat=<jobId>&with=<userId>` (src/pages/messages/constants.ts chatOpenPath), so it
+ * IS a place: kept, and a resume reopens that exact conversation. It can no longer
+ * trap anyone: Messages opens the named thread or, once the loader gives up, strips
+ * the flag as it always did. Only the legacy `?chat=1`, which names no thread, is
+ * still transient (with its `with`). Guard: src/test/chatResumeReopensThread.test.tsx.
  */
-const TRANSIENT_PARAMS = ["chat", "quickApply"];
+const TRANSIENT_PARAMS = ["quickApply"];
+
+/** A `chat` value that names a thread (a job id or team key), not the legacy "1" flag. */
+const namesAThread = (chat: string): boolean => chat !== "" && chat !== "1";
 
 /** Strip transient overlay params, keeping the params that name a place. */
 function stripTransientParams(pathWithSearch: string): string {
@@ -142,6 +152,11 @@ function stripTransientParams(pathWithSearch: string): string {
   if (!query) return pathname;
   const params = new URLSearchParams(query);
   for (const key of TRANSIENT_PARAMS) params.delete(key);
+  const chat = params.get("chat");
+  if (chat !== null && !namesAThread(chat)) {
+    params.delete("chat");
+    params.delete("with");
+  }
   const rest = params.toString();
   return rest ? `${pathname}?${rest}` : pathname;
 }

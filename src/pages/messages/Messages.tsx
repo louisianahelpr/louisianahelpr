@@ -20,10 +20,11 @@ import { ConversationList } from "@/components/messages/ConversationList";
 import { SectionBoundary } from "@/components/SectionBoundary";
 
 import {
-  CHAT_OPEN_PATH,
   MESSAGES_LIST_PATH,
   THREAD_OPEN_STATE,
+  chatOpenPath,
   isThreadOpenEntry,
+  threadFromChatFlag,
 } from "./constants";
 import { useMessagesData } from "./useMessagesData";
 import { useMessagesRealtime } from "./useMessagesRealtime";
@@ -41,12 +42,17 @@ const Messages = () => {
   const twoPane = useMessagesTwoPane();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const deepLinkJobId = searchParams.get("jobId");
-  const deepLinkUserId = searchParams.get("userId");
+  // F27: the thread a URL we MOUNTED on names in its open-chat flag (`?chat=<jobId>&with=<userId>`):
+  // a resume from route memory, a reload, a shared link. Read once, at mount: once this page is
+  // running, the flag follows the thread the user opens (chatOpenPath), and reading it live would
+  // send every inbox tap back through the deep-link loader.
+  const [resumedThread] = useState(() => threadFromChatFlag(searchParams));
+  const deepLinkJobId = searchParams.get("jobId") ?? resumedThread?.jobId ?? null;
+  const deepLinkUserId = searchParams.get("userId") ?? resumedThread?.userId ?? null;
   // `?teamThread=<user>` — a "Louisiana Helpr Team" thread (src/lib/teamThread.ts).
-  const deepLinkTeamUserId = searchParams.get("teamThread");
+  const deepLinkTeamUserId = searchParams.get("teamThread") ?? resumedThread?.teamUserId ?? null;
   // The URL's "a thread is open" flag — MobileNav hides the entire bottom
-  // dock while it is set. See the contract on CHAT_OPEN_PATH in
+  // dock while it is set. See the contract on chatOpenPath in
   // ./messages/constants; the effect below is what keeps it honest.
   const threadFlagInUrl = searchParams.has("chat");
   const { user: cachedUser } = useCurrentUser();
@@ -106,6 +112,7 @@ const Messages = () => {
     loadingMore,
     loadConversations,
     openConvo,
+    deepLinkSettled,
     refreshActiveThread,
     loadOlderMessages,
     patchConversationForMessage,
@@ -154,18 +161,26 @@ const Messages = () => {
   // STATE → URL. Fires only when the open thread itself changes, and reads
   // `window.location` — which `history.pushState` updates synchronously — so it
   // can never see a stale search string and never fights the router.
+  //
+  // F27: a flag that NAMES a thread (a resume) is not stale until the deep-link
+  // loader has tried to open that thread: it is kept until `deepLinkSettled`
+  // (opened, or gave up and left the list) or the inbox failed to load, then
+  // stripped as before. Legacy `?chat=1` names nothing and is stripped at once.
+  const resumePending = !!resumedThread && !deepLinkSettled && !loadError;
   useEffect(() => {
     const flagged = new URLSearchParams(window.location.search).has("chat");
     if (activeConvo && !flagged) {
-      navigate(CHAT_OPEN_PATH, { state: THREAD_OPEN_STATE });
+      // openConvo already pushes the thread's URL; this is the backstop, and it
+      // is a push for the same reason (the back gesture closes the thread).
+      navigate(chatOpenPath(activeConvo), { state: THREAD_OPEN_STATE });
       return;
     }
-    if (!activeConvo && flagged) {
+    if (!activeConvo && flagged && !resumePending) {
       // The stale-flag case: a mount that inherited the flag without the
       // thread. Strip it before the user can notice the nav is missing.
       navigate(MESSAGES_LIST_PATH, { replace: true });
     }
-  }, [activeConvo, navigate]);
+  }, [activeConvo, navigate, resumePending]);
 
   // URL → STATE, on the FALLING EDGE of the flag only. A flag that goes from
   // present to absent is the back gesture / hardware back popping the entry

@@ -45,7 +45,7 @@ interface ChatViewProps {
    *  because closing has to clear the `?chat=1` flag from the URL as well as
    *  the state — MobileNav hides the whole bottom dock while that flag is
    *  set, so a close that only nulls the state strands the user on a list
-   *  with no navigation. See the contract on CHAT_OPEN_PATH. */
+   *  with no navigation. See the contract on chatOpenPath. */
   onCloseThread: () => void;
   /** Soft-keyboard inset (px) so the composer clears the keyboard. */
   keyboardInset: number;

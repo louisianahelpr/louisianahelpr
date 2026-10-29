@@ -33,7 +33,7 @@ import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
  * overwrote the `/messages` history entry, so the back gesture left Messages
  * entirely rather than closing the thread.
  *
- * The contract is now: `?chat=1` is present ⟺ a thread is really open, both
+ * The contract is now: `?chat=` is present ⟺ a thread is really open, both
  * directions, enforced in src/pages/messages/Messages.tsx. Each case below is one of
  * the paths that broke it.
  */
@@ -88,7 +88,9 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     await openFirstThread(page);
     // (a) An open conversation owns the whole screen — no bottom dock.
     await expect(page.locator(NAV)).toBeHidden();
-    expect(new URL(page.url()).searchParams.get("chat")).toBe("1");
+    // F27: the flag names the open thread (the job and the other party), not a bare "1".
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
 
     // (b) The header back button.
     await page.getByRole("button", { name: "Back to conversations" }).click();
@@ -102,7 +104,8 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     await gotoMessages(page, "/home");
     await gotoMessages(page);
     await openFirstThread(page);
-    expect(new URL(page.url()).searchParams.get("chat")).toBe("1");
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
 
     // WAIT FOR THE RISING EDGE BEFORE POPPING IT. `openFirstThread` only waits
     // on the composer dock, which renders off `activeConvo` (component state).
@@ -154,6 +157,26 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
 
     await page.getByRole("button", { name: "Back to conversations" }).click();
     await expect(page.locator(NAV)).toBeVisible();
+    expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
+  });
+
+  test("F27: a resumed ?chat=<job>&with=<user> reopens THAT thread, and back still reaches the list", async ({ page, context, baseURL }) => {
+    await setup(page, context, baseURL);
+    // What route memory now restores after a native resume or a reload: the URL names the thread.
+    await gotoMessages(page, `/messages?chat=${THREAD_JOB_ID}&with=${HELPER_ID}`);
+
+    // The conversation is open again, not the inbox.
+    await expect(
+      page.getByRole("button", { name: "Back to conversations" }),
+    ).toBeVisible();
+    await expect(page.locator(NAV)).toBeHidden();
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
+
+    // And it can still be left: the header back lands on the list with its nav.
+    await page.getByRole("button", { name: "Back to conversations" }).click();
+    await expect(page.locator(NAV)).toBeVisible();
+    expect(new URL(page.url()).pathname).toBe("/messages");
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
   });
 
@@ -442,4 +465,4 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
 // one, the falling-edge close, every fit/a11y/tap-target assertion. Only the
 // "stale ?chat=1 heals itself" case goes red — which is the point. A spec that
 // merely opened and closed a thread would never see this.
-// @mutate src/pages/messages/Messages.tsx | if (!activeConvo && flagged) { | if (false) {
+// @mutate src/pages/messages/Messages.tsx | if (!activeConvo && flagged && !resumePending) { | if (false) {

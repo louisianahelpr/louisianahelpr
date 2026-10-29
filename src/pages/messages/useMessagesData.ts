@@ -25,7 +25,7 @@ import {
 } from "@/lib/jobSystemEvents";
 import type { Conversation, Message } from "@/components/messages/types";
 import { patchThreadForAnnouncement } from "@/components/messages/jobStatusAnnouncement";
-import { CHAT_OPEN_PATH, CHAT_PAGE_SIZE, THREAD_OPEN_STATE } from "./constants";
+import { chatOpenPath, CHAT_PAGE_SIZE, THREAD_OPEN_STATE } from "./constants";
 import {
   buildDeepLinkPlaceholder,
   fetchConversations,
@@ -162,9 +162,16 @@ export function useMessagesData({
   // inbox poll loop doesn't re-toast on every refresh while previews fail.
   const thumbWarningShown = useRef(false);
   const deepLinkHandled = useRef(false);
+  // F27: true once a deep link (or a resumed `?chat=<jobId>&with=<userId>`) has opened its thread or
+  // given up. Messages keeps a flag that names a thread in the URL until then, instead of stripping it
+  // as stale before the inbox has even loaded.
+  const [deepLinkSettled, setDeepLinkSettled] = useState(false);
+  // Whether THIS mount pushed the flagged history entry. A resumed URL (route memory, reload) already
+  // carries the flag on an entry nobody here pushed, so a re-open replaces it WITHOUT the marker and
+  // the in-app close replaces back to the list instead of popping out of Messages.
+  const pushedThreadEntry = useRef(false);
 
-  // Put the "a thread is open" flag in the URL — see the contract on
-  // CHAT_OPEN_PATH. This PUSHES rather than replaces so the OS/gesture back
+  // Put the open thread in the URL — see the contract on chatOpenPath. This PUSHES rather than replaces so the OS/gesture back
   // pops straight back to the list (the old `replace: true` overwrote the
   // `/messages` entry, so back left Messages entirely and the list the user
   // returned to still carried the flag — no bottom nav, no way out).
@@ -175,11 +182,15 @@ export function useMessagesData({
   // read off `window.location` rather than threaded in as state because
   // `openConvo` is memoized for the inbox's memoized rows; taking a value that
   // changes on every thread open as a dependency would re-render all of them.
-  const openThreadUrl = useCallback(() => {
+  const openThreadUrl = useCallback((convo: Conversation) => {
     const alreadyOpen =
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).has("chat");
-    navigate(CHAT_OPEN_PATH, { state: THREAD_OPEN_STATE, replace: alreadyOpen });
+    if (!alreadyOpen) pushedThreadEntry.current = true;
+    navigate(chatOpenPath(convo), {
+      state: pushedThreadEntry.current ? THREAD_OPEN_STATE : undefined,
+      replace: alreadyOpen,
+    });
   }, [navigate]);
 
   // The inbox. Cached per user, so re-entering /messages renders the last
@@ -350,7 +361,7 @@ export function useMessagesData({
     setMessages([]);
     setJobSystemEvents([]);
     setChatLoading(true);
-    openThreadUrl();
+    openThreadUrl(convo);
     // Fetch the job's transition timestamps alongside the message
     // thread so the system-event rows ("Helper marked on the way",
     // "Poster confirmed complete", …) can render in the same paint as
@@ -533,6 +544,7 @@ export function useMessagesData({
     // A team-thread key is not a job: those links are `?teamThread=` (below).
     if (!deepLinkJobId || isTeamThreadKey(deepLinkJobId)) return;
     deepLinkHandled.current = true;
+    const settle = () => setDeepLinkSettled(true);
 
     const openIfMatch = (list: Conversation[]) => {
       // With both params, match exactly. With jobId alone, open it only when
@@ -550,7 +562,10 @@ export function useMessagesData({
       return true;
     };
 
-    if (openIfMatch(allConversations)) return;
+    if (openIfMatch(allConversations)) {
+      settle();
+      return;
+    }
 
     void (async () => {
       // Not in the cached inbox — but the cache may simply predate the thread
@@ -609,7 +624,7 @@ export function useMessagesData({
       }
       setConversations((prev) => [placeholder, ...prev]);
       void openConvo(placeholder);
-    })();
+    })().finally(settle);
   }, [
     allConversations,
     resolvedUserId,
@@ -630,11 +645,13 @@ export function useMessagesData({
     if (!resolvedUserId || !allConversations) return;
     if (!deepLinkTeamUserId) return;
     deepLinkHandled.current = true;
+    const settle = () => setDeepLinkSettled(true);
     const key = teamThreadKey(deepLinkTeamUserId);
     const find = (list: Conversation[] | undefined) => list?.find((c) => c.jobId === key);
     const cached = find(allConversations);
     if (cached) {
       void openConvo(cached);
+      settle();
       return;
     }
     void (async () => {
@@ -655,7 +672,7 @@ export function useMessagesData({
       }
       setConversations((prev) => [placeholder, ...prev]);
       void openConvo(placeholder);
-    })();
+    })().finally(settle);
   }, [
     allConversations,
     resolvedUserId,
@@ -847,6 +864,8 @@ export function useMessagesData({
     loadingMore,
     loadConversations,
     openConvo,
+    /** F27: a deep link / resumed thread URL has opened its thread or given up. */
+    deepLinkSettled,
     refreshActiveThread,
     loadOlderMessages,
     patchConversationForMessage,

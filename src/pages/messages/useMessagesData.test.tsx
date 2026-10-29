@@ -1,5 +1,5 @@
 // NAVIGATION CONTRACT (asserted below): opening a thread PUSHES
-// `/messages?chat=1` carrying `state.threadOpen`, it does not replace. That
+// `/messages?chat=<jobId>&with=<userId>` (F27; it was `?chat=1`) carrying `state.threadOpen`, it does not replace. That
 // changed deliberately. `replace: true` overwrote the `/messages` entry, so the
 // hardware/gesture back left Messages entirely — and the list it eventually
 // returned to still carried `?chat=1`, which MobileNav reads as "a thread is
@@ -213,7 +213,7 @@ describe("useMessagesData — deep links against the cache", () => {
     });
 
     await waitFor(() => expect(result.current.activeConvo).toEqual(CONVO));
-    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", {
+    expect(navigate).toHaveBeenCalledWith("/messages?chat=job-1&with=other-1", {
       state: { threadOpen: true },
       replace: false,
     });
@@ -348,7 +348,7 @@ describe("useMessagesData — deep links against the cache", () => {
     );
     expect(fetchConversationsMock).toHaveBeenCalledTimes(2);
     expect(result.current.conversations[0]).toEqual(placeholder);
-    expect(navigate).toHaveBeenCalledWith("/messages?chat=1", {
+    expect(navigate).toHaveBeenCalledWith("/messages?chat=job-9&with=other-9", {
       state: { threadOpen: true },
       replace: false,
     });
@@ -395,4 +395,4 @@ describe("useMessagesData — deep link to a deleted account (Q333)", () => {
 // Proof this guard can fail: open the deep-linked thread by hand instead of
 // through the ONE loader. The thread opens with zero messages — owner,
 // 2026-09-14, "Say hello" painted over 38 messages.
-// @mutate src/pages/messages/useMessagesData.ts |       void openConvo(match); |       setActiveConvo(match);\n      openThreadUrl();
+// @mutate src/pages/messages/useMessagesData.ts |       void openConvo(match); |       setActiveConvo(match);\n      openThreadUrl(match);

@@ -1,9 +1,11 @@
+import { isTeamThreadKey, teamUserIdFromKey } from "@/lib/teamThread";
+
 export const CHAT_PAGE_SIZE = 50;
 
 /**
  * `/messages` URL contract for "is a thread open".
  *
- * MobileNav hides the whole bottom dock while `?chat=1` is present
+ * MobileNav hides the whole bottom dock while `?chat=` is present
  * (src/components/MobileNav.tsx) — an open conversation replaces the app
  * chrome with its own header, iOS-style. That makes the flag load-bearing:
  * if it is ever set while the LIST is on screen there is no bottom nav and
@@ -23,7 +25,40 @@ export const CHAT_PAGE_SIZE = 50;
  * Messages); losing the flag closes the thread; a flag with no thread behind
  * it is stripped on sight.
  */
-export const CHAT_OPEN_PATH = "/messages?chat=1";
+/**
+ * The flag NAMES the open thread (F27, audit 2026-10-28; lead decision): `?chat=<jobId>&with=<userId>`.
+ * It was `?chat=1`, which said "a thread is open" but not which, so route memory had to drop it and a
+ * resume, a reload or a shared link landed on the inbox instead of the conversation. Now the URL is
+ * enough to reopen that exact thread (threadFromChatFlag; Messages hands it to the deep-link loader).
+ * A deleted-account thread has no other user to name, so it carries the job alone; a team thread
+ * carries its `team:<user>` key. Guard: src/test/chatResumeReopensThread.test.tsx.
+ */
+export function chatOpenPath(c: { jobId: string; otherUserId: string | null }): string {
+  const q = new URLSearchParams({ chat: c.jobId });
+  if (c.otherUserId && !isTeamThreadKey(c.jobId)) q.set("with", c.otherUserId);
+  return `/messages?${q.toString()}`;
+}
+
+/** The value old builds wrote: a thread is open, but it names none. Still stripped on sight. */
+export const LEGACY_CHAT_FLAG = "1";
+
+/**
+ * The thread an open-chat URL names, or null when it names none (no flag, or legacy `?chat=1`).
+ * A job id with no `with` opens that job's chat only when it has exactly one other party (the
+ * deep-link loader's own rule), otherwise the list.
+ */
+export function threadFromChatFlag(params: URLSearchParams): {
+  jobId: string | null;
+  userId: string | null;
+  teamUserId: string | null;
+} | null {
+  const chat = params.get("chat");
+  const jobId = chat && chat !== LEGACY_CHAT_FLAG ? chat : null;
+  if (!jobId) return null;
+  const teamUserId = teamUserIdFromKey(jobId);
+  if (teamUserId) return { jobId: null, userId: null, teamUserId };
+  return { jobId, userId: params.get("with") || null, teamUserId: null };
+}
 export const MESSAGES_LIST_PATH = "/messages";
 
 /**

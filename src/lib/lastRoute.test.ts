@@ -185,7 +185,7 @@ describe("hostile / corrupt stored values", () => {
 // because the restore put the user straight back into it. Reported from device:
 // "I am just stuck on messages now even if I close it it stays there."
 describe("rememberRoute — transient params", () => {
-  it("drops ?chat, which hides the bottom nav", () => {
+  it("drops the legacy ?chat=1, which names no thread and hides the bottom nav", () => {
     rememberRoute("/messages?chat=1");
     expect(readRestorableRoute()).toBe("/messages");
   });
@@ -214,4 +214,6 @@ describe("rememberRoute — transient params", () => {
 // The device-reported permanent trap: `?chat=1` makes MobileNav render null, so
 // persisting it restored a Messages screen with no bottom nav on every launch —
 // and force-quitting put the user straight back into it.
-// @mutate src/lib/lastRoute.ts | const TRANSIENT_PARAMS = ["chat", "quickApply"]; | const TRANSIENT_PARAMS = ["quickApply"];
+// F27: only the legacy `?chat=1` (names no thread) is transient now; `?chat=<jobId>&with=<userId>` is kept
+// so a resume reopens that thread (src/test/chatResumeReopensThread.test.tsx).
+// @mutate src/lib/lastRoute.ts | const namesAThread = (chat: string): boolean => chat !== "" && chat !== "1"; | const namesAThread = (chat: string): boolean => chat !== "";

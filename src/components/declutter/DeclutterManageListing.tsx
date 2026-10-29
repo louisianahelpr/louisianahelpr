@@ -46,6 +46,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
+import { KeepUpRow } from "./KeepUpRow";
 
 type View = "menu" | "price" | "sold" | "delete";
 
@@ -149,6 +150,9 @@ export function ManageListingSheet({
               {/* Q2430: free on day 12 if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
               </>)}
+              {/* Owner 2026-10-29: renews every 30 days until it sells (free listings run in the same rounds). */}
+              <KeepUpRow itemId={item.id} rowClassName={ROW} />
+
               <li>
                 {paused ? (
                   <button type="button" className={ROW} onClick={() => relist.mutate(undefined)} disabled={busy}>

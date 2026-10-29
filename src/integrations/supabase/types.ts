@@ -14081,6 +14081,7 @@ export type Database = {
           question: string
         }[]
       }
+      declutter_keep_up_state: { Args: { p_item_id: string }; Returns: boolean }
       declutter_leave_review: {
         Args: {
           p_comment: string
@@ -14761,6 +14762,7 @@ export type Database = {
       declutter_remove_cart_item: { Args: { p_line_id: string }; Returns: string }
       declutter_reopen_listing: { Args: { p_item_id: string }; Returns: string }
       declutter_set_auto_free: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_keep_up: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }
         Returns: boolean

@@ -95,6 +95,8 @@
     "declutter_add_handover(uuid, text)": "client",
     "declutter_auto_free_state(uuid)": "client",
     "declutter_set_auto_free(uuid, boolean)": "client",
+    "declutter_keep_up_state(uuid)": "client",
+    "declutter_set_keep_up(uuid, boolean)": "client",
     "declutter_set_listing_drops(uuid, boolean)": "client",
     "declutter_set_listing_price(uuid, integer, integer)": "client",
     "declutter_withdraw_item(uuid)": "reviewed 2026-10-14 (Q14): Declutter slice 2 RPC behind the hidden 'declutter' switch (require_feature first); takes down the caller's own listing only (seller_id = auth.uid())",

@@ -60,7 +60,8 @@ import {
 } from "@/lib/declutter/api";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
-import { ChipGroup, DropSchedule, LISTING_LIFETIME, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
+import { ChipGroup, DropSchedule, LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, ReviewRow, StepHead, StepperButton, dropRunTime } from "./DeclutterSellSteps";
+import { KeepUpSwitch, useKeepUp } from "./KeepUpRow";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL, TAX_ATTESTATION_SENTENCE } from "./declutterUi";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
@@ -180,6 +181,7 @@ export default function SellFlow() {
   const resumedEmpty = !!itemId && loadedFor.current === itemId && photoCount > 0 && (!form.title.trim() || !form.description.trim());
   const ai = useSellAiDraft({ ask: aiAsk, form, setForm, autoStart: !itemId && held.length > 0, autoFillEmpty: resumedEmpty });
   const problem = useMemo(() => formProblem(form), [form]);
+  const keepUp = useKeepUp(itemId);
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
 
   if (!user) return null;
@@ -535,8 +537,10 @@ export default function SellFlow() {
             <ReviewRow title="Photos" body={`${photosWord(photoCount)} · the first is the cover`} onEdit={() => setStep(1)} />
             <ReviewRow title="How buyers get it" body={handoverSummary(savedWays)} onEdit={() => setStep(4)} />
             {/* Owner 2026-10-28: "it also never said how long it will stay open"; the rule the server runs (Q2461). */}
-            <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} />
+            <ReviewRow title="How long it stays up" body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} />
           </ul>
+          {/* Owner 2026-10-29: "Keep it up until it sells" (saved on the draft at once; the row above follows it). */}
+          <KeepUpSwitch keep={keepUp} as="div" rowClassName="flex items-center gap-3 rounded-[20px] border border-border bg-card p-4" />
           <div className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="sell-tax-head">
             <h3 id="sell-tax-head" className="text-ds-15 font-semibold text-foreground">Confirm about this item</h3>
             <p className="text-ds-13 text-muted-foreground">Louisiana doesn't charge sales tax on occasional sales of your own things.</p>

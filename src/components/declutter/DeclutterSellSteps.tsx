@@ -69,6 +69,12 @@ export function ReviewRow({ title, body, onEdit }: { title: string; body: string
 export const LISTING_LIFETIME =
   "30 days. If it hasn't sold, it goes back up by itself up to 3 more times (about 4 months). We'll remind you before each round ends.";
 
+/**
+ * The same, with "Keep it up until it sells" on (owner 2026-10-29; migration 20261029154323): the sweep renews it
+ * every 30 days with no cap and sends no reminders.
+ */
+export const LISTING_LIFETIME_KEEP_UP = "Until it sells. It renews every 30 days by itself, with no reminders.";
+
 /** The real nightly run (priceDrop.ts PRICE_DROP_RUN_UTC) in Louisiana time: "6:07 PM" (CDT) or "5:07 PM" (CST). */
 export function dropRunTime(now: Date = new Date()): string {
   const run = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), PRICE_DROP_RUN_UTC.hour, PRICE_DROP_RUN_UTC.minute));

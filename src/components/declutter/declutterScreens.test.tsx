@@ -36,6 +36,8 @@ const state = {
   questions: [] as unknown[],
   agreed: false,
   card: null as unknown,
+  /** "Keep it up until it sells" (owner 2026-10-29): the draft's saved switch. */
+  keepUp: false as boolean | "not_deployed",
 };
 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
@@ -122,6 +124,8 @@ vi.mock("@/lib/declutter/api", () => ({
   setDropPct: async (_id: string, pct: number) => pct,
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: 5 }),
   fetchMyPickupWindows: async () => [],
+  fetchKeepUp: async () => state.keepUp,
+  setKeepUp: vi.fn(async (_id: string, on: boolean) => { state.keepUp = on; return on; }),
   photoPublicUrl: (p: string) => `https://cdn/${p}`,
   withdrawItem: async () => undefined,
   setWatch: async () => "watching",
@@ -193,6 +197,7 @@ async function toStep5() {
 describe("Declutter screens", () => {
   beforeEach(() => {
     state.feature = true;
+    state.keepUp = false;
     state.itemWindows = null;
     state.underAge = false;
     state.payoutBlock = null;
@@ -449,7 +454,7 @@ describe("Declutter controls are the shared ones", () => {
   // Owner 2026-10-28: "it also never said how long it will stay open"; decided the same day (Q2461 / #3728):
   // "30 days per round". The review step says the rule the server runs (the copy is bound to the migration
   // by src/test/declutterListingRounds.test.ts).
-  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title="How long it stays up" body={LISTING_LIFETIME} /> |
+  // @mutate src/components/declutter/DeclutterSellView.tsx |             <ReviewRow title="How long it stays up" body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} /> |
   it("the review step says how long the listing stays up, as the server runs it", async () => {
     state.item = { ...ITEM, status: "draft" };
     state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
@@ -460,6 +465,22 @@ describe("Declutter controls are the shared ones", () => {
     expect(row!.textContent).toMatch(/30 days\. If it hasn't sold, it goes back up by itself up to 3 more times/);
     // Not editable: the seller has no length to choose.
     expect(row!.querySelector("button")).toBeNull();
+  });
+
+  // Owner 2026-10-29: "Keep it up until it sells" on the last step, saved on the draft; the "how long" row follows it.
+  // @mutate src/components/declutter/DeclutterSellView.tsx |           <KeepUpSwitch keep={keepUp} as="div" | <KeepUpSwitch keep={{ ...keepUp, itemId: null }} as="div"
+  // @mutate src/components/declutter/DeclutterSellView.tsx | body={keepUp.on ? LISTING_LIFETIME_KEEP_UP : LISTING_LIFETIME} | body={LISTING_LIFETIME}
+  it("the last step offers Keep it up until it sells, and the stays-up row says what it means", async () => {
+    state.item = { ...ITEM, status: "draft" };
+    state.photos = [{ id: "p1", item_id: "i1", storage_path: "u1/declutter/i1/1.jpg", position: 0 }];
+    at("/declutter/sell?item=i1", <DeclutterSellPage />, "/declutter/sell");
+    await toStep5();
+    const sw = await screen.findByRole("switch", { name: "Keep it up until it sells" });
+    expect(screen.getByText("It renews every 30 days until someone buys it. You can turn this off anytime.")).toBeInTheDocument();
+    await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(sw);
+    await waitFor(() => expect(api.setKeepUp).toHaveBeenCalledWith("i1", true));
+    await waitFor(() => expect(document.querySelector('[data-review-row="How long it stays up"]')!.textContent).toMatch(/Until it sells\. It renews every 30 days by itself, with no reminders\./));
   });
 
   it("a long unbroken question, answer or description can wrap inside its card", async () => {

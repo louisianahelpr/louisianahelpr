@@ -13,6 +13,10 @@
  * Q2430 "Free on day 12" (AutoFreeRow; backend proof src/test/pglite/declutterAutoFree.pglite.mjs).
  * @mutate src/components/declutter/AutoFreeRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
  * @mutate src/components/declutter/AutoFreeRow.tsx |   if (state.data === "not_deployed") return null; |   if (false) return null;
+ * "Keep it up until it sells" (owner 2026-10-29; KeepUpRow; backend proof src/test/pglite/declutterKeepUp.pglite.mjs).
+ * @mutate src/components/declutter/KeepUpRow.tsx | onCheckedChange={(v) => flip.mutate(v)} | onCheckedChange={(v) => flip.mutate(!v)}
+ * @mutate src/components/declutter/KeepUpRow.tsx |   if (!itemId \|\| state.data === "not_deployed") return null; |   if (!itemId) return null;
+ * @mutate src/components/declutter/DeclutterManageListing.tsx |               <KeepUpRow itemId={item.id} rowClassName={ROW} /> |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -22,6 +26,7 @@ const calls: unknown[][] = [];
 const manage = { floor_price_cents: 3000, drops_stopped: false };
 let deployed = true;
 let autoFree: boolean | "not_deployed" = false;
+let keepUp: boolean | "not_deployed" = false;
 const stateReads = vi.hoisted(() => ({ n: 0 }));
 const autoFreeReads = vi.hoisted(() => ({ n: 0 }));
 const dropPct = vi.hoisted(() => ({ value: 5 }));
@@ -41,6 +46,8 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchAutoFree: async () => { await new Promise((r) => setTimeout(r, 30)); const r = autoFree; autoFreeReads.n++; return r; },
   fetchItemDropState: async () => ({ sale_mode: "offers", last_price_drop_on: null, drop_pct: dropPct.value }),
   setAutoFree: async (...a: unknown[]) => { calls.push(["auto_free", ...a]); return a[1]; },
+  fetchKeepUp: async () => keepUp,
+  setKeepUp: async (...a: unknown[]) => { calls.push(["keep_up", ...a]); return a[1]; },
 }));
 
 import { ManageListingSheet, SellerListingPanel } from "./DeclutterManageListing";
@@ -118,6 +125,27 @@ describe("Manage a listing (board 158)", () => {
     await act(async () => {});
     expect(screen.queryByText("Free on day 12")).toBeNull();
     autoFree = false;
+  });
+
+  // Owner 2026-10-29: "Keep it up until it sells", with its one-line explainer, for a priced or a free listing.
+  it("Keep it up until it sells: the switch sends the seller's choice, free listings too; hidden before the migration is on prod", async () => {
+    keepUp = false;
+    const a = sheet();
+    const sw = await screen.findByRole("switch", { name: "Keep it up until it sells" });
+    expect(screen.getByText("It renews every 30 days until someone buys it. You can turn this off anytime.")).toBeInTheDocument();
+    await waitFor(() => expect((sw as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(sw);
+    await waitFor(() => expect(calls).toContainEqual(["keep_up", "i1", true]));
+    a.unmount();
+    const b = sheet({ price_cents: 0, current_price_cents: 0 });
+    expect(await screen.findByRole("switch", { name: "Keep it up until it sells" })).toBeInTheDocument();
+    b.unmount();
+    keepUp = "not_deployed";
+    sheet();
+    expect(await screen.findByText("Stop price drops")).toBeTruthy();
+    await act(async () => {});
+    expect(screen.queryByText("Keep it up until it sells")).toBeNull();
+    keepUp = false;
   });
 
   it("the switch stops the drops (on = stopped)", async () => {

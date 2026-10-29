@@ -557,6 +557,20 @@ export async function setAutoFree(itemId: string, on: boolean): Promise<boolean>
   return rpcData(await supabase.rpc("declutter_set_auto_free", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_auto_free", e)) as boolean;
 }
 
+/**
+ * "Keep it up until it sells" (owner 2026-10-29): the seller's own listing renews every 30 days with no cap and no
+ * notices (migration 20261029154323). "not_deployed" before that migration reaches prod (PGRST202).
+ */
+export async function fetchKeepUp(itemId: string): Promise<boolean | "not_deployed"> {
+  const r = await supabase.rpc("declutter_keep_up_state", { p_item_id: itemId });
+  if (isMissingRpcNamed(r.error, "declutter_keep_up_state")) return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_keep_up_state", e)) as boolean;
+}
+
+export async function setKeepUp(itemId: string, on: boolean): Promise<boolean> {
+  return rpcData(await supabase.rpc("declutter_set_keep_up", { p_item_id: itemId, p_on: on }), (e) => rpcErrorMessage("declutter_set_keep_up", e)) as boolean;
+}
+
 /** Board 158: hide a live listing from buyers (photos and saves kept; open offers close). */
 export async function pauseListing(itemId: string): Promise<string> {
   return rpcData(await supabase.rpc("declutter_pause_listing", { p_item_id: itemId }), (e) => rpcErrorMessage("declutter_pause_listing", e)) as string;

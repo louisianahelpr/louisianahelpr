@@ -1844,10 +1844,9 @@ export function lifecycleErrorMessage(error: unknown): string | null {
   // be handled before the code table.
   if (isWriteRejected(error)) return error.userMessage;
 
-  const raw =
-    typeof error === "string"
-      ? error
-      : ((error as { message?: string } | null)?.message ?? "");
+  // A non-string message (a thrown object carrying a number, say) has no code to match: null, never a throw.
+  const message = typeof error === "string" ? error : (error as { message?: unknown } | null)?.message;
+  const raw = typeof message === "string" ? message : "";
   if (!raw) return null;
   for (const [code, copy] of Object.entries(LIFECYCLE_REASONS)) {
     // Postgres wraps the code in its own prose, so match on containment

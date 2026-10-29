@@ -2,7 +2,7 @@
  * "Remember my setup" (owner 2026-10-29): a NEW listing starts from the seller's most recent
  * listing's setup (src/lib/declutter/lastSetup.ts says what is per listing and what is per seller).
  * Applied once, and only to what is still blank or at its default, so nothing the seller already
- * chose is replaced. Step 4 then says "Using your last listing's setup · Change".
+ * chose is replaced. The one screen then folds "How buyers get it" to one line ending "Using your last listing's setup · Change".
  */
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -51,21 +51,16 @@ export function useLastListingSetup(
   return used;
 }
 
-/** Step 4's line: the setup came from the last listing; Change takes the seller to the first choice. */
-export function LastSetupNote() {
+/**
+ * A new listing's "How buyers get it" line (SellOneScreen): the setup came from the last listing; Change opens
+ * the choices, the area, the pickup address and the pickup times.
+ */
+export function LastSetupNote({ onChange }: { onChange: () => void }) {
   return (
     <p className="flex flex-wrap items-center gap-x-2 text-ds-13 text-muted-foreground" data-last-setup="">
       <span>Using your last listing's setup</span>
       <span aria-hidden>·</span>
-      <button
-        type="button"
-        className="min-h-11 font-semibold text-foreground underline underline-offset-2"
-        onClick={() => {
-          const first = document.querySelector<HTMLElement>("[data-handover-tile] button, #sell-area");
-          first?.scrollIntoView({ block: "center" });
-          first?.focus();
-        }}
-      >
+      <button type="button" className="min-h-11 font-semibold text-foreground underline underline-offset-2" onClick={onChange}>
         Change
       </button>
     </p>

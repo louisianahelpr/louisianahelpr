@@ -9,6 +9,7 @@
  * @mutate src/components/firstRun/FirstRun.tsx |   const options = FIRST_RUN_OPTIONS.filter((o) => o.section === "jobs" \|\| declutterOpen); |   const options = FIRST_RUN_OPTIONS;
  * @mutate src/pages/home/HomeDashboard.tsx |       <FirstRun userId={user?.id} /> |       {null}
  * @mutate src/components/firstRun/firstRunGate.ts | export const firstRunStorageKey = (userId: string) => `${LEGACY_KEY}_${userId}`; | export const firstRunStorageKey = (userId: string) => `helpr_first_run_${userId}`;
+ * @mutate src/components/firstRun/FirstRun.tsx |   const cameToPost = picks.length === 0 \|\| picks.includes("hire") \|\| picks.includes("sell"); |   const cameToPost = true;
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -39,6 +40,23 @@ describe("first run (board 53) and the short tour", () => {
     expect(tourSteps(["deal"], false)[2].text).toBe("Browse jobs near you");
     expect(tourSteps(["earn", "deal"], true)[2].text).toBe("Find jobs and deals near you");
     expect(tourSteps([], true)[1].text).toBe("Post a job or sell an item");
+  });
+
+  // A3-I2 (app audit 2026-10-28): after picking only "Earn by helping
+  // neighbors" the Create step said "Post a job", as if they had come to hire.
+  // Every account can post (never role-based), so the step stays, but for
+  // someone who came only to earn or shop it is the "yourself" case.
+  it("someone who picked only earning or deals is not told to post as if they came to hire", () => {
+    const CASES: [Parameters<typeof tourSteps>[0], boolean, string][] = [
+      [["earn"], false, "Need a hand yourself? Post a job here"],
+      [["earn"], true, "Need a hand, or selling something? Start here"],
+      [["deal"], true, "Need a hand, or selling something? Start here"],
+      [["earn", "deal"], true, "Need a hand, or selling something? Start here"],
+      [["earn", "hire"], false, "Post a job"],
+      [["earn", "sell"], true, "Post a job or sell an item"],
+    ];
+    expect(CASES.length).toBeGreaterThan(3);
+    for (const [picks, open, text] of CASES) expect(tourSteps(picks, open)[1].text, picks.join("+")).toBe(text);
   });
 
   it("picks only reorder Home: putFirst puts them first and keeps the rest in order", () => {

@@ -45,9 +45,16 @@ export function tourSteps(picks: Pick[], declutterOpen: boolean): { target: Targ
     : picks.includes("earn") ? "Find jobs near you"
     : picks.includes("deal") && declutterOpen ? "Find deals near you"
     : sells ? "Browse jobs and deals near you" : "Browse jobs near you";
+  // A3-I2: someone who came only to earn or to shop still has Create (every
+  // account posts; never role-based), but "Post a job" read as if they had
+  // picked hiring. With picks and none of them hire/sell, word it for themselves.
+  const cameToPost = picks.length === 0 || picks.includes("hire") || picks.includes("sell");
+  const create = cameToPost
+    ? (sells ? "Post a job or sell an item" : "Post a job")
+    : (sells ? "Need a hand, or selling something? Start here" : "Need a hand yourself? Post a job here");
   return [
     { target: "home", text: "Home shows what needs you" },
-    { target: "create", text: sells ? "Post a job or sell an item" : "Post a job" },
+    { target: "create", text: create },
     { target: "explore", text: explore },
     { target: "messages", text: "Chats live here. Money and settings are under You" },
   ];

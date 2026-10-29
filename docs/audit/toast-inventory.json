@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1007,
+    "calls": 1006,
     "files": 268,
-    "rendering": 852,
+    "rendering": 851,
     "suppressedByPolicy": 155,
     "byKind": {
       "confirmConsequential": 29,
       "errorToast": 6,
       "successToast": 1,
       "toast": 72,
-      "toast.error": 710,
+      "toast.error": 709,
       "toast.info": 3,
       "toast.loading": 1,
       "toast.message": 1,
@@ -20,7 +20,7 @@
     "copyPiecesByForm": {
       "literal": 454,
       "template": 103,
-      "dynamic": 500,
+      "dynamic": 499,
       "jsx": 0
     }
   },
@@ -1018,17 +1018,7 @@
     },
     {
       "file": "src/components/PayoutSetupForm.tsx",
-      "line": 130,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "userFacingError(err, \"We couldn't start payout setup — try again in a moment.\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/PayoutSetupForm.tsx",
-      "line": 156,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1038,7 +1028,7 @@
     },
     {
       "file": "src/components/PayoutSetupForm.tsx",
-      "line": 163,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1048,7 +1038,7 @@
     },
     {
       "file": "src/components/PayoutSetupForm.tsx",
-      "line": 186,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1058,7 +1048,7 @@
     },
     {
       "file": "src/components/PayoutSetupForm.tsx",
-      "line": 219,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

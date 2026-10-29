@@ -9,6 +9,7 @@
  */
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchMyHandover } from "@/lib/declutter/handover";
 import { toast } from "sonner";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -97,6 +98,11 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<RefundReason>("not_as_described");
   const [note, setNote] = useState("");
+  // Audit 1028 part 2, D2-11: no "Never got it" once the buyer said they have it ("I got it", or their pickup photo).
+  // The same handover row and key the order card reads.
+  const handover = useQuery({ queryKey: ["declutter", "handover", v.order_id], queryFn: () => fetchMyHandover(v.order_id) });
+  const buyerHasIt = handover.data?.confirmed_by === "buyer" || !!handover.data?.picked_up_at;
+  const reasons = (Object.keys(REFUND_REASON_WORDS) as RefundReason[]).filter((k) => !(buyerHasIt && k === "not_received"));
   const ask = useMutation({
     mutationFn: () => askRefund(v.order_id, reason, note.trim()),
     onSuccess: () => { toast.success(`Sent. ${cap(who)} answers within 24 hours.`); setOpen(false); setNote(""); refresh(); },
@@ -127,7 +133,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     return (
       <fieldset className="space-y-2 rounded-xl border border-border p-3" data-refund-ask="">
         <legend className="px-1 text-sm font-semibold">Ask for a refund</legend>
-        {(Object.keys(REFUND_REASON_WORDS) as RefundReason[]).map((k) => (
+        {reasons.map((k) => (
           <label key={k} className="flex min-h-11 items-center gap-2 text-sm">
             <input type="radio" name={`${id}-reason`} value={k} checked={reason === k} onChange={() => setReason(k)} />
             {REFUND_REASON_WORDS[k]}

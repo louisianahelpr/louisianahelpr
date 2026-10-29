@@ -55,6 +55,7 @@ import { GotItSheet, NoShowSheet, PickedUpSheet, PutItOutSheet } from "./Declutt
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel } from "./DeclutterPorchDay";
 import { useOrderOtherPerson } from "./useOrderOtherPerson";
+import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
 import { BuyerOrderHead, type BuyerOrderView } from "./BuyingOrders";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses } from "./DeclutterOrderBits";
@@ -196,6 +197,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
   const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
   const [problemOpen, setProblemOpen] = useState(false);
+  const [atHandover, setAtHandover] = useState(false); // opened from the "I got it" sheet (D2-11)
   // Board 141 (Declutter side, 20261026155251): ask for / answer a refund in the 24 hours after the handover.
   const refundRequests = useFeature("declutter_refund_requests");
   // Buying's tracker: the card shows its steps and ONE next action; the rest opens under Details, at that action.
@@ -247,7 +249,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           )}
           {refundRequests && items > 0 && (
             <Suspense fallback={null}>
-              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} />} />
+              <DeclutterRefundPanel orderId={order.orderId} who={who} problemForm={<ProblemForm orderId={order.orderId} side={order.side} stage="handover" />} />
             </Suspense>
           )}
           <DeclutterReviewForm orderId={order.orderId} side={order.side} userId={userId} />
@@ -258,7 +260,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           <Suspense fallback={<HelprSpinner />}>
             <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} />
           </Suspense>
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />
+          <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />
         </>
       ) : order.handover === "delivery" ? (
         <>
@@ -266,7 +268,7 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {order.deliveryTaskId
             ? <Suspense fallback={<HelprSpinner />}><OrderDeliveryPanel taskId={order.deliveryTaskId} side={order.side} orderId={order.orderId} /></Suspense>
             : <p className="text-sm text-muted-foreground">Finding a Helpr for this delivery.</p>}
-          <ProblemForm orderId={order.orderId} />
+          <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" />
         </>
       ) : (
         <>
@@ -275,16 +277,17 @@ function OrderCard({ order, userId, booking, payout, view }: { order: PaidOrder;
           {/* Owner 2026-10-28: a porch pickup is a DAY (the time picker stays for a time already booked). */}
           {order.handover === "porch"
             ? <PorchDayPanel orderId={order.orderId} side={order.side} booking={booking} fallback={<BookingPanel order={order} booking={booking} />}
-                noDays={<ProblemForm orderId={order.orderId} />} />
+                noDays={<ProblemForm orderId={order.orderId} side={order.side} stage="waiting" />} />
             : <BookingPanel order={order} booking={booking} />}
           {order.handover === "meetup" && <MeetupPanel orderId={order.orderId} side={order.side} slotStart={booking?.slot_start ?? null} />}
           {order.handover === "pickup_home" && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => setProblemOpen(true)} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} who={who} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && <NoShowButton order={order} slotStart={noShowFrom(booking) ?? booking.slot_start} who={who} />}
           {/* D2-9 (owner 2026-10-29): no "Report a problem" button until the booked pickup is over (pickupTimeOver). */}
-          <ProblemForm orderId={order.orderId} open={problemOpen} onOpenChange={setProblemOpen} trigger={pickupTimeOver(booking)} />
+          <ProblemForm orderId={order.orderId} side={order.side} stage={atHandover ? "handover" : "waiting"} open={problemOpen}
+            onOpenChange={(o) => { setProblemOpen(o); if (!o) setAtHandover(false); }} trigger={pickupTimeOver(booking)} />
         </>
       )}
       {order.side === "buyer" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} /></Suspense>}
@@ -551,17 +554,9 @@ function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slotStart: 
   );
 }
 
-const PROBLEM_WORDS: Record<ProblemReason, string> = {
-  not_as_described: "It isn't as described",
-  damaged: "It's damaged",
-  not_received: "I didn't get it",
-  no_show: "Someone didn't show",
-  safety: "I felt unsafe",
-  other: "Something else",
-};
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
-function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: { orderId: string; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean }) {
+function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange, trigger = true }: { orderId: string; side: "buyer" | "seller"; stage: ProblemStage; open?: boolean; onOpenChange?: (open: boolean) => void; trigger?: boolean }) {
   const qc = useQueryClient();
   const [openState, setOpenState] = useState(false);
   // Controlled from the order card when "Something's not right" opens it (board 159).
@@ -569,7 +564,9 @@ function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: 
   const setOpen = onOpenChange ?? setOpenState;
   const formRef = useRef<HTMLDivElement>(null);
   useEffect(() => { if (open && openProp) formRef.current?.scrollIntoView?.({ block: "center" }); }, [open, openProp]);
-  const [reason, setReason] = useState<ProblemReason>("not_as_described");
+  const reasons = PROBLEM_REASONS[side][stage];
+  const [picked, setReason] = useState<ProblemReason | null>(null);
+  const reason = picked && reasons.some(([r]) => r === picked) ? picked : reasons[0][0];
   const [note, setNote] = useState("");
   const send = useMutation({
     mutationFn: () => reportProblem(orderId, reason, note.trim(), []),
@@ -586,7 +583,7 @@ function ProblemForm({ orderId, open: openProp, onOpenChange, trigger = true }: 
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       <label htmlFor={`dcl-reason-${orderId}`} className="block text-xs font-medium">What went wrong?</label>
       <select id={`dcl-reason-${orderId}`} className={input} value={reason} onChange={(e) => setReason(e.target.value as ProblemReason)}>
-        {(Object.keys(PROBLEM_WORDS) as ProblemReason[]).map((r) => <option key={r} value={r}>{PROBLEM_WORDS[r]}</option>)}
+        {reasons.map(([r, words]) => <option key={r} value={r}>{words}</option>)}
       </select>
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
       <textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />

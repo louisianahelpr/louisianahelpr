@@ -635,6 +635,8 @@ export const RPC_ERROR_COPY = {
     order_not_paid: DC.order_not_paid,
     photo_not_uploaded: DC.photo_not_uploaded,
     photo_too_old: DC.photo_too_old,
+    // Audit 1a #4 (20261029201542): the seller's photo before the buyer's booked day.
+    porch_day_not_yet: DC.porch_day_not_yet,
     problem_open: DC.problem_open,
   },
   declutter_porch_note: {

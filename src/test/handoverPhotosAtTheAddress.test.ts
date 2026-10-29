@@ -10,7 +10,7 @@
  */
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |     v_m := public.helpr_task_distance_m(p_lat, p_lng, d.dropoff_lat, d.dropoff_lng); |     v_m := 0;
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |       SELECT public.helpr_task_distance_m(p_lat, p_lng, m.spot_lat, m.spot_lng) INTO v_m |       SELECT 0 INTO v_m
-// @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql |   IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1) |   IF v_side = 'seller' THEN RETURN jsonb_build_object('result', 'set_out'); END IF;\n  IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1)
+// @mutate supabase/migrations/20261029201542_declutter_porch_photo_not_before_the_day.sql |   IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1) |   IF v_side = 'seller' THEN RETURN jsonb_build_object('result', 'set_out'); END IF;\n  IF p_photo_path IS NULL\n     OR split_part(p_photo_path, '/', 1)
 // @mutate supabase/migrations/20261029002010_declutter_handover_photos_live_only.sql | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text,\n  p_lat numeric DEFAULT NULL, p_lng numeric DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_seller_picked_up(p_order_id uuid, p_photo_path text)
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
@@ -78,7 +78,8 @@ describe("every Declutter handover photo is taken at the right address", () => {
   it("the porch photo is placed BEFORE the seller's branch (the seller's 'Left on porch' is checked too)", () => {
     const body = flat(DEFS.get("declutter_porch_photo")?.stmt ?? "");
     const placed = body.indexOf("RAISE EXCEPTION 'not_at_pickup'");
-    const seller = body.indexOf("IF v_side = 'seller'");
+    // The seller's WRITE branch (20261029201542 added an earlier seller-side refusal before the photo checks: no write).
+    const seller = body.indexOf("IF v_side = 'seller' THEN UPDATE public.declutter_handovers SET set_out_photo_path");
     expect(placed).toBeGreaterThan(0);
     expect(seller).toBeGreaterThan(placed);
   });

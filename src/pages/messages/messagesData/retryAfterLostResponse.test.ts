@@ -75,6 +75,7 @@ vi.mock("@/lib/messagingLockout", () => ({
 }));
 vi.mock("@/lib/recipientGate", () => ({
   RECIPIENT_RESTRICTED_TOAST: "restricted",
+  recipientRestrictedToast: () => "restricted",
   fetchRecipientRestricted: async () => false,
 }));
 

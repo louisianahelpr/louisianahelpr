@@ -28,6 +28,8 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn() }));
 
 import {
+  RECIPIENT_NOT_ON_JOB_NOTICE,
+  RECIPIENT_NOT_ON_JOB_TOAST,
   RECIPIENT_RESTRICTED_NOTICE,
   RECIPIENT_RESTRICTED_TOAST,
   fetchRecipientRestricted,
@@ -78,12 +80,22 @@ describe("fetchRecipientRestricted (server-derived)", () => {
     routeGate({ [APPLICANT]: false, [POSTER]: false });
     expect(await fetchRecipientRestricted(JOB, APPLICANT, ME, POSTER)).toBe(false);
   });
-  it("never for the poster itself, the poster as receiver, or an ownerless job", async () => {
+  it("never for the poster as receiver, or an ownerless job", async () => {
     routeGate({ [APPLICANT]: false, [POSTER]: true });
-    expect(await fetchRecipientRestricted(JOB, APPLICANT, POSTER, POSTER)).toBe(false);
     expect(await fetchRecipientRestricted(JOB, POSTER, ME, POSTER)).toBe(false);
     expect(await fetchRecipientRestricted(JOB, APPLICANT, ME, null)).toBe(false);
     expect(gateCalls()).toHaveLength(0);
+  });
+  // A3-B3 (app audit 2026-10-29): the poster's thread with someone who is no
+  // longer anyone on the job (no application, offer, hire or crew place) is
+  // refused by the same gate; it must close up front, never offer a retry.
+  it("the POSTER is restricted when the gate refuses the person in the thread", async () => {
+    routeGate({ [APPLICANT]: false, [POSTER]: true });
+    expect(await fetchRecipientRestricted(JOB, APPLICANT, POSTER, POSTER)).toBe(true);
+  });
+  it("the poster is not restricted when the gate refuses the poster too (rate cap, banned, closed)", async () => {
+    routeGate({ [APPLICANT]: false, [POSTER]: false });
+    expect(await fetchRecipientRestricted(JOB, APPLICANT, POSTER, POSTER)).toBe(false);
   });
   it("fails open (no notice) on an RPC error or a missing RPC", async () => {
     routeGate({ [APPLICANT]: { error: { code: "PGRST202" } }, [POSTER]: true });
@@ -102,14 +114,20 @@ describe("useRecipientRestricted (open thread)", () => {
     const { result } = renderHook(() => useRecipientRestricted({ activeConvo: convo(), userId: ME, skip: false }));
     await waitFor(() => expect(result.current).toBe(true));
   });
-  it("never asks for the poster (the poster reaches every party)", async () => {
+  it("closes the POSTER's thread up front when the person is no longer on the job (A3-B3)", async () => {
     routeGate({ [APPLICANT]: false, [POSTER]: true });
     const { result } = renderHook(() =>
       useRecipientRestricted({ activeConvo: convo({ viewerIsPoster: true }), userId: POSTER, skip: false }),
     );
-    await act(async () => {});
+    await waitFor(() => expect(result.current).toBe(true));
+  });
+  it("leaves the poster's thread open while the person is still on the job", async () => {
+    routeGate({ [APPLICANT]: true, [POSTER]: true });
+    const { result } = renderHook(() =>
+      useRecipientRestricted({ activeConvo: convo({ viewerIsPoster: true }), userId: POSTER, skip: false }),
+    );
+    await waitFor(() => expect(gateCalls().length).toBeGreaterThan(0));
     expect(result.current).toBe(false);
-    expect(rpcMock).not.toHaveBeenCalled();
   });
   it("does not ask while another notice already owns the dock", async () => {
     routeGate({ [APPLICANT]: false, [POSTER]: true });
@@ -144,6 +162,17 @@ describe("ChatComposer recipient-restricted notice", () => {
     render(<ChatComposer {...base} recipientRestricted />);
     expect(screen.getByTestId("thread-recipient-restricted-notice")).toBeTruthy();
     expect(screen.getByRole("status").textContent).toBe(RECIPIENT_RESTRICTED_NOTICE);
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+  it("tells the poster, in one line, that the person isn't on the job", () => {
+    render(
+      <ChatComposer
+        {...base}
+        activeConvo={{ jobId: JOB, otherUserId: APPLICANT, viewerIsPoster: true } as unknown as Conversation}
+        recipientRestricted
+      />,
+    );
+    expect(screen.getByRole("status").textContent).toBe(RECIPIENT_NOT_ON_JOB_NOTICE);
     expect(screen.queryByRole("textbox")).toBeNull();
   });
 });
@@ -208,13 +237,23 @@ describe("a send refused by the receiver gate", () => {
     expect(s.get().messages[0].sendStatus).toBe("failed");
     expect(toastError).not.toHaveBeenCalledWith(RECIPIENT_RESTRICTED_TOAST);
   });
-  it("a refused POSTER is never told only the poster can message", async () => {
+  it("a POSTER refused by the gate gets no retry and is told why, not 'only the poster can' (A3-B3)", async () => {
     routeGate({ [APPLICANT]: false, [POSTER]: true });
     fromMock.mockImplementation(() => insertRefused());
     const s = setup(POSTER);
     await s.handlers.dispatchMessage(s.optimistic);
-    expect(s.get().messages[0].sendStatus).toBe("failed");
+    expect(s.get().messages[0].sendStatus).toBe("refused");
+    expect(s.get().active?.recipientRestricted).toBe(true);
+    expect(toastError).toHaveBeenCalledWith(RECIPIENT_NOT_ON_JOB_TOAST);
     expect(toastError).not.toHaveBeenCalledWith(RECIPIENT_RESTRICTED_TOAST);
+  });
+  it("a poster at the hourly cap keeps the retry (the gate refuses the poster too)", async () => {
+    routeGate({ [APPLICANT]: false, [POSTER]: false });
+    fromMock.mockImplementation(() => insertRefused());
+    const s = setup(POSTER);
+    await s.handlers.dispatchMessage(s.optimistic);
+    expect(s.get().messages[0].sendStatus).toBe("failed");
+    expect(s.get().active?.recipientRestricted).toBeFalsy();
   });
   it("a block trigger's 42501 is not blamed on the recipient rule", async () => {
     routeGate({ [APPLICANT]: false, [POSTER]: true });
@@ -237,3 +276,6 @@ describe("a send refused by the receiver gate", () => {
 // it a rate-limited or banned sender is told "only the poster can message
 // them", and their retryable send is made permanently non-retryable.
 // @mutate src/lib/recipientGate.ts | return (await askGate(jobId, posterId)) === true; | return true;
+// A3-B3: restore the poster exemption, which left the poster's thread with a
+// live composer whose every send bounced and offered "tap to retry".
+// @mutate src/lib/recipientGate.ts | if (receiverId === posterId) return false; | if (userId === posterId \|\| receiverId === posterId) return false;

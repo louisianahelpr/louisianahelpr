@@ -12,7 +12,7 @@ import {
   fetchMessagingClosesAt,
   isLockoutRefusal,
 } from "@/lib/messagingLockout";
-import { RECIPIENT_RESTRICTED_TOAST, fetchRecipientRestricted } from "@/lib/recipientGate";
+import { fetchRecipientRestricted, recipientRestrictedToast } from "@/lib/recipientGate";
 import { OFF_JOB_TOAST, fetchOffJobState } from "@/lib/offJobGate";
 import { classifySendRefusal } from "@/lib/messageSendRefusal";
 import { isTeamThreadKey, normalizeMessageRow, teamUserIdFromKey } from "@/lib/teamThread";
@@ -327,9 +327,11 @@ export function createSendHandlers({
         // Only for the RLS policy's refusal: the ban and block triggers also
         // raise 42501, with their own messages, and the gate answers false for
         // those too.
-        // fetchRecipientRestricted also returns false for the poster itself and
-        // for any caller who cannot reach the poster either (banned, replaced,
-        // rate-capped), so those keep the ordinary retry below.
+        // The poster too (A3-B3): a poster whose thread is with someone no
+        // longer on the job is refused by the same gate; a retry cannot work.
+        // fetchRecipientRestricted returns false for any caller who cannot
+        // reach the poster either (banned, replaced, rate-capped), so those
+        // keep the ordinary retry below.
         const posterId =
           activeConvo?.jobId === optimistic.job_id ? (activeConvo.posterId ?? null) : null;
         if (
@@ -341,7 +343,7 @@ export function createSendHandlers({
             posterId,
           ))
         ) {
-          toast.error(RECIPIENT_RESTRICTED_TOAST);
+          toast.error(recipientRestrictedToast(optimistic.sender_id === posterId));
           // Only the OPEN thread is flipped: reopening it from the inbox asks
           // the server again, so the notice cannot outlive the rule (an offer
           // accepted later makes the thread sendable again).

@@ -179,7 +179,7 @@ CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, status text, buyer_id
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
   items_cents integer, debt_cents integer, amount_cents integer, status text, stripe_transfer_id text, attempts integer NOT NULL DEFAULT 0);
 CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
-CREATE TABLE public.declutter_handovers (order_id uuid PRIMARY KEY, confirmed_by text);
+CREATE TABLE public.declutter_handovers (order_id uuid PRIMARY KEY, confirmed_by text, set_out_photo_path text, picked_up_photo_path text);
 CREATE TABLE public.declutter_refund_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, status text,
   declined_at timestamptz);
 -- The 'delivery' fixture step runs only once this table exists (to_regclass), as on a database with 20261017055505.
@@ -292,7 +292,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // A3-8 / A2-18 (20261028210552): the tip line's check; after are_users_blocked (a HELPER), which its SQL body calls.
   "declutter_delivery_tip_open",
   // Porch days (20261029161347): the one porch-weekday rule.
-  "declutter_is_porch_day"];
+  "declutter_is_porch_day",
+  // Audit 1a #10 (20261029222816): may the uploader delete this unattached handover photo.
+  "declutter_handover_photo_unattached"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).

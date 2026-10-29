@@ -40,7 +40,14 @@ const state = {
   paid: {} as Record<string, number>,
   /** Audit 1b D2-2: the open problems both sides read (declutter_problems, status open). */
   problems: [] as unknown[],
+  /** D2-7: whether the server takes problem photos (problemPhotos.ts; off until it does). */
+  problemPhotos: false,
 };
+vi.mock("@/lib/declutter/problemPhotos", () => ({
+  PROBLEM_PHOTO_MAX: 3,
+  get PROBLEM_FORM_PHOTOS_READY() { return state.problemPhotos; },
+  REFUND_FORM_PHOTOS_READY: false,
+}));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => state.features.includes(key) }));
 // Board 141's refund panel has its own test; here a stub says whether the card offers it.
@@ -79,6 +86,7 @@ vi.mock("@/lib/declutter/handover", () => ({
   porchPhoto: async (...a: unknown[]) => { state.calls.push(["porch_photo", ...a]); return { result: "set_out" }; },
   porchNote: async (...a: unknown[]) => { state.calls.push(["porch_note", ...a]); return a[1]; },
   uploadHandoverPhoto: async () => "me/declutter/handover/o1/x.jpg",
+  uploadProblemPhoto: async (orderId: string, f: File) => { state.calls.push(["problem_photo", orderId, f.name]); return `me/declutter/problem/${orderId}/${f.name}`; },
   reportNoShow: async (...a: unknown[]) => { state.calls.push(["no_show", ...a]); return { result: "rebook_offered" }; },
   reportProblem: async (...a: unknown[]) => { state.calls.push(["problem", ...a]); return "p1"; },
   leaveReview: async (...a: unknown[]) => { state.calls.push(["review", ...a]); return "r1"; },
@@ -393,6 +401,32 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Nobody was there" } });
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_received", "Nobody was there", []]));
+  });
+
+  // Audit 1b D2-7: up to 3 photos on the problem form, uploaded on Send into the problem folder and sent with the
+  // report; hidden until the server takes them after the handover (problemPhotosWaitForServer.test.ts).
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx | PROBLEM_FORM_PHOTOS_READY && photos.length ? await uploadProblemPhotos(orderId, photos) : [] | []
+  it("D2-7: the problem form's photos are uploaded and sent with the report once the server takes them; hidden before", async () => {
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:p", revokeObjectURL: () => undefined }));
+    state.features = ["declutter_refund_requests"];
+    state.handover = { status: "handed_over", confirmed_at: "2026-10-20T15:00:00Z" };
+    state.problemPhotos = false;
+    const off = show([line({ order_status: "handed_over" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    expect(screen.queryByRole("group", { name: "Photos" })).toBeNull();
+    off.unmount();
+    state.problemPhotos = true;
+    const { container } = show([line({ order_status: "handed_over" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const input = container.querySelector('[data-problem-photos] input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(["x"], "crack.jpg", { type: "image/jpeg" })] } });
+    expect(within(screen.getByRole("group", { name: "Photos" })).getAllByRole("img")).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "Leg is cracked" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_as_described", "Leg is cracked", ["me/declutter/problem/o1/crack.jpg"]]));
+    expect(state.calls).toContainEqual(["problem_photo", "o1", "crack.jpg"]);
+    state.problemPhotos = false;
+    state.features = [];
   });
 
   it("after handover: the seller sees the payout (minus a fee debt) and both can review (rows 45, 93)", async () => {
@@ -771,7 +805,8 @@ describe("#6: a free claim never reads like a paid order", () => {
     state.payouts = [{ order_id: "o1", amount_cents: 4000, items_cents: 4000, delivery_cents: 0, refunded_cents: 0, debt_cents: 0, status: "pending" }];
     show([line({ order_status: "handed_over", my_side: "seller" })]);
     expect(await screen.findByText("Refund panel")).toBeInTheDocument();
-    expect(screen.getByText(/We send it once the sale is final/)).toBeInTheDocument();
+    // Awaited: the payout read and the refund panel's lazy chunk settle in either order.
+    expect(await screen.findByText(/We send it once the sale is final/)).toBeInTheDocument();
   });
 });
 

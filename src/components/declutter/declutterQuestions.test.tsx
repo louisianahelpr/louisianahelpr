@@ -126,7 +126,7 @@ describe("board 162: public questions", () => {
     expect(toasts.error).toEqual([]);
     expect(screen.getByRole("button", { name: "Ask" })).not.toBeDisabled();
     fireEvent.change(box, { target: { value: "Is it oak?" } });
-    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(box.getAttribute("aria-invalid")).toBeNull();
   });
 

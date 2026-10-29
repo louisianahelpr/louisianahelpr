@@ -30,6 +30,7 @@ import { describe, it, expect } from "vitest";
 import { relative, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { walkSource, readSource } from "./helpers/walkSource";
+import { readdirSync } from "./helpers/trackedFiles";
 
 const ROOT = resolve(__dirname, "../..");
 const FUNCTIONS = resolve(ROOT, "supabase/functions");
@@ -95,7 +96,13 @@ describe("in-flight payment_status values are watched by money-reconciliation (Q
     const sweep = blankComments(readSource(resolve(FUNCTIONS, "card-hold-sweep/index.ts")) ?? "");
     expect(sweep).toMatch(/from\("jobs"\)\.select\("id"\)\.eq\("payment_status", "held"\)/);
     expect(sweep).toMatch(/for \(const id of heldIds\) if \(!open\.has\(id\)\) defects\.record\(/);
-    const mig = readSource(resolve(ROOT, "supabase/migrations/20261027185146_card_hold_at_post.sql")) ?? "";
+    // The NEWEST migration that names the sweep's cron job (guardsReadTheNewestMigration): 20261029162907
+    // restated record_backout_notice from the card-hold migration, so the guard no longer pins that file by name.
+    const MIGS = resolve(ROOT, "supabase/migrations");
+    const sweepMigs = readdirSync(MIGS).filter((f) => f.endsWith(".sql")).sort()
+      .filter((f) => /cron\.(?:un)?schedule\('card-hold-sweep/.test(readSource(resolve(MIGS, f)) ?? ""));
+    expect(sweepMigs.length).toBeGreaterThan(0);
+    const mig = readSource(resolve(MIGS, sweepMigs[sweepMigs.length - 1])) ?? "";
     expect(mig).toMatch(/cron\.schedule\('card-hold-sweep', '9-59\/10 \* \* \* \*'/);
     expect(RESTING.held).toMatch(/card-hold-sweep/);
   });

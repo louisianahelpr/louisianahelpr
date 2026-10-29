@@ -63,7 +63,8 @@ const RESTATED_LATER: Record<string, string> = {
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
   helpr_task_view: "20261027201327_delivery_dropoff_on_accept.sql",
   // Q2399 card hold at post: the offer branch's money gate reads job_payment_is_listed; the name read is verbatim.
-  record_backout_notice: "20261027185146_card_hold_at_post.sql",
+  // A2-B15 (2026-10-29): the poster's own reopen files no backout notice; the name read is verbatim.
+  record_backout_notice: "20261029162907_poster_own_reopen_files_no_backout_notice.sql",
 };
 
 /** Blank every call to the masking helpers, balanced parentheses, so what is left reads names raw. */

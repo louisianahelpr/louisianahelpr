@@ -122,7 +122,9 @@ describe("SeriesStrip: an ended series, and the way to end one", () => {
     // Wednesdays from Sep 2 for 6 weeks, ended on Sep 16, and only visit one
     // exists: Sep 9 and 16 are gaps the cron will never fund now.
     renderStrip({ recurrenceDays: [3], recurrenceWeeks: 6, dateNeeded: "2026-09-02", seriesEndedOn: "2026-09-16", canEnd: true });
-    expect(screen.getByText(/1\/1 visits/)).toBeTruthy();
+    // No visit done yet (the count mock returns 0), so the total reads "1 visit" (seriesProgress, A2-C42), not 3.
+    expect(screen.getByText(/· 1 visit ·/)).toBeTruthy();
+    expect(screen.queryByText(/3 visits/)).toBeNull();
     expect(screen.getByText(/ended, no new visits/)).toBeTruthy();
     expect(screen.queryByText(/next funds/)).toBeNull();
     expect(screen.queryByRole("button", { name: "End series" })).toBeNull();

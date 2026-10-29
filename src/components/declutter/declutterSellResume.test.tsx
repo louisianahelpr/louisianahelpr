@@ -49,6 +49,8 @@ vi.mock("./DeclutterPriceHint", () => ({ default: () => null }));
 // The Selling tab's own card has its own test (sellerDeliverySettings); here only that it is offered.
 vi.mock("./SellerDeliverySettings", () => ({ SellerDeliveryCard: () => <div data-testid="seller-delivery-card" /> }));
 vi.mock("@/lib/declutter/sellerDelivery", () => ({ fetchMySellerDelivery: async () => ({ ...delivery }) }));
+// Porch weekday chips (20261029161347) read the seller's picked days; none picked here.
+vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchItem: async () => ({
     id: ID, status: "draft", title: saved.title, description: saved.description, category: saved.category,

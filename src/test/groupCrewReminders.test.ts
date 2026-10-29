@@ -97,9 +97,12 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261007033530 (Q552) restates get_public_profile_stats with its seed clauses only;
       // 20261015051301 (Declutter row 45) adds Declutter reviews to visible_reviews only.
       // 20261021074131 (ID badge = Stripe Identity only) changes the identity verdict only.
+      // 20261029173937 (A2-C40) restates sweep_no_show_alerts with its copy only (the start time, "Helpr").
       const want = fn === "get_public_profile_stats"
         ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql"]
-        : [THIS];
+        : fn === "sweep_no_show_alerts"
+          ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql"]
+          : [THIS];
       expect(want, `${fn} is not the Q728 (or Q731/Q552) definition`).toContain(EFFECTIVE.get(fn)?.file);
     }
     for (const fn of ["get_helper_earnings_export", "get_helper_tiers", "get_neighbor_hire_count", "settle_one_off_jobs_for_banned_account"]) {

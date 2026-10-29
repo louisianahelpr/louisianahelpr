@@ -101,8 +101,9 @@ describe("Helpr Guarantee: the server", () => {
     expect(a).toContain("v_today date := (now() AT TIME ZONE 'America/Chicago')::date;");
     expect(a).toContain("_fix_date > v_today + (public.guarantee_rules() ->> 'fix_within_days')::integer");
     expect(fixDateChoices(new Date("2026-10-27T15:00:00Z"))).toEqual(["2026-10-27", "2026-10-28", "2026-10-29", "2026-10-30"]);
-    // 11 pm in Louisiana is already tomorrow in UTC: the choices start from Louisiana's today.
-    expect(fixDateChoices(new Date("2026-10-28T04:30:00Z"))[0]).toBe("2026-10-27");
+    // 11:30 pm in Louisiana is already tomorrow in UTC: the window is counted from Louisiana's today (it ends on
+    // the 30th, not UTC's 31st). Today itself is past the same-day cutoff by then (F31), so it starts on the 28th.
+    expect(fixDateChoices(new Date("2026-10-28T04:30:00Z"))).toEqual(["2026-10-28", "2026-10-29", "2026-10-30"]);
   });
 });
 

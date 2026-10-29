@@ -200,7 +200,9 @@ function HelprView({ claim, jobId }: { claim: GuaranteeClaim; jobId: string }) {
           <p className="text-ds-14 font-semibold">The person who posted this job says it wasn't done right.</p>
           <p className="whitespace-pre-line text-ds-14 [overflow-wrap:anywhere]">{claim.note}</p>
           <ClaimPhotos paths={claim.photo_paths} />
-          <p className="text-ds-13 text-muted-foreground">Pick a day to fix it by {endSentence(when(claim.helpr_answer_by))} Your pay for this job waits until it's settled.</p>
+          {/* F31: helpr_answer_by is when the ANSWER is due (the Terms: "48 hours to pick a day to fix it (within 3
+              days)"); it read "fix it by <that time>" over chips running past it. */}
+          <p className="text-ds-13 text-muted-foreground">Answer by {endSentence(when(claim.helpr_answer_by))} Pick the day you'll come back to fix it. Your pay for this job waits until it's settled.</p>
           <div role="radiogroup" aria-label="Day to fix it" className="flex flex-wrap gap-2">
             {days.map((d) => (
               <Button key={d} type="button" size="sm" role="radio" aria-checked={day === d} variant={day === d ? "primary" : "outline"} className="rounded-full" onClick={() => setDay(d)}>

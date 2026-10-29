@@ -23,7 +23,7 @@ import { FieldError } from "@/components/ui/FieldError";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { SCHEDULE_TOO_SOON_COPY, TODAY_CLOSED_COPY } from "@/lib/jobScheduleCopy";
-import { sameDayStartTime } from "@/lib/sameDayJob";
+import { useSameDayPick } from "@/components/postjob/useSameDayPick";
 
 /** The smallest of the N frozen crew shares of `budget`, in dollars. */
 function crewSmallestShare(budget: number, n: number): number {
@@ -207,7 +207,7 @@ export function LogisticsSection({
   const dateLabel = isRecurring ? "Start date" : "Date needed";
   // Q2438 "Need it today": today, at the soonest start the server takes (2 hours' notice).
   const today = strip[0]?.iso ?? todayYmd();
-  const sameDayStart = sameDayStartTime();
+  const { sameDayStart, markTodayStart, pickDay } = useSameDayPick({ today, startTime, setDateNeeded, setStartTime });
   // F19: no start left today → today is closed everywhere here (button, strip card, calendar day).
   const todayClosed = !sameDayStart;
   const isToday = !isRecurring && dateNeeded === today && !todayClosed;
@@ -218,7 +218,7 @@ export function LogisticsSection({
     setOtherTime(false);
     setMoreDates(false);
     setDateNeeded(today);
-    setStartTime(sameDayStart);
+    markTodayStart(sameDayStart);
   };
 
   // WHERE (board 45). The saved address is filled in for the poster only while
@@ -420,7 +420,7 @@ export function LogisticsSection({
                 aria-checked={on}
                 aria-label={d.long}
                 disabled={closed}
-                onClick={() => setDateNeeded(d.iso)}
+                onClick={() => pickDay(d.iso)}
                 className={`flex min-h-[60px] min-w-0 flex-col items-center justify-center rounded-ds-md px-1 py-2 font-sans transition-transform active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background ${
                   closed
                     ? `cursor-not-allowed border border-dashed bg-transparent text-muted-foreground ${on ? "border-[hsl(var(--destructive-ink))]" : "border-border"}`
@@ -450,7 +450,7 @@ export function LogisticsSection({
           inline
           labelledBy="date-label"
           value={dateNeeded}
-          onChange={setDateNeeded}
+          onChange={pickDay}
           min={todayLocalISO()}
           isDateDisabled={todayClosed ? (iso) => iso === today : undefined}
         />

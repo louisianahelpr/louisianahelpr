@@ -25,10 +25,11 @@ import {
 
 // @mutate src/lib/sameDayJob.ts |   const earliest = louisianaMinutes(now) + SAME_DAY_MIN_NOTICE_MIN + CHECKOUT_MARGIN_MIN; |   const earliest = louisianaMinutes(now) + CHECKOUT_MARGIN_MIN;
 // @mutate src/lib/sameDayJob.ts |   if (rounded > lh * 60 + lm) return null; |
+// @mutate src/lib/sameDayJob.ts |   const rounded = Math.max(Math.ceil(earliest / 30) * 30, eh * 60 + em); |   const rounded = Math.ceil(earliest / 30) * 30;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return Number.isFinite(t) && t > now.getTime(); |   return Number.isFinite(t);
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return milesBetween(jLat, jLng, hLat, hLng) <= SAME_DAY_RADIUS_MILES; |   return true;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(job.date_needed, now)) return 0; |
-// @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    setStartTime(sameDayStart); |     setDateNeeded(today);
+// @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    markTodayStart(sameDayStart); |     setDateNeeded(today);
 // @mutate src/components/dashboard/JobCard.tsx |           if (isTodayJob(job.date_needed)) { |           if (false) {
 
 const ROOT = resolve(__dirname, "..", "..");
@@ -43,7 +44,13 @@ describe("Need it today (Q2438)", () => {
     expect(sameDayStartTime(ct("15:05"))).toBe("17:30");
     expect(sameDayStartTime(ct("15:20"))).toBe("17:30");
     expect(sameDayStartTime(ct("15:21"))).toBe("18:00");
-    expect(sameDayStartTime(ct("00:00"))).toBe("02:30");
+  });
+
+  it("never fills a start before 8:00 AM (A2-C27: at 00:33 it filled 3:00 AM)", () => {
+    expect(sameDayStartTime(ct("00:33"))).toBe("08:00");
+    expect(sameDayStartTime(ct("00:00"))).toBe("08:00");
+    expect(sameDayStartTime(ct("05:50"))).toBe("08:00");
+    expect(sameDayStartTime(ct("05:51"))).toBe("08:30");
   });
 
   it("is too late after the last start of the day (9:00 PM)", () => {
@@ -112,8 +119,10 @@ describe("same-day matching (Q2438)", () => {
 describe("the wiring (Q2438)", () => {
   it("Post a job offers Need it today, filling today and the start", () => {
     const src = code("src/components/postjob/LogisticsSection.tsx");
-    expect(src).toContain("sameDayStartTime()");
-    expect(src).toMatch(/setDateNeeded\(today\);\s*setStartTime\(sameDayStart\);/);
+    // A2-C27: the start comes through useSameDayPick (sameDayStartTime(), remembered as Need it today's own).
+    expect(src).toContain("useSameDayPick({ today, startTime, setDateNeeded, setStartTime })");
+    expect(code("src/components/postjob/useSameDayPick.ts")).toContain("sameDayStart: sameDayStartTime(),");
+    expect(src).toMatch(/setDateNeeded\(today\);\s*markTodayStart\(sameDayStart\);/);
     expect(src).toContain("Need it today");
   });
 

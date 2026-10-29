@@ -21,6 +21,11 @@ const SAME_DAY_MIN_NOTICE_MIN = 120;
 const CHECKOUT_MARGIN_MIN = 10;
 /** The latest start "Need it today" offers (9:00 PM). */
 const SAME_DAY_LATEST_START = "21:00";
+/**
+ * The earliest start it offers: 8:00 AM, the form's first time chip (whenChoices TIME_CHIPS). A2-C27 (app
+ * audit 2026-10-28): at 00:33 it filled "Today, starting 3:00 AM".
+ */
+const SAME_DAY_EARLIEST_START = "08:00";
 
 /** Louisiana wall-clock minutes since midnight for `now`. */
 function louisianaMinutes(now: Date): number {
@@ -36,12 +41,14 @@ function louisianaMinutes(now: Date): number {
 }
 
 /**
- * The start "Need it today" fills in ("HH:MM", Louisiana time), or null when it
- * is too late for a job today (the soonest allowed start is after 9:00 PM).
+ * The start "Need it today" fills in ("HH:MM", Louisiana time), never before
+ * 8:00 AM, or null when it is too late for a job today (the soonest allowed
+ * start is after 9:00 PM).
  */
 export function sameDayStartTime(now: Date = new Date()): string | null {
   const earliest = louisianaMinutes(now) + SAME_DAY_MIN_NOTICE_MIN + CHECKOUT_MARGIN_MIN;
-  const rounded = Math.ceil(earliest / 30) * 30;
+  const [eh, em] = SAME_DAY_EARLIEST_START.split(":").map(Number);
+  const rounded = Math.max(Math.ceil(earliest / 30) * 30, eh * 60 + em);
   const [lh, lm] = SAME_DAY_LATEST_START.split(":").map(Number);
   if (rounded > lh * 60 + lm) return null;
   return `${String(Math.floor(rounded / 60)).padStart(2, "0")}:${String(rounded % 60).padStart(2, "0")}`;
